@@ -1,0 +1,28 @@
+body {
+    color: #000;
+    background: #fff;
+    font-size: 24px;
+    padding-top: 80px;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    line-height: 160%;
+}
+
+main {
+    margin: 0 auto;
+    max-width: 900px;
+    padding: 0 20px;
+}
+
+h1 {
+    font-size: 36px;
+}
+
+.mail {
+    font-size: 14px;
+    margin-top: 60px;
+}
+
+a {
+    color: #000;
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>SpeedPuzzling.cz</title>
+
+    <meta name="description" content="Speedpuzzling.cz">
+    <meta name="keywords" content="speedpuzzling, speed, puzzling">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<main>
+    <ul>
+        <li><a href="add-time.html">Zadat čas</a></li>
+        <li><a href="my-times.html">Moje časy</a></li>
+        <li><a href="profile.html">Profil</a></li>
+        <li><a href="ladder.html">Žebříček</a></li>
+    </ul>
+
+    <h1>Zadat čas</h1>
+
+    <form>
+        <div style="border: 2px solid green;">
+            <label>Puzzle:</label>
+            <select>
+                <option>500 dílků Paris ravensburger</option>
+            </select>
+        </div>
+
+        <div style="border: 2px solid red;">
+            <label>Tyhle puzzle tu ještě nemáte:</label>
+
+            <br>Počet dílků: <input type="text">
+            <br>Název: <input type="text">
+            <br>Výrobce: <input type="text">
+            <br>Foto: <input type="file">
+        </div>
+
+        <p>
+            <label>Čas:</label> <input type="text">
+        </p>
+        <p>
+            <label>Kolik vás skládalo:</label>
+            <select>
+                <option>Já, já a jenom já!</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>Skupina 5 a více</option>
+            </select>
+        </p>
+        <p>
+            <label>Tempo?</label>
+            <select>
+                <option>Vražedné (speedpuzzling)</option>
+                <option>Na pohodu</option>
+            </select>
+        </p>
+
+        <p>
+            <label>komentář</label>
+            <textarea></textarea>
+        </p>
+        <p>
+            <label>foto složených puzzlí</label>
+            <input type="file">
+        </p>
+        <p>
+            <label>Žebříček</label>
+
+            <label>
+                Competitive (připravujeme)
+                <input type="radio" name="ladder" value="competitive" disabled="disabled">
+            </label>
+
+            <label>
+                Pro zábavu - "Casual"
+                <input type="radio" name="ladder" value="casual" checked="checked">
+            </label>
+        </p>
+
+        <button>Pošli to tam</button>
+    </form>
+
+</main>
+</body>
+</html>

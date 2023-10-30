@@ -2,6 +2,7 @@ FROM unit:1.31.1-php8.2 as base
 
 COPY .docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY .docker/wait-for-it.sh /usr/local/bin/wait-for-it
+COPY .docker/nginx-unit /docker-entrypoint.d/
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -81,8 +82,6 @@ ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 
 # Unload xdebug extension by deleting config
 RUN rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
-
-COPY .docker/nginx-unit /docker-entrypoint.d/
 
 # Copy js build
 COPY --from=js-builder /build .

@@ -1,0 +1,186 @@
+{
+  "name": "drift-zoom",
+  "version": "1.5.1",
+  "description": "Easily add \"zoom on hover\" functionality to your site's images. Lightweight, no-dependency JavaScript.",
+  "contributors": [
+    "Frederick Fogerty <frederick.fogerty@gmail.com> (https://github.com/frederickfogerty)",
+    "Sherwin Heydarbeygi <sherwin@imgix.com> (https://github.com/sherwinski)"
+  ],
+  "main": "lib/Drift.js",
+  "module": "es/Drift.js",
+  "jsnext:main": "es/Drift.js",
+  "scripts": {
+    "build": "npm run clean && run-p build:css:** build:js:**",
+    "build:serial": "npm run clean && run-s build:css:** build:js:**",
+    "build:css:dev": "mkdir -p dist && cp src/css/drift-basic.css dist/",
+    "build:css:prod": "mkdir -p dist && postcss src/css/drift-basic.css > dist/drift-basic.min.css",
+    "build:js:dist:prod": "webpack --env build && cp dist/Drift.min.js dist/Drift.js",
+    "build:js:lib:commonjs": "cross-env BABEL_ENV=commonjs babel src/js --out-dir lib --source-maps",
+    "build:js:lib:es": "cross-env BABEL_ENV=es babel src/js --out-dir es --source-maps",
+    "build:watch": "webpack --progress --color --watch --env dev",
+    "clean": "rimraf lib es dist",
+    "dev": "npm run build:watch",
+    "format:check": "prettier --list-different \"{src,test}/**/*.js\"",
+    "format": "prettier --write \"{src,test}/**/*.js\"",
+    "lint": "eslint \"{src,test}/**/*.js\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
+    "release": "npm run build && git add dist src/js/Drift.js && standard-version -a",
+    "start": "npm run dev",
+    "test:watch": "karma start config/karma/karma-local.config.js",
+    "test:local": "karma start config/karma/karma-local.config.js --singleRun",
+    "test:ci": "karma start config/karma/karma-ci.config.js --singleRun",
+    "test": "npm run test:local",
+    "release:dryRun": "npx node-env-run --exec 'semantic-release --dryRun'",
+    "release:publish": "semantic-release"
+  },
+  "files": [
+    "lib",
+    "es",
+    "dist",
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imgix/drift.git"
+  },
+  "keywords": [
+    "javascript",
+    "zoom",
+    "hover"
+  ],
+  "author": "imgix",
+  "license": "BSD-2",
+  "bugs": {
+    "url": "https://github.com/imgix/drift/issues"
+  },
+  "homepage": "https://github.com/imgix/drift",
+  "devDependencies": {
+    "@babel/cli": "7.19.3",
+    "@babel/core": "7.19.3",
+    "@babel/plugin-proposal-class-properties": "7.18.6",
+    "@babel/preset-env": "7.19.3",
+    "@google/semantic-release-replace-plugin": "1.1.0",
+    "@semantic-release/changelog": "5.0.1",
+    "@semantic-release/git": "9.0.1",
+    "babel-eslint": "10.1.0",
+    "babel-loader": "8.2.5",
+    "babel-preset-env": "7.0.0-beta.3",
+    "chai": "4.3.6",
+    "closure-webpack-plugin": "2.5.0",
+    "cross-env": "7.0.3",
+    "cssnano": "5.1.7",
+    "cssnano-preset-advanced": "5.3.8",
+    "eslint": "7.32.0",
+    "eslint-config-google": "0.14.0",
+    "eslint-config-prettier": "8.5.0",
+    "google-closure-compiler": "20210302.0.0",
+    "google-closure-compiler-js": "20200719.0.0",
+    "jasmine-core": "4.4.0",
+    "karma": "6.3.17",
+    "karma-chrome-launcher": "3.1.1",
+    "karma-firefox-launcher": "2.1.2",
+    "karma-jasmine": "4.0.2",
+    "karma-webpack": "4.0.2",
+    "npm-run-all": "4.1.5",
+    "postcss": "8.4.12",
+    "postcss-cli": "8.3.1",
+    "prettier": "2.7.1",
+    "rimraf": "3.0.2",
+    "semantic-release": "17.4.7",
+    "standard-version": "9.3.2",
+    "webpack": "4.46.0",
+    "webpack-cli": "4.9.2",
+    "yargs": "17.5.1"
+  },
+  "browserslist": [
+    "ie 11",
+    "last 2 edge versions",
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 iOS versions",
+    "last 2 Android versions"
+  ],
+  "release": {
+    "branches": [
+      "main",
+      {
+        "name": "next",
+        "prerelease": "rc"
+      },
+      {
+        "name": "beta",
+        "prerelease": true
+      },
+      {
+        "name": "alpha",
+        "prerelease": true
+      }
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      [
+        "@google/semantic-release-replace-plugin",
+        {
+          "replacements": [
+            {
+              "files": [
+                "src/js/Drift.js"
+              ],
+              "from": "this.VERSION = \".*\"",
+              "to": "this.VERSION = \"${nextRelease.version}\"",
+              "results": [
+                {
+                  "file": "src/js/Drift.js",
+                  "hasChanged": true,
+                  "numMatches": 1,
+                  "numReplacements": 1
+                }
+              ],
+              "countMatches": true
+            }
+          ]
+        }
+      ],
+      "@semantic-release/changelog",
+      "@semantic-release/npm",
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "src/**",
+            "dist/**",
+            "package.json",
+            "changelog.md"
+          ],
+          "message": "chore(release): ${nextRelease.version}\n\n${nextRelease.notes} [skip ci]"
+        }
+      ],
+      [
+        "@semantic-release/github",
+        {
+          "assets": [
+            {
+              "path": "dist/Drift.js",
+              "label": "Standard build"
+            },
+            {
+              "path": "dist/Drift.min.js",
+              "label": "Minified build"
+            },
+            {
+              "path": "dist/drift-basic.css",
+              "label": "Drift css"
+            },
+            {
+              "path": "dist/drift-basic.min.css",
+              "label": "Minified Drift css"
+            }
+          ]
+        }
+      ]
+    ]
+  }
+}

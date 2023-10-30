@@ -1,0 +1,50 @@
+{
+    "settings": {
+        "http": {
+            "max_body_size": 134217728,
+            "send_timeout": 35,
+            "idle_timeout": 35
+        }
+    },
+    "listeners": {
+        "*:8080": {
+            "pass": "routes"
+        }
+    },
+    "routes": [
+        {
+            "action": {
+                "share": "/app/public$uri",
+                "fallback": {
+                    "pass": "applications/php/index"
+                }
+            }
+        }
+    ],
+    "applications": {
+        "php": {
+            "type": "php",
+            "targets": {
+                "direct": {
+                    "root": "/app/public/"
+                },
+                "index": {
+                    "root": "/app/public/",
+                    "script": "index.php"
+                }
+            },
+            "processes": {
+                "max": 5,
+                "spare": 5,
+                "idle_timeout": 30
+            },
+            "options": {
+                "user": {
+                    "memory_limit": "256M"
+                },
+                "admin": {}
+            }
+        }
+    },
+    "access_log": "/var/log/access.log"
+}

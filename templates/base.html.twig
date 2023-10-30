@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="cs">
+    <head>
+        <meta charset="UTF-8">
+        <title>{% block title %}{% endblock %} | SpeedPuzzling.cz</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <meta name="description" content="">
+        <meta name="keywords" content="">
+
+        <link rel="apple-touch-icon" sizes="180x180" href="">
+        <link rel="icon" type="image/png" sizes="32x32" href="">
+        <link rel="icon" type="image/png" sizes="16x16" href="">
+        <link rel="mask-icon" color="#fe6a6a" href="">
+
+        <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="theme-color" content="#ffffff">
+
+        <!-- Vendor Styles including: Font Icons, Plugins, etc.-->
+        <link rel="stylesheet" media="screen" href="{{ asset('vendor/simplebar/dist/simplebar.min.css') }}"/>
+        <link rel="stylesheet" media="screen" href="{{ asset('vendor/tiny-slider/dist/tiny-slider.css') }}"/>
+
+        <!-- Main Theme Styles + Bootstrap-->
+        <link rel="stylesheet" media="screen" href="{{ asset('css/theme.min.css') }}">
+
+        {% block stylesheets %}
+            {{ encore_entry_link_tags('app') }}
+        {% endblock %}
+
+        {% block javascripts %}
+            {{ encore_entry_script_tags('app') }}
+        {% endblock %}
+    </head>
+    <body>
+        <header class="navbar navbar-expand-lg navbar-light shadow-sm">
+            <div class="container">
+
+                <a class="navbar-brand d-none d-lg-block order-lg-1" href="#">
+                    <img width="56" src="{{ asset('img/puzzle.png') }}" alt="SpeedPuzzling.cz"/>
+                </a>
+
+                <a class="navbar-brand d-lg-none me-2" href="#">
+                    <img width="56" src="{{ asset('img/puzzle.png') }}" alt="SpeedPuzzling.cz"/>
+                </a>
+
+                <!-- Toolbar -->
+                <div class="navbar-toolbar d-flex align-items-center order-lg-3">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="#">
+                        <div class="navbar-tool-icon-box">
+                            <i class="navbar-tool-icon ci-user"></i>
+                        </div>
+                        <div class="navbar-tool-text ms-n3"><small>Můj profil</small></div>
+                    </a>
+
+                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="#">
+                        <div class="navbar-tool-icon-box">
+                            <i class="navbar-tool-icon ci-add"></i>
+                        </div>
+                        <div class="navbar-tool-text ms-n3"><small>Přidat čas</small></div>
+                    </a>
+
+                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 menu-link-highlight" href="#">
+                        <div class="navbar-tool-icon-box">
+                            <i class="navbar-tool-icon ci-time"></i>
+                        </div>
+                        <div class="navbar-tool-text ms-n3"><small>Stopky</small></div>
+                    </a>
+                </div>
+
+                <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">
+                    <hr class="d-lg-none my-3">
+                    <ul class="navbar-nav">
+                        <li class="nav-item"><a class="nav-link" href="#">Přehled puzzlí</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#">Žebříček</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        {% block full_content %}
+            <section class="container pt-4">
+                {% block content %}{% endblock %}
+            </section>
+        {% endblock %}
+
+
+        <!-- Vendor scrits: js libraries and plugins-->
+        <script src="{{ asset('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+        <script src="{{ asset('vendor/simplebar/dist/simplebar.min.js') }}"></script>
+        <script src="{{ asset('vendor/tiny-slider/dist/min/tiny-slider.js') }}"></script>
+        <script src="{{ asset('vendor/smooth-scroll/dist/smooth-scroll.polyfills.min.js') }}"></script>
+
+        <!-- Main theme script-->
+        <script src="{{ asset('js/theme.min.js') }}"></script>
+    </body>
+</html>

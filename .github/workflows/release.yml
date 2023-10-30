@@ -25,7 +25,7 @@ jobs:
                 with:
                     # list of Docker images to use as base name for tags
                     images: |
-                        ghcr.io/speedpuzzling/speedpuzzling
+                        ghcr.io/speedpuzzling/speedpuzzlingcz
                     # generate Docker tags based on the following events/attributes
                     tags: |
                         type=ref,event=branch

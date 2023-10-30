@@ -1,1 +1,1 @@
-# speedpuzzling.cz
+# SpeedPuzzling.cz

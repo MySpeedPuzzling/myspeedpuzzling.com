@@ -12,60 +12,109 @@
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="theme-color" content="#ffffff">
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <main>
-    <ul>
-        <li><a href="add-time.html">Zadat čas</a></li>
-        <li><a href="my-times.html">Moje časy</a></li>
-        <li><a href="profile.html">Profil</a></li>
-        <li><a href="ladder.html">Žebříček</a></li>
-    </ul>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container">
+            <a class="navbar-brand" href="#">SpeedPuzzling.cz</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Přehled puzzlí</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Žebříček</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Můj profil</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Zadat čas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Stopky</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <h1>Žebříček</h1>
+    <div class="container">
 
-    <h2>Poslední složené - 500 dílků</h2>
+        <h1 class="mt-4">Žebříček</h1>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Pořadí</th>
-                <th>Jméno</th>
-                <th>Čas</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>1.</td>
-                <td>Simonka</td>
-                <td>1:00:00</td>
-            </tr>
-        </tbody>
-    </table>
+        <h2>Poslední složené - 500 dílků</h2>
 
-    <h2>TOP 10 - 500 dílků</h2>
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Pořadí</th>
+                    <th>Jméno</th>
+                    <th>Čas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1.</td>
+                    <td>Simonka</td>
+                    <td>1:00:00</td>
+                </tr>
+                <tr>
+                    <td>2.</td>
+                    <td>Simonka</td>
+                    <td>1:00:00</td>
+                </tr>
+                <tr>
+                    <td>3.</td>
+                    <td>Simonka</td>
+                    <td>1:00:00</td>
+                </tr>
+            </tbody>
+        </table>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Puzzle</th>
-                <th>Pořadí</th>
-                <th>Jméno</th>
-                <th>Čas</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Paris</td>
-                <td>1.</td>
-                <td>Simonka</td>
-                <td>1:00:00</td>
-            </tr>
-        </tbody>
-    </table>
+        <h2>TOP 10 - 500 dílků</h2>
 
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Puzzle</th>
+                    <th>Pořadí</th>
+                    <th>Jméno</th>
+                    <th>Čas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Paris</td>
+                    <td>1.</td>
+                    <td>Simonka</td>
+                    <td>1:00:00</td>
+                </tr>
+                <tr>
+                    <td>Paris</td>
+                    <td>2.</td>
+                    <td>Simonka</td>
+                    <td>1:00:00</td>
+                </tr>
+                <tr>
+                    <td>Paris</td>
+                    <td>3.</td>
+                    <td>Simonka</td>
+                    <td>1:00:00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
 </main>
 </body>
 </html>

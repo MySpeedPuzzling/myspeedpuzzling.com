@@ -2,6 +2,10 @@
 
 name: Release
 
+permissions:
+  deployments: write
+  packages: write
+
 on:
     workflow_run:
         workflows: [Tests]
@@ -55,3 +59,27 @@ jobs:
                     platforms: linux/amd64
                     cache-from: type=gha, scope=${{ github.workflow }}
                     cache-to: type=gha, scope=${{ github.workflow }}
+
+
+    deploy:
+        runs-on: ubuntu-latest
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        needs:
+            - docker
+        environment:
+            name: prod
+            url: https://speedpuzzling.cz
+        steps:
+            -   uses: appleboy/ssh-action@master
+                with:
+                    host: ${{ secrets.DEPLOY_HOST }}
+                    username: ${{ secrets.DEPLOY_USERNAME }}
+                    key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
+                    port: ${{ secrets.DEPLOY_PORT }}
+                    script_stop: true
+                    script: |
+                        docker pull ghcr.io/speedpuzzling/speedpuzzlingcz
+                        cd /app/speedpuzzling
+                        docker-compose pull
+                        docker-compose up -d
+

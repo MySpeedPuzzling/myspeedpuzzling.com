@@ -78,7 +78,6 @@ jobs:
                     port: ${{ secrets.DEPLOY_PORT }}
                     script_stop: true
                     script: |
-                        docker pull ghcr.io/speedpuzzling/speedpuzzlingcz
                         cd /app/speedpuzzling
                         docker-compose pull
                         docker-compose up -d

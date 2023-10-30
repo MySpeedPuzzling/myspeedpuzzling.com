@@ -5,7 +5,9 @@ volumes:
 
 services:
     web:
-        build: .
+        build:
+            context: .
+            target: base
         restart: unless-stopped
         volumes:
             - .:/app

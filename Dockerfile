@@ -1,4 +1,4 @@
-FROM unit:1.31.0-php8.2
+FROM unit:1.31.1-php8.2 as base
 
 COPY .docker/wait-for-it.sh /usr/local/bin/wait-for-it
 
@@ -41,3 +41,49 @@ COPY .docker/nginx-unit/php.ini /usr/local/etc/php/conf.d/99-php-overrides.ini
 
 RUN ln -sf /dev/stdout /var/log/unit.log \
     && ln -sf /dev/stdout /var/log/access.log
+
+
+FROM base as composer
+
+COPY composer.json composer.lock symfony.lock ./
+
+RUN composer install --no-dev --no-interaction --no-scripts
+
+
+FROM node:16 as js-builder
+
+WORKDIR /build
+
+# We need /vendor here
+COPY --from=composer /app .
+
+# Install npm packages
+COPY package.json yarn.lock webpack.config.js ./
+RUN yarn install
+
+# Production yarn build
+COPY ./assets ./assets
+
+RUN yarn run build
+
+
+
+FROM composer as prod
+
+ENV APP_ENV="prod"
+ENV APP_DEBUG=0
+ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+
+# Unload xdebug extension by deleting config
+RUN rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+
+COPY .docker/nginx-unit /docker-entrypoint.d/
+
+# Copy js build
+COPY --from=js-builder /build .
+
+# Copy application source code
+COPY . .
+
+# Need to run again to trigger scripts with application code present
+RUN composer install --no-dev --no-interaction --classmap-authoritative

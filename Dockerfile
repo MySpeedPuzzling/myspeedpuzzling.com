@@ -1,5 +1,6 @@
 FROM unit:1.31.1-php8.2 as base
 
+COPY .docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY .docker/wait-for-it.sh /usr/local/bin/wait-for-it
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -8,6 +9,8 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/wait-for-it \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && mkdir /docker-entrypoint.d/ \
     && mkdir /.composer \
     && mkdir /usr/tmp \
     && apt-get update && apt-get install -y \
@@ -41,6 +44,9 @@ COPY .docker/nginx-unit/php.ini /usr/local/etc/php/conf.d/99-php-overrides.ini
 
 RUN ln -sf /dev/stdout /var/log/unit.log \
     && ln -sf /dev/stdout /var/log/access.log
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["unitd", "--no-daemon"]
 
 
 FROM base as composer

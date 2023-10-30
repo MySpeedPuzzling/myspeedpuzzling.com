@@ -10,7 +10,6 @@ COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr
 
 RUN chmod +x /usr/local/bin/wait-for-it \
     && chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && mkdir /docker-entrypoint.d/ \
     && mkdir /.composer \
     && mkdir /usr/tmp \
     && apt-get update && apt-get install -y \

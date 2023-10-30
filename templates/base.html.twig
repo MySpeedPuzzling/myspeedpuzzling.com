@@ -37,11 +37,11 @@
         <header class="navbar navbar-expand-lg navbar-light shadow-sm">
             <div class="container">
 
-                <a class="navbar-brand d-none d-lg-block order-lg-1" href="#">
+                <a class="navbar-brand d-none d-lg-block order-lg-1" href="{{ path('homepage') }}">
                     <img width="56" src="{{ asset('img/puzzle.png') }}" alt="SpeedPuzzling.cz"/>
                 </a>
 
-                <a class="navbar-brand d-lg-none me-2" href="#">
+                <a class="navbar-brand d-lg-none me-2" href="{{ path('homepage') }}">
                     <img width="56" src="{{ asset('img/puzzle.png') }}" alt="SpeedPuzzling.cz"/>
                 </a>
 
@@ -51,21 +51,21 @@
                         <span class="navbar-toggler-icon"></span>
                     </button>
 
-                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="#">
+                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('my_profile') %}active{% endif %}" href="{{ path('my_profile') }}">
                         <div class="navbar-tool-icon-box">
                             <i class="navbar-tool-icon ci-user"></i>
                         </div>
                         <div class="navbar-tool-text ms-n3"><small>Můj profil</small></div>
                     </a>
 
-                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="#">
+                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" href="{{ path('add_time') }}">
                         <div class="navbar-tool-icon-box">
                             <i class="navbar-tool-icon ci-add"></i>
                         </div>
                         <div class="navbar-tool-text ms-n3"><small>Přidat čas</small></div>
                     </a>
 
-                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 menu-link-highlight" href="#">
+                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
                         <div class="navbar-tool-icon-box">
                             <i class="navbar-tool-icon ci-time"></i>
                         </div>
@@ -76,8 +76,8 @@
                 <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">
                     <hr class="d-lg-none my-3">
                     <ul class="navbar-nav">
-                        <li class="nav-item"><a class="nav-link" href="#">Přehled puzzlí</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#">Žebříček</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">Přehled puzzlí</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">Žebříček</a></li>
                     </ul>
                 </div>
             </div>

@@ -16,9 +16,9 @@ fi
 
 ## Database setup
 
-if [[ "$ENVIRONMENT" == "dev" ]] || [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then
+# if [[ "$ENVIRONMENT" == "dev" ]] || [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then
 #    wait-for-it ${DATABASE_HOST:-postgres}:${DATABASE_PORT:-5432} --timeout=15
-fi
+# fi
 
 if [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then
 #    time bin/console doctrine:migrations:migrate -vv --allow-no-migration --all-or-nothing --no-interaction

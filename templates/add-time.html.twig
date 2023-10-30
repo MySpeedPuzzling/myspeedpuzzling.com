@@ -1,0 +1,89 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Přidat čas{% endblock %}
+
+{% block content %}
+    <h1>Zadat čas</h1>
+
+    <form class="pb-4">
+        <div class="mb-4">
+            <label class="form-label">Puzzle:</label>
+            <select class="form-select">
+                <option>500 dílků Paris ravensburger</option>
+            </select>
+        </div>
+
+        <div>
+            <h5>Tyhle puzzle tu ještě nemáte:</h5>
+
+            <div class="mb-4">
+                <label class="form-label">Počet dílků:</label>
+                <input class="form-control" type="text">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Název:</label>
+                <input class="form-control" type="text">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Výrobce:</label>
+                <input class="form-control" type="text">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Foto:</label>
+                <input class="form-control" type="file">
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Čas:</label>
+            <input class="form-control" type="text">
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Kolik vás skládalo:</label>
+            <select class="form-select">
+                <option>Já, já a jenom já!</option>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+                <option>Skupina 5 a více</option>
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Tempo:</label>
+            <select class="form-select">
+                <option>Vražedné (speedpuzzling)</option>
+                <option>Na pohodu</option>
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Komentář:</label>
+            <textarea class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Foto složených puzzlí:</label>
+            <input class="form-control" type="file">
+        </div>
+
+        <div class="mb-4">
+            <label>Žebříček</label>
+
+            <div class="form-check form-check">
+                <input class="form-check-input" type="radio" id="casual" name="type" checked>
+                <label class="form-check-label" for="casual">Pro zábavu (Casual)</label>
+            </div>
+            <div class="form-check form-check">
+                <input class="form-check-input" type="radio" id="competitive" name="type" disabled>
+                <label class="form-check-label" for="competitive">Competitive (připravujeme)</label>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Pošli to tam</button>
+    </form>
+{% endblock %}

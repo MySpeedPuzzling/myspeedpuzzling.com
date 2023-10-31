@@ -6,13 +6,24 @@
     <h1>Stopky</h1>
 
     <div class="container pb-4">
-        <div class="row align-items-center justify-content-center gy-3 py-3 text-center">
-            <div class="col-lg-5 col-md-8 col-sm-10">
-                <section class="stopwatch">
-                    <div class="time">01:42:00</div>
+        <div class="row align-items-center justify-content-center gy-3 pb-3 text-center">
+            <div class="col-lg-6 col-md-8 col-sm-10">
+                <div class="stopwatch countdown justify-content-center">
+                    <div class="countdown-hours rounded p-1 p-sm-2 p-lg-2">
+                        <span class="countdown-value">1</span>
+                        <span class="countdown-label text-muted">h</span>
+                    </div>
+                    <div class="countdown-minutes rounded p-1 p-sm-2 p-lg-2">
+                        <span class="countdown-value">42</span>
+                        <span class="countdown-label text-muted">m</span>
+                    </div>
+                    <div class="countdown-seconds rounded p-1 p-sm-2 p-lg-2">
+                        <span class="countdown-value">20</span>
+                        <span class="countdown-label text-muted">s</span>
+                    </div>
+                </div>
 
-                    <button type="button" class="btn btn-success btn-lg">Start</button>
-                </section>
+                <button type="button" class="btn btn-success btn-lg">Start</button>
 
                 <div class="mt-4">
                     <button type="button" class="btn btn-sm btn-outline-danger">Vynulovat</button>
@@ -30,7 +41,7 @@
 
             </div>
 
-            <div class="col-lg-6 col-md-8 offset-lg-1 col-sm-10">
+            <div class="col-lg-6 col-md-8 col-sm-10">
                 <div class="px-2">
                     <img class="stopwatch-image" src="{{ asset('img/stopwatch.png') }}" alt="SpeedPuzzling Stopwatch">
                 </div>

@@ -1,11 +1,9 @@
 // the ~ allows you to reference things in node_modules
 
 .stopwatch {
-    .time {
-        font-size: 52px;
+    .countdown-value {
+        font-size: 60px;
         color: #000;
-        letter-spacing: 5px;
-        font-weight: bold;
 
         @media (min-width: 768px) {
             font-size: 80px;
@@ -13,6 +11,18 @@
 
         @media (min-width: 1200px) {
             font-size: 100px;
+        }
+    }
+
+    .countdown-label {
+        font-size: 24px;
+
+        @media (min-width: 768px) {
+            font-size: 30px;
+        }
+
+        @media (min-width: 1200px) {
+            font-size: 36px;
         }
     }
 }

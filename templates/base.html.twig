@@ -47,10 +47,6 @@
 
                 <!-- Toolbar -->
                 <div class="navbar-toolbar d-flex align-items-center order-lg-3">
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
-
                     <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('my_profile') %}active{% endif %}" href="{{ path('my_profile') }}">
                         <div class="navbar-tool-icon-box">
                             <i class="navbar-tool-icon ci-user"></i>
@@ -71,6 +67,10 @@
                         </div>
                         <div class="navbar-tool-text ms-n3"><small>Stopky</small></div>
                     </a>
+
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
                 </div>
 
                 <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">

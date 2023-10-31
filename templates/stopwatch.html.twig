@@ -4,4 +4,42 @@
 
 {% block content %}
     <h1>Stopky</h1>
+
+    <div class="container pb-4">
+        <div class="row align-items-center justify-content-center gy-3 py-3 text-center">
+            <div class="col-lg-5 col-md-8 col-sm-10">
+                <section class="stopwatch">
+                    <div class="time">01:42:00</div>
+
+                    <button type="button" class="btn btn-success btn-lg">Start</button>
+                </section>
+
+                <div class="mt-4">
+                    <button type="button" class="btn btn-sm btn-outline-danger">Vynulovat</button>
+
+                    <button type="button" class="btn btn-sm btn-outline-success">Doskládáno?</button>
+                </div>
+
+                <div class="card border-0 shadow mt-4" style="max-width: 400px;margin-left: auto;margin-right: auto;">
+                    <div class="card-body">
+                        <h5 class="card-title">Co skládáš?</h5>
+                        <p class="card-text fs-sm text-muted">Vyber z puzzlí, které už známe nebo si zaznamenej výrobce, počet dílků, název a klidně i fotku!</p>
+                        <a href="#" class="btn btn-sm btn-outline-accent">Jasně, že skládám puzzle</a>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-6 col-md-8 offset-lg-1 col-sm-10">
+                <div class="px-2">
+                    <img class="stopwatch-image" src="{{ asset('img/stopwatch.png') }}" alt="SpeedPuzzling Stopwatch">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
 {% endblock %}

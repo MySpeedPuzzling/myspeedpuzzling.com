@@ -1,1 +1,23 @@
 // the ~ allows you to reference things in node_modules
+
+.stopwatch {
+    .time {
+        font-size: 52px;
+        color: #000;
+        letter-spacing: 5px;
+        font-weight: bold;
+
+        @media (min-width: 768px) {
+            font-size: 80px;
+        }
+
+        @media (min-width: 1200px) {
+            font-size: 100px;
+        }
+    }
+}
+
+.stopwatch-image {
+    width: 100%;
+    max-width: 400px;
+}

@@ -3,10 +3,22 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-    <h1>SpeedPuzzling.cz</h1>
-    <h2>Rychlostní skládání pro moderního puzzle nadšence</h2>
+    <div class="container py-4">
+        <div class="row align-items-center justify-content-center gy-3 py-3 text-lg-start text-center">
+            <div class="col-lg-5 col-md-8 col-sm-10">
+                <h1>SpeedPuzzling.cz</h1>
+                <h2>Rychlostní skládání pro moderního puzzle nadšence</h2>
 
-    <p>Vítejte ve světě speedpuzzlingu! Toto není obyčejné skládání puzzle, jaké znáte z deštivých nedělí. Speedpuzzling je adrenalinová výzva, kde se skládání stává rychlostním sportem. Účastníci se zde snaží složit puzzle co nejrychleji, ať už jde o osobní rekord nebo o souboj s ostatními skládači. Je to perfektní kombinace strategie, rychlosti a dovednosti. Pokud máte zájem o nový způsob, jak oživit svou vášeň pro puzzle, speedpuzzling je přesně pro vás!</p>
+                <p>Vítejte ve světě speedpuzzlingu! Toto není obyčejné skládání puzzle, jaké znáte z deštivých nedělí. Speedpuzzling je adrenalinová výzva, kde se skládání stává rychlostním sportem. Účastníci se zde snaží složit puzzle co nejrychleji, ať už jde o osobní rekord nebo o souboj s ostatními skládači. Je to perfektní kombinace strategie, rychlosti a dovednosti. Pokud máte zájem o nový způsob, jak oživit svou vášeň pro puzzle, speedpuzzling je přesně pro vás!</p>
 
-    <p><small>Pro více informací o tom, co si pro vás chystáme, mi neváhejte napsat mail na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</small></p>
+                <p><small>Pro více informací o tom, co si pro vás chystáme, mi neváhejte napsat mail na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</small></p>
+            </div>
+
+            <div class="col-lg-6 col-md-8 offset-lg-1 col-sm-10">
+                <div class="px-2 tns-item tns-slide-active" id="tns1-item0">
+                    <img class="rounded-3" src="{{ asset('img/art.png') }}" alt="SpeedPuzzling art">
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 final class MyProfileController extends AbstractController
 {
-    #[Route(path: '/my-profile', name: 'my_profile', methods: ['GET'])]
+    #[Route(path: '/muj-profil', name: 'my_profile', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         return $this->render('my-profile.html.twig');

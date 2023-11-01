@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 final class LadderController extends AbstractController
 {
-    #[Route(path: '/ladder', name: 'ladder', methods: ['GET'])]
+    #[Route(path: '/zebricek', name: 'ladder', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         return $this->render('ladder.html.twig');

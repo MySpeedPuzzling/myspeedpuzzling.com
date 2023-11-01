@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 final class StopwatchController extends AbstractController
 {
-    #[Route(path: '/stopwatch', name: 'stopwatch', methods: ['GET'])]
+    #[Route(path: '/stopky', name: 'stopwatch', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         return $this->render('stopwatch.html.twig');

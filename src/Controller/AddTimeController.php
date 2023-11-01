@@ -10,7 +10,7 @@ use Symfony\Component\Routing\Annotation\Route;
 
 final class AddTimeController extends AbstractController
 {
-    #[Route(path: '/add-time', name: 'add_time', methods: ['GET'])]
+    #[Route(path: '/pridat-cas', name: 'add_time', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         return $this->render('add-time.html.twig');

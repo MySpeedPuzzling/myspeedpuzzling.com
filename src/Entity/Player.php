@@ -11,7 +11,7 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 #[Entity]
-class User
+class Player
 {
     public function __construct(
         #[Id]

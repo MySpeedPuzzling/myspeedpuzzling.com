@@ -20,7 +20,7 @@ class Stopwatch
         readonly public UuidInterface $id,
 
         #[ManyToOne]
-        public null|User $player = null,
+        public null|Player            $player = null,
     ) {
     }
 }

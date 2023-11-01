@@ -22,10 +22,10 @@ class User
         public string $name,
 
         #[Column(nullable: true)]
-        public string $country,
+        public null|string $country = null,
 
         #[Column(nullable: true)]
-        public string $city,
+        public null|string $city = null,
     ) {
     }
 }

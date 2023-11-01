@@ -4,4 +4,24 @@
 
 {% block content %}
     <h1>Puzzle</h1>
+
+    <div class="masonry-grid" data-columns="3">
+        {% for puzzle in puzzles %}
+            <div class="masonry-grid-item">
+                <div class="card border-0 shadow">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ puzzle.puzzleName }}<br><small class="text-muted">({{ puzzle.puzzleAlternativeName }})</small></h5>
+                        <p class="card-text fs-sm text-muted">
+                            <b>{{ puzzle.manufacturerName }}</b><br>
+                            {{ puzzle.piecesCount }} dílků<br>
+                            Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+                            Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+                            Počet složení: {{ puzzle.solvedCount }}
+                        </p>
+                        <a href="#" class="btn btn-sm btn-primary">Chci vidět časy!</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 {% endblock %}

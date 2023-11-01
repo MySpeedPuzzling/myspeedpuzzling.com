@@ -5,65 +5,63 @@
 {% block content %}
     <h1>Žebříček</h1>
 
-    <h2>Poslední složené - 500 dílků</h2>
+    <h2 class="h4 mt-4">Nejrychlejších 10 z 0 na 500 dílků</h2>
 
-    <table class="table table-striped table-hover">
-        <thead>
-        <tr>
-            <th>Pořadí</th>
-            <th>Jméno</th>
-            <th>Čas</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>1.</td>
-            <td>Simonka</td>
-            <td>1:00:00</td>
-        </tr>
-        <tr>
-            <td>2.</td>
-            <td>Simonka</td>
-            <td>1:00:00</td>
-        </tr>
-        <tr>
-            <td>3.</td>
-            <td>Simonka</td>
-            <td>1:00:00</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-responsive shadow mt-3 mb-5">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+            <tr>
+                <th>Pořadí</th>
+                <th>Puzzle</th>
+                <th>Jméno</th>
+                <th>Čas</th>
+            </tr>
+            </thead>
+            <tbody>
+                {% for fastest_player in fastest_players_500_pieces %}
+                    <tr>
+                        <td>{{ loop.index }}.</td>
+                        <td>{{ fastest_player.puzzleName }}</td>
+                        <td>{{ fastest_player.playerName }}</td>
+                        <td>{{ fastest_player.time|date('H:i:s', 'UTC') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-    <h2>TOP 10 - 500 dílků</h2>
+    <h2 class="h4 mt-4">Nejrychlejších 10 z 0 na 500 dílků</h2>
 
-    <table class="table table-striped table-hover">
-        <thead>
-        <tr>
-            <th>Puzzle</th>
-            <th>Pořadí</th>
-            <th>Jméno</th>
-            <th>Čas</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr>
-            <td>Paris</td>
-            <td>1.</td>
-            <td>Simonka</td>
-            <td>1:00:00</td>
-        </tr>
-        <tr>
-            <td>Paris</td>
-            <td>2.</td>
-            <td>Simonka</td>
-            <td>1:00:00</td>
-        </tr>
-        <tr>
-            <td>Paris</td>
-            <td>3.</td>
-            <td>Simonka</td>
-            <td>1:00:00</td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-responsive shadow mt-3 mb-5">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+            <tr>
+                <th>Puzzle</th>
+                <th>Pořadí</th>
+                <th>Jméno</th>
+                <th>Čas</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Paris</td>
+                <td>1.</td>
+                <td>Simonka</td>
+                <td>1:00:00</td>
+            </tr>
+            <tr>
+                <td>Paris</td>
+                <td>2.</td>
+                <td>Simonka</td>
+                <td>1:00:00</td>
+            </tr>
+            <tr>
+                <td>Paris</td>
+                <td>3.</td>
+                <td>Simonka</td>
+                <td>1:00:00</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 {% endblock %}

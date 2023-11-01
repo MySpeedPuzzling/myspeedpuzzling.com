@@ -35,7 +35,7 @@ class Puzzle
         public null|string $alternativeName = null,
 
         #[ManyToOne]
-        public null|User $addedByUser = null,
+        public null|Player $addedByUser = null,
 
         #[Column(nullable: true)]
         public null|string $identificationNumber = null,

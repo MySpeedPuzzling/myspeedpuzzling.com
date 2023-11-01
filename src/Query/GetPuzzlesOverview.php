@@ -20,12 +20,12 @@ readonly final class GetPuzzlesOverview
     public function all(): array
     {
         $query = <<<SQL
-SELECT puzzle.name AS puzzle_name, puzzle.alternative_name AS puzzle_alternative_name, puzzle.pieces_count, manufacturer.name AS manufacturer_name, COUNT(puzzle_solving_time.id) AS solved_count, AVG(puzzle_solving_time.seconds_to_solve) AS average_time, MIN(puzzle_solving_time.seconds_to_solve) AS fastest_time
+SELECT puzzle.id AS puzzle_id, puzzle.name AS puzzle_name, puzzle.alternative_name AS puzzle_alternative_name, puzzle.pieces_count, manufacturer.name AS manufacturer_name, COUNT(puzzle_solving_time.id) AS solved_count, AVG(puzzle_solving_time.seconds_to_solve) AS average_time, MIN(puzzle_solving_time.seconds_to_solve) AS fastest_time
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE approved = true
-GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name
+GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
 HAVING MIN(puzzle_solving_time.seconds_to_solve) > 0
 ORDER BY puzzle.name ASC
 SQL;
@@ -37,6 +37,7 @@ SQL;
         return array_map(static function(array $row): PuzzleOverview {
             /**
              * @var array{
+             *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: string,
              *     manufacturer_name: string,

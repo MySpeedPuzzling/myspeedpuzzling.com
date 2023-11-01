@@ -18,7 +18,7 @@
                             Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
                             Počet složení: {{ puzzle.solvedCount }}
                         </p>
-                        <a href="#" class="btn btn-sm btn-primary">Chci vidět časy!</a>
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy!</a>
                     </div>
                 </div>
             </div>

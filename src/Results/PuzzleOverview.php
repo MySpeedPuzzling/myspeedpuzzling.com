@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 readonly final class PuzzleOverview
 {
     public function __construct(
+        public string $puzzleId,
         public string $puzzleName,
         public string $puzzleAlternativeName,
         public string $manufacturerName,
@@ -19,6 +20,7 @@ readonly final class PuzzleOverview
 
     /**
      * @param array{
+     *     puzzle_id: string,
      *     puzzle_name: string,
      *     puzzle_alternative_name: string,
      *     manufacturer_name: string,
@@ -31,6 +33,7 @@ readonly final class PuzzleOverview
     public static function fromDatabaseRow(array $row): self
     {
         return new self(
+            puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             puzzleAlternativeName: $row['puzzle_alternative_name'],
             manufacturerName: $row['manufacturer_name'],

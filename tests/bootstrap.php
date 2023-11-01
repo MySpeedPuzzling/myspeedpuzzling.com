@@ -19,8 +19,6 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
     __DIR__ . '/DataFixtures',
 );
 
-return;
-
 if (
     TestingDatabaseCaching::isCacheUpToDate($cacheFilePath, $currentDatabaseHash) === false
 ) {

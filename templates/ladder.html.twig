@@ -30,37 +30,29 @@
         </table>
     </div>
 
-    <h2 class="h4 mt-4">Nejrychlejších 10 z 0 na 500 dílků</h2>
+    <h2 class="h4 mt-4">Nejskládanější puzzle</h2>
 
     <div class="table-responsive shadow mt-3 mb-5">
         <table class="table table-striped table-hover mb-0">
             <thead>
             <tr>
-                <th>Puzzle</th>
                 <th>Pořadí</th>
-                <th>Jméno</th>
-                <th>Čas</th>
+                <th>Puzzle</th>
+                <th>Počet skládání</th>
+                <th>Nejrychlejší čas</th>
+                <th>Průměrný čas</th>
             </tr>
             </thead>
             <tbody>
-            <tr>
-                <td>Paris</td>
-                <td>1.</td>
-                <td>Simonka</td>
-                <td>1:00:00</td>
-            </tr>
-            <tr>
-                <td>Paris</td>
-                <td>2.</td>
-                <td>Simonka</td>
-                <td>1:00:00</td>
-            </tr>
-            <tr>
-                <td>Paris</td>
-                <td>3.</td>
-                <td>Simonka</td>
-                <td>1:00:00</td>
-            </tr>
+                {% for most_solved_puzzle in most_solved_puzzles %}
+                    <tr>
+                        <td>{{ loop.index }}.</td>
+                        <td>{{ most_solved_puzzle.puzzleName }} ({{ most_solved_puzzle.piecesCount }} dílků)</td>
+                        <td>{{ most_solved_puzzle.solvedCount }}</td>
+                        <td>{{ most_solved_puzzle.fastestTime|date('H:i:s', 'UTC') }}</td>
+                        <td>{{ most_solved_puzzle.averageTime|date('H:i:s', 'UTC') }}</td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>

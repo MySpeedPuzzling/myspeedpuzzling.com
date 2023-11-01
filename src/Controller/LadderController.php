@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetFastestPlayers;
+use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +14,7 @@ final class LadderController extends AbstractController
 {
     public function __construct(
         readonly private GetFastestPlayers $getFastestPlayers,
+        readonly private GetMostSolvedPuzzles $getMostSolvedPuzzles,
     ) {
     }
 
@@ -21,6 +23,7 @@ final class LadderController extends AbstractController
     {
         return $this->render('ladder.html.twig', [
             'fastest_players_500_pieces' => $this->getFastestPlayers->perPiecesCount(500, 10),
+            'most_solved_puzzles' => $this->getMostSolvedPuzzles->top(10),
         ]);
     }
 }

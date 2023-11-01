@@ -29,7 +29,7 @@ class PuzzleSolvingTime
 
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
-        public User $addedByUser,
+        public User $player,
 
         #[ManyToOne]
         #[JoinColumn(nullable: false)]

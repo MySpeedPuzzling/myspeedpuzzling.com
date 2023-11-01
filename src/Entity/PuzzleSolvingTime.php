@@ -37,6 +37,9 @@ class PuzzleSolvingTime
 
         #[Column(nullable: true)]
         public null|string $comment = null,
+
+        #[Column(nullable: true)]
+        public null|string $groupName = null,
     ) {
     }
 }

@@ -8,6 +8,7 @@ readonly final class PuzzleOverview
 {
     public function __construct(
         public string $puzzleName,
+        public string $puzzleAlternativeName,
         public string $manufacturerName,
         public int $piecesCount,
         public int $averageTime,
@@ -19,6 +20,7 @@ readonly final class PuzzleOverview
     /**
      * @param array{
      *     puzzle_name: string,
+     *     puzzle_alternative_name: string,
      *     manufacturer_name: string,
      *     pieces_count: int,
      *     average_time: string,
@@ -30,6 +32,7 @@ readonly final class PuzzleOverview
     {
         return new self(
             puzzleName: $row['puzzle_name'],
+            puzzleAlternativeName: $row['puzzle_alternative_name'],
             manufacturerName: $row['manufacturer_name'],
             piecesCount: $row['pieces_count'],
             averageTime: (int) $row['average_time'],

@@ -16,7 +16,7 @@
                             {{ puzzle.piecesCount }} dílků<br>
                             Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
                             Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
-                            Počet složení: {{ puzzle.solvedCount }}
+                            Počet složení: {{ puzzle.solvedTimes }}
                         </p>
                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy!</a>
                     </div>

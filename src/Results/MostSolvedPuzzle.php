@@ -7,8 +7,9 @@ namespace SpeedPuzzling\Web\Results;
 readonly final class MostSolvedPuzzle
 {
     public function __construct(
-        public int $solvedCount,
+        public string $puzzleId,
         public string $puzzleName,
+        public int $solvedTimes,
         public int $piecesCount,
         public int $averageTime,
         public int $fastestTime,
@@ -17,8 +18,9 @@ readonly final class MostSolvedPuzzle
 
     /**
      * @param array{
-     *     solved_count: int,
+     *     puzzle_id: string,
      *     puzzle_name: string,
+     *     solved_times: int,
      *     pieces_count: int,
      *     average_time: string,
      *     fastest_time: int,
@@ -27,8 +29,9 @@ readonly final class MostSolvedPuzzle
     public static function fromDatabaseRow(array $row): self
     {
         return new self(
-            solvedCount: $row['solved_count'],
+            puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
+            solvedTimes: $row['solved_times'],
             piecesCount: $row['pieces_count'],
             averageTime: (int) $row['average_time'],
             fastestTime: $row['fastest_time'],

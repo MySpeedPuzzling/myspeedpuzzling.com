@@ -14,7 +14,7 @@ readonly final class PuzzleOverview
         public int $piecesCount,
         public int $averageTime,
         public int $fastestTime,
-        public int $solvedCount,
+        public int $solvedTimes,
     ) {
     }
 
@@ -27,7 +27,7 @@ readonly final class PuzzleOverview
      *     pieces_count: int,
      *     average_time: string,
      *     fastest_time: int,
-     *     solved_count: int,
+     *     solved_times: int,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -40,7 +40,7 @@ readonly final class PuzzleOverview
             piecesCount: $row['pieces_count'],
             averageTime: (int) $row['average_time'],
             fastestTime: $row['fastest_time'],
-            solvedCount: $row['solved_count'],
+            solvedTimes: $row['solved_times'],
         );
     }
 }

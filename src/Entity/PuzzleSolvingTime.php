@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Entity;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
@@ -35,10 +36,10 @@ class PuzzleSolvingTime
         #[JoinColumn(nullable: false)]
         public Puzzle $puzzle,
 
-        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-        public null|\DateTimeImmutable $trackedAt,
+        #[Column(type: Types::DATETIME_IMMUTABLE)]
+        public DateTimeImmutable $trackedAt,
 
-        #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+        #[Column(type: Types::BOOLEAN)]
         public bool $verified,
 
         #[Column(nullable: true)]

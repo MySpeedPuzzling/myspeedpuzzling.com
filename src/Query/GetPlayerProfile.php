@@ -32,7 +32,7 @@ WHERE player.id = :playerId
 SQL;
 
         /**
-         * @var array{
+         * @var null|array{
          *     player_name: string,
          *     country: null|string,
          *     city: null|string,
@@ -44,7 +44,7 @@ SQL;
             ])
             ->fetchAssociative();
 
-        if (!is_array($row)) {
+        if (is_array($row) === false) {
             throw new PlayerNotFound();
         }
 

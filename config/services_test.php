@@ -15,10 +15,4 @@ return static function(ContainerConfigurator $configurator): void
 
     // Data fixtures
     $services->load('SpeedPuzzling\\Web\\Tests\\DataFixtures\\', __DIR__ . '/../tests/DataFixtures/{*.php}');
-
-    $configurator->extension('security', [
-        'firewalls' => [
-            'main' => []
-        ]
-    ]);
 };

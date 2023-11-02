@@ -1,9 +1,51 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Puzzle{% endblock %}
+{% block title %}Puzzle {{ puzzle.puzzleName }}{% endblock %}
 
 {% block content %}
-    <h1>Puzzle</h1>
+    <h1>
+        Puzzle {{ puzzle.puzzleName }}
+        {% if puzzle.puzzleAlternativeName is not null %}
+            <span class="h4">({{ puzzle.puzzleAlternativeName }})</span>
+        {% endif %}
+    </h1>
+
+    <p class="card-text fs-sm text-muted">
+        <b>{{ puzzle.manufacturerName }}</b><br>
+        {{ puzzle.piecesCount }} dílků<br>
+        Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+        Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+        Počet složení: {{ puzzle.solvedTimes }}
+    </p>
+
+    <div class="table-responsive shadow mt-5 mb-5">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+            <tr>
+                <th></th>
+                <th>Jméno</th>
+                <th></th>
+                <th class="text-end">Čas</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for puzzle_solver in puzzle_solvers %}
+                <tr>
+                    <td>{{ loop.index }}.</td>
+                    <td>
+                        <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                            {{ puzzle_solver.playerName }}
+                        </a>
+                    </td>
+                    <td>
+                        {{ puzzle_solver.groupName }}
+                    </td>
+                    <td class="text-end">{{ puzzle_solver.time|date('H:i:s', 'UTC') }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
 
 {% endblock %}

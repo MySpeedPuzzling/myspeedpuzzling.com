@@ -39,7 +39,7 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
-             *     puzzle_alternative_name: string,
+             *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     pieces_count: int,
              *     average_time: string,

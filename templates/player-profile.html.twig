@@ -1,13 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Profil{% endblock %}
+{% block title %}{{ player.playerName }}{% endblock %}
 
 {% block content %}
-    <h1>Profil</h1>
-
-    <h2 class="h4">
-        {{ player.playerName }}
-    </h2>
+    <h1>{{ player.playerName }}</h1>
 
     <p>{{ player.city }} {{ player.country }}</p>
 

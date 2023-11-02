@@ -9,7 +9,7 @@ readonly final class PuzzleOverview
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
-        public string $puzzleAlternativeName,
+        public null|string $puzzleAlternativeName,
         public string $manufacturerName,
         public int $piecesCount,
         public int $averageTime,
@@ -22,7 +22,7 @@ readonly final class PuzzleOverview
      * @param array{
      *     puzzle_id: string,
      *     puzzle_name: string,
-     *     puzzle_alternative_name: string,
+     *     puzzle_alternative_name: null|string,
      *     manufacturer_name: string,
      *     pieces_count: int,
      *     average_time: string,

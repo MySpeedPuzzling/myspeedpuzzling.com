@@ -20,22 +20,25 @@ readonly final class GetFastestPlayers
     public function perPiecesCount(int $piecesCount, int $howManyPlayers): array
     {
         $query = <<<SQL
-SELECT puzzle.id AS puzzle_id, puzzle.name AS puzzle_name, puzzle_solving_time.seconds_to_solve AS time, player.name AS player_name
+SELECT puzzle.id AS puzzle_id, puzzle.name AS puzzle_name, puzzle_solving_time.seconds_to_solve AS time, player.name AS player_name, player.id AS player_id
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
-WHERE puzzle.pieces_count = 500
+WHERE puzzle.pieces_count = :piecesCount
 AND puzzle_solving_time.players_count = 1
 ORDER BY seconds_to_solve ASC
-LIMIT 10
+LIMIT :howManyPlayers
 SQL;
 
         $data = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, [
+                'piecesCount' => $piecesCount,
+                'howManyPlayers' => $howManyPlayers,
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function(array $row): FastestPlayer {
-            /** @var array{puzzle_id: string, puzzle_name: string, time: int, player_name: string} $row */
+            /** @var array{puzzle_id: string, puzzle_name: string, time: int, player_name: string, player_id: string} $row */
 
             return FastestPlayer::fromDatabaseRow($row);
         }, $data);

@@ -25,11 +25,13 @@ FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 GROUP BY puzzle.id, puzzle.name, puzzle.pieces_count
 ORDER BY solved_times DESC
-LIMIT 10
+LIMIT :howManyPuzzles
 SQL;
 
         $data = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, [
+                'howManyPuzzles' => $howManyPuzzles,
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function(array $row): MostSolvedPuzzle {

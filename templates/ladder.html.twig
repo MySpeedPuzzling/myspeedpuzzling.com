@@ -26,7 +26,11 @@
                                 {{ fastest_player.puzzleName }}
                             </a>
                         </td>
-                        <td>{{ fastest_player.playerName }}</td>
+                        <td>
+                            <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
+                                {{ fastest_player.playerName }}
+                            </a>
+                        </td>
                         <td class="text-end">{{ fastest_player.time|date('H:i:s', 'UTC') }}</td>
                     </tr>
                 {% endfor %}

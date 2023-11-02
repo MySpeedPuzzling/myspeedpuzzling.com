@@ -28,6 +28,9 @@ class Puzzle
         #[Column]
         public bool $approved,
 
+        #[Column(nullable: true)]
+        public null|string $image = null,
+
         #[ManyToOne]
         public null|Manufacturer $manufacturer = null,
 

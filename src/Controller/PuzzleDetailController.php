@@ -16,8 +16,11 @@ final class PuzzleDetailController extends AbstractController
     }
 
     #[Route(path: '/puzzle/{puzzleId}', name: 'puzzle_detail', methods: ['GET'])]
-    public function __invoke(Request $request): Response
+    public function __invoke(string $puzzleId): Response
     {
+        $this->addFlash('primary', 'Puzzle, které jste zkoušeli hledat, u nás nejsou!');
+        return $this->redirectToRoute('puzzles');
+
         return $this->render('puzzle_detail.html.twig', [
 
         ]);

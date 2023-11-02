@@ -92,6 +92,17 @@
             </div>
         </header>
 
+        {% for label, messages in app.flashes %}
+            <div class="container mt-4">
+                {% for message in messages %}
+                    <div class="alert-dismissible fade show alert alert-{{ label }}" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
         {% block full_content %}
             <section class="container pt-4">
                 {% block content %}{% endblock %}

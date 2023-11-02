@@ -35,6 +35,12 @@ class PuzzleSolvingTime
         #[JoinColumn(nullable: false)]
         public Puzzle $puzzle,
 
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|\DateTimeImmutable $trackedAt,
+
+        #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+        public bool $verified,
+
         #[Column(nullable: true)]
         public null|string $comment = null,
 

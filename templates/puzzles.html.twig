@@ -18,6 +18,13 @@
                             Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
                             Počet složení: {{ puzzle.solvedTimes }}
                         </p>
+                        {% if puzzle.puzzleImage is not null%}
+                            <p>
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                    <img style="max-width: 100px;max-height: 100px;" src="https://speedpuzzling.cz/img/puzzle/{{ puzzle.puzzleImage }}">
+                                </a>
+                            </p>
+                        {% endif %}
                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy!</a>
                     </div>
                 </div>

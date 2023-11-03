@@ -26,7 +26,7 @@ readonly final class GetPlayerSolvedPuzzles
         }
 
         $query = <<<SQL
-SELECT puzzle.id AS puzzle_id, puzzle.name AS puzzle_name, puzzle_solving_time.seconds_to_solve AS time, pieces_count, group_name, players_count 
+SELECT puzzle.id AS puzzle_id, puzzle.name AS puzzle_name, puzzle.image AS puzzle_image, puzzle_solving_time.seconds_to_solve AS time, pieces_count, group_name, players_count 
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -45,6 +45,7 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
+             *     puzzle_image: null|string,
              *     players_count: int,
              *     time: int,
              *     pieces_count: int,

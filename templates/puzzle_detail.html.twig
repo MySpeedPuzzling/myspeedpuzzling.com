@@ -18,6 +18,14 @@
         Počet složení: {{ puzzle.solvedTimes }}
     </p>
 
+    {% if puzzle.puzzleImage is not null%}
+        <p>
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                <img style="max-width: 200px;max-height: 200px;" src="https://speedpuzzling.cz/img/puzzle/{{ puzzle.puzzleImage }}">
+            </a>
+        </p>
+    {% endif %}
+
     <div class="table-responsive shadow mt-5 mb-5">
         <table class="table table-striped table-hover mb-0">
             <thead>

@@ -13,6 +13,7 @@ readonly final class SolvedPuzzle
         public int $time,
         public int $playersCount,
         public null|string $groupName,
+        public null|string $puzzleImage,
     ) {
     }
 
@@ -20,6 +21,7 @@ readonly final class SolvedPuzzle
      * @param array{
      *     puzzle_id: string,
      *     puzzle_name: string,
+     *     puzzle_image: null|string,
      *     players_count: int,
      *     time: int,
      *     pieces_count: int,
@@ -35,6 +37,7 @@ readonly final class SolvedPuzzle
             time: $row['time'],
             playersCount: $row['players_count'],
             groupName: $row['group_name'],
+            puzzleImage: $row['puzzle_image'],
         );
     }
 }

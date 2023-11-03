@@ -5,67 +5,88 @@
 {% block content %}
     <h1>Žebříček</h1>
 
-    <h2 class="h4 mt-4">Nejrychlejších 10 z 0 na 500 dílků</h2>
+    <div class="row">
+        <div class="col">
+            <h2 class="h4 mt-4">Nejrychlejších 10 z 0 na 500 dílků</h2>
 
-    <div class="table-responsive shadow mt-3 mb-5">
-        <table class="table table-striped table-hover mb-0">
-            <thead>
-            <tr>
-                <th></th>
-                <th>Puzzle</th>
-                <th>Jméno</th>
-                <th class="text-end">Čas</th>
-            </tr>
-            </thead>
-            <tbody>
-                {% for fastest_player in fastest_players_500_pieces %}
+            <div class="table-responsive shadow mt-3 mb-5">
+                <table class="table table-ladder table-striped table-hover mb-0">
+                    <thead>
                     <tr>
-                        <td>{{ loop.index }}.</td>
-                        <td>
-                            <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                {{ fastest_player.puzzleName }}
-                            </a>
-                        </td>
-                        <td>
-                            <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
-                                {{ fastest_player.playerName }}
-                            </a>
-                        </td>
-                        <td class="text-end">{{ fastest_player.time|date('H:i:s', 'UTC') }}</td>
+                        <th></th>
+                        <th>Jméno</th>
+                        <th class="text-end">Čas</th>
+                        <th></th>
+                        <th>Puzzle</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    </thead>
+                    <tbody>
+                    {% for fastest_player in fastest_players_500_pieces %}
+                        <tr>
+                            <td>{{ loop.index }}.</td>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
+                                    {{ fastest_player.playerName }}
+                                </a>
+                            </td>
+                            <td class="text-end">{{ fastest_player.time|date('H:i:s', 'UTC') }}</td>
+                            <td>
+                                {% if fastest_player.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="https://speedpuzzling.cz/img/puzzle/{{ fastest_player.puzzleImage }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
+                                    {{ fastest_player.puzzleName }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <h2 class="h4 mt-4">Nejskládanější puzzle</h2>
+        <div class="col">
+            <h2 class="h4 mt-4">Nejskládanější puzzle</h2>
 
-    <div class="table-responsive shadow mt-3 mb-5">
-        <table class="table table-striped table-hover mb-0">
-            <thead>
-            <tr>
-                <th></th>
-                <th>Puzzle</th>
-                <th class="text-center">Skládáno</th>
-                <th class="text-end">Nejrychlejší čas</th>
-                <th class="text-end">Průměrný čas</th>
-            </tr>
-            </thead>
-            <tbody>
-                {% for most_solved_puzzle in most_solved_puzzles %}
+            <div class="table-responsive shadow mt-3 mb-5">
+                <table class="table table-ladder table-striped table-hover mb-0">
+                    <thead>
                     <tr>
-                        <td>{{ loop.index }}.</td>
-                        <td>
-                            <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                {{ most_solved_puzzle.puzzleName }} ({{ most_solved_puzzle.piecesCount }} dílků)
-                            </a>
-                        </td>
-                        <td class="text-center">{{ most_solved_puzzle.solvedTimes }}x</td>
-                        <td class="text-end">{{ most_solved_puzzle.fastestTime|date('H:i:s', 'UTC') }}</td>
-                        <td class="text-end">{{ most_solved_puzzle.averageTime|date('H:i:s', 'UTC') }}</td>
+                        <th></th>
+                        <th></th>
+                        <th>Puzzle</th>
+                        <th class="text-end">Časy</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                    {% for most_solved_puzzle in most_solved_puzzles %}
+                        <tr>
+                            <td class="text-center">{{ most_solved_puzzle.solvedTimes }}x</td>
+                            <td>
+                                {% if most_solved_puzzle.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="https://speedpuzzling.cz/img/puzzle/{{ most_solved_puzzle.puzzleImage }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
+                                    {{ most_solved_puzzle.puzzleName }} ({{ most_solved_puzzle.piecesCount }} dílků)
+                                </a>
+                            </td>
+                            <td class="text-end">
+                                Top: {{ most_solved_puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+                                <small class="text-muted">Průměr: {{ most_solved_puzzle.averageTime|date('H:i:s', 'UTC') }}</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 {% endblock %}

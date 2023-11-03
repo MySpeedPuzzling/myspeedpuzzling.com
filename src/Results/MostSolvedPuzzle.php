@@ -13,6 +13,7 @@ readonly final class MostSolvedPuzzle
         public int $piecesCount,
         public int $averageTime,
         public int $fastestTime,
+        public null|string $puzzleImage,
     ) {
     }
 
@@ -20,6 +21,7 @@ readonly final class MostSolvedPuzzle
      * @param array{
      *     puzzle_id: string,
      *     puzzle_name: string,
+     *     puzzle_image: null|string,
      *     solved_times: int,
      *     pieces_count: int,
      *     average_time: string,
@@ -35,6 +37,7 @@ readonly final class MostSolvedPuzzle
             piecesCount: $row['pieces_count'],
             averageTime: (int) $row['average_time'],
             fastestTime: $row['fastest_time'],
+            puzzleImage: $row['puzzle_image'],
         );
     }
 }

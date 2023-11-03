@@ -32,10 +32,13 @@ final class PuzzleDetailController extends AbstractController
             return $this->redirectToRoute('puzzles');
         }
 
+        $soloPuzzleSolvers = array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount === 1);
+        $groupPuzzleSolvers = array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount > 1);
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount === 1),
-            'group_puzzle_solvers' => array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount > 1),
+            'solo_puzzle_solvers' => $soloPuzzleSolvers,
+            'group_puzzle_solvers' => $groupPuzzleSolvers,
         ]);
     }
 }

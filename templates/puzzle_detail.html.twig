@@ -26,34 +26,84 @@
         </p>
     {% endif %}
 
-    <div class="table-responsive shadow mt-5 mb-5">
-        <table class="table table-striped table-hover mb-0">
-            <thead>
-            <tr>
-                <th></th>
-                <th>Jméno</th>
-                <th></th>
-                <th class="text-end">Čas</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for puzzle_solver in puzzle_solvers %}
-                <tr>
-                    <td>{{ loop.index }}.</td>
-                    <td>
-                        <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                            {{ puzzle_solver.playerName }}
-                        </a>
-                    </td>
-                    <td>
-                        {{ puzzle_solver.groupName }}
-                    </td>
-                    <td class="text-end">{{ puzzle_solver.time|date('H:i:s', 'UTC') }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+    <div class="row mt-5">
+        <div class="col">
+            <h2 class="h4">Jednotlivci</h2>
+
+            <div class="table-responsive shadow mt-2 mb-5">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Jméno</th>
+                        <th></th>
+                        <th class="text-end">Čas</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for puzzle_solver in solo_puzzle_solvers %}
+                        <tr>
+                            <td>{{ loop.index }}.</td>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                    {{ puzzle_solver.playerName }}
+                                </a>
+                            </td>
+                            <td>
+                                {{ puzzle_solver.groupName }}
+                            </td>
+                            <td class="text-end">{{ puzzle_solver.time|date('H:i:s', 'UTC') }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% if solo_puzzle_solvers|length < 1 %}
+                        <tr>
+                            <td colspan="4" class="text-center">Tyto puzzle ještě nikdo neskládal. Buď první!</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col">
+            <h2 class="h4">Skupiny</h2>
+
+            <div class="table-responsive shadow mt-2 mb-5">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Jméno</th>
+                        <th class="text-end">Čas</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for puzzle_solver in group_puzzle_solvers %}
+                        <tr>
+                            <td>{{ loop.index }}.</td>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                    {% if puzzle_solver.groupName is not null %}
+                                        {{ puzzle_solver.groupName }}
+                                    {% else %}
+                                        {{ puzzle_solver.playerName }}
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td class="text-end">{{ puzzle_solver.time|date('H:i:s', 'UTC') }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% if group_puzzle_solvers|length < 1 %}
+                        <tr>
+                            <td colspan="4" class="text-center">Tyto puzzle ještě nikdo skupinově neskládal. Buďte první!</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
+
 
 
 {% endblock %}

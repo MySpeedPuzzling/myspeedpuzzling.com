@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
+use SpeedPuzzling\Web\Results\PuzzleSolver;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -33,7 +34,8 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'puzzle_solvers' => $puzzleSolvers,
+            'solo_puzzle_solvers' => array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount === 1),
+            'group_puzzle_solvers' => array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount > 1),
         ]);
     }
 }

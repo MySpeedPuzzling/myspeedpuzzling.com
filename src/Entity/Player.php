@@ -29,13 +29,13 @@ class Player
         public null|string $name,
 
         #[Column(nullable: true)]
-        public null|string $country = null,
+        public null|string $country,
 
         #[Column(nullable: true)]
-        public null|string $city = null,
+        public null|string $city,
 
-        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
-        public null|\DateTimeImmutable $registeredAt,
+        #[Column(type: Types::DATETIME_IMMUTABLE)]
+        public \DateTimeImmutable $registeredAt,
     ) {
     }
 }

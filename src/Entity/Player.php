@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Entity;
 
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
@@ -18,14 +19,23 @@ class Player
         #[Column(type: UuidType::NAME, unique: true)]
         readonly public UuidInterface $id,
 
-        #[Column]
-        public string $name,
+        #[Column(unique: true, nullable: true)]
+        readonly public null|string $userId,
+
+        #[Column(nullable: true)]
+        public null|string $email,
+
+        #[Column(nullable: true)]
+        public null|string $name,
 
         #[Column(nullable: true)]
         public null|string $country = null,
 
         #[Column(nullable: true)]
         public null|string $city = null,
+
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|\DateTimeImmutable $registeredAt,
     ) {
     }
 }

@@ -9,7 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 
-final class GetPlayerProfile
+readonly final class GetPlayerProfile
 {
     public function __construct(
         private Connection $database,
@@ -26,14 +26,15 @@ final class GetPlayerProfile
         }
 
         $query = <<<SQL
-SELECT name AS player_name, country, city
+SELECT player.id AS player_id, name AS player_name, country, city
 FROM player
 WHERE player.id = :playerId
 SQL;
 
         /**
          * @var null|array{
-         *     player_name: string,
+         *     player_id: string,
+         *     player_name: null|string,
          *     country: null|string,
          *     city: null|string,
          * } $row
@@ -41,6 +42,38 @@ SQL;
         $row = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+            ])
+            ->fetchAssociative();
+
+        if (is_array($row) === false) {
+            throw new PlayerNotFound();
+        }
+
+        return PlayerProfile::fromDatabaseRow($row);
+    }
+
+    /**
+     * @throws PlayerNotFound
+     */
+    public function byUserId(string $userId): PlayerProfile
+    {
+        $query = <<<SQL
+SELECT player.id AS player_id, name AS player_name, country, city
+FROM player
+WHERE player.user_id = :userId
+SQL;
+
+        /**
+         * @var null|array{
+         *     player_id: string,
+         *     player_name: null|string,
+         *     country: null|string,
+         *     city: null|string,
+         * } $row
+         */
+        $row = $this->database
+            ->executeQuery($query, [
+                'userId' => $userId,
             ])
             ->fetchAssociative();
 

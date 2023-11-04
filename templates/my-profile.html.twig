@@ -5,5 +5,140 @@
 {% block content %}
     <h1>Profil</h1>
 
-    kontaktni udaje ... co chce zverejnit ostatnim?
+    <p>
+        <a class="btn btn-sm btn-primary" href="#">Upravit údaje</a>
+    </p>
+
+    <div class="alert alert-warning d-flex" role="alert">
+        <div class="alert-icon">
+            <i class="ci-security-announcement"></i>
+        </div>
+        <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
+    </div>
+
+    <p>
+        <b>Veřejné jméno/přezdívka:</b><br>
+        {% if player.playerName is null %}
+            Nevyplněno
+        {% else %}
+            {{ player.playerName }}
+        {% endif %}<br>
+        <small class="text-muted">Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity.</small>
+    </p>
+
+    <p>
+        <b>Město:</b><br>
+        {% if player.city is null %}
+            Nevyplněno
+        {% else %}
+            {{ player.city }}, {{ player.country }}
+        {% endif %}<br>
+        <small class="text-muted">Město, které hrdě reprezentujete (nepovinné).</small>
+    </p>
+
+    <p>
+        <b>E-mail (neveřejný):</b><br>
+        {% if user_profile.email is null %}
+            Nevyplněno
+        {% else %}
+            {{ user_profile.email }}
+        {% endif %}<br>
+        <small class="text-muted">Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.</small>
+    </p>
+
+    <p>
+        <b>ID profilu:</b><br>
+        <code>{{ user_profile.userId }}</code><br>
+        <small class="text-muted">Používá se pro spárování jednotlivých výsledků s vaším profilem, využijete v případě kontaktu s administrátorem.</small>
+    </p>
+
+    <div class="row mt-5">
+        <div class="col">
+            <h2 class="h4">Poskládané puzzle</h2>
+
+            <div class="table-responsive shadow mt-2 mb-5">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Puzzle</th>
+                        <th></th>
+                        <th class="text-end">Čas</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for puzzle in solo_puzzles %}
+                        <tr>
+                            <td>
+                                {% if puzzle.puzzleImage is not null%}
+                                    <p>
+                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
+                                        </a>
+                                    </p>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                    {{ puzzle.puzzleName }} ({{ puzzle.piecesCount }} dílků)
+                                </a>
+                            </td>
+                            <td>{{ puzzle.groupName }}</td>
+                            <td class="text-end">{{ puzzle.time|date('H:i:s', 'UTC') }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% if solo_puzzles|length < 1 %}
+                        <tr>
+                            <td colspan="4" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col">
+            <h2 class="h4">Skupinové skládání</h2>
+
+            <div class="table-responsive shadow mt-2 mb-5">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Puzzle</th>
+                        <th></th>
+                        <th class="text-end">Čas</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for puzzle in group_puzzles %}
+                        <tr>
+                            <td>
+                                {% if puzzle.puzzleImage is not null%}
+                                    <p>
+                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
+                                        </a>
+                                    </p>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                    {{ puzzle.puzzleName }} ({{ puzzle.piecesCount }} dílků)
+                                </a>
+                            </td>
+                            <td>{{ puzzle.groupName }}</td>
+                            <td class="text-end">{{ puzzle.time|date('H:i:s', 'UTC') }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% if group_puzzles|length < 1 %}
+                        <tr>
+                            <td colspan="4" class="text-center">Žádné puzzle jsi ve skupině ještě nikedy neskládal? Tak utíkej rychle někoho najít, vyberte puzzle a skládejte!</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 {% endblock %}

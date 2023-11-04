@@ -9,7 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 
-final class GetPuzzleOverview
+readonly final class GetPuzzleOverview
 {
     public function __construct(
         private Connection $database,

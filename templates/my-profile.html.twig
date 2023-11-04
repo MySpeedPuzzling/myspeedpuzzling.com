@@ -6,7 +6,7 @@
     <h1>Profil</h1>
 
     <p>
-        <a class="btn btn-sm btn-primary" href="#">Upravit údaje</a>
+        <a class="btn btn-sm btn-primary" href="{{ path('edit_profile') }}">Upravit údaje</a>
     </p>
 
     {% if player.playerName is null %}

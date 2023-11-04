@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use SpeedPuzzling\Web\Services\Cart\CartStorage;
-use SpeedPuzzling\Web\Services\Cart\SessionCartStorage;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;

@@ -41,6 +41,17 @@
         {% block javascripts %}
             {{ encore_entry_script_tags('app') }}
         {% endblock %}
+
+        {% if ga_tracking is not empty %}
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+
+                gtag('config', '{{ ga_tracking }}');
+            </script>
+        {% endif %}
     </head>
     <body>
         <header class="navbar navbar-expand-lg navbar-light shadow-sm">

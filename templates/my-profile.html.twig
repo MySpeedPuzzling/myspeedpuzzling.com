@@ -9,12 +9,14 @@
         <a class="btn btn-sm btn-primary" href="#">Upravit údaje</a>
     </p>
 
-    <div class="alert alert-warning d-flex" role="alert">
-        <div class="alert-icon">
-            <i class="ci-security-announcement"></i>
+    {% if player.playerName is null %}
+        <div class="alert alert-warning d-flex" role="alert">
+            <div class="alert-icon">
+                <i class="ci-security-announcement"></i>
+            </div>
+            <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
         </div>
-        <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
-    </div>
+    {% endif %}
 
     <p>
         <b>Veřejné jméno/přezdívka:</b><br>

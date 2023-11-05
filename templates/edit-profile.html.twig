@@ -5,10 +5,10 @@
 {% block content %}
     <h1>Úprava profilu</h1>
 
-    <div class="alert alert-primary d-flex" role="alert">
-        <div class="alert-icon">
-            <i class="ci-bell"></i>
-        </div>
-        <div>Tato stránka nefunguje! Jde o prototyp toho, jak bude brzy vypadat a fungovat. Děkujeme za trpělivost!</div>
-    </div>
+    {{ form_start(edit_profile_form) }}
+        {{ form_widget(edit_profile_form) }}
+
+        <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+
+    {{ form_end(edit_profile_form) }}
 {% endblock %}

@@ -15,7 +15,7 @@ return static function (SecurityConfig $securityConfig): void {
         ->security(false);
 
     $securityConfig->firewall('main')
-        ->pattern('/(muj-profil|pridat-cas)')
+        ->pattern('/(muj-profil|upravit-profil|pridat-cas)')
         ->provider('auth0_provider')
         ->customAuthenticators(['auth0.authenticator']);
 };

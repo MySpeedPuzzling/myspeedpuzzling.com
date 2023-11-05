@@ -22,12 +22,15 @@ readonly final class PlayerRepository
         $queryBuilder = $this->entityManager->createQueryBuilder();
 
         try {
-            return $queryBuilder->select('player')
+            $player = $queryBuilder->select('player')
                 ->from(Player::class, 'player')
                 ->where('player.userId = :userId')
                 ->setParameter('userId', $userId)
                 ->getQuery()
                 ->getSingleResult();
+
+            assert($player instanceof Player);
+            return $player;
         } catch (NoResultException) {
             $player = new Player(
                 Uuid::uuid7(),

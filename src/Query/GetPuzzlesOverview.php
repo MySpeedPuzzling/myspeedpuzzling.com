@@ -27,7 +27,7 @@ INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE approved = true
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
 HAVING MIN(puzzle_solving_time.seconds_to_solve) > 0
-ORDER BY puzzle.name ASC
+ORDER BY manufacturer_name ASC, pieces_count ASC, puzzle.name ASC
 SQL;
 
         $data = $this->database

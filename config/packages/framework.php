@@ -14,6 +14,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'handler_id' => PdoSessionHandler::class,
             'cookie_secure' => 'auto',
             'cookie_samesite' => 'lax',
+            'cookie_lifetime' => 1345600,
             'storage_factory_id' => 'session.storage.factory.native',
         ],
         'php_errors' => [

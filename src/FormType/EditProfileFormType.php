@@ -24,14 +24,12 @@ final class EditProfileFormType extends AbstractType
         $builder->add('name', TextType::class, [
             'label' => 'Jméno/přezdívka:',
             'required' => false,
-            'help_html' => true,
             'help' => 'Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity.',
         ]);
 
         $builder->add('email', EmailType::class, [
             'label' => 'E-mail',
             'required' => false,
-            'help_html' => true,
             'help' => 'Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.',
         ]);
 

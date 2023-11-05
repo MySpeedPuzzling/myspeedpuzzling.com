@@ -35,6 +35,9 @@ return static function(ContainerConfigurator $configurator): void
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');
 
+    // Form types
+    $services->load('SpeedPuzzling\\Web\\FormType\\', __DIR__ . '/../src/FormType/**/{*.php}');
+
     // Message handlers
     $services->load('SpeedPuzzling\\Web\\MessageHandler\\', __DIR__ . '/../src/MessageHandler/**/{*.php}');
 

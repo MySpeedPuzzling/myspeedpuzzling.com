@@ -22,8 +22,8 @@ class PuzzleSolvingTime
         #[Column(type: UuidType::NAME, unique: true)]
         readonly public UuidInterface $id,
 
-        #[Column(type: Types::INTEGER)]
-        public int $secondsToSolve,
+        #[Column(type: Types::INTEGER, nullable: true)]
+        public null|int $secondsToSolve,
 
         #[Column(type: Types::INTEGER)]
         public int $playersCount,

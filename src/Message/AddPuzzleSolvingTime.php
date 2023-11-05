@@ -4,7 +4,27 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+
 readonly final class AddPuzzleSolvingTime
 {
+    public function __construct(
+        public string $userId,
+        public string $puzzleId,
+        public null|string $time,
+        public int $playersCount,
+        public null|string $comment,
+    ) {
+    }
 
+    public static function fromFormData(string $userId, AddPuzzleSolvingTimeFormData $data): self
+    {
+        return new self(
+            userId: $userId,
+            puzzleId: $data->puzzleId,
+            time: $data->time,
+            playersCount: $data->playersCount,
+            comment: $data->comment,
+        );
+    }
 }

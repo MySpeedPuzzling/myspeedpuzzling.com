@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -14,12 +19,58 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class AddPuzzleSolvingTimeFormType extends AbstractType
 {
+    public function __construct(
+        readonly private GetPuzzlesOverview $getPuzzlesOverview,
+    ) {
+    }
+
     /**
      * @param mixed[] $options
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $puzzleChoices = ['' => null];
 
+        foreach ($this->getPuzzlesOverview->all() as $puzzle) {
+            $label = sprintf('%s / %d dílků / %s %s',
+                $puzzle->manufacturerName,
+                $puzzle->piecesCount,
+                $puzzle->puzzleName,
+                $puzzle->puzzleAlternativeName ? "($puzzle->puzzleAlternativeName)" : '',
+            );
+
+            $puzzleChoices[$puzzle->manufacturerName][$label] = $puzzle->puzzleId;
+        }
+
+        $builder->add('puzzleId', ChoiceType::class, [
+            'label' => 'Puzzle',
+            'required' => true,
+            'choices' => $puzzleChoices,
+        ]);
+
+        $builder->add('time', TextType::class, [
+            'label' => 'Čas',
+            'required' => true,
+            'attr' => [
+                'placeholder' => 'HH:MM:SS',
+            ],
+        ]);
+
+        $builder->add('playersCount', ChoiceType::class, [
+            'label' => 'Počet skládájících lidí',
+            'required' => true,
+            'choices' => [
+                '1 - Jen já' => 1,
+                '2 - Pár' => 2,
+                '3 a více - Pořádná skupinka puzzlařů!' => 3,
+            ],
+        ]);
+
+        $builder->add('comment', TextareaType::class, [
+            'label' => 'Doplňující info',
+            'required' => false,
+            'help' => 'Pokud skládáte ve více lidech, prosím uveďte jména',
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

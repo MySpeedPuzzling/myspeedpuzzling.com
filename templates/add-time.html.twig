@@ -30,13 +30,21 @@
 
                                         <ul class="widget-list {% if manufacturerPuzzles|length > 7 %}widget-filter-list pt-1{% endif %}" {% if manufacturerPuzzles|length > 7 %}style="height: 12rem;" data-simplebar data-simplebar-auto-hide="false"{% endif %}>
                                             {% for puzzle in manufacturerPuzzles %}
-                                                <li class="widget-list-item d-flex justify-content-between align-items-center mb-1 {% if manufacturerPuzzles|length > 7 %}widget-filter-item{% endif %}">
+                                                <li class="widget-list-item mb-2 {% if manufacturerPuzzles|length > 7 %}widget-filter-item{% endif %}">
 
-                                                    <div class="form-check">
-                                                        <input class="form-check-input"  type="radio" id="{{ puzzle.puzzleId }}" name="radio">
-                                                        <label class="form-check-label widget-filter-item-text" for="{{ puzzle.puzzleId }}">
-                                                            {{ puzzle.puzzleName }} {% if puzzle.puzzleAlternativeName is not null %}({{ puzzle.puzzleAlternativeName }}){% endif %}
-                                                            <span class="fs-xs text-muted">{{ puzzle.piecesCount }} dílků</span>
+                                                    <div class="form-check d-flex align-items-center">
+                                                        <div class="me-1">
+                                                            <input class="form-check-input" type="radio" id="{{ puzzle.puzzleId }}" name="radio">
+                                                        </div>
+                                                        <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
+                                                            {% if puzzle.puzzleImage is not null %}
+                                                                <img class="me-2" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}" style="max-width: 50px;float: left;">
+                                                            {% endif %}
+                                                            <span style="display: inline-block;">
+                                                                {{ puzzle.puzzleName }} {% if puzzle.puzzleAlternativeName is not null %}({{ puzzle.puzzleAlternativeName }}){% endif %}
+                                                                <br>
+                                                                <span class="fs-xs text-muted">{{ puzzle.piecesCount }} dílků</span>
+                                                            </span>
                                                         </label>
                                                     </div>
                                                 </li>
@@ -55,7 +63,7 @@
             <!-- Switch -->
             <div class="form-check form-switch">
                 <input type="checkbox" class="form-check-input" id="customSwitch1">
-                <label class="form-check-label" for="customSwitch1">Puzzle jsem bohužel nenašel v seznamu</label>
+                <label class="form-check-label" for="customSwitch1">Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu</label>
             </div>
         </div>
 

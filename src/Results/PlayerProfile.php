@@ -8,7 +8,9 @@ readonly final class PlayerProfile
 {
     public function __construct(
         public string $playerId,
+        public null|string $userId,
         public null|string $playerName,
+        public null|string $email,
         public null|string $country,
         public null|string $city,
     ) {
@@ -17,7 +19,9 @@ readonly final class PlayerProfile
     /**
      * @param array{
      *     player_id: string,
+     *     user_id: null|string,
      *     player_name: null|string,
+     *     email: null|string,
      *     country: null|string,
      *     city: null|string,
      * } $row
@@ -26,7 +30,9 @@ readonly final class PlayerProfile
     {
         return new self(
             playerId: $row['player_id'],
+            userId: $row['user_id'],
             playerName: $row['player_name'],
+            email: $row['email'],
             country: $row['country'],
             city: $row['city'],
         );

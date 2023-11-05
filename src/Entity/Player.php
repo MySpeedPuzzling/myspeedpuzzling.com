@@ -38,4 +38,17 @@ class Player
         public \DateTimeImmutable $registeredAt,
     ) {
     }
+
+    public function changeProfile(
+        null|string $name,
+        null|string $email,
+        null|string $city,
+        null|string $country,
+    ): void
+    {
+        $this->name = $name;
+        $this->email = $email;
+        $this->city = $city;
+        $this->country = $country;
+    }
 }

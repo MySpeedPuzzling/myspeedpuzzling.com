@@ -40,17 +40,17 @@
 
     <p>
         <b>E-mail (neveřejný):</b><br>
-        {% if user_profile.email is null %}
+        {% if player.email is null %}
             Nevyplněno
         {% else %}
-            {{ user_profile.email }}
+            {{ player.email }}
         {% endif %}<br>
         <small class="text-muted">Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.</small>
     </p>
 
     <p>
         <b>ID profilu:</b><br>
-        <code>{{ user_profile.userId }}</code><br>
+        <code>{{ player.userId }}</code><br>
         <small class="text-muted">Používá se pro spárování jednotlivých výsledků s vaším profilem, využijete v případě kontaktu s administrátorem.</small>
     </p>
 

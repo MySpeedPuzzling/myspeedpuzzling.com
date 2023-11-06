@@ -12,8 +12,8 @@ readonly final class PuzzleOverview
         public null|string $puzzleAlternativeName,
         public string $manufacturerName,
         public int $piecesCount,
-        public int $averageTime,
-        public int $fastestTime,
+        public null|int $averageTime,
+        public null|int $fastestTime,
         public int $solvedTimes,
         public null|string $puzzleImage,
     ) {

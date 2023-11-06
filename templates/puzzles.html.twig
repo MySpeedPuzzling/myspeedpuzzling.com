@@ -10,13 +10,19 @@
             <div class="masonry-grid-item">
                 <div class="card border-0 shadow">
                     <div class="card-body">
-                        <h5 class="card-title">{{ puzzle.puzzleName }}<br><small class="text-muted">({{ puzzle.puzzleAlternativeName }})</small></h5>
+
+                        <h5 class="card-title"><a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}<br><small>({{ puzzle.puzzleAlternativeName }})</small></a></h5>
                         <p class="card-text fs-sm text-muted">
                             <b>{{ puzzle.manufacturerName }}</b><br>
                             {{ puzzle.piecesCount }} dílků<br>
-                            Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
-                            Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
-                            Počet složení: {{ puzzle.solvedTimes }}
+
+                            {% if puzzle.solvedTimes > 0 %}
+                                Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+                                Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+                                Počet složení: {{ puzzle.solvedTimes }}
+                            {% else %}
+                                Tyto puzzle ještě nikdo neskládal, buď první!
+                            {% endif %}
                         </p>
                         {% if puzzle.puzzleImage is not null%}
                             <p>
@@ -25,7 +31,10 @@
                                 </a>
                             </p>
                         {% endif %}
-                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy!</a>
+
+                        {% if puzzle.solvedTimes > 0 %}
+                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy!</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

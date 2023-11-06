@@ -14,6 +14,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             ],
         ],
         'orm' => [
+            'report_fields_where_declared' => true,
             'auto_generate_proxy_classes' => true,
             'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
             'auto_mapping' => true,

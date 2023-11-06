@@ -29,22 +29,16 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $puzzleChoices = ['' => null];
-
+        $puzzleChoices = [];
         foreach ($this->getPuzzlesOverview->all() as $puzzle) {
-            $label = sprintf('%s / %d dílků / %s %s',
-                $puzzle->manufacturerName,
-                $puzzle->piecesCount,
-                $puzzle->puzzleName,
-                $puzzle->puzzleAlternativeName ? "($puzzle->puzzleAlternativeName)" : '',
-            );
-
-            $puzzleChoices[$puzzle->manufacturerName][$label] = $puzzle->puzzleId;
+            $puzzleChoices[$puzzle->puzzleName] = $puzzle->puzzleId;
         }
 
         $builder->add('puzzleId', ChoiceType::class, [
             'label' => 'Puzzle',
             'required' => true,
+            'expanded' => true,
+            'multiple' => false,
             'choices' => $puzzleChoices,
         ]);
 

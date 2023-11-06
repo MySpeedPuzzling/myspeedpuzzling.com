@@ -19,6 +19,9 @@ readonly final class AddPuzzleSolvingTime
 
     public static function fromFormData(string $userId, AddPuzzleSolvingTimeFormData $data): self
     {
+        assert($data->puzzleId !== null);
+        assert($data->playersCount !== null);
+
         return new self(
             userId: $userId,
             puzzleId: $data->puzzleId,

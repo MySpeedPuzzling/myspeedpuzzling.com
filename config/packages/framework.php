@@ -15,6 +15,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'cookie_secure' => 'auto',
             'cookie_samesite' => 'lax',
             'cookie_lifetime' => 1345600,
+            'gc_maxlifetime' => 1345600,
             'storage_factory_id' => 'session.storage.factory.native',
         ],
         'php_errors' => [

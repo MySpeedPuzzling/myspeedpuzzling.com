@@ -42,8 +42,8 @@ SQL;
          *     puzzle_alternative_name: null|string,
          *     manufacturer_name: string,
          *     pieces_count: int,
-         *     average_time: string,
-         *     fastest_time: int,
+         *     average_time: null|string,
+         *     fastest_time: null|int,
          *     solved_times: int,
          * } $row
          */

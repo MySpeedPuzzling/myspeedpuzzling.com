@@ -12,8 +12,8 @@ readonly final class PuzzleOverview
         public null|string $puzzleAlternativeName,
         public string $manufacturerName,
         public int $piecesCount,
-        public int $averageTime,
-        public int $fastestTime,
+        public null|int $averageTime,
+        public null|int $fastestTime,
         public int $solvedTimes,
         public null|string $puzzleImage,
     ) {
@@ -27,8 +27,8 @@ readonly final class PuzzleOverview
      *     puzzle_alternative_name: null|string,
      *     manufacturer_name: string,
      *     pieces_count: int,
-     *     average_time: string,
-     *     fastest_time: int,
+     *     average_time: null|string,
+     *     fastest_time: null|int,
      *     solved_times: int,
      * } $row
      */

@@ -26,7 +26,6 @@ LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE approved = true
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
-HAVING MIN(puzzle_solving_time.seconds_to_solve) > 0
 ORDER BY manufacturer_name ASC, pieces_count ASC, puzzle.name ASC
 SQL;
 
@@ -43,8 +42,8 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     pieces_count: int,
-             *     average_time: string,
-             *     fastest_time: int,
+             *     average_time: null|string,
+             *     fastest_time: null|int,
              *     solved_times: int
              * } $row
              */

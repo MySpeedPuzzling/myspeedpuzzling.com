@@ -8,14 +8,15 @@
     {{ form_start(add_puzzle_solving_time_form) }}
         {{ form_errors(add_puzzle_solving_time_form) }}
 
-        <div class="row">
+        <div class="row pb-4">
             <div class="col-lg-6 offset-lg-1 order-lg-2">
                 <h3 class="h5">Vyberte puzzle, podle výrobce:</h3>
 
-                {{ form_errors(add_puzzle_solving_time_form.puzzleId) }}
-
+                <p><small class="text-muted">Pokud puzzle v seznamu nenajdete, přidejte prosím informace ručně.</small></p>
 
                 <div class="widget widget-categories mb-4">
+                    {{ form_errors(add_puzzle_solving_time_form.puzzleId) }}
+
                     <div id="puzzle-manufacturers" class="accordion">
                         {% for manufacturerName, manufacturerPuzzles in puzzles %}
                             <div class="accordion-item">
@@ -62,6 +63,14 @@
                             </div>
                         {% endfor %}
                     </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Switch -->
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="customSwitch1">
+                    <label class="form-check-label" for="customSwitch1">Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu</label>
                 </div>
             </div>
 

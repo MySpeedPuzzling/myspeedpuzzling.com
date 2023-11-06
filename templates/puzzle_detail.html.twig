@@ -13,9 +13,12 @@
     <p class="card-text fs-sm text-muted">
         <b>{{ puzzle.manufacturerName }}</b><br>
         {{ puzzle.piecesCount }} dílků<br>
-        Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
-        Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
-        Počet složení: {{ puzzle.solvedTimes }}
+
+        {% if puzzle.solvedTimes > 0 %}
+            Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+            Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+            Počet složení: {{ puzzle.solvedTimes }}
+        {% endif %}
     </p>
 
     {% if puzzle.puzzleImage is not null%}

@@ -8,10 +8,14 @@ use DateTimeImmutable;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
+use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
 use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyFinished;
+use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyStarted;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeResumed;
 use SpeedPuzzling\Web\Value\Lap;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
@@ -22,8 +26,13 @@ class Stopwatch
     /**
      * @var list<Lap>
      */
-    #[Column]
-    private array $laps;
+    #[Column(type: LapsArrayDoctrineType::NAME)]
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    public array $laps;
+
+    #[Column(enumType: StopwatchStatus::class)]
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    public StopwatchStatus $status = StopwatchStatus::NotStarted;
 
     public function __construct(
         #[Id]
@@ -31,15 +40,26 @@ class Stopwatch
         readonly public UuidInterface $id,
 
         #[ManyToOne]
+        #[JoinColumn(nullable: false)]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         public Player $player,
 
-        public DateTimeImmutable $now,
-
-        #[Column(enumType: StopwatchStatus::class)]
-        public StopwatchStatus $status = StopwatchStatus::Running,
-
+        #[ManyToOne]
+        #[JoinColumn(nullable: true)]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        public null|Puzzle $puzzle,
     ) {
-        $this->laps[] = Lap::start($this->now);
+    }
+
+    public function start(DateTimeImmutable $now): void
+    {
+
+        if ($this->status !== StopwatchStatus::NotStarted) {
+            throw new StopwatchAlreadyStarted();
+        }
+
+        $this->laps[] = Lap::start($now);
+        $this->status = StopwatchStatus::Running;
     }
 
     /**
@@ -76,6 +96,11 @@ class Stopwatch
         }
 
         $this->status = StopwatchStatus::Finished;
+    }
+
+    public function changePuzzle(Puzzle $puzzle): void
+    {
+        $this->puzzle = $puzzle;
     }
 
     private function getLastLap(): Lap

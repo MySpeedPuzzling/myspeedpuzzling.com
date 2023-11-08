@@ -8,7 +8,7 @@ use DateTimeImmutable;
 
 readonly final class Lap
 {
-    private function __construct(
+    public function __construct(
         public DateTimeImmutable $start,
         public null|DateTimeImmutable $end,
     ) {

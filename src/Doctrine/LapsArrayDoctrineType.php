@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Doctrine;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\JsonType;
 use SpeedPuzzling\Web\Value\Lap;
 
-final class LapsArrayType extends JsonType
+final class LapsArrayDoctrineType extends JsonType
 {
     public const NAME = 'laps[]';
 
@@ -46,8 +47,8 @@ final class LapsArrayType extends JsonType
 
         foreach ($jsonData as $lapData) {
             $laps[] = new Lap(
-                $lapData['start'],
-                $lapData['end'],
+                (new DateTimeImmutable())->setTimestamp($lapData['start']),
+                $lapData['end'] === null ? null : (new DateTimeImmutable())->setTimestamp($lapData['end']),
             );
         }
 
@@ -72,8 +73,8 @@ final class LapsArrayType extends JsonType
             }
 
             $data[] = [
-                'start' => $lap->start,
-                'end' => $lap->end,
+                'start' => $lap->start->getTimestamp(),
+                'end' => $lap->end?->getTimestamp(),
             ];
         }
 

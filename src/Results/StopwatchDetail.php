@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 
@@ -27,16 +28,18 @@ readonly final class StopwatchDetail
      *     status: string,
      * } $row
      */
-    public static function fromDatabaseRow(array $row)
+    public static function fromDatabaseRow(array $row): self
     {
-        $lastStart = new \DateTimeImmutable();
+        $lastStart = new DateTimeImmutable();
         if ($row['last_start_time'] !== null) {
-            $lastStart = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['last_start_time']);
+            $lastStart = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['last_start_time']);
+            assert($lastStart instanceof DateTimeImmutable);
         }
 
         $lastEnd = null;
         if ($row['last_end_time'] !== null) {
-            $lastEnd = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['last_end_time']);
+            $lastEnd = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['last_end_time']);
+            assert($lastEnd instanceof DateTimeImmutable);
         }
 
         $totalSeconds = 0;

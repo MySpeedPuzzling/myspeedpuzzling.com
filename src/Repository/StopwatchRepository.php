@@ -17,7 +17,7 @@ readonly final class StopwatchRepository
     }
 
     /**
-     * @throws StopwatchNotFound()
+     * @throws StopwatchNotFound
      */
     public function get(string $stopwatchId): Stopwatch
     {

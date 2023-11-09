@@ -16,6 +16,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
 use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyFinished;
 use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyStarted;
+use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeFinished;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBePaused;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeResumed;
 use SpeedPuzzling\Web\Value\Lap;
@@ -25,11 +26,11 @@ use SpeedPuzzling\Web\Value\StopwatchStatus;
 class Stopwatch
 {
     /**
-     * @var list<Lap>
+     * @var array<Lap>
      */
     #[Column(type: LapsArrayDoctrineType::NAME)]
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-    public array $laps;
+    public array $laps = [];
 
     #[Column(enumType: StopwatchStatus::class)]
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -78,22 +79,34 @@ class Stopwatch
 
     public function pause(DateTimeImmutable $now): void
     {
-        if ($this->status !== StopwatchStatus::Running) {
+        $lap = $this->getLastLap();
+
+        if ($this->status !== StopwatchStatus::Running || $lap === null) {
             throw new StopwatchCouldNotBePaused();
         }
 
-        $this->laps[array_key_last($this->laps)] = $this->getLastLap()->finish($now);
+        $this->laps[array_key_last($this->laps)] = $lap->finish($now);
         $this->status = StopwatchStatus::Paused;
     }
 
+    /**
+     * @throws StopwatchCouldNotBeFinished
+     * @throws StopwatchAlreadyFinished
+     */
     public function finish(DateTimeImmutable $now): void
     {
         if ($this->status === StopwatchStatus::Finished) {
             throw new StopwatchAlreadyFinished();
         }
 
+        $lap = $this->getLastLap();
+
+        if ($lap === null) {
+            throw new StopwatchCouldNotBeFinished();
+        }
+
         if ($this->status === StopwatchStatus::Running) {
-            $this->laps[array_key_last($this->laps)] = $this->getLastLap()->finish($now);
+            $this->laps[array_key_last($this->laps)] = $lap->finish($now);
         }
 
         $this->status = StopwatchStatus::Finished;
@@ -104,8 +117,12 @@ class Stopwatch
         $this->puzzle = $puzzle;
     }
 
-    private function getLastLap(): Lap
+    private function getLastLap(): null|Lap
     {
+        if (count($this->laps) === 0) {
+            return null;
+        }
+
         return $this->laps[array_key_last($this->laps)];
     }
 }

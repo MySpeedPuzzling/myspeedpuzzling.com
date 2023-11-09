@@ -22,7 +22,7 @@ readonly final class GetStopwatch
     public function byId(string $stopwatchId): StopwatchDetail
     {
         if (Uuid::isValid($stopwatchId) === false) {
-            throw new $stopwatchId();
+            throw new StopwatchNotFound;
         }
 
         $query = <<<SQL

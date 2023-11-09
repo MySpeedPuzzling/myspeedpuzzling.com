@@ -23,6 +23,7 @@
         "doctrine/doctrine-bundle": "^2.4",
         "doctrine/doctrine-migrations-bundle": "^3.1",
         "doctrine/orm": "^2.9",
+        "jetbrains/phpstorm-attributes": "^1.0",
         "monolog/monolog": "^3.0",
         "ramsey/uuid": "^4.2",
         "ramsey/uuid-doctrine": "^2.0",

@@ -20,7 +20,7 @@ class Player
         readonly public UuidInterface $id,
 
         #[Column(unique: true, nullable: true)]
-        readonly public null|string $userId,
+        public null|string $userId,
 
         #[Column(nullable: true)]
         public null|string $email,

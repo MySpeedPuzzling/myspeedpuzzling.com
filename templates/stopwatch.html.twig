@@ -8,29 +8,46 @@
     <div class="container pb-4">
         <div class="row align-items-center justify-content-center gy-3 pb-3 text-center">
             <div class="col-lg-6 col-md-8 col-sm-10">
-                <div class="stopwatch countdown justify-content-center">
+                <div
+                    class="stopwatch countdown justify-content-center"
+                    {% if stopwatch is not null %}
+                        data-total-seconds="{{ stopwatch.totalSeconds }}"
+                        data-stopwatch-start="{{ stopwatch.lastStart|date('Y-m-d H:i:s') }}"
+                        data-stopwatch-status="{{ stopwatch.status.value }}"
+                    {% endif %}
+                >
                     <div class="countdown-hours rounded p-1 p-sm-2 p-lg-2">
-                        <span class="countdown-value">0</span>
+                        <span id="stopwatch-hours" class="countdown-value">{{ hours_elapsed }}</span>
                         <span class="countdown-label text-muted">h</span>
                     </div>
                     <div class="countdown-minutes rounded p-1 p-sm-2 p-lg-2">
-                        <span class="countdown-value">0</span>
+                        <span id="stopwatch-minutes" class="countdown-value">{{ minutes_elapsed }}</span>
                         <span class="countdown-label text-muted">m</span>
                     </div>
                     <div class="countdown-seconds rounded p-1 p-sm-2 p-lg-2">
-                        <span class="countdown-value">0</span>
+                        <span id="stopwatch-seconds" class="countdown-value">{{ seconds_elapsed }}</span>
                         <span class="countdown-label text-muted">s</span>
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-success btn-lg">Start</button>
+                {% if stopwatch is null %}
+                    <a href="{{ path('start_stopwatch') }}" class="btn btn-success btn-lg">Start</a>
+                {% elseif stopwatch.status.value is same as 'running' %}
+                    <a href="{{ path('stop_stopwatch', {'stopwatchId': stopwatch.stopwatchId}) }}" class="btn btn-danger btn-lg">Stop</a>
+                {% elseif stopwatch.status.value is same as 'paused' %}
+                    <a href="{{ path('resume_stopwatch', {'stopwatchId': stopwatch.stopwatchId}) }}" class="btn btn-accent btn-lg">Pokračovat</a>
+                    <a href="{{ path('reset_stopwatch', {'stopwatchId': stopwatch.stopwatchId}) }}" class="btn btn-outline-danger btn-sm">Vynulovat</a>
+                {% endif %}
 
+                {#
                 <div class="mt-4">
                     <button type="button" class="btn btn-sm btn-outline-danger">Vynulovat</button>
 
                     <button type="button" class="btn btn-sm btn-outline-success">Doskládáno?</button>
                 </div>
+                #}
 
+                {#
                 <div class="card border-0 shadow mt-4" style="max-width: 400px;margin-left: auto;margin-right: auto;">
                     <div class="card-body">
                         <h5 class="card-title">Co skládáš?</h5>
@@ -38,6 +55,7 @@
                         <a href="#" class="btn btn-sm btn-outline-accent">Jasně, že skládám puzzle</a>
                     </div>
                 </div>
+                #}
 
             </div>
 
@@ -49,8 +67,40 @@
         </div>
     </div>
 
+    {% if stopwatch is not null %}
+        <script>
+            function pad(number) {
+                return number < 10 ? '0' + number : number;
+            }
 
+            function calculateTimeElapsed() {
+                // Get the start time and total elapsed seconds from the data attributes
+                const startTime = new Date(document.querySelector('[data-stopwatch-start]').getAttribute('data-stopwatch-start'));
+                const totalElapsedSeconds = parseInt(document.querySelector('[data-total-seconds]').getAttribute('data-total-seconds'), 10);
 
+                let status = document.querySelector('[data-stopwatch-status]').getAttribute('data-stopwatch-status');
 
+                if (status !== 'running') {
+                    return;
+                }
 
+                // Calculate the difference in seconds from now to the start time
+                const now = new Date();
+                const differenceInSeconds = Math.floor((now - startTime) / 1000) + totalElapsedSeconds;
+
+                // Calculate hours, minutes, and seconds
+                const hours = Math.floor(differenceInSeconds / 3600);
+                const minutes = Math.floor((differenceInSeconds % 3600) / 60);
+                const seconds = differenceInSeconds % 60;
+
+                // Update the HTML elements
+                document.getElementById('stopwatch-hours').textContent = hours;
+                document.getElementById('stopwatch-minutes').textContent = pad(minutes);
+                document.getElementById('stopwatch-seconds').textContent = pad(seconds);
+            }
+
+            // Run the function every second
+            setInterval(calculateTimeElapsed, 1000);
+        </script>
+    {% endif %}
 {% endblock %}

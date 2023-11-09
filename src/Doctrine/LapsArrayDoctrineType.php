@@ -45,10 +45,12 @@ final class LapsArrayDoctrineType extends JsonType
 
         $laps = [];
 
+
         foreach ($jsonData as $lapData) {
+
             $laps[] = new Lap(
-                (new DateTimeImmutable())->setTimestamp($lapData['start']),
-                $lapData['end'] === null ? null : (new DateTimeImmutable())->setTimestamp($lapData['end']),
+                DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $lapData['start']),
+                $lapData['end'] === null ? null : DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $lapData['end']),
             );
         }
 
@@ -73,8 +75,8 @@ final class LapsArrayDoctrineType extends JsonType
             }
 
             $data[] = [
-                'start' => $lap->start->getTimestamp(),
-                'end' => $lap->end?->getTimestamp(),
+                'start' => $lap->start->format('Y-m-d H:i:s'),
+                'end' => $lap->end?->format('Y-m-d H:i:s'),
             ];
         }
 

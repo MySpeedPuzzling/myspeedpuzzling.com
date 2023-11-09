@@ -16,6 +16,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
 use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyFinished;
 use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyStarted;
+use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBePaused;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeResumed;
 use SpeedPuzzling\Web\Value\Lap;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
@@ -78,7 +79,7 @@ class Stopwatch
     public function pause(DateTimeImmutable $now): void
     {
         if ($this->status !== StopwatchStatus::Running) {
-            throw new StopwatchCouldNotBeResumed();
+            throw new StopwatchCouldNotBePaused();
         }
 
         $this->laps[array_key_last($this->laps)] = $this->getLastLap()->finish($now);

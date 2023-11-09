@@ -40,7 +40,7 @@ class LapsArrayDoctrineTypeTest extends TestCase
             [
                 new Lap(new DateTimeImmutable('@1699400000'), null),
             ],
-            '[{"start":1699400000,"end":null}]',
+            '[{"start":"2023-11-07 23:33:20","end":null}]',
         ];
 
         yield [
@@ -48,7 +48,7 @@ class LapsArrayDoctrineTypeTest extends TestCase
                 new Lap(new DateTimeImmutable('@1699400000'), new DateTimeImmutable('@1699400010')),
                 new Lap(new DateTimeImmutable('@1699400020'), null),
             ],
-            '[{"start":1699400000,"end":1699400010},{"start":1699400020,"end":null}]',
+            '[{"start":"2023-11-07 23:33:20","end":"2023-11-07 23:33:30"},{"start":"2023-11-07 23:33:40","end":null}]',
         ];
     }
 
@@ -78,14 +78,14 @@ class LapsArrayDoctrineTypeTest extends TestCase
         yield ['[]', []];
 
         yield [
-            '[{"start":1699400000,"end":null}]',
+            '[{"start":"2023-11-07 23:33:20","end":null}]',
             [
                 new Lap(new DateTimeImmutable('@1699400000'), null),
             ],
         ];
 
         yield [
-            '[{"start":1699400000,"end":1699400010},{"start":1699400020,"end":null}]',
+            '[{"start":"2023-11-07 23:33:20","end":"2023-11-07 23:33:30"},{"start":"2023-11-07 23:33:40","end":null}]',
             [
                 new Lap(new DateTimeImmutable('@1699400000'), new DateTimeImmutable('@1699400010')),
                 new Lap(new DateTimeImmutable('@1699400020'), null),

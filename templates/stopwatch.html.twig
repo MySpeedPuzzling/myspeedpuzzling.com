@@ -67,7 +67,7 @@
         </div>
     </div>
 
-    {% if stopwatches|length > 1 %}
+    {% if stopwatches|length > 1 or (stopwatches|length is same as 1 and active_stopwatch is null)  %}
         <h3 class="mt-5">Další moje stopky</h3>
 
         <ul>

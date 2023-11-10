@@ -54,6 +54,20 @@
         <small class="text-muted">Používá se pro spárování jednotlivých výsledků s vaším profilem, využijete v případě kontaktu s administrátorem.</small>
     </p>
 
+    {% if stopwatches|length > 0 %}
+        <h3 class="mt-5">Moje stopky</h3>
+
+        <ul>
+            {% for stopwatch in stopwatches %}
+                <li>
+                    <a href="{{ path('stopwatch_status', {stopwatchId: stopwatch.stopwatchId}) }}">
+                        {{ stopwatch.hoursElapsed }}:{{ stopwatch.minutesElapsed }}:{{ stopwatch.secondsElapsed }} ({{ stopwatch.status.title }})
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
     <div class="row mt-5">
         <div class="col">
             <h2 class="h4">Poskládané puzzle</h2>

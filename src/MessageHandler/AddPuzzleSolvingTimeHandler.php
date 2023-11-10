@@ -41,7 +41,7 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         if ($message->solvedPuzzlesPhoto !== null) {
             $extension = $message->solvedPuzzlesPhoto->guessExtension();
-            $finishedPuzzlePhotoPath = "$player->id/$puzzle->id/$solvingTimeId.$extension";
+            $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId.$extension";
 
             // Stream is better because it is memory safe
             $stream = fopen($message->solvedPuzzlesPhoto->getPathname(), 'rb');

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RegisterUserToPlay;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,7 @@ final class MyProfileController extends AbstractController
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetStopwatch $getStopwatch,
         readonly private MessageBusInterface $messageBus,
         readonly private LoggerInterface $logger,
     ) {
@@ -62,6 +64,7 @@ final class MyProfileController extends AbstractController
             'player' => $player,
             'solo_puzzles' => $soloSolvedPuzzles,
             'group_puzzles' => $groupSolvedPuzzles,
+            'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
         ]);
     }
 }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
+use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\StopwatchDetail;
 
 readonly final class GetStopwatch
@@ -61,5 +62,47 @@ SQL;
         }
 
         return StopwatchDetail::fromDatabaseRow($row);
+    }
+
+    /**
+     * @return array<StopwatchDetail>
+     */
+    public function allForPlayer(string $playerId): array
+    {
+        $query = <<<SQL
+SELECT
+  stopwatch.id AS stopwatch_id, status,
+  SUM(
+    (EXTRACT(EPOCH FROM (lap->>'end')::timestamp - (lap->>'start')::timestamp))
+  ) AS total_seconds,
+  (laps->(jsonb_array_length(laps::jsonb) - 1)->>'start')::timestamp AS last_start_time,
+  (laps->(jsonb_array_length(laps::jsonb) - 1)->>'end')::timestamp AS last_end_time
+FROM
+  stopwatch,
+  JSONB_ARRAY_ELEMENTS(laps::jsonb) AS lap
+WHERE stopwatch.player_id = :playerId
+GROUP BY
+  stopwatch.id
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): StopwatchDetail {
+            /**
+             * @var array{
+             *     stopwatch_id: string,
+             *     total_seconds: null|int,
+             *     last_start_time: null|string,
+             *     last_end_time: null|string,
+             *     status: string,
+             * } $row
+             */
+
+            return StopwatchDetail::fromDatabaseRow($row);
+        }, $data);
     }
 }

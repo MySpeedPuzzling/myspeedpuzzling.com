@@ -10,6 +10,10 @@ use SpeedPuzzling\Web\Value\StopwatchStatus;
 
 readonly final class StopwatchDetail
 {
+    public string $hoursElapsed;
+    public string $minutesElapsed;
+    public string $secondsElapsed;
+
     public function __construct(
         public string $stopwatchId,
         public int $totalSeconds,
@@ -17,6 +21,15 @@ readonly final class StopwatchDetail
         public null|DateTimeInterface $lastEnd,
         public StopwatchStatus $status,
     ) {
+        $interval = $totalSeconds;
+
+        if ($lastEnd === null) {
+            $interval += (new \DateTimeImmutable())->getTimestamp() - $lastStart->getTimestamp();
+        }
+
+        $this->hoursElapsed = (string) floor($interval / 3600);
+        $this->minutesElapsed = str_pad((string) floor(($interval / 60) % 60), 2, '0', STR_PAD_LEFT);
+        $this->secondsElapsed = str_pad((string) ($interval % 60), 2, '0', STR_PAD_LEFT);
     }
 
     /**

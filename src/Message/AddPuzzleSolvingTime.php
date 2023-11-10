@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleSolvingTime
 {
@@ -14,6 +15,7 @@ readonly final class AddPuzzleSolvingTime
         public null|string $time,
         public int $playersCount,
         public null|string $comment,
+        public null|UploadedFile $solvedPuzzlesPhoto,
     ) {
     }
 
@@ -28,6 +30,7 @@ readonly final class AddPuzzleSolvingTime
             time: $data->time,
             playersCount: $data->playersCount,
             comment: $data->comment,
+            solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
         );
     }
 }

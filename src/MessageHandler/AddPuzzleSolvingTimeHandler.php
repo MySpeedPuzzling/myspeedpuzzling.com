@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -21,6 +22,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
+        private Filesystem $filesystem,
     ) {
     }
 
@@ -34,8 +36,24 @@ readonly final class AddPuzzleSolvingTimeHandler
             $groupName = $message->comment;
         }
 
+        $solvingTimeId = Uuid::uuid7();
+        $finishedPuzzlePhotoPath = null;
+
+        if ($message->solvedPuzzlesPhoto !== null) {
+            $extension = $message->solvedPuzzlesPhoto->guessExtension();
+            $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId.$extension";
+
+            // Stream is better because it is memory safe
+            $stream = fopen($message->solvedPuzzlesPhoto->getPathname(), 'rb');
+            $this->filesystem->writeStream($finishedPuzzlePhotoPath, $stream);
+
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
         $solvingTime = new PuzzleSolvingTime(
-            Uuid::uuid7(),
+            $solvingTimeId,
             SolvingTime::fromUserInput($message->time)->seconds,
             $message->playersCount,
             $player,
@@ -44,6 +62,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             false,
             $message->comment,
             $groupName,
+            $finishedPuzzlePhotoPath,
         );
 
         $this->entityManager->persist($solvingTime);

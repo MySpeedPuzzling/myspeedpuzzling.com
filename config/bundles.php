@@ -17,4 +17,6 @@ return [
     Sentry\SentryBundle\SentryBundle::class => ['all' => true],
     Symfony\UX\StimulusBundle\StimulusBundle::class => ['all' => true],
     Auth0\Symfony\Auth0Bundle::class => ['all' => true],
+    Oneup\FlysystemBundle\OneupFlysystemBundle::class => ['all' => true],
+//    Liip\ImagineBundle\LiipImagineBundle::class => ['all' => true],
 ];

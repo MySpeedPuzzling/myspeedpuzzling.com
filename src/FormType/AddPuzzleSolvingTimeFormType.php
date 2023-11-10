@@ -9,10 +9,13 @@ use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\File;
+use Symfony\Component\Validator\Constraints\Image;
 
 /**
  * @extends AbstractType<AddPuzzleSolvingTimeFormData>
@@ -64,6 +67,16 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
             'label' => 'Doplňující info',
             'required' => false,
             'help' => 'Pokud skládáte ve více lidech, prosím uveďte jména',
+        ]);
+
+        $builder->add('solvedPuzzlesPhoto', FileType::class, [
+            'label' => 'Foto poskládaných puzzlí',
+            'required' => false,
+            'constraints' => [
+                new Image(
+                    maxSize: '4096k',
+                ),
+            ],
         ]);
     }
 

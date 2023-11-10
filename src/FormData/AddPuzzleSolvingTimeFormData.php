@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\Regex;
@@ -20,5 +21,5 @@ final class AddPuzzleSolvingTimeFormData
 
     public null|string $comment = null;
 
-    public null|string $solvedPuzzlesPhoto = null;
+    public null|UploadedFile $solvedPuzzlesPhoto = null;
 }

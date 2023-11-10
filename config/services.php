@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use AsyncAws\Core\Configuration;
+use AsyncAws\S3\S3Client;
 use Monolog\Processor\PsrLogMessageProcessor;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
@@ -44,4 +46,15 @@ return static function(ContainerConfigurator $configurator): void
     // Services
     $services->load('SpeedPuzzling\\Web\\Services\\', __DIR__ . '/../src/Services/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
+
+    $services->set(S3Client::class)
+        ->args([
+            '$configuration' => [
+                Configuration::OPTION_REGION => env('S3_REGION'),
+                Configuration::OPTION_ENDPOINT => env('S3_ENDPOINT'),
+                Configuration::OPTION_ACCESS_KEY_ID => env('S3_ACCESS_KEY'),
+                Configuration::OPTION_SECRET_ACCESS_KEY => env('S3_SECRET_KEY'),
+                Configuration::OPTION_PATH_STYLE_ENDPOINT => true,
+            ]
+        ]);
 };

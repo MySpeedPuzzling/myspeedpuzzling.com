@@ -8,6 +8,8 @@ RUN rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 COPY .docker/on-startup.sh /docker-entrypoint.d/
 
+COPY .docker/php.ini /usr/local/etc/php/conf.d/99-php-overrides.ini
+
 COPY composer.json composer.lock symfony.lock ./
 RUN composer install --no-dev --no-interaction --no-scripts
 

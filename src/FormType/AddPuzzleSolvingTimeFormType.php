@@ -74,7 +74,7 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
             'required' => false,
             'constraints' => [
                 new Image(
-                    maxSize: '4096k',
+                    maxSize: '10m',
                 ),
             ],
         ]);

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -24,6 +26,7 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
 {
     public function __construct(
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
+        readonly private GetManufacturers $getManufacturers,
     ) {
     }
 
@@ -77,6 +80,39 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
                     maxSize: '10m',
                 ),
             ],
+        ]);
+
+        $builder->add('addPuzzle', CheckboxType::class, [
+            'label' => 'Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu',
+        ]);
+
+        $builder->add('puzzleName', TextType::class, [
+            'label' => 'Název puzzlí',
+            'required' => false,
+        ]);
+
+        $manufacturerChoices = ['-' => ''];
+        foreach ($this->getManufacturers->onlyApproved() as $manufacturer) {
+            $manufacturerChoices[$manufacturer->manufacturerName] = $manufacturer->manufacturerId;
+        }
+
+        $builder->add('puzzleManufacturerId', ChoiceType::class, [
+            'label' => 'Výrobce',
+            'required' => false,
+            'expanded' => false,
+            'multiple' => false,
+            'choices' => $manufacturerChoices,
+        ]);
+
+        $builder->add('puzzleManufacturerName', TextType::class, [
+            'label' => 'Výrobce (pokud není na seznamu)',
+            'required' => false,
+            'help' => 'Prosím vyplňte pouze v případě, že jste výrobce nenašli v již existujícím seznamu',
+        ]);
+
+        $builder->add('puzzlePiecesCount', TextType::class, [
+            'label' => 'Počet dílků',
+            'required' => false,
         ]);
     }
 

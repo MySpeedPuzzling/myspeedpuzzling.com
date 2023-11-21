@@ -22,4 +22,14 @@ final class AddPuzzleSolvingTimeFormData
     public null|string $comment = null;
 
     public null|UploadedFile $solvedPuzzlesPhoto = null;
+
+    public null|bool $addPuzzle = null;
+
+    public null|string $puzzleName = null;
+
+    public null|string $puzzleManufacturerId = null;
+
+    public null|string $puzzleManufacturerName = null;
+
+    public null|int $puzzlePiecesCount = null;
 }

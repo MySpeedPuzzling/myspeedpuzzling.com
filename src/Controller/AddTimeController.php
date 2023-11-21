@@ -4,9 +4,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleSolvingTimeFormType;
+use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
@@ -39,20 +41,34 @@ final class AddTimeController extends AbstractController
             assert($data instanceof AddPuzzleSolvingTimeFormData);
             $userId = $user->getUserIdentifier();
 
+            if (
+                $data->addPuzzle === true
+                && $data->puzzleName !== null
+                && $data->puzzlePiecesCount !== null
+                && (
+                    $data->puzzleManufacturerId !== ''
+                    || $data->puzzleManufacturerName !== null
+                )
+            ) {
+                $newPuzzleId = Uuid::uuid7();
+                $data->puzzleId = (string) $newPuzzleId;
+
+                $this->messageBus->dispatch(
+                    AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
+                );
+            }
+
             if ($data->puzzleId !== null) {
                 $this->messageBus->dispatch(
                     AddPuzzleSolvingTime::fromFormData($userId, $data),
                 );
 
-                $this->addFlash(
-                    'success',
-                    'Skvělá práce! Skládání jsme zaznamenali.'
-                );
+                $this->addFlash('success','Skvělá práce! Skládání jsme zaznamenali.');
 
                 return $this->redirectToRoute('my_profile');
             }
 
-            $addPuzzleSolvingTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu'));
+            $addPuzzleSolvingTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
         }
 
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */

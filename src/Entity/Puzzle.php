@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Entity;
 
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
@@ -39,6 +40,9 @@ class Puzzle
 
         #[ManyToOne]
         public null|Player $addedByUser = null,
+
+        #[Column(nullable: true)]
+        public null|DateTimeImmutable $addedAt = null,
 
         #[Column(nullable: true)]
         public null|string $identificationNumber = null,

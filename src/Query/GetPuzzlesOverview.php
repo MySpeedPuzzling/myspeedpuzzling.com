@@ -24,7 +24,7 @@ SELECT puzzle.id AS puzzle_id, puzzle.name AS puzzle_name, puzzle.image AS puzzl
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-WHERE approved = true
+WHERE puzzle.approved = true
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
 ORDER BY manufacturer_name ASC, pieces_count ASC, puzzle.name ASC
 SQL;

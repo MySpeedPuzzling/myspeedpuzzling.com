@@ -13,7 +13,7 @@
                     ({{ solved_puzzle.puzzleAlternativeName }})
                 {% endif %}
                 <br>
-                <b>{{ solved_puzzle.manufacturerName }}</b><br>
+                <b>{{ solved_puzzle.manufacturerName|upper }}</b><br>
                 {{ solved_puzzle.piecesCount }} dílků<br>
 
                 {% if solved_puzzle.puzzleImage is not null%}

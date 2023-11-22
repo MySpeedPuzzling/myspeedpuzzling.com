@@ -18,7 +18,7 @@
                         ({{ active_puzzle.puzzleAlternativeName }})
                     {% endif %}
                     <br>
-                    <b>{{ active_puzzle.manufacturerName }}</b><br>
+                    <b>{{ active_puzzle.manufacturerName|upper }}</b><br>
                     {{ active_puzzle.piecesCount }} dílků<br>
 
                     {% if active_puzzle.puzzleImage is not null%}
@@ -46,7 +46,7 @@
                                     <div class="accordion-item">
                                         <h3 class="accordion-header">
                                             <a href="#{{ manufacturerName|slug }}" class="accordion-button collapsed" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="{{ manufacturerName|slug }}">
-                                                {{ manufacturerName }}
+                                                {{ manufacturerName|upper }}
                                             </a>
                                         </h3>
                                         <div id="{{ manufacturerName|slug }}" class="accordion-collapse collapse" data-bs-parent="#puzzle-manufacturers">

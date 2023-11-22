@@ -18,7 +18,7 @@
             </p>
 
             <p class="card-text fs-sm text-muted">
-                <b>{{ puzzle.manufacturerName }}</b><br>
+                <b>{{ puzzle.manufacturerName|upper }}</b><br>
                 {{ puzzle.piecesCount }} dílků<br>
 
                 {% if puzzle.solvedTimes > 0 %}

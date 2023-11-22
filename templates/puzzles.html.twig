@@ -5,39 +5,47 @@
 {% block content %}
     <h1>Puzzle</h1>
 
-    <div class="masonry-grid" data-columns="3">
-        {% for puzzle in puzzles %}
-            <div class="masonry-grid-item">
-                <div class="card border-0 shadow">
-                    <div class="card-body">
+    {% for puzzle in puzzles %}
+        <div class="shadow-sm my-2 py-2 px-3">
+            <div class="row">
+                <div class="col-sm align-self-center">
+                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}<br><small>({{ puzzle.puzzleAlternativeName }})</small></a>
 
-                        <h5 class="card-title"><a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}<br><small>({{ puzzle.puzzleAlternativeName }})</small></a></h5>
-                        <p class="card-text fs-sm text-muted">
-                            <b>{{ puzzle.manufacturerName }}</b><br>
-                            {{ puzzle.piecesCount }} dílků<br>
 
-                            {% if puzzle.solvedTimes > 0 %}
-                                Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
-                                Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
-                                Počet složení: {{ puzzle.solvedTimes }}
-                            {% else %}
-                                Tyto puzzle ještě nikdo neskládal, buď první!
-                            {% endif %}
-                        </p>
-                        {% if puzzle.puzzleImage is not null%}
-                            <p>
-                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                    <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
-                                </a>
-                            </p>
-                        {% endif %}
+                </div>
 
+                <div class="col-sm text-center">
+                    {% if puzzle.puzzleImage is not null%}
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div class="col-sm align-self-center text-center">
+                    <b>{{ puzzle.manufacturerName }}</b><br>
+                    {{ puzzle.piecesCount }} dílků
+                </div>
+
+                <div class="col-sm align-self-center">
+                    <small>
                         {% if puzzle.solvedTimes > 0 %}
-                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy!</a>
+                            Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+                            Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+                            Počet složení: {{ puzzle.solvedTimes }}
+                        {% else %}
+                            Tyto puzzle ještě nikdo neskládal, buď první!
                         {% endif %}
-                    </div>
+                    </small>
+                </div>
+
+                <div class="col-sm align-self-center text-end">
+                    {% if puzzle.solvedTimes > 0 %}
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy</a>
+                    {% endif %}
+                    <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
                 </div>
             </div>
-        {% endfor %}
-    </div>
+        </div>
+    {% endfor %}
 {% endblock %}

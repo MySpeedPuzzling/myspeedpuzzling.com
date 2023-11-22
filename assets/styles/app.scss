@@ -1,5 +1,9 @@
 // the ~ allows you to reference things in node_modules
 
+body {
+    padding-bottom: 30px;
+}
+
 .stopwatch {
     .countdown-value {
         font-size: 60px;

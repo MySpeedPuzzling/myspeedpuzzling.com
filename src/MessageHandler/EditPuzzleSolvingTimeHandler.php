@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\MessageHandler;
+
+use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
+use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
+use SpeedPuzzling\Web\Value\SolvingTime;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+readonly final class EditPuzzleSolvingTimeHandler
+{
+    public function __construct(
+        private PlayerRepository $playerRepository,
+        private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
+    ) {
+    }
+
+    /**
+     * @throws PuzzleSolvingTimeNotFound
+     * @throws CanNotModifyOtherPlayersTime
+     */
+    public function __invoke(EditPuzzleSolvingTime $message): void
+    {
+        $solvingTime = $this->puzzleSolvingTimeRepository->get($message->puzzleSolvingTimeId);
+        $currentPlayer = $this->playerRepository->getByUserIdCreateIfNotExists($message->currentUserId);
+
+        if ($currentPlayer->id->equals($solvingTime->player->id) === false) {
+            throw new CanNotModifyOtherPlayersTime();
+        }
+
+        $seconds = SolvingTime::fromUserInput($message->time)->seconds;
+        assert($seconds !== null);
+
+        $solvingTime->modify(
+            $seconds,
+            $message->playersCount,
+            $message->comment,
+        );
+    }
+}

@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Entity\Product;
 use SpeedPuzzling\Web\Entity\ProductVariant;
 use SpeedPuzzling\Web\Value\Currency;
 use SpeedPuzzling\Web\Value\Price;
-use Ramsey\Uuid\Uuid;
 
 final class TestDataFixture extends Fixture
 {

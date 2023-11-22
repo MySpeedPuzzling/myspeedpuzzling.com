@@ -5,14 +5,10 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
-use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
-use SpeedPuzzling\Web\Message\EditProfile;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
@@ -42,11 +38,11 @@ final class AddTimeController extends AbstractController
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
         }
 
-        $addPuzzleSolvingTimeForm = $this->createForm(AddPuzzleSolvingTimeFormType::class);
-        $addPuzzleSolvingTimeForm->handleRequest($request);
+        $addTimeForm = $this->createForm(AddPuzzleSolvingTimeFormType::class);
+        $addTimeForm->handleRequest($request);
 
-        if ($addPuzzleSolvingTimeForm->isSubmitted() && $addPuzzleSolvingTimeForm->isValid()) {
-            $data = $addPuzzleSolvingTimeForm->getData();
+        if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
+            $data = $addTimeForm->getData();
             assert($data instanceof AddPuzzleSolvingTimeFormData);
 
             if ($activePuzzle !== null) {
@@ -83,7 +79,7 @@ final class AddTimeController extends AbstractController
                 return $this->redirectToRoute('my_profile');
             }
 
-            $addPuzzleSolvingTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
+            $addTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
         }
 
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
@@ -95,7 +91,7 @@ final class AddTimeController extends AbstractController
         return $this->render('add-time.html.twig', [
             'active_puzzle' => $activePuzzle,
             'puzzles' => $puzzlesPerManufacturer,
-            'add_puzzle_solving_time_form' => $addPuzzleSolvingTimeForm,
+            'add_puzzle_solving_time_form' => $addTimeForm,
         ]);
     }
 }

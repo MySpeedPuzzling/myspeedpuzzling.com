@@ -8,7 +8,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NoResultException;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
-use SpeedPuzzling\Web\Entity\Puzzle;
 
 readonly final class PlayerRepository
 {

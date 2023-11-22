@@ -8,7 +8,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotResetStopwatchForDifferentPlayer;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Message\ResetStopwatch;
-use SpeedPuzzling\Web\Message\StartStopwatch;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\StopwatchRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

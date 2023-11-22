@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\Regex;
 
-final class AddPuzzleSolvingTimeFormData
+final class EditPuzzleSolvingTimeFormData
 {
-    public null|string $puzzleId = null;
-
     #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'Prosím zadejte čas ve formátu HH:MM:SS')]
     public null|string $time = null;
 
@@ -20,16 +17,4 @@ final class AddPuzzleSolvingTimeFormData
     public null|int $playersCount = null;
 
     public null|string $comment = null;
-
-    public null|UploadedFile $solvedPuzzlesPhoto = null;
-
-    public null|bool $addPuzzle = null;
-
-    public null|string $puzzleName = null;
-
-    public null|string $puzzleManufacturerId = null;
-
-    public null|string $puzzleManufacturerName = null;
-
-    public null|int $puzzlePiecesCount = null;
 }

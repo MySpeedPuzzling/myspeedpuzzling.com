@@ -38,8 +38,9 @@ class Stopwatch
 
     public function __construct(
         #[Id]
+        #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
-        readonly public UuidInterface $id,
+        public UuidInterface $id,
 
         #[ManyToOne]
         #[JoinColumn(nullable: false)]

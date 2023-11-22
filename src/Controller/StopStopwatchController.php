@@ -5,10 +5,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBePaused;
-use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeResumed;
 use SpeedPuzzling\Web\Message\StopStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;

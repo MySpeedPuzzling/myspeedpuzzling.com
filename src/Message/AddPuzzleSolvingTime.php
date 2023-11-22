@@ -12,7 +12,7 @@ readonly final class AddPuzzleSolvingTime
     public function __construct(
         public string $userId,
         public string $puzzleId,
-        public null|string $time,
+        public string $time,
         public int $playersCount,
         public null|string $comment,
         public null|UploadedFile $solvedPuzzlesPhoto,
@@ -23,6 +23,7 @@ readonly final class AddPuzzleSolvingTime
     {
         assert($data->puzzleId !== null);
         assert($data->playersCount !== null);
+        assert($data->time !== null);
 
         return new self(
             userId: $userId,

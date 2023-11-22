@@ -8,6 +8,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
@@ -16,8 +17,9 @@ class Player
 {
     public function __construct(
         #[Id]
+        #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
-        readonly public UuidInterface $id,
+        public UuidInterface $id,
 
         #[Column(unique: true, nullable: true)]
         public null|string $userId,

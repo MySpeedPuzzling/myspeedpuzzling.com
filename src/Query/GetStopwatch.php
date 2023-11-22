@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
-use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\StopwatchDetail;
 
 readonly final class GetStopwatch

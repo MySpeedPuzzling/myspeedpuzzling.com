@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

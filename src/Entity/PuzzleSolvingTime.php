@@ -11,6 +11,7 @@ use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
+use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
@@ -19,8 +20,9 @@ class PuzzleSolvingTime
 {
     public function __construct(
         #[Id]
+        #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
-        readonly public UuidInterface $id,
+        public UuidInterface $id,
 
         #[Column(type: Types::INTEGER, nullable: true)]
         public null|int $secondsToSolve,
@@ -51,5 +53,16 @@ class PuzzleSolvingTime
         #[Column(nullable: true)]
         public null|string $finishedPuzzlePhoto = null,
     ) {
+    }
+
+    public function modify(
+        int $seconds,
+        int $playersCount,
+        null|string $comment,
+    ): void
+    {
+        $this->secondsToSolve = $seconds;
+        $this->playersCount = $playersCount;
+        $this->comment = $comment;
     }
 }

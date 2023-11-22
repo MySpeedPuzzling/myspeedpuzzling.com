@@ -5,7 +5,6 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ResetStopwatch;
-use SpeedPuzzling\Web\Message\ResumeStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;

@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
+use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
@@ -18,8 +19,9 @@ class Manufacturer
 {
     public function __construct(
         #[Id]
+        #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
-        readonly public UuidInterface $id,
+        public UuidInterface $id,
 
         #[Column]
         public string $name,

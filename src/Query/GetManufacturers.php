@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\ManufacturerOverview;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
 
 readonly final class GetManufacturers
 {

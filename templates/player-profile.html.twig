@@ -39,7 +39,7 @@
                                     </a>
                                 </td>
                                 <td>{{ puzzle.groupName }}</td>
-                                <td class="text-end">{{ puzzle.time|date('H:i:s', 'UTC') }}</td>
+                                <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
                             </tr>
                         {% endfor %}
                         {% if solo_puzzles|length < 1 %}
@@ -83,7 +83,7 @@
                                     </a>
                                 </td>
                                 <td>{{ puzzle.groupName }}</td>
-                                <td class="text-end">{{ puzzle.time|date('H:i:s', 'UTC') }}</td>
+                                <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
                             </tr>
                         {% endfor %}
                         {% if group_puzzles|length < 1 %}

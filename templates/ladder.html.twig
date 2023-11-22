@@ -29,7 +29,7 @@
                                     {{ fastest_player.playerName }}
                                 </a>
                             </td>
-                            <td class="text-end">{{ fastest_player.time|date('H:i:s', 'UTC') }}</td>
+                            <td class="text-end">{{ fastest_player.time|puzzlingTime }}</td>
                             <td>
                                 {% if fastest_player.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
@@ -79,8 +79,8 @@
                                 </a>
                             </td>
                             <td class="text-end">
-                                Top: {{ most_solved_puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
-                                <small class="text-muted">Průměr: {{ most_solved_puzzle.averageTime|date('H:i:s', 'UTC') }}</small>
+                                Top: {{ most_solved_puzzle.fastestTime|puzzlingTime }}<br>
+                                <small class="text-muted">Průměr: {{ most_solved_puzzle.averageTime|puzzlingTime }}</small>
                             </td>
                         </tr>
                     {% endfor %}

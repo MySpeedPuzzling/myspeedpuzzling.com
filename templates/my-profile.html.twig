@@ -61,7 +61,7 @@
             {% for stopwatch in stopwatches %}
                 <li>
                     <a href="{{ path('stopwatch_status', {stopwatchId: stopwatch.stopwatchId}) }}">
-                        {{ stopwatch.hoursElapsed }}:{{ stopwatch.minutesElapsed }}:{{ stopwatch.secondsElapsed }} ({{ stopwatch.status.title }})
+                        {{ stopwatch.interval|puzzlingTime }} ({{ stopwatch.status.title }})
                     </a>
                 </li>
             {% endfor %}
@@ -100,7 +100,7 @@
                                 </a>
                             </td>
                             <td>{{ puzzle.groupName }}</td>
-                            <td class="text-end">{{ puzzle.time|date('H:i:s', 'UTC') }}</td>
+                            <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     {% if solo_puzzles|length < 1 %}
@@ -144,7 +144,7 @@
                                 </a>
                             </td>
                             <td>{{ puzzle.groupName }}</td>
-                            <td class="text-end">{{ puzzle.time|date('H:i:s', 'UTC') }}</td>
+                            <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     {% if group_puzzles|length < 1 %}

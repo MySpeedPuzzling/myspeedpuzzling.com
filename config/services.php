@@ -34,6 +34,9 @@ return static function(ContainerConfigurator $configurator): void
     // Controllers
     $services->load('SpeedPuzzling\\Web\\Controller\\', __DIR__ . '/../src/Controller/{*Controller.php}');
 
+    // Twig extensions
+    $services->load('SpeedPuzzling\\Web\\Twig\\', __DIR__ . '/../src/Twig/{*TwigExtension.php}');
+
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');
 

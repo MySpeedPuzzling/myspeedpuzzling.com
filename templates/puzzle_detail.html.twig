@@ -22,8 +22,8 @@
                 {{ puzzle.piecesCount }} dílků<br>
 
                 {% if puzzle.solvedTimes > 0 %}
-                    Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
-                    Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+                    Nejrychlejší čas: {{ puzzle.fastestTime|puzzlingTime }}<br>
+                    Průměrný čas: {{ puzzle.averageTime|puzzlingTime }}<br>
                     Počet složení: {{ puzzle.solvedTimes }}
                 {% endif %}
             </p>
@@ -66,7 +66,7 @@
                             <td>
                                 {{ puzzle_solver.groupName }}
                             </td>
-                            <td class="text-end">{{ puzzle_solver.time|date('H:i:s', 'UTC') }}</td>
+                            <td class="text-end">{{ puzzle_solver.time|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     {% if solo_puzzle_solvers|length < 1 %}
@@ -104,7 +104,7 @@
                                     {% endif %}
                                 </a>
                             </td>
-                            <td class="text-end">{{ puzzle_solver.time|date('H:i:s', 'UTC') }}</td>
+                            <td class="text-end">{{ puzzle_solver.time|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     {% if group_puzzle_solvers|length < 1 %}

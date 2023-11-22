@@ -17,15 +17,15 @@
                     {% endif %}
                 >
                     <div class="countdown-hours rounded p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-hours" class="countdown-value">{{ active_stopwatch.hoursElapsed ?? '0' }}</span>
+                        <span id="stopwatch-hours" class="countdown-value">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|hoursElapsed }}{% else %}00{% endif %}</span>
                         <span class="countdown-label text-muted">h</span>
                     </div>
                     <div class="countdown-minutes rounded p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-minutes" class="countdown-value">{{ active_stopwatch.minutesElapsed ?? '00' }}</span>
+                        <span id="stopwatch-minutes" class="countdown-value">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|minutesElapsed }}{% else %}00{% endif %}</span>
                         <span class="countdown-label text-muted">m</span>
                     </div>
                     <div class="countdown-seconds rounded p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-seconds" class="countdown-value">{{ active_stopwatch.secondsElapsed ?? '00' }}</span>
+                        <span id="stopwatch-seconds" class="countdown-value">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|secondsElapsed }}{% else %}00{% endif %}</span>
                         <span class="countdown-label text-muted">s</span>
                     </div>
                 </div>
@@ -75,7 +75,7 @@
                 {% if active_stopwatch is null or stopwatch.stopwatchId is not same as active_stopwatch.stopwatchId %}
                     <li>
                         <a href="{{ path('stopwatch_status', {stopwatchId: stopwatch.stopwatchId}) }}">
-                            {{ stopwatch.hoursElapsed }}:{{ stopwatch.minutesElapsed }}:{{ stopwatch.secondsElapsed }} ({{ stopwatch.status.title }})
+                            {{ stopwatch.interval|puzzlingTime }} ({{ stopwatch.status.title }})
                         </a>
                     </li>
                 {% endif %}
@@ -110,7 +110,7 @@
                 const seconds = differenceInSeconds % 60;
 
                 // Update the HTML elements
-                document.getElementById('stopwatch-hours').textContent = hours;
+                document.getElementById('stopwatch-hours').textContent = pad(hours);
                 document.getElementById('stopwatch-minutes').textContent = pad(minutes);
                 document.getElementById('stopwatch-seconds').textContent = pad(seconds);
             }

@@ -120,6 +120,38 @@
             </section>
         {% endblock %}
 
+        <footer class="bg-secondary pt-4 mt-5">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="widget widget-links">
+                            <ul class="widget-list d-flex flex-wrap justify-content-center justify-content-md-start">
+                                <li class="widget-list-item me-4">
+                                    <a href="{{ path('puzzles') }}" class="widget-list-link">Přehled puzzlí</a>
+                                </li>
+                                <li class="widget-list-item me-4">
+                                    <a href="{{ path('ladder') }}" class="widget-list-link">Žebříček</a>
+                                </li>
+                                <li class="widget-list-item me-4">
+                                    <a href="{{ path('my_profile') }}" class="widget-list-link">Můj profil</a>
+                                </li>
+                                <li class="widget-list-item me-4">
+                                    <a href="{{ path('add_time') }}" class="widget-list-link">Přidat čas</a>
+                                </li>
+                                <li class="widget-list-item">
+                                    <a href="{{ path('stopwatch') }}" class="widget-list-link">Stopky</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 mt-3 mt-sm-0">
+                        <div class="pb-4 fs-xs text-muted text-center text-sm-end">&copy; Vytvořili s láskou k puzzlím a zdrojovému kódu <a href="https://janmikes.cz">Jan&nbsp;Mikeš</a> a <a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a></div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
 
         <!-- Vendor scrits: js libraries and plugins-->
         <script src="{{ asset('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>

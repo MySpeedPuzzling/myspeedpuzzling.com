@@ -14,7 +14,7 @@
 
                 </div>
 
-                <div class="col-sm text-center">
+                <div class="col-sm text-sm-center">
                     {% if puzzle.puzzleImage is not null%}
                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                             <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
@@ -22,7 +22,7 @@
                     {% endif %}
                 </div>
 
-                <div class="col-sm align-self-center text-center">
+                <div class="col-sm align-self-center text-sm-center">
                     <b>{{ puzzle.manufacturerName }}</b><br>
                     {{ puzzle.piecesCount }} dílků
                 </div>
@@ -39,7 +39,7 @@
                     </small>
                 </div>
 
-                <div class="col-sm align-self-center text-end">
+                <div class="col-sm align-self-center text-sm-end">
                     {% if puzzle.solvedTimes > 0 %}
                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">Chci vidět časy</a>
                     {% endif %}

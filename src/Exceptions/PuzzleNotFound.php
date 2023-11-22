@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Exceptions;
 
-final class PuzzleNotFound extends \Exception
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+final class PuzzleNotFound extends NotFoundHttpException
 {
 }

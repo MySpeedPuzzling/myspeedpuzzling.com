@@ -5,6 +5,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleSolvingTimeFormType;
@@ -12,6 +13,7 @@ use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,18 +29,31 @@ final class AddTimeController extends AbstractController
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
+        readonly private GetPuzzleOverview $getPuzzleOverview,
     ) {
     }
 
-    #[Route(path: '/pridat-cas', name: 'add_time', methods: ['GET', 'POST'])]
-    public function __invoke(Request $request, #[CurrentUser] User $user): Response
+    #[Route(path: '/pridat-cas/{puzzleId}', name: 'add_time', methods: ['GET', 'POST'])]
+    public function __invoke(Request $request, #[CurrentUser] User $user, null|string $puzzleId = null): Response
     {
+        $activePuzzle = null;
+
+        if ($puzzleId !== null) {
+            $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
+        }
+
         $addPuzzleSolvingTimeForm = $this->createForm(AddPuzzleSolvingTimeFormType::class);
         $addPuzzleSolvingTimeForm->handleRequest($request);
 
         if ($addPuzzleSolvingTimeForm->isSubmitted() && $addPuzzleSolvingTimeForm->isValid()) {
             $data = $addPuzzleSolvingTimeForm->getData();
             assert($data instanceof AddPuzzleSolvingTimeFormData);
+
+            if ($activePuzzle !== null) {
+                $data->puzzleId = $activePuzzle->puzzleId;
+                $data->addPuzzle = false;
+            }
+
             $userId = $user->getUserIdentifier();
 
             if (
@@ -78,6 +93,7 @@ final class AddTimeController extends AbstractController
         }
 
         return $this->render('add-time.html.twig', [
+            'active_puzzle' => $activePuzzle,
             'puzzles' => $puzzlesPerManufacturer,
             'add_puzzle_solving_time_form' => $addPuzzleSolvingTimeForm,
         ]);

@@ -10,29 +10,38 @@
         {% endif %}
     </h1>
 
-    <p class="card-text fs-sm text-muted">
-        <b>{{ puzzle.manufacturerName }}</b><br>
-        {{ puzzle.piecesCount }} dílků<br>
+    <div class="row">
+        <div class="col-sm-12 col-md-6">
+            <p>
+                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
+                <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm">Chci si tyto puzzle půjčit/koupit</a>
+            </p>
 
-        {% if puzzle.solvedTimes > 0 %}
-            Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
-            Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
-            Počet složení: {{ puzzle.solvedTimes }}
-        {% endif %}
-    </p>
+            <p class="card-text fs-sm text-muted">
+                <b>{{ puzzle.manufacturerName }}</b><br>
+                {{ puzzle.piecesCount }} dílků<br>
 
-    {% if puzzle.puzzleImage is not null%}
-        <p>
-            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                <img style="max-width: 200px;max-height: 200px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
-            </a>
-        </p>
-    {% endif %}
+                {% if puzzle.solvedTimes > 0 %}
+                    Nejrychlejší čas: {{ puzzle.fastestTime|date('H:i:s', 'UTC') }}<br>
+                    Průměrný čas: {{ puzzle.averageTime|date('H:i:s', 'UTC') }}<br>
+                    Počet složení: {{ puzzle.solvedTimes }}
+                {% endif %}
+            </p>
+        </div>
 
-    <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm">Chci tyhle puzzle skládat!</a>
+        <div class="col-sm-12 col-md-6">
+            {% if puzzle.puzzleImage is not null%}
+                <p>
+                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                        <img style="max-width: 200px;max-height: 200px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
+                    </a>
+                </p>
+            {% endif %}
+        </div>
+    </div>
 
     <div class="row mt-5">
-        <div class="col">
+        <div class="col-sm-12 col-md-6">
             <h2 class="h4">Jednotlivci</h2>
 
             <div class="table-responsive shadow mt-2 mb-5">
@@ -70,7 +79,7 @@
             </div>
         </div>
 
-        <div class="col">
+        <div class="col-sm-12 col-md-6">
             <h2 class="h4">Skupiny</h2>
 
             <div class="table-responsive shadow mt-2 mb-5">

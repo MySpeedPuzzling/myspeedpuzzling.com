@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Exceptions;
 
-final class StopwatchNotFound extends \Exception
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+final class StopwatchNotFound extends NotFoundHttpException
 {
 
 }

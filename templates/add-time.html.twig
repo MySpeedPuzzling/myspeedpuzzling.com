@@ -10,72 +10,92 @@
 
         <div class="row pb-4">
             <div class="col-lg-6 offset-lg-1 order-lg-2">
-                <div class="form-switch mb-4">
-                    {{ form_widget(add_puzzle_solving_time_form.addPuzzle) }}
-                </div>
+                {% if active_puzzle is not null %}
+                    <h5>Vybrané puzzle:</h5>
 
-                <div id="existing-puzzle-form">
-                    <h3 class="h5">Vyberte puzzle, podle výrobce:</h3>
+                    Puzzle {{ active_puzzle.puzzleName }}
+                    {% if active_puzzle.puzzleAlternativeName is not null %}
+                        ({{ active_puzzle.puzzleAlternativeName }})
+                    {% endif %}
+                    <br>
+                    <b>{{ active_puzzle.manufacturerName }}</b><br>
+                    {{ active_puzzle.piecesCount }} dílků<br>
 
-                    <p><small class="text-muted">Pokud puzzle v seznamu nenajdete, přidejte prosím informace ručně.</small></p>
+                    {% if active_puzzle.puzzleImage is not null%}
+                        <p>
+                            <img style="max-width: 200px;max-height: 200px;" src="https://img.speedpuzzling.cz/puzzle/{{ active_puzzle.puzzleImage }}">
+                        </p>
+                    {% endif %}
+                {% endif %}
 
-                    <div class="widget widget-categories mb-4">
-                        {{ form_errors(add_puzzle_solving_time_form.puzzleId) }}
+                <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
+                    <div class="form-switch mb-4">
+                        {{ form_widget(add_puzzle_solving_time_form.addPuzzle) }}
+                    </div>
 
-                        <div id="puzzle-manufacturers" class="accordion">
-                            {% for manufacturerName, manufacturerPuzzles in puzzles %}
-                                <div class="accordion-item">
-                                    <h3 class="accordion-header">
-                                        <a href="#{{ manufacturerName|slug }}" class="accordion-button collapsed" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="{{ manufacturerName|slug }}">
-                                            {{ manufacturerName }}
-                                        </a>
-                                    </h3>
-                                    <div id="{{ manufacturerName|slug }}" class="accordion-collapse collapse" data-bs-parent="#puzzle-manufacturers">
-                                        <div class="accordion-body">
-                                            <div class="widget widget-links {% if manufacturerPuzzles|length > 7 %}widget-filter{% endif %}">
-                                                {% if manufacturerPuzzles|length > 7 %}
-                                                    <div class="input-group input-group-sm mb-2">
-                                                        <input type="text" class="widget-filter-search form-control rounded-end" placeholder="Hledat">
-                                                        <i class="ci-search position-absolute top-50 end-0 translate-middle-y fs-sm me-3"></i>
-                                                    </div>
-                                                {% endif %}
+                    <div id="existing-puzzle-form">
+                        <h3 class="h5">Vyberte puzzle, podle výrobce:</h3>
 
-                                                <ul class="widget-list {% if manufacturerPuzzles|length > 7 %}widget-filter-list pt-1{% endif %}" {% if manufacturerPuzzles|length > 7 %}style="height: 18rem;" data-simplebar data-simplebar-auto-hide="false"{% endif %}>
-                                                    {% for puzzle in manufacturerPuzzles %}
-                                                        <li class="widget-list-item mb-2 {% if manufacturerPuzzles|length > 7 %}widget-filter-item{% endif %}">
+                        <p><small class="text-muted">Pokud puzzle v seznamu nenajdete, přidejte prosím informace ručně.</small></p>
 
-                                                            <div class="form-check d-flex align-items-center">
-                                                                <div class="me-1">
-                                                                    <input class="form-check-input" type="radio" id="{{ puzzle.puzzleId }}" name="{{ field_name(add_puzzle_solving_time_form.puzzleId) }}" value="{{ puzzle.puzzleId }}">
+                        <div class="widget widget-categories mb-4">
+                            {{ form_errors(add_puzzle_solving_time_form.puzzleId) }}
+
+                            <div id="puzzle-manufacturers" class="accordion">
+                                {% for manufacturerName, manufacturerPuzzles in puzzles %}
+                                    <div class="accordion-item">
+                                        <h3 class="accordion-header">
+                                            <a href="#{{ manufacturerName|slug }}" class="accordion-button collapsed" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="{{ manufacturerName|slug }}">
+                                                {{ manufacturerName }}
+                                            </a>
+                                        </h3>
+                                        <div id="{{ manufacturerName|slug }}" class="accordion-collapse collapse" data-bs-parent="#puzzle-manufacturers">
+                                            <div class="accordion-body">
+                                                <div class="widget widget-links {% if manufacturerPuzzles|length > 7 %}widget-filter{% endif %}">
+                                                    {% if manufacturerPuzzles|length > 7 %}
+                                                        <div class="input-group input-group-sm mb-2">
+                                                            <input type="text" class="widget-filter-search form-control rounded-end" placeholder="Hledat">
+                                                            <i class="ci-search position-absolute top-50 end-0 translate-middle-y fs-sm me-3"></i>
+                                                        </div>
+                                                    {% endif %}
+
+                                                    <ul class="widget-list {% if manufacturerPuzzles|length > 7 %}widget-filter-list pt-1{% endif %}" {% if manufacturerPuzzles|length > 7 %}style="height: 18rem;" data-simplebar data-simplebar-auto-hide="false"{% endif %}>
+                                                        {% for puzzle in manufacturerPuzzles %}
+                                                            <li class="widget-list-item mb-2 {% if manufacturerPuzzles|length > 7 %}widget-filter-item{% endif %}">
+
+                                                                <div class="form-check d-flex align-items-center">
+                                                                    <div class="me-1">
+                                                                        <input class="form-check-input" type="radio" id="{{ puzzle.puzzleId }}" name="{{ field_name(add_puzzle_solving_time_form.puzzleId) }}" value="{{ puzzle.puzzleId }}">
+                                                                    </div>
+                                                                    <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
+                                                                        {% if puzzle.puzzleImage is not null %}
+                                                                            <img class="me-2" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}" style="max-width: 50px;float: left;">
+                                                                        {% endif %}
+                                                                        <span style="display: inline-block;">
+                                                                            {{ puzzle.puzzleName }} {% if puzzle.puzzleAlternativeName is not null %}({{ puzzle.puzzleAlternativeName }}){% endif %}
+                                                                            <br>
+                                                                            <span class="fs-xs text-muted">{{ puzzle.piecesCount }} dílků</span>
+                                                                        </span>
+                                                                    </label>
                                                                 </div>
-                                                                <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
-                                                                    {% if puzzle.puzzleImage is not null %}
-                                                                        <img class="me-2" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}" style="max-width: 50px;float: left;">
-                                                                    {% endif %}
-                                                                    <span style="display: inline-block;">
-                                                                        {{ puzzle.puzzleName }} {% if puzzle.puzzleAlternativeName is not null %}({{ puzzle.puzzleAlternativeName }}){% endif %}
-                                                                        <br>
-                                                                        <span class="fs-xs text-muted">{{ puzzle.piecesCount }} dílků</span>
-                                                                    </span>
-                                                                </label>
-                                                            </div>
-                                                        </li>
-                                                    {% endfor %}
-                                                </ul>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            {% endfor %}
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div id="custom-puzzle-form">
-                    {{ form_row(add_puzzle_solving_time_form.puzzleName) }}
-                    {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerId) }}
-                    {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerName) }}
-                    {{ form_row(add_puzzle_solving_time_form.puzzlePiecesCount) }}
+                    <div id="custom-puzzle-form">
+                        {{ form_row(add_puzzle_solving_time_form.puzzleName) }}
+                        {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerId) }}
+                        {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerName) }}
+                        {{ form_row(add_puzzle_solving_time_form.puzzlePiecesCount) }}
+                    </div>
                 </div>
             </div>
 

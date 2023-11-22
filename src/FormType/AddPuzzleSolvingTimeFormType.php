@@ -42,7 +42,7 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
 
         $builder->add('puzzleId', ChoiceType::class, [
             'label' => 'Puzzle',
-            'required' => true,
+            'required' => false,
             'expanded' => true,
             'multiple' => false,
             'choices' => $puzzleChoices,
@@ -84,6 +84,7 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
 
         $builder->add('addPuzzle', CheckboxType::class, [
             'label' => 'Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu',
+            'required' => false,
         ]);
 
         $builder->add('puzzleName', TextType::class, [

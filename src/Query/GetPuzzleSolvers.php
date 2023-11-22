@@ -27,11 +27,17 @@ readonly final class GetPuzzleSolvers
         }
 
         $query = <<<SQL
-SELECT player.id AS player_id, player.name AS player_name, puzzle_solving_time.seconds_to_solve AS time, group_name, players_count 
+SELECT
+    player.id AS player_id,
+    player.name AS player_name,
+    puzzle_solving_time.seconds_to_solve AS time,
+    group_name,
+    players_count
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
+    AND player.name IS NOT NULL
 ORDER BY seconds_to_solve ASC
 SQL;
 

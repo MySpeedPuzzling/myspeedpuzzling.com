@@ -7,6 +7,7 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetStopwatch;
+use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -22,8 +23,8 @@ final class StopwatchController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/stopky', name: 'stopwatch', methods: ['GET'])]
-    public function __invoke(null|string $stopwatchId, #[CurrentUser] UserInterface $user): Response
+    #[Route(path: '/stopky/{stopwatchId}', name: 'stopwatch', methods: ['GET'])]
+    public function __invoke(#[CurrentUser] UserInterface $user, null|string $stopwatchId = null): Response
     {
         $userId = $user->getUserIdentifier();
 
@@ -38,9 +39,26 @@ final class StopwatchController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $activeStopwatch = null;
+
+        if ($stopwatchId !== null) {
+            $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
+        }
+
+        $stopwatches = $this->getStopwatch->allForPlayer($player->playerId);
+
+        // If user has any running stopwatch, redirect to them
+        foreach ($stopwatches as $stopwatch) {
+            if ($stopwatchId === null && $stopwatch->status === StopwatchStatus::Running) {
+                return $this->redirectToRoute('stopwatch', [
+                    'stopwatchId' => $stopwatch->stopwatchId,
+                ]);
+            }
+        }
+
         return $this->render('stopwatch.html.twig', [
-            'active_stopwatch' => null,
-            'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
+            'active_stopwatch' => $activeStopwatch,
+            'stopwatches' => $stopwatches,
         ]);
     }
 }

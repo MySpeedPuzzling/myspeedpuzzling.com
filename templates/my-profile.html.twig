@@ -60,7 +60,7 @@
         <ul>
             {% for stopwatch in stopwatches %}
                 <li>
-                    <a href="{{ path('stopwatch_status', {stopwatchId: stopwatch.stopwatchId}) }}">
+                    <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
                         {{ stopwatch.interval|puzzlingTime }} ({{ stopwatch.status.title }})
                     </a>
                 </li>

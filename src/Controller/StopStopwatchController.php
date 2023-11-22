@@ -43,7 +43,7 @@ final class StopStopwatchController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('stopwatch_status', [
+        return $this->redirectToRoute('stopwatch', [
             'stopwatchId' => $stopwatchId,
         ]);
     }

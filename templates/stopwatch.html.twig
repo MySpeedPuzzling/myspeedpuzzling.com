@@ -85,6 +85,29 @@
 
     {% if active_stopwatch is not null %}
         <script>
+            let status = document.querySelector('[data-stopwatch-status]').getAttribute('data-stopwatch-status');
+
+            console.log(window.navigator.wakeLock);
+
+            document.addEventListener('DOMContentLoaded', () => {
+                if (status === 'running') {
+                    let wakeLock = null;
+
+                    try {
+                        wakeLock = window.navigator.wakeLock.request('screen');
+                        console.log('Screen Wake Lock is active');
+                    } catch (err) {
+                        console.error(`${err.name}, ${err.message}`);
+                    }
+
+                    document.addEventListener('visibilitychange', async () => {
+                        if (wakeLock !== null && document.visibilityState === 'visible') {
+                            wakeLock = window.navigator.wakeLock.request('screen');
+                        }
+                    });
+                }
+            });
+
             function pad(number) {
                 return number < 10 ? '0' + number : number;
             }
@@ -94,7 +117,6 @@
                 const startTime = new Date(document.querySelector('[data-stopwatch-start]').getAttribute('data-stopwatch-start'));
                 const totalElapsedSeconds = parseInt(document.querySelector('[data-total-seconds]').getAttribute('data-total-seconds'), 10);
 
-                let status = document.querySelector('[data-stopwatch-status]').getAttribute('data-stopwatch-status');
 
                 if (status !== 'running') {
                     return;

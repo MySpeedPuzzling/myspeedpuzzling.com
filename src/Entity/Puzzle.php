@@ -51,6 +51,9 @@ class Puzzle
 
         #[Column(nullable: true)]
         public null|string $ean = null,
+
+        #[Column]
+        public bool $isAvailable = false,
     ) {
     }
 }

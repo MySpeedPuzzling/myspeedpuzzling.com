@@ -14,7 +14,13 @@
         <div class="col-sm-12 col-md-6">
             <p>
                 <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
-                <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm">Chci si tyto puzzle půjčit/koupit</a>
+                <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm me-3">Chci si tyto puzzle půjčit/koupit</a>
+
+                {% if puzzle.isAvailable %}
+                    <span class="badge bg-success badge-shadow rounded-pill">k dispozici</span>
+                {% else %}
+                    <span class="badge bg-dark badge-shadow rounded-pill">nejsou k dispozici</span>
+                {% endif %}
             </p>
 
             <p class="card-text fs-sm text-muted">

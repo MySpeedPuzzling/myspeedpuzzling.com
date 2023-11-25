@@ -25,6 +25,8 @@
                 <div class="col-md-1 align-self-center text-md-center">
                     {% if puzzle.isAvailable %}
                         <span class="badge bg-success badge-shadow rounded-pill">k zapůjčení</span>
+                    {% else %}
+                        <span class="badge bg-dark badge-shadow rounded-pill">nejsou k dispozici</span>
                     {% endif %}
                 </div>
 
@@ -45,11 +47,11 @@
                     </small>
                 </div>
 
-                <div class="col-md align-self-center text-md-end">
+                <div class="col-md align-self-center text-md-center">
                     {% if puzzle.solvedTimes > 0 %}
-                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-md btn-primary">Chci vidět časy</a>
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn my-1 btn-sm btn-primary">Chci vidět časy</a>
                     {% endif %}
-                    <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-md"><i class="ci-add"></i> Přidat můj čas</a>
+                    <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn my-1 btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
                 </div>
             </div>
         </div>

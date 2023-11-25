@@ -55,7 +55,7 @@ SQL;
              *     average_time: null|string,
              *     fastest_time: null|int,
              *     solved_times: int,
-             *     is_available: int,
+             *     is_available: bool,
              * } $row
              */
 

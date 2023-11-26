@@ -25,7 +25,7 @@ readonly final class PuzzlingTimeFormatter
 
     public function minutesElapsed(int $interval): string
     {
-        return str_pad((string) floor(($interval / 60) % 60), 2, '0', STR_PAD_LEFT);
+        return str_pad((string) floor(((int) ($interval / 60)) % 60), 2, '0', STR_PAD_LEFT);
     }
 
     public function secondsElapsed(int $interval): string

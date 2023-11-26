@@ -14,7 +14,9 @@ return static function(ContainerConfigurator $configurator): void
     $parameters = $configurator->parameters();
 
     # https://symfony.com/doc/current/performance.html#dump-the-service-container-into-a-single-file
-    $parameters->set('container.dumper.inline_factories', true);
+    $parameters->set('.container.dumper.inline_factories', true);
+
+    $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
 
     $services = $configurator->services();
 

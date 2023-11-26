@@ -3,7 +3,7 @@
 {% block title %}Přidat čas{% endblock %}
 
 {% block content %}
-    <h1 {{ stimulus_controller('add-time') }}>Zadat čas</h1>
+    <h1>Přidat čas</h1>
 
     {{ form_start(add_puzzle_solving_time_form) }}
         {{ form_errors(add_puzzle_solving_time_form) }}
@@ -100,6 +100,13 @@
             </div>
 
             <div class="col-lg-5 order-lg-1">
+                {% if active_stopwatch is not null %}
+                    <div class="mb-3">
+                        <span class="form-label">Čas ze stopek</span><br>
+                        <span class="h5">{{ active_stopwatch.totalSeconds|puzzlingTime }}</span>
+                    </div>
+                {% endif %}
+
                 {{ form_rest(add_puzzle_solving_time_form) }}
 
                 <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />

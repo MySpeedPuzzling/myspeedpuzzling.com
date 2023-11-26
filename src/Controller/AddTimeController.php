@@ -89,6 +89,7 @@ final class AddTimeController extends AbstractController
         }
 
         return $this->render('add-time.html.twig', [
+            'active_stopwatch' => null,
             'active_puzzle' => $activePuzzle,
             'puzzles' => $puzzlesPerManufacturer,
             'add_puzzle_solving_time_form' => $addTimeForm,

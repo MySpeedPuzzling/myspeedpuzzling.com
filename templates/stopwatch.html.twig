@@ -36,7 +36,11 @@
                     <a href="{{ path('stop_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-danger btn-lg">Stop</a>
                 {% elseif active_stopwatch.status.value is same as 'paused' %}
                     <a href="{{ path('resume_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-accent btn-lg">Pokračovat</a>
-                    <a href="{{ path('reset_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-outline-danger btn-sm">Vynulovat</a>
+
+                    <p class="mt-3">
+                        <a href="{{ path('reset_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-outline-danger btn-sm">Vynulovat</a>
+                        <a href="{{ path('save_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-sm btn-outline-success">Uložit čas</a>
+                    </p>
                 {% endif %}
 
                 {#

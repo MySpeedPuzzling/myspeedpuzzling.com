@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Results\StopwatchDetail;
+use SpeedPuzzling\Web\Value\StopwatchStatus;
 
 readonly final class GetStopwatch
 {
@@ -36,7 +37,8 @@ SELECT
 FROM
   stopwatch,
   JSONB_ARRAY_ELEMENTS(laps::jsonb) AS lap
-WHERE stopwatch.id = :stopwatchId
+WHERE
+    stopwatch.id = :stopwatchId
 GROUP BY
   stopwatch.id
 SQL;
@@ -79,7 +81,9 @@ SELECT
 FROM
   stopwatch,
   JSONB_ARRAY_ELEMENTS(laps::jsonb) AS lap
-WHERE stopwatch.player_id = :playerId
+WHERE
+    stopwatch.player_id = :playerId
+    AND stopwatch.status != :finishedStatus
 GROUP BY
   stopwatch.id
 SQL;
@@ -87,6 +91,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'finishedStatus' => StopwatchStatus::Finished->value,
             ])
             ->fetchAllAssociative();
 

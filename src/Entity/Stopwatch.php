@@ -94,27 +94,17 @@ class Stopwatch
      * @throws StopwatchCouldNotBeFinished
      * @throws StopwatchAlreadyFinished
      */
-    public function finish(DateTimeImmutable $now): void
+    public function finish(Puzzle $puzzle): void
     {
         if ($this->status === StopwatchStatus::Finished) {
             throw new StopwatchAlreadyFinished();
         }
 
-        $lap = $this->getLastLap();
-
-        if ($lap === null) {
+        if ($this->status !== StopwatchStatus::Paused) {
             throw new StopwatchCouldNotBeFinished();
         }
 
-        if ($this->status === StopwatchStatus::Running) {
-            $this->laps[array_key_last($this->laps)] = $lap->finish($now);
-        }
-
         $this->status = StopwatchStatus::Finished;
-    }
-
-    public function changePuzzle(Puzzle $puzzle): void
-    {
         $this->puzzle = $puzzle;
     }
 

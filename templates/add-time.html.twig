@@ -121,6 +121,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Get the checkbox element
         var checkbox = document.getElementById('add_puzzle_solving_time_form_addPuzzle');
+        if (!checkbox) {
+            checkbox = document.getElementById('save_stopwatch_form_addPuzzle');
+        }
 
         // Function to toggle the visibility of forms
         function toggleForms() {

@@ -3,20 +3,17 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormData\SaveStopwatchFormData;
 use SpeedPuzzling\Web\FormType\SaveStopwatchFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishStopwatch;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,35 +23,34 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
-final class SaveStopwatchController extends AbstractController
+final class FinishStopwatchController extends AbstractController
 {
     public function __construct(
-        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetStopwatch $getStopwatch,
-        readonly private LoggerInterface $logger,
         readonly private MessageBusInterface $messageBus,
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private PuzzlingTimeFormatter $puzzlingTimeFormatter,
     ) {
     }
 
-    #[Route(path: '/ulozit-stopky/{stopwatchId}', name: 'save_stopwatch', methods: ['GET', 'POST'])]
+    #[Route(path: '/ulozit-stopky/{stopwatchId}', name: 'finish_stopwatch', methods: ['GET', 'POST'])]
     public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $stopwatchId): Response
     {
-        $userId = $user->getUserIdentifier();
-
-        try {
-            $player = $this->getPlayerProfile->byUserId($userId);
-        } catch (PlayerNotFound $e) {
-            $this->logger->critical('Stopwatch - could not get player', [
-                'user_id' => $userId,
-                'exception' => $e,
-            ]);
+        $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
+        
+        if ($activeStopwatch->status === StopwatchStatus::Finished) {
+            $this->addFlash('warning','Tyto stopky byly již uloženy.');
 
             return $this->redirectToRoute('my_profile');
         }
 
-        $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
+        if ($activeStopwatch->status !== StopwatchStatus::Paused) {
+            $this->addFlash('warning','Prosím zastavte si stopky, pouze zastavené stoupky lze uložit.');
+
+            return $this->redirectToRoute('stopwatch', [
+                'stopwatchId' => $stopwatchId,
+            ]);
+        }
 
         $addTimeForm = $this->createForm(SaveStopwatchFormType::class);
         $addTimeForm->handleRequest($request);

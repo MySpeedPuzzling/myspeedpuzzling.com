@@ -20,7 +20,7 @@ final class PuzzleDetailController extends AbstractController
     {
     }
 
-    #[Route(path: '/puzzle/{puzzleId}', name: 'puzzle_detail', methods: ['GET'])]
+    #[Route(path: ['/puzzle/{puzzleId}', '/skladam-puzzle/{puzzleId}'], name: 'puzzle_detail', methods: ['GET'])]
     public function __invoke(string $puzzleId): Response
     {
         try {

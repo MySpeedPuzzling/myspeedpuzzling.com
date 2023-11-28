@@ -9,9 +9,14 @@
         <div class="shadow-lg my-3 py-3 px-3">
             <div class="row">
                 <div class="col-md align-self-center">
-                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}<br><small>({{ puzzle.puzzleAlternativeName }})</small></a>
-
-
+                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                        {% if puzzle.puzzleAlternativeName is not null %}
+                            {{ puzzle.puzzleAlternativeName }}
+                            <br><small>{{ puzzle.puzzleName }}</small>
+                        {% else %}
+                            {{ puzzle.puzzleName }}
+                        {% endif %}
+                    </a>
                 </div>
 
                 <div class="col-md text-md-center">

@@ -1,12 +1,14 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Puzzle {{ puzzle.puzzleName }}{% endblock %}
+{% block title %}{{ puzzle.puzzleName }}{% endblock %}
 
 {% block content %}
     <h1>
-        Puzzle {{ puzzle.puzzleName }}
         {% if puzzle.puzzleAlternativeName is not null %}
-            <span class="h4">({{ puzzle.puzzleAlternativeName }})</span>
+            {{ puzzle.puzzleAlternativeName }}
+            <span class="h4">({{ puzzle.puzzleName }})</span>
+        {% else %}
+            {{ puzzle.puzzleName }}
         {% endif %}
     </h1>
 

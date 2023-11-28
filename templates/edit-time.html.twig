@@ -8,9 +8,10 @@
     <div class="shadow-lg p-4 mt-3">
         <div class="row">
             <div class="col-sm-6 offset-sm-1 order-lg-2">
-                {{ solved_puzzle.puzzleName }}
                 {% if solved_puzzle.puzzleAlternativeName is not null %}
-                    ({{ solved_puzzle.puzzleAlternativeName }})
+                    {{ solved_puzzle.puzzleAlternativeName }} ({{ solved_puzzle.puzzleName }})
+                {% else %}
+                    {{ solved_puzzle.puzzleName }}
                 {% endif %}
                 <br>
                 <b>{{ solved_puzzle.manufacturerName|upper }}</b><br>

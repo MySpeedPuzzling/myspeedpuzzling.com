@@ -95,7 +95,13 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
+                                    {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
+                                        {{ grouped_puzzle[0].puzzleAlternativeName }}
+                                        <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                    {% else %}
+                                        {{ grouped_puzzle[0].puzzleName }}
+                                    {% endif %}
+                                    <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
                             <td>{{ grouped_puzzle[0].groupName }}</td>
@@ -151,7 +157,13 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
+                                    {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
+                                        {{ grouped_puzzle[0].puzzleAlternativeName }}
+                                        <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                    {% else %}
+                                        {{ grouped_puzzle[0].puzzleName }}
+                                    {% endif %}
+                                    <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
                             <td>{{ grouped_puzzle[0].groupName }}</td>

@@ -1,0 +1,2 @@
+Contact: j.mikes@me.com
+Preferred-Language: cs

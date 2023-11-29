@@ -6,22 +6,26 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
+use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class PuzzleDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleSolvers  $getPuzzleSolvers,
+        readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
     ) {
     }
 
     #[Route(path: ['/puzzle/{puzzleId}', '/skladam-puzzle/{puzzleId}'], name: 'puzzle_detail', methods: ['GET'])]
-    public function __invoke(string $puzzleId): Response
+    public function __invoke(string $puzzleId, #[CurrentUser] UserInterface|null $user): Response
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
@@ -35,10 +39,15 @@ final class PuzzleDetailController extends AbstractController
         $soloPuzzleSolvers = array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount === 1);
         $groupPuzzleSolvers = array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount > 1);
 
+        $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(
+            $user?->getUserIdentifier()
+        );
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'solo_puzzle_solvers' => $this->groupSoloPuzzles($soloPuzzleSolvers),
             'group_puzzle_solvers' => $groupPuzzleSolvers,
+            'puzzles_solved_by_user' => $userSolvedPuzzles,
         ]);
     }
 

@@ -49,6 +49,10 @@
                     </div>
 
                     <div class="col-md-1 align-self-center text-md-center">
+                        {% if puzzle.puzzleId in puzzles_solved_by_user %}
+                            <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> poskládáno</span>
+                        {% endif %}
+
                         {% if puzzle.isAvailable %}
                             <span class="badge bg-success badge-shadow rounded-pill">k zapůjčení</span>
                         {% else %}

@@ -1,9 +1,9 @@
 /* TEAM */
-Puzzler & The Brain: Simona Mikešová
+Puzzler & The Brain: Simona Mikesová
 Contact: s.mikesova@icloud.com
 Location: Ostrava, Czech Republic
 
-The IT guy: Jan Mikeš
+The IT guy: Jan Mikes
 Contact: j.mikes@me.com
 Twitter: @mikes_honza
 GitHub: https://github.com/janmikes

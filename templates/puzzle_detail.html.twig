@@ -61,28 +61,29 @@
                     <tr>
                         <th></th>
                         <th>Jméno</th>
-                        <th></th>
                         <th class="text-end">Čas</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzle_solver in solo_puzzle_solvers %}
+                    {% for player_id, grouped_solver in solo_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
                             <td>
-                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                    {{ puzzle_solver.playerName }}
+                                <a href="{{ path('player_profile', {playerId: player_id}) }}">
+                                    {{ grouped_solver[0].playerName }}
                                 </a>
                             </td>
-                            <td>
-                                {{ puzzle_solver.groupName }}
+                            <td class="text-end">
+                                {% if grouped_solver|length > 1 %}
+                                    <span class="badge bg-dark rounded-pill me-2">skládáno {{ grouped_solver|length }}x</span>
+                                {% endif %}
+                                {{ grouped_solver[0].time|puzzlingTime }}
                             </td>
-                            <td class="text-end">{{ puzzle_solver.time|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     {% if solo_puzzle_solvers|length < 1 %}
                         <tr>
-                            <td colspan="4" class="text-center">Tyto puzzle ještě nikdo neskládal. Buď první!</td>
+                            <td colspan="3" class="text-center">Tyto puzzle ještě nikdo neskládal. Buď první!</td>
                         </tr>
                     {% endif %}
                     </tbody>

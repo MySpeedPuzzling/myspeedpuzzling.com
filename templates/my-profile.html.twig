@@ -88,13 +88,13 @@
                         <tr>
                             <td>
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                         <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
                                     </a>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                     {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
                                 </a>
                             </td>
@@ -143,14 +143,14 @@
                             <td>
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <p>
-                                        <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                             <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
                                         </a>
                                     </p>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                     {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
                                 </a>
                             </td>

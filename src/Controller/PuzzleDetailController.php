@@ -7,6 +7,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
+use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -16,8 +17,7 @@ final class PuzzleDetailController extends AbstractController
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleSolvers  $getPuzzleSolvers,
-    )
-    {
+    ) {
     }
 
     #[Route(path: ['/puzzle/{puzzleId}', '/skladam-puzzle/{puzzleId}'], name: 'puzzle_detail', methods: ['GET'])]
@@ -37,8 +37,23 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $soloPuzzleSolvers,
+            'solo_puzzle_solvers' => $this->groupSoloPuzzles($soloPuzzleSolvers),
             'group_puzzle_solvers' => $groupPuzzleSolvers,
         ]);
+    }
+
+    /**
+     * @param array<PuzzleSolver> $solvers
+     * @return array<string, non-empty-array<PuzzleSolver>>
+     */
+    private function groupSoloPuzzles(array $solvers): array
+    {
+        $grouped = [];
+
+        foreach ($solvers as $solver) {
+            $grouped[$solver->playerId][] = $solver;
+        }
+
+        return $grouped;
     }
 }

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -25,6 +26,7 @@ final class MyProfileController extends AbstractController
         readonly private GetStopwatch $getStopwatch,
         readonly private MessageBusInterface $messageBus,
         readonly private LoggerInterface $logger,
+        readonly private PuzzlesSorter $puzzlesSorter,
     ) {
     }
 
@@ -57,8 +59,14 @@ final class MyProfileController extends AbstractController
         }
 
         $solvedPuzzles = $this->getPlayerSolvedPuzzles->byPlayerId($player->playerId);
-        $soloSolvedPuzzles = array_filter($solvedPuzzles, static fn(SolvedPuzzle $solvedPuzzle): bool => $solvedPuzzle->playersCount === 1);
-        $groupSolvedPuzzles = array_filter($solvedPuzzles, static fn(SolvedPuzzle $solvedPuzzle): bool => $solvedPuzzle->playersCount > 1);
+
+        $soloSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
+            $this->puzzlesSorter->filterSolo($solvedPuzzles),
+        );
+
+        $groupSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
+            $this->puzzlesSorter->filterGroup($solvedPuzzles),
+        );
 
         return $this->render('my-profile.html.twig', [
             'player' => $player,

@@ -7,6 +7,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -16,8 +17,8 @@ final class PlayerProfileController extends AbstractController
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
-    )
-    {
+        readonly private PuzzlesSorter $puzzlesSorter,
+    ) {
     }
 
     #[Route(path: '/profil-hrace/{playerId}', name: 'player_profile', methods: ['GET'])]
@@ -32,8 +33,14 @@ final class PlayerProfileController extends AbstractController
         }
 
         $solvedPuzzles = $this->getPlayerSolvedPuzzles->byPlayerId($playerId);
-        $soloSolvedPuzzles = array_filter($solvedPuzzles, static fn(SolvedPuzzle $solvedPuzzle): bool => $solvedPuzzle->playersCount === 1);
-        $groupSolvedPuzzles = array_filter($solvedPuzzles, static fn(SolvedPuzzle $solvedPuzzle): bool => $solvedPuzzle->playersCount > 1);
+
+        $soloSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
+            $this->puzzlesSorter->filterSolo($solvedPuzzles),
+        );
+
+        $groupSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
+            $this->puzzlesSorter->filterGroup($solvedPuzzles),
+        );
 
         return $this->render('player-profile.html.twig', [
             'player' => $player,

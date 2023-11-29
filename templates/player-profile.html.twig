@@ -19,34 +19,44 @@
                         <th>Puzzle</th>
                         <th></th>
                         <th class="text-end">Čas</th>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
-                        {% for puzzle in solo_puzzles %}
-                            <tr>
-                                <td>
-                                    {% if puzzle.puzzleImage is not null%}
-                                        <p>
-                                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                                <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
-                                            </a>
-                                        </p>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                        {{ puzzle.puzzleName }} ({{ puzzle.piecesCount }} dílků)
+                    {% for puzzle_id, grouped_puzzle in solo_puzzles %}
+                        <tr>
+                            <td>
+                                {% if grouped_puzzle[0].puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
                                     </a>
-                                </td>
-                                <td>{{ puzzle.groupName }}</td>
-                                <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
-                            </tr>
-                        {% endfor %}
-                        {% if solo_puzzles|length < 1 %}
-                            <tr>
-                                <td colspan="4" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
-                            </tr>
-                        {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
+                                </a>
+                            </td>
+                            <td>{{ grouped_puzzle[0].groupName }}</td>
+                            <td class="text-end">
+                                {% for puzzle in grouped_puzzle %}
+                                    {% if loop.first %}
+                                        {{ puzzle.time|puzzlingTime }}
+                                    {% else %}
+                                        <br><small>{{ puzzle.time|puzzlingTime }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if solo_puzzles|length < 1 %}
+                        <tr>
+                            <td colspan="5" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
+                        </tr>
+                    {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -63,34 +73,38 @@
                         <th>Puzzle</th>
                         <th></th>
                         <th class="text-end">Čas</th>
+                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
-                        {% for puzzle in group_puzzles %}
-                            <tr>
-                                <td>
-                                    {% if puzzle.puzzleImage is not null%}
-                                        <p>
-                                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                                <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
-                                            </a>
-                                        </p>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                        {{ puzzle.puzzleName }} ({{ puzzle.piecesCount }} dílků)
-                                    </a>
-                                </td>
-                                <td>{{ puzzle.groupName }}</td>
-                                <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
-                            </tr>
-                        {% endfor %}
-                        {% if group_puzzles|length < 1 %}
-                            <tr>
-                                <td colspan="4" class="text-center">Žádné puzzle jsi ve skupině ještě nikdy neskládal? Tak utíkej rychle někoho najít, vyberte puzzle a skládejte!</td>
-                            </tr>
-                        {% endif %}
+                    {% for puzzle_id, grouped_puzzle in group_puzzles %}
+                        <tr>
+                            <td>
+                                {% if grouped_puzzle[0].puzzleImage is not null%}
+                                    <p>
+                                        <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
+                                        </a>
+                                    </p>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
+                                </a>
+                            </td>
+                            <td>{{ grouped_puzzle[0].groupName }}</td>
+                            <td class="text-end">{{ grouped_puzzle[0].time|puzzlingTime }}</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if group_puzzles|length < 1 %}
+                        <tr>
+                            <td colspan="5" class="text-center">Žádné puzzle jsi ve skupině ještě nikdy neskládal? Tak utíkej rychle někoho najít, vyberte puzzle a skládejte!</td>
+                        </tr>
+                    {% endif %}
                     </tbody>
                 </table>
             </div>

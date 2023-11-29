@@ -5,54 +5,54 @@
 {% block content %}
     <h1>Profil</h1>
 
-    <p>
-        <a class="btn btn-sm btn-primary" href="{{ path('edit_profile') }}">Upravit údaje</a>
-    </p>
+    <a class="btn btn-sm btn-primary" href="{{ path('edit_profile') }}">Upravit údaje</a>
 
-    {% if player.playerName is null %}
-        <div class="alert alert-warning d-flex" role="alert">
-            <div class="alert-icon">
-                <i class="ci-security-announcement"></i>
-            </div>
-            <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
-        </div>
-    {% endif %}
-
-    <p>
-        <b>Veřejné jméno/přezdívka:</b><br>
+    <div class="shadow-lg p-3 mt-2">
         {% if player.playerName is null %}
-            Nevyplněno
-        {% else %}
-            {{ player.playerName }}
-        {% endif %}<br>
-        <small class="text-muted">Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity.</small>
-    </p>
+            <div class="alert alert-warning d-flex" role="alert">
+                <div class="alert-icon">
+                    <i class="ci-security-announcement"></i>
+                </div>
+                <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
+            </div>
+        {% endif %}
 
-    <p>
-        <b>Město:</b><br>
-        {% if player.city is null %}
-            Nevyplněno
-        {% else %}
-            {{ player.city }}, {{ player.country }}
-        {% endif %}<br>
-        <small class="text-muted">Město, které hrdě reprezentujete (nepovinné).</small>
-    </p>
+        <p>
+            <b>Veřejné jméno/přezdívka:</b><br>
+            {% if player.playerName is null %}
+                Nevyplněno
+            {% else %}
+                {{ player.playerName }}
+            {% endif %}<br>
+            <small class="text-muted">Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity.</small>
+        </p>
 
-    <p>
-        <b>E-mail (neveřejný):</b><br>
-        {% if player.email is null %}
-            Nevyplněno
-        {% else %}
-            {{ player.email }}
-        {% endif %}<br>
-        <small class="text-muted">Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.</small>
-    </p>
+        <p>
+            <b>Město:</b><br>
+            {% if player.city is null %}
+                Nevyplněno
+            {% else %}
+                {{ player.city }}, {{ player.country }}
+            {% endif %}<br>
+            <small class="text-muted">Město, které hrdě reprezentujete (nepovinné).</small>
+        </p>
 
-    <p>
-        <b>ID profilu:</b><br>
-        <code>{{ player.userId }}</code><br>
-        <small class="text-muted">Používá se pro spárování jednotlivých výsledků s vaším profilem, využijete v případě kontaktu s administrátorem.</small>
-    </p>
+        <p>
+            <b>E-mail (neveřejný):</b><br>
+            {% if player.email is null %}
+                Nevyplněno
+            {% else %}
+                {{ player.email }}
+            {% endif %}<br>
+            <small class="text-muted">Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.</small>
+        </p>
+
+        <p class="mb-0">
+            <b>ID profilu:</b><br>
+            <code>{{ player.userId }}</code><br>
+            <small class="text-muted">Používá se pro spárování jednotlivých výsledků s vaším profilem, využijete v případě kontaktu s administrátorem.</small>
+        </p>
+    </div>
 
     {% if stopwatches|length > 0 %}
         <h3 class="mt-5">Moje stopky</h3>
@@ -84,28 +84,32 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzle in solo_puzzles %}
+                    {% for puzzle_id, grouped_puzzle in solo_puzzles %}
                         <tr>
                             <td>
-                                {% if puzzle.puzzleImage is not null%}
-                                    <p>
-                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
-                                        </a>
-                                    </p>
+                                {% if grouped_puzzle[0].puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
+                                    </a>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                    {{ puzzle.puzzleName }} ({{ puzzle.piecesCount }} dílků)
+                                <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
                                 </a>
                             </td>
-                            <td>{{ puzzle.groupName }}</td>
+                            <td>{{ grouped_puzzle[0].groupName }}</td>
                             <td class="text-end">
-                                {{ puzzle.time|puzzlingTime }}
+                                {% for puzzle in grouped_puzzle %}
+                                    {% if loop.first %}
+                                        {{ puzzle.time|puzzlingTime }}
+                                    {% else %}
+                                        <br><small>{{ puzzle.time|puzzlingTime }}</small>
+                                    {% endif %}
+                                {% endfor %}
                             </td>
                             <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
+                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -134,26 +138,26 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzle in group_puzzles %}
+                    {% for puzzle_id, grouped_puzzle in group_puzzles %}
                         <tr>
                             <td>
-                                {% if puzzle.puzzleImage is not null%}
+                                {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <p>
-                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ puzzle.puzzleImage }}">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
                                         </a>
                                     </p>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                    {{ puzzle.puzzleName }} ({{ puzzle.piecesCount }} dílků)
+                                <a href="{{ path('puzzle_detail', {puzzleId: grouped_puzzle[0].puzzleId}) }}">
+                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
                                 </a>
                             </td>
-                            <td>{{ puzzle.groupName }}</td>
-                            <td class="text-end">{{ puzzle.time|puzzlingTime }}</td>
+                            <td>{{ grouped_puzzle[0].groupName }}</td>
+                            <td class="text-end">{{ grouped_puzzle[0].time|puzzlingTime }}</td>
                             <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
+                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
                             </td>
                         </tr>
                     {% endfor %}

@@ -25,7 +25,7 @@
 
                     {% if active_puzzle.puzzleImage is not null%}
                         <p>
-                            <img style="max-width: 200px;max-height: 200px;" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                         </p>
                     {% endif %}
                 {% endif %}
@@ -71,7 +71,7 @@
                                                                     </div>
                                                                     <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
                                                                         {% if puzzle.puzzleImage is not null %}
-                                                                            <img class="me-2" src="{{ uploaded_asset(puzzle.puzzleImage) }}" style="max-width: 50px;float: left;">
+                                                                            <img class="rounded-2 me-2" src="{{ uploaded_asset(puzzle.puzzleImage) }}" style="max-width: 50px;float: left;">
                                                                         {% endif %}
                                                                         <span style="display: inline-block;">
                                                                             {% if puzzle.puzzleAlternativeName is not null %}

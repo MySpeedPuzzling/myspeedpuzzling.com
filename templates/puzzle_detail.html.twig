@@ -46,11 +46,11 @@
 
         <div class="col-sm-12 col-md-6">
             {% if puzzle.puzzleImage is not null%}
-                <p>
-                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                <div class="gallery">
+                    <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
                         <img style="max-width: 200px;max-height: 200px;" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                     </a>
-                </p>
+                </div>
             {% endif %}
         </div>
     </div>

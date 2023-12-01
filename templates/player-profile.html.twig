@@ -28,7 +28,7 @@
                             <td class="text-center">
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                        <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>
@@ -88,7 +88,7 @@
                             <td class="text-center">
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                        <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>

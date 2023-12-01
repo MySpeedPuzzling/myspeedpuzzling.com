@@ -11,5 +11,6 @@ return static function (\Symfony\Config\TwigConfig $twig): void {
         'timezone' => 'Europe/Prague',
     ]);
 
-    $twig->global('ga_tracking', env('GA_TRACKING'));
+    $twig->global('ga_tracking')
+        ->value(env('GA_TRACKING'));
 };

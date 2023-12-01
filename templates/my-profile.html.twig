@@ -110,12 +110,17 @@
                                     {% if loop.first %}
                                         {{ puzzle.time|puzzlingTime }}
                                     {% else %}
-                                        <br><small>{{ puzzle.time|puzzlingTime }}</small>
+                                        <br><small style="display: inline-block;padding-top: 6px;">{{ puzzle.time|puzzlingTime }}</small>
                                     {% endif %}
                                 {% endfor %}
                             </td>
                             <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
+                                {% for puzzle in grouped_puzzle %}
+                                    {% if not loop.first %}<br>{% endif %}
+                                    <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
+                                {% endfor %}
+
+
                             </td>
                         </tr>
                     {% endfor %}

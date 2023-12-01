@@ -36,8 +36,26 @@
     </div>
 
     <p class="mt-5 mb-3">
-        <a href="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}" class="btn btn-sm btn-outline-danger">
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalConfirm">
             Nenávratně smazat tento záznam o skládání a dělat, jakože se to nikdy nestalo!
-        </a>
+        </button>
     </p>
+
+    <div class="modal fade" tabindex="-1" role="dialog" id="modalConfirm">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Jen pro jistotu...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fs-sm">Opravdu smazat?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Ne, ponechat</button>
+                    <a href="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}" class="btn btn-primary btn-sm">Ano, smazat</a>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

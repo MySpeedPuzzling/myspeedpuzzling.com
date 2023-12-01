@@ -41,6 +41,8 @@ final class AddTimeController extends AbstractController
         $addTimeForm = $this->createForm(AddPuzzleSolvingTimeFormType::class);
         $addTimeForm->handleRequest($request);
 
+        $addingNew = false;
+
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
             $data = $addTimeForm->getData();
             assert($data instanceof AddPuzzleSolvingTimeFormData);
@@ -67,6 +69,8 @@ final class AddTimeController extends AbstractController
                 $this->messageBus->dispatch(
                     AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
                 );
+
+                $this->addFlash('warning','Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání.');
             }
 
             if ($data->puzzleId !== null) {

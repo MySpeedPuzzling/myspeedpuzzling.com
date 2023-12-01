@@ -15,7 +15,7 @@ parameters:
         - tests
         - config
     scanDirectories:
-      - var/cache/dev/Symfony
+        - var/cache/dev/Symfony
     scanFiles:
         - vendor/symfony/dependency-injection/Loader/Configurator/ContainerConfigurator.php
     excludePaths:

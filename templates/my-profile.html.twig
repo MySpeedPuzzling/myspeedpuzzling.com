@@ -86,7 +86,7 @@
                     <tbody>
                     {% for puzzle_id, grouped_puzzle in solo_puzzles %}
                         <tr>
-                            <td>
+                            <td class="text-center">
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                         <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
@@ -146,13 +146,11 @@
                     <tbody>
                     {% for puzzle_id, grouped_puzzle in group_puzzles %}
                         <tr>
-                            <td>
+                            <td class="text-center">
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
-                                    <p>
-                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                            <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
-                                        </a>
-                                    </p>
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
                                 {% endif %}
                             </td>
                             <td>

@@ -9,6 +9,7 @@ readonly final class MostSolvedPuzzle
     public function __construct(
         public string $puzzleId,
         public string $puzzleName,
+        public null|string $puzzleAlternativeName,
         public int $solvedTimes,
         public int $piecesCount,
         public int $averageTime,
@@ -21,6 +22,7 @@ readonly final class MostSolvedPuzzle
      * @param array{
      *     puzzle_id: string,
      *     puzzle_name: string,
+     *     puzzle_alternative_name: null|string,
      *     puzzle_image: null|string,
      *     solved_times: int,
      *     pieces_count: int,
@@ -33,6 +35,7 @@ readonly final class MostSolvedPuzzle
         return new self(
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
+            puzzleAlternativeName: $row['puzzle_alternative_name'],
             solvedTimes: $row['solved_times'],
             piecesCount: $row['pieces_count'],
             averageTime: (int) $row['average_time'],

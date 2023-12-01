@@ -25,7 +25,7 @@
                     <tbody>
                     {% for puzzle_id, grouped_puzzle in solo_puzzles %}
                         <tr>
-                            <td>
+                            <td class="text-center">
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                         <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
@@ -34,7 +34,13 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
+                                    {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
+                                        {{ grouped_puzzle[0].puzzleAlternativeName }}
+                                        <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                    {% else %}
+                                        {{ grouped_puzzle[0].puzzleName }}
+                                    {% endif %}
+                                    <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
                             <td>{{ grouped_puzzle[0].groupName }}</td>
@@ -79,18 +85,22 @@
                     <tbody>
                     {% for puzzle_id, grouped_puzzle in group_puzzles %}
                         <tr>
-                            <td>
+                            <td class="text-center">
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
-                                    <p>
-                                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                            <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
-                                        </a>
-                                    </p>
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
                                 {% endif %}
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    {{ grouped_puzzle[0].puzzleName }} ({{ grouped_puzzle[0].piecesCount }} dílků)
+                                    {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
+                                        {{ grouped_puzzle[0].puzzleAlternativeName }}
+                                        <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                    {% else %}
+                                        {{ grouped_puzzle[0].puzzleName }}
+                                    {% endif %}
+                                    <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
                             <td>{{ grouped_puzzle[0].groupName }}</td>

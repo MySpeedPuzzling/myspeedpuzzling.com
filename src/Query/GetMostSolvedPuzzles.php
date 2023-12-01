@@ -20,7 +20,15 @@ readonly final class GetMostSolvedPuzzles
     public function top(int $howManyPuzzles): array
     {
         $query = <<<SQL
-SELECT puzzle.id AS puzzle_id, puzzle.image AS puzzle_image, count(puzzle_solving_time.puzzle_id) AS solved_times, puzzle.name AS puzzle_name, AVG(puzzle_solving_time.seconds_to_solve) AS average_time, MIN(puzzle_solving_time.seconds_to_solve) AS fastest_time, puzzle.pieces_count
+SELECT
+    puzzle.id AS puzzle_id,
+    puzzle.image AS puzzle_image,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    count(puzzle_solving_time.puzzle_id) AS solved_times,
+    AVG(puzzle_solving_time.seconds_to_solve) AS average_time,
+    MIN(puzzle_solving_time.seconds_to_solve) AS fastest_time,
+    puzzle.pieces_count
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 GROUP BY puzzle.id, puzzle.name, puzzle.pieces_count
@@ -39,6 +47,7 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
              *     puzzle_image: null|string,
              *     solved_times: int,
              *     pieces_count: int,

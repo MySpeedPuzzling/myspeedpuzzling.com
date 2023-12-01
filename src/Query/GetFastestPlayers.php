@@ -23,6 +23,7 @@ readonly final class GetFastestPlayers
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.image AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     player.name AS player_name,
@@ -45,7 +46,16 @@ SQL;
             ->fetchAllAssociative();
 
         return array_map(static function(array $row): FastestPlayer {
-            /** @var array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, time: int, player_name: string, player_id: string} $row */
+            /** @var array{
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     puzzle_image: null|string,
+             *     time: int,
+             *     player_name: string,
+             *     player_id: string,
+             * } $row
+             */
 
             return FastestPlayer::fromDatabaseRow($row);
         }, $data);

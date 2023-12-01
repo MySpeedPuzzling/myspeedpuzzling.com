@@ -33,7 +33,7 @@
                             <td>
                                 {% if fastest_player.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                        <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ fastest_player.puzzleImage }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="{{ fastest_player.puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>
@@ -69,7 +69,7 @@
                             <td>
                                 {% if most_solved_puzzle.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                        <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ most_solved_puzzle.puzzleImage }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>

@@ -5,5 +5,15 @@ declare(strict_types=1);
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
-    $containerConfigurator->extension('framework', ['cache' => null]);
+    $containerConfigurator->extension('framework', [
+        'cache' => [
+            // 'app' => '%cache_adapter%',
+
+            'pools' => [
+                'cache.flysystem.psr6' => [
+                    'adapter' => 'cache.app'
+                ],
+            ],
+        ],
+    ]);
 };

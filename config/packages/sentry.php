@@ -16,11 +16,8 @@ return static function (SentryConfig $sentryConfig) {
 
     $sentryConfig->options()
         ->environment('%kernel.environment%')
-        ->sendDefaultPii(true);
-        /*
+        ->sendDefaultPii(true)
         ->ignoreExceptions([
             Symfony\Component\Security\Core\Exception\AccessDeniedException::class,
-            Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
         ]);
-        */
 };

@@ -15,4 +15,5 @@ return static function (RoutingConfigurator $routingConfigurator): void {
 
     $routingConfigurator->add('logout', '/logout')
         ->controller('Auth0\Symfony\Controllers\AuthenticationController::logout');
+
 };

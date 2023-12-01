@@ -2,7 +2,6 @@ version: "3.7"
 
 volumes:
     postgres-data:
-    minio-data:
 
 services:
     web:
@@ -62,4 +61,4 @@ services:
             - 19000:9000
             - 19001:9001
         volumes:
-            - minio-data:/data
+            - .docker-data/minio-data:/data

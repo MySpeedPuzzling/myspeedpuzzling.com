@@ -8,6 +8,7 @@ use Monolog\Processor\PsrLogMessageProcessor;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function(ContainerConfigurator $configurator): void
 {
@@ -18,12 +19,17 @@ return static function(ContainerConfigurator $configurator): void
 
     $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
 
+    $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
+
+    $parameters->set('uploadedAssetsBaseUrl', '%env(UPLOADS_BASE_URL)%/puzzle');
+
     $services = $configurator->services();
 
     $services->defaults()
         ->autoconfigure()
         ->autowire()
-        ->public();
+        ->public()
+        ->bind('$uploadedAssetsBaseUrl', '%uploadedAssetsBaseUrl%');
 
     $services->set(PdoSessionHandler::class)
         ->args([
@@ -61,5 +67,12 @@ return static function(ContainerConfigurator $configurator): void
                 Configuration::OPTION_SECRET_ACCESS_KEY => env('S3_SECRET_KEY'),
                 Configuration::OPTION_PATH_STYLE_ENDPOINT => true,
             ]
+        ]);
+
+    $services->set('minio.cache.adapter')
+        ->class(Lustmored\Flysystem\Cache\CacheAdapter::class)
+        ->args([
+            '$adapter' => service('oneup_flysystem.minio_adapter'),
+            '$cachePool' => service('cache.flysystem.psr6'),
         ]);
 };

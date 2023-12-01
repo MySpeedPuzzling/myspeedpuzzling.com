@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5a730e8a0cca1bfda111a5647f985a87",
+    "content-hash": "96e1dff71fd9c80c8c7d2f4f0f2f36a1",
     "packages": [
         {
             "name": "async-aws/core",
@@ -2881,6 +2881,59 @@
                 "source": "https://github.com/liip/LiipImagineBundle/tree/2.12.1"
             },
             "time": "2023-11-14T07:59:41+00:00"
+        },
+        {
+            "name": "lustmored/flysystem-v2-simple-cache-adapter",
+            "version": "0.3.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Lustmored/flysystem-v2-simple-cache-adapter.git",
+                "reference": "d1c8f27aa8a519814dadf1ed0f29cc53f941d943"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Lustmored/flysystem-v2-simple-cache-adapter/zipball/d1c8f27aa8a519814dadf1ed0f29cc53f941d943",
+                "reference": "d1c8f27aa8a519814dadf1ed0f29cc53f941d943",
+                "shasum": ""
+            },
+            "require": {
+                "league/flysystem": "^2.0 | ^3.0",
+                "php": ">=7.2",
+                "psr/cache": "^1.0 | ^2.0 | ^3.0"
+            },
+            "require-dev": {
+                "ext-redis": "*",
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "league/flysystem-adapter-test-utilities": "^2.0 | ^3.0",
+                "league/flysystem-aws-s3-v3": "^2.0 | ^3.0",
+                "league/flysystem-memory": "^2.0 | ^3.0",
+                "phpbench/phpbench": "^1.0.2",
+                "phpunit/phpunit": "^9.4",
+                "symfony/cache": "^5.4 | ^6.0",
+                "symfony/dotenv": "^5.4 | ^6.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Lustmored\\Flysystem\\Cache\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Jakub Caban",
+                    "email": "kuba.iluvatar@gmail.com"
+                }
+            ],
+            "description": "Simple flysystem PSR cache adapter decorator.",
+            "support": {
+                "issues": "https://github.com/Lustmored/flysystem-v2-simple-cache-adapter/issues",
+                "source": "https://github.com/Lustmored/flysystem-v2-simple-cache-adapter/tree/0.3.0"
+            },
+            "time": "2022-01-17T09:53:25+00:00"
         },
         {
             "name": "monolog/monolog",
@@ -13460,5 +13513,5 @@
         "ext-uuid": "*"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.3.0"
+    "plugin-api-version": "2.6.0"
 }

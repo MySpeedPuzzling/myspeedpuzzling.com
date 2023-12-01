@@ -47,4 +47,8 @@ body {
 .gallery-item.gallery-item-inline-block {
     display: inline-block !important;
     border: 0 !important;
+
+    > img {
+        width: auto !important;
+    }
 }

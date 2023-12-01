@@ -5,6 +5,10 @@ use League\Flysystem\Filesystem;
 use Symfony\Config\OneupFlysystemConfig;
 
 return static function (OneupFlysystemConfig $config): void {
+    $config->adapter('cached')
+        ->custom()
+        ->service('minio.cache.adapter');
+
     $config->adapter('minio')
         ->asyncAwsS3()
             ->client(S3Client::class)
@@ -15,4 +19,7 @@ return static function (OneupFlysystemConfig $config): void {
         ->alias(Filesystem::class)
         ->visibility('public')
         ->directoryVisibility('public');
+
+    $config->filesystem('cached')
+        ->adapter('cached');
 };

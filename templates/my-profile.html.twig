@@ -89,7 +89,7 @@
                             <td>
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                        <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
+                                        <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>
@@ -150,7 +150,7 @@
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <p>
                                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                            <img style="max-width: 100px;max-height: 100px;" src="https://img.speedpuzzling.cz/puzzle/{{ grouped_puzzle[0].puzzleImage }}">
+                                            <img style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
                                         </a>
                                     </p>
                                 {% endif %}

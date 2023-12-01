@@ -48,7 +48,7 @@
             {% if puzzle.puzzleImage is not null%}
                 <p>
                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                        <img style="max-width: 200px;max-height: 200px;" src="{{ puzzle.puzzleImage | imagine_filter('puzzle_small') }}">
+                        <img style="max-width: 200px;max-height: 200px;" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                     </a>
                 </p>
             {% endif %}

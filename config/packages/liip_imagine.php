@@ -8,6 +8,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $containerConfigurator->extension('liip_imagine', [
         'driver' => 'gd',
+
         'loaders' => [
             'flysystem_loader' => [
                 'flysystem' => [
@@ -15,23 +16,38 @@ return static function (ContainerConfigurator $containerConfigurator): void {
                 ],
             ],
         ],
+
+        'data_loader' => 'flysystem_loader',
+
         'resolvers' => [
             'flysystem_resolver' => [
                 'flysystem' => [
-                    'filesystem_service' => 'oneup_flysystem.minio_filesystem',
+                    'filesystem_service' => 'oneup_flysystem.cached_filesystem',
                     'cache_prefix' => 'thumbnails',
-                    'root_url' => 'https://img.speedpuzzling.cz/puzzle/',
+                    'root_url' => '%uploadedAssetsBaseUrl%',
                 ],
             ],
         ],
+
         'cache' => 'flysystem_resolver',
-        'data_loader' => 'flysystem_loader',
+
         'filter_sets' => [
             'puzzle_small' => [
+                'quality' => 88,
                 'filters' => [
                     'thumbnail' => [
                         'size' => [200, 200],
-                        'mode' => 'outbound',
+                        'mode' => 'inset',
+                        'allow_upscale' => false,
+                    ]
+                ],
+            ],
+            'puzzle_medium' => [
+                'quality' => 91,
+                'filters' => [
+                    'thumbnail' => [
+                        'size' => [400, 400],
+                        'mode' => 'inset',
                         'allow_upscale' => false,
                     ]
                 ],

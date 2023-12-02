@@ -81,6 +81,7 @@ final class FinishStopwatchController extends AbstractController
                         piecesCount: $data->puzzlePiecesCount,
                         manufacturerId: $data->puzzleManufacturerId,
                         manufacturerName: $data->puzzleManufacturerName,
+                        puzzlePhoto: $data->puzzlePhoto,
                     ),
                 );
             }

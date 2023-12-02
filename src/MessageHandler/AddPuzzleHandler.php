@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -22,6 +23,7 @@ readonly final class AddPuzzleHandler
         private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
         private ManufacturerRepository $manufacturerRepository,
+        private Filesystem $filesystem,
     ) {
     }
 
@@ -49,11 +51,26 @@ readonly final class AddPuzzleHandler
             $this->entityManager->persist($manufacturer);
         }
 
+        $puzzlePhotoPath = null;
+        if ($message->puzzlePhoto !== null) {
+            $extension = $message->puzzlePhoto->guessExtension();
+            $puzzlePhotoPath = "$message->puzzleId.$extension";
+
+            // Stream is better because it is memory safe
+            $stream = fopen($message->puzzlePhoto->getPathname(), 'rb');
+            $this->filesystem->writeStream($puzzlePhotoPath, $stream);
+
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
         $puzzle = new Puzzle(
             $message->puzzleId,
             $message->piecesCount,
             $message->puzzleName,
-            false,
+            approved: false,
+            image: $puzzlePhotoPath,
             manufacturer: $manufacturer,
             addedByUser: $player,
             addedAt: $now,

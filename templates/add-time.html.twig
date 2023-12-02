@@ -105,6 +105,14 @@
                         {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerId) }}
                         {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerName) }}
                         {{ form_row(add_puzzle_solving_time_form.puzzlePiecesCount) }}
+
+                        {{ form_label(add_puzzle_solving_time_form.puzzlePhoto) }}
+                        <div class="file-drop-area">
+                            <div class="file-drop-icon ci-cloud-upload"></div>
+                            <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+                            {{ form_widget(add_puzzle_solving_time_form.puzzlePhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                            <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -117,9 +125,22 @@
                     </div>
                 {% endif %}
 
-                {{ form_rest(add_puzzle_solving_time_form) }}
+                {% if active_stopwatch is null %}
+                    {{ form_row(add_puzzle_solving_time_form.time) }}
+                {% endif %}
 
-                <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+                {{ form_row(add_puzzle_solving_time_form.playersCount) }}
+                {{ form_row(add_puzzle_solving_time_form.comment) }}
+
+                {{ form_label(add_puzzle_solving_time_form.solvedPuzzlesPhoto) }}
+                <div class="file-drop-area">
+                    <div class="file-drop-icon ci-cloud-upload"></div>
+                    <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+                    {{ form_widget(add_puzzle_solving_time_form.solvedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                    <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
+                </div>
+
+                <input type="submit" name="submit" value="Uložit" class="btn btn-primary mt-3" />
 
             </div>
         </div>

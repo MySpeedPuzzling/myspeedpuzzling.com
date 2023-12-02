@@ -32,4 +32,6 @@ final class AddPuzzleSolvingTimeFormData
     public null|string $puzzleManufacturerName = null;
 
     public null|int $puzzlePiecesCount = null;
+
+    public null|UploadedFile $puzzlePhoto = null;
 }

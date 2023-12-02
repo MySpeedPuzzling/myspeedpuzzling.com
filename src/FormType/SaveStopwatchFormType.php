@@ -105,6 +105,16 @@ final class SaveStopwatchFormType extends AbstractType
             'label' => 'Počet dílků',
             'required' => false,
         ]);
+
+        $builder->add('puzzlePhoto', FileType::class, [
+            'label' => 'Foto motivu nebo krabice od puzzlí',
+            'required' => false,
+            'constraints' => [
+                new Image(
+                    maxSize: '10m',
+                ),
+            ],
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzle
 {
@@ -16,6 +17,7 @@ readonly final class AddPuzzle
         public int $piecesCount,
         public null|string $manufacturerId,
         public null|string $manufacturerName,
+        public null|UploadedFile $puzzlePhoto,
     ) {
     }
 
@@ -35,6 +37,7 @@ readonly final class AddPuzzle
             piecesCount: $data->puzzlePiecesCount,
             manufacturerId: $data->puzzleManufacturerId,
             manufacturerName: $data->puzzleManufacturerName,
+            puzzlePhoto: $data->puzzlePhoto,
         );
     }
 }

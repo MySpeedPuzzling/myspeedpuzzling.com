@@ -52,3 +52,10 @@ body {
         width: auto !important;
     }
 }
+
+.form-label.required {
+    &::after {
+        content: ' *';
+        color: #DD4A68;
+    }
+}

@@ -35,6 +35,7 @@ SELECT
     pieces_count,
     group_name,
     players_count,
+    player.name AS player_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name
 FROM puzzle_solving_time
@@ -48,6 +49,7 @@ SQL;
          * @var null|array{
          *     time_id: string,
          *     player_id: string,
+         *     player_name: null|string,
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     puzzle_alternative_name: null|string,
@@ -95,6 +97,7 @@ SELECT
     pieces_count,
     group_name,
     players_count,
+    player.name AS player_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name
 FROM puzzle_solving_time
@@ -116,6 +119,7 @@ SQL;
              * @var array{
              *     time_id: string,
              *     player_id: string,
+             *     player_name: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: null|string,

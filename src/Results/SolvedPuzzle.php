@@ -9,6 +9,7 @@ readonly final class SolvedPuzzle
     public function __construct(
         public string $timeId,
         public string $playerId,
+        public string $playerName,
         public string $puzzleId,
         public string $puzzleName,
         public null|string $puzzleAlternativeName,
@@ -26,6 +27,7 @@ readonly final class SolvedPuzzle
      * @param array{
      *     time_id: string,
      *     player_id: string,
+     *     player_name: null|string,
      *     puzzle_id: string,
      *     puzzle_name: string,
      *     puzzle_alternative_name: null|string,
@@ -43,6 +45,7 @@ readonly final class SolvedPuzzle
         return new self(
             timeId: $row['time_id'],
             playerId: $row['player_id'],
+            playerName: $row['player_name'] ?? '',
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             puzzleAlternativeName: $row['puzzle_alternative_name'],

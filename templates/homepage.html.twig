@@ -20,5 +20,55 @@
                 </div>
             </div>
         </div>
+
+            <h2 class="h4 mt-4">Poslední přidané časy</h2>
+
+            <div class="table-responsive shadow mt-2 mb-5" style="max-width: 600px;">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th>Hráč</th>
+                        <th></th>
+                        <th>Puzzle</th>
+                        <th></th>
+                        <th class="text-end">Čas</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for solved_puzzle in last_solved_puzzles %}
+                        <tr>
+                            <td class="text-center">
+                                <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                                    {{ solved_puzzle.playerName }}
+                                </a>
+                            </td>
+                            <td class="text-center">
+                                {% if solved_puzzle.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
+                                    {% if solved_puzzle.puzzleAlternativeName is not null %}
+                                        {{ solved_puzzle.puzzleAlternativeName }}
+                                        <small>({{ solved_puzzle.puzzleName }})</small>
+                                    {% else %}
+                                        {{ solved_puzzle.puzzleName }}
+                                    {% endif %}
+                                    <br>{{ solved_puzzle.piecesCount }}&nbsp;dílků
+                                </a>
+                            </td>
+                            <td>{{ solved_puzzle.groupName }}</td>
+                            <td class="text-end">
+                                {{ solved_puzzle.time|puzzlingTime }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
     </div>
 {% endblock %}

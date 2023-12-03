@@ -100,4 +100,39 @@
             </div>
         </div>
     </div>
+
+    <div class="row">
+        <div class="col">
+            <h2 class="h4 mt-4">Nejzapálenější skládači</h2>
+
+            <div class="table-responsive shadow mt-3 mb-5">
+                <table class="table table-ladder table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Jméno</th>
+                            <th class="text-center">Složených puzzlí</th>
+                            <th class="text-end">Celkový čas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for player_statistics in most_active_players %}
+                        <tr>
+                            <td>{{ loop.index }}.</td>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: player_statistics.playerId}) }}">
+                                    {{ player_statistics.playerName }}
+                                </a>
+                            </td>
+                            <td class="text-center">{{ player_statistics.solvedPuzzlesCount }}</td>
+                            <td class="text-end">{{ player_statistics.totalSeconds|puzzlingTime }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col"></div>
+    </div>
 {% endblock %}

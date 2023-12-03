@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RegisterUserToPlay;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetStatistics;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
@@ -27,6 +28,7 @@ final class MyProfileController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private LoggerInterface $logger,
         readonly private PuzzlesSorter $puzzlesSorter,
+        readonly private GetStatistics $getStatistics,
     ) {
     }
 
@@ -73,6 +75,7 @@ final class MyProfileController extends AbstractController
             'solo_puzzles' => $soloSolvedPuzzles,
             'group_puzzles' => $groupSolvedPuzzles,
             'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
+            'statistics' => $this->getStatistics->forPlayer($player->playerId),
         ]);
     }
 }

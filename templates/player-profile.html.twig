@@ -7,6 +7,14 @@
 
     <p>{{ player.city }} {{ player.country }}</p>
 
+    <h3 class="mt-2">Statistiky</h3>
+
+    <p>
+        <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
+        <strong>Počet složených puzzlí:</strong> {{ statistics.solvedPuzzlesCount }}<br>
+        <strong>Počet složených dílků:</strong> {{ statistics.totalPieces }}
+    </p>
+
     <div class="row mt-5">
         <div class="col">
             <h2 class="h4">Poskládané puzzle</h2>
@@ -19,7 +27,6 @@
                         <th>Puzzle</th>
                         <th></th>
                         <th class="text-end">Čas</th>
-                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -53,14 +60,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
-                            <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
-                            </td>
                         </tr>
                     {% endfor %}
                     {% if solo_puzzles|length < 1 %}
                         <tr>
-                            <td colspan="5" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
+                            <td colspan="4" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
                         </tr>
                     {% endif %}
                     </tbody>
@@ -79,7 +83,6 @@
                         <th>Puzzle</th>
                         <th></th>
                         <th class="text-end">Čas</th>
-                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -105,14 +108,11 @@
                             </td>
                             <td>{{ grouped_puzzle[0].groupName }}</td>
                             <td class="text-end">{{ grouped_puzzle[0].time|puzzlingTime }}</td>
-                            <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
-                            </td>
                         </tr>
                     {% endfor %}
                     {% if group_puzzles|length < 1 %}
                         <tr>
-                            <td colspan="5" class="text-center">Žádné puzzle jsi ve skupině ještě nikdy neskládal? Tak utíkej rychle někoho najít, vyberte puzzle a skládejte!</td>
+                            <td colspan="4" class="text-center">Žádné puzzle jsi ve skupině ještě nikdy neskládal? Tak utíkej rychle někoho najít, vyberte puzzle a skládejte!</td>
                         </tr>
                     {% endif %}
                     </tbody>

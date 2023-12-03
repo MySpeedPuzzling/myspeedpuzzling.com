@@ -54,19 +54,33 @@
         </p>
     </div>
 
-    {% if stopwatches|length > 0 %}
-        <h3 class="mt-5">Moje stopky</h3>
+    <div class="row">
+        <div class="col">
+            <h3 class="mt-5">Statistiky</h3>
 
-        <ul>
-            {% for stopwatch in stopwatches %}
-                <li>
-                    <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
-                        {{ stopwatch.interval|puzzlingTime }} ({{ stopwatch.status.title }})
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
-    {% endif %}
+            <p>
+                <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
+                <strong>Počet složených puzzlí:</strong> {{ statistics.solvedPuzzlesCount }}<br>
+                <strong>Počet složených dílků:</strong> {{ statistics.totalPieces }}
+            </p>
+        </div>
+
+        <div class="col">
+            {% if stopwatches|length > 0 %}
+                <h3 class="mt-5">Moje stopky</h3>
+
+                <ul>
+                    {% for stopwatch in stopwatches %}
+                        <li>
+                            <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
+                                {{ stopwatch.interval|puzzlingTime }} ({{ stopwatch.status.title }})
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
 
     <div class="row mt-5">
         <div class="col">

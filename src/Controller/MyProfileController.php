@@ -60,6 +60,7 @@ final class MyProfileController extends AbstractController
             }
         }
 
+        $playerStatistics = $this->getStatistics->forPlayer($player->playerId);
         $solvedPuzzles = $this->getPlayerSolvedPuzzles->byPlayerId($player->playerId);
 
         $soloSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
@@ -75,7 +76,7 @@ final class MyProfileController extends AbstractController
             'solo_puzzles' => $soloSolvedPuzzles,
             'group_puzzles' => $groupSolvedPuzzles,
             'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
-            'statistics' => $this->getStatistics->forPlayer($player->playerId),
+            'statistics' => $playerStatistics,
         ]);
     }
 }

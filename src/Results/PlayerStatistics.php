@@ -19,8 +19,8 @@ readonly final class PlayerStatistics
      * @param array{
      *     player_id: string,
      *     player_name: null|string,
-     *     total_seconds: int,
-     *     total_pieces: int,
+     *     total_seconds: null|int,
+     *     total_pieces: null|int,
      *     solved_puzzles_count: int,
      * } $row
      */
@@ -29,8 +29,8 @@ readonly final class PlayerStatistics
         return new self(
             playerId: $row['player_id'],
             playerName: $row['player_name'] ?? '',
-            totalSeconds: $row['total_seconds'],
-            totalPieces: $row['total_pieces'],
+            totalSeconds: $row['total_seconds'] ?? 0,
+            totalPieces: $row['total_pieces'] ?? 0,
             solvedPuzzlesCount: $row['solved_puzzles_count'],
         );
     }

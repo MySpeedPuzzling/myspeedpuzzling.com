@@ -78,9 +78,9 @@ SELECT
     SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
     SUM(puzzle.pieces_count) AS total_pieces,
     COUNT(puzzle_solving_time.id) AS solved_puzzles_count
-FROM puzzle_solving_time
-INNER JOIN player ON player.id = puzzle_solving_time.player_id
-INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+FROM player
+LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id
+LEFT JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE
     player.id = :playerId
 GROUP BY
@@ -92,8 +92,8 @@ SQL;
          * @var null|array{
          *     player_id: string,
          *     player_name: null|string,
-         *     total_seconds: int,
-         *     total_pieces: int,
+         *     total_seconds: null|int,
+         *     total_pieces: null|int,
          *     solved_puzzles_count: int,
          * } $row
          */

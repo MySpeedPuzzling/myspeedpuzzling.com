@@ -11,15 +11,21 @@ use Doctrine\ORM\Mapping\Id;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use Random\Randomizer;
 
 #[Entity]
 class Player
 {
+
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
+
+        #[Immutable]
+        #[Column(unique: true, nullable: true)]
+        public null|string $code,
 
         #[Column(unique: true, nullable: true)]
         public null|string $userId,

@@ -26,7 +26,14 @@ readonly final class GetPlayerProfile
         }
 
         $query = <<<SQL
-SELECT player.id AS player_id, name AS player_name, user_id, email, country, city
+SELECT
+    player.id AS player_id,
+    name AS player_name,
+    user_id,
+    email,
+    country,
+    city,
+    code
 FROM player
 WHERE player.id = :playerId
 SQL;
@@ -39,6 +46,7 @@ SQL;
          *     email: null|string,
          *     country: null|string,
          *     city: null|string,
+         *     code: string,
          * } $row
          */
         $row = $this->database
@@ -60,7 +68,14 @@ SQL;
     public function byUserId(string $userId): PlayerProfile
     {
         $query = <<<SQL
-SELECT player.id AS player_id, name AS player_name, user_id, email, country, city
+SELECT
+    player.id AS player_id,
+    name AS player_name,
+    user_id,
+    email,
+    country,
+    city,
+    code
 FROM player
 WHERE player.user_id = :userId
 SQL;
@@ -73,6 +88,7 @@ SQL;
          *     email: null|string,
          *     country: null|string,
          *     city: null|string,
+         *     code: string,
          * } $row
          */
         $row = $this->database

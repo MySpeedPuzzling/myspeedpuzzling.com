@@ -18,6 +18,12 @@
         {% endif %}
 
         <p>
+            <b>Kód hráče:</b><br>
+            #{{ player.code }}<br>
+            <small class="text-muted">Kód se zadává při skládání ve skupině.</small>
+        </p>
+
+        <p>
             <b>Veřejné jméno/přezdívka:</b><br>
             {% if player.playerName is null %}
                 Nevyplněno

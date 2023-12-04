@@ -13,6 +13,7 @@ readonly final class PlayerProfile
         public null|string $email,
         public null|string $country,
         public null|string $city,
+        public string $code,
     ) {
     }
 
@@ -24,6 +25,7 @@ readonly final class PlayerProfile
      *     email: null|string,
      *     country: null|string,
      *     city: null|string,
+     *     code: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -35,6 +37,7 @@ readonly final class PlayerProfile
             email: $row['email'],
             country: $row['country'],
             city: $row['city'],
+            code: $row['code'],
         );
     }
 }

@@ -24,8 +24,8 @@ class Player
         public UuidInterface $id,
 
         #[Immutable]
-        #[Column(unique: true, nullable: true)]
-        public null|string $code,
+        #[Column(unique: true)]
+        public string $code,
 
         #[Column(unique: true, nullable: true)]
         public null|string $userId,

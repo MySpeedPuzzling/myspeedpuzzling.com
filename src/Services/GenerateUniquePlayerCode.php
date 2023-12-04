@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\NoResultException;
 use Nette\Utils\Random;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
 
 readonly final class GenerateUniquePlayerCode
 {
     public function __construct(
-        private PlayerRepository $playerRepository,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -24,12 +25,18 @@ readonly final class GenerateUniquePlayerCode
         $attempts = 0;
 
         do {
-            $random = Random::generate(6);
+            $randomCode = Random::generate(6);
+            $queryBuilder = $this->entityManager->createQueryBuilder();
 
             try {
-                $this->playerRepository->getByCode($random);
-            } catch (PlayerNotFound) {
-                return $random;
+                $queryBuilder->select('player')
+                    ->from(Player::class, 'player')
+                    ->where('player.code = :code')
+                    ->setParameter('code', $randomCode)
+                    ->getQuery()
+                    ->getSingleResult();
+            } catch (NoResultException) {
+                return $randomCode;
             }
 
             $attempts++;

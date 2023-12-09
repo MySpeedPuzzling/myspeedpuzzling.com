@@ -29,6 +29,7 @@ readonly final class GetStopwatch
         $query = <<<SQL
 SELECT
   stopwatch.id AS stopwatch_id, status,
+  stopwatch.puzzle_id AS puzzle_id,
   SUM(
     (EXTRACT(EPOCH FROM (lap->>'end')::timestamp - (lap->>'start')::timestamp))
   ) AS total_seconds,
@@ -50,6 +51,7 @@ SQL;
          *     last_start_time: null|string,
          *     last_end_time: null|string,
          *     status: string,
+         *     puzzle_id: null|string,
          * } $row
          */
         $row = $this->database
@@ -73,6 +75,7 @@ SQL;
         $query = <<<SQL
 SELECT
   stopwatch.id AS stopwatch_id, status,
+  stopwatch.puzzle_id AS puzzle_id,
   SUM(
     (EXTRACT(EPOCH FROM (lap->>'end')::timestamp - (lap->>'start')::timestamp))
   ) AS total_seconds,
@@ -103,6 +106,7 @@ SQL;
              *     last_start_time: null|string,
              *     last_end_time: null|string,
              *     status: string,
+             *     puzzle_id: null|string,
              * } $row
              */
 

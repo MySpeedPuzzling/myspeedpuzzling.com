@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,11 +21,13 @@ final class StopwatchController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetStopwatch $getStopwatch,
         readonly private LoggerInterface $logger,
+        readonly private GetPuzzleOverview $getPuzzleOverview,
     ) {
     }
 
     #[Route(path: '/stopky/{stopwatchId}', name: 'stopwatch', methods: ['GET'])]
-    public function __invoke(#[CurrentUser] UserInterface $user, null|string $stopwatchId = null): Response
+    #[Route(path: '/puzzle-stopky/{puzzleId}', name: 'stopwatch_puzzle', methods: ['GET'])]
+    public function __invoke(#[CurrentUser] UserInterface $user, null|string $stopwatchId = null, null|string $puzzleId = null): Response
     {
         $userId = $user->getUserIdentifier();
 
@@ -39,11 +42,18 @@ final class StopwatchController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $activePuzzle = null;
         $activeStopwatch = null;
 
         if ($stopwatchId !== null) {
             $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
+            $puzzleId = $activeStopwatch->puzzleId;
         }
+
+        if ($puzzleId !== null) {
+            $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
+        }
+
 
         $stopwatches = $this->getStopwatch->allForPlayer($player->playerId);
 
@@ -59,6 +69,7 @@ final class StopwatchController extends AbstractController
         return $this->render('stopwatch.html.twig', [
             'active_stopwatch' => $activeStopwatch,
             'stopwatches' => $stopwatches,
+            'active_puzzle' => $activePuzzle,
         ]);
     }
 }

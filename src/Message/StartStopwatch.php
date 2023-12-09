@@ -11,6 +11,7 @@ readonly final class StartStopwatch
     public function __construct(
         public UuidInterface $stopwatchId,
         public string $userId,
+        public null|string $puzzleId,
     ) {
     }
 }

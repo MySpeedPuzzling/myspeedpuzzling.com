@@ -19,8 +19,8 @@ final class StartStopwatchController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/stopky-start', name: 'start_stopwatch', methods: ['GET'])]
-    public function __invoke(#[CurrentUser] UserInterface $user): Response
+    #[Route(path: '/stopky-start/{puzzleId}', name: 'start_stopwatch', methods: ['GET'])]
+    public function __invoke(#[CurrentUser] UserInterface $user, null|string $puzzleId = null): Response
     {
         $stopwatchId = Uuid::uuid7();
 
@@ -28,6 +28,7 @@ final class StartStopwatchController extends AbstractController
             new StartStopwatch(
                 $stopwatchId,
                 $user->getUserIdentifier(),
+                $puzzleId,
             ),
         );
 

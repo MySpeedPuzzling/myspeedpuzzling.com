@@ -59,3 +59,26 @@ body {
         color: #DD4A68;
     }
 }
+
+#add-puzzle-form, #add-puzzle-chosen {
+    opacity: 1;
+    visibility: visible;
+    height: auto;
+    transition: all .5s ease;
+
+    &.hidden {
+        height: 0;
+        visibility: hidden;
+        opacity: 0;
+    }
+}
+
+#add-puzzle-chosen {
+    .checkbox-wrapper {
+        display: none !important;
+    }
+
+    .form-check {
+        padding-left: 0 !important;
+    }
+}

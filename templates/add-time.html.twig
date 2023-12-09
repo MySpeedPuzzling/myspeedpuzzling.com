@@ -143,32 +143,9 @@
                     {{ form_row(add_puzzle_solving_time_form.time) }}
                 {% endif %}
 
-                <div class="mb-3">
-                    <label class="form-label required" for="add_puzzle_solving_time_form_playersCount">Spoluskladatel 1</label>
+                <div id="puzzlers-group"></div>
 
-                    <div class="input-group">
-                        <input class="form-control" type="text">
-                        <button class="btn btn-white border btn-icon" type="button">
-                            <i class="ci-trash text-danger"></i>
-                        </button>
-                    </div>
-                    <div class="form-text">Zadejte kód hráče (začíná na #)</div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label required" for="add_puzzle_solving_time_form_playersCount">Spoluskladatel 2</label>
-
-                    <div class="input-group">
-                        <input class="form-control" type="text">
-                        <button class="btn btn-white border btn-icon" type="button">
-                            <i class="ci-trash text-danger"></i>
-                        </button>
-                    </div>
-                    <div class="form-text">Zadejte kód hráče (začíná na #)</div>
-                </div>
-
-                <button class="btn btn-sm btn-outline-primary mb-3"><i class="ci ci-add"></i> Přidat spoluskladatele</button>
-
+                <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci ci-add"></i> Přidat spoluskladatele</button>
 
                 {{ form_row(add_puzzle_solving_time_form.comment) }}
 
@@ -186,6 +163,20 @@
         </div>
 
     {{ form_end(add_puzzle_solving_time_form) }}
+
+    <div id="puzzler-input-template">
+        <div data-puzzler class="mb-3">
+            <label class="form-label required">Spoluskladatel <span data-counter></span></label>
+
+            <div class="input-group">
+                <input class="form-control" type="text">
+                <button data-remove-player class="btn btn-white border btn-icon" type="button">
+                    <i class="ci-trash text-danger"></i>
+                </button>
+            </div>
+            <div class="form-text">Zadejte kód hráče (začíná na #)</div>
+        </div>
+    </div>
 
 
 <script type="text/javascript">
@@ -258,6 +249,47 @@
             document.getElementById('add-puzzle-chosen').classList.add('hidden');
             document.getElementById('add-puzzle-form').classList.remove('hidden');
         });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const addPuzzlerBtn = document.getElementById('add-puzzler');
+        const puzzlersGroup = document.getElementById('puzzlers-group');
+        const puzzlerTemplate = document.getElementById('puzzler-input-template').innerHTML;
+
+        addPuzzlerBtn.addEventListener('click', () => {
+            if (puzzlersGroup.children.length < 6) {
+                puzzlersGroup.insertAdjacentHTML('beforeend', puzzlerTemplate);
+                updateCounters();
+                checkButtonVisibility();
+            }
+        });
+
+        puzzlersGroup.addEventListener('click', (event) => {
+            // Check if the clicked element or any of its parents has the 'data-remove-player' attribute
+            if (event.target.closest('[data-remove-player]')) {
+                const puzzler = event.target.closest('[data-puzzler]');
+                if (puzzler) {
+                    puzzler.remove();
+                    updateCounters();
+                    checkButtonVisibility();
+                }
+            }
+        });
+
+        function updateCounters() {
+            const counters = puzzlersGroup.querySelectorAll('[data-counter]');
+            counters.forEach((counter, index) => {
+                counter.innerHTML = index + 1;
+            });
+        }
+
+        function checkButtonVisibility() {
+            if (puzzlersGroup.children.length >= 6) {
+                addPuzzlerBtn.classList.add('hidden');
+            } else {
+                addPuzzlerBtn.classList.remove('hidden');
+            }
+        }
     });
 </script>
 {% endblock %}

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormType\SaveStopwatchFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishStopwatch;
+use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
@@ -30,6 +31,7 @@ final class FinishStopwatchController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private PuzzlingTimeFormatter $puzzlingTimeFormatter,
+        readonly private GetPuzzleOverview $getPuzzleOverview,
     ) {
     }
 
@@ -37,6 +39,7 @@ final class FinishStopwatchController extends AbstractController
     public function __invoke(Request $request, #[CurrentUser] UserInterface $user, string $stopwatchId): Response
     {
         $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
+        $activePuzzle = null;
         
         if ($activeStopwatch->status === StopwatchStatus::Finished) {
             $this->addFlash('warning','Tyto stopky byly již uloženy.');
@@ -60,6 +63,10 @@ final class FinishStopwatchController extends AbstractController
             assert($data instanceof SaveStopwatchFormData);
 
             $userId = $user->getUserIdentifier();
+
+            if ($activeStopwatch->puzzleId !== null) {
+                $data->puzzleId = $activeStopwatch->puzzleId;
+            }
 
             if (
                 $data->addPuzzle === true
@@ -122,9 +129,13 @@ final class FinishStopwatchController extends AbstractController
             $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
         }
 
+        if ($activeStopwatch->puzzleId !== null) {
+            $activePuzzle = $this->getPuzzleOverview->byId($activeStopwatch->puzzleId);
+        }
+
         return $this->render('add-time.html.twig', [
             'active_stopwatch' => $activeStopwatch,
-            'active_puzzle' => null,
+            'active_puzzle' => $activePuzzle,
             'puzzles' => $puzzlesPerManufacturer,
             'add_puzzle_solving_time_form' => $addTimeForm,
         ]);

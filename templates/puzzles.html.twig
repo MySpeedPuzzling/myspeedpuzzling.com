@@ -82,7 +82,7 @@
                             <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1 px-2 my-1 btn-sm btn-primary">Chci vidět časy</a>
                         {% endif %}
                         <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
-                        <a href="{{ path('stopwatch') }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> Začít skládat</a>
+                        <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> Začít skládat</a>
                     </div>
                 </div>
             </div>

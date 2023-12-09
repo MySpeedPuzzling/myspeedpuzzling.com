@@ -28,6 +28,12 @@
                             <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                         </p>
                     {% endif %}
+
+                    {% if active_puzzle.fastestTime is not null %}
+                        Nejrychlejší čas: {{ active_puzzle.fastestTime|puzzlingTime }}<br>
+                        Průměrný čas: {{ active_puzzle.averageTime|puzzlingTime }}<br>
+                        Počet složení: {{ active_puzzle.solvedTimes }}
+                    {% endif %}
                 {% endif %}
 
                 <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>

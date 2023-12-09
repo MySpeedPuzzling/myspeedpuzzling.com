@@ -18,6 +18,7 @@ readonly final class StopwatchDetail
         public DateTimeInterface $lastStart,
         public null|DateTimeInterface $lastEnd,
         public StopwatchStatus $status,
+        public null|string $puzzleId,
     ) {
         $interval = $totalSeconds;
 
@@ -35,6 +36,7 @@ readonly final class StopwatchDetail
      *     last_start_time: null|string,
      *     last_end_time: null|string,
      *     status: string,
+     *     puzzle_id: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -61,7 +63,8 @@ readonly final class StopwatchDetail
             totalSeconds: $totalSeconds,
             lastStart: $lastStart,
             lastEnd: $lastEnd,
-            status: StopwatchStatus::from($row['status'])
+            status: StopwatchStatus::from($row['status']),
+            puzzleId: $row['puzzle_id'],
         );
     }
 }

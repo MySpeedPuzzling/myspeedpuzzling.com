@@ -38,9 +38,7 @@
                     <div id="existing-puzzle-form">
                         <h3 class="h5">Vyberte puzzle, podle výrobce:</h3>
 
-                        <div id="add-puzzle-chosen" class="hidden">
-                            <strong style="display: inline-block;" class="mb-2">Vybrané puzzle:</strong>
-
+                        <div id="add-puzzle-chosen" class="hidden pb-2">
                             <ul id="add-puzzle-chosen-item" class="widget-list"></ul>
 
                             <button class="btn btn-sm btn-outline-primary" id="change-link">Změnit výběr</button>
@@ -210,6 +208,10 @@
                 var puzzleChosenItem = document.getElementById('add-puzzle-chosen-item');
                 puzzleChosenItem.innerHTML = '';
                 puzzleChosenItem.appendChild(clonedLi);
+
+                document.getElementById('existing-puzzle-form').scrollIntoView({
+                    behavior: 'smooth'
+                });
             }
         });
 

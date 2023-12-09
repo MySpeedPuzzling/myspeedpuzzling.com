@@ -112,7 +112,6 @@
                             <th></th>
                             <th>Jméno</th>
                             <th class="text-center">Složených puzzlí</th>
-                            <th class="text-end">Celkový čas</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -125,7 +124,6 @@
                                 </a>
                             </td>
                             <td class="text-center">{{ player_statistics.solvedPuzzlesCount }}</td>
-                            <td class="text-end">{{ player_statistics.totalSeconds|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     </tbody>

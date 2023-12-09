@@ -37,7 +37,7 @@ WHERE
 GROUP BY
     player.id,
     player.name
-ORDER BY total_seconds DESC
+ORDER BY solved_puzzles_count DESC
 LIMIT :limit
 SQL;
 

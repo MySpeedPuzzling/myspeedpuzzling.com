@@ -209,9 +209,11 @@
                 puzzleChosenItem.innerHTML = '';
                 puzzleChosenItem.appendChild(clonedLi);
 
-                document.getElementById('existing-puzzle-form').scrollIntoView({
-                    behavior: 'smooth'
-                });
+                setTimeout(function() {
+                    document.getElementById('add-puzzle-chosen').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }, 100);
             }
         });
 

@@ -54,20 +54,9 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
             ],
         ]);
 
-        $builder->add('playersCount', ChoiceType::class, [
-            'label' => 'Počet skládájících lidí',
-            'required' => true,
-            'choices' => [
-                '1 - Jen já' => 1,
-                '2 - Pár' => 2,
-                '3 a více - Pořádná skupinka puzzlařů!' => 3,
-            ],
-        ]);
-
         $builder->add('comment', TextareaType::class, [
             'label' => 'Doplňující info',
             'required' => false,
-            'help' => 'Pokud skládáte ve více lidech, prosím uveďte jména',
         ]);
 
         $builder->add('solvedPuzzlesPhoto', FileType::class, [

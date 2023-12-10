@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Ramsey\Uuid\Doctrine\UuidType;
 use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
+use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
@@ -13,6 +14,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'types' => [
                 'uuid' => UuidType::class,
                 LapsArrayDoctrineType::NAME => LapsArrayDoctrineType::class,
+                PuzzlersGroupDoctrineType::NAME => PuzzlersGroupDoctrineType::class,
             ],
         ],
         'orm' => [

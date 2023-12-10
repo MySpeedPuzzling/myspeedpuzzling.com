@@ -82,3 +82,13 @@ body {
         padding-left: 0 !important;
     }
 }
+
+#add-puzzler {
+    &.hidden {
+        display: none;
+    }
+}
+
+#puzzler-input-template {
+    display: none;
+}

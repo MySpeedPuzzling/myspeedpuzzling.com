@@ -108,19 +108,24 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzle_solver in group_puzzle_solvers %}
+                    {% for puzzlers_group in group_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
                             <td>
-                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                    {% if puzzle_solver.groupName is not null %}
-                                        {{ puzzle_solver.groupName }}
+                                {% for puzzle_solver in puzzlers_group.players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            {{ puzzle_solver.playerName }}
+                                        </a>
                                     {% else %}
                                         {{ puzzle_solver.playerName }}
                                     {% endif %}
-                                </a>
+                                {% endfor %}
                             </td>
-                            <td class="text-end">{{ puzzle_solver.time|puzzlingTime }}</td>
+                            <td class="text-end">{{ puzzlers_group.time|puzzlingTime }}</td>
                         </tr>
                     {% endfor %}
                     {% if group_puzzle_solvers|length < 1 %}

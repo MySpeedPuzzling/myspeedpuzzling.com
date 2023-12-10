@@ -8,9 +8,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\PuzzlersGrouping;
+use SpeedPuzzling\Web\Value\Puzzler;
+use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -22,18 +27,18 @@ readonly final class AddPuzzleSolvingTimeHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private Filesystem $filesystem,
+        private PuzzlersGrouping $puzzlersGrouping,
     ) {
     }
 
+    /**
+     * @throws CouldNotGenerateUniqueCode
+     */
     public function __invoke(AddPuzzleSolvingTime $message): void
     {
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
-
-        $groupName = null;
-        if ($message->playersCount > 1) {
-            $groupName = $message->comment;
-        }
+        $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
 
         $solvingTimeId = Uuid::uuid7();
         $finishedPuzzlePhotoPath = null;
@@ -54,13 +59,12 @@ readonly final class AddPuzzleSolvingTimeHandler
         $solvingTime = new PuzzleSolvingTime(
             $solvingTimeId,
             SolvingTime::fromUserInput($message->time)->seconds,
-            $message->playersCount,
             $player,
             $puzzle,
             new \DateTimeImmutable(),
             false,
+            $group,
             $message->comment,
-            $groupName,
             $finishedPuzzlePhotoPath,
         );
 

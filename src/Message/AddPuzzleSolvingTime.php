@@ -13,25 +13,28 @@ readonly final class AddPuzzleSolvingTime
         public string $userId,
         public string $puzzleId,
         public string $time,
-        public int $playersCount,
         public null|string $comment,
         public null|UploadedFile $solvedPuzzlesPhoto,
+        /** @var array<string> */
+        public array $groupPlayers,
     ) {
     }
 
-    public static function fromFormData(string $userId, AddPuzzleSolvingTimeFormData $data): self
+    /**
+     * @param array<string> $groupPlayers
+     */
+    public static function fromFormData(string $userId, array $groupPlayers, AddPuzzleSolvingTimeFormData $data): self
     {
         assert($data->puzzleId !== null);
-        assert($data->playersCount !== null);
         assert($data->time !== null);
 
         return new self(
             userId: $userId,
             puzzleId: $data->puzzleId,
             time: $data->time,
-            playersCount: $data->playersCount,
             comment: $data->comment,
             solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
+            groupPlayers: $groupPlayers,
         );
     }
 }

@@ -34,19 +34,12 @@ final class PlayerProfileController extends AbstractController
             return $this->redirectToRoute('ladder');
         }
 
-        $solvedPuzzles = $this->getPlayerSolvedPuzzles->byPlayerId($playerId);
-
-        $soloSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
-            $this->puzzlesSorter->filterSolo($solvedPuzzles),
-        );
-
-        $groupSolvedPuzzles = $this->puzzlesSorter->groupPuzzles(
-            $this->puzzlesSorter->filterGroup($solvedPuzzles),
-        );
+        $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
+        $groupSolvedPuzzles = $this->getPlayerSolvedPuzzles->inGroupByPlayerId($player->playerId);
 
         return $this->render('player-profile.html.twig', [
             'player' => $player,
-            'solo_puzzles' => $soloSolvedPuzzles,
+            'solo_puzzles' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
             'group_puzzles' => $groupSolvedPuzzles,
             'statistics' => $this->getStatistics->forPlayer($player->playerId),
         ]);

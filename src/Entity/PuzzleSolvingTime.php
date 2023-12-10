@@ -14,6 +14,8 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
+use SpeedPuzzling\Web\Value\PuzzlersGroup;
 
 #[Entity]
 class PuzzleSolvingTime
@@ -26,9 +28,6 @@ class PuzzleSolvingTime
 
         #[Column(type: Types::INTEGER, nullable: true)]
         public null|int $secondsToSolve,
-
-        #[Column(type: Types::INTEGER)]
-        public int $playersCount,
 
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
@@ -44,25 +43,28 @@ class PuzzleSolvingTime
         #[Column(type: Types::BOOLEAN)]
         public bool $verified,
 
+        #[Column(type: PuzzlersGroupDoctrineType::NAME, nullable: true)]
+        public null|PuzzlersGroup $team,
+
         #[Column(nullable: true)]
         public null|string $comment = null,
 
         #[Column(nullable: true)]
-        public null|string $groupName = null,
+        public null|string $finishedPuzzlePhoto = null,
 
         #[Column(nullable: true)]
-        public null|string $finishedPuzzlePhoto = null,
+        public null|string $groupName = null,
     ) {
     }
 
     public function modify(
         int $seconds,
-        int $playersCount,
         null|string $comment,
+        null|PuzzlersGroup $puzzlersGroup,
     ): void
     {
         $this->secondsToSolve = $seconds;
-        $this->playersCount = $playersCount;
         $this->comment = $comment;
+        $this->team = $puzzlersGroup;
     }
 }

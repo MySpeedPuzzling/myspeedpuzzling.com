@@ -16,9 +16,6 @@ final class AddPuzzleSolvingTimeFormData
     #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'Prosím zadejte čas ve formátu HH:MM:SS')]
     public null|string $time = null;
 
-    #[NotNull]
-    public null|int $playersCount = null;
-
     public null|string $comment = null;
 
     public null|UploadedFile $solvedPuzzlesPhoto = null;

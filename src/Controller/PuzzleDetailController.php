@@ -29,15 +29,13 @@ final class PuzzleDetailController extends AbstractController
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
-            $puzzleSolvers = $this->getPuzzleSolvers->byPuzzleId($puzzleId);
+            $puzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
+            $groupPuzzleSolvers = $this->getPuzzleSolvers->groupsByPuzzleId($puzzleId);
         } catch (PuzzleNotFound) {
             $this->addFlash('primary', 'Puzzle, které jste zkoušeli hledat, u nás nejsou!');
 
             return $this->redirectToRoute('puzzles');
         }
-
-        $soloPuzzleSolvers = array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount === 1);
-        $groupPuzzleSolvers = array_filter($puzzleSolvers, static fn(PuzzleSolver $solver): bool => $solver->playersCount > 1);
 
         $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(
             $user?->getUserIdentifier()
@@ -45,7 +43,7 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $this->groupSoloPuzzles($soloPuzzleSolvers),
+            'solo_puzzle_solvers' => $this->groupSoloPuzzles($puzzleSolvers),
             'group_puzzle_solvers' => $groupPuzzleSolvers,
             'puzzles_solved_by_user' => $userSolvedPuzzles,
         ]);

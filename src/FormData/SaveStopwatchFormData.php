@@ -13,8 +13,6 @@ final class SaveStopwatchFormData
 {
     public null|string $puzzleId = null;
 
-    #[NotNull]
-    public null|int $playersCount = null;
 
     public null|string $comment = null;
 

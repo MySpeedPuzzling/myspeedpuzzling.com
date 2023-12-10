@@ -79,7 +79,7 @@
                     {% for stopwatch in stopwatches %}
                         <li>
                             <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
-                                {{ stopwatch.interval|puzzlingTime }} ({{ stopwatch.status.title }})
+                                {{ stopwatch.interval|puzzlingTime }}{% if stopwatch.puzzleId is not null %} - {{ stopwatch.puzzleName }}{% endif %} ({{ stopwatch.status.title }})
                             </a>
                         </li>
                     {% endfor %}

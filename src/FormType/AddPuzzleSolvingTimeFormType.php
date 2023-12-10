@@ -35,7 +35,7 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
     {
         $puzzleChoices = [];
         foreach ($this->getPuzzlesOverview->all() as $puzzle) {
-            $puzzleChoices[$puzzle->puzzleName] = $puzzle->puzzleId;
+            $puzzleChoices[$puzzle->puzzleId] = $puzzle->puzzleId;
         }
 
         $builder->add('puzzleId', ChoiceType::class, [

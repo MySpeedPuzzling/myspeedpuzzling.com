@@ -41,8 +41,6 @@ final class AddTimeController extends AbstractController
         $addTimeForm = $this->createForm(AddPuzzleSolvingTimeFormType::class);
         $addTimeForm->handleRequest($request);
 
-        $addingNew = false;
-
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
             $data = $addTimeForm->getData();
             assert($data instanceof AddPuzzleSolvingTimeFormData);
@@ -54,6 +52,7 @@ final class AddTimeController extends AbstractController
 
             $userId = $user->getUserIdentifier();
 
+            // Adding new puzzles by user
             if (
                 $data->addPuzzle === true
                 && $data->puzzleName !== null
@@ -74,8 +73,11 @@ final class AddTimeController extends AbstractController
             }
 
             if ($data->puzzleId !== null) {
+                /** @var array<string> $groupPlayers */
+                $groupPlayers = $request->request->all('group_players');
+
                 $this->messageBus->dispatch(
-                    AddPuzzleSolvingTime::fromFormData($userId, $data),
+                    AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
                 );
 
                 $this->addFlash('success','Skvělá práce! Skládání jsme zaznamenali.');

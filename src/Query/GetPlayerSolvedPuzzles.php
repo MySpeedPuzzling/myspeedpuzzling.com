@@ -34,7 +34,6 @@ SELECT
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     group_name,
-    players_count,
     player.name AS player_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name
@@ -55,7 +54,6 @@ SQL;
          *     puzzle_alternative_name: null|string,
          *     manufacturer_name: string,
          *     puzzle_image: null|string,
-         *     players_count: int,
          *     time: int,
          *     pieces_count: int,
          *     group_name: null|string,
@@ -79,7 +77,7 @@ SQL;
     /**
      * @return array<SolvedPuzzle>
      */
-    public function byPlayerId(string $playerId): array
+    public function soloByPlayerId(string $playerId): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -96,7 +94,6 @@ SELECT
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     group_name,
-    players_count,
     player.name AS player_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name
@@ -104,7 +101,9 @@ FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-WHERE puzzle_solving_time.player_id = :playerId
+WHERE
+    puzzle_solving_time.player_id = :playerId
+    AND puzzle_solving_time.team IS NULL
 ORDER BY seconds_to_solve ASC
 SQL;
 
@@ -125,7 +124,6 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
-             *     players_count: int,
              *     time: int,
              *     pieces_count: int,
              *     group_name: null|string,

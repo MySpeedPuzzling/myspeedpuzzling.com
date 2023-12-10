@@ -32,7 +32,7 @@ FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 WHERE puzzle.pieces_count = :piecesCount
-    AND puzzle_solving_time.players_count = 1
+    AND puzzle_solving_time.team IS NULL
     AND player.name IS NOT NULL
 ORDER BY seconds_to_solve ASC
 LIMIT :howManyPlayers

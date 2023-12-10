@@ -94,14 +94,11 @@ final class FinishStopwatchController extends AbstractController
             }
 
             if ($data->puzzleId !== null) {
-                assert($data->playersCount !== null);
-
                 $this->messageBus->dispatch(
                     new AddPuzzleSolvingTime(
                         userId: $userId,
                         puzzleId: $data->puzzleId,
                         time: $this->puzzlingTimeFormatter->formatTime($activeStopwatch->totalSeconds),
-                        playersCount: $data->playersCount,
                         comment: $data->comment,
                         solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
                     ),

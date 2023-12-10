@@ -12,7 +12,6 @@ readonly final class EditPuzzleSolvingTime
         public string $currentUserId,
         public string $puzzleSolvingTimeId,
         public string $time,
-        public int $playersCount,
         public null|string $comment,
     ) {
     }
@@ -20,13 +19,11 @@ readonly final class EditPuzzleSolvingTime
     public static function fromFormData(string $userId, string $timeId, EditPuzzleSolvingTimeFormData $formData): self
     {
         assert($formData->time !== null);
-        assert($formData->playersCount !== null);
 
         return new self(
             $userId,
             $timeId,
             $formData->time,
-            $formData->playersCount,
             $formData->comment,
         );
     }

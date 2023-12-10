@@ -145,7 +145,7 @@
 
                 <div id="puzzlers-group"></div>
 
-                <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci ci-add"></i> Přidat spoluskladatele</button>
+                <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci ci-add"></i> Přidat skládájícího</button>
 
                 {{ form_row(add_puzzle_solving_time_form.comment) }}
 
@@ -166,10 +166,10 @@
 
     <div id="puzzler-input-template">
         <div data-puzzler class="mb-3">
-            <label class="form-label required">Spoluskladatel <span data-counter></span></label>
+            <label class="form-label required">Spoluskládající <span data-counter></span></label>
 
             <div class="input-group">
-                <input class="form-control" type="text">
+                <input name="group_players[]" class="form-control" type="text">
                 <button data-remove-player class="btn btn-white border btn-icon" type="button">
                     <i class="ci-trash text-danger"></i>
                 </button>
@@ -255,17 +255,19 @@
         const addPuzzlerBtn = document.getElementById('add-puzzler');
         const puzzlersGroup = document.getElementById('puzzlers-group');
         const puzzlerTemplate = document.getElementById('puzzler-input-template').innerHTML;
+        let puzzlerCounter = 0;
 
         addPuzzlerBtn.addEventListener('click', () => {
             if (puzzlersGroup.children.length < 6) {
                 puzzlersGroup.insertAdjacentHTML('beforeend', puzzlerTemplate);
+                const newPuzzler = puzzlersGroup.lastElementChild;
+                updateInputAndLabel(newPuzzler, ++puzzlerCounter);
                 updateCounters();
                 checkButtonVisibility();
             }
         });
 
         puzzlersGroup.addEventListener('click', (event) => {
-            // Check if the clicked element or any of its parents has the 'data-remove-player' attribute
             if (event.target.closest('[data-remove-player]')) {
                 const puzzler = event.target.closest('[data-puzzler]');
                 if (puzzler) {
@@ -275,6 +277,16 @@
                 }
             }
         });
+
+        function updateInputAndLabel(newPuzzler, counter) {
+            const input = newPuzzler.querySelector('input');
+            const label = newPuzzler.querySelector('label');
+            if (input && label) {
+                const uniqueId = `playerInput-${counter}`;
+                input.id = uniqueId;
+                label.setAttribute('for', uniqueId);
+            }
+        }
 
         function updateCounters() {
             const counters = puzzlersGroup.querySelectorAll('[data-counter]');

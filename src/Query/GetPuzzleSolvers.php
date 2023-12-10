@@ -31,8 +31,7 @@ SELECT
     player.id AS player_id,
     player.name AS player_name,
     puzzle_solving_time.seconds_to_solve AS time,
-    group_name,
-    players_count
+    group_name
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -53,7 +52,6 @@ SQL;
              *     player_id: string,
              *     player_name: string,
              *     time: int,
-             *     players_count: int,
              *     group_name: null|string
              * } $row
              */

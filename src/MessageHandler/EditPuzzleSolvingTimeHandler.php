@@ -39,7 +39,6 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         $solvingTime->modify(
             $seconds,
-            $message->playersCount,
             $message->comment,
         );
     }

@@ -10,7 +10,6 @@ readonly final class PuzzleSolver
         public string $playerId,
         public string $playerName,
         public int $time,
-        public null|string $groupName,
     ) {
     }
 
@@ -19,7 +18,6 @@ readonly final class PuzzleSolver
      *     player_id: string,
      *     player_name: string,
      *     time: int,
-     *     group_name: null|string
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -28,7 +26,6 @@ readonly final class PuzzleSolver
             playerId: $row['player_id'],
             playerName: $row['player_name'],
             time: $row['time'],
-            groupName: $row['group_name'],
         );
     }
 }

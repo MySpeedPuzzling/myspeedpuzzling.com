@@ -94,6 +94,9 @@ final class FinishStopwatchController extends AbstractController
             }
 
             if ($data->puzzleId !== null) {
+                /** @var array<string> $groupPlayers */
+                $groupPlayers = $request->request->all('group_players');
+
                 $this->messageBus->dispatch(
                     new AddPuzzleSolvingTime(
                         userId: $userId,
@@ -101,6 +104,7 @@ final class FinishStopwatchController extends AbstractController
                         time: $this->puzzlingTimeFormatter->formatTime($activeStopwatch->totalSeconds),
                         comment: $data->comment,
                         solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
+                        groupPlayers: $groupPlayers,
                     ),
                 );
 

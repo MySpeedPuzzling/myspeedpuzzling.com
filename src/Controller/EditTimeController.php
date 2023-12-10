@@ -34,7 +34,7 @@ final class EditTimeController extends AbstractController
         $userId = $user->getUserIdentifier();
         $player = $this->getPlayerProfile->byUserId($userId);
 
-        if ($solvedPuzzle->playerId !== $player->playerId) {
+        if ($solvedPuzzle->addedByPlayerId !== $player->playerId) {
             throw $this->createAccessDeniedException();
         }
 
@@ -49,8 +49,11 @@ final class EditTimeController extends AbstractController
             $data = $editTimeForm->getData();
             assert($data instanceof EditPuzzleSolvingTimeFormData);
 
+            /** @var array<string> $groupPlayers */
+            $groupPlayers = $request->request->all('group_players');
+
             $this->messageBus->dispatch(
-                EditPuzzleSolvingTime::fromFormData($userId, $timeId, $data),
+                EditPuzzleSolvingTime::fromFormData($userId, $timeId, $groupPlayers, $data),
             );
 
             $this->addFlash('success','Upravené údaje jsme uložili.');

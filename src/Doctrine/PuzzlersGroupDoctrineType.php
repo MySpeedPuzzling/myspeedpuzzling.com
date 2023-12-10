@@ -40,7 +40,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
             return null;
         }
 
-        /** @var array{team_id: null|string, puzzlers: array{player_id: null|string, player_name: null|string}} $jsonData */
+        /** @var array{team_id: null|string, puzzlers: non-empty-array<array{player_id: null|string, player_name: null|string}>} $jsonData */
         $jsonData = parent::convertToPHPValue($value, $platform);
 
         $puzzlers = [];
@@ -49,6 +49,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
             $puzzlers[] = new Puzzler(
                 playerId: $puzzler['player_id'],
                 playerName: $puzzler['player_name'],
+                playerCode: null, // Not supported in domain
             );
         }
 

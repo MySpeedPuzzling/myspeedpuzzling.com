@@ -65,5 +65,6 @@ class PuzzleSolvingTime
     {
         $this->secondsToSolve = $seconds;
         $this->comment = $comment;
+        $this->team = $puzzlersGroup;
     }
 }

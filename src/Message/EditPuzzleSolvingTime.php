@@ -13,10 +13,15 @@ readonly final class EditPuzzleSolvingTime
         public string $puzzleSolvingTimeId,
         public string $time,
         public null|string $comment,
+        /** @var array<string> */
+        public array $groupPlayers,
     ) {
     }
 
-    public static function fromFormData(string $userId, string $timeId, EditPuzzleSolvingTimeFormData $formData): self
+    /**
+     * @param array<string> $groupPlayers
+     */
+    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData): self
     {
         assert($formData->time !== null);
 
@@ -25,6 +30,7 @@ readonly final class EditPuzzleSolvingTime
             $timeId,
             $formData->time,
             $formData->comment,
+            groupPlayers: $groupPlayers,
         );
     }
 }

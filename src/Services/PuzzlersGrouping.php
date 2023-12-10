@@ -32,6 +32,7 @@ readonly final class PuzzlersGrouping
             new Puzzler(
                 playerId: $player->id->toString(),
                 playerName: null,
+                playerCode: null,
             ),
         ];
 
@@ -53,11 +54,13 @@ readonly final class PuzzlersGrouping
             return new Puzzler(
                 playerId: $player->id->toString(),
                 playerName: null,
+                playerCode: $player->code,
             );
         } catch (PlayerNotFound) {
             return new Puzzler(
                 playerId: null,
                 playerName: $playerCodeOrName,
+                playerCode: null,
             );
         }
     }

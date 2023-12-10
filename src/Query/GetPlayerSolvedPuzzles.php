@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Results\GroupSolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 
 readonly final class GetPlayerSolvedPuzzles
 {
@@ -18,7 +19,7 @@ readonly final class GetPlayerSolvedPuzzles
     ) {
     }
 
-    public function byTimeId(string $timeId): SolvedPuzzle
+    public function byTimeId(string $timeId): SolvedPuzzleDetail
     {
         if (Uuid::isValid($timeId) === false) {
             throw new PuzzleSolvingTimeNotFound();
@@ -28,28 +29,42 @@ readonly final class GetPlayerSolvedPuzzles
 SELECT
     puzzle_solving_time.id as time_id,
     puzzle.id AS puzzle_id,
+    puzzle_solving_time.team ->> 'team_id' AS team_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.image AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
-    puzzle_solving_time.player_id AS player_id,
+    puzzle_solving_time.player_id AS added_by_player_id,
     pieces_count,
-    group_name,
     player.name AS player_name,
     puzzle_solving_time.comment,
-    manufacturer.name AS manufacturer_name
+    manufacturer.name AS manufacturer_name,
+    CASE
+        WHEN puzzle_solving_time.team IS NOT NULL THEN
+            JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'player_id', player_elem ->> 'player_id',
+                    'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+                    'player_code', p.code
+                )
+            )
+        ELSE NULL
+    END AS players
 FROM puzzle_solving_time
-INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem ON puzzle_solving_time.team IS NOT NULL
+    LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE puzzle_solving_time.id = :timeId
+GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id
 SQL;
 
         /**
          * @var null|array{
          *     time_id: string,
-         *     player_id: string,
-         *     player_name: null|string,
+         *     team_id: null|string,
+         *     added_by_player_id: string,
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     puzzle_alternative_name: null|string,
@@ -57,8 +72,8 @@ SQL;
          *     puzzle_image: null|string,
          *     time: int,
          *     pieces_count: int,
-         *     group_name: null|string,
-         *     comment: null|string
+         *     comment: null|string,
+         *     players: null|string,
          * } $row
          */
         $row = $this->database
@@ -71,7 +86,7 @@ SQL;
             throw new PuzzleSolvingTimeNotFound();
         }
 
-        return SolvedPuzzle::fromDatabaseRow($row);
+        return SolvedPuzzleDetail::fromDatabaseRow($row);
 
     }
 
@@ -99,9 +114,9 @@ SELECT
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name
 FROM puzzle_solving_time
-INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.team IS NULL

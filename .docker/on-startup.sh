@@ -27,4 +27,5 @@ else
 fi
 
 echo "== Setting 777 permission to var/ =="
+mkdir -p var/cache
 time chmod -R 777 var

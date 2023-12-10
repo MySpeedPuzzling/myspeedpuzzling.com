@@ -29,15 +29,7 @@ readonly final class PuzzleSolversGroup
      */
     public static function fromDatabaseRow(array $row): self
     {
-        /** @var array<array{player_id: null|string, player_name: null|string}> $playersData */
-        $playersData = Json::decode($row['players'], true);
-
-        $players = array_map(static function(array $data): Puzzler {
-            return new Puzzler(
-                  playerId: $data['player_id'],
-                  playerName: $data['player_name'],
-            );
-        }, $playersData);
+        $players = Puzzler::createPuzzlersFromJson($row['players']);
 
         return new self(
             teamId: $row['team_id'],

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Results\GroupSolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 
 readonly final class GetPlayerSolvedPuzzles
@@ -132,6 +133,79 @@ SQL;
              */
 
             return SolvedPuzzle::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<GroupSolvedPuzzle>
+     */
+    public function inGroupByPlayerId(string $playerId): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    pst.id as time_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.image AS puzzle_image,
+    pst.seconds_to_solve AS time,
+    pst.player_id AS added_by_player_id,
+    pieces_count,
+    pst.comment,
+    manufacturer.name AS manufacturer_name,
+    pst.team ->> 'team_id' AS team_id,
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'player_id', player_elem ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem ->> 'player_name')
+        )
+    ) AS players
+FROM puzzle_solving_time pst
+INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
+LATERAL json_array_elements(pst.team -> 'puzzlers') AS player_elem
+LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+WHERE
+    EXISTS (
+        SELECT 1
+        FROM json_array_elements(pst.team -> 'puzzlers') AS sub_player_elem
+        WHERE (sub_player_elem ->> 'player_id')::UUID = :playerId::UUID
+    )
+GROUP BY
+    pst.id, puzzle.id, manufacturer.id, time
+ORDER BY time ASC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): GroupSolvedPuzzle {
+            /**
+             * @var array{
+             *     time_id: string,
+             *     team_id: null|string,
+             *     added_by_player_id: string,
+             *     player_name: null|string,
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     manufacturer_name: string,
+             *     puzzle_image: null|string,
+             *     time: int,
+             *     pieces_count: int,
+             *     comment: null|string,
+             *     players: string,
+             * } $row
+             */
+
+            return GroupSolvedPuzzle::fromDatabaseRow($row);
         }, $data);
     }
 }

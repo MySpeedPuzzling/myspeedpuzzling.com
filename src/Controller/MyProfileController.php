@@ -61,17 +61,12 @@ final class MyProfileController extends AbstractController
         }
 
         $playerStatistics = $this->getStatistics->forPlayer($player->playerId);
-        $solvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($player->playerId);
-
-        $soloSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($solvedPuzzles);
-
-        // TODO: Fix / Implement
-        // $groupSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($solvedPuzzles);
-        $groupSolvedPuzzles = [];
+        $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($player->playerId);
+        $groupSolvedPuzzles = $this->getPlayerSolvedPuzzles->inGroupByPlayerId($player->playerId);
 
         return $this->render('my-profile.html.twig', [
             'player' => $player,
-            'solo_puzzles' => $soloSolvedPuzzles,
+            'solo_puzzles' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
             'group_puzzles' => $groupSolvedPuzzles,
             'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
             'statistics' => $playerStatistics,

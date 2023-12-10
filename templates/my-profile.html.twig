@@ -98,7 +98,6 @@
                     <tr>
                         <th></th>
                         <th>Puzzle</th>
-                        <th></th>
                         <th class="text-end">Čas</th>
                         <th></th>
                     </tr>
@@ -124,7 +123,6 @@
                                     <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
-                            <td>{{ grouped_puzzle[0].groupName }}</td>
                             <td class="text-end">
                                 {% for puzzle in grouped_puzzle %}
                                     {% if loop.first %}
@@ -169,30 +167,45 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzle_id, grouped_puzzle in group_puzzles %}
+                    {% for group_solved_puzzle in group_puzzles %}
                         <tr>
                             <td class="text-center">
-                                {% if grouped_puzzle[0].puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                {% if group_solved_puzzle.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ group_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
-                                        {{ grouped_puzzle[0].puzzleAlternativeName }}
-                                        <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
+                                    {% if group_solved_puzzle.puzzleAlternativeName is not null %}
+                                        {{ group_solved_puzzle.puzzleAlternativeName }}
+                                        <small>({{ group_solved_puzzle.puzzleName }})</small>
                                     {% else %}
-                                        {{ grouped_puzzle[0].puzzleName }}
+                                        {{ group_solved_puzzle.puzzleName }}
                                     {% endif %}
-                                    <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
+                                    <br>{{ group_solved_puzzle.piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
-                            <td>{{ grouped_puzzle[0].groupName }}</td>
-                            <td class="text-end">{{ grouped_puzzle[0].time|puzzlingTime }}</td>
+
+                            <td>
+                                {% for puzzle_solver in group_solved_puzzle.players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            {{ puzzle_solver.playerName }}
+                                        </a>
+                                    {% else %}
+                                        {{ puzzle_solver.playerName }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+
+                            <td class="text-end">{{ group_solved_puzzle.time|puzzlingTime }}</td>
                             <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: grouped_puzzle[0].timeId}) }}"><i class="ci-edit"></i></a>
+                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: group_solved_puzzle.timeId}) }}"><i class="ci-edit"></i></a>
                             </td>
                         </tr>
                     {% endfor %}

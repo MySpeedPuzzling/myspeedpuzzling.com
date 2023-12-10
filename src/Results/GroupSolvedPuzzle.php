@@ -6,12 +6,12 @@ namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\Puzzler;
 
-readonly final class SolvedPuzzle
+readonly final class GroupSolvedPuzzle
 {
     public function __construct(
         public string $timeId,
-        public string $playerId,
-        public string $playerName,
+        public null|string $teamId,
+        public string $addedByPlayerId,
         public string $puzzleId,
         public string $puzzleName,
         public null|string $puzzleAlternativeName,
@@ -20,14 +20,16 @@ readonly final class SolvedPuzzle
         public int $time,
         public null|string $puzzleImage,
         public null|string $comment,
+        /** @var array<Puzzler> */
+        public array $players,
     ) {
     }
 
     /**
      * @param array{
      *     time_id: string,
-     *     player_id: string,
-     *     player_name: null|string,
+     *     team_id: null|string,
+     *     added_by_player_id: string,
      *     puzzle_id: string,
      *     puzzle_name: string,
      *     puzzle_alternative_name: null|string,
@@ -35,15 +37,18 @@ readonly final class SolvedPuzzle
      *     puzzle_image: null|string,
      *     time: int,
      *     pieces_count: int,
-     *     comment: null|string
+     *     comment: null|string,
+     *     players: string
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $players = Puzzler::createPuzzlersFromJson($row['players']);
+
         return new self(
             timeId: $row['time_id'],
-            playerId: $row['player_id'],
-            playerName: $row['player_name'] ?? '',
+            teamId: $row['team_id'],
+            addedByPlayerId: $row['added_by_player_id'],
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             puzzleAlternativeName: $row['puzzle_alternative_name'],
@@ -52,6 +57,7 @@ readonly final class SolvedPuzzle
             time: $row['time'],
             puzzleImage: $row['puzzle_image'],
             comment: $row['comment'],
+            players: $players,
         );
     }
 }

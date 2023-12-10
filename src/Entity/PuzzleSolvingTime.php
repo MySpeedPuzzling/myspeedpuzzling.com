@@ -51,9 +51,6 @@ class PuzzleSolvingTime
 
         #[Column(nullable: true)]
         public null|string $finishedPuzzlePhoto = null,
-
-        #[Column(nullable: true)]
-        public null|string $groupName = null,
     ) {
     }
 

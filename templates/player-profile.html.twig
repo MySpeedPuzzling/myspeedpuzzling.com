@@ -81,7 +81,6 @@
                         <th>Puzzle</th>
                         <th></th>
                         <th class="text-end">Čas</th>
-                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -122,9 +121,6 @@
                             </td>
 
                             <td class="text-end">{{ group_solved_puzzle.time|puzzlingTime }}</td>
-                            <td class="text-end">
-                                <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: group_solved_puzzle.timeId}) }}"><i class="ci-edit"></i></a>
-                            </td>
                         </tr>
                     {% endfor %}
                     {% if group_puzzles|length < 1 %}

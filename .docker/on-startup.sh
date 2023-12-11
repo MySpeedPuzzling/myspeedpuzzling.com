@@ -14,6 +14,8 @@ then
     composer install --no-interaction
 fi
 
+wait-for-it ${REDIS_URI:-"redis:6379"} --timeout=15
+
 ## Database setup
 
 if [[ "$ENVIRONMENT" == "dev" ]] || [[ "$SKIP_DATABASE_MIGRATIONS" != "true" ]]; then

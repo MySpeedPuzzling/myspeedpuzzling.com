@@ -19,8 +19,6 @@ return static function(ContainerConfigurator $configurator): void
 
     $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
 
-    $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
-
     $parameters->set('uploadedAssetsBaseUrl', '%env(UPLOADS_BASE_URL)%/puzzle');
 
     $services = $configurator->services();

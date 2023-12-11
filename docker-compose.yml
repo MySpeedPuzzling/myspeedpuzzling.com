@@ -2,6 +2,7 @@ version: "3.7"
 
 volumes:
     postgres-data:
+    redis-data:
 
 services:
     web:
@@ -37,6 +38,12 @@ services:
         restart: unless-stopped
         entrypoint: [""]
         command: ["bash", "-c", "npm install && npm run watch"]
+
+    redis:
+        image: redis:7.2
+        restart: unless-stopped
+        volumes:
+            - redis-data:/data
 
     adminer:
         image: adminer:4.8.0

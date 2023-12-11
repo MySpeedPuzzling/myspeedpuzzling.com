@@ -2,18 +2,15 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Config\FrameworkConfig;
 
-return static function (ContainerConfigurator $containerConfigurator): void {
-    $containerConfigurator->extension('framework', [
-        'cache' => [
-            // 'app' => '%cache_adapter%',
+return static function (FrameworkConfig $framework): void {
+    $cacheConfig = $framework->cache();
 
-            'pools' => [
-                'cache.flysystem.psr6' => [
-                    'adapter' => 'cache.app'
-                ],
-            ],
-        ],
-    ]);
+    $cacheConfig->defaultRedisProvider('%env(REDIS_CACHE_DSN)%');
+
+    $cacheConfig->app('cache.adapter.redis');
+
+    $cacheConfig->pool('cache.flysystem.psr6')
+        ->adapters(['cache.app']);
 };

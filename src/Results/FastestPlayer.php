@@ -14,6 +14,7 @@ readonly final class FastestPlayer
         public string $playerName,
         public int $time,
         public null|string $puzzleImage,
+        public int $solvedTimes,
     ) {
     }
 
@@ -25,6 +26,7 @@ readonly final class FastestPlayer
      *     time: int,
      *     player_name: string,
      *     player_id: string,
+     *     solved_times: int,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -37,6 +39,7 @@ readonly final class FastestPlayer
             playerName: $row['player_name'],
             time: $row['time'],
             puzzleImage: $row['puzzle_image'],
+            solvedTimes: $row['solved_times'],
         );
     }
 }

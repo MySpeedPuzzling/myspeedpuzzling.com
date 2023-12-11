@@ -27,7 +27,8 @@ SELECT
     puzzle.image AS puzzle_image,
     MIN(puzzle_solving_time.seconds_to_solve) AS time,
     player.name AS player_name,
-    player.id AS player_id
+    player.id AS player_id,
+    COUNT(puzzle_solving_time.puzzle_id) AS solved_times
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -55,6 +56,7 @@ SQL;
              *     time: int,
              *     player_name: string,
              *     player_id: string,
+             *     solved_times: int,
              * } $row
              */
 

@@ -28,8 +28,16 @@
                                 <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
                                     {{ fastest_player.playerName }}
                                 </a>
+
+                                {% if fastest_player.solvedTimes > 1 %}
+                                    <span class="badge bg-dark rounded-pill">skládáno {{ fastest_player.solvedTimes }}x</span>
+                                {% endif %}
                             </td>
-                            <td class="text-end">{{ fastest_player.time|puzzlingTime }}</td>
+
+                            <td class="text-end">
+                                {{ fastest_player.time|puzzlingTime }}
+                            </td>
+
                             <td class="text-center">
                                 {% if fastest_player.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">

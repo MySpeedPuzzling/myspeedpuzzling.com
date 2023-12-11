@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Results\FastestPlayer;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 
 readonly final class GetLastSolvedPuzzle

@@ -120,24 +120,26 @@ SQL;
 
         $query = <<<SQL
 SELECT
-    :playerId AS player_id,
-    (SELECT name FROM player WHERE id = :playerId) AS player_name,
-    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
-    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
-    SUM(puzzle.pieces_count / json_array_length(puzzle_solving_time.team->'puzzlers')) AS total_pieces
-FROM
-    puzzle_solving_time
-INNER JOIN
-    puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
-WHERE
-    puzzle_solving_time.team IS NOT NULL
-    AND EXISTS (
+    player.id AS player_id,
+    player.name AS player_name,
+    COALESCE(SUM(puzzle_solving_time.seconds_to_solve), 0) AS total_seconds,
+    COALESCE(COUNT(puzzle.id), 0) AS solved_puzzles_count,
+    COALESCE(SUM(CASE
+        WHEN puzzle_solving_time.team IS NOT NULL THEN puzzle.pieces_count / json_array_length(puzzle_solving_time.team->'puzzlers')
+        ELSE 0
+    END), 0) AS total_pieces
+FROM player
+LEFT JOIN puzzle_solving_time ON EXISTS (
         SELECT 1
         FROM json_array_elements(puzzle_solving_time.team->'puzzlers') AS team_player
-        WHERE (team_player->>'player_id')::UUID = :playerId
+        WHERE (team_player->>'player_id')::UUID = player.id
+        AND puzzle_solving_time.team IS NOT NULL
     )
+LEFT JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
+WHERE
+    player.id = :playerId
 GROUP BY
-    player_id;
+    player.id;
 SQL;
 
         /**

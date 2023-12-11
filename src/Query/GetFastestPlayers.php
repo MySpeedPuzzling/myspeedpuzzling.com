@@ -25,7 +25,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.image AS puzzle_image,
-    puzzle_solving_time.seconds_to_solve AS time,
+    MIN(puzzle_solving_time.seconds_to_solve) AS time,
     player.name AS player_name,
     player.id AS player_id
 FROM puzzle_solving_time
@@ -34,7 +34,8 @@ INNER JOIN player ON puzzle_solving_time.player_id = player.id
 WHERE puzzle.pieces_count = :piecesCount
     AND puzzle_solving_time.team IS NULL
     AND player.name IS NOT NULL
-ORDER BY seconds_to_solve ASC
+GROUP BY player.id, puzzle.id
+ORDER BY time ASC
 LIMIT :howManyPlayers
 SQL;
 

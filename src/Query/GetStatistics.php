@@ -75,15 +75,14 @@ SQL;
 SELECT
     player.id AS player_id,
     player.name AS player_name,
-    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
-    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
-    SUM(puzzle.pieces_count) AS total_pieces
+    COALESCE(SUM(puzzle_solving_time.seconds_to_solve), 0) AS total_seconds,
+    COALESCE(COUNT(puzzle_solving_time.id), 0) AS solved_puzzles_count,
+    COALESCE(SUM(puzzle.pieces_count), 0) AS total_pieces
 FROM player
-LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id
+LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id AND puzzle_solving_time.team IS NULL
 LEFT JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE
     player.id = :playerId
-    AND puzzle_solving_time.team IS NULL
 GROUP BY
     player.id, player.name;
 SQL;

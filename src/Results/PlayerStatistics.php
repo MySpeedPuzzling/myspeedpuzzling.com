@@ -15,6 +15,17 @@ readonly final class PlayerStatistics
     ) {
     }
 
+    public function sum(self $other): self
+    {
+        return new self(
+            playerId: $this->playerId,
+            playerName: $this->playerName,
+            totalSeconds: $this->totalSeconds + $other->totalSeconds,
+            totalPieces: $this->totalPieces + $other->totalPieces,
+            solvedPuzzlesCount: $this->solvedPuzzlesCount + $other->solvedPuzzlesCount,
+        );
+    }
+
     /**
      * @param array{
      *     player_id: string,

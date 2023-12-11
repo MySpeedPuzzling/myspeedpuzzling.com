@@ -78,14 +78,67 @@ SELECT
     SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
     COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
     SUM(puzzle.pieces_count) AS total_pieces
-FROM puzzle_solving_time
-INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
+FROM player
+LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id
+LEFT JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE
-    puzzle_solving_time.player_id = :playerId
+    player.id = :playerId
     AND puzzle_solving_time.team IS NULL
 GROUP BY
     player.id, player.name;
+SQL;
+
+        /**
+         * @var null|array{
+         *     player_id: string,
+         *     player_name: null|string,
+         *     total_seconds: null|int,
+         *     total_pieces: null|int,
+         *     solved_puzzles_count: int,
+         * } $row
+         */
+        $row = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAssociative();
+
+        if (is_array($row) === false) {
+            throw new PlayerNotFound();
+        }
+
+        return PlayerStatistics::fromDatabaseRow($row);
+    }
+
+    /**
+     * @throws PlayerNotFound
+     */
+    public function inGroupForPlayer(string $playerId): PlayerStatistics
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    :playerId AS player_id,
+    (SELECT name FROM player WHERE id = :playerId) AS player_name,
+    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
+    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
+    SUM(puzzle.pieces_count / json_array_length(puzzle_solving_time.team->'puzzlers')) AS total_pieces
+FROM
+    puzzle_solving_time
+INNER JOIN
+    puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
+WHERE
+    puzzle_solving_time.team IS NOT NULL
+    AND EXISTS (
+        SELECT 1
+        FROM json_array_elements(puzzle_solving_time.team->'puzzlers') AS team_player
+        WHERE (team_player->>'player_id')::UUID = :playerId
+    )
+GROUP BY
+    player_id;
 SQL;
 
         /**

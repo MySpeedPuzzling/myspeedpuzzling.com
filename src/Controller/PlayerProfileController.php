@@ -34,6 +34,10 @@ final class PlayerProfileController extends AbstractController
             return $this->redirectToRoute('ladder');
         }
 
+        $soloStatistics = $this->getStatistics->soloForPlayer($player->playerId);
+        $groupStatistics = $this->getStatistics->inGroupForPlayer($player->playerId);
+        $playerStatistics = $soloStatistics->sum($groupStatistics);
+
         $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
         $groupSolvedPuzzles = $this->getPlayerSolvedPuzzles->inGroupByPlayerId($player->playerId);
 
@@ -41,7 +45,7 @@ final class PlayerProfileController extends AbstractController
             'player' => $player,
             'solo_puzzles' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
             'group_puzzles' => $groupSolvedPuzzles,
-            'statistics' => $this->getStatistics->soloForPlayer($player->playerId),
+            'statistics' => $playerStatistics,
         ]);
     }
 }

@@ -33,7 +33,6 @@ SELECT
     puzzle_solving_time.player_id AS player_id,
     player.name AS player_name,
     pieces_count,
-    group_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name
 FROM puzzle_solving_time
@@ -65,7 +64,6 @@ SQL;
              *     puzzle_image: null|string,
              *     time: int,
              *     pieces_count: int,
-             *     group_name: null|string,
              *     comment: null|string
              * } $row
              */

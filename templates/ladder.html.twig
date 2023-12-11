@@ -48,8 +48,10 @@
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
                                     {% if fastest_player.puzzleAlternativeName is not null %}
-                                        {{ fastest_player.puzzleAlternativeName }}
-                                        <small>({{ fastest_player.puzzleName }})</small>
+                                        <span class="puzzle-title">
+                                            {{ fastest_player.puzzleAlternativeName }}<br>
+                                            <small>({{ fastest_player.puzzleName }})</small>
+                                        </span>
                                     {% else %}
                                         {{ fastest_player.puzzleName }}
                                     {% endif %}
@@ -89,8 +91,10 @@
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
                                     {% if most_solved_puzzle.puzzleAlternativeName is not null %}
-                                        {{ most_solved_puzzle.puzzleAlternativeName }}
-                                        <small>({{ most_solved_puzzle.puzzleName }})</small>
+                                        <span class="puzzle-title">
+                                            {{ most_solved_puzzle.puzzleAlternativeName }}<br>
+                                            <small>({{ most_solved_puzzle.puzzleName }})</small>
+                                        </span>
                                     {% else %}
                                         {{ most_solved_puzzle.puzzleName }}
                                     {% endif %}

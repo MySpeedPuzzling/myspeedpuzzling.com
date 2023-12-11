@@ -115,8 +115,10 @@
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                     {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
-                                        {{ grouped_puzzle[0].puzzleAlternativeName }}
-                                        <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                        <span class="puzzle-title">
+                                            {{ grouped_puzzle[0].puzzleAlternativeName }}<br>
+                                            <small>({{ grouped_puzzle[0].puzzleName }})</small>
+                                        </span>
                                     {% else %}
                                         {{ grouped_puzzle[0].puzzleName }}
                                     {% endif %}
@@ -179,8 +181,10 @@
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
                                     {% if group_solved_puzzle.puzzleAlternativeName is not null %}
-                                        {{ group_solved_puzzle.puzzleAlternativeName }}
-                                        <small>({{ group_solved_puzzle.puzzleName }})</small>
+                                        <span class="puzzle-title">
+                                            {{ group_solved_puzzle.puzzleAlternativeName }}<br>
+                                            <small>({{ group_solved_puzzle.puzzleName }})</small>
+                                        </span>
                                     {% else %}
                                         {{ group_solved_puzzle.puzzleName }}
                                     {% endif %}

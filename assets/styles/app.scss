@@ -92,3 +92,33 @@ body {
 #puzzler-input-template {
     display: none;
 }
+
+.custom-table-wrapper {
+    border-radius: 8px 8px 0 0;
+    box-shadow: rgba(0, 0, 0, .21) 0 0 25px 0;
+
+    .table {
+        border: 1px solid #ddd;
+
+        thead {
+            tr {
+                th {
+                    background: #fe696a;
+                    color: #fff !important;
+
+                    border-bottom: 0;
+                }
+            }
+        }
+
+        a {
+            color: #777;
+        }
+
+        .puzzle-title {
+            line-height: 110%;
+            display: inline-block;
+        }
+    }
+}
+

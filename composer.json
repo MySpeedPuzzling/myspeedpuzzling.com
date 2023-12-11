@@ -25,6 +25,7 @@
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-uuid": "*",
+        "ext-redis": "*",
         "auth0/symfony": "dev-main",
         "doctrine/doctrine-bundle": "^2.4",
         "doctrine/doctrine-migrations-bundle": "^3.1",
@@ -76,7 +77,7 @@
         "twig/twig": "^3.0"
     },
     "require-dev": {
-        "dama/doctrine-test-bundle": "^7.1",
+        "dama/doctrine-test-bundle": "^8.0",
         "doctrine/doctrine-fixtures-bundle": "^3.4",
         "phpstan/phpstan": "^1.2",
         "phpstan/phpstan-doctrine": "^1.0",
@@ -118,7 +119,7 @@
     "extra": {
         "symfony": {
             "allow-contrib": true,
-            "require": "6.3.*",
+            "require": "6.4.*",
             "docker": false
         }
     },

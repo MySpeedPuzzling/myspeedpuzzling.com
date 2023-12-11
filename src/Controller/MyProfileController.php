@@ -60,7 +60,7 @@ final class MyProfileController extends AbstractController
             }
         }
 
-        $playerStatistics = $this->getStatistics->forPlayer($player->playerId);
+        $playerStatistics = $this->getStatistics->soloForPlayer($player->playerId);
         $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($player->playerId);
         $groupSolvedPuzzles = $this->getPlayerSolvedPuzzles->inGroupByPlayerId($player->playerId);
 

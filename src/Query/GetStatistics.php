@@ -65,7 +65,7 @@ SQL;
     /**
      * @throws PlayerNotFound
      */
-    public function forPlayer(string $playerId): PlayerStatistics
+    public function soloForPlayer(string $playerId): PlayerStatistics
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -77,25 +77,15 @@ SELECT
     player.name AS player_name,
     SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
     COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
-    SUM(CASE
-            WHEN puzzle_solving_time.team IS NOT NULL THEN puzzle.pieces_count / json_array_length(puzzle_solving_time.team->'players')
-            ELSE puzzle.pieces_count
-        END) AS total_pieces
-FROM
-    puzzle_solving_time
-INNER JOIN
-    puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
-INNER JOIN
-    player ON puzzle_solving_time.player_id = player.id
+    SUM(puzzle.pieces_count) AS total_pieces
+FROM puzzle_solving_time
+INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
+INNER JOIN player ON puzzle_solving_time.player_id = player.id
 WHERE
     puzzle_solving_time.player_id = :playerId
-    OR EXISTS (
-        SELECT 1
-        FROM json_array_elements(puzzle_solving_time.team->'players') AS team_player
-        WHERE team_player->>'player_id' = :playerId
-    )
+    AND puzzle_solving_time.team IS NULL
 GROUP BY
-    player.id
+    player.id, player.name;
 SQL;
 
         /**

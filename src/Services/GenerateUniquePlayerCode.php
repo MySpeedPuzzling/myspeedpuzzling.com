@@ -31,8 +31,8 @@ readonly final class GenerateUniquePlayerCode
             try {
                 $queryBuilder->select('player')
                     ->from(Player::class, 'player')
-                    ->where('player.code = :code')
-                    ->setParameter('code', $randomCode)
+                    ->where('LOWER(player.code) = :code')
+                    ->setParameter('code', strtolower($randomCode))
                     ->getQuery()
                     ->getSingleResult();
             } catch (NoResultException) {

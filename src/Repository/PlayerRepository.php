@@ -65,8 +65,8 @@ readonly final class PlayerRepository
         try {
             $player = $queryBuilder->select('player')
                 ->from(Player::class, 'player')
-                ->where('player.code = :code')
-                ->setParameter('code', $code)
+                ->where('LOWER(player.code) = :code')
+                ->setParameter('code', strtolower($code))
                 ->getQuery()
                 ->getSingleResult();
 

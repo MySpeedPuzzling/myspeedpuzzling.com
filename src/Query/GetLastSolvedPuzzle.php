@@ -31,7 +31,8 @@ SELECT
     player.name AS player_name,
     pieces_count,
     puzzle_solving_time.comment,
-    manufacturer.name AS manufacturer_name
+    manufacturer.name AS manufacturer_name,
+    puzzle_solving_time.tracked_at AS tracked_at
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -61,7 +62,8 @@ SQL;
              *     puzzle_image: null|string,
              *     time: int,
              *     pieces_count: int,
-             *     comment: null|string
+             *     comment: null|string,
+             *     tracked_at: string,
              * } $row
              */
 

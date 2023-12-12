@@ -50,6 +50,9 @@
             "migrations/.gitignore"
         ]
     },
+    "knplabs/knp-time-bundle": {
+        "version": "v2.2.0"
+    },
     "liip/imagine-bundle": {
         "version": "2.12",
         "recipe": {

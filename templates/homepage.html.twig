@@ -56,7 +56,8 @@
                                     </a>
                                 </td>
                                 <td class="text-end">
-                                    <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span>
+                                    <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span><br>
+                                    <small>{{ solved_puzzle.trackedAt|ago(locale='cs') }}</small>
                                 </td>
                             </tr>
                         {% endfor %}

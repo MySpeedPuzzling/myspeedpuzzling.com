@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class SolvedPuzzle
@@ -20,6 +21,7 @@ readonly final class SolvedPuzzle
         public int $time,
         public null|string $puzzleImage,
         public null|string $comment,
+        public DateTimeImmutable $trackedAt,
     ) {
     }
 
@@ -35,7 +37,8 @@ readonly final class SolvedPuzzle
      *     puzzle_image: null|string,
      *     time: int,
      *     pieces_count: int,
-     *     comment: null|string
+     *     comment: null|string,
+     *     tracked_at: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -52,6 +55,7 @@ readonly final class SolvedPuzzle
             time: $row['time'],
             puzzleImage: $row['puzzle_image'],
             comment: $row['comment'],
+            trackedAt: new DateTimeImmutable($row['tracked_at']),
         );
     }
 }

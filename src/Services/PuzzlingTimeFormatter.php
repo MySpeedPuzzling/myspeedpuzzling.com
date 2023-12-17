@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 readonly final class PuzzlingTimeFormatter
 {
-    public const TIME_FORMAT = '/^([0-9]{1,2}):([0-5][0-9]):([0-5][0-9])$/';
+    public const TIME_FORMAT = '/^([0-9]{1,2,3}):([0-5][0-9]):([0-5][0-9])$/';
 
     public function formatTime(int $interval): string
     {

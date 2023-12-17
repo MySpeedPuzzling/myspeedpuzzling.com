@@ -17,6 +17,12 @@
             </select>
 
             <input class="form-control" type="text" data-puzzle-filter-target="puzzleName" data-action="input->puzzle-filter#filterPuzzles" placeholder="Puzzle...">
+
+        </div>
+
+        <div class="form-check form-check-inline">
+            <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="availability" class="form-check-input" type="checkbox" id="available-only-filter">
+            <label class="form-check-label" for="available-only-filter">Pouze k zapůjčení</label>
         </div>
 
         {% for puzzle in puzzles %}
@@ -27,6 +33,7 @@
                 data-puzzle-name="{{ puzzle.puzzleName }}"
                 data-puzzle-alternative-name="{{ puzzle.puzzleAlternativeName }}"
                 data-manufacturer="{{ puzzle.manufacturerName }}"
+                data-available="{{ puzzle.isAvailable ? 1 : 0 }}"
             >
                 <div class="row">
                     <div class="col-md align-self-center">
@@ -87,5 +94,11 @@
                 </div>
             </div>
         {% endfor %}
+
+        <div id="filter-no-results" class="filter-no-results hidden mt-3">
+            <div class="alert alert-warning">
+                Žádné puzzle neodpovídají zadaným filtrům
+            </div>
+        </div>
     </div>
 {% endblock %}

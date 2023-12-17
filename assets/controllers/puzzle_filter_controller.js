@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ["piecesCount", "puzzleName", "manufacturer", "puzzleItem"];
+    static targets = ["piecesCount", "puzzleName", "manufacturer", "puzzleItem", "availability"];
 
     connect() {
         this.populateFilters();
@@ -46,6 +46,8 @@ export default class extends Controller {
         const piecesCount = this.piecesCountTarget.value;
         const puzzleNameInput = this.normalizeString(this.puzzleNameTarget.value);
         const manufacturer = this.manufacturerTarget.value;
+        const onlyAvailable = this.availabilityTarget.checked;
+        let anyVisible = false;
 
         this.puzzleItemTargets.forEach(puzzle => {
             const matchesPiecesCount = piecesCount === "" || puzzle.dataset.piecesCount === piecesCount;
@@ -53,9 +55,27 @@ export default class extends Controller {
             const puzzleAlternativeName = this.normalizeString(puzzle.dataset.puzzleAlternativeName);
             const matchesName = puzzleNameInput === "" || puzzleName.includes(puzzleNameInput) || puzzleAlternativeName.includes(puzzleNameInput);
             const matchesManufacturer = manufacturer === "" || puzzle.dataset.manufacturer === manufacturer;
+            const matchesAvailability = !onlyAvailable || puzzle.dataset.available === "1";
+            const isVisible = matchesPiecesCount && matchesName && matchesManufacturer && matchesAvailability;
 
-            puzzle.style.display = matchesPiecesCount && matchesName && matchesManufacturer ? '' : 'none';
+            puzzle.style.display = isVisible ? '' : 'none';
+            if (isVisible) {
+                anyVisible = true;
+            }
+
+            this.updateNoResultsMessage(anyVisible);
         });
+    }
+
+    updateNoResultsMessage(anyVisible) {
+        const noResultsElement = document.getElementById('filter-no-results');
+        if (noResultsElement) {
+            if (anyVisible) {
+                noResultsElement.classList.add('hidden');
+            } else {
+                noResultsElement.classList.remove('hidden');
+            }
+        }
     }
 
     normalizeString(str) {

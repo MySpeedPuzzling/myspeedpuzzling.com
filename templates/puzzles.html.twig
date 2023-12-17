@@ -25,6 +25,11 @@
             <label class="form-check-label" for="available-only-filter">Pouze k zapůjčení</label>
         </div>
 
+        <div class="form-check form-check-inline">
+            <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="withTime" class="form-check-input" type="checkbox" id="with-time-only-filter">
+            <label class="form-check-label" for="with-time-only-filter">Pouze se zadaným časem</label>
+        </div>
+
         {% for puzzle in puzzles %}
             <div
                 class="shadow-lg my-3 py-3 px-3"
@@ -34,6 +39,7 @@
                 data-puzzle-alternative-name="{{ puzzle.puzzleAlternativeName }}"
                 data-manufacturer="{{ puzzle.manufacturerName }}"
                 data-available="{{ puzzle.isAvailable ? 1 : 0 }}"
+                data-has-time="{{ puzzle.solvedTimes > 0 ? 1 : 0 }}"
             >
                 <div class="row">
                     <div class="col-md align-self-center">

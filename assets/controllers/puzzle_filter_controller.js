@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ["piecesCount", "puzzleName", "manufacturer", "puzzleItem", "availability"];
+    static targets = ["piecesCount", "puzzleName", "manufacturer", "puzzleItem", "availability", "withTime"];
 
     connect() {
         this.populateFilters();
@@ -47,6 +47,7 @@ export default class extends Controller {
         const puzzleNameInput = this.normalizeString(this.puzzleNameTarget.value);
         const manufacturer = this.manufacturerTarget.value;
         const onlyAvailable = this.availabilityTarget.checked;
+        const onlyWithTime = this.withTimeTarget.checked;
         let anyVisible = false;
 
         this.puzzleItemTargets.forEach(puzzle => {
@@ -56,7 +57,8 @@ export default class extends Controller {
             const matchesName = puzzleNameInput === "" || puzzleName.includes(puzzleNameInput) || puzzleAlternativeName.includes(puzzleNameInput);
             const matchesManufacturer = manufacturer === "" || puzzle.dataset.manufacturer === manufacturer;
             const matchesAvailability = !onlyAvailable || puzzle.dataset.available === "1";
-            const isVisible = matchesPiecesCount && matchesName && matchesManufacturer && matchesAvailability;
+            const matchesWithTime = !onlyWithTime || puzzle.dataset.hasTime === "1";
+            const isVisible = matchesPiecesCount && matchesName && matchesManufacturer && matchesAvailability && matchesWithTime;
 
             puzzle.style.display = isVisible ? '' : 'none';
             if (isVisible) {

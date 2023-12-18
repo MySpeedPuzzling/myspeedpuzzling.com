@@ -26,19 +26,25 @@ readonly final class PuzzlersGrouping
             return null;
         }
 
-        // Add self to the group
-        /** @var non-empty-array<Puzzler> $puzzlers */
-        $puzzlers = [
-            new Puzzler(
-                playerId: $player->id->toString(),
-                playerName: null,
-                playerCode: null,
-            ),
-        ];
+        $teamPlayers = array_unique($teamPlayers);
+        $puzzlers = array_map(
+            fn(string $playerCodeOrName): Puzzler => $this->getPuzzlerFromUserInput($playerCodeOrName),
+            $teamPlayers,
+        );
 
-        foreach ($teamPlayers as $playerCodeOrName) {
-            $puzzlers[] = $this->getPuzzlerFromUserInput($playerCodeOrName);
-        }
+        // Filter out player itself (it is added later)
+        $puzzlers = array_filter(
+            $puzzlers,
+            static fn(Puzzler $puzzler): bool => $puzzler->playerId !== $player->id->toString(),
+        );
+
+        // Add self to the group (as first)
+        array_unshift($puzzlers, new Puzzler(
+            playerId: $player->id->toString(),
+            playerName: null,
+            playerCode: null,
+        ));
+
 
         return new PuzzlersGroup(null, $puzzlers);
     }

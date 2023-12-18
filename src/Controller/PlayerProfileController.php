@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
@@ -20,6 +21,7 @@ final class PlayerProfileController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private PuzzlesSorter $puzzlesSorter,
         readonly private GetStatistics $getStatistics,
+        readonly private GetRanking $getRanking,
     ) {
     }
 
@@ -46,6 +48,7 @@ final class PlayerProfileController extends AbstractController
             'solo_puzzles' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
             'group_puzzles' => $groupSolvedPuzzles,
             'statistics' => $playerStatistics,
+            'ranking' => $this->getRanking->allForPlayer($player->playerId),
         ]);
     }
 }

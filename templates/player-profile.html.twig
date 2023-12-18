@@ -25,6 +25,7 @@
                     <tr>
                         <th></th>
                         <th>Puzzle</th>
+                        <th class="text-center">Rank</th>
                         <th class="text-end">Čas</th>
                     </tr>
                     </thead>
@@ -51,6 +52,11 @@
                                     <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
+
+                            <td class="text-center">
+                                {{ ranking[puzzle_id].rank }}.
+                            </td>
+
                             <td class="text-end">
                                 {% for puzzle in grouped_puzzle %}
                                     {% if loop.first %}

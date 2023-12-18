@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use Symfony\Component\Asset\Context\RequestStackContext;
-
-class UploaderHelper
+readonly final class UploaderHelper
 {
     public function __construct(
         private string $uploadedAssetsBaseUrl,

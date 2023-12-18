@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 
-final class PuzzlesSorter
+readonly final class PuzzlesSorter
 {
     /**
      * @param array<SolvedPuzzle> $solvedPuzzles

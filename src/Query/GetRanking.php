@@ -9,7 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 
-final class GetRanking
+readonly final class GetRanking
 {
     public function __construct(
         private Connection $database,
@@ -18,7 +18,7 @@ final class GetRanking
 
     /**
      * @throws PlayerNotFound
-     * @return array<PlayerRanking>
+     * @return array<string, PlayerRanking>
      */
     public function allForPlayer(string $playerId): array
     {
@@ -72,7 +72,9 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayerRanking {
+        $ranking = [];
+
+        foreach ($data as $row) {
             /**
              * @var array{
              *     player_id: string,
@@ -87,7 +89,9 @@ SQL;
              * } $row
              */
 
-            return PlayerRanking::fromDatabaseRow($row);
-        }, $data);
+            $ranking[$row['puzzle_id']] = PlayerRanking::fromDatabaseRow($row);
+        }
+
+        return $ranking;
     }
 }

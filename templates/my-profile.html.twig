@@ -5,9 +5,11 @@
 {% block content %}
     <h1>Profil</h1>
 
-    <a class="btn btn-sm btn-primary" href="{{ path('edit_profile') }}">Upravit údaje</a>
+    <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}"><i class="ci-edit"></i> Upravit údaje</a>
 
-    <div class="shadow-lg p-3 mt-2">
+    <a class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}"><i class="ci-sign-out"></i> Odhlásit se</a>
+
+    <div class="shadow-lg p-3 mt-3">
         {% if player.playerName is null %}
             <div class="alert alert-warning d-flex" role="alert">
                 <div class="alert-icon">

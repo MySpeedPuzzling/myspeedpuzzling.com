@@ -61,7 +61,12 @@
                         {% endif %}
                     </div>
 
-                    <div class="col-md-1 align-self-center text-md-center">
+                    <div class="col-md align-self-center text-md-center">
+                        <b>{{ puzzle.manufacturerName|upper }}</b><br>
+                        {{ puzzle.piecesCount }} dílků
+                    </div>
+
+                    <div class="col-md align-self-center text-md-center">
                         {% if puzzle.puzzleId in puzzles_solved_by_user %}
                             <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> poskládáno</span>
                         {% endif %}
@@ -73,16 +78,15 @@
                         {% endif %}
                     </div>
 
-                    <div class="col-md align-self-center text-md-center">
-                        <b>{{ puzzle.manufacturerName|upper }}</b><br>
-                        {{ puzzle.piecesCount }} dílků
-                    </div>
-
                     <div class="col-md align-self-center">
                         <small>
                             {% if puzzle.solvedTimes > 0 %}
                                 Nejrychlejší čas: {{ puzzle.fastestTime|puzzlingTime }}<br>
                                 Průměrný čas: {{ puzzle.averageTime|puzzlingTime }}<br>
+                                {% if ranking[puzzle.puzzleId] is defined %}
+                                    <strong>Můj čas: {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</strong>
+                                    <br>
+                                {% endif %}
                                 Počet složení: {{ puzzle.solvedTimes }}
                             {% else %}
                                 Tyto puzzle ještě nikdo neskládal, buď první!

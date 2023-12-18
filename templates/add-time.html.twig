@@ -332,5 +332,12 @@
             }
         });
     });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.querySelector('form');
+        form.addEventListener('submit', function() {
+            form.querySelector('[type="submit"]').setAttribute('disabled', 'disabled');
+        });
+    });
 </script>
 {% endblock %}

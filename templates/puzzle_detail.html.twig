@@ -70,9 +70,9 @@
                     </thead>
                     <tbody>
                     {% for player_id, grouped_solver in solo_puzzle_solvers %}
-                        <tr>
-                            <td>{{ loop.index }}.</td>
-                            <td>
+                        <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                            <td class="rank">{{ loop.index }}.</td>
+                            <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: player_id}) }}">
                                     {{ grouped_solver[0].playerName }}
                                 </a>

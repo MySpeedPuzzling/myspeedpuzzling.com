@@ -134,3 +134,21 @@ body {
 #manufacturer-name-row.hidden {
     display: none;
 }
+
+.table-active-player {
+    --cz-table-color: #000;
+    --cz-table-bg: #f0ecfb;
+    --cz-table-border-color: #d4e2dd;
+    --cz-table-striped-bg: #f8ecfb;
+    --cz-table-striped-color: #000;
+    --cz-table-active-bg: #f6e5fc;
+    --cz-table-active-color: #000;
+    --cz-table-hover-bg: #f6e5fc;
+    --cz-table-hover-color: #000;
+    color: var(--cz-table-color);
+    border-color: var(--cz-table-border-color);
+
+    .rank, .player-name {
+        font-weight: bold;
+    }
+}

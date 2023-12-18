@@ -22,9 +22,9 @@
                     </thead>
                     <tbody>
                     {% for fastest_player in fastest_players_500_pieces %}
-                        <tr>
-                            <td>{{ loop.index }}.</td>
-                            <td>
+                        <tr class="{{ logged_user.profile is not null and fastest_player.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                            <td class="rank">{{ loop.index }}.</td>
+                            <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
                                     {{ fastest_player.playerName }}
                                 </a>
@@ -128,9 +128,9 @@
                     </thead>
                     <tbody>
                     {% for player_statistics in most_active_players %}
-                        <tr>
-                            <td>{{ loop.index }}.</td>
-                            <td>
+                        <tr class="{{ logged_user.profile is not null and player_statistics.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                            <td class="rank">{{ loop.index }}.</td>
+                            <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: player_statistics.playerId}) }}">
                                     {{ player_statistics.playerName }}
                                 </a>

@@ -53,10 +53,13 @@ body {
     }
 }
 
-.form-label.required {
+.form-label.required, h3.required {
     &::after {
-        content: ' *';
+        content: ' * Povinné';
         color: #DD4A68;
+        font-size: 11px;
+        font-weight: bold;
+        padding-left: 4px;
     }
 }
 
@@ -126,4 +129,8 @@ body {
     &.hidden {
         display: none;
     }
+}
+
+#manufacturer-name-row.hidden {
+    display: none;
 }

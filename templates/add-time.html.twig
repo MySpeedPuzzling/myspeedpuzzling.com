@@ -42,7 +42,7 @@
                     </div>
 
                     <div id="existing-puzzle-form">
-                        <h3 class="h5">Vyberte puzzle, podle výrobce:</h3>
+                        <h3 class="h5 required">Vyberte puzzle</h3>
 
                         <div id="add-puzzle-chosen" class="hidden pb-3">
                             <ul id="add-puzzle-chosen-item" class="widget-list"></ul>
@@ -117,7 +117,9 @@
 
                         {{ form_row(add_puzzle_solving_time_form.puzzleName) }}
                         {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerId) }}
-                        {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerName) }}
+                        <div id="manufacturer-name-row">
+                            {{ form_row(add_puzzle_solving_time_form.puzzleManufacturerName) }}
+                        </div>
                         {{ form_row(add_puzzle_solving_time_form.puzzlePiecesCount) }}
 
                         {{ form_label(add_puzzle_solving_time_form.puzzlePhoto) }}
@@ -302,6 +304,33 @@
                 addPuzzlerBtn.classList.remove('hidden');
             }
         }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to toggle the 'hidden' class
+        function toggleHiddenClass() {
+            var selectInput = document.querySelector('select[data-manufacturerId]');
+            var targetElement = document.getElementById('manufacturer-name-row');
+
+            if (selectInput && targetElement) {
+                // Add or remove the 'hidden' class based on whether the select has a value
+                if (selectInput.value) {
+                    targetElement.classList.add('hidden');
+                } else {
+                    targetElement.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Initially call the function when the page loads
+        toggleHiddenClass();
+
+        // Event listener for changes on the select input
+        document.addEventListener('change', function (event) {
+            if (event.target.matches('select[data-manufacturerId]')) {
+                toggleHiddenClass();
+            }
+        });
     });
 </script>
 {% endblock %}

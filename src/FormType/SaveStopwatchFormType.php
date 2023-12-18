@@ -68,6 +68,7 @@ final class SaveStopwatchFormType extends AbstractType
 
         $builder->add('puzzleName', TextType::class, [
             'label' => 'Název puzzlí',
+            'label_attr' => ['class' => 'required'],
             'required' => false,
         ]);
 
@@ -82,16 +83,19 @@ final class SaveStopwatchFormType extends AbstractType
             'expanded' => false,
             'multiple' => false,
             'choices' => $manufacturerChoices,
+            'attr' => ['data-manufacturerId' => true],
         ]);
 
         $builder->add('puzzleManufacturerName', TextType::class, [
             'label' => 'Výrobce (pokud není na seznamu)',
+            'label_attr' => ['class' => 'required'],
             'required' => false,
             'help' => 'Prosím vyplňte pouze v případě, že jste výrobce nenašli v již existujícím seznamu',
         ]);
 
         $builder->add('puzzlePiecesCount', TextType::class, [
             'label' => 'Počet dílků',
+            'label_attr' => ['class' => 'required'],
             'required' => false,
         ]);
 

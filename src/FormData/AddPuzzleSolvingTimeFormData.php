@@ -6,14 +6,13 @@ namespace SpeedPuzzling\Web\FormData;
 
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\Regex;
 
 final class AddPuzzleSolvingTimeFormData
 {
     public null|string $puzzleId = null;
 
-    #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'Prosím zadejte čas ve formátu HH:MM:SS')]
+    #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'Prosím zadejte čas ve formátu HH:MM:SS nebo MM:SS')]
     public null|string $time = null;
 
     public null|string $comment = null;

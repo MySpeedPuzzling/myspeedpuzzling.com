@@ -19,12 +19,16 @@ readonly final class SolvingTime
 
         /** @var array<int, numeric-string> $parts */
         $parts = explode(':', $time);
-        assert(count($parts) === 3);
+        assert(count($parts) === 3 || count($parts) === 2);
 
-        $seconds = 0;
-        $seconds += 60 * 60 * (int) $parts[0];
-        $seconds += 60 * (int) $parts[1];
-        $seconds += (int) $parts[2];
+        if (count($parts) === 3) {
+            $seconds = (int) $parts[2];
+            $seconds += 60 * (int) $parts[1];
+            $seconds += 60 * 60 * (int) $parts[0];
+        } else {
+            $seconds = (int) $parts[1];
+            $seconds += 60 * (int) $parts[0];
+        }
 
         return new self($seconds);
     }

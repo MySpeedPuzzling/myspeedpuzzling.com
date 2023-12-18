@@ -4,15 +4,24 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Value;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use PHPUnit\Framework\TestCase;
 
 class SolvingTimeTest extends TestCase
 {
-    public function testFromInput(): void
+    #[DataProvider('provideFromInputData')]
+    public function testFromInput(string $input, int $expected): void
     {
-        $time = SolvingTime::fromUserInput('1:01:06');
+        $time = SolvingTime::fromUserInput($input);
 
-        self::assertSame(3666, $time->seconds);
+        self::assertSame($expected, $time->seconds);
+    }
+
+    public static function provideFromInputData(): \Generator
+    {
+        yield ['1:01:06', 3666];
+
+        yield ['01:06', 66];
     }
 }

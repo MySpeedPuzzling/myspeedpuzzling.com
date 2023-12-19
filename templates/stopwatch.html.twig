@@ -12,6 +12,7 @@
                     class="stopwatch countdown justify-content-center"
                     {% if active_stopwatch is not null %}
                         data-total-seconds="{{ active_stopwatch.totalSeconds }}"
+                        data-stopwatch-now="{{ 'now'|date('Y-m-d H:i:s') }}"
                         data-stopwatch-start="{{ active_stopwatch.lastStart|date('Y-m-d H:i:s') }}"
                         data-stopwatch-status="{{ active_stopwatch.status.value }}"
                     {% endif %}
@@ -42,24 +43,6 @@
                         <a href="{{ path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-sm btn-outline-success">Uložit čas</a>
                     </p>
                 {% endif %}
-
-                {#
-                <div class="mt-4">
-                    <button type="button" class="btn btn-sm btn-outline-danger">Vynulovat</button>
-
-                    <button type="button" class="btn btn-sm btn-outline-success">Doskládáno?</button>
-                </div>
-                #}
-
-                {#
-                <div class="card border-0 shadow mt-4" style="max-width: 400px;margin-left: auto;margin-right: auto;">
-                    <div class="card-body">
-                        <h5 class="card-title">Co skládáš?</h5>
-                        <p class="card-text fs-sm text-muted">Vyber z puzzlí, které už známe nebo si zaznamenej výrobce, počet dílků, název a klidně i fotku!</p>
-                        <a href="#" class="btn btn-sm btn-outline-accent">Jasně, že skládám puzzle</a>
-                    </div>
-                </div>
-                #}
 
             </div>
 
@@ -111,8 +94,16 @@
         <script>
             let status = document.querySelector('[data-stopwatch-status]').getAttribute('data-stopwatch-status');
 
-            console.log(window.navigator.wakeLock);
+            function calculateOffset() {
+                var serverStartTime = new Date(document.querySelector('[data-stopwatch-now]').getAttribute('data-stopwatch-now'));
+                var clientTime = new Date();
+                return clientTime - serverStartTime; // Time difference in milliseconds
+            }
 
+            var offset = calculateOffset();
+            console.log('Server vs client time offset: ' + offset);
+
+            /*
             document.addEventListener('DOMContentLoaded', () => {
                 if (status === 'running') {
                     let wakeLock = null;
@@ -131,12 +122,14 @@
                     });
                 }
             });
+            */
 
             function pad(number) {
                 return number < 10 ? '0' + number : number;
             }
 
             function calculateTimeElapsed() {
+
                 // Get the start time and total elapsed seconds from the data attributes
                 const startTime = new Date(document.querySelector('[data-stopwatch-start]').getAttribute('data-stopwatch-start'));
                 const totalElapsedSeconds = parseInt(document.querySelector('[data-total-seconds]').getAttribute('data-total-seconds'), 10);
@@ -146,8 +139,14 @@
                     return;
                 }
 
+                // To help solve
+                if (offset > 2000) {
+                    // 300ms because of page rendering can take some time
+                    var now = new Date(new Date().getTime() - offset + 300);
+                } else {
+                    var now = new Date();
+                }
                 // Calculate the difference in seconds from now to the start time
-                const now = new Date();
                 const differenceInSeconds = Math.floor((now - startTime) / 1000) + totalElapsedSeconds;
 
                 // Calculate hours, minutes, and seconds

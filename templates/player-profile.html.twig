@@ -61,10 +61,26 @@
                                 {% for puzzle in grouped_puzzle %}
                                     {% if loop.first %}
                                         {{ puzzle.time|puzzlingTime }}
-                                    {% else %}
-                                        <br><small>{{ puzzle.time|puzzlingTime }}</small>
+
                                     {% endif %}
                                 {% endfor %}
+
+                                {% if grouped_puzzle|length > 1 %}
+                                    <a href="#" class="show-more-times">
+                                        <span class="badge bg-dark badge-shadow rounded-pill">Zobrazit další časy ({{ grouped_puzzle|length -1 }}x)</span>
+                                    </a>
+
+                                    <div class="more-times hidden">
+                                        {% for puzzle in grouped_puzzle %}
+                                            {% if not loop.first %}
+                                                {{ puzzle.time|puzzlingTime }}
+                                                {% if not loop.last %}
+                                                    <br>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -143,4 +159,34 @@
             </div>
         </div>
     </div>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        // Select all elements with the class 'show-more-times'
+        const showMoreElements = document.querySelectorAll('.show-more-times');
+
+        // Add click event listeners to these elements
+        showMoreElements.forEach(function(element) {
+            element.addEventListener('click', function(event) {
+                // Prevent default link behavior
+                event.preventDefault();
+
+                // Add the 'hidden' class to the clicked element
+                this.classList.add('hidden');
+
+                // Logic to find the corresponding 'more-times' element
+                // This needs to be adjusted based on the actual DOM structure
+                let moreTimesElement = this.nextElementSibling;
+                while (moreTimesElement && !moreTimesElement.classList.contains('more-times')) {
+                    moreTimesElement = moreTimesElement.nextElementSibling;
+                }
+
+                // If the 'more-times' element is found, remove the 'hidden' class
+                if (moreTimesElement) {
+                    moreTimesElement.classList.remove('hidden');
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

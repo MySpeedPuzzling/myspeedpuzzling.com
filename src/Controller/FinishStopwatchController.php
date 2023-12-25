@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -32,6 +33,7 @@ final class FinishStopwatchController extends AbstractController
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private PuzzlingTimeFormatter $puzzlingTimeFormatter,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -124,9 +126,11 @@ final class FinishStopwatchController extends AbstractController
             $addTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
         }
 
+        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
+
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
         $puzzlesPerManufacturer = [];
-        foreach($this->getPuzzlesOverview->all() as $puzzle) {
+        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile?->playerId) as $puzzle) {
             $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
         }
 

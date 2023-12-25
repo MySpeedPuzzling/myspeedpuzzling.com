@@ -17,17 +17,19 @@ readonly final class GetManufacturers
     /**
      * @return array<ManufacturerOverview>
      */
-    public function onlyApproved(): array
+    public function onlyApprovedOrAddedByPlayer(string $playerId): array
     {
         $query = <<<SQL
 SELECT id AS manufacturer_id, name AS manufacturer_name, approved
 FROM manufacturer
-WHERE approved = true
+WHERE (approved = true OR added_by_user_id = :playerId)
 ORDER BY name ASC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function(array $row): ManufacturerOverview {

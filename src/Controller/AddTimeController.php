@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,6 +27,7 @@ final class AddTimeController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -88,9 +90,11 @@ final class AddTimeController extends AbstractController
             $addTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
         }
 
+        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
+
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
         $puzzlesPerManufacturer = [];
-        foreach($this->getPuzzlesOverview->all() as $puzzle) {
+        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile?->playerId) as $puzzle) {
             $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
         }
 

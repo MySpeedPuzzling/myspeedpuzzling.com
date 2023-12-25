@@ -7,6 +7,7 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,8 +20,8 @@ final class PuzzlesController extends AbstractController
     public function __construct(
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
-        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetRanking $getRanking,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -31,15 +32,15 @@ final class PuzzlesController extends AbstractController
             $user?->getUserIdentifier()
         );
 
-        $userRanking = [];
+        $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($user !== null) {
-            $playerProfile = $this->getPlayerProfile->byUserId($user->getUserIdentifier());
+        $userRanking = [];
+        if ($playerProfile !== null) {
             $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
         }
 
         return $this->render('puzzles.html.twig', [
-            'puzzles' => $this->getPuzzlesOverview->all(),
+            'puzzles' => $this->getPuzzlesOverview->allApprovedOrAddedByPlayer($playerProfile?->playerId),
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
         ]);

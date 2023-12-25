@@ -17,7 +17,7 @@ readonly final class GetPuzzlesOverview
     /**
      * @return array<PuzzleOverview>
      */
-    public function all(): array
+    public function allApprovedOrAddedByPlayer(null|string $addedByPlayerId): array
     {
         $query = <<<SQL
 SELECT
@@ -34,13 +34,17 @@ SELECT
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-WHERE puzzle.approved = true
+WHERE
+    puzzle.approved = true
+    OR puzzle.added_by_user_id = :playerId
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, [
+                'playerId' => $addedByPlayerId,
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function(array $row): PuzzleOverview {

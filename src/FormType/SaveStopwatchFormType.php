@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\SaveStopwatchFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -25,6 +26,7 @@ final class SaveStopwatchFormType extends AbstractType
     public function __construct(
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetManufacturers $getManufacturers,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -34,7 +36,12 @@ final class SaveStopwatchFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $puzzleChoices = [];
-        foreach ($this->getPuzzlesOverview->all() as $puzzle) {
+
+        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
+        // Must not be null - solving time is allowed only to logged-in users
+        assert($userProfile !== null);
+
+        foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile->playerId) as $puzzle) {
             $puzzleChoices[$puzzle->puzzleName] = $puzzle->puzzleId;
         }
 
@@ -73,7 +80,7 @@ final class SaveStopwatchFormType extends AbstractType
         ]);
 
         $manufacturerChoices = ['-' => ''];
-        foreach ($this->getManufacturers->onlyApproved() as $manufacturer) {
+        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId) as $manufacturer) {
             $manufacturerChoices[$manufacturer->manufacturerName] = $manufacturer->manufacturerId;
         }
 

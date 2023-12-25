@@ -28,14 +28,16 @@ SELECT
     MIN(puzzle_solving_time.seconds_to_solve) AS time,
     player.name AS player_name,
     player.id AS player_id,
-    COUNT(puzzle_solving_time.puzzle_id) AS solved_times
+    COUNT(puzzle_solving_time.puzzle_id) AS solved_times,
+    manufacturer.name AS manufacturer_name
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE puzzle.pieces_count = :piecesCount
     AND puzzle_solving_time.team IS NULL
     AND player.name IS NOT NULL
-GROUP BY player.id, puzzle.id
+GROUP BY player.id, puzzle.id, manufacturer.id
 ORDER BY time ASC
 LIMIT :howManyPlayers
 SQL;
@@ -57,6 +59,7 @@ SQL;
              *     player_name: string,
              *     player_id: string,
              *     solved_times: int,
+             *     manufacturer_name: string,
              * } $row
              */
 

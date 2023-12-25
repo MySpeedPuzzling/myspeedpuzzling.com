@@ -116,14 +116,16 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
-                                        <span class="puzzle-title">
+                                    <span class="puzzle-title">
+                                        {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
                                             {{ grouped_puzzle[0].puzzleAlternativeName }}<br>
                                             <small>({{ grouped_puzzle[0].puzzleName }})</small>
-                                        </span>
-                                    {% else %}
-                                        {{ grouped_puzzle[0].puzzleName }}
-                                    {% endif %}
+                                        {% else %}
+                                            {{ grouped_puzzle[0].puzzleName }}
+                                        {% endif %}
+                                        <br>
+                                        <small>{{ grouped_puzzle[0].manufacturerName }}</small>
+                                    </span>
                                     <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
                                 </a>
                             </td>
@@ -197,14 +199,16 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
-                                    {% if group_solved_puzzle.puzzleAlternativeName is not null %}
-                                        <span class="puzzle-title">
+                                    <span class="puzzle-title">
+                                        {% if group_solved_puzzle.puzzleAlternativeName is not null %}
                                             {{ group_solved_puzzle.puzzleAlternativeName }}<br>
                                             <small>({{ group_solved_puzzle.puzzleName }})</small>
-                                        </span>
-                                    {% else %}
-                                        {{ group_solved_puzzle.puzzleName }}
-                                    {% endif %}
+                                        {% else %}
+                                            {{ group_solved_puzzle.puzzleName }}
+                                        {% endif %}
+                                        <br>
+                                        <small>{{ group_solved_puzzle.manufacturerName }}</small>
+                                    </span>
                                     <br>{{ group_solved_puzzle.piecesCount }}&nbsp;dílků
                                 </a>
                             </td>

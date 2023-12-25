@@ -47,14 +47,16 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                    {% if fastest_player.puzzleAlternativeName is not null %}
-                                        <span class="puzzle-title">
+                                    <span class="puzzle-title">
+                                        {% if fastest_player.puzzleAlternativeName is not null %}
                                             {{ fastest_player.puzzleAlternativeName }}<br>
                                             <small>({{ fastest_player.puzzleName }})</small>
-                                        </span>
-                                    {% else %}
-                                        {{ fastest_player.puzzleName }}
-                                    {% endif %}
+                                        {% else %}
+                                            {{ fastest_player.puzzleName }}
+                                        {% endif %}
+                                        <br>
+                                        <small>{{ fastest_player.manufacturerName }}</small>
+                                    </span>
                                 </a>
                             </td>
                         </tr>
@@ -90,15 +92,18 @@
                             </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                    {% if most_solved_puzzle.puzzleAlternativeName is not null %}
-                                        <span class="puzzle-title">
+                                    <span class="puzzle-title">
+                                        {% if most_solved_puzzle.puzzleAlternativeName is not null %}
                                             {{ most_solved_puzzle.puzzleAlternativeName }}<br>
                                             <small>({{ most_solved_puzzle.puzzleName }})</small>
-                                        </span>
-                                    {% else %}
-                                        {{ most_solved_puzzle.puzzleName }}
-                                    {% endif %}
-                                    <br>{{ most_solved_puzzle.piecesCount }}&nbsp;dílků
+                                        {% else %}
+                                            {{ most_solved_puzzle.puzzleName }}
+                                        {% endif %}
+                                        <br>
+                                        <small>{{ most_solved_puzzle.manufacturerName }}</small>
+                                    </span>
+                                    <br>
+                                    <small>{{ most_solved_puzzle.piecesCount }}&nbsp;dílků</small>
                                 </a>
                             </td>
                             <td class="text-end">

@@ -15,6 +15,7 @@ readonly final class MostSolvedPuzzle
         public int $averageTime,
         public int $fastestTime,
         public null|string $puzzleImage,
+        public string $manufacturerName,
     ) {
     }
 
@@ -28,6 +29,7 @@ readonly final class MostSolvedPuzzle
      *     pieces_count: int,
      *     average_time: string,
      *     fastest_time: int,
+     *     manufacturer_name: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -41,6 +43,7 @@ readonly final class MostSolvedPuzzle
             averageTime: (int) $row['average_time'],
             fastestTime: $row['fastest_time'],
             puzzleImage: $row['puzzle_image'],
+            manufacturerName: $row['manufacturer_name'],
         );
     }
 }

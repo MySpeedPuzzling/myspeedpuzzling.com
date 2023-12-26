@@ -7,6 +7,7 @@ ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 RUN rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
 
 COPY .docker/on-startup.sh /docker-entrypoint.d/
+COPY .docker/unit/config.json /docker-entrypoint.d/
 
 COPY .docker/php.ini /usr/local/etc/php/conf.d/99-php-overrides.ini
 

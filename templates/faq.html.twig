@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Novinky na platformě{% endblock %}
+
+{% block content %}
+    <h1>Časté dotazy</h1>
+
+    <p>Zpětná vazba je pro nás velmi důležitá a moc si jí vážíme! Pokud máte cokoliv, co byste nám rádi sdělili, napište nám prosím na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (případně na <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> ohledně technickým záležitostí) nebo na <a href="https://www.facebook.com/profile.php?id=61553911618554" target="_blank">Facebooku</a>.</p>
+
+    <p>Veškeré naše zdrojové kódy jsou open-source a veřejné na <a href="https://github.com/SpeedPuzzling/speedpuzzling.cz">GitHubu speedpuzzling/speedpuzzling.cz</a>. Zastáváme filizofii &quot;sharing is caring&quot; a vše ohledně speedpuzzling.cz se snažíme otevřeně sdílet.</p>
+
+    <!--
+    <h4 class="mt-5">Co je to speed puzzling?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Co dělá tlačítko x?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Co dělá tlačítko y?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Dostaly se ke mě puzzle s QR kódem speedpuzzling, co s tím?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Můžu přidat čas i k puzzlím, které na platformě nejsou?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Jak přidat nové puzzle?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Proč vznikla platforma speedpuzzling.cz?</h4>
+    <p>odpověď</p>
+
+    <h4 class="mt-5">Jak se dozvíte, že nepodvádím?</h4>
+    <p>odpověď</p>
+    -->
+
+    <h4 class="mt-5">Jak upravím/smažu zadaný čas?</h4>
+    <p>V sekci <a href="{{ path('my_profile') }}">Můj profil</a> u každého zadaného času najdete odkaz na editaci (odkaz má podobu ikonky tužky <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
+    <p>Na stránce s editací je úplně dole <button class="btn btn-sm btn-outline-danger">kouzelné tlačítko</button> jenž záznam jednou a provždy smaže z celého internetu.</p>
+
+    <h4 class="mt-5">Jak si půjčím puzzle?</h4>
+    <p>Momentálně nabízím svou vlastní sbírku puzzlí - pouze za poštovné, případně za symbolický poplatek, výměnou za to, že přidáte čas skládání a tím podpoříte růst speed puzzling komunity!</p>
+    <p>Puzzle, která mám aktuálně k půjčení jsou označeny vždy v přehledu puzzlí jsou vždy označeny jako <span class="badge bg-success badge-shadow rounded-pill">k zapůjčení</span>. Pokud puzzle nemám, nebo je v tuto chvíli má někdo vypůjčené, jsou označeny jako <span class="badge bg-dark badge-shadow rounded-pill">nejsou k dispozici</span>.</p>
+    <p>Pokud máte zájem si jakékoliv puzzle půjčit (doporučuji více najednou :-)), prosím napište mi a domluvíme se.</p>
+    <p>Do budoucna máme v plánu přímo na platformě umožnit každému uživateli zveřejnit vlastní sbírku puzzlí a nabídnout příležitost propojit puzzlery mezi sebou napřímo.</p>
+
+    <h4 class="mt-5">Můžu přiložit ruku k dílu?</h4>
+    <p>Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>
+{% endblock %}

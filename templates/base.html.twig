@@ -102,6 +102,7 @@
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">Přehled puzzlí</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">Žebříček</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('changelog') %}active{% endif %}" href="{{ path('changelog') }}">Co je nového</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">Časté dotazy</a></li>
                     </ul>
                 </div>
             </div>
@@ -124,7 +125,7 @@
             </section>
         {% endblock %}
 
-        <footer class="bg-secondary pt-4 mt-5">
+        <footer class="bg-secondary py-4 mt-5">
             <div class="container">
                 <div class="row">
                     <div class="col-sm-6">
@@ -138,6 +139,9 @@
                                 </li>
                                 <li class="widget-list-item me-4">
                                     <a href="{{ path('changelog') }}" class="widget-list-link">Co je nového</a>
+                                </li>
+                                <li class="widget-list-item me-4">
+                                    <a href="{{ path('faq') }}" class="widget-list-link">Časté dotazy</a>
                                 </li>
                                 <li class="widget-list-item me-4">
                                     <a href="{{ path('my_profile') }}" class="widget-list-link">Můj profil</a>

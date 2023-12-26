@@ -117,9 +117,11 @@
                             </td>
                             <td class="text-center">
                                 {% if grouped_puzzle[0].finishedPuzzlePhoto is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
-                                    </a>
+                                    <div class="gallery">
+                                        <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(grouped_puzzle[0].finishedPuzzlePhoto) }}">
+                                            <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    </div>
                                 {% endif %}
                             </td>
                             <td>
@@ -208,9 +210,11 @@
                             </td>
                             <td class="text-center">
                                 {% if group_solved_puzzle.finishedPuzzlePhoto is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ group_solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
-                                    </a>
+                                    <div class="gallery">
+                                        <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(group_solved_puzzle.finishedPuzzlePhoto) }}">
+                                            <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ group_solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    </div>
                                 {% endif %}
                             </td>
                             <td>

@@ -99,6 +99,7 @@
                     <thead>
                     <tr>
                         <th></th>
+                        <th></th>
                         <th>Puzzle</th>
                         <th class="text-center">Rank</th>
                         <th class="text-end">Čas</th>
@@ -111,6 +112,13 @@
                                 {% if grouped_puzzle[0].puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                         <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if grouped_puzzle[0].finishedPuzzlePhoto is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>
@@ -181,6 +189,7 @@
                     <thead>
                     <tr>
                         <th></th>
+                        <th></th>
                         <th>Puzzle</th>
                         <th></th>
                         <th class="text-end">Čas</th>
@@ -194,6 +203,13 @@
                                 {% if group_solved_puzzle.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
                                         <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ group_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if group_solved_puzzle.finishedPuzzlePhoto is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ group_solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>

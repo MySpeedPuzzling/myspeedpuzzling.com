@@ -22,6 +22,7 @@ readonly final class GroupSolvedPuzzle
         public null|string $comment,
         /** @var array<Puzzler> */
         public array $players,
+        public null|string $finishedPuzzlePhoto,
     ) {
     }
 
@@ -38,7 +39,8 @@ readonly final class GroupSolvedPuzzle
      *     time: int,
      *     pieces_count: int,
      *     comment: null|string,
-     *     players: string
+     *     players: string,
+     *     finished_puzzle_photo: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -58,6 +60,7 @@ readonly final class GroupSolvedPuzzle
             puzzleImage: $row['puzzle_image'],
             comment: $row['comment'],
             players: $players,
+            finishedPuzzlePhoto: $row['finished_puzzle_photo'],
         );
     }
 }

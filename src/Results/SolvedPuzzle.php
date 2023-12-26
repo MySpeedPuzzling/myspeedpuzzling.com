@@ -22,6 +22,7 @@ readonly final class SolvedPuzzle
         public null|string $puzzleImage,
         public null|string $comment,
         public DateTimeImmutable $trackedAt,
+        public null|string $finishedPuzzlePhoto,
     ) {
     }
 
@@ -39,6 +40,7 @@ readonly final class SolvedPuzzle
      *     pieces_count: int,
      *     comment: null|string,
      *     tracked_at: string,
+     *     finished_puzzle_photo: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -56,6 +58,7 @@ readonly final class SolvedPuzzle
             puzzleImage: $row['puzzle_image'],
             comment: $row['comment'],
             trackedAt: new DateTimeImmutable($row['tracked_at']),
+            finishedPuzzlePhoto: $row['finished_puzzle_photo'],
         );
     }
 }

@@ -112,7 +112,8 @@ SELECT
     player.name AS player_name,
     puzzle_solving_time.comment,
     puzzle_solving_time.tracked_at,
-    manufacturer.name AS manufacturer_name
+    manufacturer.name AS manufacturer_name,
+    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -144,6 +145,7 @@ SQL;
              *     pieces_count: int,
              *     comment: null|string,
              *     tracked_at: string,
+             *     finished_puzzle_photo: null|string,
              * } $row
              */
 
@@ -170,6 +172,7 @@ SELECT
     pst.seconds_to_solve AS time,
     pst.player_id AS added_by_player_id,
     pieces_count,
+    finished_puzzle_photo,
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
@@ -217,6 +220,7 @@ SQL;
              *     pieces_count: int,
              *     comment: null|string,
              *     players: string,
+             *     finished_puzzle_photo: null|string,
              * } $row
              */
 

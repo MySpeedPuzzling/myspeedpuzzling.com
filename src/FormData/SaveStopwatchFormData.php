@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
-use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use DateTimeImmutable;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\Validator\Constraints\NotNull;
-use Symfony\Component\Validator\Constraints\Regex;
 
 final class SaveStopwatchFormData
 {
@@ -29,4 +27,15 @@ final class SaveStopwatchFormData
     public null|int $puzzlePiecesCount = null;
 
     public null|UploadedFile $puzzlePhoto = null;
+
+    public null|string $puzzleEan = null;
+
+    public null|string $puzzleIdentificationNumber = null;
+
+    public null|DateTimeImmutable $finishedAt;
+
+    public function __construct()
+    {
+        $this->finishedAt = new DateTimeImmutable();
+    }
 }

@@ -74,6 +74,8 @@ readonly final class AddPuzzleHandler
             manufacturer: $manufacturer,
             addedByUser: $player,
             addedAt: $now,
+            identificationNumber: $message->puzzleIdentificationNumber,
+            ean: $message->puzzleEan,
         );
 
         $this->entityManager->persist($puzzle);

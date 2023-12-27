@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -123,6 +124,26 @@ final class AddPuzzleSolvingTimeFormType extends AbstractType
                     maxSize: '10m',
                 ),
             ],
+        ]);
+
+        $builder->add('finishedAt', DateType::class, [
+            'label' => 'Datum doskládání',
+            'required' => false,
+            'widget' => 'single_text',
+            'format' => 'dd.MM.yyyy',
+            'html5' => false,
+            'input' => 'datetime_immutable',
+            'input_format' => 'd.m.Y',
+        ]);
+
+        $builder->add('puzzleEan', TextType::class, [
+            'label' => 'EAN kód',
+            'required' => false,
+        ]);
+
+        $builder->add('puzzleIdentificationNumber', TextType::class, [
+            'label' => 'Kód od výrobce',
+            'required' => false,
         ]);
     }
 

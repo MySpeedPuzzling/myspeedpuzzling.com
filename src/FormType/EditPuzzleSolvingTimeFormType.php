@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -33,6 +34,16 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
         $builder->add('comment', TextareaType::class, [
             'label' => 'Doplňující info',
             'required' => false,
+        ]);
+
+        $builder->add('finishedAt', DateType::class, [
+            'label' => 'Datum doskládání',
+            'required' => false,
+            'widget' => 'single_text',
+            'format' => 'dd.MM.yyyy',
+            'html5' => false,
+            'input' => 'datetime_immutable',
+            'input_format' => 'd.m.Y',
         ]);
     }
 

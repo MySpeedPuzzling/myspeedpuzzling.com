@@ -18,6 +18,8 @@ readonly final class AddPuzzle
         public null|string $manufacturerId,
         public null|string $manufacturerName,
         public null|UploadedFile $puzzlePhoto,
+        public null|string $puzzleEan,
+        public null|string $puzzleIdentificationNumber,
     ) {
     }
 
@@ -38,6 +40,8 @@ readonly final class AddPuzzle
             manufacturerId: $data->puzzleManufacturerId,
             manufacturerName: $data->puzzleManufacturerName,
             puzzlePhoto: $data->puzzlePhoto,
+            puzzleEan: $data->puzzleEan,
+            puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
         );
     }
 }

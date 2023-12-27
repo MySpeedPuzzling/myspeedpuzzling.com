@@ -39,6 +39,7 @@ SELECT
     player.name AS player_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
+    finished_at,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -74,6 +75,7 @@ SQL;
          *     pieces_count: int,
          *     comment: null|string,
          *     players: null|string,
+         *     finished_at: string,
          * } $row
          */
         $row = $this->database

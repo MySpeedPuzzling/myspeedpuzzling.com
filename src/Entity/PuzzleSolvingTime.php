@@ -46,11 +46,14 @@ class PuzzleSolvingTime
         #[Column(type: PuzzlersGroupDoctrineType::NAME, nullable: true)]
         public null|PuzzlersGroup $team,
 
-        #[Column(nullable: true)]
-        public null|string $comment = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE)]
+        public DateTimeImmutable $finishedAt,
 
         #[Column(nullable: true)]
-        public null|string $finishedPuzzlePhoto = null,
+        public null|string $comment,
+
+        #[Column(nullable: true)]
+        public null|string $finishedPuzzlePhoto,
     ) {
     }
 
@@ -58,10 +61,12 @@ class PuzzleSolvingTime
         int $seconds,
         null|string $comment,
         null|PuzzlersGroup $puzzlersGroup,
+        DateTimeImmutable $finishedAt,
     ): void
     {
         $this->secondsToSolve = $seconds;
         $this->comment = $comment;
         $this->team = $puzzlersGroup;
+        $this->finishedAt = $finishedAt;
     }
 }

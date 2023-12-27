@@ -26,7 +26,26 @@
 
             <div class="col-sm-5">
                 {{ form_start(edit_puzzle_solving_time_form) }}
-                    {{ form_row(edit_puzzle_solving_time_form.time) }}
+
+                <div class="mb-3 time-input-wrap">
+                    {{ form_label(edit_puzzle_solving_time_form.time) }}
+                    {{ form_errors(edit_puzzle_solving_time_form.time) }}
+                    <div class="input-group">
+                        {{ form_widget(edit_puzzle_solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
+                        <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                    </div>
+                    {{ form_help(edit_puzzle_solving_time_form.time) }}
+                </div>
+
+                <div class="mb-3 datepicker-input-wrap">
+                    {{ form_label(edit_puzzle_solving_time_form.finishedAt) }}
+                    {{ form_errors(edit_puzzle_solving_time_form.finishedAt) }}
+                    <div class="input-group">
+                        {{ form_widget(edit_puzzle_solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "cs", "maxDate": "today"}'}}) }}
+                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                    </div>
+                    {{ form_help(edit_puzzle_solving_time_form.finishedAt) }}
+                </div>
 
                     <div id="puzzlers-group" class="mt-3">
                         {% for group_puzzler in solved_puzzle.players %}

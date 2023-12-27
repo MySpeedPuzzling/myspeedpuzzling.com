@@ -122,6 +122,9 @@
                         </div>
                         {{ form_row(add_puzzle_solving_time_form.puzzlePiecesCount) }}
 
+                        {{ form_row(add_puzzle_solving_time_form.puzzleEan) }}
+                        {{ form_row(add_puzzle_solving_time_form.puzzleIdentificationNumber) }}
+
                         {{ form_label(add_puzzle_solving_time_form.puzzlePhoto) }}
                         <div class="file-drop-area">
                             <div class="file-drop-icon ci-cloud-upload"></div>
@@ -142,8 +145,26 @@
                 {% endif %}
 
                 {% if active_stopwatch is null %}
-                    {{ form_row(add_puzzle_solving_time_form.time) }}
+                    <div class="mb-3 time-input-wrap">
+                        {{ form_label(add_puzzle_solving_time_form.time) }}
+                        {{ form_errors(add_puzzle_solving_time_form.time) }}
+                        <div class="input-group">
+                            {{ form_widget(add_puzzle_solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
+                            <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                        </div>
+                        {{ form_help(add_puzzle_solving_time_form.time) }}
+                    </div>
                 {% endif %}
+
+                <div class="mb-3 datepicker-input-wrap">
+                    {{ form_label(add_puzzle_solving_time_form.finishedAt) }}
+                    {{ form_errors(add_puzzle_solving_time_form.finishedAt) }}
+                    <div class="input-group">
+                        {{ form_widget(add_puzzle_solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "cs", "maxDate": "today"}'}}) }}
+                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                    </div>
+                    {{ form_help(add_puzzle_solving_time_form.finishedAt) }}
+                </div>
 
                 <div id="puzzlers-group"></div>
 

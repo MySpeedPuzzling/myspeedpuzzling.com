@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 
 readonly final class EditPuzzleSolvingTime
@@ -15,6 +16,7 @@ readonly final class EditPuzzleSolvingTime
         public null|string $comment,
         /** @var array<string> */
         public array $groupPlayers,
+        public null|DateTimeImmutable $finishedAt,
     ) {
     }
 
@@ -31,6 +33,7 @@ readonly final class EditPuzzleSolvingTime
             $formData->time,
             $formData->comment,
             groupPlayers: $groupPlayers,
+            finishedAt: $formData->finishedAt,
         );
     }
 }

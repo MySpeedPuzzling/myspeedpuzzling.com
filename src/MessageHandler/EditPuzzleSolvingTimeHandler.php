@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
+use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -26,6 +27,7 @@ readonly final class EditPuzzleSolvingTimeHandler
     /**
      * @throws PuzzleSolvingTimeNotFound
      * @throws CanNotModifyOtherPlayersTime
+     * @throws CouldNotGenerateUniqueCode
      */
     public function __invoke(EditPuzzleSolvingTime $message): void
     {
@@ -37,6 +39,8 @@ readonly final class EditPuzzleSolvingTimeHandler
             throw new CanNotModifyOtherPlayersTime();
         }
 
+        $finishedAt = $message->finishedAt ?? $solvingTime->finishedAt;
+
         $seconds = SolvingTime::fromUserInput($message->time)->seconds;
         assert($seconds !== null);
 
@@ -44,6 +48,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $seconds,
             $message->comment,
             $group,
+            $finishedAt,
         );
     }
 }

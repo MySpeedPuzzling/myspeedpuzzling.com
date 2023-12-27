@@ -9,13 +9,10 @@ use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
-use SpeedPuzzling\Web\Value\Puzzler;
-use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -42,6 +39,8 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         $solvingTimeId = Uuid::uuid7();
         $finishedPuzzlePhotoPath = null;
+        $trackedAt = new \DateTimeImmutable();
+        $finishedAt = $message->finishedAt ?? $trackedAt;
 
         if ($message->solvedPuzzlesPhoto !== null) {
             $extension = $message->solvedPuzzlesPhoto->guessExtension();
@@ -61,9 +60,10 @@ readonly final class AddPuzzleSolvingTimeHandler
             SolvingTime::fromUserInput($message->time)->seconds,
             $player,
             $puzzle,
-            new \DateTimeImmutable(),
+            $trackedAt,
             false,
             $group,
+            $finishedAt,
             $message->comment,
             $finishedPuzzlePhotoPath,
         );

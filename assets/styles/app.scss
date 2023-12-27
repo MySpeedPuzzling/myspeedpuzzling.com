@@ -162,3 +162,8 @@ body {
     box-shadow: rgba(0, 0, 0, .21) 0 0 25px 0;
     //border: 1px solid #ddd;
 }
+
+.datepicker-input-wrap,
+.time-input-wrap {
+    max-width: 150px;
+}

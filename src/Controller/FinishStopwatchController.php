@@ -57,7 +57,7 @@ final class FinishStopwatchController extends AbstractController
             ]);
         }
 
-        $addTimeForm = $this->createForm(SaveStopwatchFormType::class);
+        $addTimeForm = $this->createForm(SaveStopwatchFormType::class, new SaveStopwatchFormData());
         $addTimeForm->handleRequest($request);
 
         if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
@@ -91,6 +91,8 @@ final class FinishStopwatchController extends AbstractController
                         manufacturerId: $data->puzzleManufacturerId,
                         manufacturerName: $data->puzzleManufacturerName,
                         puzzlePhoto: $data->puzzlePhoto,
+                        puzzleEan: $data->puzzleEan,
+                        puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
                     ),
                 );
             }
@@ -107,6 +109,7 @@ final class FinishStopwatchController extends AbstractController
                         comment: $data->comment,
                         solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
                         groupPlayers: $groupPlayers,
+                        finishedAt: $data->finishedAt,
                     ),
                 );
 

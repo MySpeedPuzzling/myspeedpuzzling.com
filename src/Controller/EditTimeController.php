@@ -41,6 +41,7 @@ final class EditTimeController extends AbstractController
         $defaultData = new EditPuzzleSolvingTimeFormData();
         $defaultData->time = $this->timeFormatter->formatTime($solvedPuzzle->time);
         $defaultData->comment = $solvedPuzzle->comment;
+        $defaultData->finishedAt = $solvedPuzzle->finishedAt;
 
         $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $defaultData);
         $editTimeForm->handleRequest($request);

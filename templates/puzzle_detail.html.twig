@@ -115,7 +115,7 @@
                     {% for puzzlers_group in group_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
-                            <td>
+                            <td class="player-name">
                                 {% for puzzle_solver in puzzlers_group.players %}
                                     {% if not loop.first %}
                                         <br>

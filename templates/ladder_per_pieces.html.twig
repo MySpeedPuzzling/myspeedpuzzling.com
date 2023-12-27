@@ -24,10 +24,6 @@
                             <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
                                 {{ solving_time.playerName }}
                             </a>
-
-                            {% if solving_time.solvedTimes > 1 %}
-                                <span class="badge bg-dark rounded-pill">skládáno {{ solving_time.solvedTimes }}x</span>
-                            {% endif %}
                         </td>
 
                         <td class="text-end">

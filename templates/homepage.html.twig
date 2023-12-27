@@ -74,7 +74,7 @@
                         <tbody>
                         {% for solved_puzzle in last_solved_puzzles %}
                             <tr>
-                                <td>
+                                <td class="player-name">
                                     <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
                                         {{ solved_puzzle.playerName }}
                                     </a>

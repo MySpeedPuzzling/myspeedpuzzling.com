@@ -34,7 +34,10 @@
 
             <p class="card-text fs-sm text-muted">
                 <b class="h5">{{ puzzle.manufacturerName|upper }}</b><br>
-                {{ puzzle.piecesCount }} dílků<br><br>
+                {{ puzzle.piecesCount }} dílků
+                {{ puzzle.ean }}
+                <br>
+                <br>
 
                 {% if puzzle.solvedTimes > 0 %}
                     Nejrychlejší čas: {{ puzzle.fastestTime|puzzlingTime }}<br>

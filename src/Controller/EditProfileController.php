@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use SpeedPuzzling\Web\FormType\EditProfileFormType;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,14 +20,19 @@ final class EditProfileController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
-        readonly private GetPlayerProfile $getPlayerProfile,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
     #[Route(path: '/upravit-profil', name: 'edit_profile', methods: ['GET', 'POST'])]
     public function __invoke(Request $request, #[CurrentUser] User $user): Response
     {
-        $player = $this->getPlayerProfile->byUserId($user->getUserIdentifier());
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            return $this->redirectToRoute('my_profile');
+        }
+
         $defaultData = EditProfileFormData::fromPlayerProfile($player);
 
         $editProfileForm = $this->createForm(EditProfileFormType::class, $defaultData);

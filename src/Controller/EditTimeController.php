@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,17 +23,21 @@ final class EditTimeController extends AbstractController
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
-        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private PuzzlingTimeFormatter $timeFormatter,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
     #[Route(path: '/upravit-cas/{timeId}', name: 'edit_time', methods: ['GET', 'POST'])]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $timeId): Response
     {
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            return $this->redirectToRoute('my_profile');
+        }
+
         $solvedPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
-        $userId = $user->getUserIdentifier();
-        $player = $this->getPlayerProfile->byUserId($userId);
 
         if ($solvedPuzzle->addedByPlayerId !== $player->playerId) {
             throw $this->createAccessDeniedException();
@@ -54,7 +59,7 @@ final class EditTimeController extends AbstractController
             $groupPlayers = $request->request->all('group_players');
 
             $this->messageBus->dispatch(
-                EditPuzzleSolvingTime::fromFormData($userId, $timeId, $groupPlayers, $data),
+                EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
             );
 
             $this->addFlash('success','Upravené údaje jsme uložili.');

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -23,8 +24,8 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetPuzzleSolvers  $getPuzzleSolvers,
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
-        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetRanking $getRanking,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -45,10 +46,11 @@ final class PuzzleDetailController extends AbstractController
             $user?->getUserIdentifier()
         );
 
+
+        $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $userRanking = [];
 
-        if ($user !== null) {
-            $playerProfile = $this->getPlayerProfile->byUserId($user->getUserIdentifier());
+        if ($playerProfile !== null) {
             $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
         }
 

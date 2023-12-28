@@ -33,10 +33,8 @@
             </p>
 
             <p class="card-text fs-sm text-muted">
-                <b class="h5">{{ puzzle.manufacturerName|upper }}</b><br>
+                <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
                 {{ puzzle.piecesCount }} dílků
-                {{ puzzle.ean }}
-                <br>
                 <br>
 
                 {% if puzzle.solvedTimes > 0 %}

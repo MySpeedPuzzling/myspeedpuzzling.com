@@ -34,6 +34,8 @@ SELECT
     puzzle.pieces_count,
     puzzle.is_available,
     manufacturer.name AS manufacturer_name,
+    ean AS puzzle_ean,
+    puzzle.identification_number AS puzzle_identification_number,
     COUNT(puzzle_solving_time.id) AS solved_times,
     AVG(puzzle_solving_time.seconds_to_solve) AS average_time,
     MIN(puzzle_solving_time.seconds_to_solve) AS fastest_time
@@ -56,6 +58,8 @@ SQL;
          *     fastest_time: null|int,
          *     solved_times: int,
          *     is_available: bool,
+         *     puzzle_ean: null|string,
+         *     puzzle_identification_number: null|string,
          * } $row
          */
         $row = $this->database

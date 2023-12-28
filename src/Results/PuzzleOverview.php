@@ -17,6 +17,8 @@ readonly final class PuzzleOverview
         public int $solvedTimes,
         public null|string $puzzleImage,
         public bool $isAvailable,
+        public null|string $puzzleEan,
+        public null|string $puzzleIdentificationNumber,
     ) {
     }
 
@@ -32,6 +34,8 @@ readonly final class PuzzleOverview
      *     fastest_time: null|int,
      *     solved_times: int,
      *     is_available: bool,
+     *     puzzle_ean: null|string,
+     *     puzzle_identification_number: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -47,6 +51,8 @@ readonly final class PuzzleOverview
             solvedTimes: $row['solved_times'],
             puzzleImage: $row['puzzle_image'],
             isAvailable: $row['is_available'],
+            puzzleEan: $row['puzzle_ean'],
+            puzzleIdentificationNumber: $row['puzzle_identification_number'],
         );
     }
 }

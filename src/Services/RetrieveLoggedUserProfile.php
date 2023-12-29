@@ -13,25 +13,34 @@ use SpeedPuzzling\Web\Results\PlayerProfile;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-readonly final class RetrieveLoggedUserProfile
+final class RetrieveLoggedUserProfile
 {
+    private bool $populated = false;
+
+    private null|PlayerProfile $foundProfile = null;
+
     public function __construct(
-        private GetPlayerProfile $getPlayerProfile,
-        private Security $security,
-        private MessageBusInterface $messageBus,
-        private LoggerInterface $logger,
+        readonly private GetPlayerProfile $getPlayerProfile,
+        readonly private Security $security,
+        readonly private MessageBusInterface $messageBus,
+        readonly private LoggerInterface $logger,
     ) {
     }
 
     public function getProfile(): null|PlayerProfile
     {
+        if ($this->populated === true) {
+            return $this->foundProfile;
+        }
+
         $user = $this->security->getUser();
+        $this->populated = true;
 
         if ($user instanceof User) {
             $userId = $user->getUserIdentifier();
 
             try {
-                return $this->getPlayerProfile->byUserId($userId);
+                $this->foundProfile = $this->getPlayerProfile->byUserId($userId);
             } catch (PlayerNotFound) {
                 // Case that user just came from registration -> has userId but no Player exists in db yet
                 $this->messageBus->dispatch(
@@ -43,18 +52,16 @@ readonly final class RetrieveLoggedUserProfile
                 );
 
                 try {
-                    return $this->getPlayerProfile->byUserId($userId);
+                    $this->foundProfile = $this->getPlayerProfile->byUserId($userId);
                 } catch (PlayerNotFound $e) {
                     $this->logger->critical('Could not create player profile for logged in user.', [
                         'user_id' => $userId,
                         'exception' => $e,
                     ]);
-
-                    return null;
                 }
             }
         }
 
-        return null;
+        return $this->foundProfile;
     }
 }

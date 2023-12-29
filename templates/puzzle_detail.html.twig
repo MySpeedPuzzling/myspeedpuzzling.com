@@ -15,8 +15,8 @@
     <div class="row">
         <div class="col-sm-12 col-md-6">
             <p>
-                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
-                <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm me-3">Chci si tyto puzzle půjčit/koupit</a>
+                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
+                <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm mb-1 me-3">Chci si tyto puzzle půjčit/koupit</a>
 
                 {% if puzzle.isAvailable %}
                     <span class="badge bg-success badge-shadow rounded-pill">k dispozici</span>
@@ -29,7 +29,7 @@
                 {% endif %}
 
                 <br>
-                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mt-1"><i class="ci-time"></i> Začít skládat</a>
+                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1"><i class="ci-time"></i> Začít skládat</a>
             </p>
 
             <p class="card-text fs-sm text-muted">

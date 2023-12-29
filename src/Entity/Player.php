@@ -16,7 +16,6 @@ use Random\Randomizer;
 #[Entity]
 class Player
 {
-
     public function __construct(
         #[Id]
         #[Immutable]

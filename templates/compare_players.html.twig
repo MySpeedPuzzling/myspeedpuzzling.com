@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Porovnání puzzlerů{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Porovnání puzzlerů</h1>
+
+    <div class="row">
+        <div class="col">
+            <h2 class="h3">{{ player.playerName }} <code class="ps-3 text-muted h5">#{{ player.code|upper }}</code></h2>
+        </div>
+
+        <div class="col">
+            <h2 class="h3">{{ opponent.playerName }} <code class="ps-3 text-muted h5">#{{ opponent.code|upper }}</code></h2>
+        </div>
+    </div>
+
+    {% if comparisons is empty %}
+        <div id="filter-no-results" class="filter-no-results hidden mt-3">
+            <div class="alert alert-warning">
+                Bohužel nemám žádné puzzle k porovnání, které byly poskládány oběma puzzlery.
+            </div>
+        </div>
+    {% else %}
+        <div class="table-responsive custom-table-wrapper mt-3 mb-5">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <thead>
+                <tr>
+                    <th>Puzzle</th>
+                    <th></th>
+                    <th>{{ player.playerName }}</th>
+                    <th>{{ opponent.playerName }}</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                    {% for comparison in comparisons %}
+                        <tr>
+
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: comparison.puzzleId}) }}">
+                                    <span class="puzzle-title">
+                                        {% if comparison.puzzleAlternativeName is not null %}
+                                            {{ comparison.puzzleAlternativeName }}<br>
+                                            <small>({{ comparison.puzzleName }})</small>
+                                        {% else %}
+                                            {{ comparison.puzzleName }}
+                                        {% endif %}
+                                        <br>
+                                        <small>{{ comparison.manufacturerName }}</small>
+                                    </span>
+                                    <br>
+                                    <small>{{ comparison.piecesCount }}&nbsp;dílků</small>
+                                </a>
+                            </td>
+
+                            <td>
+                                {% if comparison.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: comparison.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ comparison.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+
+                            <td>{{ comparison.playerTime|puzzlingTime }}</td>
+                            <td>{{ comparison.opponentTime|puzzlingTime }}</td>
+
+                            <td>
+                                <strong class="{% if comparison.diff < 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ comparison.diff|puzzlingTime }}
+                                </strong>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+{% endblock %}

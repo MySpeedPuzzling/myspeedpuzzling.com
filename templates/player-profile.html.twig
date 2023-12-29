@@ -5,7 +5,11 @@
 {% block content %}
     <h1>{{ player.playerName }} <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code></h1>
 
-    <p>{{ player.city }} {{ player.country }}</p>
+    <p>{{ player.city }}{% if player.city is not null and player.country is not null %}, {% endif%}{{ player.country }}</p>
+
+    <p>
+        <a href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">Porovnat s hráčem <i class="ms-1 ci-compare"></i></a>
+    </p>
 
     <h3 class="mt-2">Statistiky</h3>
 

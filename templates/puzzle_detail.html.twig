@@ -15,9 +15,6 @@
     <div class="row">
         <div class="col-sm-12 col-md-6">
             <p>
-                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
-                <a href="{{ path('puzzle_service') }}" class="btn btn-primary btn-sm mb-1 me-3">Chci si tyto puzzle půjčit/koupit</a>
-
                 {% if puzzle.isAvailable %}
                     <span class="badge bg-success badge-shadow rounded-pill">k dispozici</span>
                 {% else %}
@@ -27,12 +24,14 @@
                 {% if puzzle.puzzleId in puzzles_solved_by_user %}
                     <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> poskládáno</span>
                 {% endif %}
-
-                <br>
-                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1"><i class="ci-time"></i> Začít skládat</a>
             </p>
 
-            <p class="card-text fs-sm text-muted">
+            <p>
+                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1"><i class="ci-time"></i> Začít skládat</a>
+                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
+            </p>
+
+            <p class="card-text fs-sm text-muted mb-2">
                 <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
                 {{ puzzle.piecesCount }} dílků
                 <br>
@@ -60,7 +59,7 @@
         </div>
     </div>
 
-    <div class="row mt-5">
+    <div class="row mt-4">
         <div class="col-sm-12 col-md-6">
             <h2 class="h4">Jednotlivci</h2>
 

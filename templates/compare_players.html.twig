@@ -28,9 +28,8 @@
                 <tr>
                     <th>Puzzle</th>
                     <th></th>
-                    <th>{{ player.playerName }}</th>
-                    <th>{{ opponent.playerName }}</th>
-                    <th></th>
+                    <th class="text-center">{{ player.playerName }}</th>
+                    <th class="text-center">{{ opponent.playerName }}</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -62,13 +61,20 @@
                                 {% endif %}
                             </td>
 
-                            <td>{{ comparison.playerTime|puzzlingTime }}</td>
-                            <td>{{ comparison.opponentTime|puzzlingTime }}</td>
+                            <td class="text-center">
+                                {{ comparison.playerTime|puzzlingTime }}
+                                {% if comparison.diff > 0 %}
+                                    <br>
+                                    <small class="text-muted">{{ comparison.diff|puzzlingTime }}</small>
+                                {% endif %}
+                            </td>
 
-                            <td>
-                                <strong class="{% if comparison.diff < 0 %}text-success{% else %}text-danger{% endif %}">
-                                    {{ comparison.diff|puzzlingTime }}
-                                </strong>
+                            <td class="text-center">
+                                {{ comparison.opponentTime|puzzlingTime }}
+                                {% if comparison.diff < 0 %}
+                                    <br>
+                                    <small class="text-muted">+{{ comparison.diff|puzzlingTime }}</small>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}

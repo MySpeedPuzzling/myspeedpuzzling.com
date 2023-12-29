@@ -5,9 +5,12 @@ body {
 }
 
 .stopwatch {
+    font-size: 30px;
+
     .countdown-value {
         font-size: 54px;
         color: #000;
+        font-weight: 500;
 
         @media (min-width: 768px) {
             font-size: 80px;

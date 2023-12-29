@@ -7,11 +7,15 @@
 
     <div class="row">
         <div class="col">
-            <h2 class="h3">{{ player.playerName }} <code class="ps-3 text-muted h5">#{{ player.code|upper }}</code></h2>
+            <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
+                <h2 class="h3"><span class="text-decoration-underline">{{ player.playerName }}</span> <code class="ps-3 text-muted h5">#{{ player.code|upper }}</code></h2>
+            </a>
         </div>
 
         <div class="col">
-            <h2 class="h3">{{ opponent.playerName }} <code class="ps-3 text-muted h5">#{{ opponent.code|upper }}</code></h2>
+            <a href="{{ path('player_profile', {playerId: opponent.playerId}) }}">
+                <h2 class="h3"><span class="text-decoration-underline">{{ opponent.playerName }}</span> <code class="ps-3 text-muted h5">#{{ opponent.code|upper }}</code></h2>
+            </a>
         </div>
     </div>
 
@@ -28,8 +32,13 @@
                 <tr>
                     <th>Puzzle</th>
                     <th></th>
-                    <th class="text-center">{{ player.playerName }}</th>
-                    <th class="text-center">{{ opponent.playerName }}</th>
+                    <th class="text-center">
+                        <a href="{{ path('player_profile', {playerId: player.playerId}) }}">{{ player.playerName }}</a>
+                    </th>
+
+                    <th class="text-center">
+                        <a href="{{ path('player_profile', {playerId: opponent.playerId}) }}">{{ opponent.playerName }}</a>
+                    </th>
                 </tr>
                 </thead>
                 <tbody>

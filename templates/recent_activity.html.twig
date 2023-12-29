@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Poslední přidané časy{% endblock %}
+
+{% block content %}
+    <h1>Poslední přidané časy</h1>
+
+    <div class="table-responsive custom-table-wrapper mt-4">
+        <table class="table table-striped custom-table table-hover mb-0">
+            <thead>
+            <tr>
+                <th>Hráč</th>
+                <th></th>
+                <th>Puzzle</th>
+                <th class="text-end">Čas</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for solved_puzzle in last_solved_puzzles %}
+                <tr>
+                    <td class="player-name">
+                        <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                            {{ solved_puzzle.playerName }}
+                        </a>
+                    </td>
+                    <td class="text-center">
+                        {% if solved_puzzle.puzzleImage is not null%}
+                            <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
+                                <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                            </a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
+                                        <span class="puzzle-title">
+                                            {% if solved_puzzle.puzzleAlternativeName is not null %}
+                                                {{ solved_puzzle.puzzleAlternativeName }}<br>
+                                                <small>({{ solved_puzzle.puzzleName }})</small>
+                                            {% else %}
+                                                {{ solved_puzzle.puzzleName }}
+                                            {% endif %}
+                                            <br>
+                                            <small>{{ solved_puzzle.manufacturerName }}</small>
+                                        </span>
+                            <br><small>{{ solved_puzzle.piecesCount }}&nbsp;dílků</small>
+                        </a>
+                    </td>
+                    <td class="text-end">
+                        <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span><br>
+                        <small>{{ solved_puzzle.trackedAt|ago(locale='cs') }}</small>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

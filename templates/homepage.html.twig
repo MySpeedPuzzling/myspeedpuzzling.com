@@ -74,7 +74,7 @@
                         </thead>
                         <tbody>
                         {% for solved_puzzle in last_solved_puzzles %}
-                            <tr>
+                            <tr class="{{ logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                                 <td class="player-name">
                                     <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
                                         {{ solved_puzzle.playerName }}

@@ -17,10 +17,21 @@ final class LadderPerPiecesController extends AbstractController
     }
 
     #[Route(path: '/zebricek/500-dilku/', name: 'ladder_500_pieces', methods: ['GET'])]
+    #[Route(path: '/zebricek/1000-dilku/', name: 'ladder_1000_pieces', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
+        /** @var string $routeName */
+        $routeName = $request->attributes->get('_route');
+
+        $piecesCount = match ($routeName) {
+            'ladder_500_pieces' => 500,
+            'ladder_1000_pieces' => 1000,
+            default => throw $this->createNotFoundException(),
+        };
+
         return $this->render('ladder_per_pieces.html.twig', [
-            'solved_puzzle_times' => $this->getFastestPlayers->perPiecesCount(500, 100),
+            'solved_puzzle_times' => $this->getFastestPlayers->perPiecesCount($piecesCount, 100),
+            'pieces_count' => $piecesCount,
         ]);
     }
 }

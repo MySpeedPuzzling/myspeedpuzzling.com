@@ -7,7 +7,7 @@
 
     <div class="row">
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 z 0 na 500 dílků</h2>
+            <h2 class="h4 mt-4">Nejrychlejších 10 - 500 dílků</h2>
 
             <div class="table-responsive custom-table-wrapper mt-3 mb-3">
                 <table class="table custom-table table-striped table-hover mb-0">
@@ -71,6 +71,72 @@
         </div>
 
         <div class="col">
+            <h2 class="h4 mt-4">Nejrychlejších 10 - 1000 dílků</h2>
+
+            <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+                <table class="table custom-table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Jméno</th>
+                        <th class="text-end">Čas</th>
+                        <th></th>
+                        <th>Puzzle</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for fastest_player in fastest_players_1000_pieces %}
+                        <tr class="{{ logged_user.profile is not null and fastest_player.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                            <td class="rank">{{ loop.index }}.</td>
+                            <td class="player-name">
+                                <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
+                                    {{ fastest_player.playerName }}
+                                </a>
+
+                                {% if fastest_player.solvedTimes > 1 %}
+                                    <span class="badge bg-dark rounded-pill">skládáno {{ fastest_player.solvedTimes }}x</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-end">
+                                {{ fastest_player.time|puzzlingTime }}
+                            </td>
+
+                            <td class="text-center">
+                                {% if fastest_player.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ fastest_player.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
+                                    <span class="puzzle-title">
+                                        {% if fastest_player.puzzleAlternativeName is not null %}
+                                            {{ fastest_player.puzzleAlternativeName }}<br>
+                                            <small>({{ fastest_player.puzzleName }})</small>
+                                        {% else %}
+                                            {{ fastest_player.puzzleName }}
+                                        {% endif %}
+                                        <br>
+                                        <small>{{ fastest_player.manufacturerName }}</small>
+                                    </span>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="mb-3">
+                <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
             <h2 class="h4 mt-4">Nejskládanější puzzle</h2>
 
             <div class="table-responsive custom-table-wrapper mt-3 mb-5">
@@ -120,9 +186,7 @@
                 </table>
             </div>
         </div>
-    </div>
 
-    <div class="row">
         <div class="col">
             <h2 class="h4 mt-4">Nejzapálenější skládači</h2>
 
@@ -151,7 +215,5 @@
                 </table>
             </div>
         </div>
-
-        <div class="col"></div>
     </div>
 {% endblock %}

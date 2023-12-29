@@ -1,7 +1,13 @@
 // the ~ allows you to reference things in node_modules
 
 body {
-    padding-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex-grow: 1;
 }
 
 .stopwatch {

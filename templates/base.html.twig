@@ -109,24 +109,26 @@
             </div>
         </header>
 
-        {% for label, messages in app.flashes %}
-            <div class="container mt-4">
-                {% for message in messages %}
-                    <div class="alert-dismissible fade show alert alert-{{ label }}" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endfor %}
+        <main>
+            {% for label, messages in app.flashes %}
+                <div class="container mt-4">
+                    {% for message in messages %}
+                        <div class="alert-dismissible fade show alert alert-{{ label }}" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
 
-        {% block full_content %}
-            <section class="container pt-4">
-                {% block content %}{% endblock %}
-            </section>
-        {% endblock %}
+            {% block full_content %}
+                <section class="container pt-4">
+                    {% block content %}{% endblock %}
+                </section>
+            {% endblock %}
+        </main>
 
-        <footer class="bg-secondary py-4 mt-5">
+        <footer class="bg-secondary py-4 mt-4">
             <div class="container">
                 <div class="row">
                     <div class="col-sm-6">
@@ -158,7 +160,7 @@
                     </div>
 
                     <div class="col-sm-6 mt-3 mt-sm-0">
-                        <div class="pb-4 fs-xs text-muted text-center text-sm-end">&copy; Vytvořili s láskou k puzzlím a zdrojovému kódu <a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a> a <a href="https://janmikes.cz">Jan&nbsp;Mikeš</a></div>
+                        <div class="fs-xs text-muted text-center text-sm-end">&copy; Vytvořili s láskou k puzzlím a zdrojovému kódu <a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a> a <a href="https://janmikes.cz">Jan&nbsp;Mikeš</a></div>
                     </div>
                 </div>
             </div>

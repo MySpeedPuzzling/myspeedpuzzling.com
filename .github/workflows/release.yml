@@ -77,8 +77,5 @@ jobs:
                     key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
                     port: ${{ secrets.DEPLOY_PORT }}
                     script_stop: true
-                    script: |
-                        cd /app/speedpuzzling
-                        docker-compose pull
-                        docker-compose up -d
+                    script: cd /deployment/speedpuzzling && ./deploy.sh
 

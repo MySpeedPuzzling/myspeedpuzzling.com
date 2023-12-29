@@ -76,9 +76,24 @@
                         {% for solved_puzzle in last_solved_puzzles %}
                             <tr class="{{ logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                                 <td class="player-name">
-                                    <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
-                                        {{ solved_puzzle.playerName }}
-                                    </a>
+                                    {% if solved_puzzle.players is null %}
+                                        <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                                            {{ solved_puzzle.playerName }}
+                                        </a>
+                                    {% else %}
+                                        {% for puzzle_solver in solved_puzzle.players %}
+                                            {% if not loop.first %}
+                                                <br>
+                                            {% endif %}
+                                            {% if puzzle_solver.playerId is not null %}
+                                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                                    {{ puzzle_solver.playerName }}
+                                                </a>
+                                            {% else %}
+                                                {{ puzzle_solver.playerName }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
                                 </td>
                                 <td class="text-center">
                                     {% if solved_puzzle.puzzleImage is not null%}

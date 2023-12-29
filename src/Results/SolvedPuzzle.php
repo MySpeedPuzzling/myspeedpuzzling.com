@@ -23,6 +23,9 @@ readonly final class SolvedPuzzle
         public null|string $comment,
         public DateTimeImmutable $trackedAt,
         public null|string $finishedPuzzlePhoto,
+        public null|string $teamId,
+        /** @var null|array<Puzzler> */
+        public null|array $players,
     ) {
     }
 
@@ -41,10 +44,17 @@ readonly final class SolvedPuzzle
      *     comment: null|string,
      *     tracked_at: string,
      *     finished_puzzle_photo: null|string,
+     *     team_id?: null|string,
+     *     players?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $players = null;
+        if (is_string($row['players'] ?? null)) {
+            $players = Puzzler::createPuzzlersFromJson($row['players']);
+        }
+
         return new self(
             timeId: $row['time_id'],
             playerId: $row['player_id'],
@@ -59,6 +69,8 @@ readonly final class SolvedPuzzle
             comment: $row['comment'],
             trackedAt: new DateTimeImmutable($row['tracked_at']),
             finishedPuzzlePhoto: $row['finished_puzzle_photo'],
+            teamId: $row['team_id'] ?? null,
+            players: $players,
         );
     }
 }

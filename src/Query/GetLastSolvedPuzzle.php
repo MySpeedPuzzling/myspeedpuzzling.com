@@ -33,13 +33,25 @@ SELECT
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.tracked_at AS tracked_at,
-    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo
+    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
+    puzzle_solving_time.team ->> 'team_id' AS team_id,
+    CASE
+        WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'player_id', player_elem ->> 'player_id',
+                'player_name', COALESCE(p.name, player_elem ->> 'player_name')
+            )
+        )
+    END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem ON true
+LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
 WHERE
     player.name IS NOT NULL
+GROUP BY puzzle_solving_time.id, puzzle.id, manufacturer.id, time, player.id
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;
@@ -66,6 +78,8 @@ SQL;
              *     comment: null|string,
              *     tracked_at: string,
              *     finished_puzzle_photo: null|string,
+             *     team_id: null|string,
+             *     players: null|string
              * } $row
              */
 

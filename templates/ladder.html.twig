@@ -26,6 +26,9 @@
                             <td class="rank">{{ loop.index }}.</td>
                             <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
+                                    {% if logged_user.profile is not null and fastest_player.playerId in logged_user.profile.favoritePlayers  %}
+                                        <i class="ci-star-filled text-warning"></i>
+                                    {% endif %}
                                     {{ fastest_player.playerName }}
                                 </a>
 
@@ -90,6 +93,9 @@
                             <td class="rank">{{ loop.index }}.</td>
                             <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
+                                    {% if logged_user.profile is not null and fastest_player.playerId in logged_user.profile.favoritePlayers  %}
+                                        <i class="ci-star-filled text-warning"></i>
+                                    {% endif %}
                                     {{ fastest_player.playerName }}
                                 </a>
 
@@ -205,6 +211,9 @@
                             <td class="rank">{{ loop.index }}.</td>
                             <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: player_statistics.playerId}) }}">
+                                    {% if logged_user.profile is not null and player_statistics.playerId in logged_user.profile.favoritePlayers  %}
+                                        <i class="ci-star-filled text-warning"></i>
+                                    {% endif %}
                                     {{ player_statistics.playerName }}
                                 </a>
                             </td>

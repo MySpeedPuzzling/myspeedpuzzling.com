@@ -22,6 +22,9 @@
                         <td class="rank">{{ loop.index }}.</td>
                         <td class="player-name">
                             <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
+                                {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers  %}
+                                    <i class="ci-star-filled text-warning"></i>
+                                {% endif %}
                                 {{ solving_time.playerName }}
                             </a>
                         </td>

@@ -185,3 +185,32 @@ main {
 .player-name a {
     text-decoration: underline;
 }
+
+.table-responsive {
+    /* Ensures the element is scrollable */
+    overflow-x: auto;
+
+    /* Webkit browsers (like Safari and Chrome) */
+    &::-webkit-scrollbar {
+        -webkit-appearance: none;
+        width: 7px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: 4px;
+        background-color: rgba(0, 0, 0, .5); /* scrollbar color */
+        box-shadow: 0 0 1px rgba(255, 255, 255, .5); /* scrollbar shadow */
+    }
+
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, .5) transparent; /* scrollbar and background color */
+}
+
+/* For touch screen laptops */
+@media (hover: none) {
+    .table-responsive {
+        scrollbar-width: auto;
+        scrollbar-color: auto;
+    }
+}

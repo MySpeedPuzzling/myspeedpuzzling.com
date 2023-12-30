@@ -3,7 +3,7 @@
 {% block title %}Můj profil{% endblock %}
 
 {% block content %}
-    <h1>Profil</h1>
+    <h1>Můj profil <code class="text-muted h3 ms-2">#{{ player.code|upper }}</code></h1>
 
     <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}"><i class="ci-edit"></i> Upravit údaje</a>
 
@@ -18,12 +18,6 @@
                 <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
             </div>
         {% endif %}
-
-        <p>
-            <b>Kód hráče:</b><br>
-            #{{ player.code|upper }}<br>
-            <small class="text-muted">Kód se zadává při skládání ve skupině.</small>
-        </p>
 
         <p>
             <b>Veřejné jméno/přezdívka:</b><br>
@@ -53,6 +47,48 @@
                 {{ player.email }}
             {% endif %}<br>
             <small class="text-muted">Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.</small>
+        </p>
+
+        <p>
+            <b>Avatar (veřejný):</b><br>
+            {% if player.avatar is null %}
+                Nevyplněno
+            {% else %}
+                <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+            {% endif %}
+        </p>
+
+        <p>
+            <b>O mě (veřejné):</b><br>
+            {% if player.bio is null %}
+                Nevyplněno
+            {% else %}
+                {{ player.bio }}
+            {% endif %}<br>
+        </p>
+
+        <p>
+            <b>Facebook (veřejné):</b><br>
+            {% if player.facebook is null %}
+                Nevyplněno
+            {% else %}
+                {{ player.facebook }}
+            {% endif %}<br>
+        </p>
+
+        <p>
+            <b>Instagram (veřejné):</b><br>
+            {% if player.instagram is null %}
+                Nevyplněno
+            {% else %}
+                {{ player.instagram }}
+            {% endif %}<br>
+        </p>
+
+        <p>
+            <b>Kód hráče:</b><br>
+            <code>#{{ player.code|upper }}</code><br>
+            <small class="text-muted">Kód se zadává při skládání ve skupině.</small>
         </p>
 
         <p class="mb-0">

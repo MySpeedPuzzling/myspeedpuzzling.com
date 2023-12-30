@@ -39,6 +39,7 @@ final class EditProfileFormType extends AbstractType
         $builder->add('city', TextType::class, [
             'label' => 'Město',
             'required' => false,
+            'help' => 'Město, které hrdě reprezentujete (nepovinné).',
         ]);
 
         $builder->add('country', TextType::class, [

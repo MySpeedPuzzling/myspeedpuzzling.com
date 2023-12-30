@@ -19,87 +19,78 @@
             </div>
         {% endif %}
 
-        <p>
-            <b>Veřejné jméno/přezdívka:</b><br>
-            {% if player.playerName is null %}
-                Nevyplněno
-            {% else %}
-                {{ player.playerName }}
-            {% endif %}<br>
-            <small class="text-muted">Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity.</small>
-        </p>
+        <div class="row">
+            <div class="col-sm">
+                <p>
+                    <b>Jméno/přezdívka:</b> <small class="text-muted">*veřejné</small><br>
+                    {% if player.playerName is null %}
+                        Nevyplněno
+                    {% else %}
+                        {{ player.playerName }}
+                    {% endif %}
+                </p>
 
-        <p>
-            <b>Město:</b><br>
-            {% if player.city is null %}
-                Nevyplněno
-            {% else %}
-                {{ player.city }}, {{ player.country }}
-            {% endif %}<br>
-            <small class="text-muted">Město, které hrdě reprezentujete (nepovinné).</small>
-        </p>
+                <p class="text-muted">
+                    <b>E-mail (neveřejný):</b><br>
+                    {% if player.email is null %}
+                        Nevyplněno
+                    {% else %}
+                        {{ player.email }}
+                    {% endif %}
+                </p>
 
-        <p>
-            <b>E-mail (neveřejný):</b><br>
-            {% if player.email is null %}
-                Nevyplněno
-            {% else %}
-                {{ player.email }}
-            {% endif %}<br>
-            <small class="text-muted">Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.</small>
-        </p>
+                <p class="mb-0">
+                    <b>Avatar:</b> <small class="text-muted">*veřejné</small><br>
+                    {% if player.avatar is null %}
+                        Nevyplněno
+                    {% else %}
+                        <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+                    {% endif %}
+                </p>
+            </div>
 
-        <p>
-            <b>Avatar (veřejný):</b><br>
-            {% if player.avatar is null %}
-                Nevyplněno
-            {% else %}
-                <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
-            {% endif %}
-        </p>
+            <div class="col-sm">
+                <p>
+                    <b>Město, stát:</b> <small class="text-muted">*veřejné</small><br>
+                    {% if player.city is null %}
+                        Nevyplněno
+                    {% else %}
+                        {{ player.city }}, {{ player.country }}
+                    {% endif %}
+                </p>
 
-        <p>
-            <b>O mě (veřejné):</b><br>
-            {% if player.bio is null %}
-                Nevyplněno
-            {% else %}
-                {{ player.bio }}
-            {% endif %}<br>
-        </p>
+                <p>
+                    <b>Facebook:</b> <small class="text-muted">*veřejné</small><br>
+                    {% if player.facebook is null %}
+                    Nevyplněno
+                    {% else %}
+                        {{ player.facebook }}
+                    {% endif %}<br>
+                </p>
 
-        <p>
-            <b>Facebook (veřejné):</b><br>
-            {% if player.facebook is null %}
-                Nevyplněno
-            {% else %}
-                {{ player.facebook }}
-            {% endif %}<br>
-        </p>
+                <p>
+                    <b>Instagram:</b> <small class="text-muted">*veřejné</small><br>
+                    {% if player.instagram is null %}
+                    Nevyplněno
+                    {% else %}
+                        {{ player.instagram }}
+                    {% endif %}<br>
+                </p>
 
-        <p>
-            <b>Instagram (veřejné):</b><br>
-            {% if player.instagram is null %}
-                Nevyplněno
-            {% else %}
-                {{ player.instagram }}
-            {% endif %}<br>
-        </p>
-
-        <p>
-            <b>Kód hráče:</b><br>
-            <code>#{{ player.code|upper }}</code><br>
-            <small class="text-muted">Kód se zadává při skládání ve skupině.</small>
-        </p>
-
-        <p class="mb-0">
-            <b>ID profilu:</b><br>
-            <code>{{ player.userId }}</code><br>
-            <small class="text-muted">Používá se pro spárování jednotlivých výsledků s vaším profilem, využijete v případě kontaktu s administrátorem.</small>
-        </p>
+                <p class="mb-0">
+                    <b>O mě:</b> <small class="text-muted">*veřejné</small><br>
+                    {% if player.bio is null %}
+                    Nevyplněno
+                    {% else %}
+                        {{ player.bio }}
+                    {% endif %}<br>
+                </p>
+            </div>
+        </div>
     </div>
 
     <div class="row mt-2">
-        <div class="col">
+        <div class="col-sm">
             <h3 class="mt-4">Statistiky</h3>
 
             <p>
@@ -109,7 +100,7 @@
             </p>
         </div>
 
-        <div class="col">
+        <div class="col-sm">
             <h3 class="mt-4">Oblíbení puzzleři</h3>
 
             {% if favorite_players is empty %}
@@ -130,7 +121,7 @@
         </div>
 
         {% if stopwatches|length > 0 %}
-            <div class="col">
+            <div class="col-sm">
                 <h3 class="mt-4">Moje stopky</h3>
 
                 <ul>
@@ -147,7 +138,7 @@
     </div>
 
     <div class="row mt-5">
-        <div class="col">
+        <div class="col-sm">
             <h2 class="h4">Poskládané puzzle</h2>
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
@@ -239,7 +230,7 @@
             </div>
         </div>
 
-        <div class="col">
+        <div class="col-sm">
             <h2 class="h4">Skupinové skládání</h2>
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">

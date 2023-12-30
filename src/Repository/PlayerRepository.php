@@ -62,8 +62,6 @@ readonly final class PlayerRepository
                 $userId,
                 null,
                 null,
-                null,
-                null,
                 new \DateTimeImmutable(),
             );
 

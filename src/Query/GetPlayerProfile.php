@@ -34,7 +34,11 @@ SELECT
     country,
     city,
     code,
-    favorite_players
+    favorite_players,
+    avatar,
+    bio,
+    facebook,
+    instagram
 FROM player
 WHERE player.id = :playerId
 SQL;
@@ -49,6 +53,10 @@ SQL;
          *     city: null|string,
          *     code: string,
          *     favorite_players: string,
+         *     avatar: null|string,
+         *     bio: null|string,
+         *     facebook: null|string,
+         *     instagram: null|string,
          * } $row
          */
         $row = $this->database
@@ -78,7 +86,11 @@ SELECT
     country,
     city,
     code,
-    favorite_players
+    favorite_players,
+    avatar,
+    bio,
+    facebook,
+    instagram
 FROM player
 WHERE player.user_id = :userId
 SQL;
@@ -93,6 +105,10 @@ SQL;
          *     city: null|string,
          *     code: string,
          *     favorite_players: string,
+         *     avatar: null|string,
+         *     bio: null|string,
+         *     facebook: null|string,
+         *     instagram: null|string,
          * } $row
          */
         $row = $this->database

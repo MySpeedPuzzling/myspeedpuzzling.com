@@ -38,8 +38,6 @@ readonly final class RegisterUserToPlayHandler
             $message->userId,
             $message->email,
             $name,
-            null,
-            null,
             new \DateTimeImmutable(),
         );
 

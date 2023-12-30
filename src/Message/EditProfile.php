@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class EditProfile
 {
@@ -14,6 +15,10 @@ readonly final class EditProfile
         public null|string $email,
         public null|string $country,
         public null|string $city,
+        public null|UploadedFile $avatar,
+        public null|string $bio,
+        public null|string $facebook,
+        public null|string $instagram,
     ) {
     }
 
@@ -25,6 +30,10 @@ readonly final class EditProfile
             email: $formData->email,
             country: $formData->country,
             city: $formData->city,
+            avatar: $formData->avatar,
+            bio: $formData->bio,
+            facebook: $formData->facebook,
+            instagram: $formData->instagram,
         );
     }
 }

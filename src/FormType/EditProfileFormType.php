@@ -7,9 +7,12 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Image;
 
 /**
  * @extends AbstractType<EditProfileFormData>
@@ -41,6 +44,31 @@ final class EditProfileFormType extends AbstractType
         $builder->add('country', TextType::class, [
             'label' => 'Stát',
             'required' => false,
+        ]);
+
+        $builder->add('facebook', TextType::class, [
+            'label' => 'Facebook',
+            'required' => false,
+        ]);
+
+        $builder->add('instagram', TextType::class, [
+            'label' => 'Instagram',
+            'required' => false,
+        ]);
+
+        $builder->add('bio', TextareaType::class, [
+            'label' => 'O mě (bio)',
+            'required' => false,
+        ]);
+
+        $builder->add('avatar', FileType::class, [
+            'label' => 'Avatar/foto',
+            'required' => false,
+            'constraints' => [
+                new Image(
+                    maxSize: '2m',
+                ),
+            ],
         ]);
     }
 

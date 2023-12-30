@@ -19,6 +19,10 @@ readonly final class PlayerProfile
         public string $code,
         /** @var array<string> */
         public array $favoritePlayers,
+        public null|string $avatar,
+        public null|string $bio,
+        public null|string $facebook,
+        public null|string $instagram,
     ) {
     }
 
@@ -32,6 +36,10 @@ readonly final class PlayerProfile
      *     city: null|string,
      *     code: string,
      *     favorite_players: string,
+     *     avatar: null|string,
+     *     bio: null|string,
+     *     facebook: null|string,
+     *     instagram: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -52,6 +60,10 @@ readonly final class PlayerProfile
             city: $row['city'],
             code: $row['code'],
             favoritePlayers: $favoritePlayers,
+            avatar: $row['avatar'],
+            bio: $row['bio'],
+            facebook: $row['facebook'],
+            instagram: $row['instagram'],
         );
     }
 }

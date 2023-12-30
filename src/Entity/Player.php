@@ -21,8 +21,33 @@ class Player
     /**
      * @var array<string>
      */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::JSON, options: ['default' => '[]'])]
     private array $favoritePlayers = [];
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $country = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $city = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $avatar = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $facebook = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $instagram = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::TEXT, nullable: true)]
+    public null|string $bio = null;
 
     public function __construct(
         #[Id]
@@ -34,21 +59,19 @@ class Player
         #[Column(unique: true)]
         public string $code,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(unique: true, nullable: true)]
         public null|string $userId,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $email,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $name,
 
-        #[Column(nullable: true)]
-        public null|string $country,
-
-        #[Column(nullable: true)]
-        public null|string $city,
-
+        #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public \DateTimeImmutable $registeredAt,
     ) {
@@ -59,12 +82,20 @@ class Player
         null|string $email,
         null|string $city,
         null|string $country,
+        null|string $avatar,
+        null|string $bio,
+        null|string $facebook,
+        null|string $instagram,
     ): void
     {
         $this->name = $name;
         $this->email = $email;
         $this->city = $city;
         $this->country = $country;
+        $this->avatar = $avatar;
+        $this->bio = $bio;
+        $this->facebook = $facebook;
+        $this->instagram = $instagram;
     }
 
     /**

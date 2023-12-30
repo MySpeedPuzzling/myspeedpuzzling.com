@@ -21,7 +21,7 @@ return static function (SecurityConfig $securityConfig): void {
         ->customAuthenticators(['auth0.authenticator']);
 
     $securityConfig->accessControl()
-        ->path('^/(muj-profil|upravit-profil|pridat-cas|puzzle-stopky|stopky|upravit-cas|smazat-cas|ulozit-stopky|porovnat-s-hracem)')
+        ->path('^/(muj-profil|upravit-profil|pridat-cas|puzzle-stopky|stopky|upravit-cas|smazat-cas|ulozit-stopky|porovnat-s-hracem|pridat-hrace-k-oblibenym|odebrat-hrace-z-oblibenych)')
         ->roles([AuthenticatedVoter::IS_AUTHENTICATED_FULLY]);
 
     $securityConfig->accessControl()

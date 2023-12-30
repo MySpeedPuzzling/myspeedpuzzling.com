@@ -11,11 +11,19 @@ use Doctrine\ORM\Mapping\Id;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
-use Random\Randomizer;
+use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
+use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
+use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 
 #[Entity]
 class Player
 {
+    /**
+     * @var array<string>
+     */
+    #[Column(type: Types::JSON, options: ['default' => '[]'])]
+    private array $favoritePlayers = [];
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -57,5 +65,36 @@ class Player
         $this->email = $email;
         $this->city = $city;
         $this->country = $country;
+    }
+
+    /**
+     * @throws CanNotFavoriteYourself
+     * @throws PlayerIsAlreadyInFavorites
+     */
+    public function addFavoritePlayer(Player $favoritePlayer): void
+    {
+        if ($favoritePlayer->id->equals($this->id)) {
+            throw new CanNotFavoriteYourself();
+        }
+
+        if (in_array($favoritePlayer->id->toString(), $this->favoritePlayers, true)) {
+            throw new PlayerIsAlreadyInFavorites();
+        }
+
+        $this->favoritePlayers[] = $favoritePlayer->id->toString();
+    }
+
+    /**
+     * @throws PlayerIsNotInFavorites
+     */
+    public function removeFavoritePlayer(Player $favoritePlayer): void
+    {
+        $key = array_search($favoritePlayer->id->toString(), $this->favoritePlayers, true);
+
+        if ($key === false) {
+            throw new PlayerIsNotInFavorites();
+        }
+
+        unset($this->favoritePlayers[$key]);
     }
 }

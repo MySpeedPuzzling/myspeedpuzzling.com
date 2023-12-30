@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use Nette\Utils\Json;
+use Nette\Utils\JsonException;
+
 readonly final class PlayerProfile
 {
     public function __construct(
@@ -14,6 +17,8 @@ readonly final class PlayerProfile
         public null|string $country,
         public null|string $city,
         public string $code,
+        /** @var array<string> */
+        public array $favoritePlayers,
     ) {
     }
 
@@ -26,10 +31,18 @@ readonly final class PlayerProfile
      *     country: null|string,
      *     city: null|string,
      *     code: string,
+     *     favorite_players: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
+        try {
+            /** @var array<string> $favoritePlayers */
+            $favoritePlayers = Json::decode($row['favorite_players'], true);
+        } catch (JsonException) {
+            $favoritePlayers = [];
+        }
+
         return new self(
             playerId: $row['player_id'],
             userId: $row['user_id'],
@@ -38,6 +51,7 @@ readonly final class PlayerProfile
             country: $row['country'],
             city: $row['city'],
             code: $row['code'],
+            favoritePlayers: $favoritePlayers,
         );
     }
 }

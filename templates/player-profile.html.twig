@@ -3,13 +3,23 @@
 {% block title %}{{ player.playerName }}{% endblock %}
 
 {% block content %}
-    <h1>{{ player.playerName }} <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code></h1>
+    <h1>
+        {{ player.playerName }} <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code>
+    </h1>
 
     <p>{{ player.city }}{% if player.city is not null and player.country is not null %}, {% endif%}{{ player.country }}</p>
 
-    <p>
-        <a href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">Porovnat s hráčem <i class="ms-1 ci-compare"></i></a>
-    </p>
+    {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
+        <p>
+            {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
+                <a href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-warning me-1 mb-1">Odebrat z oblíbených <i class="ms-1 ci-star-filled"></i></a>
+            {% else %}
+                <a href="{{ path('add_player_to_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-warning me-1 mb-1">Přidat do oblíbených <i class="ms-1 ci-star"></i></a>
+            {% endif %}
+
+            <a href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Porovnat s hráčem <i class="ms-1 ci-compare"></i></a>
+        </p>
+    {% endif %}
 
     <h3 class="mt-2">Statistiky</h3>
 

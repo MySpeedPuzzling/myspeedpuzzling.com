@@ -33,7 +33,8 @@ SELECT
     email,
     country,
     city,
-    code
+    code,
+    favorite_players
 FROM player
 WHERE player.id = :playerId
 SQL;
@@ -47,6 +48,7 @@ SQL;
          *     country: null|string,
          *     city: null|string,
          *     code: string,
+         *     favorite_players: string,
          * } $row
          */
         $row = $this->database
@@ -75,7 +77,8 @@ SELECT
     email,
     country,
     city,
-    code
+    code,
+    favorite_players
 FROM player
 WHERE player.user_id = :userId
 SQL;
@@ -89,6 +92,7 @@ SQL;
          *     country: null|string,
          *     city: null|string,
          *     code: string,
+         *     favorite_players: string,
          * } $row
          */
         $row = $this->database

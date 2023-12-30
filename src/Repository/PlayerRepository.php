@@ -21,6 +21,24 @@ readonly final class PlayerRepository
     }
 
     /**
+     * @throws PlayerNotFound
+     */
+    public function get(string $playerId): Player
+    {
+        if (!Uuid::isValid($playerId)) {
+            throw new PlayerNotFound();
+        }
+
+        $player = $this->entityManager->find(Player::class, $playerId);
+
+        if ($player === null) {
+            throw new PlayerNotFound();
+        }
+
+        return $player;
+    }
+
+    /**
      * @throws CouldNotGenerateUniqueCode
      */
     public function getByUserIdCreateIfNotExists(string $userId): Player

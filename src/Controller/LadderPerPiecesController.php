@@ -16,8 +16,8 @@ final class LadderPerPiecesController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/zebricek/500-dilku/', name: 'ladder_500_pieces', methods: ['GET'])]
-    #[Route(path: '/zebricek/1000-dilku/', name: 'ladder_1000_pieces', methods: ['GET'])]
+    #[Route(path: '/zebricek/500-dilku', name: 'ladder_500_pieces', methods: ['GET'])]
+    #[Route(path: '/zebricek/1000-dilku', name: 'ladder_1000_pieces', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         /** @var string $routeName */

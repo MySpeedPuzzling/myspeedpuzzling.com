@@ -21,13 +21,37 @@
         </p>
     {% endif %}
 
-    <h3 class="mt-2">Statistiky</h3>
+    <div class="row mt-2">
+        <div class="col">
+            <h3 class="mt-2">Statistiky</h3>
 
-    <p>
-        <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
-        <strong>Počet složených puzzlí:</strong> {{ statistics.solvedPuzzlesCount }}<br>
-        <strong>Počet složených dílků:</strong> {{ statistics.totalPieces }}
-    </p>
+            <p>
+                <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
+                <strong>Počet složených puzzlí:</strong> {{ statistics.solvedPuzzlesCount }}<br>
+                <strong>Počet složených dílků:</strong> {{ statistics.totalPieces }}
+            </p>
+        </div>
+
+        <div class="col">
+            <h3 class="mt-4">Oblíbení puzzleři</h3>
+
+            {% if favorite_players is empty %}
+                <div class="alert alert-warning">
+                    Žádní oblíbení puzzleři
+                </div>
+            {% else %}
+                <ul>
+                    {% for favorite_puzzler in favorite_players %}
+                        <li>
+                            <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
+                                {{ favorite_puzzler.playerName }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
 
     <div class="row mt-5">
         <div class="col">

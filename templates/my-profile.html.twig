@@ -62,9 +62,9 @@
         </p>
     </div>
 
-    <div class="row">
+    <div class="row mt-2">
         <div class="col">
-            <h3 class="mt-5">Statistiky</h3>
+            <h3 class="mt-4">Statistiky</h3>
 
             <p>
                 <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
@@ -74,8 +74,28 @@
         </div>
 
         <div class="col">
-            {% if stopwatches|length > 0 %}
-                <h3 class="mt-5">Moje stopky</h3>
+            <h3 class="mt-4">Oblíbení puzzleři</h3>
+
+            {% if favorite_players is empty %}
+                <div class="alert alert-warning">
+                    Žádní oblíbení puzzleři
+                </div>
+            {% else %}
+                <ul>
+                    {% for favorite_puzzler in favorite_players %}
+                        <li>
+                            <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
+                                {{ favorite_puzzler.playerName }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        {% if stopwatches|length > 0 %}
+            <div class="col">
+                <h3 class="mt-4">Moje stopky</h3>
 
                 <ul>
                     {% for stopwatch in stopwatches %}
@@ -86,8 +106,8 @@
                         </li>
                     {% endfor %}
                 </ul>
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
     </div>
 
     <div class="row mt-5">

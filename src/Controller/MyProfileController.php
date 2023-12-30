@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
@@ -24,6 +25,7 @@ final class MyProfileController extends AbstractController
         readonly private GetStatistics $getStatistics,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetFavoritePlayers $getFavoritePlayers,
     ) {
     }
 
@@ -50,6 +52,7 @@ final class MyProfileController extends AbstractController
             'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
             'statistics' => $playerStatistics,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
+            'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
         ]);
     }
 }

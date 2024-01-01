@@ -107,7 +107,7 @@ final class FinishStopwatchController extends AbstractController
                         puzzleId: $data->puzzleId,
                         time: $this->puzzlingTimeFormatter->formatTime($activeStopwatch->totalSeconds),
                         comment: $data->comment,
-                        solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
+                        finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
                         groupPlayers: $groupPlayers,
                         finishedAt: $data->finishedAt,
                     ),

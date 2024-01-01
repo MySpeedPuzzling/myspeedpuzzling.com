@@ -59,7 +59,7 @@ final class SaveStopwatchFormType extends AbstractType
             'required' => false,
         ]);
 
-        $builder->add('solvedPuzzlesPhoto', FileType::class, [
+        $builder->add('finishedPuzzlesPhoto', FileType::class, [
             'label' => 'Foto poskládaných puzzlí',
             'required' => false,
             'constraints' => [

@@ -5,74 +5,93 @@
 {% block content %}
     <h1>Úprava údajů o skládání</h1>
 
-    <div class="shadow-lg p-4 mt-3">
-        <div class="row">
-            <div class="col-sm-6 offset-sm-1 order-lg-2">
-                {% if solved_puzzle.puzzleAlternativeName is not null %}
-                    {{ solved_puzzle.puzzleAlternativeName }} ({{ solved_puzzle.puzzleName }})
-                {% else %}
-                    {{ solved_puzzle.puzzleName }}
-                {% endif %}
-                <br>
-                <b>{{ solved_puzzle.manufacturerName|upper }}</b><br>
-                {{ solved_puzzle.piecesCount }} dílků<br>
+    {{ form_start(edit_puzzle_solving_time_form) }}
 
-                {% if solved_puzzle.puzzleImage is not null%}
-                    <p>
-                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
-                    </p>
-                {% endif %}
-            </div>
+        <div class="shadow-lg p-4 mt-3">
+            <div class="row">
+                <div class="col-sm-6 offset-sm-1 order-lg-2">
+                    {% if solved_puzzle.puzzleAlternativeName is not null %}
+                        {{ solved_puzzle.puzzleAlternativeName }} ({{ solved_puzzle.puzzleName }})
+                    {% else %}
+                        {{ solved_puzzle.puzzleName }}
+                    {% endif %}
+                    <br>
+                    <b>{{ solved_puzzle.manufacturerName|upper }}</b><br>
+                    {{ solved_puzzle.piecesCount }} dílků<br>
 
-            <div class="col-sm-5">
-                {{ form_start(edit_puzzle_solving_time_form) }}
+                    {% if solved_puzzle.puzzleImage is not null%}
+                        <p>
+                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                        </p>
+                    {% endif %}
 
-                <div class="mb-3 time-input-wrap">
-                    {{ form_label(edit_puzzle_solving_time_form.time) }}
-                    {{ form_errors(edit_puzzle_solving_time_form.time) }}
-                    <div class="input-group">
-                        {{ form_widget(edit_puzzle_solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
-                        <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
-                    </div>
-                    {{ form_help(edit_puzzle_solving_time_form.time) }}
-                </div>
+                    {{ form_label(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
+                    {{ form_errors(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
+                    <div class="file-drop-area">
 
-                <div class="mb-3 datepicker-input-wrap">
-                    {{ form_label(edit_puzzle_solving_time_form.finishedAt) }}
-                    {{ form_errors(edit_puzzle_solving_time_form.finishedAt) }}
-                    <div class="input-group">
-                        {{ form_widget(edit_puzzle_solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "cs", "maxDate": "today"}'}}) }}
-                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
-                    </div>
-                    {{ form_help(edit_puzzle_solving_time_form.finishedAt) }}
-                </div>
 
-                    <div id="puzzlers-group" class="mt-3">
-                        {% for group_puzzler in solved_puzzle.players %}
-                            <div data-puzzler class="mb-3">
-                                <label class="form-label required" for="existingPuzzler{{ loop.index }}">Spoluskládající <span data-counter>{{ loop.index }}</span></label>
-
-                                <div class="input-group">
-                                    <input name="group_players[]" id="existingPuzzler{{ loop.index }}" class="form-control" type="text" value="{{ group_puzzler.playerCode ?? group_puzzler.playerName }}">
-                                    <button data-remove-player class="btn btn-white border btn-icon" type="button">
-                                        <i class="ci-trash text-danger"></i>
-                                    </button>
+                        <div class="file-drop-icon">
+                            {% if solved_puzzle.finishedPuzzlePhoto is not null%}
+                                <div class="file-drop-preview img-thumbnail rounded">
+                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
                                 </div>
-                                <div class="form-text">Zadejte kód hráče (začíná na #)</div>
-                            </div>
-                        {% endfor %}
+                            {% endif %}
+                            <i class="ci-cloud-upload"></i>
+                        </div>
+
+                        <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+                        {{ form_widget(edit_puzzle_solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                        <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
+                    </div>
+                </div>
+
+                <div class="col-sm-5">
+                    <div class="mb-3 time-input-wrap">
+                        {{ form_label(edit_puzzle_solving_time_form.time) }}
+                        {{ form_errors(edit_puzzle_solving_time_form.time) }}
+                        <div class="input-group">
+                            {{ form_widget(edit_puzzle_solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
+                            <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                        </div>
+                        {{ form_help(edit_puzzle_solving_time_form.time) }}
                     </div>
 
-                    <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
+                    <div class="mb-3 datepicker-input-wrap">
+                        {{ form_label(edit_puzzle_solving_time_form.finishedAt) }}
+                        {{ form_errors(edit_puzzle_solving_time_form.finishedAt) }}
+                        <div class="input-group">
+                            {{ form_widget(edit_puzzle_solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "cs", "maxDate": "today"}'}}) }}
+                            <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                        </div>
+                        {{ form_help(edit_puzzle_solving_time_form.finishedAt) }}
+                    </div>
 
-                    {{ form_row(edit_puzzle_solving_time_form.comment) }}
+                        <div id="puzzlers-group" class="mt-3">
+                            {% for group_puzzler in solved_puzzle.players %}
+                                <div data-puzzler class="mb-3">
+                                    <label class="form-label required" for="existingPuzzler{{ loop.index }}">Spoluskládající <span data-counter>{{ loop.index }}</span></label>
 
-                    <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+                                    <div class="input-group">
+                                        <input name="group_players[]" id="existingPuzzler{{ loop.index }}" class="form-control" type="text" value="{{ group_puzzler.playerCode ?? group_puzzler.playerName }}">
+                                        <button data-remove-player class="btn btn-white border btn-icon" type="button">
+                                            <i class="ci-trash text-danger"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Zadejte kód hráče (začíná na #)</div>
+                                </div>
+                            {% endfor %}
+                        </div>
 
-                {{ form_end(edit_puzzle_solving_time_form) }}
+                        <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
+
+                        {{ form_row(edit_puzzle_solving_time_form.comment) }}
+
+                        <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+                </div>
             </div>
         </div>
-    </div>
+
+    {{ form_end(edit_puzzle_solving_time_form) }}
 
     <p class="mt-5 mb-3">
         <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalConfirm">

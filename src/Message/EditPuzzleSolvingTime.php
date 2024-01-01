@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class EditPuzzleSolvingTime
 {
@@ -17,6 +18,7 @@ readonly final class EditPuzzleSolvingTime
         /** @var array<string> */
         public array $groupPlayers,
         public null|DateTimeImmutable $finishedAt,
+        public null|UploadedFile $finishedPuzzlesPhoto,
     ) {
     }
 
@@ -34,6 +36,7 @@ readonly final class EditPuzzleSolvingTime
             $formData->comment,
             groupPlayers: $groupPlayers,
             finishedAt: $formData->finishedAt,
+            finishedPuzzlesPhoto: $formData->finishedPuzzlesPhoto,
         );
     }
 }

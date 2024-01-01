@@ -8,10 +8,12 @@ use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Image;
 
 /**
  * @extends AbstractType<EditPuzzleSolvingTimeFormData>
@@ -44,6 +46,16 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             'html5' => false,
             'input' => 'datetime_immutable',
             'input_format' => 'd.m.Y',
+        ]);
+
+        $builder->add('finishedPuzzlesPhoto', FileType::class, [
+            'label' => 'Foto poskládaných puzzlí',
+            'required' => false,
+            'constraints' => [
+                new Image(
+                    maxSize: '10m',
+                ),
+            ],
         ]);
     }
 

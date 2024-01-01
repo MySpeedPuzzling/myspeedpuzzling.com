@@ -42,12 +42,12 @@ readonly final class AddPuzzleSolvingTimeHandler
         $trackedAt = new \DateTimeImmutable();
         $finishedAt = $message->finishedAt ?? $trackedAt;
 
-        if ($message->solvedPuzzlesPhoto !== null) {
-            $extension = $message->solvedPuzzlesPhoto->guessExtension();
+        if ($message->finishedPuzzlesPhoto !== null) {
+            $extension = $message->finishedPuzzlesPhoto->guessExtension();
             $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId.$extension";
 
             // Stream is better because it is memory safe
-            $stream = fopen($message->solvedPuzzlesPhoto->getPathname(), 'rb');
+            $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');
             $this->filesystem->writeStream($finishedPuzzlePhotoPath, $stream);
 
             if (is_resource($stream)) {

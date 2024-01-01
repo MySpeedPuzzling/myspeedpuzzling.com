@@ -18,7 +18,7 @@ final class AddPuzzleSolvingTimeFormData
 
     public null|string $comment = null;
 
-    public null|UploadedFile $solvedPuzzlesPhoto = null;
+    public null|UploadedFile $finishedPuzzlesPhoto = null;
 
     public null|bool $addPuzzle = null;
 

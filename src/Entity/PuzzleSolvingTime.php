@@ -62,11 +62,13 @@ class PuzzleSolvingTime
         null|string $comment,
         null|PuzzlersGroup $puzzlersGroup,
         DateTimeImmutable $finishedAt,
+        null|string $finishedPuzzlePhoto,
     ): void
     {
         $this->secondsToSolve = $seconds;
         $this->comment = $comment;
         $this->team = $puzzlersGroup;
         $this->finishedAt = $finishedAt;
+        $this->finishedPuzzlePhoto = $finishedPuzzlePhoto;
     }
 }

@@ -15,7 +15,7 @@ readonly final class AddPuzzleSolvingTime
         public string $puzzleId,
         public string $time,
         public null|string $comment,
-        public null|UploadedFile $solvedPuzzlesPhoto,
+        public null|UploadedFile $finishedPuzzlesPhoto,
         /** @var array<string> */
         public array $groupPlayers,
         public null|DateTimeImmutable $finishedAt,
@@ -35,7 +35,7 @@ readonly final class AddPuzzleSolvingTime
             puzzleId: $data->puzzleId,
             time: $data->time,
             comment: $data->comment,
-            solvedPuzzlesPhoto: $data->solvedPuzzlesPhoto,
+            finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
             groupPlayers: $groupPlayers,
             finishedAt: $data->finishedAt,
         );

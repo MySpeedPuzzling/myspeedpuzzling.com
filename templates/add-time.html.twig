@@ -126,6 +126,7 @@
                         {{ form_row(add_puzzle_solving_time_form.puzzleIdentificationNumber) }}
 
                         {{ form_label(add_puzzle_solving_time_form.puzzlePhoto) }}
+                        {{ form_errors(add_puzzle_solving_time_form.puzzlePhoto) }}
                         <div class="file-drop-area">
                             <div class="file-drop-icon ci-cloud-upload"></div>
                             <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
@@ -172,11 +173,12 @@
 
                 {{ form_row(add_puzzle_solving_time_form.comment) }}
 
-                {{ form_label(add_puzzle_solving_time_form.solvedPuzzlesPhoto) }}
+                {{ form_label(add_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
+                {{ form_errors(add_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
                 <div class="file-drop-area">
                     <div class="file-drop-icon ci-cloud-upload"></div>
                     <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
-                    {{ form_widget(add_puzzle_solving_time_form.solvedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                    {{ form_widget(add_puzzle_solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
                     <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
                 </div>
 

@@ -7,8 +7,6 @@
         {{ player.playerName }} <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code>
     </h1>
 
-    <p>{{ player.city }}{% if player.city is not null and player.country is not null %}, {% endif%}{{ player.country }}</p>
-
     {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
         <p>
             {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
@@ -21,7 +19,60 @@
         </p>
     {% endif %}
 
-    <div class="row mt-2">
+    <div class="shadow-lg p-3 mt-3">
+        <div class="row">
+            <div class="col-sm">
+                <p>
+                    <b>Avatar:</b><br>
+                    {% if player.avatar is null %}
+                        Nevyplněno
+                    {% else %}
+                        <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+                    {% endif %}
+                </p>
+
+                <p class="mb-0">
+                    <b>O mě:</b><br>
+                    {% if player.bio is null %}
+                    Nevyplněno
+                    {% else %}
+                        {{ player.bio }}
+                    {% endif %}<br>
+                </p>
+            </div>
+
+            <div class="col-sm">
+                <p>
+                    <b>Město, stát:</b><br>
+                    {% if player.city is null %}
+                        Nevyplněno
+                    {% else %}
+                        {{ player.city }}, {{ player.country }}
+                    {% endif %}
+                </p>
+
+                <p>
+                    <b>Facebook:</b><br>
+                    {% if player.facebook is null %}
+                    Nevyplněno
+                    {% else %}
+                        {{ player.facebook }}
+                    {% endif %}<br>
+                </p>
+
+                <p class="mb-0">
+                    <b>Instagram:</b><br>
+                    {% if player.instagram is null %}
+                    Nevyplněno
+                    {% else %}
+                        {{ player.instagram }}
+                    {% endif %}<br>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
         <div class="col">
             <h3 class="mt-2">Statistiky</h3>
 
@@ -33,7 +84,7 @@
         </div>
 
         <div class="col">
-            <h3 class="mt-4">Oblíbení puzzleři</h3>
+            <h3 class="mt-2">Oblíbení puzzleři</h3>
 
             {% if favorite_players is empty %}
                 <div class="alert alert-warning">

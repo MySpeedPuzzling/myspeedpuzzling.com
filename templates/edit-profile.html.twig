@@ -6,9 +6,35 @@
     <h1>Úprava profilu</h1>
 
     {{ form_start(edit_profile_form) }}
-        {{ form_widget(edit_profile_form) }}
+        {{ form_row(edit_profile_form.name) }}
+        {{ form_row(edit_profile_form.email) }}
+        {{ form_row(edit_profile_form.city) }}
+        {{ form_row(edit_profile_form.country) }}
+        {{ form_row(edit_profile_form.facebook) }}
+        {{ form_row(edit_profile_form.instagram) }}
+        {{ form_row(edit_profile_form.bio) }}
 
-        <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+        {{ form_label(edit_profile_form.avatar) }}
+        {{ form_errors(edit_profile_form.avatar) }}
+        <div class="file-drop-area">
+            <div class="file-drop-icon">
+                {% if player.avatar is not null%}
+                    <div class="file-drop-preview img-thumbnail rounded">
+                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ player.avatar|imagine_filter('puzzle_medium') }}">
+                    </div>
+                {% endif %}
+                <i class="ci-cloud-upload"></i>
+            </div>
+
+            <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+            {{ form_widget(edit_profile_form.avatar, {'attr': {'class': 'file-drop-input'}}) }}
+            <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
+        </div>
+
+
+        <p class="mt-3 mb-0">
+            <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+        </p>
 
     {{ form_end(edit_profile_form) }}
 {% endblock %}

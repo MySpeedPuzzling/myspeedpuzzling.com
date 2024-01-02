@@ -3,7 +3,7 @@
 {% block title %}Můj profil{% endblock %}
 
 {% block content %}
-    <h1>Můj profil <code class="text-muted h3 ms-2">#{{ player.code|upper }}</code></h1>
+    <h1>Můj profil <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code></h1>
 
     <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}"><i class="ci-edit"></i> Upravit údaje</a>
 
@@ -89,9 +89,9 @@
         </div>
     </div>
 
-    <div class="row mt-2">
+    <div class="row mt-4">
         <div class="col-sm">
-            <h3 class="mt-4">Statistiky</h3>
+            <h3 class="mt-2">Statistiky</h3>
 
             <p>
                 <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
@@ -101,7 +101,7 @@
         </div>
 
         <div class="col-sm">
-            <h3 class="mt-4">Oblíbení puzzleři</h3>
+            <h3 class="mt-2">Oblíbení puzzleři</h3>
 
             {% if favorite_players is empty %}
                 <div class="alert alert-warning">

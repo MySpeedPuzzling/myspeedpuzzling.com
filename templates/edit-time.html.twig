@@ -24,25 +24,6 @@
                             <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                         </p>
                     {% endif %}
-
-                    {{ form_label(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
-                    {{ form_errors(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
-                    <div class="file-drop-area">
-
-
-                        <div class="file-drop-icon">
-                            {% if solved_puzzle.finishedPuzzlePhoto is not null%}
-                                <div class="file-drop-preview img-thumbnail rounded">
-                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
-                                </div>
-                            {% endif %}
-                            <i class="ci-cloud-upload"></i>
-                        </div>
-
-                        <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
-                        {{ form_widget(edit_puzzle_solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
-                        <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
-                    </div>
                 </div>
 
                 <div class="col-sm-5">
@@ -66,27 +47,46 @@
                         {{ form_help(edit_puzzle_solving_time_form.finishedAt) }}
                     </div>
 
-                        <div id="puzzlers-group" class="mt-3">
-                            {% for group_puzzler in solved_puzzle.players %}
-                                <div data-puzzler class="mb-3">
-                                    <label class="form-label required" for="existingPuzzler{{ loop.index }}">Spoluskládající <span data-counter>{{ loop.index }}</span></label>
+                    <div id="puzzlers-group" class="mt-3">
+                        {% for group_puzzler in solved_puzzle.players %}
+                            <div data-puzzler class="mb-3">
+                                <label class="form-label required" for="existingPuzzler{{ loop.index }}">Spoluskládající <span data-counter>{{ loop.index }}</span></label>
 
-                                    <div class="input-group">
-                                        <input name="group_players[]" id="existingPuzzler{{ loop.index }}" class="form-control" type="text" value="{{ group_puzzler.playerCode ?? group_puzzler.playerName }}">
-                                        <button data-remove-player class="btn btn-white border btn-icon" type="button">
-                                            <i class="ci-trash text-danger"></i>
-                                        </button>
-                                    </div>
-                                    <div class="form-text">Zadejte kód hráče (začíná na #)</div>
+                                <div class="input-group">
+                                    <input name="group_players[]" id="existingPuzzler{{ loop.index }}" class="form-control" type="text" value="{{ group_puzzler.playerCode ?? group_puzzler.playerName }}">
+                                    <button data-remove-player class="btn btn-white border btn-icon" type="button">
+                                        <i class="ci-trash text-danger"></i>
+                                    </button>
                                 </div>
-                            {% endfor %}
+                                <div class="form-text">Zadejte kód hráče (začíná na #)</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
+
+                    {{ form_row(edit_puzzle_solving_time_form.comment) }}
+
+                    {{ form_label(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
+                    {{ form_errors(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
+                    <div class="file-drop-area">
+                        <div class="file-drop-icon">
+                            {% if solved_puzzle.finishedPuzzlePhoto is not null%}
+                                <div class="file-drop-preview img-thumbnail rounded">
+                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
+                                </div>
+                            {% endif %}
+                            <i class="ci-cloud-upload"></i>
                         </div>
 
-                        <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
+                        <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+                        {{ form_widget(edit_puzzle_solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                        <button type="button" class="file-drop-btn btn btn-primary btn-sm">Nebo vyberte soubor</button>
+                    </div>
 
-                        {{ form_row(edit_puzzle_solving_time_form.comment) }}
-
+                    <p class="mt-3 mb-0">
                         <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
+                    </p>
                 </div>
             </div>
         </div>

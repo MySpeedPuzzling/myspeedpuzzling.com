@@ -55,6 +55,7 @@ final class EditProfileController extends AbstractController
         }
 
         return $this->render('edit-profile.html.twig', [
+            'player' => $player,
             'edit_profile_form' => $editProfileForm,
         ]);
     }

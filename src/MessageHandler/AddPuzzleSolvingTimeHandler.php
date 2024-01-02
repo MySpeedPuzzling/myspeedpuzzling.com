@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -30,6 +31,7 @@ readonly final class AddPuzzleSolvingTimeHandler
 
     /**
      * @throws CouldNotGenerateUniqueCode
+     * @throws CanNotAssembleEmptyGroup
      */
     public function __invoke(AddPuzzleSolvingTime $message): void
     {

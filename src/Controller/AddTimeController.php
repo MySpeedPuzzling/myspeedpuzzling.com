@@ -5,6 +5,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
 use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
@@ -17,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -78,16 +81,24 @@ final class AddTimeController extends AbstractController
                 /** @var array<string> $groupPlayers */
                 $groupPlayers = $request->request->all('group_players');
 
-                $this->messageBus->dispatch(
-                    AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
-                );
+                try {
+                    $this->messageBus->dispatch(
+                        AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
+                    );
 
-                $this->addFlash('success','Skvělá práce! Skládání jsme zaznamenali.');
+                    $this->addFlash('success','Skvělá práce! Skládání jsme zaznamenali.');
 
-                return $this->redirectToRoute('my_profile');
+                    return $this->redirectToRoute('my_profile');
+                } catch (HandlerFailedException $exception) {
+                    $realException = $exception->getPrevious();
+
+                    if ($realException instanceof CanNotAssembleEmptyGroup) {
+                        $addTimeForm->addError(new FormError('Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)'));
+                    }
+                }
+            } else {
+                $addTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
             }
-
-            $addTimeForm->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
         }
 
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();

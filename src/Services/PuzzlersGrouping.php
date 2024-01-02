@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\Puzzler;
@@ -19,6 +20,8 @@ readonly final class PuzzlersGrouping
 
     /**
      * @param array<string> $teamPlayers
+     *
+     * @throws CanNotAssembleEmptyGroup
      */
     public function assembleGroup(Player $player, array $teamPlayers): null|PuzzlersGroup
     {
@@ -38,13 +41,16 @@ readonly final class PuzzlersGrouping
             static fn(Puzzler $puzzler): bool => $puzzler->playerId !== $player->id->toString(),
         );
 
+        if (count($puzzlers) === 0) {
+            throw new CanNotAssembleEmptyGroup();
+        }
+
         // Add self to the group (as first)
         array_unshift($puzzlers, new Puzzler(
             playerId: $player->id->toString(),
             playerName: null,
             playerCode: null,
         ));
-
 
         return new PuzzlersGroup(null, $puzzlers);
     }

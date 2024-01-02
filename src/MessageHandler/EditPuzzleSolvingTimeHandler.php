@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
@@ -31,6 +32,7 @@ readonly final class EditPuzzleSolvingTimeHandler
      * @throws PuzzleSolvingTimeNotFound
      * @throws CanNotModifyOtherPlayersTime
      * @throws CouldNotGenerateUniqueCode
+     * @throws CanNotAssembleEmptyGroup
      */
     public function __invoke(EditPuzzleSolvingTime $message): void
     {

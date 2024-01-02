@@ -62,8 +62,8 @@ FROM
 INNER JOIN puzzle ON puzzle.id = RankedTimes.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE
-    player_id = :playerId;
-
+    player_id = :playerId
+ORDER BY rank
 SQL;
 
         $data = $this->database

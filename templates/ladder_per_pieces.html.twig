@@ -5,58 +5,7 @@
 {% block content %}
     <h1>Žebříček puzzlerů - {{ pieces_count}} dílků</h1>
 
-    <div class="table-responsive custom-table-wrapper mt-3 mb-5">
-            <table class="table custom-table table-striped table-hover mb-0">
-                <thead>
-                <tr>
-                    <th></th>
-                    <th>Jméno</th>
-                    <th class="text-end">Čas</th>
-                    <th></th>
-                    <th>Puzzle</th>
-                </tr>
-                </thead>
-                <tbody>
-                {% for solving_time in solved_puzzle_times %}
-                    <tr class="{{ logged_user.profile is not null and solving_time.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                        <td class="rank">{{ loop.index }}.</td>
-                        <td class="player-name">
-                            <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
-                                {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers  %}
-                                    <i class="ci-star-filled text-warning"></i>
-                                {% endif %}
-                                {{ solving_time.playerName }}
-                            </a>
-                        </td>
-
-                        <td class="text-end">
-                            {{ solving_time.time|puzzlingTime }}
-                        </td>
-
-                        <td class="text-center">
-                            {% if solving_time.puzzleImage is not null%}
-                                <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                                    <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ solving_time.puzzleImage|imagine_filter('puzzle_small') }}">
-                                </a>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                                <span class="puzzle-title">
-                                    {% if solving_time.puzzleAlternativeName is not null %}
-                                        {{ solving_time.puzzleAlternativeName }}<br>
-                                        <small>({{ solving_time.puzzleName }})</small>
-                                    {% else %}
-                                        {{ solving_time.puzzleName }}
-                                    {% endif %}
-                                    <br>
-                                    <small>{{ solving_time.manufacturerName }}</small>
-                                </span>
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    {{ include('_ladder.html.twig', {
+        puzzle_solving_times: solved_puzzle_times
+    }) }}
 {% endblock %}

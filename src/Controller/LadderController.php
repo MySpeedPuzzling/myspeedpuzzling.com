@@ -26,6 +26,11 @@ final class LadderController extends AbstractController
         return $this->render('ladder.html.twig', [
             'fastest_players_500_pieces' => $this->getFastestPlayers->perPiecesCount(500, 10),
             'fastest_players_1000_pieces' => $this->getFastestPlayers->perPiecesCount(1000, 10),
+            // TODO:
+            'fastest_pairs_500_pieces' => $this->getFastestPlayers->perPiecesCount(500, 10),
+            'fastest_pairs_1000_pieces' => $this->getFastestPlayers->perPiecesCount(1000, 10),
+            'fastest_groups_500_pieces' => $this->getFastestPlayers->perPiecesCount(500, 10),
+            'fastest_groups_1000_pieces' => $this->getFastestPlayers->perPiecesCount(1000, 10),
             'most_solved_puzzles' => $this->getMostSolvedPuzzles->top(10),
             'most_active_players' => $this->getStatistics->mostActivePlayers(10),
         ]);

@@ -5,68 +5,27 @@
 {% block content %}
     <h1>Žebříček</h1>
 
+    <div class="dropdown">
+        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Přehled
+        </button>
+        <div class="dropdown-menu">
+            <a href="#" class="dropdown-item">Jednotlivci - 500 dílků</a>
+            <a href="#" class="dropdown-item">Jednotlivci - 1000 dílků</a>
+            <a href="#" class="dropdown-item">Páry - 500 dílků</a>
+            <a href="#" class="dropdown-item">Páry - 1000 dílků</a>
+            <a href="#" class="dropdown-item">Skupiny - 500 dílků</a>
+            <a href="#" class="dropdown-item">Skupiny - 1000 dílků</a>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 - 500 dílků - SOLO</h2>
+            <h2 class="h4 mt-4">Jednotlivci - 500 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-                <table class="table custom-table table-striped table-hover mb-0">
-                    <thead>
-                    <tr>
-                        <th></th>
-                        <th>Jméno</th>
-                        <th class="text-end">Čas</th>
-                        <th></th>
-                        <th>Puzzle</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for fastest_player in fastest_players_500_pieces %}
-                        <tr class="{{ logged_user.profile is not null and fastest_player.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                            <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name">
-                                <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
-                                    {% if logged_user.profile is not null and fastest_player.playerId in logged_user.profile.favoritePlayers  %}
-                                        <i class="ci-star-filled text-warning"></i>
-                                    {% endif %}
-                                    {{ fastest_player.playerName }}
-                                </a>
-
-                                {% if fastest_player.solvedTimes > 1 %}
-                                    <span class="badge bg-dark rounded-pill">skládáno {{ fastest_player.solvedTimes }}x</span>
-                                {% endif %}
-                            </td>
-
-                            <td class="text-end">
-                                {{ fastest_player.time|puzzlingTime }}
-                            </td>
-
-                            <td class="text-center">
-                                {% if fastest_player.puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ fastest_player.puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                    <span class="puzzle-title">
-                                        {% if fastest_player.puzzleAlternativeName is not null %}
-                                            {{ fastest_player.puzzleAlternativeName }}<br>
-                                            <small>({{ fastest_player.puzzleName }})</small>
-                                        {% else %}
-                                            {{ fastest_player.puzzleName }}
-                                        {% endif %}
-                                        <br>
-                                        <small>{{ fastest_player.manufacturerName }}</small>
-                                    </span>
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            {{ include('_ladder.html.twig', {
+                puzzle_solving_times: fastest_players_500_pieces
+            }) }}
 
             <p class="mb-3">
                 <a href="{{ path('ladder_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
@@ -74,66 +33,63 @@
         </div>
 
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 - 1000 dílků - SOLO</h2>
+            <h2 class="h4 mt-4">Jednotlivci - 1000 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-                <table class="table custom-table table-striped table-hover mb-0">
-                    <thead>
-                    <tr>
-                        <th></th>
-                        <th>Jméno</th>
-                        <th class="text-end">Čas</th>
-                        <th></th>
-                        <th>Puzzle</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for fastest_player in fastest_players_1000_pieces %}
-                        <tr class="{{ logged_user.profile is not null and fastest_player.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                            <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name">
-                                <a href="{{ path('player_profile', {playerId: fastest_player.playerId}) }}">
-                                    {% if logged_user.profile is not null and fastest_player.playerId in logged_user.profile.favoritePlayers  %}
-                                        <i class="ci-star-filled text-warning"></i>
-                                    {% endif %}
-                                    {{ fastest_player.playerName }}
-                                </a>
+            {{ include('_ladder.html.twig', {
+                puzzle_solving_times: fastest_players_1000_pieces
+            }) }}
 
-                                {% if fastest_player.solvedTimes > 1 %}
-                                    <span class="badge bg-dark rounded-pill">skládáno {{ fastest_player.solvedTimes }}x</span>
-                                {% endif %}
-                            </td>
+            <p class="mb-3">
+                <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+            </p>
+        </div>
+    </div>
 
-                            <td class="text-end">
-                                {{ fastest_player.time|puzzlingTime }}
-                            </td>
+    <div class="row">
+        <div class="col">
+            <h2 class="h4 mt-4">Nejrychlejších 10 - 500 dílků - Páry</h2>
 
-                            <td class="text-center">
-                                {% if fastest_player.puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ fastest_player.puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: fastest_player.puzzleId}) }}">
-                                    <span class="puzzle-title">
-                                        {% if fastest_player.puzzleAlternativeName is not null %}
-                                            {{ fastest_player.puzzleAlternativeName }}<br>
-                                            <small>({{ fastest_player.puzzleName }})</small>
-                                        {% else %}
-                                            {{ fastest_player.puzzleName }}
-                                        {% endif %}
-                                        <br>
-                                        <small>{{ fastest_player.manufacturerName }}</small>
-                                    </span>
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+            {{ include('_ladder.html.twig', {
+                puzzle_solving_times: fastest_pairs_500_pieces
+            }) }}
+
+            <p class="mb-3">
+                <a href="{{ path('ladder_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+            </p>
+        </div>
+
+        <div class="col">
+            <h2 class="h4 mt-4">Nejrychlejších 10 - 1000 dílků - Páry</h2>
+
+            {{ include('_ladder.html.twig', {
+                puzzle_solving_times: fastest_pairs_1000_pieces
+            }) }}
+
+            <p class="mb-3">
+                <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <h2 class="h4 mt-4">Nejrychlejších 10 - 500 dílků - Skupiny</h2>
+
+            {{ include('_ladder.html.twig', {
+                puzzle_solving_times: fastest_groups_500_pieces
+            }) }}
+
+            <p class="mb-3">
+                <a href="{{ path('ladder_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+            </p>
+        </div>
+
+        <div class="col">
+            <h2 class="h4 mt-4">Nejrychlejších 10 - 1000 dílků - Skupiny</h2>
+
+            {{ include('_ladder.html.twig', {
+                puzzle_solving_times: fastest_groups_1000_pieces
+            }) }}
 
             <p class="mb-3">
                 <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>

@@ -26,6 +26,7 @@ readonly final class SolvedPuzzle
         public null|string $teamId,
         /** @var null|array<Puzzler> */
         public null|array $players,
+        public int $solvedTimes,
     ) {
     }
 
@@ -46,6 +47,7 @@ readonly final class SolvedPuzzle
      *     finished_puzzle_photo: null|string,
      *     team_id?: null|string,
      *     players?: null|string,
+     *     solved_times?: int,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -71,6 +73,7 @@ readonly final class SolvedPuzzle
             finishedPuzzlePhoto: $row['finished_puzzle_photo'],
             teamId: $row['team_id'] ?? null,
             players: $players,
+            solvedTimes: $row['solved_times'] ?? 1,
         );
     }
 }

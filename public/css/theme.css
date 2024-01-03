@@ -18839,3 +18839,6 @@ html:not([dir=rtl]) .range-slider-ui.noUi-horizontal .noUi-handle {
 .flatpickr-time input.flatpickr-hour {
   font-weight: 700;
 }
+.ci-github:before {
+    content: "\eab0";
+}

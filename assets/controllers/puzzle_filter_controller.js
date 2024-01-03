@@ -8,15 +8,12 @@ export default class extends Controller {
     }
 
     populateFilters() {
-        let piecesCounts = new Set();
         let manufacturers = new Set();
 
         this.puzzleItemTargets.forEach(puzzle => {
-            piecesCounts.add(puzzle.dataset.piecesCount);
             manufacturers.add(puzzle.dataset.manufacturer);
         });
 
-        this.populateSelect(this.piecesCountTarget, Array.from(piecesCounts), "- Dílků -", true);
         this.populateSelect(this.manufacturerTarget, Array.from(manufacturers), "- Výrobce -", false);
     }
 
@@ -43,7 +40,7 @@ export default class extends Controller {
     }
 
     filterPuzzles() {
-        const piecesCount = this.piecesCountTarget.value;
+        const piecesCountRange = this.piecesCountTarget.value;
         const puzzleNameInput = this.normalizeString(this.puzzleNameTarget.value);
         const manufacturer = this.manufacturerTarget.value;
         const onlyAvailable = this.availabilityTarget.checked;
@@ -51,7 +48,8 @@ export default class extends Controller {
         let anyVisible = false;
 
         this.puzzleItemTargets.forEach(puzzle => {
-            const matchesPiecesCount = piecesCount === "" || puzzle.dataset.piecesCount === piecesCount;
+            const puzzlePiecesCount = parseInt(puzzle.dataset.piecesCount, 10);
+            const matchesPiecesCount = this.matchesPiecesCount(puzzlePiecesCount, piecesCountRange);
             const puzzleName = this.normalizeString(puzzle.dataset.puzzleName);
             const puzzleAlternativeName = this.normalizeString(puzzle.dataset.puzzleAlternativeName);
             const matchesName = puzzleNameInput === "" || puzzleName.includes(puzzleNameInput) || puzzleAlternativeName.includes(puzzleNameInput);
@@ -67,6 +65,20 @@ export default class extends Controller {
 
             this.updateNoResultsMessage(anyVisible);
         });
+    }
+
+    matchesPiecesCount(puzzlePiecesCount, range) {
+        if (range === "") return true;
+
+        // Check if the range contains a dash, indicating it's a range
+        if (range.includes('-')) {
+            const [min, max] = range.split('-').map(Number);
+            // If max is not defined (i.e., range like "1001-"), compare only with min
+            return puzzlePiecesCount >= min && (max ? puzzlePiecesCount <= max : true);
+        } else {
+            // If no dash, it's an exact value
+            return puzzlePiecesCount === parseInt(range, 10);
+        }
     }
 
     updateNoResultsMessage(anyVisible) {

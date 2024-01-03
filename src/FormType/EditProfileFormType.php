@@ -58,7 +58,7 @@ final class EditProfileFormType extends AbstractType
         ]);
 
         $builder->add('bio', TextareaType::class, [
-            'label' => 'O mě (bio)',
+            'label' => 'O mně (bio)',
             'required' => false,
         ]);
 

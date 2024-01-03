@@ -41,7 +41,7 @@ export default class extends Controller {
 
     filterPuzzles() {
         const piecesCountRange = this.piecesCountTarget.value;
-        const puzzleNameInput = this.normalizeString(this.puzzleNameTarget.value);
+        const searchInput = this.normalizeString(this.puzzleNameTarget.value);
         const manufacturer = this.manufacturerTarget.value;
         const onlyAvailable = this.availabilityTarget.checked;
         const onlyWithTime = this.withTimeTarget.checked;
@@ -50,13 +50,15 @@ export default class extends Controller {
         this.puzzleItemTargets.forEach(puzzle => {
             const puzzlePiecesCount = parseInt(puzzle.dataset.piecesCount, 10);
             const matchesPiecesCount = this.matchesPiecesCount(puzzlePiecesCount, piecesCountRange);
+            const puzzleCode = puzzle.dataset.puzzleCode || "";
             const puzzleName = this.normalizeString(puzzle.dataset.puzzleName);
             const puzzleAlternativeName = this.normalizeString(puzzle.dataset.puzzleAlternativeName);
-            const matchesName = puzzleNameInput === "" || puzzleName.includes(puzzleNameInput) || puzzleAlternativeName.includes(puzzleNameInput);
             const matchesManufacturer = manufacturer === "" || puzzle.dataset.manufacturer === manufacturer;
             const matchesAvailability = !onlyAvailable || puzzle.dataset.available === "1";
             const matchesWithTime = !onlyWithTime || puzzle.dataset.hasTime === "1";
-            const isVisible = matchesPiecesCount && matchesName && matchesManufacturer && matchesAvailability && matchesWithTime;
+            const matchesNameOrCode = searchInput === "" || puzzleName.includes(searchInput) || puzzleAlternativeName.includes(searchInput) || puzzleCode.includes(searchInput);
+
+            const isVisible = matchesPiecesCount && matchesNameOrCode && matchesManufacturer && matchesAvailability && matchesWithTime;
 
             puzzle.style.display = isVisible ? '' : 'none';
             if (isVisible) {

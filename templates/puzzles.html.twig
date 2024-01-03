@@ -21,7 +21,7 @@
                 <!-- Options will be populated by JavaScript -->
             </select>
 
-            <input class="form-control" type="text" data-puzzle-filter-target="puzzleName" data-action="input->puzzle-filter#filterPuzzles" placeholder="Puzzle...">
+            <input class="form-control" type="text" data-puzzle-filter-target="puzzleName" data-action="input->puzzle-filter#filterPuzzles" placeholder="Název puzzlí nebo kód...">
 
         </div>
 
@@ -43,6 +43,7 @@
                 data-puzzle-filter-target="puzzleItem"
                 data-pieces-count="{{ puzzle.piecesCount }}"
                 data-puzzle-name="{{ puzzle.puzzleName }}"
+                data-puzzle-code="{{ puzzle.puzzleIdentificationNumber }}"
                 data-puzzle-alternative-name="{{ puzzle.puzzleAlternativeName }}"
                 data-manufacturer="{{ puzzle.manufacturerName }}"
                 data-available="{{ puzzle.isAvailable ? 1 : 0 }}"
@@ -56,6 +57,9 @@
                                 <br><small>{{ puzzle.puzzleName }}</small>
                             {% else %}
                                 {{ puzzle.puzzleName }}
+                            {% endif %}
+                            {% if puzzle.puzzleIdentificationNumber is not null %}
+                                <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
                             {% endif %}
                         </a>
                     </div>

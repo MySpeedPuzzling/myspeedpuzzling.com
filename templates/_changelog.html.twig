@@ -1,0 +1,15 @@
+{% for date, changes in changelog %}
+    <div class="shadow-lg p-4 mt-3">
+        <h5 class="mt-0 mb-3">{{ date }}</h5>
+        <ul class="mb-0">
+            {% for change in changes %}
+                <li>
+                    {{ change.title|raw }}
+                    {% if change.text is not null %}
+                        <br><small>{{ change.text|raw }}</small>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endfor %}

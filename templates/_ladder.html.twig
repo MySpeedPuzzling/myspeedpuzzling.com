@@ -14,12 +14,30 @@
             <tr class="{{ logged_user.profile is not null and solving_time.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                 <td class="rank">{{ loop.index }}.</td>
                 <td class="player-name">
-                    <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
-                        {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers  %}
-                            <i class="ci-star-filled text-warning"></i>
-                        {% endif %}
-                        {{ solving_time.playerName }}
-                    </a>
+                    {% if solving_time.players is null %}
+                        <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
+                            {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers  %}
+                                <i class="ci-star-filled text-warning"></i>
+                            {% endif %}
+                            {{ solving_time.playerName }}
+                        </a>
+                    {% else %}
+                        {% for puzzle_solver in solving_time.players %}
+                            {% if not loop.first %}
+                                <br>
+                            {% endif %}
+                            {% if puzzle_solver.playerId is not null %}
+                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                    {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers  %}
+                                        <i class="ci-star-filled text-warning"></i>
+                                    {% endif %}
+                                    {{ puzzle_solver.playerName }}
+                                </a>
+                            {% else %}
+                                {{ puzzle_solver.playerName }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
 
                     {% if solving_time.solvedTimes > 1 %}
                         <span class="badge bg-dark rounded-pill">skládáno {{ solving_time.solvedTimes }}x</span>

@@ -1,23 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Žebříček{% endblock %}
+{% block title %}Žebříček - Přehled{% endblock %}
 
 {% block content %}
-    <h1>Žebříček</h1>
-
-    <div class="dropdown">
-        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Přehled
-        </button>
-        <div class="dropdown-menu">
-            <a href="#" class="dropdown-item">Jednotlivci - 500 dílků</a>
-            <a href="#" class="dropdown-item">Jednotlivci - 1000 dílků</a>
-            <a href="#" class="dropdown-item">Páry - 500 dílků</a>
-            <a href="#" class="dropdown-item">Páry - 1000 dílků</a>
-            <a href="#" class="dropdown-item">Skupiny - 500 dílků</a>
-            <a href="#" class="dropdown-item">Skupiny - 1000 dílků</a>
-        </div>
-    </div>
+    <h1>Žebříček {{ include('_ladder_dropdown.html.twig') }}</h1>
 
     <div class="row">
         <div class="col">
@@ -28,7 +14,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('ladder_solo_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
             </p>
         </div>
 
@@ -40,59 +26,59 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('ladder_solo_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
             </p>
         </div>
     </div>
 
     <div class="row">
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 - 500 dílků - Páry</h2>
+            <h2 class="h4 mt-4">Páry - 500 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_pairs_500_pieces
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('ladder_pairs_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
             </p>
         </div>
 
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 - 1000 dílků - Páry</h2>
+            <h2 class="h4 mt-4">Páry - 1000 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_pairs_1000_pieces
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('ladder_pairs_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
             </p>
         </div>
     </div>
 
     <div class="row">
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 - 500 dílků - Skupiny</h2>
+            <h2 class="h4 mt-4">Skupiny - 500 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_groups_500_pieces
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('ladder_groups_500_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
             </p>
         </div>
 
         <div class="col">
-            <h2 class="h4 mt-4">Nejrychlejších 10 - 1000 dílků - Skupiny</h2>
+            <h2 class="h4 mt-4">Skupiny - 1000 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_groups_1000_pieces
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('ladder_groups_1000_pieces') }}" class="btn btn-outline-primary btn-sm">Zobrazit více</a>
             </p>
         </div>
     </div>

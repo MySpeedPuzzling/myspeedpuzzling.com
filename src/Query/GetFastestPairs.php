@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 
-readonly final class GetFastestPlayers
+readonly final class GetFastestPairs
 {
     public function __construct(
         private Connection $database,
@@ -29,20 +29,28 @@ SELECT
     comment,
     tracked_at,
     finished_puzzle_photo,
-    MIN(puzzle_solving_time.seconds_to_solve) AS time,
+    puzzle_solving_time.seconds_to_solve AS time,
     player.name AS player_name,
     player.id AS player_id,
-    COUNT(puzzle_solving_time.puzzle_id) AS solved_times,
     manufacturer.name AS manufacturer_name,
-    puzzle_solving_time AS time_id
+    puzzle_solving_time AS time_id,
+    puzzle_solving_time.team ->> 'team_id' AS team_id,
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'player_id', player_elem ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem ->> 'player_name')
+        )
+    ) AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
+LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem
+LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
 WHERE puzzle.pieces_count = :piecesCount
-    AND puzzle_solving_time.team IS NULL
-    AND player.name IS NOT NULL
-GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id
+    AND puzzle_solving_time.team IS NOT NULL
+    AND json_array_length(team -> 'puzzlers') = 2
+GROUP BY puzzle.id, player.id, manufacturer.id, puzzle_solving_time.id
 ORDER BY time ASC
 LIMIT :howManyPlayers
 SQL;
@@ -66,7 +74,6 @@ SQL;
              *     solved_times: int,
              *     manufacturer_name: string,
              *     time_id: string,
-             *     solved_times: int,
              *     finished_puzzle_photo: null|string,
              *     tracked_at: string,
              *     pieces_count: int,

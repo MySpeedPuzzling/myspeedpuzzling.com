@@ -1,9 +1,43 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Žebříček puzzlerů - {{ pieces_count}} dílků{% endblock %}
+{% block title %}
+    {% set currentLadder = app.request.attributes.get('_route') %}
+
+    {% if currentLadder == 'ladder_solo_500_pieces' %}
+        Žebříček - Jednotlivci - 500 dílků
+    {% elseif currentLadder == 'ladder_solo_1000_pieces' %}
+        Žebříček - Jednotlivci - 1000 dílků
+    {% elseif currentLadder == 'ladder_pairs_500_pieces' %}
+        Žebříček - Páry - 500 dílků
+    {% elseif currentLadder == 'ladder_pairs_1000_pieces' %}
+        Žebříček - Páry - 1000 dílků
+    {% elseif currentLadder == 'ladder_groups_500_pieces' %}
+        Žebříček - Skupiny - 500 dílků
+    {% elseif currentLadder == 'ladder_groups_1000_pieces' %}
+        Žebříček - Skupiny - 1000 dílků
+    {% endif %}
+{% endblock %}
 
 {% block content %}
-    <h1>Žebříček puzzlerů - {{ pieces_count}} dílků</h1>
+    {% set currentLadder = app.request.attributes.get('_route') %}
+
+    <h1>Žebříček {{ include('_ladder_dropdown.html.twig') }}</h1>
+
+    <h2 class="h4 mt-4">
+        {% if currentLadder == 'ladder_solo_500_pieces' %}
+            Jednotlivci - 500 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span>
+        {% elseif currentLadder == 'ladder_solo_1000_pieces' %}
+            Jednotlivci - 1000 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span>
+        {% elseif currentLadder == 'ladder_pairs_500_pieces' %}
+            Páry - 500 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span>
+        {% elseif currentLadder == 'ladder_pairs_1000_pieces' %}
+            Páry - 1000 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span>
+        {% elseif currentLadder == 'ladder_groups_500_pieces' %}
+            Skupiny - 500 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span>
+        {% elseif currentLadder == 'ladder_groups_1000_pieces' %}
+            Skupiny - 1000 dílků <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span>
+        {% endif %}
+    </h2>
 
     {{ include('_ladder.html.twig', {
         puzzle_solving_times: solved_puzzle_times

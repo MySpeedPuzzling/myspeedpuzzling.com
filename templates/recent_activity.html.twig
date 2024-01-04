@@ -32,14 +32,14 @@
                                     <br>
                                 {% endif %}
                                 {% if puzzle_solver.playerId is not null %}
-                                    <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                    <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                         {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers  %}
                                             <i class="ci-star-filled text-warning"></i>
                                         {% endif %}
                                         {{ puzzle_solver.playerName }}
                                     </a>
                                 {% else %}
-                                    {{ puzzle_solver.playerName }}
+                                    <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
                                 {% endif %}
                             {% endfor %}
                         {% endif %}

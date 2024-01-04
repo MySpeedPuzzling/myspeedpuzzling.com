@@ -70,17 +70,17 @@
 
                 {# Display player names for groups #}
                 {% if solved_puzzle[0].players is not null %}
-                    <td>
+                    <td class="player-name">
                         {% for puzzle_solver in solved_puzzle[0].players %}
                             {% if not loop.first %}
                                 <br>
                             {% endif %}
                             {% if puzzle_solver.playerId is not null %}
-                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                     {{ puzzle_solver.playerName }}
                                 </a>
                             {% else %}
-                                {{ puzzle_solver.playerName }}
+                                <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
                             {% endif %}
                         {% endfor %}
                     </td>
@@ -99,6 +99,7 @@
                     {% endfor %}
 
                     {% if solved_puzzle|length > 1 %}
+                        <br>
                         <a href="#" class="show-more-times">
                             <span class="badge bg-dark badge-shadow rounded-pill">Zobrazit další časy ({{ solved_puzzle|length -1 }}x)</span>
                         </a>

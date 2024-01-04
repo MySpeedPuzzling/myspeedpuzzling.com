@@ -54,7 +54,7 @@
                             <tr class="{{ logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                                 <td class="player-name">
                                     {% if solved_puzzle.players is null %}
-                                        <a href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
                                             {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers  %}
                                                 <i class="ci-star-filled text-warning"></i>
                                             {% endif %}
@@ -66,14 +66,14 @@
                                                 <br>
                                             {% endif %}
                                             {% if puzzle_solver.playerId is not null %}
-                                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                                <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                                     {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers  %}
                                                         <i class="ci-star-filled text-warning"></i>
                                                     {% endif %}
                                                     {{ puzzle_solver.playerName }}
                                                 </a>
                                             {% else %}
-                                                {{ puzzle_solver.playerName }}
+                                                <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
                                             {% endif %}
                                         {% endfor %}
                                     {% endif %}

@@ -5,6 +5,8 @@
 {% block content %}
     <h1>Puzzle</h1>
 
+    <p class="my-3 text-muted">Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času.</p>
+
     <div {{ stimulus_controller('puzzle_filter') }} class="mt-4">
         <small class="text-muted fw-bold">Filtrovat podle:</small>
         <div class="puzzle-filter input-group shadow-lg mb-3" style="max-width: 700px;">
@@ -34,8 +36,6 @@
             <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="withTime" class="form-check-input" type="checkbox" id="with-time-only-filter">
             <label class="form-check-label" for="with-time-only-filter">Pouze se zadaným časem</label>
         </div>
-
-        <p class="my-3 text-muted">Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času.</p>
 
         {% for puzzle in puzzles %}
             <div

@@ -104,151 +104,26 @@
         </div>
     </div>
 
-    <div class="row mt-5">
-        <div class="col">
-            <h2 class="h4">Poskládané puzzle</h2>
+    <div {{ stimulus_controller('puzzle_filter') }}>
+        <h2 class="h4 mt-4">Poskládané puzzle</h2>
 
-            <div class="table-responsive custom-table-wrapper mt-2 mb-5">
-                <table class="table table-striped table-hover mb-0">
-                    <thead>
-                    <tr>
-                        <th></th>
-                        <th>Puzzle</th>
-                        <th class="text-center">Rank</th>
-                        <th class="text-end">Čas</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for puzzle_id, grouped_puzzle in solo_puzzles %}
-                        <tr>
-                            <td class="text-center">
-                                {% if grouped_puzzle[0].puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ grouped_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                    <span class="puzzle-title">
-                                        {% if grouped_puzzle[0].puzzleAlternativeName is not null %}
-                                            {{ grouped_puzzle[0].puzzleAlternativeName }}<br>
-                                            <small>({{ grouped_puzzle[0].puzzleName }})</small>
-                                        {% else %}
-                                            {{ grouped_puzzle[0].puzzleName }}
-                                        {% endif %}
-                                        <br>
-                                        <small>{{ grouped_puzzle[0].manufacturerName }}</small>
-                                    </span>
-                                    <br>{{ grouped_puzzle[0].piecesCount }}&nbsp;dílků
-                                </a>
-                            </td>
+        {{ include('_puzzle_filter.html.twig') }}
 
-                            <td class="text-center">
-                                {{ ranking[puzzle_id].rank }}.
-                            </td>
+        <div class="row">
+            <div class="col-sm">
+                <h2 class="h4">Jednotlivec</h2>
 
-                            <td class="text-end">
-                                {% for puzzle in grouped_puzzle %}
-                                    {% if loop.first %}
-                                        {{ puzzle.time|puzzlingTime }}
-
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% if grouped_puzzle|length > 1 %}
-                                    <a href="#" class="show-more-times">
-                                        <span class="badge bg-dark badge-shadow rounded-pill">Zobrazit další časy ({{ grouped_puzzle|length -1 }}x)</span>
-                                    </a>
-
-                                    <div class="more-times hidden">
-                                        {% for puzzle in grouped_puzzle %}
-                                            {% if not loop.first %}
-                                                {{ puzzle.time|puzzlingTime }}
-                                                {% if not loop.last %}
-                                                    <br>
-                                                {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    {% if solo_puzzles|length < 1 %}
-                        <tr>
-                            <td colspan="4" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
-                        </tr>
-                    {% endif %}
-                    </tbody>
-                </table>
+                <div class="mt-2 mb-5">
+                    {{ include('_player_solvings.html.twig', {solved_puzzles: solo_puzzles}) }}
+                </div>
             </div>
-        </div>
 
-        <div class="col">
-            <h2 class="h4">Skupinové skládání</h2>
+            <div class="col-sm">
+                <h2 class="h4">Skupinové skládání</h2>
 
-            <div class="table-responsive custom-table-wrapper mt-2 mb-5">
-                <table class="table table-striped table-hover mb-0">
-                    <thead>
-                    <tr>
-                        <th></th>
-                        <th>Puzzle</th>
-                        <th></th>
-                        <th class="text-end">Čas</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for group_solved_puzzle in group_puzzles %}
-                        <tr>
-                            <td class="text-center">
-                                {% if group_solved_puzzle.puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ group_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: group_solved_puzzle.puzzleId}) }}">
-                                    <span class="puzzle-title">
-                                        {% if group_solved_puzzle.puzzleAlternativeName is not null %}
-                                            {{ group_solved_puzzle.puzzleAlternativeName }}<br>
-                                            <small>({{ group_solved_puzzle.puzzleName }})</small>
-                                        {% else %}
-                                            {{ group_solved_puzzle.puzzleName }}
-                                        {% endif %}
-                                        <br>
-                                        <small>{{ group_solved_puzzle.manufacturerName }}</small>
-                                    </span>
-                                    <br>{{ group_solved_puzzle.piecesCount }}&nbsp;dílků
-                                </a>
-                            </td>
-
-                            <td>
-                                {% for puzzle_solver in group_solved_puzzle.players %}
-                                    {% if not loop.first %}
-                                        <br>
-                                    {% endif %}
-                                    {% if puzzle_solver.playerId is not null %}
-                                        <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                            {{ puzzle_solver.playerName }}
-                                        </a>
-                                    {% else %}
-                                        {{ puzzle_solver.playerName }}
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-
-                            <td class="text-end">{{ group_solved_puzzle.time|puzzlingTime }}</td>
-                        </tr>
-                    {% endfor %}
-                    {% if group_puzzles|length < 1 %}
-                        <tr>
-                            <td colspan="5" class="text-center">Žádné puzzle jsi ve skupině ještě nikdy neskládal? Tak utíkej rychle někoho najít, vyberte puzzle a skládejte!</td>
-                        </tr>
-                    {% endif %}
-                    </tbody>
-                </table>
+                <div class="mt-2 mb-5">
+                    {{ include('_player_solvings.html.twig', {solved_puzzles: group_puzzles}) }}
+                </div>
             </div>
         </div>
     </div>

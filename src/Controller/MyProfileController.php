@@ -48,7 +48,7 @@ final class MyProfileController extends AbstractController
         return $this->render('my-profile.html.twig', [
             'player' => $player,
             'solo_puzzles' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
-            'group_puzzles' => $groupSolvedPuzzles,
+            'group_puzzles' => $this->puzzlesSorter->groupPuzzles($groupSolvedPuzzles),
             'stopwatches' => $this->getStopwatch->allForPlayer($player->playerId),
             'statistics' => $playerStatistics,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),

@@ -17,7 +17,7 @@ readonly final class GetPuzzlesOverview
     /**
      * @return array<PuzzleOverview>
      */
-    public function allApprovedOrAddedByPlayer(null|string $addedByPlayerId): array
+    public function allApprovedOrAddedByPlayer(null|string $playerId): array
     {
         $query = <<<SQL
 SELECT
@@ -45,7 +45,7 @@ SQL;
 
         $data = $this->database
             ->executeQuery($query, [
-                'playerId' => $addedByPlayerId,
+                'playerId' => $playerId,
             ])
             ->fetchAllAssociative();
 

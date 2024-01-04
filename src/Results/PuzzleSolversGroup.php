@@ -19,7 +19,7 @@ readonly final class PuzzleSolversGroup
 
     /**
      * @param array{
-     *     added_by_player_id: string,
+     *     player_id: string,
      *     puzzle_id: string,
      *     time: int,
      *     comment: null|string,

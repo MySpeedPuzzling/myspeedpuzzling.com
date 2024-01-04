@@ -12,7 +12,7 @@ readonly final class SolvedPuzzleDetail
     public function __construct(
         public string $timeId,
         public null|string $teamId,
-        public string $addedByPlayerId,
+        public string $playerId,
         public string $puzzleId,
         public string $puzzleName,
         public null|string $puzzleAlternativeName,
@@ -32,7 +32,7 @@ readonly final class SolvedPuzzleDetail
      * @param array{
      *     time_id: string,
      *     team_id: null|string,
-     *     added_by_player_id: string,
+     *     player_id: string,
      *     puzzle_id: string,
      *     puzzle_name: string,
      *     puzzle_alternative_name: null|string,
@@ -50,13 +50,13 @@ readonly final class SolvedPuzzleDetail
     {
         $players = null;
         if ($row['players'] !== null) {
-            $players = Puzzler::createPuzzlersFromJson($row['players'], $row['added_by_player_id']);
+            $players = Puzzler::createPuzzlersFromJson($row['players'], $row['player_id']);
         }
 
         return new self(
             timeId: $row['time_id'],
             teamId: $row['team_id'],
-            addedByPlayerId: $row['added_by_player_id'],
+            playerId: $row['player_id'],
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             puzzleAlternativeName: $row['puzzle_alternative_name'],

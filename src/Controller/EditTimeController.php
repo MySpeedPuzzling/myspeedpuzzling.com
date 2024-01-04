@@ -39,7 +39,7 @@ final class EditTimeController extends AbstractController
 
         $solvedPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
 
-        if ($solvedPuzzle->addedByPlayerId !== $player->playerId) {
+        if ($solvedPuzzle->playerId !== $player->playerId) {
             throw $this->createAccessDeniedException();
         }
 

@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
-use SpeedPuzzling\Web\Results\GroupSolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 
@@ -34,7 +33,7 @@ SELECT
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.image AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
-    puzzle_solving_time.player_id AS added_by_player_id,
+    puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
     puzzle_solving_time.comment,
@@ -66,7 +65,7 @@ SQL;
          * @var null|array{
          *     time_id: string,
          *     team_id: null|string,
-         *     added_by_player_id: string,
+         *     player_id: string,
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     puzzle_alternative_name: null|string,
@@ -160,7 +159,7 @@ SQL;
     }
 
     /**
-     * @return array<GroupSolvedPuzzle>
+     * @return array<SolvedPuzzle>
      */
     public function inGroupByPlayerId(string $playerId): array
     {
@@ -176,9 +175,10 @@ SELECT
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.image AS puzzle_image,
     pst.seconds_to_solve AS time,
-    pst.player_id AS added_by_player_id,
+    pst.player_id AS player_id,
     pieces_count,
     finished_puzzle_photo,
+    tracked_at,
     puzzle.identification_number AS puzzle_identification_number,
     pst.comment,
     manufacturer.name AS manufacturer_name,
@@ -211,12 +211,12 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): GroupSolvedPuzzle {
+        return array_map(static function(array $row): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
              *     team_id: null|string,
-             *     added_by_player_id: string,
+             *     player_id: string,
              *     player_name: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -229,10 +229,11 @@ SQL;
              *     players: string,
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
+             *     tracked_at: string,
              * } $row
              */
 
-            return GroupSolvedPuzzle::fromDatabaseRow($row);
+            return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);
     }
 }

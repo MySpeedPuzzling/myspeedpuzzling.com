@@ -72,7 +72,7 @@ SQL;
 
         $query = <<<SQL
 SELECT
-    pst.player_id AS added_by_player_id,
+    pst.player_id AS player_id,
     pst.puzzle_id AS puzzle_id,
     pst.seconds_to_solve AS time,
     comment,
@@ -103,7 +103,7 @@ SQL;
         return array_map(static function(array $row): PuzzleSolversGroup {
             /**
              * @var array{
-             *     added_by_player_id: string,
+             *     player_id: string,
              *     puzzle_id: string,
              *     time: int,
              *     comment: null|string,

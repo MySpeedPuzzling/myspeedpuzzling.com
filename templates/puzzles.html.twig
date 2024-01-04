@@ -7,7 +7,7 @@
 
     <div {{ stimulus_controller('puzzle_filter') }} class="mt-4">
         <small class="text-muted fw-bold">Filtrovat podle:</small>
-        <div class="input-group shadow-lg mb-4" style="max-width: 700px;">
+        <div class="puzzle-filter input-group shadow-lg mb-3" style="max-width: 700px;">
             <select class="form-select" data-puzzle-filter-target="piecesCount" data-action="change->puzzle-filter#filterPuzzles">
                 <option value="">- Dílků -</option>
                 <option value="0-499">Méně než 500</option>

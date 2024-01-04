@@ -58,7 +58,7 @@ SQL;
     /**
      * @return array<string, array<PlatformChange>>
      */
-    public function recentDays(int $days = 3): array
+    public function recentDays(int $days): array
     {
         return array_slice($this->all(), 0, $days, true);
     }

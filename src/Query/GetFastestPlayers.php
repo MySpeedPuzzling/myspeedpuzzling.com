@@ -34,7 +34,8 @@ SELECT
     player.id AS player_id,
     COUNT(puzzle_solving_time.puzzle_id) AS solved_times,
     manufacturer.name AS manufacturer_name,
-    puzzle_solving_time AS time_id
+    puzzle_solving_time AS time_id,
+    puzzle.identification_number AS puzzle_identification_number,
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -71,6 +72,7 @@ SQL;
              *     tracked_at: string,
              *     pieces_count: int,
              *     comment: null|string,
+             *     puzzle_identification_number: null|string,
              * } $row
              */
 

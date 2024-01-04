@@ -33,6 +33,7 @@ SELECT
     player.name AS player_name,
     player.id AS player_id,
     manufacturer.name AS manufacturer_name,
+    puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time AS time_id,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     JSON_AGG(
@@ -78,6 +79,7 @@ SQL;
              *     tracked_at: string,
              *     pieces_count: int,
              *     comment: null|string,
+             *     puzzle_identification_number: null|string,
              * } $row
              */
 

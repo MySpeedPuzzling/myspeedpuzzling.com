@@ -43,9 +43,8 @@ export default class extends Controller {
         const piecesCountRange = this.piecesCountTarget.value;
         const searchInput = this.normalizeString(this.puzzleNameTarget.value);
         const manufacturer = this.manufacturerTarget.value;
-        const onlyAvailable = this.availabilityTarget.checked;
-        const onlyWithTime = this.withTimeTarget.checked;
-        let anyVisible = false;
+        const onlyAvailable = this.hasAvailabilityTarget && this.availabilityTarget.checked;
+        const onlyWithTime = this.hasWithTimeTarget && this.withTimeTarget.checked;
 
         this.puzzleItemTargets.forEach(puzzle => {
             const puzzlePiecesCount = parseInt(puzzle.dataset.piecesCount, 10);
@@ -61,11 +60,8 @@ export default class extends Controller {
             const isVisible = matchesPiecesCount && matchesNameOrCode && matchesManufacturer && matchesAvailability && matchesWithTime;
 
             puzzle.style.display = isVisible ? '' : 'none';
-            if (isVisible) {
-                anyVisible = true;
-            }
 
-            this.updateNoResultsMessage(anyVisible);
+            this.updateNoResultsMessage();
         });
     }
 
@@ -83,15 +79,20 @@ export default class extends Controller {
         }
     }
 
-    updateNoResultsMessage(anyVisible) {
-        const noResultsElement = document.getElementById('filter-no-results');
-        if (noResultsElement) {
-            if (anyVisible) {
-                noResultsElement.classList.add('hidden');
-            } else {
-                noResultsElement.classList.remove('hidden');
+    updateNoResultsMessage() {
+        document.querySelectorAll('.filter-no-results').forEach(noResultsElement => {
+            // Find the common ancestor element that contains both the noResultsElement and puzzle items
+            let commonAncestor = noResultsElement.parentElement;
+            while (commonAncestor && !commonAncestor.querySelector('[data-puzzle-filter-target="puzzleItem"]')) {
+                commonAncestor = commonAncestor.parentElement;
             }
-        }
+
+            if (commonAncestor) {
+                const puzzleItems = commonAncestor.querySelectorAll('[data-puzzle-filter-target="puzzleItem"]');
+                const anyVisible = Array.from(puzzleItems).some(item => item.style.display !== 'none');
+                noResultsElement.classList.toggle('hidden', anyVisible);
+            }
+        });
     }
 
     normalizeString(str) {

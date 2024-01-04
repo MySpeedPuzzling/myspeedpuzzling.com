@@ -27,6 +27,7 @@ readonly final class SolvedPuzzle
         /** @var null|array<Puzzler> */
         public null|array $players,
         public int $solvedTimes,
+        public null|string $puzzleIdentificationNumber,
     ) {
     }
 
@@ -45,6 +46,7 @@ readonly final class SolvedPuzzle
      *     comment: null|string,
      *     tracked_at: string,
      *     finished_puzzle_photo: null|string,
+     *     puzzle_identification_number: null|string,
      *     team_id?: null|string,
      *     players?: null|string,
      *     solved_times?: int,
@@ -74,6 +76,7 @@ readonly final class SolvedPuzzle
             teamId: $row['team_id'] ?? null,
             players: $players,
             solvedTimes: $row['solved_times'] ?? 1,
+            puzzleIdentificationNumber: $row['puzzle_identification_number'],
         );
     }
 }

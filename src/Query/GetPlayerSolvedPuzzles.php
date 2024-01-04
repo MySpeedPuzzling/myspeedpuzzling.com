@@ -114,6 +114,7 @@ SELECT
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
+    puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.comment,
     puzzle_solving_time.tracked_at,
     manufacturer.name AS manufacturer_name,
@@ -150,6 +151,7 @@ SQL;
              *     comment: null|string,
              *     tracked_at: string,
              *     finished_puzzle_photo: null|string,
+             *     puzzle_identification_number: null|string,
              * } $row
              */
 
@@ -177,6 +179,7 @@ SELECT
     pst.player_id AS added_by_player_id,
     pieces_count,
     finished_puzzle_photo,
+    puzzle.identification_number AS puzzle_identification_number,
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
@@ -225,6 +228,7 @@ SQL;
              *     comment: null|string,
              *     players: string,
              *     finished_puzzle_photo: null|string,
+             *     puzzle_identification_number: null|string,
              * } $row
              */
 

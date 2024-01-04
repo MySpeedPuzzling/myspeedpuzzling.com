@@ -5,8 +5,8 @@
 {% block content %}
     <h1>Stopky</h1>
 
-    <div class="container pb-4 mt-4">
-        <div class="row align-items-center justify-content-center gy-3 pb-3 text-center">
+    <div class="container mt-3">
+        <div class="row align-items-center justify-content-center gy-3 text-center">
             <div class="col-lg-6 col-md-8 col-sm-10">
                 <div
                     class="stopwatch justify-content-center"
@@ -28,7 +28,7 @@
                     </span>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-2">
                     {% if active_stopwatch is null %}
                         <a href="{% if active_puzzle is not null %}{{ path('start_stopwatch', {puzzleId: active_puzzle.puzzleId}) }}{% else %}{{ path('start_stopwatch') }}{% endif %}" class="btn btn-success btn-lg">Start</a>
                     {% elseif active_stopwatch.status.value is same as 'running' %}
@@ -74,7 +74,7 @@
     </div>
 
     {% if stopwatches|length > 1 or (stopwatches|length is same as 1 and active_stopwatch is null)  %}
-        <h3 class="mt-5">Další moje stopky</h3>
+        <h3 class="mt-4">Další moje stopky</h3>
 
         <ul>
             {% for stopwatch in stopwatches %}

@@ -12,6 +12,7 @@ main {
 
 .stopwatch {
     font-size: 30px;
+    font-variant-numeric: tabular-nums;
 
     .countdown-value {
         font-size: 54px;

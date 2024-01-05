@@ -210,3 +210,19 @@ main {
     line-height: 125%;
     display: inline-block;
 }
+
+.icon-with-text {
+    position: relative;
+    display: inline-block;
+}
+
+.icon-with-text i {
+    font-size: 50px;
+}
+
+.icon-with-text span {
+    position: absolute;
+    top: 50%;  /* Adjust text position */
+    left: 50%;
+    transform: translate(-50%, -50%);
+}

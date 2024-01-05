@@ -8,7 +8,6 @@
     <div class="mb-4">
         {{ form_start(search_form, {'action': path('puzzlers'), 'method': 'POST'}) }}
 
-            {{ form_label(search_form.search) }}
             <div class="input-group" style="max-width: 400px;">
                 {{ form_widget(search_form.search, {'attr': {'class': 'form-control'}}) }}
                 <button class="btn btn-primary btn-icon" type="submit">
@@ -29,8 +28,12 @@
 
             {% if found_players is not empty %}
                 {% for found_player in found_players %}
-                    <div>
+                    <div class="pb-1">
                         <a href="{{ path('player_profile', {playerId: found_player.playerId}) }}">
+                            {% if logged_user is not null and found_player.playerId in logged_user.profile.favoritePlayers %}
+                                <i class="ci-star-filled text-warning"></i>
+                            {% endif %}
+
                             {{ found_player.playerName }}
                             <code class="text-muted">#{{ found_player.playerCode|upper }}</code>
                         </a>
@@ -45,12 +48,12 @@
     <div class="row">
         {% if favorite_players is not null and favorite_players is not empty %}
             <div class="col-sm">
-                <h3 class="mt-3">Moji oblíbení puzzleři</h3>
+                <h3 class="mt-4">Moji oblíbení</h3>
 
                 {% for favorite_player in favorite_players %}
-                    <div>
+                    <div class="pb-1">
                         <a href="{{ path('player_profile', {playerId: favorite_player.playerId}) }}">
-                            {{ favorite_player.playerName }}
+                            <i class="ci-star-filled text-warning"></i> {{ favorite_player.playerName }}
                             <code class="text-muted">#{{ favorite_player.playerCode|upper }}</code>
                         </a>
                     </div>
@@ -59,12 +62,17 @@
         {% endif %}
 
         <div class="col-sm">
-            <h3 class="mt-3">Nejpopulárnější</h3>
+            <h3 class="mt-4">Nejpopulárnější</h3>
 
             {% for most_favorite_player in most_favorite_players %}
-                <div>
-                    {{ most_favorite_player.favoriteCount }}x
+                <div class="pb-1">
                     <a href="{{ path('player_profile', {playerId: most_favorite_player.playerId}) }}">
+                        <span class="badge rounded-pill bg-warning me-1" style="margin-top: 2px;float: left;">{{ most_favorite_player.favoriteCount }}</span>
+
+                        {% if logged_user is not null and most_favorite_player.playerId in logged_user.profile.favoritePlayers %}
+                            <i class="ci-star-filled text-warning"></i>
+                        {% endif %}
+
                         {{ most_favorite_player.playerName }}
                         <code class="text-muted">#{{ most_favorite_player.playerCode|upper }}</code>
                     </a>

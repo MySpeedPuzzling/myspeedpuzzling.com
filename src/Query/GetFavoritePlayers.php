@@ -7,7 +7,8 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Results\FavoritePlayer;
+use SpeedPuzzling\Web\Results\MostFavoritePlayer;
+use SpeedPuzzling\Web\Results\PlayerIdentification;
 
 readonly final class GetFavoritePlayers
 {
@@ -17,8 +18,8 @@ readonly final class GetFavoritePlayers
     }
 
     /**
+     * @return array<PlayerIdentification>
      * @throws PlayerNotFound
-     * @return array<FavoritePlayer>
      */
     public function forPlayerId(string $playerId): array
     {
@@ -43,7 +44,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): FavoritePlayer {
+        return array_map(static function(array $row): PlayerIdentification {
             /**
              * @var array{
              *     player_id: string,
@@ -52,7 +53,45 @@ SQL;
              * } $row
              */
 
-            return FavoritePlayer::fromDatabaseRow($row);
+            return PlayerIdentification::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<MostFavoritePlayer>
+     */
+    public function mostFavorite(int $limit): array
+    {
+        $query = <<<SQL
+SELECT 
+    fav_player.id AS player_id, 
+    fav_player.name AS player_name, 
+    fav_player.code AS player_code, 
+    COUNT(fav_player.id) AS favorite_count
+FROM player
+CROSS JOIN LATERAL JSON_ARRAY_ELEMENTS_TEXT(player.favorite_players) AS fav_player_id
+JOIN player fav_player ON fav_player_id::uuid = fav_player.id
+GROUP BY fav_player.id, fav_player.name, fav_player.code
+ORDER BY favorite_count DESC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'limit' => $limit,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): MostFavoritePlayer {
+            /**
+             * @var array{
+             *     player_id: string,
+             *     player_code: string,
+             *     player_name: null|string,
+             *     favorite_count: int,
+             * } $row
+             */
+
+            return MostFavoritePlayer::fromDatabaseRow($row);
         }, $data);
     }
 }

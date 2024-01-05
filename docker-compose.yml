@@ -11,6 +11,7 @@ services:
         volumes:
             - .:/app
             - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
+            - .docker/php.ini:/usr/local/etc/php/conf.d/99-php-overrides.ini
         depends_on:
             - postgres
         ports:

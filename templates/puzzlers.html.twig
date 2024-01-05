@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Puzzleři{% endblock %}
+
+{% block content %}
+    <h1>Puzzleři</h1>
+
+    <div class="mb-4">
+        {{ form_start(search_form, {'action': path('puzzlers'), 'method': 'POST'}) }}
+
+            {{ form_label(search_form.search) }}
+            <div class="input-group" style="max-width: 400px;">
+                {{ form_widget(search_form.search, {'attr': {'class': 'form-control'}}) }}
+                <button class="btn btn-primary btn-icon" type="submit">
+                    <i class="ci-search"></i>
+                </button>
+            </div>
+            {{ form_errors(search_form.search) }}
+            {{ form_help(search_form.search) }}
+
+        {{ form_end(search_form) }}
+
+
+        {% if search_string is not null %}
+
+            <p class="mt-3">
+                Výsledky vyhledávání pro výraz: <strong>{{ search_string }}</strong>
+            </p>
+
+            {% if found_players is not empty %}
+                {% for found_player in found_players %}
+                    <div>
+                        <a href="{{ path('player_profile', {playerId: found_player.playerId}) }}">
+                            {{ found_player.playerName }}
+                            <code class="text-muted">#{{ found_player.playerCode|upper }}</code>
+                        </a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-warning">Nebyly nalezeny žádné shody</div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="row">
+        {% if favorite_players is not null and favorite_players is not empty %}
+            <div class="col-sm">
+                <h3 class="mt-3">Moji oblíbení puzzleři</h3>
+
+                {% for favorite_player in favorite_players %}
+                    <div>
+                        <a href="{{ path('player_profile', {playerId: favorite_player.playerId}) }}">
+                            {{ favorite_player.playerName }}
+                            <code class="text-muted">#{{ favorite_player.playerCode|upper }}</code>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="col-sm">
+            <h3 class="mt-3">Nejpopulárnější</h3>
+
+            {% for most_favorite_player in most_favorite_players %}
+                <div>
+                    {{ most_favorite_player.favoriteCount }}x
+                    <a href="{{ path('player_profile', {playerId: most_favorite_player.playerId}) }}">
+                        {{ most_favorite_player.playerName }}
+                        <code class="text-muted">#{{ most_favorite_player.playerCode|upper }}</code>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+{% endblock %}

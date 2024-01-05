@@ -57,6 +57,9 @@ final class FinishStopwatchController extends AbstractController
             ]);
         }
 
+        /** @var array<string> $groupPlayers */
+        $groupPlayers = $request->request->all('group_players');
+
         $addTimeForm = $this->createForm(SaveStopwatchFormType::class, new SaveStopwatchFormData());
         $addTimeForm->handleRequest($request);
 
@@ -98,9 +101,6 @@ final class FinishStopwatchController extends AbstractController
             }
 
             if ($data->puzzleId !== null) {
-                /** @var array<string> $groupPlayers */
-                $groupPlayers = $request->request->all('group_players');
-
                 $this->messageBus->dispatch(
                     new AddPuzzleSolvingTime(
                         userId: $userId,
@@ -146,6 +146,7 @@ final class FinishStopwatchController extends AbstractController
             'active_puzzle' => $activePuzzle,
             'puzzles' => $puzzlesPerManufacturer,
             'add_puzzle_solving_time_form' => $addTimeForm,
+            'filled_group_players' => $groupPlayers,
         ]);
     }
 }

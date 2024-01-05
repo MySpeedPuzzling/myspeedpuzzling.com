@@ -167,7 +167,14 @@
                     {{ form_help(add_puzzle_solving_time_form.finishedAt) }}
                 </div>
 
-                <div id="puzzlers-group"></div>
+                <div id="puzzlers-group">
+                    {% for filled_group_player in filled_group_players %}
+                        {{ include('_group_puzzler_input.html.twig', {
+                            inputId: loop.index,
+                            inputValue: filled_group_player,
+                        }) }}
+                    {% endfor %}
+                </div>
 
                 <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
 
@@ -190,17 +197,7 @@
     {{ form_end(add_puzzle_solving_time_form) }}
 
     <div id="puzzler-input-template">
-        <div data-puzzler class="mb-3">
-            <label class="form-label required">Spoluskládající <span data-counter></span></label>
-
-            <div class="input-group">
-                <input name="group_players[]" class="form-control" type="text">
-                <button data-remove-player class="btn btn-white border btn-icon" type="button">
-                    <i class="ci-trash text-danger"></i>
-                </button>
-            </div>
-            <div class="form-text">Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno.</div>
-        </div>
+        {{ include('_group_puzzler_input.html.twig') }}
     </div>
 
 

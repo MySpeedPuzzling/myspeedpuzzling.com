@@ -43,6 +43,9 @@ final class EditTimeController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        /** @var array<string> $groupPlayers */
+        $groupPlayers = $request->request->all('group_players');
+
         $defaultData = new EditPuzzleSolvingTimeFormData();
         $defaultData->time = $this->timeFormatter->formatTime($solvedPuzzle->time);
         $defaultData->comment = $solvedPuzzle->comment;
@@ -54,9 +57,6 @@ final class EditTimeController extends AbstractController
         if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
             $data = $editTimeForm->getData();
             assert($data instanceof EditPuzzleSolvingTimeFormData);
-
-            /** @var array<string> $groupPlayers */
-            $groupPlayers = $request->request->all('group_players');
 
             $this->messageBus->dispatch(
                 EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
@@ -70,6 +70,7 @@ final class EditTimeController extends AbstractController
         return $this->render('edit-time.html.twig', [
             'solved_puzzle' => $solvedPuzzle,
             'edit_puzzle_solving_time_form' => $editTimeForm,
+            'filled_group_players' => $groupPlayers,
         ]);
     }
 }

@@ -1,0 +1,14 @@
+<div data-puzzler class="mb-3">
+    <label class="form-label required" {% if inputId is defined %}for="playerInput-{{ inputId }}"{% endif %}>
+        Spoluskládající
+        <span data-counter>{% if inputId is defined %}{{ inputId }}{% endif %}</span>
+    </label>
+
+    <div class="input-group">
+        <input name="group_players[]" class="form-control" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
+        <button data-remove-player class="btn btn-white border btn-icon" type="button">
+            <i class="ci-trash text-danger"></i>
+        </button>
+    </div>
+    <div class="form-text">Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno.</div>
+</div>

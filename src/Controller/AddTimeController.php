@@ -43,6 +43,9 @@ final class AddTimeController extends AbstractController
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
         }
 
+        /** @var array<string> $groupPlayers */
+        $groupPlayers = $request->request->all('group_players');
+
         $addTimeForm = $this->createForm(AddPuzzleSolvingTimeFormType::class, new AddPuzzleSolvingTimeFormData());
         $addTimeForm->handleRequest($request);
 
@@ -78,9 +81,6 @@ final class AddTimeController extends AbstractController
             }
 
             if ($data->puzzleId !== null) {
-                /** @var array<string> $groupPlayers */
-                $groupPlayers = $request->request->all('group_players');
-
                 try {
                     $this->messageBus->dispatch(
                         AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
@@ -114,6 +114,7 @@ final class AddTimeController extends AbstractController
             'active_puzzle' => $activePuzzle,
             'puzzles' => $puzzlesPerManufacturer,
             'add_puzzle_solving_time_form' => $addTimeForm,
+            'filled_group_players' => $groupPlayers,
         ]);
     }
 }

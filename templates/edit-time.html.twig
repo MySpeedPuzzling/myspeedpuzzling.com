@@ -48,19 +48,21 @@
                     </div>
 
                     <div id="puzzlers-group" class="mt-3">
-                        {% for group_puzzler in solved_puzzle.players %}
-                            <div data-puzzler class="mb-3">
-                                <label class="form-label required" for="existingPuzzler{{ loop.index }}">Spoluskládající <span data-counter>{{ loop.index }}</span></label>
-
-                                <div class="input-group">
-                                    <input name="group_players[]" id="existingPuzzler{{ loop.index }}" class="form-control" type="text" value="{{ group_puzzler.playerCode ?? group_puzzler.playerName }}">
-                                    <button data-remove-player class="btn btn-white border btn-icon" type="button">
-                                        <i class="ci-trash text-danger"></i>
-                                    </button>
-                                </div>
-                                <div class="form-text">Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno.</div>
-                            </div>
-                        {% endfor %}
+                        {% if filled_group_players is not empty %}
+                            {% for filled_group_player in filled_group_players %}
+                                {{ include('_group_puzzler_input.html.twig', {
+                                    inputId: loop.index,
+                                    inputValue: filled_group_player,
+                                }) }}
+                            {% endfor %}
+                        {% else %}
+                            {% for group_puzzler in solved_puzzle.players %}
+                                {{ include('_group_puzzler_input.html.twig', {
+                                    inputId: loop.index,
+                                    inputValue: group_puzzler.playerCode ?? group_puzzler.playerName,
+                                }) }}
+                            {% endfor %}
+                        {% endif %}
                     </div>
 
                     <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
@@ -100,17 +102,7 @@
     </p>
 
     <div id="puzzler-input-template">
-        <div data-puzzler class="mb-3">
-            <label class="form-label required">Spoluskládající <span data-counter></span></label>
-
-            <div class="input-group">
-                <input name="group_players[]" class="form-control" type="text">
-                <button data-remove-player class="btn btn-white border btn-icon" type="button">
-                    <i class="ci-trash text-danger"></i>
-                </button>
-            </div>
-            <div class="form-text">Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno.</div>
-        </div>
+        {{ include('_group_puzzler_input.html.twig') }}
     </div>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="modalConfirm">

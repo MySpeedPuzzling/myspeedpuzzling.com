@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints\Regex;
 
-final class SaveStopwatchFormData
+final class PuzzleSolvingTimeFormData
 {
     public null|string $puzzleId = null;
 
+    #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'Prosím zadejte čas ve formátu HH:MM:SS nebo MM:SS')]
+    public null|string $time = null;
 
     public null|string $comment = null;
 
@@ -18,9 +22,12 @@ final class SaveStopwatchFormData
 
     public null|bool $addPuzzle = null;
 
+
     public null|string $puzzleName = null;
 
     public null|string $puzzleManufacturerId = null;
+
+    public null|bool $addManufacturer = null;
 
     public null|string $puzzleManufacturerName = null;
 

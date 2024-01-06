@@ -57,7 +57,7 @@ readonly final class EditPuzzleSolvingTimeHandler
 
             // There was some original image - we need to generate unique name because of caching
             if ($finishedPuzzlePhotoPath !== null) {
-                $fileName .= $message->puzzleSolvingTimeId . '-' . Uuid::uuid4()->toString();
+                $fileName = $message->puzzleSolvingTimeId . '-' . Uuid::uuid4()->toString();
             }
 
             $finishedPuzzlePhotoPath = "players/{$currentPlayer->id->toString()}/$fileName.$extension";

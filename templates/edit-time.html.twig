@@ -5,107 +5,15 @@
 {% block content %}
     <h1>Úprava údajů o skládání</h1>
 
-    {{ form_start(edit_puzzle_solving_time_form) }}
+    {{ include('_solving_time_form.html.twig', {
+        prevent_puzzle_change: true,
+    }) }}
 
-        <div class="shadow-lg p-4 mt-3">
-            <div class="row">
-                <div class="col-sm-6 offset-sm-1 order-lg-2">
-                    {% if solved_puzzle.puzzleAlternativeName is not null %}
-                        {{ solved_puzzle.puzzleAlternativeName }} ({{ solved_puzzle.puzzleName }})
-                    {% else %}
-                        {{ solved_puzzle.puzzleName }}
-                    {% endif %}
-                    <br>
-                    <b>{{ solved_puzzle.manufacturerName|upper }}</b><br>
-                    {{ solved_puzzle.piecesCount }} dílků<br>
-
-                    {% if solved_puzzle.puzzleImage is not null%}
-                        <p>
-                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
-                        </p>
-                    {% endif %}
-                </div>
-
-                <div class="col-sm-5">
-                    <div class="row">
-                        <div class="col-sm mb-3">
-                            {{ form_label(edit_puzzle_solving_time_form.time) }}
-                            {{ form_errors(edit_puzzle_solving_time_form.time) }}
-                            <div class="input-group">
-                                {{ form_widget(edit_puzzle_solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
-                                <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
-                            </div>
-                            {{ form_help(edit_puzzle_solving_time_form.time) }}
-                        </div>
-
-                        <div class="col-sm mb-3">
-                            {{ form_label(edit_puzzle_solving_time_form.finishedAt) }}
-                            {{ form_errors(edit_puzzle_solving_time_form.finishedAt) }}
-                            <div class="input-group">
-                                {{ form_widget(edit_puzzle_solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "cs", "maxDate": "today"}'}}) }}
-                                <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
-                            </div>
-                            {{ form_help(edit_puzzle_solving_time_form.finishedAt) }}
-                        </div>
-                    </div>
-
-                    <div id="puzzlers-group" class="mt-3">
-                        {% if filled_group_players is not empty %}
-                            {% for filled_group_player in filled_group_players %}
-                                {{ include('_group_puzzler_input.html.twig', {
-                                    inputId: loop.index,
-                                    inputValue: filled_group_player,
-                                }) }}
-                            {% endfor %}
-                        {% else %}
-                            {% for group_puzzler in solved_puzzle.players %}
-                                {{ include('_group_puzzler_input.html.twig', {
-                                    inputId: loop.index,
-                                    inputValue: group_puzzler.playerCode ?? group_puzzler.playerName,
-                                }) }}
-                            {% endfor %}
-                        {% endif %}
-                    </div>
-
-                    <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
-
-                    {{ form_row(edit_puzzle_solving_time_form.comment) }}
-
-                    {{ form_label(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
-                    {{ form_errors(edit_puzzle_solving_time_form.finishedPuzzlesPhoto) }}
-                    <div class="file-drop-area">
-                        <div class="file-drop-icon">
-                            {% if solved_puzzle.finishedPuzzlePhoto is not null%}
-                                <div class="file-drop-preview img-thumbnail rounded">
-                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
-                                </div>
-                            {% endif %}
-                            <i class="ci-cloud-upload"></i>
-                        </div>
-
-                        <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
-                        {{ form_widget(edit_puzzle_solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
-                        <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">Nebo vyberte soubor</button>
-                    </div>
-
-                    <p class="mt-3 mb-0">
-                        <input type="submit" name="submit" value="Uložit" class="btn btn-primary" />
-                    </p>
-                </div>
-            </div>
-        </div>
-
-    {{ form_end(edit_puzzle_solving_time_form) }}
-
-    <p class="mt-5 mb-3">
-        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalConfirm">
+    <p class="mt-3 mb-3">
+        <button class="btn btn-sm btn-outline-danger text-wrap" data-bs-toggle="modal" data-bs-target="#modalConfirm">
             Nenávratně smazat tento záznam o skládání a dělat, jakože se to nikdy nestalo!
         </button>
     </p>
-
-    <div id="puzzler-input-template">
-        {{ include('_group_puzzler_input.html.twig') }}
-    </div>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="modalConfirm">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -125,58 +33,4 @@
         </div>
     </div>
 
-<script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', () => {
-        const addPuzzlerBtn = document.getElementById('add-puzzler');
-        const puzzlersGroup = document.getElementById('puzzlers-group');
-        const puzzlerTemplate = document.getElementById('puzzler-input-template').innerHTML;
-        let puzzlerCounter = 0;
-
-        addPuzzlerBtn.addEventListener('click', () => {
-            if (puzzlersGroup.children.length < 6) {
-                puzzlersGroup.insertAdjacentHTML('beforeend', puzzlerTemplate);
-                const newPuzzler = puzzlersGroup.lastElementChild;
-                updateInputAndLabel(newPuzzler, ++puzzlerCounter);
-                updateCounters();
-                checkButtonVisibility();
-            }
-        });
-
-        puzzlersGroup.addEventListener('click', (event) => {
-            if (event.target.closest('[data-remove-player]')) {
-                const puzzler = event.target.closest('[data-puzzler]');
-                if (puzzler) {
-                    puzzler.remove();
-                    updateCounters();
-                    checkButtonVisibility();
-                }
-            }
-        });
-
-        function updateInputAndLabel(newPuzzler, counter) {
-            const input = newPuzzler.querySelector('input');
-            const label = newPuzzler.querySelector('label');
-            if (input && label) {
-                const uniqueId = `playerInput-${counter}`;
-                input.id = uniqueId;
-                label.setAttribute('for', uniqueId);
-            }
-        }
-
-        function updateCounters() {
-            const counters = puzzlersGroup.querySelectorAll('[data-counter]');
-            counters.forEach((counter, index) => {
-                counter.innerHTML = index + 1;
-            });
-        }
-
-        function checkButtonVisibility() {
-            if (puzzlersGroup.children.length >= 6) {
-                addPuzzlerBtn.classList.add('hidden');
-            } else {
-                addPuzzlerBtn.classList.remove('hidden');
-            }
-        }
-    });
-</script>
 {% endblock %}

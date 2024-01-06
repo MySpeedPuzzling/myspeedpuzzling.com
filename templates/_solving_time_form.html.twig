@@ -1,0 +1,433 @@
+{{ form_start(solving_time_form) }}
+    {{ form_errors(solving_time_form) }}
+
+    <div class="row pb-4">
+        <div class="col-lg-6 offset-lg-1 order-lg-2 mb-3">
+
+            {% if active_puzzle is not null and prevent_puzzle_change|default(false) %}
+            <div>
+                <h5>Vybrané puzzle:</h5>
+
+                {% if active_puzzle.puzzleAlternativeName is not null %}
+                    {{ active_puzzle.puzzleAlternativeName }}
+                    <small>({{ active_puzzle.puzzleName }})</small>
+                {% else %}
+                    {{ active_puzzle.puzzleName }}
+                {% endif %}
+                <br>
+                <b>{{ active_puzzle.manufacturerName|upper }}</b><br>
+                {{ active_puzzle.piecesCount }} dílků<br>
+
+                {% if active_puzzle.puzzleImage is not null%}
+                    <p>
+                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                    </p>
+                {% endif %}
+
+                {% if active_puzzle.fastestTime is not null %}
+                    Nejrychlejší čas: {{ active_puzzle.fastestTime|puzzlingTime }}<br>
+                    Průměrný čas: {{ active_puzzle.averageTime|puzzlingTime }}<br>
+                    Počet složení: {{ active_puzzle.solvedTimes }}
+                {% endif %}
+                </div>
+            {% endif %}
+
+            <div {% if active_puzzle is not null and prevent_puzzle_change|default(false) %}style="display: none;"{% endif %}>
+                {% if not solving_time_form.puzzleId.vars.valid %}
+                    <div class="alert alert-danger py-2 px-3" role="alert">Musíte vybrat puzzle ze seznamu nebo přidat nové</div>
+                {% endif %}
+
+                <div class="form-switch mb-4">
+                    {{ form_widget(solving_time_form.addPuzzle) }}
+                </div>
+
+                <div id="existing-puzzle-form">
+                    <h3 class="h5 required">Vyberte puzzle</h3>
+
+                    <div id="add-puzzle-chosen" class="{% if active_puzzle is null %}hidden{% endif %}">
+                        <ul id="add-puzzle-chosen-item" class="widget-list">
+                            {% if active_puzzle is not null  %}
+                                <li class="widget-list-item mb-2 widget-filter-item">
+                                    <div class="form-check d-flex align-items-center">
+                                        <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ active_puzzle.puzzleId }}">
+                                            <img class="rounded-2 me-2" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
+                                            <span style="display: inline-block;">
+                                                        {% if active_puzzle.puzzleAlternativeName is not null %}
+                                                            {{ active_puzzle.puzzleAlternativeName }}
+                                                            <small>({{ active_puzzle.puzzleName }})</small>
+                                                        {% else %}
+                                                            {{ active_puzzle.puzzleName }}
+                                                        {% endif %}
+                                                        <br>
+                                                        {{ active_puzzle.manufacturerName|upper }}<br>
+                                                        <span class="fs-xs text-muted">{{ active_puzzle.piecesCount }} dílků</span>
+                                                    </span>
+                                        </label>
+                                    </div>
+                                </li>
+                            {% endif %}
+                        </ul>
+
+                        <button class="btn btn-sm btn-outline-primary" id="change-link">Změnit výběr</button>
+                    </div>
+
+                    <div id="add-puzzle-form" class="{% if active_puzzle is not null %}hidden{% endif %}">
+                        <div class="widget widget-categories mb-2">
+                            <p class="mb-2"><small class="text-muted">Pokud puzzle v seznamu nenajdete, prosím přidejte nové.</small></p>
+
+                            <div id="puzzle-manufacturers" class="accordion">
+                                {% for manufacturerName, manufacturerPuzzles in puzzles %}
+                                    <div class="accordion-item">
+                                        <h3 class="accordion-header">
+                                            <a href="#{{ manufacturerName|slug }}" class="accordion-button collapsed" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="{{ manufacturerName|slug }}">
+                                                {{ manufacturerName|upper }}
+                                            </a>
+                                        </h3>
+                                        <div id="{{ manufacturerName|slug }}" class="accordion-collapse collapse" data-bs-parent="#puzzle-manufacturers">
+                                            <div class="accordion-body">
+                                                <div class="widget widget-links {% if manufacturerPuzzles|length > 7 %}widget-filter{% endif %}">
+                                                    {% if manufacturerPuzzles|length > 7 %}
+                                                        <div class="input-group input-group-sm mb-2">
+                                                            <input type="text" class="widget-filter-search form-control rounded-end" placeholder="Hledat">
+                                                            <i class="ci-search position-absolute top-50 end-0 translate-middle-y fs-sm me-3"></i>
+                                                        </div>
+                                                    {% endif %}
+
+                                                    <ul class="widget-list {% if manufacturerPuzzles|length > 7 %}widget-filter-list pt-1{% endif %}" {% if manufacturerPuzzles|length > 7 %}style="height: 18rem;" data-simplebar data-simplebar-auto-hide="false"{% endif %}>
+                                                        {% for puzzle in manufacturerPuzzles %}
+                                                            <li class="widget-list-item mb-2 {% if manufacturerPuzzles|length > 7 %}widget-filter-item{% endif %}">
+
+                                                                <div class="form-check d-flex align-items-center">
+                                                                    <div class="me-1 checkbox-wrapper">
+                                                                        <input class="form-check-input" type="radio" id="{{ puzzle.puzzleId }}" name="{{ field_name(solving_time_form.puzzleId) }}" value="{{ puzzle.puzzleId }}" {% if active_puzzle is not null and active_puzzle.puzzleId is same as puzzle.puzzleId %}checked="checked"{% endif %}>
+                                                                    </div>
+                                                                    <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
+                                                                        {% if puzzle.puzzleImage is not null %}
+                                                                            <img class="rounded-2 me-2" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
+                                                                        {% endif %}
+                                                                        <span style="display: inline-block;">
+                                                                                    {% if puzzle.puzzleAlternativeName is not null %}
+                                                                                        {{ puzzle.puzzleAlternativeName }} ({{ puzzle.puzzleName }})
+                                                                                    {% else %}
+                                                                                        {{ puzzle.puzzleName }}
+                                                                                    {% endif %}
+                                                                                    <br>
+                                                                                    <span class="fs-xs text-muted">{{ puzzle.piecesCount }} dílků</span>
+                                                                                </span>
+                                                                    </label>
+                                                                </div>
+                                                            </li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="custom-puzzle-form" style="{% if not selected_add_puzzle %}display: none;{% endif %}">
+                    <p>
+                        <small class="text-muted">Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání.</small>
+                    </p>
+
+                    {{ form_row(solving_time_form.puzzleName) }}
+
+                    <div id="manufacturer-id-row" {% if selected_add_manufacturer %}style="display: none;"{% endif %}>
+                        {{ form_row(solving_time_form.puzzleManufacturerId) }}
+
+                        <div class="form-text mb-3 help-text" style="margin-top: -10px;">
+                            <a href="#" class="btn btn-outline-primary btn-xs me-1" id="show-manufacturer-name">Přidat nového výrobce</a> (není v seznamu)
+                        </div>
+                    </div>
+
+                    <div style="display: none;">
+                        {{ form_widget(solving_time_form.addManufacturer) }}
+                    </div>
+
+                    <div id="manufacturer-name-row" {% if not selected_add_manufacturer %}style="display: none;"{% endif %}>
+                        {{ form_row(solving_time_form.puzzleManufacturerName) }}
+
+                        <div class="form-text mb-3 help-text" style="margin-top: -10px;">
+                            <a href="#" class="btn btn-outline-primary btn-xs me-1" id="show-manufacturer-id">Vybrat výrobce ze seznamu</a>
+                        </div>
+                    </div>
+                    {{ form_row(solving_time_form.puzzlePiecesCount) }}
+
+                    {{ form_row(solving_time_form.puzzleEan) }}
+                    {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
+
+                    {{ form_label(solving_time_form.puzzlePhoto) }}
+                    {{ form_errors(solving_time_form.puzzlePhoto) }}
+                    <div class="file-drop-area">
+                        <div class="file-drop-icon ci-cloud-upload"></div>
+                        <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+                        {{ form_widget(solving_time_form.puzzlePhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                        <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">Nebo vyberte soubor</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 order-lg-1">
+            <div class="row">
+                <div class="col-sm mb-3">
+                    {% if active_stopwatch is not null %}
+                        <span class="form-label">Čas ze stopek</span><br>
+                        <span class="h5 mt-2 d-inline-block">{{ active_stopwatch.totalSeconds|puzzlingTime }}</span>
+                    {% endif %}
+
+                    <div style="{% if active_stopwatch is not null %}display: none;{% endif %}">
+                        {{ form_label(solving_time_form.time) }}
+                        <div class="input-group">
+                            {{ form_widget(solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
+                            {% if solving_time_form.time.vars.valid %}
+                                <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                            {% endif %}
+                        </div>
+                        {{ form_help(solving_time_form.time) }}
+                        {{ form_errors(solving_time_form.time) }}
+                    </div>
+
+                </div>
+
+                <div class="col-sm mb-3">
+                    {{ form_label(solving_time_form.finishedAt) }}
+                    <div class="input-group">
+                        {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "cs", "maxDate": "today"}'}}) }}
+                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                    </div>
+                    {{ form_help(solving_time_form.finishedAt) }}
+                    {{ form_errors(solving_time_form.finishedAt) }}
+                </div>
+            </div>
+
+            <div id="puzzlers-group">
+                {% for filled_group_player in filled_group_players %}
+                    {{ include('_group_puzzler_input.html.twig', {
+                        inputId: loop.index,
+                        inputValue: filled_group_player,
+                    }) }}
+                {% endfor %}
+            </div>
+
+            <button id="add-puzzler" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> Přidat skládájícího</button>
+
+            {{ form_row(solving_time_form.comment) }}
+
+            {{ form_label(solving_time_form.finishedPuzzlesPhoto) }}
+            {{ form_errors(solving_time_form.finishedPuzzlesPhoto) }}
+            <div class="file-drop-area">
+                <div class="file-drop-icon">
+                    {% if solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
+                        <div class="file-drop-preview img-thumbnail rounded">
+                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
+                        </div>
+                    {% endif %}
+                    <i class="ci-cloud-upload"></i>
+                </div>
+
+                <span class="file-drop-message">Přetáhněte sem soubor pro nahrání</span>
+                {{ form_widget(solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">Nebo vyberte soubor</button>
+            </div>
+
+            <input type="submit" name="submit" value="Uložit" class="btn btn-primary mt-3" />
+
+        </div>
+    </div>
+
+{{ form_end(solving_time_form) }}
+
+<div id="puzzler-input-template">
+    {{ include('_group_puzzler_input.html.twig') }}
+</div>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        // Get the checkbox element
+        var checkbox = document.getElementById('puzzle_solving_time_form_addPuzzle');
+
+        // Function to toggle the visibility of forms
+        function toggleForms() {
+            var existingPuzzleForm = document.getElementById('existing-puzzle-form');
+            var customPuzzleForm = document.getElementById('custom-puzzle-form');
+
+            if (checkbox.checked) {
+                // Checkbox is checked: show customPuzzleForm and hide existingPuzzleForm
+                customPuzzleForm.style.display = 'block';
+                existingPuzzleForm.style.display = 'none';
+            } else {
+                // Checkbox is not checked: show existingPuzzleForm and hide customPuzzleForm
+                customPuzzleForm.style.display = 'none';
+                existingPuzzleForm.style.display = 'block';
+            }
+        }
+
+        // Call the function to set the initial state
+        toggleForms();
+
+        // Add event listener for checkbox changes
+        checkbox.addEventListener('change', toggleForms);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Listen for changes on radio inputs within the add-puzzle-form element
+        document.getElementById('add-puzzle-form').addEventListener('change', function(event) {
+            if(event.target.type === 'radio') {
+                // Add 'hidden' class to add-puzzle-form and remove it from add-puzzle-chosen
+                document.getElementById('add-puzzle-form').classList.add('hidden');
+                document.getElementById('add-puzzle-chosen').classList.remove('hidden');
+
+                // Clone the nearest parent <li> element
+                var clonedLi = event.target.closest('li').cloneNode(true);
+
+                // Remove <input> elements from the cloned <li>
+                var inputs = clonedLi.querySelectorAll('input');
+                inputs.forEach(function(input) {
+                    input.remove();
+                });
+
+                // Replace the content of add-puzzle-chosen-item with the modified cloned <li>
+                var puzzleChosenItem = document.getElementById('add-puzzle-chosen-item');
+                puzzleChosenItem.innerHTML = '';
+                puzzleChosenItem.appendChild(clonedLi);
+
+                setTimeout(function() {
+                    document.getElementById('add-puzzle-chosen').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
+        });
+
+        // Listen for click event on the change-link button
+        document.getElementById('change-link').addEventListener('click', function(event) {
+            // Prevent default action (submitting form)
+            event.preventDefault();
+
+            // Toggle visibility of the two main elements
+            document.getElementById('add-puzzle-chosen').classList.add('hidden');
+            document.getElementById('add-puzzle-form').classList.remove('hidden');
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const addPuzzlerBtn = document.getElementById('add-puzzler');
+        const puzzlersGroup = document.getElementById('puzzlers-group');
+        const puzzlerTemplate = document.getElementById('puzzler-input-template').innerHTML;
+        let puzzlerCounter = 0;
+
+        addPuzzlerBtn.addEventListener('click', () => {
+            if (puzzlersGroup.children.length < 6) {
+                puzzlersGroup.insertAdjacentHTML('beforeend', puzzlerTemplate);
+                const newPuzzler = puzzlersGroup.lastElementChild;
+                updateInputAndLabel(newPuzzler, ++puzzlerCounter);
+                updateCounters();
+                checkButtonVisibility();
+            }
+        });
+
+        puzzlersGroup.addEventListener('click', (event) => {
+            if (event.target.closest('[data-remove-player]')) {
+                const puzzler = event.target.closest('[data-puzzler]');
+                if (puzzler) {
+                    puzzler.remove();
+                    updateCounters();
+                    checkButtonVisibility();
+                }
+            }
+        });
+
+        function updateInputAndLabel(newPuzzler, counter) {
+            const input = newPuzzler.querySelector('input');
+            const label = newPuzzler.querySelector('label');
+            if (input && label) {
+                const uniqueId = `playerInput-${counter}`;
+                input.id = uniqueId;
+                label.setAttribute('for', uniqueId);
+            }
+        }
+
+        function updateCounters() {
+            const counters = puzzlersGroup.querySelectorAll('[data-counter]');
+            counters.forEach((counter, index) => {
+                counter.innerHTML = index + 1;
+            });
+        }
+
+        function checkButtonVisibility() {
+            if (puzzlersGroup.children.length >= 6) {
+                addPuzzlerBtn.classList.add('hidden');
+            } else {
+                addPuzzlerBtn.classList.remove('hidden');
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Function to toggle the 'hidden' class
+        function toggleHiddenClass() {
+            var selectInput = document.querySelector('select[data-manufacturerId]');
+            var targetElement = document.getElementById('manufacturer-name-row');
+
+            if (selectInput && targetElement) {
+                // Add or remove the 'hidden' class based on whether the select has a value
+                if (selectInput.value) {
+                    targetElement.classList.add('hidden');
+                } else {
+                    targetElement.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Initially call the function when the page loads
+        toggleHiddenClass();
+
+        // Event listener for changes on the select input
+        document.addEventListener('change', function (event) {
+            if (event.target.matches('select[data-manufacturerId]')) {
+                toggleHiddenClass();
+            }
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.querySelector('form');
+        form.addEventListener('submit', function() {
+            form.querySelector('[type="submit"]').setAttribute('disabled', 'disabled');
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // Initial setup based on the checkbox state
+        toggleManufacturerVisibility();
+
+        // Checkbox change event listener
+        document.getElementById("puzzle_solving_time_form_addManufacturer").addEventListener("change", toggleManufacturerVisibility);
+
+        // Link click event listener for showing manufacturer name
+        document.getElementById("show-manufacturer-name").addEventListener("click", function(e) {
+            e.preventDefault();
+            document.getElementById("puzzle_solving_time_form_addManufacturer").checked = true;
+            toggleManufacturerVisibility();
+        });
+
+        // Link click event listener for showing manufacturer ID
+        document.getElementById("show-manufacturer-id").addEventListener("click", function(e) {
+            e.preventDefault();
+            document.getElementById("puzzle_solving_time_form_addManufacturer").checked = false;
+            toggleManufacturerVisibility();
+        });
+    });
+
+    // Function to show/hide divs based on the checkbox state
+    function toggleManufacturerVisibility() {
+        var isChecked = document.getElementById("puzzle_solving_time_form_addManufacturer").checked;
+        document.getElementById("manufacturer-name-row").style.display = isChecked ? "block" : "none";
+        document.getElementById("manufacturer-id-row").style.display = isChecked ? "none" : "block";
+    }
+</script>

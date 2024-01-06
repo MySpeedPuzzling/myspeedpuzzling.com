@@ -4,11 +4,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
-use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
+use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\FormType\PuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +27,8 @@ final class EditTimeController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private PuzzlingTimeFormatter $timeFormatter,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetPuzzlesOverview $getPuzzlesOverview,
+        readonly private GetPuzzleOverview $getPuzzleOverview,
     ) {
     }
 
@@ -46,17 +50,18 @@ final class EditTimeController extends AbstractController
         /** @var array<string> $groupPlayers */
         $groupPlayers = $request->request->all('group_players');
 
-        $defaultData = new EditPuzzleSolvingTimeFormData();
+        $defaultData = new PuzzleSolvingTimeFormData();
         $defaultData->time = $this->timeFormatter->formatTime($solvedPuzzle->time);
         $defaultData->comment = $solvedPuzzle->comment;
         $defaultData->finishedAt = $solvedPuzzle->finishedAt;
+        $defaultData->puzzleId = $solvedPuzzle->puzzleId;
 
-        $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $defaultData);
+        $editTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $defaultData);
         $editTimeForm->handleRequest($request);
 
         if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
             $data = $editTimeForm->getData();
-            assert($data instanceof EditPuzzleSolvingTimeFormData);
+            assert($data instanceof PuzzleSolvingTimeFormData);
 
             $this->messageBus->dispatch(
                 EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
@@ -67,10 +72,21 @@ final class EditTimeController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
+        $puzzlesPerManufacturer = [];
+        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($player->playerId) as $puzzle) {
+            $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
+        }
+
         return $this->render('edit-time.html.twig', [
+            'active_puzzle' => $this->getPuzzleOverview->byId($solvedPuzzle->puzzleId),
             'solved_puzzle' => $solvedPuzzle,
-            'edit_puzzle_solving_time_form' => $editTimeForm,
+            'solving_time_form' => $editTimeForm,
             'filled_group_players' => $groupPlayers,
+            'selected_add_puzzle' => false,
+            'selected_add_manufacturer' => false,
+            'puzzles' => $puzzlesPerManufacturer,
+            'active_stopwatch' => null,
         ]);
     }
 }

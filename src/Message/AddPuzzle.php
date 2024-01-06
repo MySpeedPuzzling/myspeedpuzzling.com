@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzle
@@ -26,7 +26,7 @@ readonly final class AddPuzzle
     public static function fromFormData(
         UuidInterface $newPuzzleId,
         string $userId,
-        AddPuzzleSolvingTimeFormData $data,
+        PuzzleSolvingTimeFormData $data,
     ): self
     {
         assert($data->puzzleName !== null);

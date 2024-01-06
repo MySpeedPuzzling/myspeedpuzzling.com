@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
-use SpeedPuzzling\Web\FormData\AddPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class AddPuzzleSolvingTime
@@ -25,7 +25,7 @@ readonly final class AddPuzzleSolvingTime
     /**
      * @param array<string> $groupPlayers
      */
-    public static function fromFormData(string $userId, array $groupPlayers, AddPuzzleSolvingTimeFormData $data): self
+    public static function fromFormData(string $userId, array $groupPlayers, PuzzleSolvingTimeFormData $data): self
     {
         assert($data->puzzleId !== null);
         assert($data->time !== null);

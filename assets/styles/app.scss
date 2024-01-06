@@ -221,3 +221,12 @@ main {
     left: 50%;
     transform: translate(-50%, -50%);
 }
+
+.form-switch .form-check {
+    padding-left: 0;
+}
+
+.btn-xs {
+    font-size: 12px;
+    padding: 4px 8px;
+}

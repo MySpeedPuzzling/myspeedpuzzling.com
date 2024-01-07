@@ -75,12 +75,20 @@ final class AddTimeController extends AbstractController
         /** @var array<string> $groupPlayers */
         $groupPlayers = $request->request->all('group_players');
 
+        $isGroupPuzzlersValid = true;
+        foreach ($groupPlayers as $groupPlayer) {
+            if (trim($groupPlayer) === '') {
+                $isGroupPuzzlersValid = false;
+                break;
+            }
+        }
+
         $addTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $data);
         $addTimeForm->handleRequest($request);
         $data = $addTimeForm->getData();
         assert($data instanceof PuzzleSolvingTimeFormData);
 
-        if ($addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
+        if ($isGroupPuzzlersValid === true && $addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
             if ($activePuzzle !== null) {
                 $data->puzzleId = $activePuzzle->puzzleId;
                 $data->addPuzzle = false;

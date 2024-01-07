@@ -4,11 +4,16 @@
         <span data-counter>{% if inputId is defined %}{{ inputId }}{% endif %}</span>
     </label>
 
+    {% set isInputInvalid = inputValue is defined and inputValue is empty  %}
+
     <div class="input-group">
-        <input name="group_players[]" class="form-control" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
-        <button data-remove-player class="btn btn-white border btn-icon" type="button">
+        <input name="group_players[]" class="form-control {% if isInputInvalid %}is-invalid{% endif %}" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
+        <button data-remove-player class="btn btn-white border btn-icon {% if isInputInvalid %}border-danger{% endif %}" type="button">
             <i class="ci-trash text-danger"></i>
         </button>
     </div>
+    {% if isInputInvalid %}
+        <div class="invalid-feedback d-block">Toto pole je povinné!</div>
+    {% endif %}
     <div class="form-text">Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno.</div>
 </div>

@@ -47,8 +47,7 @@ final class EditTimeController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        /** @var array<string> $groupPlayers */
-        $groupPlayers = $request->request->all('group_players');
+
 
         $defaultData = new PuzzleSolvingTimeFormData();
         $defaultData->time = $this->timeFormatter->formatTime($solvedPuzzle->time);
@@ -56,10 +55,28 @@ final class EditTimeController extends AbstractController
         $defaultData->finishedAt = $solvedPuzzle->finishedAt;
         $defaultData->puzzleId = $solvedPuzzle->puzzleId;
 
+        $groupPlayers = [];
+        foreach ($solvedPuzzle->players ?? [] as $groupPlayer) {
+            $groupPlayers[] = $groupPlayer->playerCode ?? $groupPlayer->playerName ?? '';
+        }
+
+        if ($request->request->has('group_players')) {
+            /** @var array<string> $groupPlayers */
+            $groupPlayers = $request->request->all('group_players');
+        }
+
+        $isGroupPuzzlersValid = true;
+        foreach ($groupPlayers as $groupPlayer) {
+            if (trim($groupPlayer) === '') {
+                $isGroupPuzzlersValid = false;
+                break;
+            }
+        }
+
         $editTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $defaultData);
         $editTimeForm->handleRequest($request);
 
-        if ($editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
+        if ($isGroupPuzzlersValid === true && $editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
             $data = $editTimeForm->getData();
             assert($data instanceof PuzzleSolvingTimeFormData);
 

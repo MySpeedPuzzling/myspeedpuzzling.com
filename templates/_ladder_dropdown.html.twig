@@ -3,28 +3,48 @@
 <div class="dropdown d-inline-block">
     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         {% if currentLadder == 'ladder' %}
-            Přehled
+            {{ 'ladder.overview'|trans }}
         {% elseif currentLadder == 'ladder_solo_500_pieces' %}
-            Jednotlivci - 500 dílků
+            {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         {% elseif currentLadder == 'ladder_solo_1000_pieces' %}
-            Jednotlivci - 1000 dílků
+            {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         {% elseif currentLadder == 'ladder_pairs_500_pieces' %}
-            Páry - 500 dílků
+            {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         {% elseif currentLadder == 'ladder_pairs_1000_pieces' %}
-            Páry - 1000 dílků
+            {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         {% elseif currentLadder == 'ladder_groups_500_pieces' %}
-            Skupiny - 500 dílků
+            {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         {% elseif currentLadder == 'ladder_groups_1000_pieces' %}
-            Skupiny - 1000 dílků
+            {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         {% endif %}
     </button>
     <div class="dropdown-menu">
-        <a href="{{ path('ladder') }}" class="dropdown-item {{ currentLadder == 'ladder' ? 'active'}}">Přehled</a>
-        <a href="{{ path('ladder_solo_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_solo_500_pieces' ? 'active'}}">Jednotlivci - 500 dílků</a>
-        <a href="{{ path('ladder_solo_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_solo_1000_pieces' ? 'active'}}">Jednotlivci - 1000 dílků</a>
-        <a href="{{ path('ladder_pairs_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_500_pieces' ? 'active'}}">Páry - 500 dílků</a>
-        <a href="{{ path('ladder_pairs_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_1000_pieces' ? 'active'}}">Páry - 1000 dílků</a>
-        <a href="{{ path('ladder_groups_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_groups_500_pieces' ? 'active'}}">Skupiny - 500 dílků</a>
-        <a href="{{ path('ladder_groups_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_groups_1000_pieces' ? 'active'}}">Skupiny - 1000 dílků</a>
+        <a href="{{ path('ladder') }}" class="dropdown-item {{ currentLadder == 'ladder' ? 'active'}}">
+            {{ 'ladder.overview'|trans }}
+        </a>
+
+        <a href="{{ path('ladder_solo_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_solo_500_pieces' ? 'active'}}">
+            {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
+        </a>
+
+        <a href="{{ path('ladder_solo_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_solo_1000_pieces' ? 'active'}}">
+            {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        </a>
+
+        <a href="{{ path('ladder_pairs_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_500_pieces' ? 'active'}}">
+            {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
+        </a>
+
+        <a href="{{ path('ladder_pairs_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_1000_pieces' ? 'active'}}">
+            {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        </a>
+
+        <a href="{{ path('ladder_groups_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_groups_500_pieces' ? 'active'}}">
+            {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
+        </a>
+
+        <a href="{{ path('ladder_groups_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_groups_1000_pieces' ? 'active'}}">
+            {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        </a>
     </div>
 </div>

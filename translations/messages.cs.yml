@@ -1,2 +1,89 @@
 menu:
-    my_profile: Můj profil
+    my_profile: "Můj profil"
+    add_time: "Přidat čas"
+    stopwatch: "Stopky"
+    puzzles_overview: "Přehled puzzlí"
+    ladder: "Žebříček"
+    puzzlers: "Puzzleři"
+    recent_changes: "Co je nového"
+    faq: "Časté dotazy"
+
+
+footer:
+    created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
+
+puzzler_name: "Jméno"
+puzzler: "Puzzler"
+puzzle: "Puzzle"
+time: "Čas"
+pieces_count: "%count%&nbsp;dílků"
+show_more: "Zobrazit více"
+puzzle_solved: "poskládáno"
+puzzle_available: "k zapůjčení"
+puzzle_not_available: "nejsou k dispozici"
+add_my_time: "Přidat můj čas"
+start_solving: "Začít skládat"
+show_times: "Zobrazit časy"
+fastest_time_short: "Top: %time%"
+average_time_short: "Průměr: %time%"
+fastest_time: "Nejrychlejší čas: %time%"
+average_time: "Průměrný čas: %time%"
+my_time: "Můj čas: %time%"
+puzzle_solved_count: "Počet složení: %count%"
+puzzle_solved_times: "skládáno %count%x"
+never_solved_puzzles: "Tyto puzzle ještě nikdo neskládal, buď první!"
+show_more_solving_times: "Zobrazit další časy (%count%x)"
+
+homepage:
+    meta:
+        title: "Skládej Rychleji!"
+
+    title: "Vítejte ve světě Speed Puzzlingu!"
+    intro_text: "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
+    why_block: |
+        <h3>Proč se zapojit?</h3>
+        <ul>
+            <li><strong>Soutěžte s ostatními:</strong> Zaznamenávejte své časy a porovnávejte je s ostatními puzzlaři</li>
+            <li><strong>Žebříčky a statistiky:</strong> Objevte žebříčky nejrychlejších puzzlařů, nejskládanějších puzzlí a nejaktivnějších uživatelů</li>
+            <li><strong>Půjčovna puzzlí:</strong> Pouze za poštovné a balné si můžete vypůjčit puzzle, poskládat je na čas a zadat svůj výsledek, abyste se mohli porovnat s ostatními</li>
+            <li><strong>Stopky:</strong> Využijte naše integrované stopky pro snadné měření času vašeho skládání</li>
+            <li><strong>Přidejte své puzzle:</strong> Máte puzzle, které na naší stránce chybí? Přidejte ho a podělte se o své časy s komunitou.</li>
+            <li><strong>Budujte svou puzzlařskou komunitu:</strong> Připojte se k naší rostoucí komunitě a sdílejte tipy, triky a přátelskou rivalitu</li>
+            <li><strong>Rozšiřujte své horizonty:</strong> Plánujeme pořádat soutěže, jak online, tak v budoucnu i offline, abyste mohli své dovednosti ukázat naživo</li>
+        </ul>
+    help_us_grow_block: |
+        <h3>Pomozte nám růst</h3>
+        <p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>
+    start_today_block: |
+        <h3>Začněte dnes</h3>
+        <p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>
+
+ladder:
+    title: "Žebříček"
+    overview: "Přehled"
+    recent_activity: "Poslední přidané časy"
+    solo: "Jednotlivci"
+    pairs: "Páry"
+    groups: "Skupiny"
+    most_solved_puzzle: "Nejskládanější puzzle"
+    most_active_puzzlers: "Nejzapálenější puzzleři"
+    puzzle_solved_count: "Složených puzzlí"
+
+filters:
+    filter_by: "Filtrovat podle"
+    pieces_placeholder: "- Dílků -"
+    less_than: "Méně než %count%"
+    more_than: "Více než %count%"
+    text_search_placeholder: "Název puzzlí nebo kód..."
+    only_available: "Pouze k zapůjčení"
+    only_with_time: "Pouze se zadaným časem"
+    no_puzzle_matches_filters: "Žádné puzzle neodpovídají zadaným filtrům"
+
+puzzle_overview:
+    meta:
+        title: "Přehled puzzlí"
+    title: "Přehled puzzlí"
+    missing_puzzle_info: "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
+
+profile:
+    no_puzzles_solved: "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."

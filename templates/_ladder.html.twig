@@ -3,10 +3,10 @@
         <thead>
         <tr>
             <th></th>
-            <th>Jméno</th>
-            <th class="text-end">Čas</th>
+            <th>{{ 'puzzler'|trans }}</th>
+            <th class="text-end">{{ 'time'|trans }}</th>
             <th></th>
-            <th>Puzzle</th>
+            <th>{{ 'puzzle'|trans }}</th>
         </tr>
         </thead>
         <tbody>
@@ -16,7 +16,7 @@
                 <td class="player-name">
                     {% if solving_time.players is null %}
                         <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
-                            {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers  %}
+                            {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
                                 <i class="ci-star-filled text-warning"></i>
                             {% endif %}
                             {{ solving_time.playerName }}
@@ -28,7 +28,7 @@
                             {% endif %}
                             {% if puzzle_solver.playerId is not null %}
                                 <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                    {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers  %}
+                                    {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                         <i class="ci-star-filled text-warning"></i>
                                     {% endif %}
                                     {{ puzzle_solver.playerName }}
@@ -40,7 +40,7 @@
                     {% endif %}
 
                     {% if solving_time.solvedTimes > 1 %}
-                        <span class="badge bg-dark rounded-pill">skládáno {{ solving_time.solvedTimes }}x</span>
+                        <span class="badge bg-dark rounded-pill">{{ 'puzzle_solved_times'|trans({ '%count%': solving_time.solvedTimes }) }}x</span>
                     {% endif %}
                 </td>
 

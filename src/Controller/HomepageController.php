@@ -18,7 +18,8 @@ final class HomepageController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/', name: 'homepage', methods: ['GET'])]
+    #[Route(path: '/', methods: ['GET'])]
+    #[Route(path: '/{_locale<cs|en>}', name: 'homepage', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         return $this->render('homepage.html.twig', [

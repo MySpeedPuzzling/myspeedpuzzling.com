@@ -25,7 +25,7 @@ final class PuzzlesController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/puzzle', name: 'puzzles', methods: ['GET'])]
+    #[Route(path: ['cs' => '/puzzle', 'en' => '/en/puzzle'], name: 'puzzles', methods: ['GET'])]
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {
         $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(

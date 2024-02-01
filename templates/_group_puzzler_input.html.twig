@@ -4,7 +4,7 @@
         <span data-counter>{% if inputId is defined %}{{ inputId }}{% endif %}</span>
     </label>
 
-    {% set isInputInvalid = inputValue is defined and inputValue is empty  %}
+    {% set isInputInvalid = inputValue is defined and inputValue is empty %}
 
     <div class="input-group">
         <input name="group_players[]" class="form-control {% if isInputInvalid %}is-invalid{% endif %}" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">

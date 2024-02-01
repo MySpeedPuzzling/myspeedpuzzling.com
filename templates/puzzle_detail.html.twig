@@ -78,7 +78,7 @@
                             <td class="rank">{{ loop.index }}.</td>
                             <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: player_id}) }}">
-                                    {% if logged_user.profile is not null and grouped_solver[0].playerId in logged_user.profile.favoritePlayers  %}
+                                    {% if logged_user.profile is not null and grouped_solver[0].playerId in logged_user.profile.favoritePlayers %}
                                         <i class="ci-star-filled text-warning"></i>
                                     {% endif %}
                                     {{ grouped_solver[0].playerName }}
@@ -125,7 +125,7 @@
                                     {% endif %}
                                     {% if puzzle_solver.playerId is not null %}
                                         <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                            {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers  %}
+                                            {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                                 <i class="ci-star-filled text-warning"></i>
                                             {% endif %}
                                             {{ puzzle_solver.playerName }}

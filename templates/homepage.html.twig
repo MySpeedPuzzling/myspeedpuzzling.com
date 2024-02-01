@@ -1,49 +1,35 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Skládej Rychleji!{% endblock %}
+{% block title %}{{ 'homepage.meta.title'|trans }}{% endblock %}
 
 {% block content %}
     <div class="container pb-4">
         <div class="row align-items-center justify-content-center gy-3 pb-3">
             <div class="col-lg-5 col-md-8 col-sm-10">
                 <h1>SpeedPuzzling.cz</h1>
-                <h2 class="h3">Vítejte ve světě Speed Puzzlingu!</h2>
+                <h2 class="h3">{{ 'homepage.title'|trans }}</h2>
 
-                <p>Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům.</p>
+                <p>{{ 'homepage.intro_text'|trans }}</p>
 
-                <h3>Proč se zapojit?</h3>
-
-                <ul>
-                    <li><strong>Soutěžte s ostatními:</strong> Zaznamenávejte své časy a porovnávejte je s ostatními puzzlaři</li>
-                    <li><strong>Žebříčky a statistiky:</strong> Objevte žebříčky nejrychlejších puzzlařů, nejskládanějších puzzlí a nejaktivnějších uživatelů</li>
-                    <li><strong>Půjčovna puzzlí:</strong> Pouze za poštovné a balné si můžete vypůjčit puzzle, poskládat je na čas a zadat svůj výsledek, abyste se mohli porovnat s ostatními</li>
-                    <li><strong>Stopky:</strong> Využijte naše integrované stopky pro snadné měření času vašeho skládání</li>
-                    <li><strong>Přidejte své puzzle:</strong> Máte puzzle, které na naší stránce chybí? Přidejte ho a podělte se o své časy s komunitou.</li>
-                    <li><strong>Budujte svou puzzlařskou komunitu:</strong> Připojte se k naší rostoucí komunitě a sdílejte tipy, triky a přátelskou rivalitu</li>
-                    <li><strong>Rozšiřujte své horizonty:</strong> Plánujeme pořádat soutěže, jak online, tak v budoucnu i offline, abyste mohli své dovednosti ukázat naživo</li>
-                </ul>
+                {{ 'homepage.why_block'|trans|raw }}
 
                 <div class="d-block d-lg-none">
-                    <h3>Pomozte nám růst</h3>
-                    <p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>
-
-                    <h3>Začněte dnes</h3>
-                    <p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>
-
+                    {{ 'homepage.help_us_grow_block'|trans|raw }}
+                    {{ 'homepage.start_today_block'|trans|raw }}
                 </div>
             </div>
 
             <div class="col-lg-6 col-md-8 offset-lg-1 col-sm-10">
-                <h2 class="h4 mt-4">Poslední přidané časy</h2>
+                <h2 class="h4 mt-4">{{ 'ladder.recent_activity'|trans }}</h2>
 
                 <div class="table-responsive custom-table-wrapper mt-4">
                     <table class="table table-striped custom-table table-hover mb-0">
                         <thead>
                         <tr>
-                            <th>Hráč</th>
+                            <th>{{ 'puzzler'|trans }}</th>
                             <th></th>
-                            <th>Puzzle</th>
-                            <th class="text-end">Čas</th>
+                            <th>{{ 'puzzle'|trans }}</th>
+                            <th class="text-end">{{ 'time'|trans }}</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -52,7 +38,7 @@
                                 <td class="player-name">
                                     {% if solved_puzzle.players is null %}
                                         <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
-                                            {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers  %}
+                                            {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
                                                 <i class="ci-star-filled text-warning"></i>
                                             {% endif %}
                                             {{ solved_puzzle.playerName }}
@@ -64,7 +50,7 @@
                                             {% endif %}
                                             {% if puzzle_solver.playerId is not null %}
                                                 <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                                    {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers  %}
+                                                    {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                                         <i class="ci-star-filled text-warning"></i>
                                                     {% endif %}
                                                     {{ puzzle_solver.playerName }}
@@ -94,12 +80,12 @@
                                             <br>
                                             <small>{{ solved_puzzle.manufacturerName }}</small>
                                         </span>
-                                        <br><small>{{ solved_puzzle.piecesCount }}&nbsp;dílků</small>
+                                        <br><small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
                                     </a>
                                 </td>
                                 <td class="text-end">
                                     <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span><br>
-                                    <small>{{ solved_puzzle.trackedAt|ago(locale='cs') }}</small>
+                                    <small>{{ solved_puzzle.trackedAt|ago }}</small>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -107,17 +93,13 @@
                     </table>
                 </div>
 
-                <a href="{{ path('recent_activity') }}" class="mt-3 btn btn-outline-primary btn-sm">Zobrazit více</a>
+                <a href="{{ path('recent_activity') }}" class="mt-3 btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </div>
         </div>
 
         <div class="d-none d-lg-block">
-            <h3>Pomozte nám růst</h3>
-            <p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>
-
-            <h3>Začněte dnes</h3>
-            <p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>
-
+            {{ 'homepage.help_us_grow_block'|trans|raw }}
+            {{ 'homepage.start_today_block'|trans|raw }}
         </div>
     </div>
 {% endblock %}

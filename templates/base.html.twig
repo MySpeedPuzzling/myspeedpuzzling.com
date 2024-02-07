@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="{{ app.request.locale }}">
     <head>
         <meta charset="UTF-8">
         <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %} | SpeedPuzzling.cz</title>
@@ -82,14 +82,14 @@
                         <div class="navbar-tool-icon-box">
                             <i class="navbar-tool-icon ci-add"></i>
                         </div>
-                        <div class="navbar-tool-text ms-n3"><small>Přidat čas</small></div>
+                        <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
                     </a>
 
                     <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
                         <div class="navbar-tool-icon-box">
                             <i class="navbar-tool-icon ci-time"></i>
                         </div>
-                        <div class="navbar-tool-text ms-n3"><small>Stopky</small></div>
+                        <div class="navbar-tool-text ms-n3"><small>{{ 'menu.stopwatch'|trans }}</small></div>
                     </a>
 
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -100,12 +100,41 @@
                 <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">
                     <hr class="d-lg-none my-3">
                     <ul class="navbar-nav">
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">Přehled puzzlí</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">Žebříček</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzlers') %}active{% endif %}" href="{{ path('puzzlers') }}">Puzzleři</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('changelog') %}active{% endif %}" href="{{ path('changelog') }}">Co je nového</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">Časté dotazy</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">{{ 'menu.puzzles_overview'|trans }}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzlers') %}active{% endif %}" href="{{ path('puzzlers') }}">{{ 'menu.puzzlers'|trans }}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('changelog') %}active{% endif %}" href="{{ path('changelog') }}">{{ 'menu.recent_changes'|trans }}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
+                        <li class="nav-item">
+                            <div class="nav-link">
+                                <div class="topbar-text dropdown ms-3 disable-autohide">
+                                    <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                        <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' }} shadow-custom me-1"></span>
+                                        {{ app.request.locale|upper }}
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        {% if app.request.locale is not same as 'en' %}
+                                            <li>
+                                                <a class="dropdown-item pb-1" href="{{ path('homepage', {_locale: 'en'}) }}">
+                                                    <span class="fi fi-us me-1"></span>
+                                                    {{ 'en'|locale_name(app.request.locale) }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        {% if app.request.locale is not same as 'cs' %}
+                                            <li>
+                                                <a class="dropdown-item pb-1" href="{{ path('homepage', {_locale: 'cs'}) }}">
+                                                    <span class="fi fi-cz me-1"></span>
+                                                    {{ 'cs'|locale_name(app.request.locale) }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </li>
                     </ul>
+
                 </div>
             </div>
         </header>
@@ -136,28 +165,28 @@
                         <div class="widget widget-links">
                             <ul class="widget-list d-flex flex-wrap justify-content-center justify-content-md-start">
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('puzzles') }}" class="widget-list-link">Přehled puzzlí</a>
+                                    <a href="{{ path('puzzles') }}" class="widget-list-link">{{ 'menu.puzzles_overview'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('ladder') }}" class="widget-list-link">Žebříček</a>
+                                    <a href="{{ path('ladder') }}" class="widget-list-link">{{ 'menu.ladder'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('puzzlers') }}" class="widget-list-link">Puzzleři</a>
+                                    <a href="{{ path('puzzlers') }}" class="widget-list-link">{{ 'menu.puzzlers'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('changelog') }}" class="widget-list-link">Co je nového</a>
+                                    <a href="{{ path('changelog') }}" class="widget-list-link">{{ 'menu.recent_changes'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('faq') }}" class="widget-list-link">Časté dotazy</a>
+                                    <a href="{{ path('faq') }}" class="widget-list-link">{{ 'menu.faq'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('my_profile') }}" class="widget-list-link">Můj profil</a>
+                                    <a href="{{ path('my_profile') }}" class="widget-list-link">{{ 'menu.my_profile'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('add_time') }}" class="widget-list-link">Přidat čas</a>
+                                    <a href="{{ path('add_time') }}" class="widget-list-link">{{ 'menu.add_time'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item">
-                                    <a href="{{ path('stopwatch') }}" class="widget-list-link">Stopky</a>
+                                    <a href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
                                 </li>
                             </ul>
                         </div>
@@ -170,7 +199,7 @@
                                 <a class="ms-2" href="https://www.facebook.com/groups/1997202984012397" target="_blank"><i class="ci-facebook"></i></a>
                                 <a class="ms-2" href="https://github.com/speedpuzzling" target="_blank"><i class="ci-github"></i></a>
                             </p>
-                            &copy; Vytvořili s láskou k puzzlím a zdrojovému kódu <a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a> a <a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>
+                            &copy; {{ 'footer.created_with_love'|trans({'%simona%': '<a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a>', '%jan%': '<a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>' })|raw }}
                         </div>
                     </div>
                 </div>

@@ -10,12 +10,18 @@
     {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
         <p>
             {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
-                <a href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-warning me-1 mb-1">Odebrat z oblíbených <i class="ms-1 ci-star-filled"></i></a>
+                <a href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-warning me-1 mb-1">
+                    {{ 'profile.remove_from_favorites'|trans }} <i class="ms-1 ci-star-filled"></i>
+                </a>
             {% else %}
-                <a href="{{ path('add_player_to_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-warning me-1 mb-1">Přidat do oblíbených <i class="ms-1 ci-star"></i></a>
+                <a href="{{ path('add_player_to_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-warning me-1 mb-1">
+                    {{ 'profile.add_to_favorites'|trans }} <i class="ms-1 ci-star"></i>
+                </a>
             {% endif %}
 
-            <a href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Porovnat s hráčem <i class="ms-1 ci-compare"></i></a>
+            <a href="{{ path('compare_players', {opponentPlayerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary me-1 mb-1">
+                {{ 'profile.compare'|trans }} <i class="ms-1 ci-compare"></i>
+            </a>
         </p>
     {% endif %}
 
@@ -23,18 +29,18 @@
         <div class="row">
             <div class="col-sm">
                 <p>
-                    <b>Avatar:</b><br>
+                    <b>{{ 'profile.avatar'|trans }}:</b><br>
                     {% if player.avatar is null %}
-                        Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
                     {% endif %}
                 </p>
 
                 <p class="mb-0">
-                    <b>O mně:</b><br>
+                    <b>{{ 'profile.about_me'|trans }}:</b><br>
                     {% if player.bio is null %}
-                    Nevyplněno
+                    {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.bio }}
                     {% endif %}<br>
@@ -43,9 +49,9 @@
 
             <div class="col-sm">
                 <p>
-                    <b>Město, stát:</b><br>
+                    <b>{{ 'profile.city_country'|trans }}:</b><br>
                     {% if player.city is null %}
-                        Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.city }}, {{ player.country }}
                     {% endif %}
@@ -54,7 +60,7 @@
                 <p>
                     <b>Facebook:</b><br>
                     {% if player.facebook is null %}
-                    Nevyplněno
+                    {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.facebook }}
                     {% endif %}<br>
@@ -63,7 +69,7 @@
                 <p class="mb-0">
                     <b>Instagram:</b><br>
                     {% if player.instagram is null %}
-                    Nevyplněno
+                    {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.instagram }}
                     {% endif %}<br>
@@ -74,21 +80,21 @@
 
     <div class="row mt-4">
         <div class="col">
-            <h3 class="mt-2">Statistiky</h3>
+            <h3 class="mt-2">{{ 'profile.statistics'|trans }}</h3>
 
             <p>
-                <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
-                <strong>Počet složených puzzlí:</strong> {{ statistics.solvedPuzzlesCount }}<br>
-                <strong>Počet složených dílků:</strong> {{ statistics.totalPieces }}
+                <strong>{{ 'profile.statistics_time'|trans }}:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
+                <strong>{{ 'profile.statistics_puzzles_solved'|trans }}:</strong> {{ statistics.solvedPuzzlesCount }}<br>
+                <strong>{{ 'profile.statistics_pieces_count'|trans }}:</strong> {{ statistics.totalPieces }}
             </p>
         </div>
 
         <div class="col">
-            <h3 class="mt-2">Oblíbení puzzleři</h3>
+            <h3 class="mt-2">{{ 'profile.favorite_puzzlers'|trans }}</h3>
 
             {% if favorite_players is empty %}
                 <div class="alert alert-warning">
-                    Žádní oblíbení puzzleři
+                    {{ 'profile.no_favorite_puzzlers'|trans }}
                 </div>
             {% else %}
                 <ul>
@@ -105,13 +111,13 @@
     </div>
 
     <div {{ stimulus_controller('puzzle_filter') }}>
-        <h2 class="h4 mt-4">Poskládané puzzle</h2>
+        <h2 class="h4 mt-4">{{ 'profile.solved_puzzles'|trans }}</h2>
 
         {{ include('_puzzle_filter.html.twig') }}
 
         <div class="row">
             <div class="col-sm">
-                <h2 class="h4">Jednotlivec</h2>
+                <h2 class="h4">{{ 'profile.solved_puzzles_solo'|trans }}</h2>
 
                 <div class="mt-2 mb-5">
                     {{ include('_player_solvings.html.twig', {solved_puzzles: solo_puzzles}) }}
@@ -119,7 +125,7 @@
             </div>
 
             <div class="col-sm">
-                <h2 class="h4">Skupinové skládání</h2>
+                <h2 class="h4">{{ 'profile.solved_puzzles_group'|trans }}</h2>
 
                 <div class="mt-2 mb-5">
                     {{ include('_player_solvings.html.twig', {solved_puzzles: group_puzzles}) }}

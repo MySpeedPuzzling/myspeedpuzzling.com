@@ -21,7 +21,7 @@ return static function (SecurityConfig $securityConfig): void {
         ->customAuthenticators(['auth0.authenticator']);
 
     $securityConfig->accessControl()
-        ->path('^/(muj-profil|upravit-profil|pridat-cas|puzzle-stopky|stopky|upravit-cas|smazat-cas|ulozit-stopky|porovnat-s-hracem|pridat-hrace-k-oblibenym|odebrat-hrace-z-oblibenych)')
+        ->path('^/(muj-profil|upravit-profil|pridat-cas|puzzle-stopky|zapnout-stopky|stopky|upravit-cas|smazat-cas|ulozit-stopky|porovnat-s-puzzlerem|pridat-hrace-k-oblibenym|odebrat-hrace-z-oblibenych)|(en/(save-stopwatch|add-time|compare-with-puzzler|delete-time|edit-profile|edit-time|my-profile|stopwatch|start-stopwatch|puzzle-stopwatch|add-player-to-favorites|remove-player-from-favorites))')
         ->roles([AuthenticatedVoter::IS_AUTHENTICATED_FULLY]);
 
     $securityConfig->accessControl()

@@ -25,45 +25,45 @@ final class EditProfileFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('name', TextType::class, [
-            'label' => 'Jméno/přezdívka:',
+            'label' => 'my_profile.name',
             'required' => false,
-            'help' => 'Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity.',
+            'help' => 'forms.name_help',
         ]);
 
         $builder->add('email', EmailType::class, [
-            'label' => 'E-mail',
+            'label' => 'email',
             'required' => false,
-            'help' => 'Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor.',
+            'help' => 'forms.email_help',
         ]);
 
         $builder->add('city', TextType::class, [
-            'label' => 'Město',
+            'label' => 'forms.city',
             'required' => false,
-            'help' => 'Město, které hrdě reprezentujete (nepovinné).',
+            'help' => 'forms.city_help',
         ]);
 
         $builder->add('country', TextType::class, [
-            'label' => 'Stát',
+            'label' => 'forms.country',
             'required' => false,
         ]);
 
         $builder->add('facebook', TextType::class, [
-            'label' => 'Facebook',
+            'label' => 'facebook',
             'required' => false,
         ]);
 
         $builder->add('instagram', TextType::class, [
-            'label' => 'Instagram',
+            'label' => 'instagram',
             'required' => false,
         ]);
 
         $builder->add('bio', TextareaType::class, [
-            'label' => 'O mně (bio)',
+            'label' => 'forms.about_me',
             'required' => false,
         ]);
 
         $builder->add('avatar', FileType::class, [
-            'label' => 'Avatar/foto',
+            'label' => 'forms.avatar',
             'required' => false,
             'constraints' => [
                 new Image(

@@ -1,13 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Novinky na platformě{% endblock %}
+{% block title %}{{ 'changelog.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Co je nového na SpeedPuzzling.cz</h1>
+    <h1>{{ 'changelog.title'|trans }}</h1>
 
-    <p>Máme rádi puzzle a baví nás tvořit tuto platformu pro ostatní puzzlery. Proto sdílíme veřejně s radostí, co nového umí platforma speedpuzzling.cz!</p>
-
-    <p>Protože veškeré naše zdrojové kódy jsou open-source a veřejné na <a href="https://github.com/SpeedPuzzling">GitHubu SpeedPuzzling</a>, tak pokud vás zajímá jak to vypadá pod kapotou, můžete sledovat i <a href="https://github.com/SpeedPuzzling/speedpuzzling.cz/commits/main/" target="_blank">konkrétní změny v kódu</a>.</p>
+    {{ 'changelog.intro_block'|trans|raw }}
 
     {{ include('_changelog.html.twig', {changelog: daily_changes}) }}
 {% endblock %}

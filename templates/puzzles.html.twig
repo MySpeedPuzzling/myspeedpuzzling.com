@@ -1,40 +1,23 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Puzzle{% endblock %}
+{% block title %}{{ 'puzzle_overview.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Puzzle</h1>
+    <h1>{{ 'puzzle_overview.title'|trans }}</h1>
 
-    <p class="my-3 text-muted">Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času.</p>
+    <p class="my-3 text-muted">{{ 'puzzle_overview.missing_puzzle_info'|trans }}</p>
 
     <div {{ stimulus_controller('puzzle_filter') }} class="mt-4">
-        <small class="text-muted fw-bold">Filtrovat podle:</small>
-        <div class="puzzle-filter input-group shadow-lg mb-3" style="max-width: 700px;">
-            <select class="form-select" data-puzzle-filter-target="piecesCount" data-action="change->puzzle-filter#filterPuzzles">
-                <option value="">- Dílků -</option>
-                <option value="0-499">Méně než 500</option>
-                <option value="500">500</option>
-                <option value="501-999">501-999</option>
-                <option value="1000">1000</option>
-                <option value="1001-">Více než 1000</option>
-            </select>
-
-            <select class="form-select" data-puzzle-filter-target="manufacturer" data-action="change->puzzle-filter#filterPuzzles">
-                <!-- Options will be populated by JavaScript -->
-            </select>
-
-            <input class="form-control" type="text" data-puzzle-filter-target="puzzleName" data-action="input->puzzle-filter#filterPuzzles" placeholder="Název puzzlí nebo kód...">
-
-        </div>
+        {{ include('_puzzle_filter.html.twig') }}
 
         <div class="form-check form-check-inline">
             <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="availability" class="form-check-input" type="checkbox" id="available-only-filter">
-            <label class="form-check-label" for="available-only-filter">Pouze k zapůjčení</label>
+            <label class="form-check-label" for="available-only-filter">{{ 'filters.only_available'|trans }}</label>
         </div>
 
         <div class="form-check form-check-inline">
             <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="withTime" class="form-check-input" type="checkbox" id="with-time-only-filter">
-            <label class="form-check-label" for="with-time-only-filter">Pouze se zadaným časem</label>
+            <label class="form-check-label" for="with-time-only-filter">{{ 'filters.only_with_time'|trans }}</label>
         </div>
 
         {% for puzzle in puzzles %}
@@ -74,43 +57,43 @@
 
                     <div class="col-md align-self-center text-md-center">
                         <b>{{ puzzle.manufacturerName|upper }}</b><br>
-                        {{ puzzle.piecesCount }} dílků
+                        {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
                     </div>
 
                     <div class="col-md align-self-center text-md-center">
                         {% if puzzle.puzzleId in puzzles_solved_by_user %}
-                            <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> poskládáno</span>
+                            <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
                         {% endif %}
 
                         {% if puzzle.isAvailable %}
-                            <span class="badge bg-success badge-shadow rounded-pill">k zapůjčení</span>
+                            <span class="badge bg-success badge-shadow rounded-pill">{{ 'puzzle_available'|trans }}</span>
                         {% else %}
-                            <span class="badge bg-dark badge-shadow rounded-pill">nejsou k dispozici</span>
+                            <span class="badge bg-dark badge-shadow rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
                         {% endif %}
                     </div>
 
                     <div class="col-md align-self-center">
                         <small>
                             {% if puzzle.solvedTimes > 0 %}
-                                Nejrychlejší čas: {{ puzzle.fastestTime|puzzlingTime }}<br>
-                                Průměrný čas: {{ puzzle.averageTime|puzzlingTime }}<br>
+                                {{ 'fastest_time'|trans({ '%time%': puzzle.fastestTime|puzzlingTime }) }}<br>
+                                {{ 'average_time'|trans({ '%time%': puzzle.averageTime|puzzlingTime }) }}<br>
                                 {% if ranking[puzzle.puzzleId] is defined %}
-                                    <strong>Můj čas: {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</strong>
+                                    <strong>{{ 'my_time'|trans({ '%time%': ranking[puzzle.puzzleId].time|puzzlingTime }) }}<br></strong>
                                     <br>
                                 {% endif %}
-                                Počet složení: {{ puzzle.solvedTimes }}
+                                {{ 'puzzle_solved_count'|trans({ '%count%': puzzle.solvedTimes }) }}<br>
                             {% else %}
-                                Tyto puzzle ještě nikdo neskládal, buď první!
+                                {{ 'never_solved_puzzles'|trans }}
                             {% endif %}
                         </small>
                     </div>
 
                     <div class="col-md align-self-center text-md-center">
                         {% if puzzle.solvedTimes > 0 %}
-                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1 px-2 my-1 btn-sm btn-primary">Chci vidět časy</a>
+                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1 px-2 my-1 btn-sm btn-primary">{{ 'show_times'|trans }}</a>
                         {% endif %}
-                        <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
-                        <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> Začít skládat</a>
+                        <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> {{ 'add_my_time'|trans }}</a>
+                        <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> {{ 'start_solving'|trans }}</a>
                     </div>
                 </div>
             </div>
@@ -118,7 +101,7 @@
 
         <div class="filter-no-results hidden mt-3">
             <div class="alert alert-warning">
-                Žádné puzzle neodpovídají zadaným filtrům
+                {{ 'filters.no_puzzle_matches_filters'|trans }}
             </div>
         </div>
     </div>

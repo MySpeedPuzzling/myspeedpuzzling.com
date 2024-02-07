@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -25,7 +25,14 @@ final class PuzzlesController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/puzzle', name: 'puzzles', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/puzzle',
+            'en' => '/en/puzzle',
+        ],
+        name: 'puzzles',
+        methods: ['GET'],
+    )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {
         $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(

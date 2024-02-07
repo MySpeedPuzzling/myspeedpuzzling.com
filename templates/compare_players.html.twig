@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Porovnání puzzlerů{% endblock %}
+{% block title %}{{ 'puzzlers_comparison.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1 class="mb-4">Porovnání puzzlerů</h1>
+    <h1 class="mb-4">{{ 'puzzlers_comparison.title'|trans }}</h1>
 
     <div class="row">
         <div class="col">
@@ -22,7 +22,7 @@
     {% if comparisons is empty %}
         <div id="filter-no-results" class="filter-no-results mt-3">
             <div class="alert alert-warning">
-                Bohužel nemáte žádné puzzle k porovnání, které byly poskládány oběma puzzlery.
+                {{ 'puzzlers_comparison.nothing_to_compare'|trans }}
             </div>
         </div>
     {% else %}
@@ -30,7 +30,7 @@
             <table class="table custom-table table-striped table-hover mb-0">
                 <thead>
                 <tr>
-                    <th>Puzzle</th>
+                    <th>{{ 'puzzle'|trans }}</th>
                     <th></th>
                     <th class="text-center">
                         <a href="{{ path('player_profile', {playerId: player.playerId}) }}">{{ player.playerName }}</a>

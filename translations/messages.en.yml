@@ -1,0 +1,300 @@
+menu:
+    my_profile: "My profile"
+    add_time: "Add time"
+    stopwatch: "Stopwatch"
+    puzzles_overview: "Puzzles overview"
+    ladder: "Leaderboard"
+    puzzlers: "Puzzlers"
+    recent_changes: "What's new"
+    faq: "FAQ"
+
+footer:
+    created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
+
+puzzler_name: "Name"
+puzzler: "Puzzler"
+puzzle: "Puzzle"
+time: "Time"
+pieces_count: "%count%&nbsp;pieces"
+show_more: "Show more"
+puzzle_solved: "completed"
+puzzle_available: "available for loan"
+puzzle_not_available: "not available"
+add_my_time: "Add my time"
+start_solving: "Start solving"
+show_times: "Show times"
+fastest_time_short: "Top: %time%"
+average_time_short: "Avg: %time%"
+fastest_time: "Fastest time: %time%"
+average_time: "Average time: %time%"
+my_time: "My time: %time%"
+puzzle_solved_count: "Number of completions: %count%"
+puzzle_solved_times: "completed %count%x"
+never_solved_puzzles: "No one has solved these puzzles yet, be the first!"
+show_more_solving_times: "Show more times (%count%x)"
+be_first_to_solve: "No one has solved these puzzles yet. Be the first!"
+be_first_to_group_solve: "These puzzles have not yet been solved in a group. Be the first!"
+email: "Email"
+facebook: "Facebook"
+instagram: "Instagram"
+search: "Search"
+
+homepage:
+    meta:
+        title: "Solve Puzzles Faster!"
+
+    title: "Welcome to the World of Speed Puzzling!"
+    intro_text: "Speed Puzzling is an exciting sport where the goal is to assemble puzzles as quickly as possible. Every piece counts, every second matters. Imagine traditional puzzle-solving but with the adrenaline of a racetrack! Our platform is the first of its kind - a place where you can measure your puzzle-solving skills not just against the clock, but also against other puzzle enthusiasts."
+    why_block: |
+        <h3>Why Get Involved?</h3>
+        <ul>
+            <li><strong>Compete with others:</strong> Record your times and compare them with other puzzlers</li>
+            <li><strong>Leaderboards and statistics:</strong> Discover the rankings of the fastest puzzlers, most assembled puzzles, and most active users</li>
+            <li><strong>Puzzle lending:</strong> For just the cost of postage and handling, you can borrow puzzles, assemble them timed, and enter your result to compare with others</li>
+            <li><strong>Stopwatch:</strong> Use our integrated stopwatch for easy timing of your puzzle assembly</li>
+            <li><strong>Add your puzzles:</strong> Have a puzzle that's missing from our site? Add it and share your times with the community.</li>
+            <li><strong>Build your puzzling community:</strong> Join our growing community and share tips, tricks, and friendly rivalry</li>
+            <li><strong>Expand your horizons:</strong> We plan to organize competitions, both online and in the future offline, so you can show off your skills live</li>
+        </ul>
+    help_us_grow_block: |
+        <h3>Help Us Grow</h3>
+        <p>Our app is just starting, and your ideas, feedback, and help in finding bugs are invaluable. Join us in this early stage and have a direct impact on the future of speed puzzling.</p>
+    start_today_block: |
+        <h3>Start Today</h3>
+        <p>Whether you're a beginner or an experienced puzzler, our platform offers the perfect place to develop your skills and measure up against others. Join us and become part of the future of speed puzzling!</p>
+
+ladder:
+    title: "Leaderboard"
+    overview: "Overview"
+    recent_activity: "Recently Added Times"
+    solo: "Individuals"
+    pairs: "Pairs"
+    groups: "Groups"
+    most_solved_puzzle: "Most Assembled Puzzle"
+    most_active_puzzlers: "Most Enthusiastic Puzzlers"
+    puzzle_solved_count: "Puzzles Solved"
+
+filters:
+    filter_by: "Filter by"
+    pieces_placeholder: "- Pieces -"
+    less_than: "Less than %count%"
+    more_than: "More than %count%"
+    text_search_placeholder: "Puzzle name or code..."
+    only_available: "Only available for loan"
+    only_with_time: "Only with entered time"
+    no_puzzle_matches_filters: "No puzzles match the specified filters"
+
+puzzle_overview:
+    meta:
+        title: "Puzzle Overview"
+    title: "Puzzle Overview"
+    missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
+
+stopwatch:
+    meta:
+        title: "Stopwatch"
+    title: "Stopwatch"
+    start: "Start"
+    stop: "Stop"
+    continue: "Continue"
+    reset: "Reset"
+    finish: "Completed! Add time"
+    more_my_stopwatches: "More of my stopwatches"
+    status:
+        not_started: "Ready to start"
+        running: "Running"
+        paused: "Paused"
+        finished: "Puzzle completed"
+
+add_time:
+    meta:
+        title: "Add Time"
+    title: "Add Time"
+    chosen_puzzle: "Selected puzzle:"
+    choose_puzzle: "Choose a puzzle"
+    puzzle_needed: "You must select a puzzle from the list or add a new one"
+    change_puzzle: "Change selection"
+    add_when_not_found_info: "If you cannot find the puzzle in the list, please add a new one."
+    need_approve_info: "Newly added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
+    add_manufacturer: "Add a new manufacturer"
+    not_in_list: "(not in the list)"
+    choose_manufacturer: "Choose a manufacturer from the list"
+    time_from_stopwatch: "Time from stopwatch"
+    add_puzzler: "Add puzzler"
+    teamplayer: "Co-puzzler"
+    player_code_info: "Enter the player's code (starts with #). If the puzzler does not have an account on speedpuzzling.cz, please enter their name."
+
+forms:
+    drop_file: "Drag and drop a file here to upload"
+    choose_file: "Or select a file"
+    save: "Save"
+    required_field: "This field is required!"
+    empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
+    name_help: "Under this name you will assemble puzzles and it will be visible to all community members."
+    email_help: "Your email is private, not displayed anywhere and is only used in case the administrator needs to contact you."
+    city_help: "The city you proudly represent (optional)."
+    city: "City"
+    country: "Country"
+    about_me: "About me (bio)"
+    avatar: "Avatar/photo"
+    search_puzzler: "Name, player code, or part of..."
+    time_format_placeholder: "HH:MM:SS"
+    comment: "Additional info"
+    finished_puzzle_photo: "Photo of completed puzzles"
+    add_new_puzzle: "Add new puzzle - not in the list"
+    puzzle_name: "Puzzle name"
+    manufacturer: "Manufacturer"
+    add_new_manufacturer: "Add new manufacturer - not in the list"
+    manufacturer_name: "Manufacturer (not in the list)"
+    pieces_count: "Number of pieces"
+    puzzle_box_photo: "Photo of the motif or puzzle box"
+    date_finished: "Date completed"
+    ean: "EAN code"
+    puzzle_identification_number: "Manufacturer's code"
+    choose_or_add_puzzle: "To add time, select a puzzle from the list or please enter information about the puzzles"
+    add_or_choose_manufacturer: "Enter the manufacturer or choose from the list of existing ones"
+    choose_or_add_manufacturer: "Select a manufacturer from the list or add a new one."
+
+
+puzzlers_comparison:
+    meta:
+        title: "Puzzlers Comparison"
+    title: "Puzzlers Comparison"
+    nothing_to_compare: "Unfortunately, you have no puzzles to compare that have been assembled by both puzzlers."
+
+edit_time:
+    meta:
+        title: "Editing Puzzle Time Data"
+    title: "Editing Puzzle Time Data"
+    delete_button: "Permanently delete this assembly record and pretend it never happened!"
+    delete_modal_message: "Just to be sure..."
+    delete_modal_confirm: "Really delete?"
+    delete_modal_discard_button: "No, keep it"
+    delete_modal_confirm_button: "Yes, delete"
+
+error:
+    generic:
+        title: "Something broke"
+        message: "Something went wrong... if you believe the error is not on your side, please write to us."
+    404:
+        title: "Page not found"
+        message: "Unfortunately, we could not find the page you requested. Please check the URL.."
+    500:
+        title: "Unknown error"
+        message: "Something went wrong - we've been notified and will fix it as soon as possible"
+
+faq:
+    meta:
+        title: "Frequently Asked Questions"
+    title: "Frequently Asked Questions"
+    intro_block: |
+        <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> for technical matters) or on <a href="https://www.facebook.com/groups/1997202984012397" target="_blank">Facebook</a>.</p>
+        <p>All our source codes are open-source and public on <a href="https://github.com/SpeedPuzzling">GitHub SpeedPuzzling</a>. We adhere to the philosophy of "sharing is caring" and strive to share everything about speedpuzzling.cz openly.</p>
+
+    question_fair_play: |
+        <h4 class="mb-3">How do you know I'm not cheating when entering times?</h4>
+        <p>Honestly - we probably won't. In the public leaderboard, where puzzlers enter times themselves, we rely on the honesty and integrity of each individual puzzler. Would you really enjoy a dishonestly entered result?</p>
+        <p>We assume that, like us, other puzzlers assemble primarily for the joy of it, and the times from this type of assembly are indicative for a rough idea of how we compare to others and will measure up during some competition. Tell me, wouldn't it look suspicious if I had a time of 20 minutes on the platform but took 3 hours during a competition?</p>
+        <p>In the future, we also plan rated leagues, where time verification might be required, for example, through video recording.</p>
+        <p class="text-danger mb-0"><small>Since our community includes finalists of the World Jigsaw Championship, who have placed at the top, we can take their times as reference. Suspicious times will be monitored and if fraud is proven, they will be mercilessly deleted. In case of repeated cheating, the player's access to the platform will be restricted.</small></p>
+
+    question_qr: |
+        <h4 class="mb-3">I received puzzles with a QR code and speedpuzzling.cz logo, what should I do?</h4>
+        <p>To make assembling and entering times as pleasant as possible for you, we add a QR code to all puzzles that pass through our hands - scanning it takes you to the page with the given puzzles, where you can directly start timing or enter your time.</p>
+        <p class="mb-0">If you'd like to help spread the word about speedpuzzling and add a flyer with a QR code to your puzzles, please write to us - we'll send you a PDF that you can print out, or we can mail you printed flyers directly.</p>
+
+    question_add_time_for_missing_puzzle: |
+        <h4 class="mb-3">Can I add time for puzzles not on the platform?</h4>
+        <p>Definitely! If you've assembled a puzzle that isn't yet on our platform, when adding time, switch to the option:</p>
+        <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
+            <label class="form-check-label" for="switch-add-puzzle">Enter puzzle manually - unknown manufacturer or not in the list</label>
+        </div>
+        <p class="mb-0">Then you have the option to select from a list of manufacturers. If the manufacturer is also not in the database, you can enter it yourself.</p>
+
+    question_edit_or_delete_time: |
+        <h4 class="mb-3">How do I edit or delete an entered time?</h4>
+        <p>In the <a href="%link%">My Profile</a> section, next to each entered time, you'll find a link to edit (the link looks like a pencil icon <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
+        <p class="mb-0">On the editing page, at the very bottom, there's a <button class="btn btn-sm btn-outline-danger">magic button</button> that once and for all deletes the record from the entire internet.</p>
+
+    question_button_start_solving: |
+        <h4 class="mb-3">What does the <button class="btn btn-accent btn-sm me-1"><i class="ci-time"></i> Start Solving</button> button do?</h4>
+        <p class="mb-0">Opens the stopwatch with selected puzzles - you can start assembling and timing right away.</p>
+
+    question_button_add_my_time: |
+        <h4 class="mb-3">What does the <button class="btn btn-accent btn-sm me-1"><i class="ci-add"></i> Add My Time</button> button do?</h4>
+        <p class="mb-0">Opens adding your time to selected puzzles - suitable if you use your own stopwatch and have just finished assembling. If you assembled in the past and want to record the time, you have the option to also specify the date you assembled.</p>
+
+    question_borrowing: |
+        <h4 class="mb-3">How do I borrow puzzles?</h4>
+        <p>Currently, I offer my own collection of puzzles - only for the cost of postage and handling, or for a symbolic fee, in exchange for adding your assembly time and thus supporting the growth of the speed puzzling community!</p>
+        <p>Puzzles that I currently have available for loan are always marked in the puzzle overview as <span class="badge bg-success badge-shadow rounded-pill">available for loan</span>. If I do not have the puzzle, or it is currently borrowed by someone else, they are marked as <span class="badge bg-dark badge-shadow rounded-pill">not available</span>.</p>
+        <p>If you are interested in borrowing any puzzles (I recommend borrowing several at once :-)), please write to me and we will arrange it.</p>
+        <p class="mb-0">In the future, we plan to allow every user on the platform to publish their own collection of puzzles and offer the opportunity to directly connect puzzlers with each other.</p>
+
+    question_helping: |
+        <h4 class="mb-3">Can I lend a hand?</h4>
+        <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
+
+profile:
+    add_to_favorites: "Remove from favorites"
+    remove_from_favorites: "Add to favorites"
+    compare: "Compare with player"
+    no_puzzles_solved: "No puzzles solved? You're quite the slacker."
+    not_filled: "Not filled"
+    avatar: "Avatar"
+    about_me: "About me"
+    city_country: "City, country"
+    statistics: "Statistics"
+    statistics_time: "Time spent assembling"
+    statistics_puzzles_solved: "Number of puzzles solved"
+    statistics_pieces_count: "Number of pieces assembled"
+    favorite_puzzlers: "Favorite puzzlers"
+    no_favorite_puzzlers: "No favorite puzzlers"
+    solved_puzzles: "Solved puzzles"
+    solved_puzzles_solo: "Individual"
+    solved_puzzles_group: "Group assembly"
+
+my_profile:
+    meta:
+        title: "My Profile"
+    title: "My Profile"
+    edit: "Edit information"
+    logout: "Log out"
+    myssing_name_info: "We're sorry, but if you don't fill in a name or nickname, we don't know how to present you. Therefore, all your results are non-public."
+    public_info: "public"
+    not_public_info: "non-public"
+    name: "Name/nickname"
+    stopwatches: "My stopwatches"
+
+puzzlers:
+    meta:
+        title: "Puzzlers"
+    title: "Puzzlers"
+    results_for: "Search results for"
+    no_matches_found: "No matches found"
+    my_favorites: "My Favorites"
+    most_popular: "Most Popular"
+
+flashes:
+    stopwatch_already_saved: "These stopwatches have already been saved."
+    puzzle_needs_approve: "Newly added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
+    time_added: "Great job! We've recorded your assembly."
+    time_deleted: "We've deleted all evidence. No one will ever know what just happened!"
+    profile_saved: "Profile changes saved!"
+    time_edited: "Edited information has been saved."
+    player_not_found: "The player you tried to find is not registered with us!"
+    puzzle_not_found: "The puzzle you tried to find does not exist on our platform!"
+    puzzler_added_to_favorites: "We've added the puzzler to your list of favorites."
+    puzzler_removed_from_favorites: "We've removed the puzzler from your list of favorites."
+    can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
+    player_already_in_favorites: "This puzzler is already in your list of favorites, so we won't add them again ;-)."
+    player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
+
+changelog:
+    meta:
+        title: "What's New on the Platform"
+    title: "What's New on SpeedPuzzling.cz"
+    intro_block: |
+        <p>We love puzzles and enjoy creating this platform for other puzzlers. That's why we're happy to share publicly what's new on the speedpuzzling.cz platform!</p>
+        <p>Since all our source codes are open-source and public on <a href="https://github.com/SpeedPuzzling">GitHub SpeedPuzzling</a>, if you're interested in what's under the hood, you can also follow <a href="https://github.com/SpeedPuzzling/speedpuzzling.cz/commits/main/" target="_blank">specific code changes</a>.</p>

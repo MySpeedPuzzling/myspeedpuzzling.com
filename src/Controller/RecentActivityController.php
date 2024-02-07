@@ -7,7 +7,7 @@ use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 final class RecentActivityController extends AbstractController
 {
@@ -16,7 +16,14 @@ final class RecentActivityController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/nedavna-aktivita', name: 'recent_activity', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/nedavna-aktivita',
+            'en' => '/en/recent-activity',
+        ],
+        name: 'recent_activity',
+        methods: ['GET'],
+    )]
     public function __invoke(Request $request): Response
     {
         return $this->render('recent_activity.html.twig', [

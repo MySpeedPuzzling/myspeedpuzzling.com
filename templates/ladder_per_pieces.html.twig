@@ -4,24 +4,24 @@
     {% set currentLadder = app.request.attributes.get('_route') %}
 
     {% if currentLadder == 'ladder_solo_500_pieces' %}
-        Žebříček - Jednotlivci - 500 dílků
+        {{ 'ladder.title'|trans }} - {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
     {% elseif currentLadder == 'ladder_solo_1000_pieces' %}
-        Žebříček - Jednotlivci - 1000 dílků
+        {{ 'ladder.title'|trans }} - {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
     {% elseif currentLadder == 'ladder_pairs_500_pieces' %}
-        Žebříček - Páry - 500 dílků
+        {{ 'ladder.title'|trans }} - {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
     {% elseif currentLadder == 'ladder_pairs_1000_pieces' %}
-        Žebříček - Páry - 1000 dílků
+        {{ 'ladder.title'|trans }} - {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
     {% elseif currentLadder == 'ladder_groups_500_pieces' %}
-        Žebříček - Skupiny - 500 dílků
+        {{ 'ladder.title'|trans }} - {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
     {% elseif currentLadder == 'ladder_groups_1000_pieces' %}
-        Žebříček - Skupiny - 1000 dílků
+        {{ 'ladder.title'|trans }} - {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
     {% endif %}
 {% endblock %}
 
 {% block content %}
     {% set currentLadder = app.request.attributes.get('_route') %}
 
-    <h1 class="mb-4">Žebříček <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
+    <h1 class="mb-4">{{ 'ladder.title'|trans }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
 
     {{ include('_ladder_dropdown.html.twig') }}
 

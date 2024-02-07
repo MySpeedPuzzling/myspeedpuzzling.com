@@ -23,6 +23,7 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @extends AbstractType<PuzzleSolvingTimeFormData>
@@ -33,6 +34,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetManufacturers $getManufacturers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -57,23 +59,24 @@ final class PuzzleSolvingTimeFormType extends AbstractType
             'expanded' => true,
             'multiple' => false,
             'choices' => $puzzleChoices,
+            'choice_translation_domain' => false,
         ]);
 
         $builder->add('time', TextType::class, [
-            'label' => 'Čas',
+            'label' => 'time',
             'required' => true,
             'attr' => [
-                'placeholder' => 'HH:MM:SS',
+                'placeholder' => 'forms.time_format_placeholder',
             ],
         ]);
 
         $builder->add('comment', TextareaType::class, [
-            'label' => 'Doplňující info',
+            'label' => 'forms.comment',
             'required' => false,
         ]);
 
         $builder->add('finishedPuzzlesPhoto', FileType::class, [
-            'label' => 'Foto poskládaných puzzlí',
+            'label' => 'forms.finished_puzzle_photo',
             'required' => false,
             'constraints' => [
                 new Image(
@@ -83,12 +86,12 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         ]);
 
         $builder->add('addPuzzle', CheckboxType::class, [
-            'label' => 'Přidat nové puzzle - nejsou v seznamu',
+            'label' => 'forms.add_new_puzzle',
             'required' => false,
         ]);
 
         $builder->add('puzzleName', TextType::class, [
-            'label' => 'Název puzzlí',
+            'label' => 'forms.puzzle_name',
             'label_attr' => ['class' => 'required'],
             'required' => false,
         ]);
@@ -99,34 +102,35 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         }
 
         $builder->add('puzzleManufacturerId', ChoiceType::class, [
-            'label' => 'Výrobce',
+            'label' => 'forms.manufacturer',
             'required' => false,
             'expanded' => false,
             'multiple' => false,
             'choices' => $manufacturerChoices,
             'attr' => ['data-manufacturerId' => true],
             'label_attr' => ['class' => 'required'],
+            'choice_translation_domain' => false,
         ]);
 
         $builder->add('addManufacturer', CheckboxType::class, [
-            'label' => 'Přidat nového výrobce - není v seznamu',
+            'label' => 'forms.add_new_manufacturer',
             'required' => false,
         ]);
 
         $builder->add('puzzleManufacturerName', TextType::class, [
-            'label' => 'Výrobce (není v seznamu)',
+            'label' => 'forms.manufacturer_name',
             'label_attr' => ['class' => 'required'],
             'required' => false,
         ]);
 
         $builder->add('puzzlePiecesCount', NumberType::class, [
-            'label' => 'Počet dílků',
+            'label' => 'forms.pieces_count',
             'label_attr' => ['class' => 'required'],
             'required' => false,
         ]);
 
         $builder->add('puzzlePhoto', FileType::class, [
-            'label' => 'Foto motivu nebo krabice od puzzlí',
+            'label' => 'forms.puzzle_box_photo',
             'required' => false,
             'constraints' => [
                 new Image(
@@ -136,7 +140,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         ]);
 
         $builder->add('finishedAt', DateType::class, [
-            'label' => 'Datum doskládání',
+            'label' => 'forms.date_finished',
             'required' => false,
             'widget' => 'single_text',
             'format' => 'dd.MM.yyyy',
@@ -146,12 +150,12 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         ]);
 
         $builder->add('puzzleEan', TextType::class, [
-            'label' => 'EAN kód',
+            'label' => 'forms.ean',
             'required' => false,
         ]);
 
         $builder->add('puzzleIdentificationNumber', TextType::class, [
-            'label' => 'Kód od výrobce',
+            'label' => 'forms.puzzle_identification_number',
             'required' => false,
         ]);
 
@@ -180,24 +184,24 @@ final class PuzzleSolvingTimeFormType extends AbstractType
     ): void {
 
         if ($data->addPuzzle === false && $data->puzzleId === null) {
-            $form->get('puzzleId')->addError(new FormError('Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích'));
+            $form->get('puzzleId')->addError(new FormError($this->translator->trans('forms.choose_or_add_puzzle')));
         }
 
         if ($data->addPuzzle === true) {
             if ($data->puzzleName === null) {
-                $form->get('puzzleName')->addError(new FormError('Toto pole je povinné.'));
+                $form->get('puzzleName')->addError(new FormError($this->translator->trans('forms.required_field')));
             }
 
             if ($data->puzzlePiecesCount === null) {
-                $form->get('puzzlePiecesCount')->addError(new FormError('Toto pole je povinné.'));
+                $form->get('puzzlePiecesCount')->addError(new FormError($this->translator->trans('forms.required_field')));
             }
 
             if ($data->addManufacturer === true) {
                 if ($data->puzzleManufacturerName === null || $data->puzzleManufacturerName === '') {
-                    $form->get('puzzleManufacturerName')->addError(new FormError('Zadejte výrobce nebo vyberte ze seznamu existujících.'));
+                    $form->get('puzzleManufacturerName')->addError(new FormError($this->translator->trans('forms.add_or_choose_manufacturer')));
                 }
             } elseif ($data->puzzleManufacturerId === null || $data->puzzleManufacturerId === '') {
-                $form->get('puzzleManufacturerId')->addError(new FormError('Vyberte výrobce ze seznamu nebo přidejte nového.'));
+                $form->get('puzzleManufacturerId')->addError(new FormError($this->translator->trans('forms.choose_or_add_manufacturer')));
             }
         }
     }

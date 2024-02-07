@@ -1,10 +1,10 @@
 <div data-puzzler class="mb-3">
     <label class="form-label required" {% if inputId is defined %}for="playerInput-{{ inputId }}"{% endif %}>
-        Spoluskládající
+        {{ 'add_time.teamplayer'|trans }}
         <span data-counter>{% if inputId is defined %}{{ inputId }}{% endif %}</span>
     </label>
 
-    {% set isInputInvalid = inputValue is defined and inputValue is empty  %}
+    {% set isInputInvalid = inputValue is defined and inputValue is empty %}
 
     <div class="input-group">
         <input name="group_players[]" class="form-control {% if isInputInvalid %}is-invalid{% endif %}" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
@@ -13,7 +13,7 @@
         </button>
     </div>
     {% if isInputInvalid %}
-        <div class="invalid-feedback d-block">Toto pole je povinné!</div>
+        <div class="invalid-feedback d-block">{{ 'forms.required_field'|trans }}</div>
     {% endif %}
-    <div class="form-text">Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno.</div>
+    <div class="form-text">{{ 'add_time.player_code_info'|trans }}</div>
 </div>

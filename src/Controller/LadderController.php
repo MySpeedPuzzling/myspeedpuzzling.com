@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Query\GetStatistics;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 final class LadderController extends AbstractController
 {
@@ -24,7 +24,14 @@ final class LadderController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/zebricek', name: 'ladder', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/zebricek',
+            'en' => '/en/ladder',
+        ],
+        name: 'ladder',
+        methods: ['GET'],
+    )]
     public function __invoke(Request $request): Response
     {
         return $this->render('ladder.html.twig', [

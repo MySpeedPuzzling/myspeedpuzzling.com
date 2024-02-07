@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Neznámá chyba{% endblock %}
+{% block title %}{{ 'error.500.title'|trans }}{% endblock %}
 
 {% block content %}
     <div class="container py-3">
         <div class="row justify-content-center pt-lg-4 text-center">
             <div class="col-lg-5 col-md-7 col-sm-9">
-                <h1 class="h3 mb-4">Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji</h1>
+                <h1 class="h3 mb-4">{{ 'error.500.message'|trans }}</h1>
                 <img class="d-block mx-auto rounded-4" src="{{ asset('img/500.png') }}" alt="500 Error">
             </div>
         </div>

@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class MyProfileController extends AbstractController
@@ -29,7 +29,14 @@ final class MyProfileController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/muj-profil', name: 'my_profile', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/muj-profil',
+            'en' => '/en/my-profile',
+        ],
+        name: 'my_profile',
+        methods: ['GET'],
+    )]
     public function __invoke(#[CurrentUser] User $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();

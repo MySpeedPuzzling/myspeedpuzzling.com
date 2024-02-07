@@ -26,8 +26,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AddTimeController extends AbstractController
 {
@@ -38,11 +39,26 @@ final class AddTimeController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetStopwatch $getStopwatch,
         readonly private PuzzlingTimeFormatter $timeFormatter,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
-    #[Route(path: '/pridat-cas/{puzzleId}', name: 'add_time', methods: ['GET', 'POST'])]
-    #[Route(path: '/ulozit-stopky/{stopwatchId}', name: 'finish_stopwatch', methods: ['GET', 'POST'])]
+    #[Route(
+        path: [
+            'cs' => '/pridat-cas/{puzzleId}',
+            'en' => '/en/add-time/{puzzleId}',
+        ],
+        name: 'add_time',
+        methods: ['GET', 'POST'],
+    )]
+    #[Route(
+        path: [
+            'cs' => '/ulozit-stopky/{stopwatchId}',
+            'en' => '/en/save-stopwatch/{stopwatchId}',
+        ],
+        name: 'finish_stopwatch',
+        methods: ['GET', 'POST'],
+    )]
     public function __invoke(
         Request $request,
         #[CurrentUser] User $user,
@@ -62,7 +78,7 @@ final class AddTimeController extends AbstractController
             $data->time = $this->timeFormatter->formatTime($activeStopwatch->totalSeconds);
 
             if ($activeStopwatch->status === StopwatchStatus::Finished) {
-                $this->addFlash('warning','Tyto stopky byly již uloženy.');
+                $this->addFlash('warning', $this->translator->trans('flashes.stopwatch_already_saved'));
 
                 return $this->redirectToRoute('my_profile');
             }
@@ -113,7 +129,7 @@ final class AddTimeController extends AbstractController
                     AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
                 );
 
-                $this->addFlash('warning','Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání.');
+                $this->addFlash('warning', $this->translator->trans('flashes.puzzle_needs_approve'));
             }
 
             if ($data->puzzleId !== null) {
@@ -132,14 +148,14 @@ final class AddTimeController extends AbstractController
                         );
                     }
 
-                    $this->addFlash('success','Skvělá práce! Skládání jsme zaznamenali.');
+                    $this->addFlash('success', $this->translator->trans('flashes.time_added'));
 
                     return $this->redirectToRoute('my_profile');
                 } catch (HandlerFailedException $exception) {
                     $realException = $exception->getPrevious();
 
                     if ($realException instanceof CanNotAssembleEmptyGroup) {
-                        $addTimeForm->addError(new FormError('Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)'));
+                        $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
                     }
                 }
             }

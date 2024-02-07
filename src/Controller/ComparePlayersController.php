@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Services\PlayersComparison;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class ComparePlayersController extends AbstractController
@@ -24,7 +24,14 @@ final class ComparePlayersController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/porovnat-s-hracem/{opponentPlayerId}/', name: 'compare_players', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/porovnat-s-puzzlerem/{opponentPlayerId}/',
+            'en' => '/compare-with-puzzler/{opponentPlayerId}/',
+        ],
+        name: 'compare_players',
+        methods: ['GET'],
+    )]
     public function __invoke(#[CurrentUser] User $user, string $opponentPlayerId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();

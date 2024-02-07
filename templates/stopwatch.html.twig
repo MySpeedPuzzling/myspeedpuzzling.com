@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Stopky{% endblock %}
+{% block title %}{{ 'stopwatch.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Stopky</h1>
+    <h1>{{ 'stopwatch.title'|trans }}</h1>
 
     <div class="container mt-3">
         <div class="row align-items-center justify-content-center gy-3 text-center">
@@ -30,15 +30,25 @@
 
                 <div class="mt-2">
                     {% if active_stopwatch is null %}
-                        <a href="{% if active_puzzle is not null %}{{ path('start_stopwatch', {puzzleId: active_puzzle.puzzleId}) }}{% else %}{{ path('start_stopwatch') }}{% endif %}" class="btn btn-success btn-lg">Start</a>
+                        <a href="{% if active_puzzle is not null %}{{ path('start_stopwatch', {puzzleId: active_puzzle.puzzleId}) }}{% else %}{{ path('start_stopwatch') }}{% endif %}" class="btn btn-success btn-lg">
+                            {{ 'stopwatch.start'|trans }}
+                        </a>
                     {% elseif active_stopwatch.status.value is same as 'running' %}
-                        <a href="{{ path('stop_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-danger btn-lg">Stop</a>
+                        <a href="{{ path('stop_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-danger btn-lg">
+                            {{ 'stopwatch.stop'|trans }}
+                        </a>
                     {% elseif active_stopwatch.status.value is same as 'paused' %}
-                        <a href="{{ path('resume_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-accent btn-lg">Pokračovat</a>
+                        <a href="{{ path('resume_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-accent btn-lg">
+                            {{ 'stopwatch.continue'|trans }}
+                        </a>
 
                         <p class="mt-3">
-                            <a href="{{ path('reset_stopwatch', {'stopwatchId': active_stopwatch.stopwatchId}) }}" class="btn btn-outline-danger btn-sm">Vynulovat</a>
-                            <a href="{{ path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-sm btn-outline-success">Doskládáno! Přidat čas</a>
+                            <a href="{{ path('reset_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-outline-danger btn-sm">
+                                {{ 'stopwatch.reset'|trans }}
+                            </a>
+                            <a href="{{ path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-sm btn-outline-success">
+                                {{ 'stopwatch.finish'|trans }}
+                            </a>
                         </p>
                     {% endif %}
                 </div>
@@ -55,7 +65,7 @@
                     {% endif %}
                     <br>
                     <b>{{ active_puzzle.manufacturerName|upper }}</b><br>
-                    {{ active_puzzle.piecesCount }} dílků<br>
+                    {{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}<br>
 
                     {% if active_puzzle.puzzleImage is not null%}
                         <p>
@@ -64,24 +74,24 @@
                     {% endif %}
 
                     {% if active_puzzle.fastestTime is not null %}
-                        Nejrychlejší čas: {{ active_puzzle.fastestTime|puzzlingTime }}<br>
-                        Průměrný čas: {{ active_puzzle.averageTime|puzzlingTime }}<br>
-                        Počet složení: {{ active_puzzle.solvedTimes }}
+                        {{ 'fastest_time'|trans({ '%time%': active_puzzle.fastestTime|puzzlingTime }) }}<br>
+                        {{ 'average_time'|trans({ '%time%': active_puzzle.averageTime|puzzlingTime }) }}<br>
+                        {{ 'puzzle_solved_count'|trans({ '%count%': active_puzzle.solvedTimes }) }}
                     {% endif %}
                 {% endif %}
             </div>
         </div>
     </div>
 
-    {% if stopwatches|length > 1 or (stopwatches|length is same as 1 and active_stopwatch is null)  %}
-        <h3 class="mt-4">Další moje stopky</h3>
+    {% if stopwatches|length > 1 or (stopwatches|length is same as 1 and active_stopwatch is null) %}
+        <h3 class="mt-4">{{ 'stopwatch.more_my_stopwatches'|trans }}</h3>
 
         <ul>
             {% for stopwatch in stopwatches %}
                 {% if active_stopwatch is null or stopwatch.stopwatchId is not same as active_stopwatch.stopwatchId %}
                     <li>
                         <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
-                            {{ stopwatch.interval|puzzlingTime }}{% if stopwatch.puzzleId is not null %} - {{ stopwatch.puzzleName }}{% endif %} ({{ stopwatch.status.title }})
+                            {{ stopwatch.interval|puzzlingTime }}{% if stopwatch.puzzleId is not null %} - {{ stopwatch.puzzleName }}{% endif %} ({{ ('stopwatch.status.' ~ stopwatch.status.value)|trans }})
                         </a>
                     </li>
                 {% endif %}

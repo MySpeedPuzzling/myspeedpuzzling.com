@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Query\GetPlatformChanges;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 final class ChangelogController extends AbstractController
 {
@@ -15,7 +15,14 @@ final class ChangelogController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/changelog', name: 'changelog', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/co-je-noveho',
+            'en' => '/en/changelog',
+        ],
+        name: 'changelog',
+        methods: ['GET'],
+    )]
     public function __invoke(): Response
     {
         return $this->render('changelog.html.twig', [

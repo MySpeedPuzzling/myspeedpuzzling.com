@@ -1,13 +1,17 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Můj profil{% endblock %}
+{% block title %}{{ 'my_profile.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Můj profil <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code></h1>
+    <h1>{{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code></h1>
 
-    <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}"><i class="ci-edit"></i> Upravit údaje</a>
+    <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}">
+        <i class="ci-edit"></i> {{ 'my_profile.edit'|trans }}
+    </a>
 
-    <a class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}"><i class="ci-sign-out"></i> Odhlásit se</a>
+    <a class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}">
+        <i class="ci-sign-out"></i> {{ 'my_profile.logout'|trans }}
+    </a>
 
     <div class="shadow-lg p-3 mt-3">
         {% if player.playerName is null %}
@@ -15,34 +19,36 @@
                 <div class="alert-icon">
                     <i class="ci-security-announcement"></i>
                 </div>
-                <div>Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné.</div>
+                <div>
+                    {{ 'my_profile.missing_name_info'|trans }}
+                </div>
             </div>
         {% endif %}
 
         <div class="row">
             <div class="col-sm">
                 <p>
-                    <b>Jméno/přezdívka:</b> <small class="text-muted">*veřejné</small><br>
+                    <b>{{ 'my_profile.name'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.playerName is null %}
-                        Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.playerName }}
                     {% endif %}
                 </p>
 
                 <p class="text-muted">
-                    <b>E-mail (neveřejný):</b><br>
+                    <b>{{ 'email'|trans }} ({{ 'my_profile.not_public_info'|trans }}):</b><br>
                     {% if player.email is null %}
-                        Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.email }}
                     {% endif %}
                 </p>
 
                 <p class="mb-0">
-                    <b>Avatar:</b> <small class="text-muted">*veřejné</small><br>
+                    <b>{{ 'profile.avatar'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.avatar is null %}
-                        Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
                     {% endif %}
@@ -51,36 +57,36 @@
 
             <div class="col-sm">
                 <p>
-                    <b>Město, stát:</b> <small class="text-muted">*veřejné</small><br>
+                    <b>{{ 'profile.city_country'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.city is null %}
-                        Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.city }}, {{ player.country }}
                     {% endif %}
                 </p>
 
                 <p>
-                    <b>Facebook:</b> <small class="text-muted">*veřejné</small><br>
+                    <b>Facebook:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.facebook is null %}
-                    Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.facebook }}
                     {% endif %}<br>
                 </p>
 
                 <p>
-                    <b>Instagram:</b> <small class="text-muted">*veřejné</small><br>
+                    <b>Instagram:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.instagram is null %}
-                    Nevyplněno
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.instagram }}
                     {% endif %}<br>
                 </p>
 
                 <p class="mb-0">
-                    <b>O mně:</b> <small class="text-muted">*veřejné</small><br>
+                    <b>{{ 'profile.about_me'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.bio is null %}
-                    Nevyplněno
+                    {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.bio }}
                     {% endif %}<br>
@@ -91,21 +97,21 @@
 
     <div class="row mt-4">
         <div class="col-sm">
-            <h3 class="mt-2">Statistiky</h3>
+            <h3 class="mt-2">{{ 'profile.statistics'|trans }}</h3>
 
             <p>
-                <strong>Čas strávený skládáním:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
-                <strong>Počet složených puzzlí:</strong> {{ statistics.solvedPuzzlesCount }}<br>
-                <strong>Počet složených dílků:</strong> {{ statistics.totalPieces }}
+                <strong>{{ 'profile.statistics_time'|trans }}:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
+                <strong>{{ 'profile.statistics_puzzles_solved'|trans }}:</strong> {{ statistics.solvedPuzzlesCount }}<br>
+                <strong>{{ 'profile.statistics_pieces_count'|trans }}:</strong> {{ statistics.totalPieces }}
             </p>
         </div>
 
         <div class="col-sm">
-            <h3 class="mt-2">Oblíbení puzzleři</h3>
+            <h3 class="mt-2">{{ 'profile.favorite_puzzlers'|trans }}</h3>
 
             {% if favorite_players is empty %}
                 <div class="alert alert-warning">
-                    Žádní oblíbení puzzleři
+                    {{ 'profile.no_favorite_puzzlers'|trans }}
                 </div>
             {% else %}
                 <ul>
@@ -122,13 +128,13 @@
 
         {% if stopwatches|length > 0 %}
             <div class="col-sm">
-                <h3 class="mt-4">Moje stopky</h3>
+                <h3 class="mt-4">{{ 'my_profile.stopwatches'|trans }}</h3>
 
                 <ul>
                     {% for stopwatch in stopwatches %}
                         <li>
                             <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
-                                {{ stopwatch.interval|puzzlingTime }}{% if stopwatch.puzzleId is not null %} - {{ stopwatch.puzzleName }}{% endif %} ({{ stopwatch.status.title }})
+                                {{ stopwatch.interval|puzzlingTime }}{% if stopwatch.puzzleId is not null %} - {{ stopwatch.puzzleName }}{% endif %} ({{ ('stopwatch.status.' ~ stopwatch.status.value)|trans }})
                             </a>
                         </li>
                     {% endfor %}
@@ -138,13 +144,13 @@
     </div>
 
     <div {{ stimulus_controller('puzzle_filter') }}>
-        <h2 class="h4 mt-4">Poskládané puzzle</h2>
+        <h2 class="h4 mt-4">{{ 'profile.solved_puzzles'|trans }}</h2>
 
         {{ include('_puzzle_filter.html.twig') }}
 
         <div class="row">
             <div class="col-sm">
-                <h2 class="h4">Jednotlivec</h2>
+                <h2 class="h4">{{ 'profile.solved_puzzles_solo'|trans }}</h2>
 
                 <div class="mt-2 mb-5">
                     {{ include('_player_solvings.html.twig', {solved_puzzles: solo_puzzles}) }}
@@ -152,7 +158,7 @@
             </div>
 
             <div class="col-sm">
-                <h2 class="h4">Skupinové skládání</h2>
+                <h2 class="h4">{{ 'profile.solved_puzzles_group'|trans }}</h2>
 
                 <div class="mt-2 mb-5">
                     {{ include('_player_solvings.html.twig', {solved_puzzles: group_puzzles}) }}

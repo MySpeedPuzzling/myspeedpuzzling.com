@@ -5,11 +5,11 @@
             <th></th>
             <th></th>
 
-            <th>Puzzle</th>
+            <th>{{ 'puzzle'|trans }}</th>
 
             <th class="text-center"></th>
 
-            <th class="text-end">Čas</th>
+            <th class="text-end">{{ 'time'|trans }}</th>
         </tr>
         </thead>
         <tbody>
@@ -57,7 +57,8 @@
                                 <br>
                                 <small>{{ solved_puzzle[0].manufacturerName }}</small>
                             </span>
-                        <br>{{ solved_puzzle[0].piecesCount }}&nbsp;dílků
+                        <br>
+                        {{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}
                     </a>
                 </td>
 
@@ -101,7 +102,9 @@
                     {% if solved_puzzle|length > 1 %}
                         <br>
                         <a href="#" class="show-more-times">
-                            <span class="badge bg-dark badge-shadow rounded-pill">Zobrazit další časy ({{ solved_puzzle|length -1 }}x)</span>
+                            <span class="badge bg-dark badge-shadow rounded-pill">
+                                {{ 'show_more_solving_times'|trans({ '%count%': solved_puzzle|length-1 }) }}
+                            </span>
                         </a>
 
                         <div class="more-times hidden">
@@ -126,13 +129,13 @@
         {% endfor %}
         {% if solved_puzzles|length < 1 %}
             <tr>
-                <td colspan="5" class="text-center">Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora.</td>
+                <td colspan="5" class="text-center">{{ 'profile.no_puzzles_solved'|trans }}</td>
             </tr>
         {% else %}
             <tr class="filter-no-results hidden mt-3">
                 <td colspan="5">
                     <div class="alert alert-warning mb-0">
-                        Žádné puzzle neodpovídají zadaným filtrům
+                        {{ 'filters.no_puzzle_matches_filters'|trans }}
                     </div>
                 </td>
             </tr>

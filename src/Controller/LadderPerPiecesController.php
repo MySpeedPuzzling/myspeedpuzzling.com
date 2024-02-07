@@ -9,7 +9,7 @@ use SpeedPuzzling\Web\Query\GetFastestPlayers;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 final class LadderPerPiecesController extends AbstractController
 {
@@ -20,12 +20,12 @@ final class LadderPerPiecesController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/zebricek/jednotlivci/500-dilku', name: 'ladder_solo_500_pieces', methods: ['GET'])]
-    #[Route(path: '/zebricek/jednotlivci/1000-dilku', name: 'ladder_solo_1000_pieces', methods: ['GET'])]
-    #[Route(path: '/zebricek/pary/500-dilku', name: 'ladder_pairs_500_pieces', methods: ['GET'])]
-    #[Route(path: '/zebricek/pary/1000-dilku', name: 'ladder_pairs_1000_pieces', methods: ['GET'])]
-    #[Route(path: '/zebricek/skupiny/500-dilku', name: 'ladder_groups_500_pieces', methods: ['GET'])]
-    #[Route(path: '/zebricek/skupiny/1000-dilku', name: 'ladder_groups_1000_pieces', methods: ['GET'])]
+    #[Route(path: ['cs' => '/zebricek/jednotlivci/500-dilku', 'en' => '/en/ladder/solo/500-pieces'], name: 'ladder_solo_500_pieces', methods: ['GET'])]
+    #[Route(path: ['cs' => '/zebricek/jednotlivci/1000-dilku', 'en' => '/en/ladder/solo/1000-pieces'], name: 'ladder_solo_1000_pieces', methods: ['GET'])]
+    #[Route(path: ['cs' => '/zebricek/pary/500-dilku', 'en' => '/en/ladder/pairs/500-pieces'], name: 'ladder_pairs_500_pieces', methods: ['GET'])]
+    #[Route(path: ['cs' => '/zebricek/pary/1000-dilku', 'en' => '/en/ladder/pairs/1000-pieces'], name: 'ladder_pairs_1000_pieces', methods: ['GET'])]
+    #[Route(path: ['cs' => '/zebricek/skupiny/500-dilku', 'en' => '/en/ladder/groups/500-pieces'], name: 'ladder_groups_500_pieces', methods: ['GET'])]
+    #[Route(path: ['cs' => '/zebricek/skupiny/1000-dilku', 'en' => '/en/ladder/groups/1000-pieces'], name: 'ladder_groups_1000_pieces', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
         /** @var string $routeName */

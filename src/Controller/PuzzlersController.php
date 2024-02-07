@@ -14,7 +14,7 @@ use SpeedPuzzling\Web\Value\SearchQuery;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class PuzzlersController extends AbstractController
@@ -27,7 +27,14 @@ final class PuzzlersController extends AbstractController
 
     }
 
-    #[Route(path: '/puzzleri', name: 'puzzlers', methods: ['GET', 'POST'])]
+    #[Route(
+        path: [
+            'cs' => '/puzzleri',
+            'en' => '/en/puzzlers',
+        ],
+        name: 'puzzlers',
+        methods: ['GET', 'POST'],
+    )]
     public function __invoke(Request $request): Response
     {
         $searchString = $request->query->get('search');

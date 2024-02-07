@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Stránka nenalezena{% endblock %}
+{% block title %}{{ 'error.generic.title'|trans }}{% endblock %}
 
 {% block content %}
     <div class="container py-3">
         <div class="row justify-content-center pt-lg-4 text-center">
             <div class="col-lg-5 col-md-7 col-sm-9">
-                <h3 class="h5 fw-normal mb-4">Něco se nepovedlo... pokud jste přesvědčeni, že chyba není na vaší straně, prosím napište nám.</h3>
+                <h3 class="h5 fw-normal mb-4">{{ 'error.generic.message'|trans }}</h3>
                 <img class="d-block mx-auto rounded-4" src="{{ asset('img/error.png') }}" alt="unknown error">
             </div>
         </div>

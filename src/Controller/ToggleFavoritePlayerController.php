@@ -15,18 +15,34 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ToggleFavoritePlayerController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
-    #[Route(path: '/pridat-hrace-k-oblibenym/{playerId}', name: 'add_player_to_favorite', methods: ['GET'])]
-    #[Route(path: '/odebrat-hrace-z-oblibenych/{playerId}', name: 'remove_player_from_favorite', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/pridat-hrace-k-oblibenym/{playerId}',
+            'en' => '/en/add-player-to-favorites/{playerId}',
+        ],
+        name: 'add_player_to_favorite',
+        methods: ['GET'],
+    )]
+    #[Route(
+        path: [
+            'cs' => '/odebrat-hrace-z-oblibenych/{playerId}',
+            'en' => '/en/remove-player-from-favorites/{playerId}',
+        ],
+        name: 'remove_player_from_favorite',
+        methods: ['GET'],
+    )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $playerId): Response
     {
         /** @var string $routeName */
@@ -38,7 +54,7 @@ final class ToggleFavoritePlayerController extends AbstractController
                     new AddPlayerToFavorites($user->getUserIdentifier(), $playerId),
                 );
 
-                $this->addFlash('success', 'Puzzlera jsme ti přidali do seznamu oblíbených.');
+                $this->addFlash('success', $this->translator->trans('flashes.puzzler_added_to_favorites'));
             }
 
             if ($routeName === 'remove_player_from_favorite') {
@@ -46,21 +62,21 @@ final class ToggleFavoritePlayerController extends AbstractController
                     new RemovePlayerFromFavorites($user->getUserIdentifier(), $playerId),
                 );
 
-                $this->addFlash('success', 'Puzzlera jsme ti odebrali ze seznamu oblíbených.');
+                $this->addFlash('success', $this->translator->trans('flashes.puzzler_removed_from_favorites'));
             }
         } catch (HandlerFailedException $exception) {
             $realException = $exception->getPrevious();
 
             if ($realException instanceof CanNotFavoriteYourself) {
-                $this->addFlash('danger', 'Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvuj vlastní nejoblíbenější puzzler!');
+                $this->addFlash('danger', $this->translator->trans('flashes.can_not_favorite_yourself'));
             }
 
             if ($realException instanceof PlayerIsAlreadyInFavorites) {
-                $this->addFlash('warning', 'Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-).');
+                $this->addFlash('warning', $this->translator->trans('flashes.player_already_in_favorites'));
             }
 
             if ($realException instanceof PlayerIsNotInFavorites) {
-                $this->addFlash('warning', 'Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-).');
+                $this->addFlash('warning', $this->translator->trans('flashes.player_not_in_favorites'));
             }
 
             if ($realException instanceof PlayerNotFound) {

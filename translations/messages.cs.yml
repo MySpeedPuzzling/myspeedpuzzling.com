@@ -33,6 +33,12 @@ puzzle_solved_count: "Počet složení: %count%"
 puzzle_solved_times: "skládáno %count%x"
 never_solved_puzzles: "Tyto puzzle ještě nikdo neskládal, buď první!"
 show_more_solving_times: "Zobrazit další časy (%count%x)"
+be_first_to_solve: "Tyto puzzle ještě nikdo neskládal. Buď první!"
+be_first_to_group_solve: "Tyto puzzle ještě nikdo skupinově neskládal. Buďte první!"
+email: "E-mail"
+facebook: "Facebook"
+instagram: "Instagram"
+search: "Hledat"
 
 homepage:
     meta:
@@ -85,5 +91,210 @@ puzzle_overview:
     title: "Přehled puzzlí"
     missing_puzzle_info: "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
 
+stopwatch:
+    meta:
+        title: "Stopky"
+    title: "Stopky"
+    start: "Start"
+    stop: "Stop"
+    continue: "Pokračovat"
+    reset: "Vynulovat"
+    finish: "Doskládáno! Přidat čas"
+    more_my_stopwatches: "Další moje stopky"
+    status:
+        not_started: "Připravené ke startu"
+        running: "Puštěné"
+        paused: "Zastavené"
+        finished: "Složené puzzle"
+
+add_time:
+    meta:
+        title: "Přidat čas"
+    title: "Přidat čas"
+    chosen_puzzle: "Vybrané puzzle:"
+    choose_puzzle: "Vyberte puzzle"
+    puzzle_needed: "Musíte vybrat puzzle ze seznamu nebo přidat nové"
+    change_puzzle: "Změnit výběr"
+    add_when_not_found_info: "Pokud puzzle v seznamu nenajdete, prosím přidejte nové."
+    need_approve_info: "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
+    add_manufacturer: "Přidat nového výrobce"
+    not_in_list: "(není v seznamu)"
+    choose_manufacturer: "Vybrat výrobce ze seznamu"
+    time_from_stopwatch: "Čas ze stopek"
+    add_puzzler: "Přidat skládájícího"
+    teamplayer: "Spoluskládající"
+    player_code_info: "Zadejte kód hráče (začíná na #). Pokud skládající nemá účet na speedpuzzling.cz, zadejte prosím jeho jméno."
+
+forms:
+    drop_file: "Přetáhněte sem soubor pro nahrání"
+    choose_file: "Nebo vyberte soubor"
+    save: "Uložit"
+    required_field: "Toto pole je povinné!"
+    empty_group_error: "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
+    name_help: "Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity."
+    email_help: "Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor."
+    city_help: "Město, které hrdě reprezentujete (nepovinné)."
+    city: "Město"
+    country: "Stát"
+    about_me: "O mně (bio)"
+    avatar: "Avatar/foto"
+    search_puzzler: "Jméno, kód hráče nebo část..."
+    time_format_placeholder: "HH:MM:SS"
+    comment: "Doplňující info"
+    finished_puzzle_photo: "Foto poskládaných puzzlí"
+    add_new_puzzle: "Přidat nové puzzle - nejsou v seznamu"
+    puzzle_name: "Název puzzlí"
+    manufacturer: "Výrobce"
+    add_new_manufacturer: "Přidat nového výrobce - není v seznamu"
+    manufacturer_name: "Výrobce (není v seznamu)"
+    pieces_count: "Počet dílků"
+    puzzle_box_photo: "Foto motivu nebo krabice od puzzlí"
+    date_finished: "Datum doskládání"
+    ean: "EAN kód"
+    puzzle_identification_number: "Kód od výrobce"
+    choose_or_add_puzzle: "Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích"
+    add_or_choose_manufacturer: "Zadejte výrobce nebo vyberte ze seznamu existujících"
+    choose_or_add_manufacturer: "Vyberte výrobce ze seznamu nebo přidejte nového."
+
+puzzlers_comparison:
+    meta:
+        title: "Porovnání puzzlerů"
+    title: "Porovnání puzzlerů"
+    nothing_to_compare: "Bohužel nemáte žádné puzzle k porovnání, které byly poskládány oběma puzzlery."
+
+edit_time:
+    meta:
+        title: "Úprava údajů o skládání"
+    title: "Úprava údajů o skládání"
+    delete_button: "Nenávratně smazat tento záznam o skládání a dělat, jakože se to nikdy nestalo!"
+    delete_modal_message: "Jen pro jistotu..."
+    delete_modal_confirm: "Opravdu smazat?"
+    delete_modal_discard_button: "Ne, ponechat"
+    delete_modal_confirm_button: "Ano, smazat"
+
+error:
+    generic:
+        title: "Něco se rozbilo"
+        message: "Něco se nepovedlo... pokud jste přesvědčeni, že chyba není na vaší straně, prosím napište nám."
+    404:
+        title: "Stránka nenalezena"
+        message: "Bohužel jsme nenašli vámi požadovanou stránku. Zkontrolujte prosím URL adresu.."
+    500:
+        title: "Neznámá chyba"
+        message: "Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji"
+
+faq:
+    meta:
+        title: "Časté dotazy"
+    title: "Časté dotazy"
+    intro_block: |
+        <p>Zpětná vazba je pro nás velmi důležitá a moc si jí vážíme! Pokud máte cokoliv, co byste nám rádi sdělili, napište nám prosím na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (případně na <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> ohledně technickým záležitostí) nebo na <a href="https://www.facebook.com/groups/1997202984012397" target="_blank">Facebooku</a>.</p>
+        <p>Veškeré naše zdrojové kódy jsou open-source a veřejné na <a href="https://github.com/SpeedPuzzling">GitHubu SpeedPuzzling</a>. Zastáváme filizofii &quot;sharing is caring&quot; a vše ohledně speedpuzzling.cz se snažíme otevřeně sdílet.</p>
+
+    question_fair_play: |
+        <h4 class="mb-3">Jak se dozvíte, že při zadávání času nepodvádím?</h4>
+        <p>Upřímně řečeno - pravděpodobně nedozvíme. U veřejného žebříčku, kde si puzzleři zadávají časy sami, se spoléháme na čestnost a poctivost každého jednotlivého puzzlaře. Měli byste snad radost z nepoctivého podvodně zadaného výsledku?</p>
+        <p>Předpokládáme, že stejně jako my, i ostatní puzzleři skládají především pro radost a časy z tohoto typu skládání jsou orientační pro představu, jak si stojíme v porovnání s ostatními a naostro si změříme síly během nějaké soutěže. Řekněte sami, nevypadalo by podezřele, pokud na platformě budu mít čas 20 minut ale během soutěže složím puzzle za 3 hodiny?</p>
+        <p>Do budoucna plánujeme také hodnocené ligy, kde bude vyžadováno ověření času například pomocí videozáznamu.</p>
+        <p class="text-danger mb-0"><small>Protože jsou v naší komunitě i finalisté World Jigsaw Championship, kteří se umístili na předních příčkách, můžeme jejich časy brát jako referenční. Podezřelé časy, budeme sledovat a pokud se prokáže podvod, tak bez milosti také mazat. Při opakovaném podvádění bude hráči přístup na platformu omezen.</small></p>
+
+    question_qr: |
+        <h4 class="mb-3">Dostaly se ke mě puzzle s QR kódem a logem speedpuzzling.cz, co s tím?</h4>
+        <p>Abychom vám skládání a zadávání časů co nejvíce zpříjemnili, na všechny puzzle které nám projdou pod rukou přidáváme QR kód - po naskenování se dostanete na stránku s danými puzzlemi, kde můžete pomocí tlačítek rovnou začít stopovat a nebo zadat váš čas.</p>
+        <p class="mb-0">Pokud byste nám chtěli pomoci šířit osvětu ohledně speedpuzzlingu a do svých puzzlí přidat letáček s QR kódem, prosím napište nám - pošleme vám PDF které si můžete vytisknout, případně pošleme poštou přímo vytištěné letáčky.</p>
+
+    question_add_time_for_missing_puzzle: |
+        <h4 class="mb-3">Můžu přidat čas i k puzzlím, které na platformě nejsou?</h4>
+        <p>Rozhodně! Pokud jste skládali puzzle, které u nás na platformě ještě nejsou, při přidávání času překlikněte na možnost:</p>
+        <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
+            <label class="form-check-label" for="switch-add-puzzle">Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu</label>
+        </div>
+        <p class="mb-0">Následně máte možnost vybrat ze seznamu výrobců. Pokud ani výrobce není v databázi, můžete opět zadat sami.</p>
+
+    question_edit_or_delete_time: |
+        <h4 class="mb-3">Jak upravím nebo smažu zadaný čas?</h4>
+        <p>V sekci <a href="%link%">Můj profil</a> u každého zadaného času najdete odkaz na editaci (odkaz má podobu ikonky tužky <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
+        <p class="mb-0">Na stránce s editací je úplně dole <button class="btn btn-sm btn-outline-danger">kouzelné tlačítko</button> jenž záznam jednou a provždy smaže z celého internetu.</p>
+
+    question_button_start_solving: |
+        <h4 class="mb-3">Co dělá tlačítko <button class="btn btn-accent btn-sm me-1"><i class="ci-time"></i> Začít skládat</button>?</h4>
+        <p class="mb-0">Otevře stopky s vybranými puzzlemi - můžete rovnou začít skládat a stopovat čas.</p>
+
+    question_button_add_my_time: |
+        <h4 class="mb-3">Co dělá tlačítko <button class="btn btn-accent btn-sm me-1"><i class="ci-add"></i> Přidat můj čas</button>?</h4>
+        <p class="mb-0">Otevře přidání vašeho času k vybraným puzzlím - vhodné pokud používáte vlastní stopky a právě jste doskládali. Pokud jste doskládali v minulosti a chcete zaznamenat čas, máte možnost uvést i datum, kdy jste skládali.</p>
+
+    question_borrowing: |
+        <h4 class="mb-3">Jak si půjčím puzzle?</h4>
+        <p>Momentálně nabízím svou vlastní sbírku puzzlí - pouze za poštovné a balné, případně za symbolický poplatek, výměnou za to, že přidáte čas skládání a tím podpoříte růst speed puzzling komunity!</p>
+        <p>Puzzle, která mám aktuálně k půjčení jsou označeny vždy v přehledu puzzlí jako <span class="badge bg-success badge-shadow rounded-pill">k zapůjčení</span>. Pokud puzzle nemám, nebo je v tuto chvíli má někdo vypůjčené, jsou označeny jako <span class="badge bg-dark badge-shadow rounded-pill">nejsou k dispozici</span>.</p>
+        <p>Pokud máte zájem si jakékoliv puzzle půjčit (doporučuji více najednou :-)), prosím napište mi a domluvíme se.</p>
+        <p class="mb-0">Do budoucna máme v plánu přímo na platformě umožnit každému uživateli zveřejnit vlastní sbírku puzzlí a nabídnout příležitost propojit puzzlery mezi sebou napřímo.</p>
+
+    question_helping: |
+        <h4 class="mb-3">Můžu přiložit ruku k dílu?</h4>
+        <p class="mb-0">Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>
+
 profile:
+    add_to_favorites: "Odebrat z oblíbených"
+    remove_from_favorites: "Přidat do oblíbených"
+    compare: "Porovnat s hráčem"
     no_puzzles_solved: "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
+    not_filled: "Nevyplněno"
+    avatar: "Avatar"
+    about_me: "O mně"
+    city_country: "Město, stát"
+    statistics: "Statistiky"
+    statistics_time: "Čas strávený skládáním"
+    statistics_puzzles_solved: "Počet složených puzzlí"
+    statistics_pieces_count: "Počet složených dílků"
+    favorite_puzzlers: "Oblíbení puzzleři"
+    no_favorite_puzzlers: "Žádní oblíbení puzzleři"
+    solved_puzzles: "Poskládané puzzle"
+    solved_puzzles_solo: "Jednotlivec"
+    solved_puzzles_group: "Skupinové skládání"
+
+my_profile:
+    meta:
+        title: "Můj profil"
+    title: "Můj profil"
+    edit: "Upravit údaje"
+    logout: "Odhlásit se"
+    myssing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
+    public_info: "veřejné"
+    not_public_info: "neveřejné"
+    name: "Jméno/přezdívka"
+    stopwatches: "Moje stopky"
+
+puzzlers:
+    meta:
+        title: "Puzzleři"
+    title: "Puzzleři"
+    results_for: "Výsledky vyhledávání pro výraz"
+    no_matches_found: "Nebyly nalezeny žádné shody"
+    my_favorites: "Moji oblíbení"
+    most_popular: "Nejpopulárnější"
+
+flashes:
+    stopwatch_already_saved: "Tyto stopky byly již uloženy."
+    puzzle_needs_approve: "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
+    time_added: "Skvělá práce! Skládání jsme zaznamenali."
+    time_deleted: "Smazali jsme veškeré důkazy. Nikdo se nikdy nedozví, co se právě stalo!"
+    profile_saved: "Změna profilu uložena!"
+    time_edited: "Upravené údaje jsme uložili."
+    player_not_found: "Hráč, kterého jste zkoušeli hledat, u nás není!"
+    puzzle_not_found: "Puzzle, které jste zkoušeli hledat, u nás nejsou!"
+    puzzler_added_to_favorites: "Puzzlera jsme ti přidali do seznamu oblíbených."
+    puzzler_removed_from_favorites: "Puzzlera jsme ti odebrali ze seznamu oblíbených."
+    can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
+    player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
+    player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
+
+changelog:
+    meta:
+        title: "Novinky na platformě"
+    title: "Co je nového na SpeedPuzzling.cz"
+    intro_block: |
+        <p>Máme rádi puzzle a baví nás tvořit tuto platformu pro ostatní puzzlery. Proto sdílíme veřejně s radostí, co nového umí platforma speedpuzzling.cz!</p>
+        <p>Protože veškeré naše zdrojové kódy jsou open-source a veřejné na <a href="https://github.com/SpeedPuzzling">GitHubu SpeedPuzzling</a>, tak pokud vás zajímá jak to vypadá pod kapotou, můžete sledovat i <a href="https://github.com/SpeedPuzzling/speedpuzzling.cz/commits/main/" target="_blank">konkrétní změny v kódu</a>.</p>

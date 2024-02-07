@@ -8,7 +8,7 @@ use SpeedPuzzling\Web\Message\ResetStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
@@ -19,7 +19,14 @@ final class ResetStopwatchController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/stopky/{stopwatchId}/reset', name: 'reset_stopwatch', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/stopky/{stopwatchId}/reset',
+            'en' => '/en/stopwatch/{stopwatchId}/reset',
+        ],
+        name: 'reset_stopwatch',
+        methods: ['GET'],
+    )]
     public function __invoke(
         #[CurrentUser]
         UserInterface $user,

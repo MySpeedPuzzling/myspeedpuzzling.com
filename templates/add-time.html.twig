@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Přidat čas{% endblock %}
+{% block title %}{{ 'add_time.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Přidat čas</h1>
+    <h1>{{ 'add_time.title'|trans }}</h1>
 
     {{ include('_solving_time_form.html.twig', {
         prevent_puzzle_change: active_stopwatch is not null,

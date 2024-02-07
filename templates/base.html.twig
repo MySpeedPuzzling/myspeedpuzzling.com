@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="{{ app.request.locale }}">
     <head>
         <meta charset="UTF-8">
         <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %} | SpeedPuzzling.cz</title>
@@ -105,7 +105,36 @@
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzlers') %}active{% endif %}" href="{{ path('puzzlers') }}">{{ 'menu.puzzlers'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('changelog') %}active{% endif %}" href="{{ path('changelog') }}">{{ 'menu.recent_changes'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
+                        <li class="nav-item">
+                            <div class="nav-link">
+                                <div class="topbar-text dropdown ms-3 disable-autohide">
+                                    <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                        <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' }} shadow-custom me-1"></span>
+                                        {{ app.request.locale|upper }}
+                                    </a>
+                                    <ul class="dropdown-menu">
+                                        {% if app.request.locale is not same as 'en' %}
+                                            <li>
+                                                <a class="dropdown-item pb-1" href="{{ path('homepage', {_locale: 'en'}) }}">
+                                                    <span class="fi fi-us me-1"></span>
+                                                    {{ 'en'|locale_name(app.request.locale) }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        {% if app.request.locale is not same as 'cs' %}
+                                            <li>
+                                                <a class="dropdown-item pb-1" href="{{ path('homepage', {_locale: 'cs'}) }}">
+                                                    <span class="fi fi-cz me-1"></span>
+                                                    {{ 'cs'|locale_name(app.request.locale) }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </li>
                     </ul>
+
                 </div>
             </div>
         </header>

@@ -6,11 +6,18 @@ namespace SpeedPuzzling\Web\Controller;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 final class TermsOfServiceController extends AbstractController
 {
-    #[Route(path: '/terms-of-service', name: 'terms_of_service', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/terms-of-service',
+            'en' => '/en/terms-of-service',
+        ],
+        name: 'terms_of_service',
+        methods: ['GET'],
+    )]
     public function __invoke(Request $request): Response
     {
         return $this->render('terms-of-service.html.twig');

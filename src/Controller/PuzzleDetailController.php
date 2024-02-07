@@ -14,9 +14,10 @@ use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PuzzleDetailController extends AbstractController
 {
@@ -26,10 +27,25 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
-    #[Route(path: ['/puzzle/{puzzleId}', '/skladam-puzzle/{puzzleId}'], name: 'puzzle_detail', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/puzzle/{puzzleId}',
+            'en' => '/en/puzzle/{puzzleId}',
+        ],
+        name: 'puzzle_detail',
+        methods: ['GET'],
+    )]
+    #[Route(
+        path: [
+            'cs' => '/skladam-puzzle/{puzzleId}',
+        ],
+        name: 'puzzle_detail_qr',
+        methods: ['GET'],
+    )]
     public function __invoke(string $puzzleId, #[CurrentUser] UserInterface|null $user): Response
     {
         try {
@@ -37,7 +53,7 @@ final class PuzzleDetailController extends AbstractController
             $puzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
             $groupPuzzleSolvers = $this->getPuzzleSolvers->groupsByPuzzleId($puzzleId);
         } catch (PuzzleNotFound) {
-            $this->addFlash('primary', 'Puzzle, které jste zkoušeli hledat, u nás nejsou!');
+            $this->addFlash('primary', $this->translator->trans('flashes.puzzle_not_found'));
 
             return $this->redirectToRoute('puzzles');
         }

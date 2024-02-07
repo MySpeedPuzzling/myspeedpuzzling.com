@@ -16,34 +16,40 @@
         <div class="col-sm-12 col-md-6">
             <p>
                 {% if puzzle.isAvailable %}
-                    <span class="badge bg-success badge-shadow rounded-pill">k dispozici</span>
+                    <span class="badge bg-success badge-shadow rounded-pill">{{ 'puzzle_available'|trans }}</span>
                 {% else %}
-                    <span class="badge bg-dark badge-shadow rounded-pill">nejsou k dispozici</span>
+                    <span class="badge bg-dark badge-shadow rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
                 {% endif %}
 
                 {% if puzzle.puzzleId in puzzles_solved_by_user %}
-                    <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> poskládáno</span>
+                    <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
                 {% endif %}
             </p>
 
             <p>
-                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1"><i class="ci-time"></i> Začít skládat</a>
-                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm"><i class="ci-add"></i> Přidat můj čas</a>
+                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
+                    <i class="ci-time"></i> {{ 'start_solving'|trans }}
+                </a>
+                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm">
+                    <i class="ci-add"></i> {{ 'add_my_time'|trans }}
+                </a>
             </p>
 
             <p class="card-text fs-sm text-muted mb-2">
                 <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
-                {{ puzzle.piecesCount }} dílků
+                {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
                 <br>
 
                 {% if puzzle.solvedTimes > 0 %}
-                    Nejrychlejší čas: {{ puzzle.fastestTime|puzzlingTime }}<br>
-                    Průměrný čas: {{ puzzle.averageTime|puzzlingTime }}<br>
+                    {{ 'fastest_time'|trans({ '%time%': puzzle.fastestTime|puzzlingTime }) }}<br>
+                    {{ 'average_time'|trans({ '%time%': puzzle.averageTime|puzzlingTime }) }}<br>
                     {% if ranking[puzzle.puzzleId] is defined %}
-                        <strong>Můj čas: {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</strong>
+                        <strong>
+                            {{ 'my_time'|trans({ '%time%': ranking[puzzle.puzzleId].time|puzzlingTime }) }}
+                        </strong>
                         <br>
                     {% endif %}
-                    Počet složení: {{ puzzle.solvedTimes }}
+                    {{ 'puzzle_solved_count'|trans({ '%count%': puzzle.solvedTimes }) }}
                 {% endif %}
             </p>
         </div>
@@ -61,15 +67,15 @@
 
     <div class="row mt-4">
         <div class="col-sm-12 col-md-6">
-            <h2 class="h4">Jednotlivci</h2>
+            <h2 class="h4">{{ 'ladder.solo'|trans }}</h2>
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
                         <th></th>
-                        <th>Jméno</th>
-                        <th class="text-end">Čas</th>
+                        <th>{{ 'puzzler_name'|trans }}</th>
+                        <th class="text-end">{{ 'time'|trans }}</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -86,7 +92,7 @@
                             </td>
                             <td class="text-end">
                                 {% if grouped_solver|length > 1 %}
-                                    <span class="badge bg-dark rounded-pill me-2">skládáno {{ grouped_solver|length }}x</span>
+                                    <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': grouped_solver|length}) }}</span>
                                 {% endif %}
                                 {{ grouped_solver[0].time|puzzlingTime }}
                             </td>
@@ -94,7 +100,7 @@
                     {% endfor %}
                     {% if solo_puzzle_solvers|length < 1 %}
                         <tr>
-                            <td colspan="3" class="text-center">Tyto puzzle ještě nikdo neskládal. Buď první!</td>
+                            <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
                         </tr>
                     {% endif %}
                     </tbody>
@@ -103,15 +109,15 @@
         </div>
 
         <div class="col-sm-12 col-md-6">
-            <h2 class="h4">Skupiny</h2>
+            <h2 class="h4">{{ 'ladder.groups'|trans }}</h2>
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
                         <th></th>
-                        <th>Jméno</th>
-                        <th class="text-end">Čas</th>
+                        <th>{{ 'puzzler_name'|trans }}</th>
+                        <th class="text-end">{{ 'time'|trans }}</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -140,7 +146,7 @@
                     {% endfor %}
                     {% if group_puzzle_solvers|length < 1 %}
                         <tr>
-                            <td colspan="4" class="text-center">Tyto puzzle ještě nikdo skupinově neskládal. Buďte první!</td>
+                            <td colspan="4" class="text-center">{{ 'be_first_to_group_solve'|trans }}</td>
                         </tr>
                     {% endif %}
                     </tbody>

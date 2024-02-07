@@ -17,8 +17,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class EditTimeController extends AbstractController
 {
@@ -29,10 +30,18 @@ final class EditTimeController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
-    #[Route(path: '/upravit-cas/{timeId}', name: 'edit_time', methods: ['GET', 'POST'])]
+    #[Route(
+        path: [
+            'cs' => '/upravit-cas/{timeId}',
+            'en' => '/en/edit-time/{timeId}',
+        ],
+        name: 'edit_time',
+        methods: ['GET', 'POST'],
+    )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $timeId): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
@@ -84,7 +93,7 @@ final class EditTimeController extends AbstractController
                 EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
             );
 
-            $this->addFlash('success','Upravené údaje jsme uložili.');
+            $this->addFlash('success',$this->translator->trans('flashes.time_edited'));
 
             return $this->redirectToRoute('my_profile');
         }

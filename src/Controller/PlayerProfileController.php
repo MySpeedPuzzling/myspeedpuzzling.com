@@ -13,7 +13,8 @@ use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PlayerProfileController extends AbstractController
 {
@@ -24,16 +25,24 @@ final class PlayerProfileController extends AbstractController
         readonly private GetStatistics $getStatistics,
         readonly private GetRanking $getRanking,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
-    #[Route(path: '/profil-hrace/{playerId}', name: 'player_profile', methods: ['GET'])]
+    #[Route(
+        path: [
+            'cs' => '/profil-hrace/{playerId}',
+            'en' => '/en/player-profile/{playerId}',
+        ],
+        name: 'player_profile',
+        methods: ['GET'],
+    )]
     public function __invoke(string $playerId): Response
     {
         try {
             $player = $this->getPlayerProfile->byId($playerId);
         } catch (PlayerNotFound) {
-            $this->addFlash('primary', 'Hráč, kterého jste zkoušeli hledat, u nás není!');
+            $this->addFlash('primary', $this->translator->trans('flashes.player_not_found'));
 
             return $this->redirectToRoute('ladder');
         }

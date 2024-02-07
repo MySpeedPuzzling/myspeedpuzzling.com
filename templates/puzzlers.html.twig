@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Puzzleři{% endblock %}
+{% block title %}{{ 'puzzlers.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Puzzleři</h1>
+    <h1>{{ 'puzzlers.title'|trans }}</h1>
 
     <div class="mb-4">
         {{ form_start(search_form, {'action': path('puzzlers'), 'method': 'POST'}) }}
@@ -23,7 +23,7 @@
         {% if search_string is not null %}
 
             <p class="mt-3">
-                Výsledky vyhledávání pro výraz: <strong>{{ search_string }}</strong>
+                {{ 'puzzlers.results_for'|trans }}: <strong>{{ search_string }}</strong>
             </p>
 
             {% if found_players is not empty %}
@@ -40,7 +40,7 @@
                     </div>
                 {% endfor %}
             {% else %}
-                <div class="alert alert-warning">Nebyly nalezeny žádné shody</div>
+                <div class="alert alert-warning">{{ 'puzzlers.no_matches_found'|trans }}</div>
             {% endif %}
         {% endif %}
     </div>
@@ -48,7 +48,7 @@
     <div class="row">
         {% if favorite_players is not null and favorite_players is not empty %}
             <div class="col-sm">
-                <h3 class="mt-4">Moji oblíbení</h3>
+                <h3 class="mt-4">{{ 'puzzlers.my_favorites'|trans }}</h3>
 
                 {% for favorite_player in favorite_players %}
                     <div class="pb-1">
@@ -62,7 +62,7 @@
         {% endif %}
 
         <div class="col-sm">
-            <h3 class="mt-4">Nejpopulárnější</h3>
+            <h3 class="mt-4">{{ 'puzzlers.most_popular'|trans }}</h3>
 
             {% for most_favorite_player in most_favorite_players %}
                 <div class="pb-1">

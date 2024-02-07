@@ -22,9 +22,8 @@ final class SearchPuzzlerFormType extends AbstractType
     {
         $builder
             ->add('search', TextType::class, [
-                'label' => 'Vyhledávání',
                 'attr' => [
-                    'placeholder' => 'Jméno, kód hráče nebo část...',
+                    'placeholder' => 'forms.search_puzzler',
                 ],
             ]);
     }

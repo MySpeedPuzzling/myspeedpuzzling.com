@@ -30,7 +30,7 @@ final class HomepageController extends AbstractController
     public function __invoke(Request $request): Response
     {
         if ($request->getPathInfo() === '/') {
-            return $this->redirectToRoute('homepage', ['_locale' => $request->getLocale()]);
+            return $this->redirectToRoute('homepage', ['_locale' => $request->getPreferredLanguage(['en', 'cs']) ?? 'en']);
         }
 
         return $this->render('homepage.html.twig', [

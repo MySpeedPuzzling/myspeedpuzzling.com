@@ -14,16 +14,10 @@ export default class extends Controller {
             manufacturers.add(puzzle.dataset.manufacturer);
         });
 
-        this.populateSelect(this.manufacturerTarget, Array.from(manufacturers), "- Výrobce -", false);
+        this.populateSelect(this.manufacturerTarget, Array.from(manufacturers), false);
     }
 
-    populateSelect(selectElement, options, placeholder, isNumeric) {
-        // Add placeholder as the first option
-        let placeholderOption = document.createElement('option');
-        placeholderOption.value = "";
-        placeholderOption.innerHTML = placeholder;
-        selectElement.appendChild(placeholderOption);
-
+    populateSelect(selectElement, options, isNumeric) {
         // Sort options
         if (isNumeric) {
             options.sort((a, b) => a - b);

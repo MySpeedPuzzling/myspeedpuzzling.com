@@ -43,7 +43,7 @@ homepage:
     meta:
         title: "Solve Puzzles Faster!"
 
-    title: "Welcome to the World of Speed Puzzling!"
+    title: "Welcome Puzzler, to the World of Speed Puzzling!"
     intro_text: "Speed Puzzling is an exciting sport where the goal is to assemble puzzles as quickly as possible. Every piece counts, every second matters. Imagine traditional puzzle-solving but with the adrenaline of a racetrack! Our platform is the first of its kind - a place where you can measure your puzzle-solving skills not just against the clock, but also against other puzzle enthusiasts."
     why_block: |
         <h3>Why Get Involved?</h3>
@@ -77,6 +77,7 @@ ladder:
 filters:
     filter_by: "Filter by"
     pieces_placeholder: "- Pieces -"
+    manufacturer_placeholder: "- Manufacturer -"
     less_than: "Less than %count%"
     more_than: "More than %count%"
     text_search_placeholder: "Puzzle name or code..."
@@ -233,7 +234,7 @@ faq:
         <p class="mb-0">In the future, we plan to allow every user on the platform to publish their own collection of puzzles and offer the opportunity to directly connect puzzlers with each other.</p>
 
     question_helping: |
-        <h4 class="mb-3">Can I lend a hand?</h4>
+        <h4 class="mb-3">Do you want a helping hand?</h4>
         <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
 
 profile:

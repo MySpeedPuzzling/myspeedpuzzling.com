@@ -44,7 +44,7 @@ homepage:
     meta:
         title: "Skládej Rychleji!"
 
-    title: "Vítejte ve světě Speed Puzzlingu!"
+    title: "Vítej puzzlere, ve světě Speed Puzzlingu!"
     intro_text: "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
     why_block: |
         <h3>Proč se zapojit?</h3>
@@ -78,6 +78,7 @@ ladder:
 filters:
     filter_by: "Filtrovat podle"
     pieces_placeholder: "- Dílků -"
+    manufacturer_placeholder: "- Výrobce -"
     less_than: "Méně než %count%"
     more_than: "Více než %count%"
     text_search_placeholder: "Název puzzlí nebo kód..."

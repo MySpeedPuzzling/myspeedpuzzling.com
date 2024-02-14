@@ -8,6 +8,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $containerConfigurator->extension('liip_imagine', [
         'driver' => 'gd',
+        'messenger' => true,
 
         'loaders' => [
             'flysystem_loader' => [

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
+use Liip\ImagineBundle\Message\WarmupCache;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditProfileHandler
@@ -16,6 +19,8 @@ readonly final class EditProfileHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private Filesystem $filesystem,
+        private MessageBusInterface $messageBus,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -29,7 +34,8 @@ readonly final class EditProfileHandler
 
         if ($message->avatar !== null) {
             $extension = $message->avatar->guessExtension();
-            $avatarPath = "avatars/{$player->id->toString()}.$extension";
+            $timestamp = $this->clock->now()->getTimestamp();
+            $avatarPath = "avatars/{$player->id->toString()}-$timestamp.$extension";
 
             // Stream is better because it is memory safe
             $stream = fopen($message->avatar->getPathname(), 'rb');
@@ -38,6 +44,10 @@ readonly final class EditProfileHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
+
+            $this->messageBus->dispatch(
+                new WarmupCache($avatarPath),
+            );
         }
 
         $player->changeProfile(

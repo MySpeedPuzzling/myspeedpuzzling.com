@@ -21,6 +21,21 @@ services:
             XDEBUG_MODE: debug
             PHP_IDE_CONFIG: "serverName=speedpuzzling"
 
+    messenger-consumer:
+        image: ghcr.io/speedpuzzling/web-base:main
+        restart: unless-stopped
+        command: "bash -c 'wait-for-it postgres:5432 -- sleep 5 && bin/console messenger:consume -vv --time-limit 3600 --memory-limit 256M'"
+        volumes:
+            - .:/app
+            - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
+            - .docker/php.ini:/usr/local/etc/php/conf.d/99-php-overrides.ini
+        depends_on:
+            - postgres
+        environment:
+            XDEBUG_CONFIG: "client_host=host.docker.internal"
+            XDEBUG_MODE: debug
+            PHP_IDE_CONFIG: "serverName=speedpuzzling"
+
     postgres:
         image: postgres:16.0
         environment:

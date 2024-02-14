@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
+use Liip\ImagineBundle\Message\WarmupCache;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
@@ -16,6 +18,7 @@ use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditPuzzleSolvingTimeHandler
@@ -25,6 +28,8 @@ readonly final class EditPuzzleSolvingTimeHandler
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PuzzlersGrouping $puzzlersGrouping,
         private Filesystem $filesystem,
+        private MessageBusInterface $messageBus,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -53,14 +58,8 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
-            $fileName = $message->puzzleSolvingTimeId;
-
-            // There was some original image - we need to generate unique name because of caching
-            if ($finishedPuzzlePhotoPath !== null) {
-                $fileName = $message->puzzleSolvingTimeId . '-' . Uuid::uuid4()->toString();
-            }
-
-            $finishedPuzzlePhotoPath = "players/{$currentPlayer->id->toString()}/$fileName.$extension";
+            $timestamp = $this->clock->now()->getTimestamp();
+            $finishedPuzzlePhotoPath = "players/{$currentPlayer->id->toString()}/{$message->puzzleSolvingTimeId}-$timestamp.$extension";
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');
@@ -69,6 +68,10 @@ readonly final class EditPuzzleSolvingTimeHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
+
+            $this->messageBus->dispatch(
+                new WarmupCache($finishedPuzzlePhotoPath),
+            );
         }
 
         $solvingTime->modify(

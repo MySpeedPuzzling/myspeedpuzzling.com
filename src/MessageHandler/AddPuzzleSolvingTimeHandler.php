@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
+use Liip\ImagineBundle\Message\WarmupCache;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
@@ -16,6 +18,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleSolvingTimeHandler
@@ -26,6 +29,8 @@ readonly final class AddPuzzleSolvingTimeHandler
         private PuzzleRepository $puzzleRepository,
         private Filesystem $filesystem,
         private PuzzlersGrouping $puzzlersGrouping,
+        private MessageBusInterface $messageBus,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -46,7 +51,8 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
-            $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId.$extension";
+            $timestamp = $this->clock->now()->getTimestamp();
+            $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId-$timestamp.$extension";
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');
@@ -55,6 +61,10 @@ readonly final class AddPuzzleSolvingTimeHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
+
+            $this->messageBus->dispatch(
+                new WarmupCache($finishedPuzzlePhotoPath),
+            );
         }
 
         $solvingTime = new PuzzleSolvingTime(

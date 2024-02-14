@@ -24,7 +24,7 @@ services:
     messenger-consumer:
         image: ghcr.io/speedpuzzling/web-base:main
         restart: unless-stopped
-        command: "bash -c 'wait-for-it postgres:5432 -- sleep 5 && bin/console messenger:consume -vv --time-limit 3600 --memory-limit 256M'"
+        command: "bash -c 'wait-for-it postgres:5432 -- sleep 5 && bin/console messenger:consume async -vv --time-limit 3600 --memory-limit 256M'"
         volumes:
             - .:/app
             - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh

@@ -9,6 +9,11 @@ return static function (FrameworkConfig $framework): void {
     $bus = $messenger->bus('command_bus');
     $bus->middleware()->id('doctrine_transaction');
 
+    $messenger->failureTransport('failed');
+
+    $messenger->transport('failed')
+        ->dsn('doctrine://default?queue_name=failed');
+
     $messenger
         ->transport('async')
         ->options([

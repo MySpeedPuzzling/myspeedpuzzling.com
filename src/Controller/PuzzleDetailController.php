@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
@@ -28,6 +29,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private GetTags $getTags,
     ) {
     }
 
@@ -76,6 +78,7 @@ final class PuzzleDetailController extends AbstractController
             'group_puzzle_solvers' => $groupPuzzleSolvers,
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
+            'tags' => $this->getTags->forPuzzle($puzzleId),
         ]);
     }
 

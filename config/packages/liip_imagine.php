@@ -36,16 +36,17 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'puzzle_small' => [
                 'quality' => 88,
                 'filters' => [
+                    'auto_rotate' => true,
                     'thumbnail' => [
                         'size' => [200, 200],
                         'mode' => 'inset',
-                        'allow_upscale' => false,
                     ]
                 ],
             ],
             'puzzle_medium' => [
                 'quality' => 91,
                 'filters' => [
+                    'auto_rotate' => true,
                     'thumbnail' => [
                         'size' => [400, 400],
                         'mode' => 'inset',

@@ -14,8 +14,7 @@ return static function (FrameworkConfig $framework): void {
     $messenger->transport('failed')
         ->dsn('doctrine://default?queue_name=failed');
 
-    $messenger
-        ->transport('async')
+    $messenger->transport('async')
         ->options([
             'auto_setup' => false,
         ])

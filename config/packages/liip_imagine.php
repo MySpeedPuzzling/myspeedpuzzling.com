@@ -7,7 +7,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     # Documentation on how to configure the bundle can be found at: https://symfony.com/doc/current/bundles/LiipImagineBundle/basic-usage.html
 
     $containerConfigurator->extension('liip_imagine', [
-        'driver' => 'gd',
+        'driver' => 'imagick',
         'messenger' => true,
 
         'loaders' => [

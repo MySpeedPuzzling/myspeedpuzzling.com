@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ final class PuzzlesController extends AbstractController
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetTags $getTags,
     ) {
     }
 
@@ -50,6 +52,7 @@ final class PuzzlesController extends AbstractController
             'puzzles' => $this->getPuzzlesOverview->allApprovedOrAddedByPlayer($playerProfile?->playerId),
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
+            'tags' => $this->getTags->allGroupedPerPuzzle(),
         ]);
     }
 }

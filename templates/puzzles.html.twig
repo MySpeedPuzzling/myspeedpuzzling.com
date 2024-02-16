@@ -63,6 +63,10 @@
                     </div>
 
                     <div class="col-md align-self-center text-md-center">
+                        {% for tag in tags[puzzle.puzzleId] ?? [] %}
+                            <span class="badge bg-primary badge-shadow rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                        {% endfor %}
+
                         {% if puzzle.puzzleId in puzzles_solved_by_user %}
                             <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
                         {% endif %}

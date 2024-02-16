@@ -54,6 +54,15 @@ class Puzzle
 
         #[Column]
         public bool $isAvailable = false,
+
+        #[ManyToOne]
+        public null|CompetitionRound $competitionRound = null,
+
+        #[Column(nullable: true)]
+        public null|int $missingPieces = null,
+
+        #[Column(nullable: true)]
+        public null|bool $qualified = null,
     ) {
     }
 }

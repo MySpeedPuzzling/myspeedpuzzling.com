@@ -54,6 +54,15 @@ class PuzzleSolvingTime
 
         #[Column(nullable: true)]
         public null|string $finishedPuzzlePhoto,
+
+        #[ManyToOne]
+        public null|CompetitionRound $competitionRound = null,
+
+        #[Column(nullable: true)]
+        public null|int $missingPieces = null,
+
+        #[Column(nullable: true)]
+        public null|bool $qualified = null,
     ) {
     }
 

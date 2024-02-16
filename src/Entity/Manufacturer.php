@@ -30,7 +30,6 @@ class Manufacturer
         public bool $approved,
 
         #[ManyToOne]
-        #[JoinColumn(nullable: true)]
         public null|Player $addedByUser = null,
 
         #[Column(nullable: true)]

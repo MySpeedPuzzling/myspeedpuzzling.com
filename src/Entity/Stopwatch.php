@@ -48,7 +48,6 @@ class Stopwatch
         public Player $player,
 
         #[ManyToOne]
-        #[JoinColumn(nullable: true)]
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         public null|Puzzle $puzzle,
     ) {

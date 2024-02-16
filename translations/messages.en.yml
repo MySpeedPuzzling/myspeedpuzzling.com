@@ -5,7 +5,6 @@ menu:
     puzzles_overview: "Puzzles overview"
     ladder: "Leaderboard"
     puzzlers: "Puzzlers"
-    recent_changes: "What's new"
     faq: "FAQ"
 
 footer:
@@ -291,11 +290,3 @@ flashes:
     can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
     player_already_in_favorites: "This puzzler is already in your list of favorites, so we won't add them again ;-)."
     player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
-
-changelog:
-    meta:
-        title: "What's New on the Platform"
-    title: "What's New on SpeedPuzzling.cz"
-    intro_block: |
-        <p>We love puzzles and enjoy creating this platform for other puzzlers. That's why we're happy to share publicly what's new on the speedpuzzling.cz platform!</p>
-        <p>Since all our source codes are open-source and public on <a href="https://github.com/SpeedPuzzling">GitHub SpeedPuzzling</a>, if you're interested in what's under the hood, you can also follow <a href="https://github.com/SpeedPuzzling/speedpuzzling.cz/commits/main/" target="_blank">specific code changes</a>.</p>

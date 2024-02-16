@@ -103,11 +103,10 @@
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">{{ 'menu.puzzles_overview'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzlers') %}active{% endif %}" href="{{ path('puzzlers') }}">{{ 'menu.puzzlers'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('changelog') %}active{% endif %}" href="{{ path('changelog') }}">{{ 'menu.recent_changes'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
                         <li class="nav-item">
                             <div class="nav-link">
-                                <div class="topbar-text dropdown ms-3 disable-autohide">
+                                <div class="topbar-text dropdown disable-autohide">
                                     <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                         <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' }} shadow-custom me-1"></span>
                                         {{ app.request.locale|upper }}
@@ -172,9 +171,6 @@
                                 </li>
                                 <li class="widget-list-item me-4">
                                     <a href="{{ path('puzzlers') }}" class="widget-list-link">{{ 'menu.puzzlers'|trans }}</a>
-                                </li>
-                                <li class="widget-list-item me-4">
-                                    <a href="{{ path('changelog') }}" class="widget-list-link">{{ 'menu.recent_changes'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
                                     <a href="{{ path('faq') }}" class="widget-list-link">{{ 'menu.faq'|trans }}</a>

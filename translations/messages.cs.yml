@@ -5,7 +5,6 @@ menu:
     puzzles_overview: "Přehled puzzlí"
     ladder: "Žebříček"
     puzzlers: "Puzzleři"
-    recent_changes: "Co je nového"
     faq: "Časté dotazy"
 
 
@@ -291,11 +290,3 @@ flashes:
     can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
     player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
-
-changelog:
-    meta:
-        title: "Novinky na platformě"
-    title: "Co je nového na SpeedPuzzling.cz"
-    intro_block: |
-        <p>Máme rádi puzzle a baví nás tvořit tuto platformu pro ostatní puzzlery. Proto sdílíme veřejně s radostí, co nového umí platforma speedpuzzling.cz!</p>
-        <p>Protože veškeré naše zdrojové kódy jsou open-source a veřejné na <a href="https://github.com/SpeedPuzzling">GitHubu SpeedPuzzling</a>, tak pokud vás zajímá jak to vypadá pod kapotou, můžete sledovat i <a href="https://github.com/SpeedPuzzling/speedpuzzling.cz/commits/main/" target="_blank">konkrétní změny v kódu</a>.</p>

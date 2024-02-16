@@ -1,4 +1,4 @@
-# SpeedPuzzling.cz
+# MySpeedPuzzling.com
 
 Website of the Czech Speed Puzzling community.
 

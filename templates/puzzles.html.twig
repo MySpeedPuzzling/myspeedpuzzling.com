@@ -10,10 +10,12 @@
     <div {{ stimulus_controller('puzzle_filter') }} class="mt-4">
         {{ include('_puzzle_filter.html.twig') }}
 
-        <div class="form-check form-check-inline">
-            <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="availability" class="form-check-input" type="checkbox" id="available-only-filter">
-            <label class="form-check-label" for="available-only-filter">{{ 'filters.only_available'|trans }}</label>
-        </div>
+        {% if app.request.locale is same as 'cs' %}
+            <div class="form-check form-check-inline">
+                <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="availability" class="form-check-input" type="checkbox" id="available-only-filter">
+                <label class="form-check-label" for="available-only-filter">{{ 'filters.only_available'|trans }}</label>
+            </div>
+        {% endif %}
 
         <div class="form-check form-check-inline">
             <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="withTime" class="form-check-input" type="checkbox" id="with-time-only-filter">
@@ -65,10 +67,12 @@
                             <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
                         {% endif %}
 
-                        {% if puzzle.isAvailable %}
-                            <span class="badge bg-success badge-shadow rounded-pill">{{ 'puzzle_available'|trans }}</span>
-                        {% else %}
-                            <span class="badge bg-dark badge-shadow rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
+                        {% if app.request.locale is same as 'cs' %}
+                            {% if puzzle.isAvailable %}
+                                <span class="badge bg-success badge-shadow rounded-pill">{{ 'puzzle_available'|trans }}</span>
+                            {% else %}
+                                <span class="badge bg-dark badge-shadow rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
+                            {% endif %}
                         {% endif %}
                     </div>
 

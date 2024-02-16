@@ -19,10 +19,12 @@
                     <span class="badge bg-primary badge-shadow rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
                 {% endfor %}
 
-                {% if puzzle.isAvailable %}
-                    <span class="badge bg-success badge-shadow rounded-pill">{{ 'puzzle_available'|trans }}</span>
-                {% else %}
-                    <span class="badge bg-dark badge-shadow rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
+                {% if app.request.locale is same as 'cs' %}
+                    {% if puzzle.isAvailable %}
+                        <span class="badge bg-success badge-shadow rounded-pill">{{ 'puzzle_available'|trans }}</span>
+                    {% else %}
+                        <span class="badge bg-dark badge-shadow rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
+                    {% endif %}
                 {% endif %}
 
                 {% if puzzle.puzzleId in puzzles_solved_by_user %}

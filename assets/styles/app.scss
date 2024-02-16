@@ -65,11 +65,19 @@ main {
 
 .form-label.required, h3.required {
     &::after {
-        content: ' * Povinné';
+        content: ' * Required';
         color: #DD4A68;
         font-size: 11px;
         font-weight: bold;
         padding-left: 4px;
+    }
+}
+
+.lang-cs {
+    .form-label.required, h3.required {
+        &::after {
+            content: ' * Povinné';
+        }
     }
 }
 

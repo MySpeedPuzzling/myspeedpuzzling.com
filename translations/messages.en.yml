@@ -188,7 +188,7 @@ faq:
     title: "Frequently Asked Questions"
     intro_block: |
         <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> for technical matters) or on <a href="https://www.facebook.com/groups/1997202984012397" target="_blank">Facebook</a>.</p>
-        <p>All our source codes are open-source and public on <a href="https://github.com/SpeedPuzzling">GitHub SpeedPuzzling</a>. We adhere to the philosophy of "sharing is caring" and strive to share everything about myspeedpuzzling.com openly.</p>
+        <p>All our source codes are open-source and public on <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. We adhere to the philosophy of "sharing is caring" and strive to share everything about myspeedpuzzling.com openly.</p>
 
     question_fair_play: |
         <h4 class="mb-3">How do you know I'm not cheating when entering times?</h4>

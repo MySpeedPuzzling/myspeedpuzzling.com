@@ -43,11 +43,11 @@ homepage:
         title: "Solve Puzzles Faster!"
 
     title: "Welcome Puzzler, to the World of Speed Puzzling!"
-    intro_text: "Speed Puzzling is an exciting sport where the goal is to assemble puzzles as quickly as possible. Every piece counts, every second matters. Imagine traditional puzzle-solving but with the adrenaline of a racetrack! Our platform is the first of its kind - a place where you can measure your puzzle-solving skills not just against the clock, but also against other puzzle enthusiasts."
+    intro_text: "Speed Puzzling is an exciting sport where the goal is to assemble puzzles as quickly as possible. Every piece counts, every second matters. Imagine traditional puzzle-solving but with the adrenaline of a racetrack! Our platform is the first of its kind - a place where you can test your puzzle-solving skills not just against time, but also against other puzzle enthusiasts."
     why_block: |
-        <h3>Why Get Involved?</h3>
+        <h3>Why would I join?</h3>
         <ul>
-            <li><strong>Compete with others:</strong> Record your times and compare them with other puzzlers</li>
+            <li><strong>Compete with others:</strong> Share your times and compare them with other puzzlers</li>
             <li><strong>Leaderboards and statistics:</strong> Discover the rankings of the fastest puzzlers, most assembled puzzles, and most active users</li>
             <li><strong>Stopwatch:</strong> Use our integrated stopwatch for easy timing of your puzzle assembly</li>
             <li><strong>Add your puzzles:</strong> Have a puzzle that's missing from our site? Add it and share your times with the community.</li>
@@ -146,7 +146,7 @@ forms:
     add_new_manufacturer: "Add new manufacturer - not in the list"
     manufacturer_name: "Manufacturer (not in the list)"
     pieces_count: "Number of pieces"
-    puzzle_box_photo: "Photo of the motif or puzzle box"
+    puzzle_box_photo: "Photo of the picture or puzzle box"
     date_finished: "Date completed"
     ean: "EAN code"
     puzzle_identification_number: "Manufacturer's code"

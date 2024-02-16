@@ -1,10 +1,14 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ["piecesCount", "puzzleName", "manufacturer", "puzzleItem", "availability", "withTime"];
+    static targets = ["piecesCount", "puzzleName", "manufacturer", "puzzleItem", "availability", "withTime", "tagFilter"];
 
     connect() {
         this.populateFilters();
+
+        if (this.hasTagFilterTarget) {
+            this.populateTagFilter();
+        }
     }
 
     populateFilters() {
@@ -15,6 +19,19 @@ export default class extends Controller {
         });
 
         this.populateSelect(this.manufacturerTarget, Array.from(manufacturers), false);
+    }
+
+    populateTagFilter() {
+        const allTags = this.puzzleItemTargets.flatMap(puzzle =>
+            JSON.parse(puzzle.dataset.tags.replace(/&quot;/g, '"'))
+        );
+
+        const uniqueTags = Array.from(new Set(allTags.map(tag => tag.name))).sort();
+
+        uniqueTags.forEach(tagName => {
+            const option = new Option(tagName, tagName);
+            this.tagFilterTarget.add(option);
+        });
     }
 
     populateSelect(selectElement, options, isNumeric) {
@@ -39,6 +56,7 @@ export default class extends Controller {
         const manufacturer = this.manufacturerTarget.value;
         const onlyAvailable = this.hasAvailabilityTarget && this.availabilityTarget.checked;
         const onlyWithTime = this.hasWithTimeTarget && this.withTimeTarget.checked;
+        const selectedTag = this.hasTagFilterTarget ? this.tagFilterTarget.value : null;
 
         this.puzzleItemTargets.forEach(puzzle => {
             const puzzlePiecesCount = parseInt(puzzle.dataset.piecesCount, 10);
@@ -50,8 +68,10 @@ export default class extends Controller {
             const matchesAvailability = !onlyAvailable || puzzle.dataset.available === "1";
             const matchesWithTime = !onlyWithTime || puzzle.dataset.hasTime === "1";
             const matchesNameOrCode = searchInput === "" || puzzleName.includes(searchInput) || puzzleAlternativeName.includes(searchInput) || puzzleCode.includes(searchInput);
+            const tags = JSON.parse(puzzle.dataset.tags.replace(/&quot;/g, '"') || '[]');
+            const matchesTag = !selectedTag || tags.some(tag => tag.name === selectedTag);
 
-            const isVisible = matchesPiecesCount && matchesNameOrCode && matchesManufacturer && matchesAvailability && matchesWithTime;
+            const isVisible = matchesTag && matchesPiecesCount && matchesNameOrCode && matchesManufacturer && matchesAvailability && matchesWithTime;
 
             puzzle.style.display = isVisible ? '' : 'none';
 

@@ -10,6 +10,13 @@
     <div {{ stimulus_controller('puzzle_filter') }} class="mt-4">
         {{ include('_puzzle_filter.html.twig') }}
 
+        {#
+        <select data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="tagFilter">
+            <option value="">Select Tag</option>
+            <!-- Options will be populated by JavaScript -->
+        </select>
+        #}
+
         {% if app.request.locale is same as 'cs' %}
             <div class="form-check form-check-inline">
                 <input data-action="change->puzzle-filter#filterPuzzles" data-puzzle-filter-target="availability" class="form-check-input" type="checkbox" id="available-only-filter">
@@ -33,6 +40,7 @@
                 data-manufacturer="{{ puzzle.manufacturerName }}"
                 data-available="{{ puzzle.isAvailable ? 1 : 0 }}"
                 data-has-time="{{ puzzle.solvedTimes > 0 ? 1 : 0 }}"
+                data-tags="{{ (tags[puzzle.puzzleId] ?? [])|json_encode }}"
             >
                 <div class="row">
                     <div class="col-md align-self-center">

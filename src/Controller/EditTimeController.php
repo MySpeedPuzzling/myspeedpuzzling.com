@@ -7,6 +7,7 @@ use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\PuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
@@ -31,6 +32,7 @@ final class EditTimeController extends AbstractController
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private TranslatorInterface $translator,
+        readonly private GetFavoritePlayers $getFavoritePlayers,
     ) {
     }
 
@@ -66,7 +68,7 @@ final class EditTimeController extends AbstractController
 
         $groupPlayers = [];
         foreach ($solvedPuzzle->players ?? [] as $groupPlayer) {
-            $groupPlayers[] = $groupPlayer->playerCode ?? $groupPlayer->playerName ?? '';
+            $groupPlayers[] = $groupPlayer->playerCode ? "#$groupPlayer->playerCode" : $groupPlayer->playerName ?? '';
         }
 
         if ($request->request->has('group_players')) {
@@ -113,6 +115,7 @@ final class EditTimeController extends AbstractController
             'selected_add_manufacturer' => false,
             'puzzles' => $puzzlesPerManufacturer,
             'active_stopwatch' => null,
+            'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
         ]);
     }
 }

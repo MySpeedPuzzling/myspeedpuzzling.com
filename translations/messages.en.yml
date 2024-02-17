@@ -119,9 +119,10 @@ add_time:
     not_in_list: "(not in the list)"
     choose_manufacturer: "Choose a manufacturer from the list"
     time_from_stopwatch: "Time from stopwatch"
-    add_puzzler: "Add puzzler"
+    add_puzzler: "Add group co-puzzler"
     teamplayer: "Co-puzzler"
-    player_code_info: "Enter the player's code (starts with #). If the puzzler does not have an account on myspeedpuzzling.com, please enter their name."
+    player_code_info: "Choose from favorites or enter the player's code (starts with #). If the puzzler does not have an account on myspeedpuzzling.com, please enter their name."
+    choose_from_favorites: "- Choose from favorites -"
 
 forms:
     drop_file: "Drag and drop a file here to upload"

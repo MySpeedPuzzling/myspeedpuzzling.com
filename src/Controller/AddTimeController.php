@@ -6,19 +6,18 @@ namespace SpeedPuzzling\Web\Controller;
 use Auth0\Symfony\Models\User;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
-use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\PuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishStopwatch;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -40,6 +39,7 @@ final class AddTimeController extends AbstractController
         readonly private GetStopwatch $getStopwatch,
         readonly private PuzzlingTimeFormatter $timeFormatter,
         readonly private TranslatorInterface $translator,
+        readonly private GetFavoritePlayers $getFavoritePlayers,
     ) {
     }
 
@@ -162,10 +162,11 @@ final class AddTimeController extends AbstractController
         }
 
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
+        assert($userProfile !== null);
 
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
         $puzzlesPerManufacturer = [];
-        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile?->playerId) as $puzzle) {
+        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile->playerId) as $puzzle) {
             $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
         }
 
@@ -181,6 +182,7 @@ final class AddTimeController extends AbstractController
             'filled_group_players' => $groupPlayers,
             'selected_add_puzzle' => $data->addPuzzle,
             'selected_add_manufacturer' => $data->addManufacturer,
+            'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
         ]);
     }
 }

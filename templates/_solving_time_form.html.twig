@@ -325,11 +325,77 @@
             if (puzzlersGroup.children.length < 6) {
                 puzzlersGroup.insertAdjacentHTML('beforeend', puzzlerTemplate);
                 const newPuzzler = puzzlersGroup.lastElementChild;
-                updateInputAndLabel(newPuzzler, ++puzzlerCounter);
+                initializePuzzler(newPuzzler, ++puzzlerCounter);
                 updateCounters();
                 checkButtonVisibility();
+                disableSelectedOptionsGlobally();
             }
         });
+
+        function initializePuzzlers() {
+            const puzzlers = puzzlersGroup.querySelectorAll('.input-group');
+            puzzlers.forEach((puzzler, index) => {
+                initializePuzzler(puzzler, index);
+            });
+            disableSelectedOptionsGlobally();
+            updateCounters();
+            checkButtonVisibility();
+        }
+
+        function disableSelectedOptionsGlobally() {
+            const selects = puzzlersGroup.querySelectorAll('.group-favorite-player-select');
+            const selectedValues = Array.from(selects)
+                .filter(select => select.value !== '')
+                .map(select => select.value);
+
+            selects.forEach(select => {
+                Array.from(select.options).forEach(option => {
+                    if (selectedValues.includes(option.value) && option.value !== select.value) {
+                        option.disabled = true;
+                    }
+                });
+            });
+        }
+
+        function initializePuzzler(puzzler, counter) {
+            const input = puzzler.querySelector('input[name="group_players[]"]');
+            const label = puzzler.querySelector('label');
+            const select = puzzler.querySelector('.group-favorite-player-select');
+
+            // Unique ID for input and select if needed
+            if (input && select) {
+                const uniqueId = `input-${counter}`;
+                input.id = uniqueId;
+                if (label) label.setAttribute('for', uniqueId);
+                select.id = `select-${counter}`;
+                adjustInputStateBasedOnSelect(select, input, true);
+            }
+        }
+
+        function adjustInputStateBasedOnSelect(select, input, isInitializing = false) {
+            if (isInitializing) {
+                // If initializing, check if input's value (without '#') matches any select option value
+                const strippedValue = input.value.startsWith('#') ? input.value.slice(1) : input.value;
+                if (strippedValue && Array.from(select.options).some(option => option.value === strippedValue)) {
+                    select.value = strippedValue;
+                }
+            }
+
+            const selectedValue = select.value;
+            if (selectedValue !== '') {
+                if (!isInitializing || (isInitializing && input.value === '')) {
+                    input.value = `#${selectedValue}`;
+                }
+                input.setAttribute('readonly', true);
+            } else {
+                if (!isInitializing) {
+                    input.value = ''; // Only clear input if not initializing
+                }
+                input.removeAttribute('readonly');
+            }
+
+            updateSelectOptions(select, selectedValue);
+        }
 
         puzzlersGroup.addEventListener('click', (event) => {
             if (event.target.closest('[data-remove-player]')) {
@@ -338,19 +404,18 @@
                     puzzler.remove();
                     updateCounters();
                     checkButtonVisibility();
+                    updateSelectOptions();
                 }
             }
         });
 
-        function updateInputAndLabel(newPuzzler, counter) {
-            const input = newPuzzler.querySelector('input');
-            const label = newPuzzler.querySelector('label');
-            if (input && label) {
-                const uniqueId = `playerInput-${counter}`;
-                input.id = uniqueId;
-                label.setAttribute('for', uniqueId);
+        puzzlersGroup.addEventListener('change', (event) => {
+            if (event.target.classList.contains('group-favorite-player-select')) {
+                const select = event.target;
+                const input = select.closest('.input-group').querySelector('input[name="group_players[]"]');
+                adjustInputStateBasedOnSelect(select, input);
             }
-        }
+        });
 
         function updateCounters() {
             const counters = puzzlersGroup.querySelectorAll('[data-counter]');
@@ -366,6 +431,45 @@
                 addPuzzlerBtn.classList.remove('hidden');
             }
         }
+
+        function updateSelectOptions(changedSelect = null, selectedValue = '') {
+            const selects = puzzlersGroup.querySelectorAll('.group-favorite-player-select');
+            selects.forEach(select => {
+                const currentValue = select.value;
+                const options = Array.from(select.options);
+
+                options.forEach(option => {
+                    if (option.value !== '' && option.value !== currentValue) {
+                        if (option.value === selectedValue) {
+                            option.disabled = true;
+                        } else {
+                            option.disabled = false;
+                        }
+                    }
+                });
+
+                // If a select is changing back to placeholder, re-enable its previous value in all other selects
+                if (changedSelect && selectedValue === '') {
+                    options.forEach(option => {
+                        if (option.value === changedSelect.dataset.previousValue) {
+                            const otherSelects = Array.from(selects).filter(s => s !== changedSelect);
+                            otherSelects.forEach(otherSelect => {
+                                const otherOption = Array.from(otherSelect.options).find(o => o.value === option.value);
+                                if (otherOption) otherOption.disabled = false;
+                            });
+                        }
+                    });
+                }
+
+                if (changedSelect === select) {
+                    select.dataset.previousValue = selectedValue; // Keep track of the last selected value
+                }
+
+                disableSelectedOptionsGlobally();
+            });
+        }
+
+        initializePuzzlers();
     });
 
     document.addEventListener('DOMContentLoaded', function () {

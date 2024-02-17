@@ -4,7 +4,7 @@
 
 {% block content %}
     <h1>
-        {% if puzzle.puzzleAlternativeName is not null %}
+        {% if app.request.locale is same as 'cs' and puzzle.puzzleAlternativeName is not null %}
             {{ puzzle.puzzleAlternativeName }}
             <span class="h4">({{ puzzle.puzzleName }})</span>
         {% else %}

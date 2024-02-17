@@ -1,0 +1,6 @@
+{% if alternative_puzzle_name is null or app.request.locale is not same as 'cs' %}
+    {{ puzzle_name }}
+{% else %}
+    {{ alternative_puzzle_name }}<br>
+    <small>({{ puzzle_name }})</small>
+{% endif %}

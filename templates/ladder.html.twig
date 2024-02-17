@@ -111,12 +111,10 @@
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
                                     <span class="puzzle-title">
-                                        {% if most_solved_puzzle.puzzleAlternativeName is not null %}
-                                            {{ most_solved_puzzle.puzzleAlternativeName }}<br>
-                                            <small>({{ most_solved_puzzle.puzzleName }})</small>
-                                        {% else %}
-                                            {{ most_solved_puzzle.puzzleName }}
-                                        {% endif %}
+                                        {{ include('_puzzle_name.html.twig', {
+                                            puzzle_name: most_solved_puzzle.puzzleName,
+                                            alternative_puzzle_name: most_solved_puzzle.puzzleAlternativeName,
+                                        }) }}
                                         <br>
                                         <small>{{ most_solved_puzzle.manufacturerName }}</small>
                                     </span>

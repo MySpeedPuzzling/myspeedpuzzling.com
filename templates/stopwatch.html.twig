@@ -57,12 +57,10 @@
 
             <div class="col-lg-6 col-md-8 col-sm-10">
                 {% if active_puzzle is not null %}
-                    {% if active_puzzle.puzzleAlternativeName is not null %}
-                        {{ active_puzzle.puzzleAlternativeName }}
-                        <small>({{ active_puzzle.puzzleName }})</small>
-                    {% else %}
-                        {{ active_puzzle.puzzleName }}
-                    {% endif %}
+                    {{ include('_puzzle_name.html.twig', {
+                        puzzle_name: active_puzzle.puzzleName,
+                        alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
+                    }) }}
                     <br>
                     <b>{{ active_puzzle.manufacturerName|upper }}</b><br>
                     {{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}<br>

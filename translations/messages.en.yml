@@ -236,8 +236,8 @@ faq:
         <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
 
 profile:
-    add_to_favorites: "Remove from favorites"
-    remove_from_favorites: "Add to favorites"
+    add_to_favorites: "Add to favorites"
+    remove_from_favorites: "Remove from favorites"
     compare: "Compare with player"
     no_puzzles_solved: "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
     not_filled: "Not filled"

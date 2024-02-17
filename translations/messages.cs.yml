@@ -237,8 +237,8 @@ faq:
         <p class="mb-0">Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>
 
 profile:
-    add_to_favorites: "Odebrat z oblíbených"
-    remove_from_favorites: "Přidat do oblíbených"
+    add_to_favorites: "Přidat do oblíbených"
+    remove_from_favorites: "Odebrat z oblíbených"
     compare: "Porovnat s hráčem"
     no_puzzles_solved: "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
     not_filled: "Nevyplněno"

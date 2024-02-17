@@ -154,7 +154,8 @@ forms:
     choose_or_add_puzzle: "To add time, select a puzzle from the list or please enter information about the puzzles"
     add_or_choose_manufacturer: "Enter the manufacturer or choose from the list of existing ones"
     choose_or_add_manufacturer: "Select a manufacturer from the list or add a new one."
-
+    puzzle_photo_is_required: "Photo of solved puzzle, motif or box is required"
+    puzzle_photo_help: "Please attach photo of solved puzzle, motif or box so we can correctly identify and assign the puzzle."
 
 puzzlers_comparison:
     meta:

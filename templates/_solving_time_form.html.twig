@@ -162,6 +162,8 @@
 
                     {{ form_label(solving_time_form.puzzlePhoto) }}
                     {{ form_errors(solving_time_form.puzzlePhoto) }}
+
+                    <div class="form-text mb-1 help-text">{{ 'forms.puzzle_photo_help'|trans }}</div>
                     <div class="file-drop-area">
                         <div class="file-drop-icon ci-cloud-upload"></div>
                         <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>

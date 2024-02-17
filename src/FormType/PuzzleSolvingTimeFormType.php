@@ -132,6 +132,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         $builder->add('puzzlePhoto', FileType::class, [
             'label' => 'forms.puzzle_box_photo',
             'required' => false,
+            'label_attr' => ['class' => 'required'],
             'constraints' => [
                 new Image(
                     maxSize: '10m',
@@ -202,6 +203,10 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 }
             } elseif ($data->puzzleManufacturerId === null || $data->puzzleManufacturerId === '') {
                 $form->get('puzzleManufacturerId')->addError(new FormError($this->translator->trans('forms.choose_or_add_manufacturer')));
+            }
+
+            if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto === null) {
+                $form->get('puzzlePhoto')->addError(new FormError($this->translator->trans('forms.puzzle_photo_is_required')));
             }
         }
     }

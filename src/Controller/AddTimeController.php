@@ -125,6 +125,10 @@ final class AddTimeController extends AbstractController
                 $newPuzzleId = Uuid::uuid7();
                 $data->puzzleId = (string) $newPuzzleId;
 
+                if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
+                    $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
+                }
+
                 $this->messageBus->dispatch(
                     AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
                 );

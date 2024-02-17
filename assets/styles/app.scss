@@ -238,3 +238,7 @@ main {
     font-size: 12px;
     padding: 4px 8px;
 }
+
+.file-drop-area:has(.is-invalid) {
+    border-color: #f34770 !important;
+}

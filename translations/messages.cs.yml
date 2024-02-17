@@ -156,6 +156,8 @@ forms:
     choose_or_add_puzzle: "Pro přidání času vyberte puzzle ze seznamu nebo prosím vypište informace o puzzlích"
     add_or_choose_manufacturer: "Zadejte výrobce nebo vyberte ze seznamu existujících"
     choose_or_add_manufacturer: "Vyberte výrobce ze seznamu nebo přidejte nového."
+    puzzle_photo_is_required: "Foto poskládaných puzzlí, motivu nebo krabice je povinné"
+    puzzle_photo_help: "Prosím přidejte fotografii poskládaných puzzlí, motivu nebo krabice, abychom mohli nové správně puzzle identifikovat a zařadit."
 
 puzzlers_comparison:
     meta:

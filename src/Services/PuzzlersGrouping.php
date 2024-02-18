@@ -58,7 +58,7 @@ readonly final class PuzzlersGrouping
     private function getPuzzlerFromUserInput(string $playerCodeOrName): Puzzler
     {
         // Can start with hashtag and contains space on the end
-        $playerCodeOrName = trim($playerCodeOrName, '\# \t\n\r\0');
+        $playerCodeOrName = trim($playerCodeOrName, "\# \t\n\r\0");
 
         try {
             $player = $this->playerRepository->getByCode($playerCodeOrName);

@@ -62,7 +62,7 @@
                     {% if player.facebook is null %}
                     {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.facebook }}
+                        {{ player.facebook|facebook }}
                     {% endif %}<br>
                 </p>
 

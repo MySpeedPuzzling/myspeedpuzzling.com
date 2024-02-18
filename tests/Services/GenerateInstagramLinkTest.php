@@ -31,5 +31,8 @@ class GenerateInstagramLinkTest extends TestCase
         yield ['https://www.instagram.com/myspeedpuzzling/', 'https://www.instagram.com/myspeedpuzzling/', '@myspeedpuzzling'];
         yield ['https://www.instagram.com/myspeedpuzzling', 'https://www.instagram.com/myspeedpuzzling', '@myspeedpuzzling'];
         yield ['https://www.instagram.com/myspeedpuzzling?igsh=xyz&utm_source=qr', 'https://www.instagram.com/myspeedpuzzling?igsh=xyz&utm_source=qr', '@myspeedpuzzling'];
+        yield ['https://instagram.com/myspeedpuzzling/', 'https://instagram.com/myspeedpuzzling/', '@myspeedpuzzling'];
+        yield ['https://instagram.com/myspeedpuzzling', 'https://instagram.com/myspeedpuzzling', '@myspeedpuzzling'];
+        yield ['https://instagram.com/myspeedpuzzling?igsh=xyz&utm_source=qr', 'https://instagram.com/myspeedpuzzling?igsh=xyz&utm_source=qr', '@myspeedpuzzling'];
     }
 }

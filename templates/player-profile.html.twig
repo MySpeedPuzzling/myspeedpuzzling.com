@@ -71,7 +71,7 @@
                     {% if player.instagram is null %}
                     {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.instagram }}
+                        {{ player.instagram|instagram }}
                     {% endif %}<br>
                 </p>
             </div>

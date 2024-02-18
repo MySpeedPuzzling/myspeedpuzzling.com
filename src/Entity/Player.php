@@ -127,5 +127,7 @@ class Player
         }
 
         unset($this->favoritePlayers[$key]);
+
+        $this->favoritePlayers = array_values($this->favoritePlayers);
     }
 }

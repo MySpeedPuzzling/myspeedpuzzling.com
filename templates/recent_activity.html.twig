@@ -1,18 +1,18 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Poslední přidané časy{% endblock %}
+{% block title %}{{ 'ladder.recent_activity'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Poslední přidané časy</h1>
+    <h1>{{ 'ladder.recent_activity'|trans }}</h1>
 
     <div class="table-responsive custom-table-wrapper mt-4">
         <table class="table table-striped custom-table table-hover mb-0">
             <thead>
             <tr>
-                <th>Hráč</th>
+                <th>{{ 'puzzler'|trans }}</th>
                 <th></th>
-                <th>Puzzle</th>
-                <th class="text-end">Čas</th>
+                <th>{{ 'puzzle'|trans }}</th>
+                <th class="text-end">{{ 'time'|trans }}</th>
             </tr>
             </thead>
             <tbody>
@@ -61,12 +61,12 @@
                                 <br>
                                 <small>{{ solved_puzzle.manufacturerName }}</small>
                             </span>
-                            <br><small>{{ solved_puzzle.piecesCount }}&nbsp;dílků</small>
+                            <br><small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
                         </a>
                     </td>
                     <td class="text-end">
                         <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span><br>
-                        <small>{{ solved_puzzle.trackedAt|ago(locale='cs') }}</small>
+                        <small>{{ solved_puzzle.trackedAt|ago }}</small>
                     </td>
                 </tr>
             {% endfor %}

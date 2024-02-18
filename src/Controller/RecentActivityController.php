@@ -27,7 +27,7 @@ final class RecentActivityController extends AbstractController
     public function __invoke(Request $request): Response
     {
         return $this->render('recent_activity.html.twig', [
-            'last_solved_puzzles' => $this->getLastSolvedPuzzle->limit(50),
+            'last_solved_puzzles' => $this->getLastSolvedPuzzle->limit(100),
         ]);
     }
 }

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Twig;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 final class PuzzlingTimeTwigExtension extends AbstractExtension
 {
@@ -26,5 +27,20 @@ final class PuzzlingTimeTwigExtension extends AbstractExtension
             new TwigFilter('minutesElapsed', [$this->timeFormatter, 'minutesElapsed']),
             new TwigFilter('secondsElapsed', [$this->timeFormatter, 'secondsElapsed']),
         ];
+    }
+
+    /**
+     * @return array<TwigFunction>
+     */
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('ppm', [$this, 'calculatePpm']),
+        ];
+    }
+
+    public function calculatePpm(int $timeInSeconds, int $pieces, int $puzzlersCount = 1): float
+    {
+        return round($pieces / ($timeInSeconds / 60) / $puzzlersCount, 2);
     }
 }

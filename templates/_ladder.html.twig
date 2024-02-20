@@ -44,7 +44,7 @@
                     {% endif %}
                 </td>
 
-                <td class="text-end">
+                <td class="text-end with-ppm">
                     {{ solving_time.time|puzzlingTime }}
                     <br><small><span class="text-muted">P4</span> {{ ppm(solving_time.time, solving_time.piecesCount) }}</small>
                     {% if solving_time.players is not null %}

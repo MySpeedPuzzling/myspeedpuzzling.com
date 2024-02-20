@@ -85,30 +85,31 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for player_id, grouped_solver in solo_puzzle_solvers %}
-                        <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                            <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name">
-                                <a href="{{ path('player_profile', {playerId: player_id}) }}">
-                                    {% if logged_user.profile is not null and grouped_solver[0].playerId in logged_user.profile.favoritePlayers %}
-                                        <i class="ci-star-filled text-warning"></i>
+                        {% for player_id, grouped_solver in solo_puzzle_solvers %}
+                            <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                                <td class="rank">{{ loop.index }}.</td>
+                                <td class="player-name">
+                                    <a href="{{ path('player_profile', {playerId: player_id}) }}">
+                                        {% if logged_user.profile is not null and grouped_solver[0].playerId in logged_user.profile.favoritePlayers %}
+                                            <i class="ci-star-filled text-warning"></i>
+                                        {% endif %}
+                                        {{ grouped_solver[0].playerName }}
+                                    </a>
+                                </td>
+                                <td class="text-end with-ppm">
+                                    {% if grouped_solver|length > 1 %}
+                                        <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': grouped_solver|length}) }}</span>
                                     {% endif %}
-                                    {{ grouped_solver[0].playerName }}
-                                </a>
-                            </td>
-                            <td class="text-end">
-                                {% if grouped_solver|length > 1 %}
-                                    <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': grouped_solver|length}) }}</span>
-                                {% endif %}
-                                {{ grouped_solver[0].time|puzzlingTime }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    {% if solo_puzzle_solvers|length < 1 %}
-                        <tr>
-                            <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
-                        </tr>
-                    {% endif %}
+                                    {{ grouped_solver[0].time|puzzlingTime }}
+                                    <br><small><span class="text-muted">P4</span> {{ ppm(grouped_solver[0].time, puzzle.piecesCount) }}</small>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        {% if solo_puzzle_solvers|length < 1 %}
+                            <tr>
+                                <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -147,7 +148,11 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
-                            <td class="text-end">{{ puzzlers_group.time|puzzlingTime }}</td>
+                            <td class="text-end with-ppm">
+                                {{ puzzlers_group.time|puzzlingTime }}
+                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzlers_group.time, puzzle.piecesCount) }}</small>
+                                <br><small><span class="text-muted">P6</span> {{ ppm(puzzlers_group.time, puzzle.piecesCount, puzzlers_group.players|length) }}</small>
+                            </td>
                         </tr>
                     {% endfor %}
                     {% if group_puzzle_solvers|length < 1 %}

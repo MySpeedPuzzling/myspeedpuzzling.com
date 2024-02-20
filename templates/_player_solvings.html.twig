@@ -85,7 +85,7 @@
                     </td>
                 {% endif %}
 
-                <td class="text-end text-nowrap">
+                <td class="text-end text-nowrap with-ppm">
                     {% for puzzle in solved_puzzle %}
                         {% if loop.first %}
                             <span class="d-inline-block">
@@ -113,7 +113,7 @@
                             </span>
                         </a>
 
-                        <div class="more-times hidden">
+                        <div class="more-times hidden with-ppm">
                             {% for puzzle in solved_puzzle %}
                                 {% if not loop.first %}
                                     <span class="d-inline-block">

@@ -242,3 +242,7 @@ main {
 .file-drop-area:has(.is-invalid) {
     border-color: #f34770 !important;
 }
+
+td:has(sub) {
+    line-height: 115%;
+}

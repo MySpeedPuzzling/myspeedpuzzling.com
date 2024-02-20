@@ -88,12 +88,20 @@
                 <td class="text-end text-nowrap">
                     {% for puzzle in solved_puzzle %}
                         {% if loop.first %}
-                            {{ puzzle.time|puzzlingTime }}
+                            <span class="d-inline-block">
+                                {{ puzzle.time|puzzlingTime }}
+
+                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}</small>
+                                {% if solved_puzzle[0].players is not null %}
+                                    <br><small><span class="text-muted">P6</span> {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }}</small>
+                                {% endif %}
+                            </span>
 
                             {# Display edit icon only to current user #}
                             {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
                                 <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
                             {% endif %}
+
                         {% endif %}
                     {% endfor %}
 
@@ -108,7 +116,14 @@
                         <div class="more-times hidden">
                             {% for puzzle in solved_puzzle %}
                                 {% if not loop.first %}
-                                    {{ puzzle.time|puzzlingTime }}
+                                    <span class="d-inline-block">
+                                        {{ puzzle.time|puzzlingTime }}
+
+                                        <br><small><span class="text-muted">P4</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}</small>
+                                        {% if solved_puzzle[0].players is not null %}
+                                            <br><small><span class="text-muted">P6</span> {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }}</small>
+                                        {% endif %}
+                                    </span>
 
                                     {# Display edit icon only to current user #}
                                     {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}

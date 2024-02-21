@@ -32,6 +32,7 @@ readonly final class GetPuzzleSolvers
 SELECT
     player.id AS player_id,
     player.name AS player_name,
+    player.country AS player_country,
     puzzle_solving_time.seconds_to_solve AS time
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -52,6 +53,7 @@ SQL;
              * @var array{
              *     player_id: string,
              *     player_name: string,
+             *     player_country: null|string,
              *     time: int,
              * } $row
              */
@@ -80,7 +82,8 @@ SELECT
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem ->> 'player_name')
+            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_country', p.country
         )
     ) AS players
 FROM

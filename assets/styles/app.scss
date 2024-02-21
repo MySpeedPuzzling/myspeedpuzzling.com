@@ -170,10 +170,10 @@ main {
     --cz-table-hover-color: #000;
     color: var(--cz-table-color);
     border-color: var(--cz-table-border-color);
+}
 
-    .rank, .player-name {
-        font-weight: bold;
-    }
+td.rank {
+    padding-right: 0;
 }
 
 .show-more-times.hidden,

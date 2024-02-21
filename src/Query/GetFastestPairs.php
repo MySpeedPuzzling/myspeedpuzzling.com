@@ -31,6 +31,7 @@ SELECT
     finished_puzzle_photo,
     puzzle_solving_time.seconds_to_solve AS time,
     player.name AS player_name,
+    player.country AS player_country,
     player.id AS player_id,
     manufacturer.name AS manufacturer_name,
     puzzle.identification_number AS puzzle_identification_number,
@@ -39,7 +40,8 @@ SELECT
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem ->> 'player_name')
+            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_country', p.country
         )
     ) AS players
 FROM puzzle_solving_time
@@ -71,6 +73,7 @@ SQL;
              *     puzzle_image: null|string,
              *     time: int,
              *     player_name: string,
+             *     player_country: null|string,
              *     player_id: string,
              *     solved_times: int,
              *     manufacturer_name: string,
@@ -80,6 +83,7 @@ SQL;
              *     pieces_count: int,
              *     comment: null|string,
              *     puzzle_identification_number: null|string,
+             *     players: null|string,
              * } $row
              */
 

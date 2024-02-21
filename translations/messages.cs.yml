@@ -247,7 +247,7 @@ profile:
     not_filled: "Nevyplněno"
     avatar: "Avatar"
     about_me: "O mně"
-    city_country: "Město, stát"
+    location: "Poloha"
     statistics: "Statistiky"
     statistics_time: "Čas strávený skládáním"
     statistics_puzzles_solved: "Počet složených puzzlí"

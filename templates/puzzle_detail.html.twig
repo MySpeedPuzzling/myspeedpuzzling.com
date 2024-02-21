@@ -88,13 +88,15 @@
                         {% for player_id, grouped_solver in solo_puzzle_solvers %}
                             <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
                                 <td class="rank">{{ loop.index }}.</td>
-                                <td class="player-name">
+                                <td class="player-name text-nowrap">
                                     <a href="{{ path('player_profile', {playerId: player_id}) }}">
                                         {% if logged_user.profile is not null and grouped_solver[0].playerId in logged_user.profile.favoritePlayers %}
                                             <i class="ci-star-filled text-warning"></i>
                                         {% endif %}
-                                        {{ grouped_solver[0].playerName }}
-                                    </a>
+                                        {{ grouped_solver[0].playerName }}</a>
+                                    {% if grouped_solver[0].playerCountry is not null %}
+                                        <small class="shadow-custom fi fi-{{ grouped_solver[0].playerCountry.name }}"></small>
+                                    {% endif %}
                                 </td>
                                 <td class="text-end with-ppm">
                                     {% if grouped_solver|length > 1 %}
@@ -131,7 +133,7 @@
                     {% for puzzlers_group in group_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
-                            <td class="player-name">
+                            <td class="player-name text-nowrap">
                                 {% for puzzle_solver in puzzlers_group.players %}
                                     {% if not loop.first %}
                                         <br>
@@ -143,6 +145,9 @@
                                             {% endif %}
                                             {{ puzzle_solver.playerName }}
                                         </a>
+                                        {% if puzzle_solver.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                        {% endif %}
                                     {% else %}
                                         <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
                                     {% endif %}

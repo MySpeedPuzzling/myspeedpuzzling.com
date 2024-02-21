@@ -29,6 +29,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     player.name AS player_name,
+    player.country AS player_country,
     pieces_count,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
@@ -40,7 +41,8 @@ SELECT
         WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
             JSON_BUILD_OBJECT(
                 'player_id', player_elem ->> 'player_id',
-                'player_name', COALESCE(p.name, player_elem ->> 'player_name')
+                'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+                'player_country', p.country
             )
         )
     END AS players
@@ -69,6 +71,7 @@ SQL;
              *     time_id: string,
              *     player_id: string,
              *     player_name: string,
+             *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: null|string,

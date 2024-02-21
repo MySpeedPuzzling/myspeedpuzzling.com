@@ -4,7 +4,11 @@
 
 {% block content %}
     <h1>
-        {{ player.playerName }} <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code>
+        {{ player.playerName }}
+        {% if player.countryCode is not null %}
+            <span class="h4 shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+        {% endif %}
+        <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code>
     </h1>
 
     {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
@@ -42,18 +46,26 @@
                     {% if player.bio is null %}
                     {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.bio }}
+                        {{ player.bio|nl2br }}
                     {% endif %}<br>
                 </p>
             </div>
 
             <div class="col-sm">
                 <p>
-                    <b>{{ 'profile.city_country'|trans }}:</b><br>
-                    {% if player.city is null %}
+                    <b>{{ 'profile.location'|trans }}:</b><br>
+                    {% if player.city is null and player.countryCode is null %}
                         {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.city }}, {{ player.country }}
+                        {% if player.city is null and player.countryCode is null %}
+                            {{ 'profile.not_filled'|trans }}
+                        {% else %}
+                            {{ player.city }}{% if player.countryCode is not null and player.city is not null %},{% endif %}
+                            {% if player.countryCode is not null %}
+                                <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+                                {{ player.countryCode.value }}
+                            {% endif %}
+                        {% endif %}
                     {% endif %}
                 </p>
 
@@ -103,6 +115,9 @@
                             <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
                                 {{ favorite_puzzler.playerName }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
                             </a>
+                            {% if favorite_puzzler.playerCountry is not null %}
+                                <small class="shadow-custom fi fi-{{ favorite_puzzler.playerCountry.name }}"></small>
+                            {% endif %}
                         </li>
                     {% endfor %}
                 </ul>

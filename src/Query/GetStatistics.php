@@ -27,6 +27,7 @@ readonly final class GetStatistics
 SELECT
     p.id AS player_id,
     p.name AS player_name,
+    p.country AS player_country,
     p.code AS player_code,
     COUNT(DISTINCT subquery.puzzle_id || '-' || subquery.player_id) as solved_puzzles_count
 FROM (
@@ -48,7 +49,7 @@ FROM (
         pst.team IS NOT NULL
 ) as subquery
 JOIN player p ON subquery.player_id = p.id
-GROUP BY p.id, p.name
+GROUP BY p.id, p.name, p.country
 ORDER BY solved_puzzles_count DESC
 LIMIT :limit
 SQL;
@@ -64,6 +65,7 @@ SQL;
              * @var array{
              *     player_id: string,
              *     player_name: null|string,
+             *     player_country: null|string,
              *     solved_puzzles_count: int,
              * } $row
              */

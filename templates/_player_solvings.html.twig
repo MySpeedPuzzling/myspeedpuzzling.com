@@ -69,7 +69,7 @@
 
                 {# Display player names for groups #}
                 {% if solved_puzzle[0].players is not null %}
-                    <td class="player-name">
+                    <td class="player-name text-nowrap">
                         {% for puzzle_solver in solved_puzzle[0].players %}
                             {% if not loop.first %}
                                 <br>

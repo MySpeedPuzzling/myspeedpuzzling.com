@@ -57,11 +57,15 @@
 
             <div class="col-sm">
                 <p>
-                    <b>{{ 'profile.city_country'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.city is null %}
+                    <b>{{ 'profile.location'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                    {% if player.city is null and player.countryCode is null %}
                         {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.city }}, {{ player.country }}
+                        {{ player.city }}{% if player.countryCode is not null and player.city is not null %},{% endif %}
+                        {% if player.countryCode is not null %}
+                            <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+                            {{ player.countryCode.value }}
+                        {% endif %}
                     {% endif %}
                 </p>
 
@@ -88,7 +92,7 @@
                     {% if player.bio is null %}
                     {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.bio }}
+                        {{ player.bio|nl2br }}
                     {% endif %}<br>
                 </p>
             </div>
@@ -120,6 +124,9 @@
                             <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
                                 {{ favorite_puzzler.playerName }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
                             </a>
+                            {% if favorite_puzzler.playerCountry is not null %}
+                                <small class="shadow-custom fi fi-{{ favorite_puzzler.playerCountry.name }}"></small>
+                            {% endif %}
                         </li>
                     {% endfor %}
                 </ul>

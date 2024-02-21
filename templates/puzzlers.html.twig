@@ -36,6 +36,9 @@
 
                             {{ found_player.playerName }}
                             <code class="text-muted">#{{ found_player.playerCode|upper }}</code>
+                            {% if found_player.playerCountry is not null %}
+                                <small class="shadow-custom fi fi-{{ found_player.playerCountry.name }}"></small>
+                            {% endif %}
                         </a>
                     </div>
                 {% endfor %}
@@ -75,6 +78,9 @@
 
                         {{ most_favorite_player.playerName }}
                         <code class="text-muted">#{{ most_favorite_player.playerCode|upper }}</code>
+                        {% if most_favorite_player.playerCountry is not null %}
+                            <small class="shadow-custom fi fi-{{ most_favorite_player.playerCountry.name }}"></small>
+                        {% endif %}
                     </a>
                 </div>
             {% endfor %}

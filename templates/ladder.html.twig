@@ -149,13 +149,16 @@
                     {% for player_statistics in most_active_players %}
                         <tr class="{{ logged_user.profile is not null and player_statistics.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                             <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name">
+                            <td class="player-name text-nowrap">
                                 <a href="{{ path('player_profile', {playerId: player_statistics.playerId}) }}">
                                     {% if logged_user.profile is not null and player_statistics.playerId in logged_user.profile.favoritePlayers %}
                                         <i class="ci-star-filled text-warning"></i>
                                     {% endif %}
                                     {{ player_statistics.playerName }}
                                 </a>
+                                {% if player_statistics.playerCountry is not null %}
+                                    <small class="shadow-custom fi fi-{{ player_statistics.playerCountry.name }}"></small>
+                                {% endif %}
                             </td>
                             <td class="text-center">{{ player_statistics.solvedPuzzlesCount }}</td>
                         </tr>

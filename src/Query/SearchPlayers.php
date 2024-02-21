@@ -23,6 +23,7 @@ readonly final class SearchPlayers
 SELECT
     id AS player_id,
     name AS player_name,
+    country AS player_country,
     code AS player_code,
     CASE
         WHEN LOWER(name) = LOWER(:searchQuery) OR LOWER(code) = LOWER(:searchQuery) THEN 5 -- Exact match with diacritics
@@ -56,6 +57,7 @@ SQL;
              * @var array{
              *     player_id: string,
              *     player_name: null|string,
+             *     player_country: null|string,
              *     player_code: string,
              * } $row
              */

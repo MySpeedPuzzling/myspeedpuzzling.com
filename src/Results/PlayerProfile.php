@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class PlayerProfile
 {
@@ -23,6 +24,7 @@ readonly final class PlayerProfile
         public null|string $bio,
         public null|string $facebook,
         public null|string $instagram,
+        public null|CountryCode $countryCode = null,
     ) {
     }
 
@@ -51,6 +53,8 @@ readonly final class PlayerProfile
             $favoritePlayers = [];
         }
 
+        $countryCode = CountryCode::fromCode($row['country']);
+
         return new self(
             playerId: $row['player_id'],
             userId: $row['user_id'],
@@ -64,6 +68,7 @@ readonly final class PlayerProfile
             bio: $row['bio'],
             facebook: $row['facebook'],
             instagram: $row['instagram'],
+            countryCode: $countryCode,
         );
     }
 }

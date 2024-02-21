@@ -137,6 +137,8 @@ forms:
     city_help: "Město, které hrdě reprezentujete (nepovinné)."
     city: "Město"
     country: "Stát"
+    country_most_common: "Nejčastější"
+    country_all: "Všechny státy"
     about_me: "O mně (bio)"
     avatar: "Avatar/foto"
     search_puzzler: "Jméno, kód hráče nebo část..."

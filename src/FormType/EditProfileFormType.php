@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
+use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -13,12 +15,18 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @extends AbstractType<EditProfileFormData>
  */
 final class EditProfileFormType extends AbstractType
 {
+    public function __construct(
+        readonly private TranslatorInterface $translator
+    ) {
+    }
+
     /**
      * @param mixed[] $options
      */
@@ -42,9 +50,40 @@ final class EditProfileFormType extends AbstractType
             'help' => 'forms.city_help',
         ]);
 
-        $builder->add('country', TextType::class, [
+        $allCountries = [];
+
+        foreach (CountryCode::cases() as $country) {
+            $allCountries[$country->value] = $country->name;
+        }
+
+        $countries = [
+            $this->translator->trans('forms.country_most_common') => [
+                CountryCode::cz->value => CountryCode::cz->name,
+                CountryCode::sk->value => CountryCode::sk->name,
+                CountryCode::pl->value => CountryCode::pl->name,
+                CountryCode::de->value => CountryCode::de->name,
+                CountryCode::at->value => CountryCode::at->name,
+                CountryCode::no->value => CountryCode::no->name,
+                CountryCode::fi->value => CountryCode::fi->name,
+                CountryCode::us->value => CountryCode::us->name,
+                CountryCode::ca->value => CountryCode::ca->name,
+                CountryCode::fr->value => CountryCode::fr->name,
+                CountryCode::nz->value => CountryCode::nz->name,
+                CountryCode::es->value => CountryCode::es->name,
+                CountryCode::nl->value => CountryCode::nl->name,
+                CountryCode::pt->value => CountryCode::pt->name,
+                CountryCode::gb->value => CountryCode::gb->name,
+            ],
+            $this->translator->trans('forms.country_all') => $allCountries,
+        ];
+
+        $builder->add('country', ChoiceType::class, [
             'label' => 'forms.country',
             'required' => false,
+            'expanded' => false,
+            'multiple' => false,
+            'choices' => $countries,
+            'choice_translation_domain' => false,
         ]);
 
         $builder->add('facebook', TextType::class, [

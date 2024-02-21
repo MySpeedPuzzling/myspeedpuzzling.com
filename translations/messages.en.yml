@@ -135,6 +135,8 @@ forms:
     city_help: "The city you proudly represent (optional)."
     city: "City"
     country: "Country"
+    country_most_common: "The most common"
+    country_all: "All countries"
     about_me: "About me (bio)"
     avatar: "Avatar/photo"
     search_puzzler: "Name, player code, or part of..."

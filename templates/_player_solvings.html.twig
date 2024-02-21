@@ -78,6 +78,9 @@
                                 <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                     {{ puzzle_solver.playerName }}
                                 </a>
+                                {% if puzzle_solver.playerCountry is not null %}
+                                    <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                {% endif %}
                             {% else %}
                                 <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
                             {% endif %}

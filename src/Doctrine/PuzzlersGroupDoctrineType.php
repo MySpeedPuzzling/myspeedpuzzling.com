@@ -45,11 +45,13 @@ final class PuzzlersGroupDoctrineType extends JsonType
 
         $puzzlers = [];
 
+        // TODO: because of not supported properties, we should have different object than Puzzler for domain
         foreach ($jsonData['puzzlers'] as $puzzler) {
             $puzzlers[] = new Puzzler(
                 playerId: $puzzler['player_id'],
                 playerName: $puzzler['player_name'],
                 playerCode: null, // Not supported in domain
+                playerCountry: null,  // Not supported in domain
             );
         }
 

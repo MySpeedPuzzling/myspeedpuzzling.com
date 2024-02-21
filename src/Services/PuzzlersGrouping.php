@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 
@@ -50,6 +51,7 @@ readonly final class PuzzlersGrouping
             playerId: $player->id->toString(),
             playerName: null,
             playerCode: null,
+            playerCountry: null,
         ));
 
         return new PuzzlersGroup(null, $puzzlers);
@@ -67,12 +69,14 @@ readonly final class PuzzlersGrouping
                 playerId: $player->id->toString(),
                 playerName: null,
                 playerCode: $player->code,
+                playerCountry: CountryCode::fromCode($player->country),
             );
         } catch (PlayerNotFound) {
             return new Puzzler(
                 playerId: null,
                 playerName: $playerCodeOrName,
                 playerCode: null,
+                playerCountry: null,
             );
         }
     }

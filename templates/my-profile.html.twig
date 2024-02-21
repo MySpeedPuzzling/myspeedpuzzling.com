@@ -3,15 +3,32 @@
 {% block title %}{{ 'my_profile.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>{{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code></h1>
+    <div class="row">
+        <div class="col-md">
+            <h1>{{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code></h1>
 
-    <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}">
-        <i class="ci-edit"></i> {{ 'my_profile.edit'|trans }}
-    </a>
+            <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}">
+                <i class="ci-edit"></i> {{ 'my_profile.edit'|trans }}
+            </a>
 
-    <a class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}">
-        <i class="ci-sign-out"></i> {{ 'my_profile.logout'|trans }}
-    </a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}">
+                <i class="ci-sign-out"></i> {{ 'my_profile.logout'|trans }}
+            </a>
+        </div>
+
+        <div class="col-md" style="max-width: 366px;">
+            <div class="pt-3 pt-md-4 share-profile-link">
+                Share your profile:
+                <div class="input-group">
+                    <input id="share-profile-link-input" class="form-control" type="text" value="{{ url('player_profile', {playerId: player.playerId}) }}" readonly>
+                    <button id="share-profile-link-button" class="btn btn-icon btn-primary" type="button">
+                        <i class="ci-share"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <div class="shadow-lg p-3 mt-3">
         {% if player.playerName is null %}
@@ -201,6 +218,33 @@
                 }
             });
         });
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        var input = document.getElementById("share-profile-link-input");
+        var button = document.getElementById("share-profile-link-button");
+
+        // Select input content on click or focus
+        input.addEventListener("click", selectInputContent);
+        input.addEventListener("focus", selectInputContent);
+        input.addEventListener("dblclick", selectInputContent);
+
+        // Copy input value to clipboard and change icon class on button click
+        button.addEventListener("click", function() {
+            input.select();
+            navigator.clipboard.writeText(input.value).then(function() {
+                button.querySelector("i").classList.remove("ci-share");
+                button.querySelector("i").classList.add("ci-check");
+            }).catch(function(err) {
+                console.error('Failed to copy: ', err);
+            });
+        });
+
+        // Function to select input content
+        function selectInputContent(event) {
+            event.preventDefault(); // Prevent default behavior
+            this.select();
+        }
     });
 </script>
 {% endblock %}

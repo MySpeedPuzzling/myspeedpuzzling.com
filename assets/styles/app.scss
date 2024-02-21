@@ -246,3 +246,14 @@ td.rank {
 .with-ppm {
     line-height: 125%;
 }
+
+.share-profile-link {
+    font-size: 14px;
+    max-width: 366px;
+
+    input {
+        font-size: 12px;
+        padding-left: 7px;
+        padding-right: 7px;
+    }
+}

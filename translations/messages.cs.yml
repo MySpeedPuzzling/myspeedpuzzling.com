@@ -271,6 +271,7 @@ my_profile:
     not_public_info: "neveřejné"
     name: "Jméno/přezdívka"
     stopwatches: "Moje stopky"
+    missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
 
 puzzlers:
     meta:

@@ -71,6 +71,32 @@
         </div>
     </div>
 
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs" role="tablist" {{ stimulus_controller('tabs') }}>
+        <li class="nav-item">
+            <a href="#home1" class="nav-link active" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <i class="ci-home me-2"></i>
+                Home
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#profile1" class="nav-link" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <i class="ci-user-circle me-2"></i>
+                Profile
+            </a>
+        </li>
+    </ul>
+
+    <!-- Tabs content -->
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="home1" role="tabpanel">
+            <p class="fs-sm">Raw denim you probably haven't heard of them jean shorts Austin. Nesciunt tofu stumptown aliqua, retro synth master cleanse. Mustache cliche tempor, williamsburg carles vegan helvetica. Reprehenderit butcher retro keffiyeh dreamcatcher synth. Cosby sweater eu banh mi, qui irure terry richardson ex squid. Aliquip placeat salvia cillum iphone. Seitan aliquip quis cardigan american apparel, butcher voluptate nisi qui. Excepteur sint occaecat cupidatat non proident.</p>
+        </div>
+        <div class="tab-pane fade" id="profile1" role="tabpanel">
+            <p class="fs-sm">Food truck fixie locavore, accusamus mcsweeney's marfa nulla single-origin coffee squid. Exercitation +1 labore velit, blog sartorial PBR leggings next level wes anderson artisan four loko farm-to-table craft beer twee. Qui photo booth letterpress, commodo enim craft beer mlkshk aliquip jean shorts ullamco ad vinyl cillum PBR. Homo nostrud organic, assumenda labore aesthetic magna delectus mollit. Keytar helvetica VHS salvia yr, vero magna velit sapiente.</p>
+        </div>
+    </div>
+
     <div class="row mt-4">
         <div class="col-sm-12 col-md-6">
             <h2 class="h4">{{ 'ladder.solo'|trans }}</h2>

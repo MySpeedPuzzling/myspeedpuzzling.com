@@ -3,8 +3,12 @@ import { Tab } from 'bootstrap';
 
 export default class extends Controller {
     connect() {
-        this.showTabFromURLHash();
-        this.handleHashChange();
+        // Wait for the DOM content to fully load, ensuring accurate positioning.
+        setTimeout(() => {
+            this.showTabFromURLHash();
+            this.adjustScrollPosition();
+            this.handleHashChange();
+        }, 100);
     }
 
     showTabFromURLHash() {
@@ -17,6 +21,7 @@ export default class extends Controller {
         }
     }
 
+    // Stimulus action referenced from templates
     showTab(event) {
         event.preventDefault();
         const tabElement = event.currentTarget;
@@ -24,11 +29,29 @@ export default class extends Controller {
             new Tab(tabElement).show();
             const newHash = tabElement.getAttribute('href');
             history.replaceState(null, null, newHash);
-            this.showTabFromURLHash();
+        }
+    }
+
+    adjustScrollPosition() {
+        const hash = window.location.hash;
+        if (hash) {
+            const targetElement = document.querySelector(hash);
+            if (targetElement) {
+                const navHeight = document.querySelector('.nav').offsetHeight; // Adjust this selector as needed
+                const offsetPosition = targetElement.offsetTop - navHeight - 60; // Additional spacing above the target
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth' // Smooth scroll is optional
+                });
+            }
         }
     }
 
     handleHashChange() {
-        window.addEventListener('hashchange', () => this.showTabFromURLHash(), false);
+        window.addEventListener('hashchange', () => {
+            this.showTabFromURLHash();
+            this.adjustScrollPosition();
+        }, false);
     }
 }

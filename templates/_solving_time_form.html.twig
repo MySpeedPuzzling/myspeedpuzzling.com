@@ -24,9 +24,20 @@
                 {% endif %}
 
                 {% if active_puzzle.fastestTime is not null %}
-                    {{ 'fastest_time'|trans({ '%time%': active_puzzle.fastestTime|puzzlingTime }) }}<br>
-                    {{ 'average_time'|trans({ '%time%': active_puzzle.averageTime|puzzlingTime }) }}<br>
-                    {{ 'puzzle_solved_count'|trans({ '%count%': active_puzzle.solvedTimes }) }}
+                    <table class="table-times-overview">
+                        <tr>
+                            <td>{{ 'puzzle_solved_count'|trans }}</td>
+                            <td class="text-end">{{ active_puzzle.solvedTimes }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ 'fastest_time'|trans }}</td>
+                            <td class="text-end">{{ active_puzzle.fastestTime|puzzlingTime }}</td>
+                        </tr>
+                        <tr>
+                            <td>{{ 'average_time'|trans }}</td>
+                            <td class="text-end">{{ active_puzzle.averageTime|puzzlingTime }}</td>
+                        </tr>
+                    </table>
                 {% endif %}
 
                 </div>

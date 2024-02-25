@@ -257,3 +257,34 @@ td.rank {
         padding-right: 7px;
     }
 }
+
+.media-tab-media {
+    letter-spacing: -1px;
+
+    i {
+        font-size: 1.5rem;
+    }
+}
+
+.media-tab-media-duo {
+    i {
+        font-size: 1.05rem;
+    }
+}
+
+.media-tab-media-team {
+    padding-top: 10px;
+    i {
+        font-size: 0.95rem;
+        line-height: 20px;
+    }
+
+    div {
+        margin-top: -6px;
+    }
+}
+
+.table-times-overview {
+    max-width: 340px;
+    width: 100%;
+}

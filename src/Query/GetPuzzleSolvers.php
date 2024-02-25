@@ -66,7 +66,7 @@ SQL;
      * @throws PuzzleNotFound
      * @return array<PuzzleSolversGroup>
      */
-    public function groupsByPuzzleId(string $puzzleId): array
+    public function duoByPuzzleId(string $puzzleId): array
     {
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
@@ -92,6 +92,67 @@ FROM
     LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
 WHERE
     pst.puzzle_id = :puzzleId
+    AND pst.team IS NOT NULL
+    AND json_array_length(team -> 'puzzlers') = 2
+GROUP BY
+    pst.id, time
+ORDER BY time ASC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'puzzleId' => $puzzleId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): PuzzleSolversGroup {
+            /**
+             * @var array{
+             *     player_id: string,
+             *     puzzle_id: string,
+             *     time: int,
+             *     comment: null|string,
+             *     team_id: null|string,
+             *     players: string,
+             * } $row
+             */
+
+            return PuzzleSolversGroup::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @throws PuzzleNotFound
+     * @return array<PuzzleSolversGroup>
+     */
+    public function teamByPuzzleId(string $puzzleId): array
+    {
+        if (Uuid::isValid($puzzleId) === false) {
+            throw new PuzzleNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    pst.player_id AS player_id,
+    pst.puzzle_id AS puzzle_id,
+    pst.seconds_to_solve AS time,
+    comment,
+    pst.team ->> 'team_id' AS team_id,
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'player_id', player_elem ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_country', p.country
+        )
+    ) AS players
+FROM
+    puzzle_solving_time pst,
+    LATERAL json_array_elements(pst.team -> 'puzzlers') AS player_elem
+    LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+WHERE
+    pst.puzzle_id = :puzzleId
+    AND pst.team IS NOT NULL
+    AND json_array_length(team -> 'puzzlers') > 2
 GROUP BY
     pst.id, time
 ORDER BY time ASC

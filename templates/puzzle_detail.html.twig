@@ -44,19 +44,16 @@
             <p class="card-text fs-sm text-muted mb-2">
                 <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
                 {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
-                <br>
-
                 {% if puzzle.solvedTimes > 0 %}
-                    {{ 'fastest_time'|trans({ '%time%': puzzle.fastestTime|puzzlingTime }) }}<br>
-                    {{ 'average_time'|trans({ '%time%': puzzle.averageTime|puzzlingTime }) }}<br>
-                    {% if ranking[puzzle.puzzleId] is defined %}
-                        <strong>
-                            {{ 'my_time'|trans({ '%time%': ranking[puzzle.puzzleId].time|puzzlingTime }) }}
-                        </strong>
-                        <br>
-                    {% endif %}
-                    {{ 'puzzle_solved_count'|trans({ '%count%': puzzle.solvedTimes }) }}
+                    <br>
+                    {{ 'puzzle_solved_count'|trans }} {{ puzzle.solvedTimes }}
                 {% endif %}
+                {#
+                {% if puzzle.solvedTimes > 1 %}
+                    <br>
+                    Most recent: 13 minutes ago by Xyz
+                {% endif %}
+                #}
             </p>
         </div>
 
@@ -71,9 +68,72 @@
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-sm-12 col-md-6">
-            <h2 class="h4">{{ 'ladder.solo'|trans }}</h2>
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
+        <li class="nav-item">
+            <a class="nav-link active" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media"><i class="ci-user"></i></div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Solo</h6>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#duo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media media-tab-media-duo">
+                        <i class="ci-user"></i>
+                        <i class="ci-user"></i>
+                    </div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Duo</h6>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#team" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media media-tab-media-team">
+                        <i class="ci-user"></i>
+                        <i class="ci-user"></i>
+                        <div>
+                            <i class="ci-user"></i>
+                            <i class="ci-user"></i>
+                        </div>
+                    </div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Team</h6>
+                </div>
+            </a>
+        </li>
+
+    </ul>
+
+    <!-- Tabs content -->
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="solo" role="tabpanel">
+
+            {% if puzzle.solvedTimes > 0 %}
+                <table class="mb-3 table-times-overview">
+                    {% if ranking[puzzle.puzzleId] is defined %}
+                        <tr>
+                            <td>
+                                <strong>{{ 'my_time'|trans }}</strong>
+                            </td>
+                            <td class="text-end"><strong>{{ ranking[puzzle.puzzleId].time|puzzlingTime }}</strong></td>
+                        </tr>
+                    {% endif %}
+
+                    <tr>
+                        <td>{{ 'fastest_time'|trans }}</td>
+                        <td class="text-end">{{ puzzle.fastestTime|puzzlingTime }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ 'average_time'|trans }}</td>
+                        <td class="text-end">{{ puzzle.averageTime|puzzlingTime }}</td>
+                    </tr>
+                </table>
+            {% endif %}
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">
@@ -85,41 +145,39 @@
                     </tr>
                     </thead>
                     <tbody>
-                        {% for player_id, grouped_solver in solo_puzzle_solvers %}
-                            <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                                <td class="rank">{{ loop.index }}.</td>
-                                <td class="player-name text-nowrap">
-                                    <a href="{{ path('player_profile', {playerId: player_id}) }}">
-                                        {% if logged_user.profile is not null and grouped_solver[0].playerId in logged_user.profile.favoritePlayers %}
-                                            <i class="ci-star-filled text-warning"></i>
-                                        {% endif %}
-                                        {{ grouped_solver[0].playerName }}</a>
-                                    {% if grouped_solver[0].playerCountry is not null %}
-                                        <small class="shadow-custom fi fi-{{ grouped_solver[0].playerCountry.name }}"></small>
+                    {% for player_id, aggregated_solver in solo_puzzle_solvers %}
+                        <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                            <td class="rank">{{ loop.index }}.</td>
+                            <td class="player-name text-nowrap">
+                                <a href="{{ path('player_profile', {playerId: player_id}) }}">
+                                    {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
+                                        <i class="ci-star-filled text-warning"></i>
                                     {% endif %}
-                                </td>
-                                <td class="text-end with-ppm">
-                                    {% if grouped_solver|length > 1 %}
-                                        <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': grouped_solver|length}) }}</span>
-                                    {% endif %}
-                                    {{ grouped_solver[0].time|puzzlingTime }}
-                                    <br><small><span class="text-muted">P4</span> {{ ppm(grouped_solver[0].time, puzzle.piecesCount) }}</small>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                        {% if solo_puzzle_solvers|length < 1 %}
-                            <tr>
-                                <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
-                            </tr>
-                        {% endif %}
+                                    {{ aggregated_solver[0].playerName }}</a>
+                                {% if aggregated_solver[0].playerCountry is not null %}
+                                    <small class="shadow-custom fi fi-{{ aggregated_solver[0].playerCountry.name }}"></small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end with-ppm">
+                                {% if aggregated_solver|length > 1 %}
+                                    <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': aggregated_solver|length}) }}</span>
+                                {% endif %}
+                                {{ aggregated_solver[0].time|puzzlingTime }}
+                                <br><small><span class="text-muted">P4</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if solo_puzzle_solvers|length < 1 %}
+                        <tr>
+                            <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
+                        </tr>
+                    {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <div class="col-sm-12 col-md-6">
-            <h2 class="h4">{{ 'ladder.groups'|trans }}</h2>
-
+        <div class="tab-pane fade" id="duo" role="tabpanel">
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
@@ -130,11 +188,11 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzlers_group in group_puzzle_solvers %}
+                    {% for puzzlers_duo in duo_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
                             <td class="player-name text-nowrap">
-                                {% for puzzle_solver in puzzlers_group.players %}
+                                {% for puzzle_solver in puzzlers_duo.players %}
                                     {% if not loop.first %}
                                         <br>
                                     {% endif %}
@@ -154,13 +212,13 @@
                                 {% endfor %}
                             </td>
                             <td class="text-end with-ppm">
-                                {{ puzzlers_group.time|puzzlingTime }}
-                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzlers_group.time, puzzle.piecesCount) }}</small>
-                                <br><small><span class="text-muted">P6</span> {{ ppm(puzzlers_group.time, puzzle.piecesCount, puzzlers_group.players|length) }}</small>
+                                {{ puzzlers_duo.time|puzzlingTime }}
+                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount) }}</small>
+                                <br><small><span class="text-muted">P6</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount, puzzlers_duo.players|length) }}</small>
                             </td>
                         </tr>
                     {% endfor %}
-                    {% if group_puzzle_solvers|length < 1 %}
+                    {% if duo_puzzle_solvers|length < 1 %}
                         <tr>
                             <td colspan="4" class="text-center">{{ 'be_first_to_group_solve'|trans }}</td>
                         </tr>
@@ -168,6 +226,59 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="tab-pane fade" id="team" role="tabpanel">
+
+            <div class="table-responsive custom-table-wrapper mt-2 mb-5">
+                <table class="table custom-table table-striped table-hover mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>{{ 'puzzler_name'|trans }}</th>
+                        <th class="text-end">{{ 'time'|trans }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for puzzlers_team in team_puzzle_solvers %}
+                        <tr>
+                            <td>{{ loop.index }}.</td>
+                            <td class="player-name text-nowrap">
+                                {% for puzzle_solver in puzzlers_team.players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
+                                                <i class="ci-star-filled text-warning"></i>
+                                            {% endif %}
+                                            {{ puzzle_solver.playerName }}
+                                        </a>
+                                        {% if puzzle_solver.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-end with-ppm">
+                                {{ puzzlers_team.time|puzzlingTime }}
+                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount) }}</small>
+                                <br><small><span class="text-muted">P6</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount, puzzlers_team.players|length) }}</small>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if team_puzzle_solvers|length < 1 %}
+                        <tr>
+                            <td colspan="4" class="text-center">{{ 'be_first_to_group_solve'|trans }}</td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
         </div>
     </div>
 

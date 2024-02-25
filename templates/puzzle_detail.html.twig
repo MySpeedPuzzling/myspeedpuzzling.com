@@ -71,28 +71,28 @@
     <!-- Nav tabs -->
     <ul class="nav nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">
-            <a class="nav-link active" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+            <a class="nav-link {{ solo_puzzle_solvers|length > 0 ? 'active' : 'disabled' }}" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">
                     <div class="media-tab-media"><i class="ci-user"></i></div>
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Solo</h6>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Solo ({{ solo_puzzle_solvers|length }})</h6>
                 </div>
             </a>
         </li>
 
         <li class="nav-item">
-            <a class="nav-link" href="#duo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+            <a class="nav-link {{ duo_puzzle_solvers|length == 0 ? 'disabled' }}" href="#duo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">
                     <div class="media-tab-media media-tab-media-duo">
                         <i class="ci-user"></i>
                         <i class="ci-user"></i>
                     </div>
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Duo</h6>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Duo ({{ duo_puzzle_solvers|length }})</h6>
                 </div>
             </a>
         </li>
 
         <li class="nav-item">
-            <a class="nav-link" href="#team" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+            <a class="nav-link {{ team_puzzle_solvers|length == 0 ? 'disabled' }}" href="#team" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">
                     <div class="media-tab-media media-tab-media-team">
                         <i class="ci-user"></i>
@@ -102,7 +102,7 @@
                             <i class="ci-user"></i>
                         </div>
                     </div>
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Team</h6>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Team ({{ team_puzzle_solvers|length }})</h6>
                 </div>
             </a>
         </li>

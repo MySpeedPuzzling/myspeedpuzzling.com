@@ -46,7 +46,8 @@ SELECT
                 JSON_BUILD_OBJECT(
                     'player_id', player_elem ->> 'player_id',
                     'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
-                    'player_code', p.code
+                    'player_code', p.code,
+                    'player_country', p.country
                 )
             )
         ELSE NULL

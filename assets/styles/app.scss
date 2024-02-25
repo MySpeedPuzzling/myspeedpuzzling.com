@@ -118,6 +118,15 @@ main {
     border-radius: 8px 8px 0 0;
     box-shadow: rgba(0, 0, 0, .21) 0 0 25px 0;
 
+    td {
+        padding-right: 0;
+        padding-left: 12px;
+
+        &:last-child {
+            padding-right: 12px;
+        }
+    }
+
     .table {
         border: 1px solid #ddd;
 

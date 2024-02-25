@@ -257,3 +257,29 @@ td.rank {
         padding-right: 7px;
     }
 }
+
+.media-tab-media {
+    letter-spacing: -1px;
+
+    i {
+        font-size: 1.5rem;
+    }
+}
+
+.media-tab-media-pairs {
+    i {
+        font-size: 1.05rem;
+    }
+}
+
+.media-tab-media-groups {
+    padding-top: 10px;
+    i {
+        font-size: 0.95rem;
+        line-height: 20px;
+    }
+
+    div {
+        margin-top: -6px;
+    }
+}

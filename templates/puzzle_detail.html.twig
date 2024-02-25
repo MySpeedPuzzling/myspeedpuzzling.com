@@ -74,25 +74,53 @@
     <!-- Nav tabs -->
     <ul class="nav nav-tabs" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">
-            <a href="#home1" class="nav-link active" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
-                <i class="ci-home me-2"></i>
-                Home
+            <a class="nav-link active" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media"><i class="ci-user"></i></div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Solo</h6>
+                </div>
             </a>
         </li>
+
         <li class="nav-item">
-            <a href="#profile1" class="nav-link" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
-                <i class="ci-user-circle me-2"></i>
-                Profile
+            <a class="nav-link" href="#pairs" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media media-tab-media-pairs">
+                        <i class="ci-user"></i>
+                        <i class="ci-user"></i>
+                    </div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Pairs</h6>
+                </div>
             </a>
         </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#groups" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media media-tab-media-groups">
+                        <i class="ci-user"></i>
+                        <i class="ci-user"></i>
+                        <div>
+                            <i class="ci-user"></i>
+                            <i class="ci-user"></i>
+                        </div>
+                    </div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Groups</h6>
+                </div>
+            </a>
+        </li>
+
     </ul>
 
     <!-- Tabs content -->
     <div class="tab-content">
-        <div class="tab-pane fade show active" id="home1" role="tabpanel">
+        <div class="tab-pane fade show active" id="solo" role="tabpanel">
             <p class="fs-sm">Raw denim you probably haven't heard of them jean shorts Austin. Nesciunt tofu stumptown aliqua, retro synth master cleanse. Mustache cliche tempor, williamsburg carles vegan helvetica. Reprehenderit butcher retro keffiyeh dreamcatcher synth. Cosby sweater eu banh mi, qui irure terry richardson ex squid. Aliquip placeat salvia cillum iphone. Seitan aliquip quis cardigan american apparel, butcher voluptate nisi qui. Excepteur sint occaecat cupidatat non proident.</p>
         </div>
-        <div class="tab-pane fade" id="profile1" role="tabpanel">
+        <div class="tab-pane fade" id="pairs" role="tabpanel">
+            <p class="fs-sm">Food truck fixie locavore, accusamus mcsweeney's marfa nulla single-origin coffee squid. Exercitation +1 labore velit, blog sartorial PBR leggings next level wes anderson artisan four loko farm-to-table craft beer twee. Qui photo booth letterpress, commodo enim craft beer mlkshk aliquip jean shorts ullamco ad vinyl cillum PBR. Homo nostrud organic, assumenda labore aesthetic magna delectus mollit. Keytar helvetica VHS salvia yr, vero magna velit sapiente.</p>
+        </div>
+        <div class="tab-pane fade" id="groups" role="tabpanel">
             <p class="fs-sm">Food truck fixie locavore, accusamus mcsweeney's marfa nulla single-origin coffee squid. Exercitation +1 labore velit, blog sartorial PBR leggings next level wes anderson artisan four loko farm-to-table craft beer twee. Qui photo booth letterpress, commodo enim craft beer mlkshk aliquip jean shorts ullamco ad vinyl cillum PBR. Homo nostrud organic, assumenda labore aesthetic magna delectus mollit. Keytar helvetica VHS salvia yr, vero magna velit sapiente.</p>
         </div>
     </div>

@@ -57,13 +57,15 @@
 
             <div class="col-lg-6 col-md-8 col-sm-10">
                 {% if active_puzzle is not null %}
-                    {{ include('_puzzle_name.html.twig', {
-                        puzzle_name: active_puzzle.puzzleName,
-                        alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
-                    }) }}
+                    <strong>
+                        {{ include('_puzzle_name.html.twig', {
+                            puzzle_name: active_puzzle.puzzleName,
+                            alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
+                        }) }}
+                    </strong>
                     <br>
-                    <b>{{ active_puzzle.manufacturerName|upper }}</b><br>
-                    {{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}<br>
+                    {{ active_puzzle.manufacturerName|upper }}<br>
+                    <small class="text-muted">{{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</small><br>
 
                     {% if active_puzzle.puzzleImage is not null%}
                         <p>
@@ -72,9 +74,20 @@
                     {% endif %}
 
                     {% if active_puzzle.fastestTime is not null %}
-                        {{ 'fastest_time'|trans({ '%time%': active_puzzle.fastestTime|puzzlingTime }) }}<br>
-                        {{ 'average_time'|trans({ '%time%': active_puzzle.averageTime|puzzlingTime }) }}<br>
-                        {{ 'puzzle_solved_count'|trans({ '%count%': active_puzzle.solvedTimes }) }}
+                        <table class="mb-3 table-times-overview">
+                            <tr>
+                                <td class="text-start">{{ 'puzzle_solved_count'|trans }}</td>
+                                <td class="text-end">{{ active_puzzle.solvedTimes }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-start">{{ 'fastest_time'|trans }}</td>
+                                <td class="text-end">{{ active_puzzle.fastestTime|puzzlingTime }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-start">{{ 'average_time'|trans }}</td>
+                                <td class="text-end">{{ active_puzzle.averageTime|puzzlingTime }}</td>
+                            </tr>
+                        </table>
                     {% endif %}
                 {% endif %}
             </div>

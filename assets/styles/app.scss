@@ -266,13 +266,13 @@ td.rank {
     }
 }
 
-.media-tab-media-pairs {
+.media-tab-media-duo {
     i {
         font-size: 1.05rem;
     }
 }
 
-.media-tab-media-groups {
+.media-tab-media-team {
     padding-top: 10px;
     i {
         font-size: 0.95rem;
@@ -282,4 +282,9 @@ td.rank {
     div {
         margin-top: -6px;
     }
+}
+
+.table-times-overview {
+    max-width: 340px;
+    width: 100%;
 }

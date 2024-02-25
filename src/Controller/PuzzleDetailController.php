@@ -52,8 +52,9 @@ final class PuzzleDetailController extends AbstractController
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
-            $puzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
-            $groupPuzzleSolvers = $this->getPuzzleSolvers->groupsByPuzzleId($puzzleId);
+            $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
+            $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($puzzleId);
+            $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($puzzleId);
         } catch (PuzzleNotFound) {
             $this->addFlash('primary', $this->translator->trans('flashes.puzzle_not_found'));
 
@@ -74,8 +75,9 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $this->groupSoloPuzzles($puzzleSolvers),
-            'group_puzzle_solvers' => $groupPuzzleSolvers,
+            'solo_puzzle_solvers' => $this->aggregateSoloPuzzles($soloPuzzleSolvers),
+            'duo_puzzle_solvers' => $duoPuzzleSolvers,
+            'team_puzzle_solvers' => $teamPuzzleSolvers,
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),
@@ -86,7 +88,7 @@ final class PuzzleDetailController extends AbstractController
      * @param array<PuzzleSolver> $solvers
      * @return array<string, non-empty-array<PuzzleSolver>>
      */
-    private function groupSoloPuzzles(array $solvers): array
+    private function aggregateSoloPuzzles(array $solvers): array
     {
         $grouped = [];
 

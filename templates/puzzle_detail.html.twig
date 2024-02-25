@@ -69,7 +69,7 @@
     </div>
 
     <!-- Nav tabs -->
-    <ul class="nav nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
+    <ul class="nav nav-fill nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">
             <a class="nav-link {{ solo_puzzle_solvers|length > 0 ? 'active' : 'disabled' }}" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">

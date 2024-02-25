@@ -23,6 +23,7 @@
                 data-manufacturer="{{ solved_puzzle[0].manufacturerName }}"
                 data-available="1"
                 data-has-time="1"
+                data-tags="{{ (tags[solved_puzzle[0].puzzleId] ?? [])|json_encode }}"
             >
                 <td class="text-center">
                     {% if solved_puzzle[0].puzzleImage is not null%}

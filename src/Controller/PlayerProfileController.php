@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
+use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,6 +27,7 @@ final class PlayerProfileController extends AbstractController
         readonly private GetRanking $getRanking,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private TranslatorInterface $translator,
+        readonly private GetTags $getTags,
     ) {
     }
 
@@ -61,6 +63,7 @@ final class PlayerProfileController extends AbstractController
             'statistics' => $playerStatistics,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
+            'tags' => $this->getTags->allGroupedPerPuzzle(),
         ]);
     }
 }

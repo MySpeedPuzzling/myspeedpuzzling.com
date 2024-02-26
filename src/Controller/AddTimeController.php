@@ -129,6 +129,10 @@ final class AddTimeController extends AbstractController
                     $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
                 }
 
+                if ($data->addManufacturer === true && $data->puzzleManufacturerName !== null) {
+                    $data->puzzleManufacturerId = null;
+                }
+
                 $this->messageBus->dispatch(
                     AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
                 );

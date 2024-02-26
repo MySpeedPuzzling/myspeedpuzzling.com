@@ -12,11 +12,11 @@
 
                 <p class="mt-4 mb-4 text-center">
                     {% if logged_user.profile is not null %}
-                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn mb-2 me-2"><i class="ci-user"></i> My profile</a>
+                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn mb-2 me-2"><i class="ci-user"></i> {{ 'homepage.cta_my_profile'|trans }}</a>
                     {% else %}
-                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn mb-2 me-2"><i class="ci-user"></i> Sign in</a>
+                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn mb-2 me-2"><i class="ci-user"></i> {{ 'homepage.cta_sign_in'|trans }}</a>
                     {% endif %}
-                    <a href="{{ path('recent_activity') }}" class="btn btn-primary btn mb-2">Recent activity</a>
+                    <a href="{{ path('recent_activity') }}" class="btn btn-primary btn mb-2">{{ 'homepage.cta_recent'|trans }}</a>
                 </p>
 
                 {{ 'homepage.why_block'|trans|raw }}

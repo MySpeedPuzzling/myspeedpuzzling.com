@@ -62,6 +62,9 @@ homepage:
     start_today_block: |
         <h3>Začněte dnes</h3>
         <p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>
+    cta_sign_in: "Přihlásit se"
+    cta_my_profile: "Můj profil"
+    cta_recent: "Nejnovější časy"
 
 ladder:
     title: "Žebříček"

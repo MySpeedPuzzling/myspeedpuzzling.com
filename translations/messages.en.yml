@@ -60,6 +60,9 @@ homepage:
     start_today_block: |
         <h3>Start Today</h3>
         <p>Whether you're a beginner or an experienced puzzler, our platform offers the perfect place to develop your skills and measure up against others. Join us and become part of the future of speed puzzling!</p>
+    cta_sign_in: "Sign in"
+    cta_my_profile: "My profile"
+    cta_recent: "Recent times"
 
 ladder:
     title: "Leaderboard"

@@ -56,7 +56,7 @@
                                         <small>{{ comparison.manufacturerName }}</small>
                                     </span>
                                     <br>
-                                    <small>{{ comparison.piecesCount }}&nbsp;dílků</small>
+                                    <small>{{ 'pieces_count'|trans({ '%count%': comparison.piecesCount })|raw }}</small>
                                 </a>
                             </td>
 

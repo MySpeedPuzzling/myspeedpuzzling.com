@@ -126,11 +126,11 @@
 
                     <tr>
                         <td>{{ 'fastest_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.fastestTime|puzzlingTime }}</td>
+                        <td class="text-end">{{ puzzle.fastestTimeSolo|puzzlingTime }}</td>
                     </tr>
                     <tr>
                         <td>{{ 'average_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.averageTime|puzzlingTime }}</td>
+                        <td class="text-end">{{ puzzle.averageTimeSolo|puzzlingTime }}</td>
                     </tr>
                 </table>
             {% endif %}
@@ -178,6 +178,19 @@
         </div>
 
         <div class="tab-pane fade" id="duo" role="tabpanel">
+            {% if puzzle.solvedTimes > 0 %}
+                <table class="mb-3 table-times-overview">
+                    <tr>
+                        <td>{{ 'fastest_time'|trans }}</td>
+                        <td class="text-end">{{ puzzle.fastestTimeDuo|puzzlingTime }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ 'average_time'|trans }}</td>
+                        <td class="text-end">{{ puzzle.averageTimeDuo|puzzlingTime }}</td>
+                    </tr>
+                </table>
+            {% endif %}
+
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
@@ -229,6 +242,18 @@
         </div>
 
         <div class="tab-pane fade" id="team" role="tabpanel">
+            {% if puzzle.solvedTimes > 0 %}
+                <table class="mb-3 table-times-overview">
+                    <tr>
+                        <td>{{ 'fastest_time'|trans }}</td>
+                        <td class="text-end">{{ puzzle.fastestTimeTeam|puzzlingTime }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ 'average_time'|trans }}</td>
+                        <td class="text-end">{{ puzzle.averageTimeTeam|puzzlingTime }}</td>
+                    </tr>
+                </table>
+            {% endif %}
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">

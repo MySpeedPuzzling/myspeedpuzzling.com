@@ -123,8 +123,8 @@
                                 </a>
                             </td>
                             <td class="text-end">
-                                {{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTime|puzzlingTime }) }}<br>
-                                <small class="text-muted">{{ 'average_time_short'|trans({ '%time%': most_solved_puzzle.averageTime|puzzlingTime }) }}</small>
+                                {{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTimeSolo|puzzlingTime }) }}<br>
+                                <small class="text-muted">{{ 'average_time_short'|trans({ '%time%': most_solved_puzzle.averageTimeSolo|puzzlingTime }) }}</small>
                             </td>
                         </tr>
                     {% endfor %}

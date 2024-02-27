@@ -26,8 +26,8 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     count(puzzle_solving_time.puzzle_id) AS solved_times,
-    AVG(puzzle_solving_time.seconds_to_solve) AS average_time,
-    MIN(puzzle_solving_time.seconds_to_solve) AS fastest_time,
+    AVG(CASE WHEN team IS NULL THEN seconds_to_solve END) AS average_time_solo,
+    MIN(CASE WHEN team IS NULL THEN seconds_to_solve END) AS fastest_time_solo,
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name
 FROM puzzle_solving_time
@@ -53,8 +53,8 @@ SQL;
              *     puzzle_image: null|string,
              *     solved_times: int,
              *     pieces_count: int,
-             *     average_time: string,
-             *     fastest_time: int,
+             *     average_time_solo: string,
+             *     fastest_time_solo: int,
              *     manufacturer_name: string,
              * } $row
              */

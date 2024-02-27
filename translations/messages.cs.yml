@@ -288,7 +288,7 @@ edit_profile:
 
 puzzle_detail:
     meta:
-        description: "Prozkoumejte puzzle %brand% %puzzle% (%pieces% pieces) na My Speed Puzzling - sledujte postup, porovnávejte časy a  zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
+        description: "Prozkoumejte puzzle %brand% %puzzle% (%pieces% dílků) na My Speed Puzzling. Sledujte postup, porovnávejte časy a zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
 
 puzzlers:
     meta:

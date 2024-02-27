@@ -286,7 +286,7 @@ edit_profile:
 
 puzzle_detail:
     meta:
-        description: "Explore puzzle %brand% %puzzle% (%pieces% pieces) on My Speed Puzzling - Track progress, compare times, and conquer puzzles with our community. Start your speed puzzling solving spree today!"
+        description: "Explore puzzle %brand% %puzzle% (%pieces% pieces) on My Speed Puzzling. Track progress, compare times, and conquer puzzles with our community. Start your speed puzzling solving spree today!"
 
 puzzlers:
     meta:

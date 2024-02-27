@@ -1,2 +1,3 @@
+Sitemap: https://myspeedpuzzling.com/sitemap.xml
 User-agent: *
 Disallow:

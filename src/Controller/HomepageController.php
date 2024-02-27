@@ -16,7 +16,7 @@ final class HomepageController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/', methods: ['GET'])]
+    #[Route(path: '/', name: 'homepage_crossroads', methods: ['GET'])]
     #[Route(
         path: [
             'cs' => '/uvod',

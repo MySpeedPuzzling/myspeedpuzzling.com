@@ -6,6 +6,7 @@ menu:
     ladder: "Leaderboard"
     puzzlers: "Puzzlers"
     faq: "FAQ"
+    sign_in: "Sign in"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"

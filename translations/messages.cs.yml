@@ -39,10 +39,12 @@ facebook: "Facebook"
 instagram: "Instagram"
 search: "Hledat"
 puzzle_waiting_for_approval: "Nově přidané puzzle čekající na schválení administrátorem - obvykle do 24 hodin od přidání. Děkujeme za trpělivost."
+puzzle_img_alt: "%puzzle% - obrázek puzzlí"
 
 homepage:
     meta:
-        title: "Skládej Rychleji!"
+        title: "My Speed Puzzling - Domov všech speed puzzlerů"
+        description: "Ponořte se do světa My Speed Puzzling, ultimátního místa pro nadšence do skládání puzzle! Sledujte svůj pokrok, vyzývejte vrstevníky a přidejte se k komunitě vášnivých speed puzzlerů. Začněte svou cestu k mistrovství v puzzle dnes!"
 
     title: "Vítej ve světě Speed Puzzlingu!"
     intro_text: "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
@@ -277,6 +279,15 @@ my_profile:
     stopwatches: "Moje stopky"
     missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
     share_metion_myspeedpuzzling: "Označ nás při sdílení:"
+
+edit_profile:
+    meta:
+        title: "Úprava profilu"
+    title: "Úprava profilu"
+
+puzzle_detail:
+    meta:
+        description: "Prozkoumejte puzzle %brand% %puzzle% (%pieces% pieces) na My Speed Puzzling - sledujte postup, porovnávejte časy a  zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
 
 puzzlers:
     meta:

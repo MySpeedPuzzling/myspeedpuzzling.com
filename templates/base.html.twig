@@ -2,12 +2,12 @@
 <html lang="{{ app.request.locale }}">
     <head>
         <meta charset="UTF-8">
-        <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %} | MySpeedPuzzling.com</title>
+        <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %}{% if app.request.pathInfo != path('homepage') %} | My Speed Puzzling{% endif %}</title>
 
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <meta name="description" content="">
-        <meta name="keywords" content="">
+        <meta name="description" content="{% apply spaceless %}{% block meta_description %}{% endblock %}{% endapply %}{% if block('meta_description') is empty %}{{ 'homepage.meta.description'|trans }}{% endif %}">
+        <meta name="keywords" content="Puzzle, Puzzling, Speed Puzzling, SpeedPuzzling, Community, Leaderboard{% apply spaceless %}{% block meta_keywords %}{% endblock %}{% endapply %}">
 
         <link rel="apple-touch-icon" sizes="57x57" href="{{ asset('apple-icon-57x57.png') }}">
         <link rel="apple-touch-icon" sizes="60x60" href="{{ asset('apple-icon-60x60.png') }}">

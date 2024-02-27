@@ -104,7 +104,7 @@
                             <td class="text-center">
                                 {% if most_solved_puzzle.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}) }}" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
                                     </a>
                                 {% endif %}
                             </td>

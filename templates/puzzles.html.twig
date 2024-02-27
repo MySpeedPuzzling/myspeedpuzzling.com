@@ -59,7 +59,7 @@
                     <div class="col-md text-md-center align-self-center">
                         {% if puzzle.puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                <img class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                <img class="rounded-2" style="max-width: 100px;max-height: 100px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
                             </a>
                         {% endif %}
                     </div>

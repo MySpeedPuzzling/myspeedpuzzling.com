@@ -69,11 +69,11 @@
 
                     {% if active_puzzle.puzzleImage is not null%}
                         <p>
-                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                         </p>
                     {% endif %}
 
-                    {% if active_puzzle.fastestTime is not null %}
+                    {% if active_puzzle.fastestTimeSolo is not null %}
                         <table class="mb-3 table-times-overview">
                             <tr>
                                 <td class="text-start">{{ 'puzzle_solved_count'|trans }}</td>

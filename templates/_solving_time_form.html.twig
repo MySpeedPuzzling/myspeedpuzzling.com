@@ -19,11 +19,11 @@
 
                 {% if active_puzzle.puzzleImage is not null%}
                     <p>
-                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;"  alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                     </p>
                 {% endif %}
 
-                {% if active_puzzle.fastestTime is not null %}
+                {% if active_puzzle.fastestTimeSolo is not null %}
                     <table class="table-times-overview">
                         <tr>
                             <td>{{ 'puzzle_solved_count'|trans }}</td>
@@ -62,7 +62,7 @@
                                     <div class="form-check d-flex align-items-center">
                                         <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ active_puzzle.puzzleId }}">
                                             {% if active_puzzle.puzzleImage is not null %}
-                                                <img class="rounded-2 me-2" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
+                                                <img class="rounded-2 me-2" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
                                             {% endif %}
                                             <span style="display: inline-block;">
                                                 {{ include('_puzzle_name.html.twig', {
@@ -115,7 +115,7 @@
                                                                     </div>
                                                                     <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
                                                                         {% if puzzle.puzzleImage is not null %}
-                                                                            <img class="rounded-2 me-2" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
+                                                                            <img class="rounded-2 me-2" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
                                                                         {% endif %}
                                                                         <span style="display: inline-block;">
                                                                             {{ include('_puzzle_name.html.twig', {
@@ -237,7 +237,7 @@
                 <div class="file-drop-icon">
                     {% if solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
                         <div class="file-drop-preview img-thumbnail rounded">
-                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
+                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
                         </div>
                     {% endif %}
                     <i class="ci-cloud-upload"></i>

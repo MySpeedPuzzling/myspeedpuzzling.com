@@ -69,7 +69,7 @@
                     {% if player.avatar is null %}
                         {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        <img class="rounded-2" style="max-width: 150px;max-height: 150px;" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+                        <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
                     {% endif %}
                 </p>
             </div>

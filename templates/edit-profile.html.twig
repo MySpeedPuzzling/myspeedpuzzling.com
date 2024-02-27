@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Úprava profilu{% endblock %}
+{% block title %}{{ 'edit_profile.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Úprava profilu</h1>
+    <h1>{{ 'edit_profile.title'|trans }}</h1>
 
     {{ form_start(edit_profile_form) }}
         {{ form_row(edit_profile_form.name) }}
@@ -20,7 +20,7 @@
             <div class="file-drop-icon">
                 {% if player.avatar is not null%}
                     <div class="file-drop-preview img-thumbnail rounded">
-                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;" src="{{ player.avatar|imagine_filter('puzzle_medium') }}">
+                        <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_medium') }}">
                     </div>
                 {% endif %}
                 <i class="ci-cloud-upload"></i>

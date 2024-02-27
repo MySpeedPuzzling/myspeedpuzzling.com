@@ -273,6 +273,7 @@ my_profile:
     name: "Name/nickname"
     stopwatches: "My stopwatches"
     missing_name_info: "We're sorry, but if you don't fill in a name or nickname, we don't know how to present you. Therefore, all your results are non-public."
+    share_metion_myspeedpuzzling: "Tag us when sharing:"
 
 puzzlers:
     meta:

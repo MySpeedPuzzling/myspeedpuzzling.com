@@ -275,6 +275,7 @@ my_profile:
     name: "Jméno/přezdívka"
     stopwatches: "Moje stopky"
     missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
+    share_metion_myspeedpuzzling: "Označ nás při sdílení:"
 
 puzzlers:
     meta:

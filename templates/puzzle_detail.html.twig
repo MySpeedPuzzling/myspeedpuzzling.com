@@ -80,7 +80,7 @@
         </li>
 
         <li class="nav-item">
-            <a class="nav-link {{ duo_puzzle_solvers|length == 0 ? 'disabled' }}" href="#duo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+            <a class="nav-link {{ solo_puzzle_solvers|length == 0 and duo_puzzle_solvers|length > 0 ? 'active' : duo_puzzle_solvers|length == 0 ? 'disabled' }}" href="#duo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">
                     <div class="media-tab-media media-tab-media-duo">
                         <i class="ci-user"></i>
@@ -92,7 +92,7 @@
         </li>
 
         <li class="nav-item">
-            <a class="nav-link {{ team_puzzle_solvers|length == 0 ? 'disabled' }}" href="#team" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+            <a class="nav-link {{ solo_puzzle_solvers|length == 0 and duo_puzzle_solvers|length == 0 and team_puzzle_solvers|length > 0 ? 'active' : team_puzzle_solvers|length == 0 ? 'disabled' }}" href="#team" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">
                     <div class="media-tab-media media-tab-media-team">
                         <i class="ci-user"></i>
@@ -111,7 +111,7 @@
 
     <!-- Tabs content -->
     <div class="tab-content">
-        <div class="tab-pane fade show active" id="solo" role="tabpanel">
+        <div class="tab-pane fade {{ solo_puzzle_solvers|length > 0 ? 'show active' }}" id="solo" role="tabpanel">
 
             {% if puzzle.solvedTimes > 0 %}
                 <table class="mb-3 table-times-overview">
@@ -177,7 +177,7 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="duo" role="tabpanel">
+        <div class="tab-pane fade {{ solo_puzzle_solvers|length == 0 and duo_puzzle_solvers|length > 0 ? 'show active' }}" id="duo" role="tabpanel">
             {% if puzzle.solvedTimes > 0 %}
                 <table class="mb-3 table-times-overview">
                     <tr>
@@ -241,7 +241,7 @@
             </div>
         </div>
 
-        <div class="tab-pane fade" id="team" role="tabpanel">
+        <div class="tab-pane fade {{ solo_puzzle_solvers|length == 0 and duo_puzzle_solvers|length == 0 and team_puzzle_solvers|length > 0 ? 'show active' }}" id="team" role="tabpanel">
             {% if puzzle.solvedTimes > 0 %}
                 <table class="mb-3 table-times-overview">
                     <tr>

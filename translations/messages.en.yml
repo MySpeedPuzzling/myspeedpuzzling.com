@@ -37,6 +37,7 @@ email: "Email"
 facebook: "Facebook"
 instagram: "Instagram"
 search: "Search"
+puzzle_waiting_for_approval: "Recetnly added puzzles waiting for administrator approval - usually within 24 hours of adding. Thank you for your patience."
 
 homepage:
     meta:
@@ -286,7 +287,7 @@ puzzlers:
 
 flashes:
     stopwatch_already_saved: "These stopwatches have already been saved."
-    puzzle_needs_approve: "Newly added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
+    puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
     time_added: "Great job! We've recorded your assembly."
     time_deleted: "We've deleted all evidence. No one will ever know what just happened!"
     profile_saved: "Profile changes saved!"

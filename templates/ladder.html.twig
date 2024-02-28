@@ -33,7 +33,7 @@
 
     <div class="row">
         <div class="col">
-            <h2 class="h4 mt-4">{{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
+            <h2 class="h4 mt-4">{{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_pairs_500_pieces
@@ -45,7 +45,7 @@
         </div>
 
         <div class="col">
-            <h2 class="h4 mt-4">{{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
+            <h2 class="h4 mt-4">{{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_pairs_1000_pieces
@@ -59,7 +59,7 @@
 
     <div class="row">
         <div class="col">
-            <h2 class="h4 mt-4">{{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
+            <h2 class="h4 mt-4">{{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_groups_500_pieces
@@ -71,7 +71,7 @@
         </div>
 
         <div class="col">
-            <h2 class="h4 mt-4">{{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
+            <h2 class="h4 mt-4">{{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
             {{ include('_ladder.html.twig', {
                 puzzle_solving_times: fastest_groups_1000_pieces

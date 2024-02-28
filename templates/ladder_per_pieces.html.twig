@@ -8,13 +8,13 @@
     {% elseif currentLadder == 'ladder_solo_1000_pieces' %}
         {{ 'ladder.title'|trans }} - {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
     {% elseif currentLadder == 'ladder_pairs_500_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
+        {{ 'ladder.title'|trans }} - {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
     {% elseif currentLadder == 'ladder_pairs_1000_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.pairs'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        {{ 'ladder.title'|trans }} - {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
     {% elseif currentLadder == 'ladder_groups_500_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
+        {{ 'ladder.title'|trans }} - {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
     {% elseif currentLadder == 'ladder_groups_1000_pieces' %}
-        {{ 'ladder.title'|trans }} - {{ 'ladder.groups'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        {{ 'ladder.title'|trans }} - {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
     {% endif %}
 {% endblock %}
 

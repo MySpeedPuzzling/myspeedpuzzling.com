@@ -20,21 +20,23 @@
                     </td>
 
                     <td class="d-none d-sm-table-cell">
-                        <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
-                            <span class="puzzle-title">
+                        <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
+                            <span style="color: #111;">
+                                {{ solved_puzzle.manufacturerName }}<br>
+                                <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
+                            </span><br>
+
+                            <small class="puzzle-title mt-2">
                                 {{ include('_puzzle_name.html.twig', {
                                     puzzle_name: solved_puzzle.puzzleName,
                                     alternative_puzzle_name: solved_puzzle.puzzleAlternativeName,
                                 }) }}
-                                <br>
-                                <small>{{ solved_puzzle.manufacturerName }}</small>
-                            </span>
-                            <br><small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
+                            </small>
                         </a>
                     </td>
 
                     <td class="with-ppm">
-                        <small>{{ solved_puzzle.trackedAt|ago }}</small><br>
+                        <small style="line-height: 105%;">{{ solved_puzzle.trackedAt|ago }}</small><br>
 
                         <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span>
 

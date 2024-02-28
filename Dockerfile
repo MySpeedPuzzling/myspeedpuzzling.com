@@ -1,19 +1,15 @@
 FROM ghcr.io/myspeedpuzzling/web-base:main
 
-ENV APP_ENV="prod"
-ENV APP_DEBUG=0
-ENV PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
+ENV APP_ENV="prod" \
+    APP_DEBUG=0 \
+    PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 
-RUN rm /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+RUN rm $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini
 
 COPY .docker/on-startup.sh /docker-entrypoint.d/
-COPY .docker/unit/config.json /docker-entrypoint.d/
-
-COPY .docker/php.ini /usr/local/etc/php/conf.d/99-php-overrides.ini
 
 COPY composer.json composer.lock symfony.lock ./
 RUN composer install --no-dev --no-interaction --no-scripts
-
 
 COPY package.json package-lock.json webpack.config.js ./
 RUN npm install

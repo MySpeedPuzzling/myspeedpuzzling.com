@@ -8,10 +8,10 @@ services:
     web:
         image: ghcr.io/speedpuzzling/web-base:main
         restart: unless-stopped
+        tty: true
         volumes:
             - .:/app
             - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
-            - .docker/php.ini:/usr/local/etc/php/conf.d/99-php-overrides.ini
         depends_on:
             - postgres
             - redis
@@ -26,11 +26,10 @@ services:
     messenger-consumer:
         image: ghcr.io/speedpuzzling/web-base:main
         restart: unless-stopped
+        tty: true
         command: "bash -c 'wait-for-it postgres:5432 -- sleep 5 && bin/console messenger:consume async -vv --time-limit 3600 --memory-limit 256M'"
         volumes:
             - .:/app
-            - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
-            - .docker/php.ini:/usr/local/etc/php/conf.d/99-php-overrides.ini
         depends_on:
             - postgres
         environment:
@@ -56,6 +55,7 @@ services:
         restart: unless-stopped
         entrypoint: [""]
         command: ["bash", "-c", "npm install && npm run watch"]
+        tty: true
 
     redis:
         image: redis:7.2

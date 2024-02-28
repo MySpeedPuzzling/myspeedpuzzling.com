@@ -21,3 +21,6 @@ COPY . .
 
 # Need to run again to trigger scripts with application code present
 RUN composer install --no-dev --no-interaction --classmap-authoritative
+
+ARG APP_VERSION
+ENV SENTRY_RELEASE="${APP_VERSION}"

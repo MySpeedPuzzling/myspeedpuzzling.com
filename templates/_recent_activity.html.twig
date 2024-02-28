@@ -48,6 +48,11 @@
                     </td>
 
                     <td class="player-name">
+                        <p class="mt-0 mb-1 d-sm-none">
+                            <small>{{ solved_puzzle.manufacturerName }}</small><br>
+                            <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
+                        </p>
+
                         {% if solved_puzzle.players is null %}
                             <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
                                 {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
@@ -78,11 +83,6 @@
                                 {% endif %}
                             {% endfor %}
                         {% endif %}
-
-                        <p class="m-0 d-sm-none">
-                            <small>{{ solved_puzzle.manufacturerName }}</small><br>
-                            <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
-                        </p>
                     </td>
                 </tr>
             {% endfor %}

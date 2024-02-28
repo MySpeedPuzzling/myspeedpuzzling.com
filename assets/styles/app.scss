@@ -195,8 +195,15 @@ td.rank {
     //border: 1px solid #ddd;
 }
 
-.player-name a {
-    text-decoration: underline;
+.player-name {
+    .d-sm-none {
+        line-height: 110%;
+    }
+
+    a {
+        color: #111 !important;
+        text-decoration: underline;
+    }
 }
 
 @media (max-width: 768px) {
@@ -212,11 +219,6 @@ td.rank {
         border-radius: 5px !important;
         margin-top: 5px;
     }
-}
-
-.player-name-item {
-    line-height: 125%;
-    display: inline-block;
 }
 
 .icon-with-text {

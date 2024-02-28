@@ -26,6 +26,6 @@ return static function (SentryConfig $sentryConfig) {
             AccessDeniedException::class,
             NotFoundHttpException::class,
         ])
-    ->tracesSampleRate(env('SENTRY_TRACES_SAMPLE_RATE'))
-    ->profilesSampleRate(env('SENTRY_PROFILES_SAMPLE_RATE'));
+    ->tracesSampleRate(env('SENTRY_TRACES_SAMPLE_RATE')->float())
+    ->profilesSampleRate(env('SENTRY_PROFILES_SAMPLE_RATE')->float());
 };

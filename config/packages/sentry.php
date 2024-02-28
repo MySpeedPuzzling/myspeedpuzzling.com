@@ -1,12 +1,17 @@
 <?php declare(strict_types=1);
 
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Config\SentryConfig;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 
 return static function (SentryConfig $sentryConfig) {
-    $sentryConfig->dsn('%env(SENTRY_DSN)%');
+    $sentryConfig->dsn(env('SENTRY_DSN'));
 
     $sentryConfig->tracing()
-        ->enabled(false);
+        ->enabled(true)
+    ;
 
     $sentryConfig->registerErrorListener(false);
 
@@ -15,10 +20,12 @@ return static function (SentryConfig $sentryConfig) {
         ->captureSoftFails(true);
 
     $sentryConfig->options()
-        ->environment('%kernel.environment%')
+        ->environment(param('kernel.environment'))
         ->sendDefaultPii(true)
         ->ignoreExceptions([
-            Symfony\Component\Security\Core\Exception\AccessDeniedException::class,
-            \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class,
-        ]);
+            AccessDeniedException::class,
+            NotFoundHttpException::class,
+        ])
+    ->tracesSampleRate(env('SENTRY_TRACES_SAMPLE_RATE'))
+    ->profilesSampleRate(env('SENTRY_PROFILES_SAMPLE_RATE'));
 };

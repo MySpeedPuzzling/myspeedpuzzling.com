@@ -45,9 +45,9 @@ final class EditProfileFormType extends AbstractType
         ]);
 
         $builder->add('city', TextType::class, [
-            'label' => 'forms.city',
+            'label' => 'forms.location',
             'required' => false,
-            'help' => 'forms.city_help',
+            'help' => 'forms.location_help',
         ]);
 
         $allCountries = [];
@@ -78,7 +78,7 @@ final class EditProfileFormType extends AbstractType
         ];
 
         $builder->add('country', ChoiceType::class, [
-            'label' => 'forms.country',
+            'label' => 'forms.nationality',
             'required' => false,
             'expanded' => false,
             'multiple' => false,

@@ -64,7 +64,7 @@
                     {% endif %}
                 </p>
 
-                <p class="mb-0">
+                <p>
                     <b>{{ 'profile.avatar'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
                     {% if player.avatar is null %}
                         {{ 'profile.not_filled'|trans }}
@@ -72,19 +72,34 @@
                         <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
                     {% endif %}
                 </p>
+
+                <p>
+                    <b>{{ 'profile.about_me'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                    {% if player.bio is null %}
+                        {{ 'profile.not_filled'|trans }}
+                    {% else %}
+                        {{ player.bio|nl2br }}
+                    {% endif %}<br>
+                </p>
             </div>
 
             <div class="col-sm">
                 <p>
                     <b>{{ 'profile.location'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.city is null and player.countryCode is null %}
+                    {% if player.city is null %}
                         {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {{ player.city }}{% if player.countryCode is not null and player.city is not null %},{% endif %}
-                        {% if player.countryCode is not null %}
-                            <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
-                            {{ player.countryCode.value }}
-                        {% endif %}
+                        {{ player.city }}
+                    {% endif %}
+                </p>
+
+                <p>
+                    <b>{{ 'profile.nationality'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                    {% if player.countryCode is null %}
+                        {{ 'profile.not_filled'|trans }}
+                    {% else %}
+                        {{ player.countryCode.value }}
+                        <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
                     {% endif %}
                 </p>
 
@@ -103,15 +118,6 @@
                         {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.instagram|instagram }}
-                    {% endif %}<br>
-                </p>
-
-                <p class="mb-0">
-                    <b>{{ 'profile.about_me'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.bio is null %}
-                    {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.bio|nl2br }}
                     {% endif %}<br>
                 </p>
             </div>

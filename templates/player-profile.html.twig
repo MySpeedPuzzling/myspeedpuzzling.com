@@ -44,7 +44,7 @@
                 <p class="mb-0">
                     <b>{{ 'profile.about_me'|trans }}:</b><br>
                     {% if player.bio is null %}
-                    {{ 'profile.not_filled'|trans }}
+                        {{ 'profile.not_filled'|trans }}
                     {% else %}
                         {{ player.bio|nl2br }}
                     {% endif %}<br>
@@ -54,18 +54,20 @@
             <div class="col-sm">
                 <p>
                     <b>{{ 'profile.location'|trans }}:</b><br>
-                    {% if player.city is null and player.countryCode is null %}
+                    {% if player.city is null %}
                         {{ 'profile.not_filled'|trans }}
                     {% else %}
-                        {% if player.city is null and player.countryCode is null %}
-                            {{ 'profile.not_filled'|trans }}
-                        {% else %}
-                            {{ player.city }}{% if player.countryCode is not null and player.city is not null %},{% endif %}
-                            {% if player.countryCode is not null %}
-                                <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
-                                {{ player.countryCode.value }}
-                            {% endif %}
-                        {% endif %}
+                        {{ player.city }}
+                    {% endif %}
+                </p>
+
+                <p>
+                    <b>{{ 'profile.nationality'|trans }}:</b><br>
+                    {% if player.countryCode is null %}
+                        {{ 'profile.not_filled'|trans }}
+                    {% else %}
+                        {{ player.countryCode.value }}
+                        <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
                     {% endif %}
                 </p>
 

@@ -15,6 +15,11 @@ return static function (SecurityConfig $securityConfig): void {
         ->pattern('^/(_(profiler|wdt)|css|images|js)/')
         ->security(false);
 
+    $securityConfig->firewall('stateless')
+        ->pattern('^(/-/health-check|/media/cache|/sitemap)')
+        ->stateless(true)
+        ->security(false);
+
     $securityConfig->firewall('main')
         ->pattern('^/')
         ->provider('auth0_provider')

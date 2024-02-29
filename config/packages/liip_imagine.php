@@ -9,6 +9,9 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('liip_imagine', [
         'driver' => 'imagick',
         'messenger' => true,
+        'twig' => [
+            'mode' => 'lazy',
+        ],
 
         'loaders' => [
             'flysystem_loader' => [

@@ -12,6 +12,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'client_secret' => '%env(trim:string:AUTH0_CLIENT_SECRET)%',
             'cookie_secret' => '%kernel.secret%',
             'scopes' => ['openid', 'profile', 'email', 'offline_access'],
+            'token_cache' => 'auth0_token_cache',
+            'management_token_cache' => 'auth0_management_token_cache',
         ],
         'authenticator' => [
             'routes' => [

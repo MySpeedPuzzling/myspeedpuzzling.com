@@ -13,4 +13,10 @@ return static function (FrameworkConfig $framework): void {
 
     $cacheConfig->pool('cache.flysystem.psr6')
         ->adapters(['cache.app']);
+
+    $cacheConfig->pool('auth0_token_cache')
+        ->adapters(['cache.app']);
+
+    $cacheConfig->pool('auth0_management_token_cache')
+        ->adapters(['cache.app']);
 };

@@ -59,23 +59,13 @@ jobs:
                     cache-to: type=gha, scope=${{ github.workflow }}
                     build-args: APP_VERSION=${{ github.sha }}
 
-            -   name: Create Sentry release
-                uses: getsentry/action-release@v1
-                env:
-                    SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
-                    SENTRY_ORG: speedpuzzling
-                with:
-                    environment: production
-                    projects: web
-
-
     deploy:
         runs-on: ubuntu-latest
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         needs:
             - docker
         environment:
-            name: prod
+            name: production
             url: https://myspeedpuzzling.com
         steps:
             -   uses: appleboy/ssh-action@master
@@ -86,4 +76,13 @@ jobs:
                     port: ${{ secrets.DEPLOY_PORT }}
                     script_stop: true
                     script: cd /deployment/speedpuzzling && ./deploy.sh
+
+            -   name: Create Sentry release
+                uses: getsentry/action-release@v1
+                env:
+                    SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
+                    SENTRY_ORG: speedpuzzling
+                with:
+                    environment: prod
+                    projects: web
 

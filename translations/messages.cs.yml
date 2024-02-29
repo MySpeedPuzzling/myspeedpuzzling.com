@@ -46,6 +46,7 @@ homepage:
     meta:
         title: "My Speed Puzzling - Domov všech speed puzzlerů"
         description: "Ponořte se do světa My Speed Puzzling, ultimátního místa pro nadšence do skládání puzzle! Sledujte svůj pokrok, vyzývejte vrstevníky a přidejte se k komunitě vášnivých speed puzzlerů. Začněte svou cestu k mistrovství v puzzle dnes!"
+    global_statistics: "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
 
     title: "Vítej ve světě Speed Puzzlingu!"
     intro_text: "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."

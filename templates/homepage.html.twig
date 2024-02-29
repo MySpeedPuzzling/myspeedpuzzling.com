@@ -5,11 +5,36 @@
 
 {% block content %}
     <div class="pb-4">
-        <div class="row align-items-center justify-content-center gy-3 pb-3">
+        <div class="row gy-3 pb-3">
             <div class="col-lg-5 col-md-8 col-sm-10">
                 <h1 class="h2">{{ 'homepage.title'|trans }}</h1>
 
                 <p>{{ 'homepage.intro_text'|trans }}</p>
+
+                <div class="card border-0 shadow-lg text-center mt-md-5">
+                    <div class="card-body p-3">
+                        <div class="countdown h5 mb-1 justify-content-center">
+                            <div class="countdown-days mb-0">
+                                <span class="countdown-value">{{ global_statistics.totalSeconds|daysElapsed }}</span>
+                                <span class="countdown-label text-muted">d</span>
+                            </div>
+                            <div class="countdown-hours mb-0">
+                                <span class="countdown-value">{{ global_statistics.totalSeconds|hoursElapsed(false) }}</span>
+                                <span class="countdown-label text-muted">h</span>
+                            </div>
+                            <div class="countdown-minutes mb-0">
+                                <span class="countdown-value">{{ global_statistics.totalSeconds|minutesElapsed }}</span>
+                                <span class="countdown-label text-muted">m</span>
+                            </div>
+                            <div class="countdown-seconds mb-0">
+                                <span class="countdown-value">{{ global_statistics.totalSeconds|secondsElapsed }}</span>
+                                <span class="countdown-label text-muted">s</span>
+                            </div>
+                        </div>
+
+                        {{ 'homepage.global_statistics'|trans({'%puzzles%': global_statistics.solvedPuzzlesCount, '%pieces%': global_statistics.totalPieces|format_number([], 'decimal', 'default', 'cs') })|raw }}
+                    </div>
+                </div>
 
                 <p class="mt-4 mb-4 text-center">
                     {% if logged_user.profile is not null %}
@@ -20,7 +45,9 @@
                     <a href="{{ path('recent_activity') }}" class="btn btn-primary btn mb-2">{{ 'homepage.cta_recent'|trans }}</a>
                 </p>
 
-                {{ 'homepage.why_block'|trans|raw }}
+                <div class="mt-md-5">
+                    {{ 'homepage.why_block'|trans|raw }}
+                </div>
 
 
                 <div class="d-block d-lg-none">
@@ -41,8 +68,14 @@
         </div>
 
         <div class="d-none d-lg-block">
-            {{ 'homepage.help_us_grow_block'|trans|raw }}
-            {{ 'homepage.start_today_block'|trans|raw }}
+            <div class="row">
+                <div class="col">
+                    {{ 'homepage.help_us_grow_block'|trans|raw }}
+                </div>
+                <div class="col">
+                    {{ 'homepage.start_today_block'|trans|raw }}
+                </div>
+            </div>
         </div>
     </div>
 {% endblock %}

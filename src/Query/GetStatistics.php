@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Results\GlobalStatistics;
 use SpeedPuzzling\Web\Results\MostActivePuzzler;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PlayerStatistics;
@@ -174,5 +175,31 @@ SQL;
         }
 
         return PlayerStatistics::fromDatabaseRow($row);
+    }
+
+    public function globally(): GlobalStatistics
+    {
+        $query = <<<SQL
+SELECT
+    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
+    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
+    SUM(puzzle.pieces_count) AS total_pieces
+FROM puzzle_solving_time
+INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+
+SQL;
+
+        /**
+         * @var array{
+         *     total_seconds: int,
+         *     total_pieces: int,
+         *     solved_puzzles_count: int,
+         * } $row
+         */
+        $row = $this->database
+            ->executeQuery($query)
+            ->fetchAssociative();
+
+        return GlobalStatistics::fromDatabaseRow($row);
     }
 }

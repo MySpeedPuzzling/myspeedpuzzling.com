@@ -18,10 +18,23 @@ readonly final class PuzzlingTimeFormatter
         );
     }
 
-    public function hoursElapsed(int $interval): string
+    public function daysElapsed(int $interval): int
     {
         $interval = (int) abs($interval);
-        return str_pad((string) floor($interval / 3600), 2, '0', STR_PAD_LEFT);
+
+        return (int) floor($interval / (3600 * 24));
+    }
+
+    public function hoursElapsed(int $interval, bool $overlap = true): string
+    {
+        $interval = (int) abs($interval);
+        $hours = floor($interval / 3600);
+
+        if ($overlap === false) {
+            $hours %= 24;
+        }
+
+        return str_pad((string) $hours, 2, '0', STR_PAD_LEFT);
     }
 
     public function minutesElapsed(int $interval): string

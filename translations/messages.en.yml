@@ -45,6 +45,7 @@ homepage:
     meta:
         title: "My Speed Puzzling - Home of all speed puzzlers"
         description: "Dive into the world of My Speed Puzzling, the ultimate hub for puzzle enthusiasts! Track progress, challenge peers, and join a community passionate about speed puzzling. Start your journey to puzzle mastery today!"
+    global_statistics: "It took all of us this much time to solve <strong>%puzzles%</strong> puzzles.<br>That is an incredible <strong>%pieces%</strong> pieces."
 
     title: "Welcome Puzzler, to the World of Speed Puzzling!"
     intro_text: "Speed Puzzling is an exciting sport where the goal is to assemble puzzles as quickly as possible. Every piece counts, every second matters. Imagine traditional puzzle-solving but with the adrenaline of a racetrack! Our platform is the first of its kind - a place where you can test your puzzle-solving skills not just against time, but also against other puzzle enthusiasts."

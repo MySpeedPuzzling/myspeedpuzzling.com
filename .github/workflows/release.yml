@@ -62,7 +62,7 @@ jobs:
         needs:
             - docker
         environment:
-            name: production
+            name: prod
             url: https://myspeedpuzzling.com
         steps:
             -   name: Checkout
@@ -70,10 +70,9 @@ jobs:
 
             -   uses: appleboy/ssh-action@master
                 with:
-                    host: ${{ secrets.DEPLOY_HOST }}
+                    host: myspeedpuzzling.com
                     username: ${{ secrets.DEPLOY_USERNAME }}
                     key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
-                    port: ${{ secrets.DEPLOY_PORT }}
                     script_stop: true
                     script: cd /deployment/speedpuzzling && ./deploy.sh
 

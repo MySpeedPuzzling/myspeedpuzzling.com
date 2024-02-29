@@ -175,7 +175,7 @@
                                     <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': aggregated_solver|length}) }}</span>
                                 {% endif %}
                                 {{ aggregated_solver[0].time|puzzlingTime }}
-                                <br><small><span class="text-muted">P4</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
+                                <br><small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
                             </td>
                         </tr>
                     {% endfor %}
@@ -238,8 +238,11 @@
                             </td>
                             <td class="text-end with-ppm">
                                 {{ puzzlers_duo.time|puzzlingTime }}
-                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount) }}</small>
-                                <br><small><span class="text-muted">P6</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount, puzzlers_duo.players|length) }}</small>
+                                <br>
+                                <small>
+                                    <span class="text-muted">PPM</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount) }}
+                                    ({{ ppm(puzzlers_duo.time, puzzle.piecesCount, puzzlers_duo.players|length) }})
+                                </small>
                             </td>
                         </tr>
                     {% endfor %}
@@ -302,8 +305,11 @@
                             </td>
                             <td class="text-end with-ppm">
                                 {{ puzzlers_team.time|puzzlingTime }}
-                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount) }}</small>
-                                <br><small><span class="text-muted">P6</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount, puzzlers_team.players|length) }}</small>
+                                <br>
+                                <small>
+                                    <span class="text-muted">PPM</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount) }}
+                                    ({{ ppm(puzzlers_team.time, puzzle.piecesCount, puzzlers_team.players|length) }})
+                                </small>
                             </td>
                         </tr>
                     {% endfor %}

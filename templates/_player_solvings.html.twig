@@ -95,10 +95,13 @@
                             <span class="d-inline-block">
                                 {{ puzzle.time|puzzlingTime }}
 
-                                <br><small><span class="text-muted">P4</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}</small>
-                                {% if solved_puzzle[0].players is not null %}
-                                    <br><small><span class="text-muted">P6</span> {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }}</small>
-                                {% endif %}
+                                <br>
+                                <small>
+                                    <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
+                                    {% if solved_puzzle[0].players is not null %}
+                                        ({{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
+                                    {% endif %}
+                                </small>
                             </span>
 
                             {# Display edit icon only to current user #}
@@ -123,10 +126,13 @@
                                     <span class="d-inline-block">
                                         {{ puzzle.time|puzzlingTime }}
 
-                                        <br><small><span class="text-muted">P4</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}</small>
-                                        {% if solved_puzzle[0].players is not null %}
-                                            <br><small><span class="text-muted">P6</span> {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }}</small>
-                                        {% endif %}
+                                        <br>
+                                        <small>
+                                            <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
+                                            {% if solved_puzzle[0].players is not null %}
+                                                ({{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
+                                            {% endif %}
+                                        </small>
                                     </span>
 
                                     {# Display edit icon only to current user #}

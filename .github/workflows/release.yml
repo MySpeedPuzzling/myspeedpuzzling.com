@@ -62,6 +62,9 @@ jobs:
             name: production
             url: https://myspeedpuzzling.com
         steps:
+            -   name: Checkout
+                uses: actions/checkout@v4
+
             -   uses: appleboy/ssh-action@master
                 with:
                     host: ${{ secrets.DEPLOY_HOST }}

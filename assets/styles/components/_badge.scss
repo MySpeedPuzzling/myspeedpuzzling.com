@@ -1,0 +1,28 @@
+//
+// Badge
+// --------------------------------------------------
+
+
+// Override secondary and light badges
+
+.badge.bg-secondary,
+.badge.bg-light {
+  color: $headings-color;
+}
+
+
+// Adding box-shadow to badges
+
+@each $color, $value in $theme-colors {
+  @if $color != 'secondary' or $color != 'light' {
+    .bg-#{$color}.badge-shadow {
+      box-shadow: 0 .5rem 1.125rem -.275rem rgba($value, .9);
+    }
+  }
+}
+.bg-secondary,
+.bg-light {
+  &.badge-shadow {
+    box-shadow: 0 .5rem 1.125rem -.275rem rgba($black, .25);
+  }
+}

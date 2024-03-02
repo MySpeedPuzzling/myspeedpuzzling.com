@@ -1,0 +1,64 @@
+//
+// Masonry grid
+// based on https://vestride.github.io/Shuffle/
+// --------------------------------------------------
+
+
+// Base styles
+
+.masonry-grid[data-columns] {
+  margin: {
+    right: -($grid-gutter-width * .5);
+    left: -($grid-gutter-width * .5);
+  }
+  overflow: hidden;
+
+  @include clearfix;
+
+  .masonry-grid-item {
+    width: 100%;
+    float: left;
+    padding: {
+      right: $grid-gutter-width * .5;
+      left: $grid-gutter-width * .5;
+      bottom: $grid-gutter-width;
+    }
+  }
+}
+
+.masonry-grid[data-columns='1'] .masonry-grid-item {
+  width: 100%;
+}
+
+@include media-breakpoint-up(sm) {
+  .masonry-grid[data-columns='2'],
+  .masonry-grid[data-columns='3'],
+  .masonry-grid[data-columns='4'],
+  .masonry-grid[data-columns='5'],
+  .masonry-grid[data-columns='6'] {
+    .masonry-grid-item { width: 50%; }
+  }
+}
+@include media-breakpoint-up(md) {
+  .masonry-grid[data-columns='3'],
+  .masonry-grid[data-columns='4'],
+  .masonry-grid[data-columns='5'],
+  .masonry-grid[data-columns='6'] {
+    .masonry-grid-item { width: 33.33%; }
+  }
+}
+@include media-breakpoint-up(lg) {
+  .masonry-grid[data-columns='4'],
+  .masonry-grid[data-columns='5'],
+  .masonry-grid[data-columns='6'] {
+    .masonry-grid-item { width: 25%; }
+  }
+}
+@include media-breakpoint-up(xl) {
+  .masonry-grid[data-columns='5'] {
+    .masonry-grid-item { width: 20%; }
+  }
+  .masonry-grid[data-columns='6'] {
+    .masonry-grid-item { width: 16.66%; }
+  }
+}

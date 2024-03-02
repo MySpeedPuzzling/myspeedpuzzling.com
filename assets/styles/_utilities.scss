@@ -1,0 +1,201 @@
+//
+// Utilities
+// Extends default Bootstrap utility classes
+// Classes with a purpose to reduce the frequency of 
+// highly repetitive declarations
+// --------------------------------------------------
+
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
+
+$utilities: map-merge(
+  $utilities,
+  (
+
+    'border-color': (
+      property: border-color,
+      class: border,
+      local-vars: (
+        'border-opacity': .35
+      ),
+      values: map-merge(
+        map-get(map-get($utilities, 'border-color'), 'values'),
+        (
+          'light': $border-light-color
+        )
+      )
+    ),
+
+    // Background colors
+    'background-color': map-merge(
+      map-get($utilities, 'background-color'),
+      (
+        values: map-merge(
+          map-get(map-get($utilities, 'background-color'), 'values'),
+          (
+            'secondary': $gray-100,
+            'darker':    $gray-900,
+            'black':     $black
+          )
+        )
+      )
+    ),
+
+    // Disable background image
+    'background-image': (
+      property: background-image,
+      class: bg-image,
+      values: none
+    ),
+
+    // Disable background
+    'background': (
+      property: background,
+      class: bg,
+      values: none
+    ),
+
+    // Background faded colors
+    'background-faded-color': (
+      property: background-color,
+      class: bg-faded,
+      local-vars: (
+        'bg-opacity': .09
+      ),
+      values: map-remove($utilities-bg-colors, 'black', 'white', 'body')
+    ),
+
+    // Background size
+    'background-size': (
+      property: background-size,
+      class: bg-size,
+      values: (
+        cover: cover,
+        contain: contain
+      )
+    ),
+
+    // Background position
+    'background-position': (
+      property: background-position,
+      class: bg-position,
+      values: (
+        'center': center,
+        'center-y': left center,
+        'center-x': center top,
+        'top-right': top right,
+        'top-left': top left,
+        'top-center': top center,
+        'center-right': center right,
+        'center-left': center left,
+        'bottom-right': bottom right,
+        'bottom-left': bottom left,
+        'bottom-center': bottom center
+      )
+    ),
+
+    // Background repeat
+    'background-repeat': (
+      property: background-repeat,
+      class: bg-repeat,
+      values: (
+        0: no-repeat,
+        x: repeat-x,
+        y: repeat-y
+      )
+    ),
+
+    // Font weight
+    'font-weight': map-merge(
+      map-get($utilities, 'font-weight'),
+      (
+        values: map-merge(
+          map-get(map-get($utilities, 'font-weight'), 'values'),
+          (
+            medium: $font-weight-medium
+          )
+        )
+      )
+    ),
+
+    // Opacity
+    'opacity': (
+      property: opacity,
+      class: opacity,
+      values: (
+        15: .15,
+        25: .25,
+        50: .5,
+        60: .6,
+        70: .7,
+        75: .75,
+        80: .8,
+        90: .9,
+        100: 1
+      )
+    ),
+
+    // Text color
+    'color': (
+      property: color,
+      class: text,
+      local-vars: (
+        'text-opacity': 1
+      ),
+      values: map-merge(
+        $utilities-text-colors,
+        (
+          'white': $white,
+          'body': var(--#{$prefix}body-color),
+          'muted': $text-muted,
+          'heading': $headings-color,
+          'darker': $gray-900,
+          'border': darken($border-color, 8%),
+          'reset': inherit
+        )
+      )
+    ),
+
+    // Text wrap (white-space)
+    'white-space': (
+      property: white-space,
+      class: text,
+      responsive: true,
+      values: (
+        wrap: normal,
+        nowrap: nowrap,
+      )
+    ),
+
+    // Text shadow
+    'text-shadow': (
+      property: text-shadow,
+      values: (
+        null: $text-shadow
+      )
+    ),
+
+    // Table layout
+    'table-layout': (
+      property: table-layout,
+      values: fixed
+    ),
+
+    // Disable animation
+    'animation': (
+      property: animation,
+      values: none
+    ),
+
+    // Z-index
+    'z-index': (
+      property: z-index,
+      class: zindex,
+      responsive: true,
+      values: 1 5 10
+    )
+  )
+);

@@ -1,0 +1,158 @@
+//
+// Off-canvas
+// --------------------------------------------------
+
+
+// Off-canvas base styles
+
+.offcanvas {
+  will-change: transform, box-shadow;
+  transition: transform .4s cubic-bezier(.165, .84, .44, 1), box-shadow .3s ease;
+  box-shadow: none;
+  visibility: visible !important;
+
+  // Add compatibility with new Bootstrap offcanvas component
+  &:not(.offcanvas-end):not(.offcanvas-bottom):not(.offcanvas-top) {
+    top: 0;
+    left: 0;
+    width: $offcanvas-horizontal-width;
+    border-right: $offcanvas-border-width solid $offcanvas-border-color;
+    transform: translateX(-100%);
+  }
+
+  // Show offcanvas
+  &.show {
+    transform: none !important;
+    box-shadow: $offcanvas-box-shadow !important;
+  }
+
+  &.rounded-3 {
+    border-radius: 0 !important;
+  }
+}
+
+
+// Offcanvas Header and Footer
+
+.offcanvas-header,
+.offcanvas-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  padding: $offcanvas-padding-y $offcanvas-padding-x;
+
+  .bg-dark & {
+    background-color: rgba($white, .05);
+  }
+}
+
+
+// Off-canvas body (content holder)
+
+.offcanvas-body {
+  height: 100%;
+
+  // Custom scrollbar inside off-canvas
+  &::-webkit-scrollbar {
+    width: $scrollbar-width;
+    background-color: transparent;
+    opacity: 0;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: $scrollbar-bg;
+    @include border-radius($scrollbar-width * .5);
+  }
+  & > .simplebar-track {
+    display: block;
+    background-color: transparent;
+  }
+  .simplebar-vertical { margin-right: .1875rem; }
+}
+
+
+// Links widget inside expanded off-canvas body (docs)
+
+.offcanvas-expand .offcanvas-body {
+  .widget-links {
+    margin-left: -$offcanvas-padding-x;
+    .widget-title {
+      padding-left: $offcanvas-padding-x;
+    }
+  }
+  .widget-list-link {
+    padding-left: $offcanvas-padding-x - .125rem;
+    border-left: .125rem solid transparent;
+  }
+  .active > .widget-list-link {
+    border-left-color: $widget-links-dark-active-color;
+  }
+  .widget-light .active > .widget-list-link {
+    border-left-color: $widget-links-light-active-color;
+  }
+}
+
+
+// Sidebar toggle
+
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 0;
+  z-index: $zindex-btn-scroll-top;
+}
+
+
+// Control the breakpoint at which off-canvas expands or collapses
+@include media-breakpoint-up(lg) {
+
+  // Expand off-canvas from lg breakpoint
+  .offcanvas-expand {
+    transform: none !important;
+    z-index: $zindex-fixed + 1;
+    &.offcanvas-start,
+    &.offcanvas-end,
+    &.offcanvas-bottom { transform: none !important; }
+  }
+
+  // Collapse off-canvas down from lg breakpoint
+  .offcanvas-collapse {
+    display: block;
+    position: static;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    transform: none !important;
+    background-color: transparent;
+
+    .offcanvas-header,
+    .offcanvas-footer { display: none; }
+
+    .offcanvas-body {
+      padding: 0;
+      overflow: initial;
+    }
+
+    &.rounded-3 {
+      border-radius: $border-radius-lg !important;
+    }
+  }
+
+  // Off-canvas enabled container (for layouts with fixed side navigation)
+  .offcanvas-enabled {
+    padding-left: $offcanvas-horizontal-width + 1.5rem;
+
+    &.offcanvas-end {
+      padding: {
+        right: $offcanvas-horizontal-width + 1.5rem;
+        left: 0;
+      }
+    }
+  }
+}

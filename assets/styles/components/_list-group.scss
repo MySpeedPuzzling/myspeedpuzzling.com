@@ -1,0 +1,43 @@
+//
+// List group
+// --------------------------------------------------
+
+
+// Interactive list items
+
+.list-group-item-action {
+  transition: $list-group-action-transition;
+  &:active {
+    transition: none;
+  }
+}
+.list-group-item.active {
+  box-shadow: $list-group-active-box-shadow;
+}
+
+
+// Contextual variants
+
+@each $color, $value in $theme-colors {
+  .list-group-item-action.list-group-item-#{$color} {
+    &:hover, &:active, &:focus {
+      background-color: rgba($value, .2);
+    }
+  }
+  .list-group-item-#{$color}.active {
+    background-color: $value !important;
+    border-color: $value;
+    box-shadow: none;
+  }
+}
+
+.list-group-item-secondary,
+.list-group-item-light {
+  color: $list-group-color !important;
+}
+.list-group-item-secondary {
+  background-color: $gray-100 !important;
+}
+.list-group-item-light {
+  background-color: $light !important;
+}

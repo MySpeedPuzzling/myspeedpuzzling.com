@@ -1,0 +1,10 @@
+//
+// Toasts
+// --------------------------------------------------
+
+.toast-header {
+  [class*='ci-'] { font-size: 1.25em; }
+  &:not([class*='bg-']) {
+    border-bottom: $border-width solid rgba($border-color, .75);
+  }
+}

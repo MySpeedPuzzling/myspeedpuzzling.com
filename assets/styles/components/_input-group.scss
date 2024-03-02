@@ -1,0 +1,13 @@
+//
+// Input group
+// --------------------------------------------------
+
+
+// Absolutely positioned addons
+.input-group .position-absolute {
+  z-index: 5;
+  & + .form-control,
+  & + .password-toggle .form-control {
+    padding-left: 2.5rem;
+  }
+}

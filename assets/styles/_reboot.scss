@@ -1,0 +1,100 @@
+//
+// Reboot
+// --------------------------------------------------
+
+// Import Google Fonts (Rubik)
+@import url($path-to-fonts);
+
+html * {
+  @include font-smoothing;
+}
+
+// Sticky footer
+html, body {
+  height: 100%;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+.page-wrapper {
+  flex: 1 0 auto;
+}
+.footer {
+  flex-shrink: 0;
+}
+
+// Links
+a:focus { outline: none; }
+a { transition: $link-transition; }
+
+// Images
+// Responsive images (ensure images don't scale beyond their parents)
+img,
+figure {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+svg { max-width: 100%; }
+
+// Responsive iframes
+iframe {
+  width: 100%;
+}
+
+// Full height iframe
+.iframe-full-height-wrap {
+  position: relative;
+  min-height: 18rem;
+  overflow: hidden;
+}
+.iframe-full-height {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+// Text Selection Color
+::selection {
+  background: rgba($accent, .15);
+}
+::-moz-selection {
+  background: rgba($accent, .15);
+}
+
+// Change Bootstrap default .container-fluid paddings
+@include media-breakpoint-up(xl) {
+  .container-fluid {
+    padding-right: $grid-gutter-width;
+    padding-left: $grid-gutter-width;
+  }
+}
+
+small { font-weight: inherit; }
+
+// Remove top padding from body when screen size below lg (992px)
+@include media-breakpoint-down(lg) {
+  body { padding-top: 0 !important; }
+}
+
+// Disable button :focus outline
+button:focus {
+  outline: none;
+}
+
+// Horizontal rule - light version
+.hr-light {
+  color: $border-light-color;
+}
+
+// Vertical divider
+.hr-vertical {
+  width: $border-width;
+  height: 100% !important;
+  // background-color: $border-color;
+}

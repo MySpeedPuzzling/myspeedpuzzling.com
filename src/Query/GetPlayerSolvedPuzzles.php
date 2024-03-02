@@ -164,7 +164,7 @@ SQL;
     /**
      * @return array<SolvedPuzzle>
      */
-    public function inGroupByPlayerId(string $playerId): array
+    public function duoByPlayerId(string $playerId): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -204,6 +204,92 @@ WHERE
         FROM json_array_elements(pst.team -> 'puzzlers') AS sub_player_elem
         WHERE (sub_player_elem ->> 'player_id')::UUID = :playerId::UUID
     )
+    AND json_array_length(team -> 'puzzlers') = 2
+GROUP BY
+    pst.id, puzzle.id, manufacturer.id, time
+ORDER BY time ASC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): SolvedPuzzle {
+            /**
+             * @var array{
+             *     time_id: string,
+             *     team_id: null|string,
+             *     player_id: string,
+             *     player_name: null,
+             *     player_country: null,
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     manufacturer_name: string,
+             *     puzzle_image: null|string,
+             *     time: int,
+             *     pieces_count: int,
+             *     comment: null|string,
+             *     players: string,
+             *     finished_puzzle_photo: null|string,
+             *     puzzle_identification_number: null|string,
+             *     tracked_at: string,
+             * } $row
+             */
+
+            $row['player_name'] = null;
+            $row['player_country'] = null;
+
+            return SolvedPuzzle::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<SolvedPuzzle>
+     */
+    public function teamByPlayerId(string $playerId): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    pst.id as time_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.image AS puzzle_image,
+    pst.seconds_to_solve AS time,
+    pst.player_id AS player_id,
+    pieces_count,
+    finished_puzzle_photo,
+    tracked_at,
+    puzzle.identification_number AS puzzle_identification_number,
+    pst.comment,
+    manufacturer.name AS manufacturer_name,
+    pst.team ->> 'team_id' AS team_id,
+    JSON_AGG(
+        JSON_BUILD_OBJECT(
+            'player_id', player_elem ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_country', p.country
+        )
+    ) AS players
+FROM puzzle_solving_time pst
+INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
+LATERAL json_array_elements(pst.team -> 'puzzlers') AS player_elem
+LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+WHERE
+    EXISTS (
+        SELECT 1
+        FROM json_array_elements(pst.team -> 'puzzlers') AS sub_player_elem
+        WHERE (sub_player_elem ->> 'player_id')::UUID = :playerId::UUID
+    )
+    AND json_array_length(team -> 'puzzlers') > 2
 GROUP BY
     pst.id, puzzle.id, manufacturer.id, time
 ORDER BY time ASC

@@ -299,3 +299,11 @@ td.rank {
 .nav-fill .media-tab-media {
     margin: 0 auto;
 }
+
+.nav.nav-fill.nav-tabs.nav-player-results {
+    > .nav-item {
+        > a {
+            padding: 12px 4px;
+        }
+    }
+}

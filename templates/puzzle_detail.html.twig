@@ -33,25 +33,27 @@
                 {% endif %}
             </p>
 
-            <p>
-                {% if puzzle.puzzleApproved %}
+            {% if puzzle.puzzleApproved %}
+                <p>
                     <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
                         <i class="ci-time"></i> {{ 'start_solving'|trans }}
                     </a>
                     <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm">
                         <i class="ci-add"></i> {{ 'add_my_time'|trans }}
                     </a>
-                {% else %}
-                    <p class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</p>
+                </p>
+            {% else %}
+                <div class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</div>
 
+                <p>
                     <a href="#" class="btn btn-accent btn-sm disabled mb-1 me-1">
                         <i class="ci-time"></i> {{ 'start_solving'|trans }}
                     </a>
                     <a href="#" class="btn btn-accent disabled mb-1 btn-sm">
                         <i class="ci-add"></i> {{ 'add_my_time'|trans }}
                     </a>
-                {% endif %}
-            </p>
+                </p>
+            {% endif %}
 
             <p class="card-text fs-sm text-muted mb-2">
                 <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
@@ -80,7 +82,6 @@
         </div>
     </div>
 
-    <!-- Nav tabs -->
     <ul class="nav nav-fill nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">
             <a class="nav-link {{ solo_puzzle_solvers|length > 0 ? 'active' : 'disabled' }}" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
@@ -118,7 +119,6 @@
                 </div>
             </a>
         </li>
-
     </ul>
 
     <!-- Tabs content -->
@@ -324,7 +324,5 @@
 
         </div>
     </div>
-
-
 
 {% endblock %}

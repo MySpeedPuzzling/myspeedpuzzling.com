@@ -93,18 +93,14 @@
     </div>
 
     <div class="row mt-4">
-        <div class="col-sm">
-            <h3 class="mt-2">{{ 'profile.statistics'|trans }}</h3>
+        <div class="col-sm mt-3">
+            <h3>{{ 'profile.statistics'|trans }}</h3>
 
-            <p>
-                <strong>{{ 'profile.statistics_time'|trans }}:</strong> {{ statistics.totalSeconds|puzzlingTime }}<br>
-                <strong>{{ 'profile.statistics_puzzles_solved'|trans }}:</strong> {{ statistics.solvedPuzzlesCount }}<br>
-                <strong>{{ 'profile.statistics_pieces_count'|trans }}:</strong> {{ statistics.totalPieces }}
-            </p>
+            {{ include('_player_statistics.html.twig') }}
         </div>
 
-        <div class="col-sm">
-            <h3 class="mt-2">{{ 'profile.favorite_puzzlers'|trans }}</h3>
+        <div class="col-sm mt-3">
+            <h3>{{ 'profile.favorite_puzzlers'|trans }}</h3>
 
             {% if favorite_players is empty %}
                 <div class="alert alert-warning">
@@ -127,29 +123,7 @@
         </div>
     </div>
 
-    <div {{ stimulus_controller('puzzle_filter') }}>
-        <h2 class="h4 mt-4">{{ 'profile.solved_puzzles'|trans }}</h2>
-
-        {{ include('_puzzle_filter.html.twig') }}
-
-        <div class="row">
-            <div class="col-sm">
-                <h2 class="h4">{{ 'profile.solved_puzzles_solo'|trans }}</h2>
-
-                <div class="mt-2 mb-5">
-                    {{ include('_player_solvings.html.twig', {solved_puzzles: solo_puzzles}) }}
-                </div>
-            </div>
-
-            <div class="col-sm">
-                <h2 class="h4">{{ 'profile.solved_puzzles_group'|trans }}</h2>
-
-                <div class="mt-2 mb-5">
-                    {{ include('_player_solvings.html.twig', {solved_puzzles: group_puzzles}) }}
-                </div>
-            </div>
-        </div>
-    </div>
+    {{ include('_player_profile_results.html.twig') }}
 
 <script type="text/javascript">
     document.addEventListener('DOMContentLoaded', function () {

@@ -54,12 +54,14 @@ final class PlayerProfileController extends AbstractController
         $playerStatistics = $soloStatistics->sum($groupStatistics);
 
         $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
-        $groupSolvedPuzzles = $this->getPlayerSolvedPuzzles->inGroupByPlayerId($player->playerId);
+        $duoSolvedPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId);
+        $teamSolvedPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId);
 
         return $this->render('player-profile.html.twig', [
             'player' => $player,
-            'solo_puzzles' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
-            'group_puzzles' => $this->puzzlesSorter->groupPuzzles($groupSolvedPuzzles),
+            'solo_results' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
+            'duo_results' => $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles),
+            'team_results' => $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles),
             'statistics' => $playerStatistics,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),

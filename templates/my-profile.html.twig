@@ -16,13 +16,20 @@
             </a>
         </div>
 
-        <div class="col-md" style="max-width: 366px;">
+        <div class="col-md" style="max-width: 366px;" data-controller="clipboard">
             <div class="pt-3 pt-md-4 share-profile-link">
                 Share your profile:
                 <div class="input-group">
-                    <input id="share-profile-link-input" class="form-control" type="text" value="{{ url('player_profile', {playerId: player.playerId}) }}" readonly>
-                    <button id="share-profile-link-button" class="btn btn-icon btn-primary" type="button">
-                        <i class="ci-share"></i>
+                    <input
+                        data-action="click->clipboard#selectInputContent dblclick->clipboard#selectInputContent focus->clipboard#selectInputContent"
+                        {{ stimulus_target('clipboard', 'input')}}
+                        value="{{ url('player_profile', {playerId: player.playerId}) }}"
+                        class="form-control"
+                        type="text"
+                        readonly
+                    >
+                    <button {{ stimulus_action('clipboard', 'copyToClipboard', 'click')}} id="share-profile-link-button" class="btn btn-icon btn-primary" type="button">
+                        <i {{ stimulus_target('clipboard', 'buttonIcon')}} class="ci-share"></i>
                     </button>
                 </div>
 
@@ -172,33 +179,4 @@
     </div>
 
     {{ include('_player_profile_results.html.twig') }}
-
-<script type="text/javascript">
-    document.addEventListener("DOMContentLoaded", function() {
-        var input = document.getElementById("share-profile-link-input");
-        var button = document.getElementById("share-profile-link-button");
-
-        // Select input content on click or focus
-        input.addEventListener("click", selectInputContent);
-        input.addEventListener("focus", selectInputContent);
-        input.addEventListener("dblclick", selectInputContent);
-
-        // Copy input value to clipboard and change icon class on button click
-        button.addEventListener("click", function() {
-            input.select();
-            navigator.clipboard.writeText(input.value).then(function() {
-                button.querySelector("i").classList.remove("ci-share");
-                button.querySelector("i").classList.add("ci-check");
-            }).catch(function(err) {
-                console.error('Failed to copy: ', err);
-            });
-        });
-
-        // Function to select input content
-        function selectInputContent(event) {
-            event.preventDefault(); // Prevent default behavior
-            this.select();
-        }
-    });
-</script>
 {% endblock %}

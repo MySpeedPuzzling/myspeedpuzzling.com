@@ -174,34 +174,6 @@
     {{ include('_player_profile_results.html.twig') }}
 
 <script type="text/javascript">
-    document.addEventListener('DOMContentLoaded', function () {
-        // Select all elements with the class 'show-more-times'
-        const showMoreElements = document.querySelectorAll('.show-more-times');
-
-        // Add click event listeners to these elements
-        showMoreElements.forEach(function(element) {
-            element.addEventListener('click', function(event) {
-                // Prevent default link behavior
-                event.preventDefault();
-
-                // Add the 'hidden' class to the clicked element
-                this.classList.add('hidden');
-
-                // Logic to find the corresponding 'more-times' element
-                // This needs to be adjusted based on the actual DOM structure
-                let moreTimesElement = this.nextElementSibling;
-                while (moreTimesElement && !moreTimesElement.classList.contains('more-times')) {
-                    moreTimesElement = moreTimesElement.nextElementSibling;
-                }
-
-                // If the 'more-times' element is found, remove the 'hidden' class
-                if (moreTimesElement) {
-                    moreTimesElement.classList.remove('hidden');
-                }
-            });
-        });
-    });
-
     document.addEventListener("DOMContentLoaded", function() {
         var input = document.getElementById("share-profile-link-input");
         var button = document.getElementById("share-profile-link-button");

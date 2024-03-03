@@ -1,7 +1,6 @@
 FROM ghcr.io/myspeedpuzzling/web-base:main
 
 ENV APP_ENV="prod" \
-    NODE_ENV=production \
     APP_DEBUG=0 \
     PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 
@@ -16,6 +15,7 @@ COPY package.json package-lock.json webpack.config.js ./
 RUN npm install
 
 COPY ./assets ./assets
+ENV NODE_ENV=production
 RUN npm run build
 
 COPY . .

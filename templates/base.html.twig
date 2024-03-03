@@ -33,7 +33,7 @@
             {{ encore_entry_link_tags('app') }}
         {% endblock %}
     </head>
-    <body class="lang-{{ app.request.locale }}">
+    <body class="lang-{{ app.request.locale }}" data-controller="gallery filter-list file-drop-area datepicker">
         <header class="navbar navbar-expand-lg navbar-light shadow-sm">
             <div class="container">
 

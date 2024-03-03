@@ -11,20 +11,21 @@
                 <div
                     class="stopwatch justify-content-center"
                     {% if active_stopwatch is not null %}
-                        data-total-seconds="{{ active_stopwatch.totalSeconds }}"
+                        data-controller="stopwatch"
                         data-stopwatch-now="{{ 'now'|date('Y-m-d H:i:s') }}"
                         data-stopwatch-start="{{ active_stopwatch.lastStart|date('Y-m-d H:i:s') }}"
                         data-stopwatch-status="{{ active_stopwatch.status.value }}"
+                        data-stopwatch-total-seconds="{{ active_stopwatch.totalSeconds }}"
                     {% endif %}
                 >
                     <span class="countdown-hours p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-hours" class="countdown-value">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|hoursElapsed }}{% else %}00{% endif %}</span>
+                        <span id="stopwatch-hours" class="countdown-value" data-stopwatch-target="hours">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|hoursElapsed }}{% else %}00{% endif %}</span>
                     </span>:
                     <span class="countdown-minutes p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-minutes" class="countdown-value">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|minutesElapsed }}{% else %}00{% endif %}</span>
+                        <span id="stopwatch-minutes" class="countdown-value" data-stopwatch-target="minutes">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|minutesElapsed }}{% else %}00{% endif %}</span>
                     </span>:
                     <span class="countdown-seconds p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-seconds" class="countdown-value">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|secondsElapsed }}{% else %}00{% endif %}</span>
+                        <span id="stopwatch-seconds" class="countdown-value" data-stopwatch-target="seconds">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|secondsElapsed }}{% else %}00{% endif %}</span>
                     </span>
                 </div>
 
@@ -108,80 +109,5 @@
                 {% endif %}
             {% endfor %}
         </ul>
-    {% endif %}
-
-    {% if active_stopwatch is not null %}
-        <script>
-            let status = document.querySelector('[data-stopwatch-status]').getAttribute('data-stopwatch-status');
-
-            function calculateOffset() {
-                var serverStartTime = new Date(document.querySelector('[data-stopwatch-now]').getAttribute('data-stopwatch-now'));
-                var clientTime = new Date();
-                return clientTime - serverStartTime; // Time difference in milliseconds
-            }
-
-            var offset = calculateOffset();
-            console.log('Server vs client time offset: ' + offset);
-
-            /*
-            document.addEventListener('DOMContentLoaded', () => {
-                if (status === 'running') {
-                    let wakeLock = null;
-
-                    try {
-                        wakeLock = window.navigator.wakeLock.request('screen');
-                        console.log('Screen Wake Lock is active');
-                    } catch (err) {
-                        console.error(`${err.name}, ${err.message}`);
-                    }
-
-                    document.addEventListener('visibilitychange', async () => {
-                        if (wakeLock !== null && document.visibilityState === 'visible') {
-                            wakeLock = window.navigator.wakeLock.request('screen');
-                        }
-                    });
-                }
-            });
-            */
-
-            function pad(number) {
-                return number < 10 ? '0' + number : number;
-            }
-
-            function calculateTimeElapsed() {
-
-                // Get the start time and total elapsed seconds from the data attributes
-                const startTime = new Date(document.querySelector('[data-stopwatch-start]').getAttribute('data-stopwatch-start'));
-                const totalElapsedSeconds = parseInt(document.querySelector('[data-total-seconds]').getAttribute('data-total-seconds'), 10);
-
-
-                if (status !== 'running') {
-                    return;
-                }
-
-                // To help solve
-                if (offset > 2000) {
-                    // 300ms because of page rendering can take some time
-                    var now = new Date(new Date().getTime() - offset + 300);
-                } else {
-                    var now = new Date();
-                }
-                // Calculate the difference in seconds from now to the start time
-                const differenceInSeconds = Math.floor((now - startTime) / 1000) + totalElapsedSeconds;
-
-                // Calculate hours, minutes, and seconds
-                const hours = Math.floor(differenceInSeconds / 3600);
-                const minutes = Math.floor((differenceInSeconds % 3600) / 60);
-                const seconds = differenceInSeconds % 60;
-
-                // Update the HTML elements
-                document.getElementById('stopwatch-hours').textContent = pad(hours);
-                document.getElementById('stopwatch-minutes').textContent = pad(minutes);
-                document.getElementById('stopwatch-seconds').textContent = pad(seconds);
-            }
-
-            // Run the function every second
-            setInterval(calculateTimeElapsed, 1000);
-        </script>
     {% endif %}
 {% endblock %}

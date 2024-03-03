@@ -1,8 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
-// import { Tab } from 'bootstrap';
+import { Tab } from 'bootstrap';
 
 export default class extends Controller {
-/*
     connect() {
         // Wait for the DOM content to fully load, ensuring accurate positioning.
         setTimeout(() => {
@@ -55,5 +54,4 @@ export default class extends Controller {
             this.adjustScrollPosition();
         }, false);
     }
-*/
 }

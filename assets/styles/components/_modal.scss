@@ -1,0 +1,15 @@
+//
+// Modal
+// --------------------------------------------------
+
+
+// Quick view modal
+
+.modal-quick-view {
+  .modal-dialog {
+    max-width: $modal-xl !important;
+  }
+  @include media-breakpoint-up(sm) {
+    padding-left: $spacer;
+  }
+}

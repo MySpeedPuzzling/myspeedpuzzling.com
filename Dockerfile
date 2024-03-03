@@ -1,6 +1,7 @@
 FROM ghcr.io/myspeedpuzzling/web-base:main
 
 ENV APP_ENV="prod" \
+    NODE_ENV=production \
     APP_DEBUG=0 \
     PHP_OPCACHE_VALIDATE_TIMESTAMPS=0
 

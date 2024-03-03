@@ -1,0 +1,259 @@
+//
+// Widgets
+// --------------------------------------------------
+
+
+// Component common styles
+
+.widget {
+  .tns-carousel .tns-nav { padding-top: .5rem; }
+}
+.widget-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  &[data-simplebar] {
+    overflow-x: hidden;
+  }
+}
+.widget-title {
+  margin-bottom: $spacer * 1.125;
+  font: {
+    size: $widget-title-font-size;
+    weight: $widget-title-font-weight;
+  }
+}
+
+
+// Widget: Categories
+
+.widget-categories {
+  .accordion-item {
+    border: 0;
+    border-radius: 0;
+  }
+  .accordion-body {
+    padding: $accordion-body-padding-y * .5 0;
+  }
+  .accordion-button {
+    padding: ($accordion-padding-y * .444) 0;
+    font: {
+      size: $widget-categories-font-size;
+      weight: normal;
+    }
+    color: $widget-categories-active-color;
+    box-shadow: none;
+    &::after {
+      width: $widget-categories-indicator-size;
+      height: $widget-categories-indicator-size;
+      padding-top: .0625rem;
+      background: {
+        image: none;
+        color: $widget-categories-indicator-active-bg;
+      }
+      font: {
+        family: $icons-font-family;
+        size: $widget-categories-indicator-icon-size;
+        weight: bold;
+      }
+      content: '\e906';
+      text-align: center;
+      line-height: $widget-categories-indicator-size;
+    }
+    &.collapsed {
+      color: $widget-categories-color;
+      &::after {
+        background-color: $accordion-icon-box-bg;
+      }
+    }
+    &:hover {
+      color: $widget-categories-hover-color;
+      &::after {
+        background-color: $widget-categories-indicator-hover-bg;
+      }
+    }
+  }
+  .widget-list-item {
+    margin-bottom: .375rem;
+    padding-left: .75rem;
+  }
+  .widget-list:not([data-simplebar]) {
+    border-right: $border-width * 2 solid $border-color;
+    .widget-list-item {
+      padding-right: 1rem;
+      .widget-list:not([data-simplebar]) { border-right: 0; }
+    }
+  }
+}
+
+
+// Widget: Links
+
+.widget-list-item {
+  margin-bottom: $spacer * .5;
+  &:last-child { margin-bottom: 0; }
+}
+.widget-list-link {
+  display: block;
+  transition: $widget-transition;
+  color: $widget-links-dark-color;
+  font: {
+    size: $widget-links-font-size;
+    weight: $widget-links-font-weight;
+  }
+  &:hover {
+    color: $widget-links-dark-hover-color;
+  }
+}
+.active > .widget-list-link {
+  color: $widget-links-dark-active-color;
+}
+.widget-light {
+  .widget-list-link {
+    color: $widget-links-light-color;
+    &:hover {
+      color: $widget-links-light-hover-color;
+    }
+  }
+  .active > .widget-list-link {
+    color: $widget-links-light-active-color;
+  }
+}
+
+
+// Widget products common styles: Featured products, Cart
+
+.widget-product-title {
+  margin-bottom: $spacer * .25;
+  font: {
+    size: $widget-product-title-font-size;
+    weight: $widget-product-title-font-weight;
+  }
+  > a {
+    color: $widget-product-title-color;
+  }
+  &:hover > a {
+    color: $widget-product-title-hover-color;
+  }
+}
+.widget-product-meta {
+  font-size: $widget-product-meta-font-size;
+}
+
+
+// Widget: Cart
+
+.widget-cart-item {
+  position: relative;
+  .btn-close {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: auto;
+    padding: 0;
+    transform: translateY(-50%);
+    transition: visibility .25s ease-in-out, opacity .25s ease-in-out;
+    background: none;
+    font: {
+      size: $font-size-base * 1.5;
+      weight: 300;
+    }
+    visibility: hidden;
+    opacity: 0;
+  }
+  > .d-flex {
+    transition: all .25s ease-in-out;
+  }
+  &:hover {
+    > .d-flex {
+      transform: translateX($spacer * 1.125);
+    }
+    .btn-close {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+}
+
+
+// Widget: Tags
+
+.btn-tag {
+  display: inline-block;
+  padding: $tag-padding-y $tag-padding-x;
+  transition: $btn-transition;
+  border: $tag-border-width solid $tag-border-color;
+  @include border-radius($tag-border-radius);
+  color: $tag-color;
+  font-size: $tag-font-size;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: $tag-hover-border-color;
+    background-color: $tag-hover-bg;
+    color: $tag-hover-color;
+  }
+
+  &.active {
+    border-color: $tag-active-border-color;
+    background-color: $tag-active-bg;
+    color: $tag-active-color;
+    box-shadow: $tag-active-box-shadow;
+    pointer-events: none;
+    cursor: default;
+  }
+}
+
+
+// Widget: Range slider
+
+.range-slider-ui {
+  height: $range-slider-height;
+  margin: 3.5rem 0;
+  border: 0;
+  background-color: $range-slider-bg;
+  box-shadow: none;
+
+  .noUi-connect {
+    background-color: $range-slider-connect-bg;
+  }
+
+  .noUi-handle {
+    top: 50%;
+    width: $range-slider-handle-size;
+    height: $range-slider-handle-size;
+    margin-top: -($range-slider-handle-size * .5);
+    border: 0;
+    border-radius: 50%;
+    box-shadow: $range-slider-handle-box-shadow;
+    &::before, &::after { display: none; }
+    &:focus { outline: none; }
+  }
+
+  .noUi-marker-normal { display: none; }
+  .noUi-marker-horizontal {
+    &.noUi-marker {
+      width: $border-width;
+      background-color: darken($border-color, 6%);
+    }
+    &.noUi-marker-large { height: .75rem; }
+  }
+  .noUi-value {
+    padding-top: .125rem;
+    color: $body-color;
+    font-size: $font-size-ms;
+  }
+
+  .noUi-tooltip {
+    padding: $tooltip-padding-y $tooltip-padding-x;
+    border: 0;
+    background-color: $range-slider-tooltip-bg;
+    color: $range-slider-tooltip-color;
+    font-size: $range-slider-tooltip-font-size;
+    line-height: 1.2;
+    @include border-radius($tooltip-border-radius);
+  }
+}
+html:not([dir=rtl]) .range-slider-ui.noUi-horizontal .noUi-handle {
+  right: -($range-slider-handle-size * .5);
+}

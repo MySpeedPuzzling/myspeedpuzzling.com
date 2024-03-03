@@ -1,0 +1,27 @@
+//
+// Countdown Timer
+// --------------------------------------------------
+
+.countdown {
+  display: flex;
+  flex-wrap: wrap;
+  font-weight: normal;
+
+  .countdown-value {
+    font-weight: $countdown-value-font-weight;
+  }
+  .countdown-label {
+    margin-left: .125rem;
+    font-size: $countdown-label-font-size;
+  }
+  .countdown-days,
+  .countdown-hours,
+  .countdown-minutes,
+  .countdown-seconds {
+    margin: {
+      right: .75rem;
+      bottom: .75rem;
+    }
+  }
+  .countdown-seconds { margin-right: 0; }
+}

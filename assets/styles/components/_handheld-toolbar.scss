@@ -1,0 +1,44 @@
+//
+// Toolbar for handheld devices
+// --------------------------------------------------
+
+.handheld-toolbar {
+  display: none;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  border-top: $border-width solid $border-color;
+  background-color: $toolbar-bg;
+  box-shadow: $toolbar-box-shadow;
+  z-index: $zindex-toolbar;
+}
+.handheld-toolbar-item {
+  padding: $spacer * .5;
+  padding-top: .125rem;
+  border-left: $border-width solid $border-color;
+  text-align: center;
+  &:first-child { border-right: 0; }
+  .badge { font-size: .625rem; }
+}
+.handheld-toolbar-icon {
+  display: block;
+  color: $toolbar-icon-color;
+  font-size: $toolbar-icon-size;
+  > i, > .badge {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+.handheld-toolbar-label {
+  display: block;
+  color: $toolbar-label-color;
+  font-size: $toolbar-label-font-size;
+}
+@include media-breakpoint-down(lg) {
+  .handheld-toolbar-enabled .footer { padding-bottom: 3.5rem; }
+  .handheld-toolbar {
+    display: block;
+    & + .btn-scroll-top { bottom: $spacer + 3.5rem; }
+  }
+}

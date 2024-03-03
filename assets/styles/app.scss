@@ -1,4 +1,23 @@
-// the ~ allows you to reference things in node_modules
+// User variables
+@import 'user-variables';
+
+// Configuration & utilities
+@import 'variables';
+@import 'mixins';
+@import 'utilities';
+
+// Bootstrap
+@import 'bootstrap/scss/bootstrap';
+
+// Layout & components
+@import 'reboot';
+@import 'components';
+
+// User custom styles
+@import 'user';
+
+@import "flag-icons/sass/flag-icons";
+
 
 body {
     display: flex;

@@ -1,0 +1,78 @@
+//
+// Alert
+// --------------------------------------------------
+
+// Overrides
+
+.alert-secondary {
+  border-color: $border-color;
+  background-color: $gray-100;
+}
+.alert-secondary,
+.alert-light {
+  color: $gray-700;
+  .alert-link { color: $gray-900; }
+}
+.alert-dark {
+  border-color: $dark;
+  background-color: $dark;
+  color: $white;
+  .alert-link { color: $white; }
+}
+.alert {
+  [class^='ci-'], [class*=' ci-'] {
+    margin-top: .1875rem;
+  }
+  hr { color: rgba($black, .1); }
+}
+
+
+// Link
+
+.alert-link {
+  text-decoration: underline;
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+
+// Icon
+
+.alert-icon {
+  display: flex;
+  align-items: center;
+  margin: {
+    top: -$alert-padding-y;
+    right: $alert-padding-x;
+    bottom: -$alert-padding-y;
+    left: -$alert-padding-x;
+  }
+  padding: .75em;
+  @include border-start-radius($alert-border-radius);
+  font-size: $alert-icon-font-size;
+}
+
+@each $color, $value in $theme-colors {
+  .alert-#{$color} {
+    .alert-icon {
+      background-color: rgba($value, $alert-icon-bg-factor);
+    }
+  }
+}
+.alert-secondary .alert-icon {
+  background-color: $gray-300;
+}
+.alert-light .alert-icon {
+  background-color: $gray-200;
+}
+
+
+// Dismissible alert
+
+.alert-dismissible .btn-close {
+  padding: {
+    top: 1.125rem;
+    bottom: 1.125rem;
+  }
+}

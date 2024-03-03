@@ -27,37 +27,13 @@
         <meta name="msapplication-TileImage" content="{{ asset('ms-icon-144x144.png') }}">
         <meta name="theme-color" content="#ffffff">
 
-        <!-- Vendor Styles including: Font Icons, Plugins, etc.-->
-        <link rel="stylesheet" media="screen" href="{{ asset('vendor/simplebar/dist/simplebar.min.css') }}"/>
-        <link rel="stylesheet" media="screen" href="{{ asset('vendor/tiny-slider/dist/tiny-slider.css') }}"/>
-        <link rel="stylesheet" media="screen" href="{{ asset('vendor/lightgallery/css/lightgallery-bundle.min.css') }}"/>
-        <link rel="stylesheet" media="screen" href="{{ asset('vendor/flatpickr/dist/flatpickr.min.css') }}"/>
-
-        <!-- Main Theme Styles + Bootstrap-->
-        <link rel="stylesheet" media="screen" href="{{ asset('css/theme.min.css') }}">
-
         <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}" />
 
         {% block stylesheets %}
             {{ encore_entry_link_tags('app') }}
         {% endblock %}
-
-        {% block javascripts %}
-            {{ encore_entry_script_tags('app') }}
-        {% endblock %}
-
-        {% if ga_tracking is not empty %}
-            <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking }}"></script>
-            <script>
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-
-                gtag('config', '{{ ga_tracking }}');
-            </script>
-        {% endif %}
     </head>
-    <body class="lang-{{ app.request.locale }}">
+    <body class="lang-{{ app.request.locale }}" data-controller="gallery filter-list file-drop-area datepicker">
         <header class="navbar navbar-expand-lg navbar-light shadow-sm">
             <div class="container">
 
@@ -203,19 +179,19 @@
             </div>
         </footer>
 
+        {% block javascripts %}
+            {{ encore_entry_script_tags('app') }}
+        {% endblock %}
 
-        <!-- Vendor scrits: js libraries and plugins-->
-        <script src="{{ asset('vendor/bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
-        <script src="{{ asset('vendor/simplebar/dist/simplebar.min.js') }}"></script>
-        <script src="{{ asset('vendor/tiny-slider/dist/min/tiny-slider.js') }}"></script>
-        <script src="{{ asset('vendor/smooth-scroll/dist/smooth-scroll.polyfills.min.js') }}"></script>
-        <script src="{{ asset('vendor/lightgallery/lightgallery.min.js') }}"></script>
-        <script src="{{ asset('vendor/lightgallery/plugins/zoom/lg-zoom.min.js') }}"></script>
-        <script src="{{ asset('vendor/lightgallery/plugins/fullscreen/lg-fullscreen.min.js') }}"></script>
-        <script src="{{ asset('vendor/flatpickr/dist/flatpickr.min.js') }}"></script>
-        <script src="{{ asset('vendor/flatpickr/dist/l10n/cs.js') }}"></script>
+        {% if ga_tracking is not empty %}
+            <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking }}"></script>
+            <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
 
-        <!-- Main theme script-->
-        <script src="{{ asset('js/theme.min.js') }}"></script>
+                gtag('config', '{{ ga_tracking }}');
+            </script>
+        {% endif %}
     </body>
 </html>

@@ -1,0 +1,118 @@
+//
+// Dropdown
+// --------------------------------------------------
+
+
+// Caret
+
+.dropdown, .dropup,
+.dropstart, .dropend {
+  .dropdown-toggle::after {
+    margin-left: .3rem;
+    vertical-align: middle;
+  }
+}
+.btn.dropdown-toggle::after {
+  margin-left: .35rem;
+}
+h1, h2, h3, h4, h5,
+.h1, .h2, .h3, .h4, .h5 {
+  .dropdown-toggle::after {
+    margin-left: .5rem !important;
+    border: {
+      top-width: .375rem;
+      right-width: .375rem;
+      left-width: .375rem;
+    }
+  }
+}
+
+
+// Dropdown menu
+
+.dropdown-menu {
+  @include box-shadow($dropdown-box-shadow);
+  @if $enable-shadows {
+    border-color: transparent;
+  }
+  li:hover > .dropdown-item {
+    color: $dropdown-link-hover-color;
+  }
+  .active > .dropdown-item {
+    color: $dropdown-link-active-color;
+  }
+  .active > .dropdown-item,
+  .dropdown-item.active {
+    pointer-events: none;
+  }
+  &.dropdown-menu-dark {
+    border-width: 0;
+    li:hover > .dropdown-item {
+      color: $dropdown-dark-link-hover-color;
+    }
+    .active > .dropdown-item {
+      color: $dropdown-dark-link-active-color;
+    }
+  }
+}
+
+
+// Dropdown header
+
+.dropdown-header {
+  margin-bottom: $dropdown-divider-margin-y;
+  padding-bottom: $dropdown-item-padding-y * 2;
+  border-bottom: $dropdown-border-width solid $dropdown-border-color;
+}
+.dropdown-menu-dark .dropdown-header {
+  border-bottom-color: $dropdown-dark-divider-bg;
+}
+
+
+// Dropdown item
+
+.dropdown-item {
+  position: relative;
+  width: 100%;
+  transition: $dropdown-link-transition;
+  font: {
+    size: $dropdown-link-font-size;
+    weight: $nav-link-font-weight;
+  }
+  > i, .badge {
+    margin-top: -.125rem;
+    vertical-align: middle;
+  }
+}
+
+
+// Dropdown menu animation
+
+.dropdown-menu.show {
+  animation: fade-in .25s ease-in-out;
+}
+
+
+// Split button dropdown fix
+
+.dropdown-toggle-split::after {
+  margin-left: -.0625rem !important;
+}
+
+
+// Dropdown component animations
+
+@keyframes fade-in  {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from {
+    transform: translateY(.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

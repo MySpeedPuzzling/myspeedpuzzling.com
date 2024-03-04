@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\FormData\SearchPuzzlerFormData;
-use SpeedPuzzling\Web\FormType\SearchPuzzlerFormType;
+use SpeedPuzzling\Web\FormData\SearchPlayerFormData;
+use SpeedPuzzling\Web\FormType\SearchPlayerFormType;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\SearchPlayers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -17,14 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
-final class PuzzlersController extends AbstractController
+final class PlayersController extends AbstractController
 {
     public function __construct(
         readonly private SearchPlayers $searchPlayers,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
-
     }
 
     #[Route(
@@ -32,26 +31,26 @@ final class PuzzlersController extends AbstractController
             'cs' => '/puzzleri',
             'en' => '/en/puzzlers',
         ],
-        name: 'puzzlers',
+        name: 'players',
         methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request): Response
     {
         $searchString = $request->query->get('search');
 
-        $defaultData = new SearchPuzzlerFormData();
+        $defaultData = new SearchPlayerFormData();
         if (is_string($searchString)) {
             $defaultData->search = $searchString;
         }
 
-        $searchForm = $this->createForm(SearchPuzzlerFormType::class, $defaultData);
+        $searchForm = $this->createForm(SearchPlayerFormType::class, $defaultData);
         $searchForm->handleRequest($request);
 
         if ($searchForm->isSubmitted() && $searchForm->isValid()) {
             $data = $searchForm->getData();
-            assert($data instanceof SearchPuzzlerFormData);
+            assert($data instanceof SearchPlayerFormData);
 
-            return $this->redirectToRoute('puzzlers', [
+            return $this->redirectToRoute('players', [
                 'search' => (new SearchQuery($data->search))->value,
             ]);
         }

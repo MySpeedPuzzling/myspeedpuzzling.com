@@ -79,7 +79,7 @@
                     <ul class="navbar-nav">
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">{{ 'menu.puzzles_overview'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzlers') %}active{% endif %}" href="{{ path('puzzlers') }}">{{ 'menu.puzzlers'|trans }}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">{{ 'menu.puzzlers'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
                         <li class="nav-item">
                             <div class="nav-link">
@@ -147,7 +147,7 @@
                                     <a href="{{ path('ladder') }}" class="widget-list-link">{{ 'menu.ladder'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
-                                    <a href="{{ path('puzzlers') }}" class="widget-list-link">{{ 'menu.puzzlers'|trans }}</a>
+                                    <a href="{{ path('players') }}" class="widget-list-link">{{ 'menu.puzzlers'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item me-4">
                                     <a href="{{ path('faq') }}" class="widget-list-link">{{ 'menu.faq'|trans }}</a>

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use SpeedPuzzling\Web\FormData\SearchPuzzlerFormData;
+use SpeedPuzzling\Web\FormData\SearchPlayerFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * @extends AbstractType<SearchPuzzlerFormData>
+ * @extends AbstractType<SearchPlayerFormData>
  */
-final class SearchPuzzlerFormType extends AbstractType
+final class SearchPlayerFormType extends AbstractType
 {
     /**
      * @param mixed[] $options
@@ -31,7 +31,7 @@ final class SearchPuzzlerFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => SearchPuzzlerFormData::class,
+            'data_class' => SearchPlayerFormData::class,
         ]);
     }
 }

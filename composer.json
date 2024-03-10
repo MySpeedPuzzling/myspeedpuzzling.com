@@ -55,6 +55,10 @@
         "monolog/monolog": "^3.0",
         "nette/utils": "^4.0",
         "oneup/flysystem-bundle": "^4.9",
+        "psr-discovery/cache-implementations": "1.x-dev",
+        "psr-discovery/container-implementations": "1.x-dev",
+        "psr-discovery/event-dispatcher-implementations": "1.x-dev",
+        "psr-discovery/http-client-implementations": "1.x-dev",
         "ramsey/uuid": "^4.2",
         "ramsey/uuid-doctrine": "^2.0",
         "sentry/sentry-symfony": "^4.12",
@@ -85,6 +89,7 @@
         "symfony/string": "^7.0",
         "symfony/translation": "^7.0",
         "symfony/twig-bundle": "^7.0",
+        "symfony/ux-autocomplete": "*",
         "symfony/ux-turbo": "^2.1",
         "symfony/validator": "^7.0",
         "symfony/web-link": "^7.0",
@@ -93,11 +98,7 @@
         "twig/extra-bundle": "^3.7",
         "twig/intl-extra": "^3.8",
         "twig/string-extra": "^3.7",
-        "twig/twig": "^3.0",
-        "psr-discovery/cache-implementations": "1.x-dev",
-        "psr-discovery/event-dispatcher-implementations": "1.x-dev",
-        "psr-discovery/http-client-implementations": "1.x-dev",
-        "psr-discovery/container-implementations": "1.x-dev"
+        "twig/twig": "^3.0"
     },
     "require-dev": {
         "dama/doctrine-test-bundle": "^8.0",

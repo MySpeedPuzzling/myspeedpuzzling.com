@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use Symfony\Component\Validator\Constraints\Length;
 
-final class SearchPuzzlerFormData
+final class SearchPlayerFormData
 {
     #[Length(min: 3)]
     public string $search = '';

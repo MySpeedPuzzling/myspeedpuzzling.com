@@ -9,14 +9,14 @@
     <div class="input-group">
         <input name="group_players[]" class="form-control {% if isInputInvalid %}is-invalid{% endif %}" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
 
-        <select class="form-select group-favorite-player-select">
+        <select class="form-select group-favorite-player-select" data-action="change->add-copuzzler#selectChanged">
             <option value="">{{ 'add_time.choose_from_favorites'|trans }}</option>
             {% for favorite_player in favorite_players %}
                 <option value="{{ favorite_player.playerCode }}">{{ favorite_player.playerName }}</option>
             {% endfor %}
         </select>
 
-        <button data-remove-player class="btn btn-white border btn-icon {% if isInputInvalid %}border-danger{% endif %}" type="button">
+        <button data-action="click->add-copuzzler#removePuzzler" class="btn btn-white border btn-icon {% if isInputInvalid %}border-danger{% endif %}" type="button">
             <i class="ci-trash text-danger"></i>
         </button>
     </div>

@@ -9,7 +9,8 @@ readonly final class ManufacturerOverview
     public function __construct(
         public string $manufacturerId,
         public string $manufacturerName,
-        public bool $approved,
+        public bool $manufacturerApproved,
+        public int $puzzlesCount,
     ) {
     }
 
@@ -17,7 +18,8 @@ readonly final class ManufacturerOverview
      * @param array{
      *      manufacturer_id: string,
      *      manufacturer_name: string,
-     *      approved: bool
+     *      manufacturer_approved: bool,
+     *      puzzles_count: int,
      *  } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -25,7 +27,8 @@ readonly final class ManufacturerOverview
         return new self(
             manufacturerId: $row['manufacturer_id'],
             manufacturerName: $row['manufacturer_name'],
-            approved: $row['approved'],
+            manufacturerApproved: $row['manufacturer_approved'],
+            puzzlesCount: $row['puzzles_count'],
         );
     }
 }

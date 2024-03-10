@@ -16,6 +16,8 @@
 // User custom styles
 @import 'user';
 
+@import "tom-select";
+
 @import "flag-icons/sass/flag-icons";
 
 
@@ -27,6 +29,7 @@ body {
 
 main {
     flex-grow: 1;
+    padding-top: 83px;
 }
 
 .stopwatch {
@@ -325,4 +328,9 @@ td.rank {
             padding: 12px 4px;
         }
     }
+}
+
+.navbar.fixed-top {
+    position: fixed;
+    background: #fff;
 }

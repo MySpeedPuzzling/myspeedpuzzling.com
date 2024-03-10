@@ -2,9 +2,9 @@ menu:
     my_profile: "Můj profil"
     add_time: "Přidat čas"
     stopwatch: "Stopky"
-    puzzles_overview: "Přehled puzzlí"
+    puzzles_overview: "Puzzle"
     ladder: "Žebříček"
-    puzzlers: "Puzzleři"
+    players: "Hráči"
     faq: "Časté dotazy"
     sign_in: "Přihlásit se"
 
@@ -95,8 +95,8 @@ filters:
 
 puzzle_overview:
     meta:
-        title: "Přehled puzzlí"
-    title: "Přehled puzzlí"
+        title: "Puzzle"
+    title: "Puzzle"
     missing_puzzle_info: "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
 
 stopwatch:

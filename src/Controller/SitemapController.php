@@ -48,7 +48,7 @@ final class SitemapController extends AbstractController
             $urls[] = $this->generateUrl('ladder_groups_1000_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             $urls[] = $this->generateUrl('privacy_policy', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             $urls[] = $this->generateUrl('puzzles', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('puzzlers', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
+            $urls[] = $this->generateUrl('players', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             $urls[] = $this->generateUrl('recent_activity', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             $urls[] = $this->generateUrl('terms_of_service', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
 

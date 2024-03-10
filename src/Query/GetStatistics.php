@@ -191,9 +191,9 @@ SQL;
 
         /**
          * @var array{
-         *     total_seconds: int,
-         *     total_pieces: int,
-         *     solved_puzzles_count: int,
+         *     total_seconds: null|int,
+         *     total_pieces: null|int,
+         *     solved_puzzles_count: null|int,
          * } $row
          */
         $row = $this->database

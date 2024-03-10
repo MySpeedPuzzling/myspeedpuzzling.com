@@ -2,9 +2,9 @@ menu:
     my_profile: "My profile"
     add_time: "Add time"
     stopwatch: "Stopwatch"
-    puzzles_overview: "Puzzles overview"
+    puzzles_overview: "Puzzle"
     ladder: "Leaderboard"
-    puzzlers: "Puzzlers"
+    players: "Players"
     faq: "FAQ"
     sign_in: "Sign in"
 
@@ -93,8 +93,8 @@ filters:
 
 puzzle_overview:
     meta:
-        title: "Puzzle Overview"
-    title: "Puzzle Overview"
+        title: "Puzzle"
+    title: "Puzzle"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
 
 stopwatch:

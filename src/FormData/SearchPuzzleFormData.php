@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use SpeedPuzzling\Web\Results\PiecesFilter;
 use Symfony\Component\HttpFoundation\Request;
 
 final class SearchPuzzleFormData
 {
     public null|string $brand = null;
 
-    public null|string $puzzle = null;
+    public null|string $search = null;
 
-    public null|string $piecesCount = null;
+    public null|PiecesFilter $pieces = null;
     public null|string $tags = null;
     public bool $onlyWithResults = false;
     public bool $onlySolvedByMe = false;
@@ -26,14 +27,9 @@ final class SearchPuzzleFormData
             $self->brand = $brand;
         }
 
-        $puzzle = $request->query->get('puzzle');
-        if (is_string($puzzle)) {
-            $self->puzzle = $puzzle;
-        }
-
-        $piecesCount = $request->query->get('pieces_count');
-        if (is_string($piecesCount)) {
-            $self->piecesCount = $piecesCount;
+        $search = $request->query->get('search');
+        if (is_string($search)) {
+            $self->search = $search;
         }
 
         $tags = $request->query->get('tags');

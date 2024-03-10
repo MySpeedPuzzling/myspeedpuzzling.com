@@ -17,13 +17,19 @@ readonly final class GetManufacturers
     /**
      * @return array<ManufacturerOverview>
      */
-    public function onlyApprovedOrAddedByPlayer(string $playerId): array
+    public function onlyApprovedOrAddedByPlayer(null|string $playerId = null): array
     {
         $query = <<<SQL
-SELECT id AS manufacturer_id, name AS manufacturer_name, approved
+SELECT
+    manufacturer.id AS manufacturer_id,
+    manufacturer.name AS manufacturer_name,
+    manufacturer.approved AS manufacturer_approved,
+    COUNT(puzzle.id) AS puzzles_count
 FROM manufacturer
-WHERE (approved = true OR added_by_user_id = :playerId)
-ORDER BY name ASC
+LEFT JOIN puzzle ON puzzle.manufacturer_id = manufacturer.id
+WHERE (manufacturer.approved = true OR manufacturer.added_by_user_id = :playerId)
+GROUP BY manufacturer.id
+ORDER BY COUNT(puzzle.id) DESC, manufacturer.name ASC
 SQL;
 
         $data = $this->database
@@ -35,9 +41,10 @@ SQL;
         return array_map(static function(array $row): ManufacturerOverview {
             /**
              * @var array{
-             *     manufacturer_id: string,
-             *     manufacturer_name: string,
-             *     approved: bool
+             *      manufacturer_id: string,
+             *      manufacturer_name: string,
+             *      manufacturer_approved: bool,
+             *      puzzles_count: int,
              * } $row
              */
             return ManufacturerOverview::fromDatabaseRow($row);

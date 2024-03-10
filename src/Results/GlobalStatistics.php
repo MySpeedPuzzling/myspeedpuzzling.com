@@ -15,17 +15,17 @@ readonly final class GlobalStatistics
 
     /**
      * @param array{
-     *     total_seconds: int,
-     *     total_pieces: int,
-     *     solved_puzzles_count: int,
+     *     total_seconds: null|int,
+     *     total_pieces: null|int,
+     *     solved_puzzles_count: null|int,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
         return new self(
-            totalSeconds: $row['total_seconds'],
-            totalPieces: $row['total_pieces'],
-            solvedPuzzlesCount: $row['solved_puzzles_count'],
+            totalSeconds: $row['total_seconds'] ?? 0,
+            totalPieces: $row['total_pieces'] ?? 0,
+            solvedPuzzlesCount: $row['solved_puzzles_count'] ?? 0,
         );
     }
 }

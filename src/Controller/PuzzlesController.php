@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
+use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\UX\Turbo\TurboBundle;
 
 final class
 PuzzlesController extends AbstractController
@@ -44,28 +46,6 @@ PuzzlesController extends AbstractController
         $searchForm = $this->createForm(SearchPuzzleFormType::class, $searchData);
         $searchForm->handleRequest($request);
 
-        $frameId = $request->headers->get('Turbo-Frame');
-
-        if (in_array($frameId, ['search-form', 'search-results'], true)) {
-            return $this->render('_puzzle_search_results.html.twig');
-        }
-
-        /*
-        if ($searchForm->isValid()) {
-            $data = $searchForm->getData();
-            assert($data instanceof SearchPuzzleFormData);
-
-            return $this->redirectToRoute('puzzles', [
-                'pieces' => $data->pieces,
-                'brand' => $data->brand,
-                'tags' => $data->tags,
-                'search' => $data->search,
-                'only_with_results' => $data->onlyWithResults,
-                'only_solved_by_me' => $data->onlySolvedByMe,
-            ]);
-        }
-        */
-
         $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(
             $user?->getUserIdentifier()
         );
@@ -81,7 +61,7 @@ PuzzlesController extends AbstractController
             $searchData->brand,
             $searchData->search,
             $searchData->onlyWithResults,
-            $searchData->pieces,
+            PiecesFilter::fromUserInput($searchData->pieces),
         );
 
         $offset = $request->query->get('offset');
@@ -96,13 +76,24 @@ PuzzlesController extends AbstractController
             $searchData->brand,
             $searchData->search,
             $searchData->onlyWithResults,
-            $searchData->pieces,
+            PiecesFilter::fromUserInput($searchData->pieces),
             $offset,
         );
 
+        $templateName = 'puzzles.html.twig';
+
+        if ($request->headers->has('x-turbo-request-id')) {
+            $templateName = '_puzzle_search_results.html.twig';
+
+            if ($offset !== 0) {
+                $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+                $templateName = '_puzzle_search_results.stream.html.twig';
+            }
+        }
+
         $limit = 20;
 
-        return $this->render('puzzles.html.twig', [
+        return $this->render($templateName, [
             'puzzles' => $foundPuzzle,
             'total_puzzles_count' => $totalPuzzlesCount,
             'puzzles_solved_by_user' => $userSolvedPuzzles,

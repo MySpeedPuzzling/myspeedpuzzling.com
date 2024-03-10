@@ -29,9 +29,8 @@
 
         <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}" />
 
-        {% block stylesheets %}
-            {{ encore_entry_link_tags('app') }}
-        {% endblock %}
+        {{ encore_entry_link_tags('app') }}
+        {{ encore_entry_script_tags('app') }}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery filter-list file-drop-area datepicker">
         <header class="navbar fixed-top navbar-expand-lg navbar-light shadow-sm" data-fixed-element>
@@ -178,10 +177,6 @@
                 </div>
             </div>
         </footer>
-
-        {% block javascripts %}
-            {{ encore_entry_script_tags('app') }}
-        {% endblock %}
 
         {% if ga_tracking is not empty %}
             <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking }}"></script>

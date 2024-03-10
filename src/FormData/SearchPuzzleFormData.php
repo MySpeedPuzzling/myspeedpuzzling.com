@@ -13,7 +13,7 @@ final class SearchPuzzleFormData
 
     public null|string $search = null;
 
-    public null|PiecesFilter $pieces = null;
+    public null|string $pieces = null;
     public null|string $tags = null;
     public bool $onlyWithResults = false;
     public bool $onlySolvedByMe = false;
@@ -23,7 +23,7 @@ final class SearchPuzzleFormData
         $self = new self();
 
         $brand = $request->query->get('brand');
-        if (is_string($brand)) {
+        if (is_string($brand) && $brand !== '') {
             $self->brand = $brand;
         }
 

@@ -24,7 +24,7 @@ readonly final class SearchPuzzle
         null|string $brandId = null,
         null|string $search = null,
         bool $onlyWithResults = false,
-        null|PiecesFilter $pieces = null,
+        PiecesFilter $pieces = PiecesFilter::Any,
     ): int {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
@@ -52,7 +52,7 @@ WHERE
         OR identification_number LIKE :searchFullLikeQuery
         OR ean LIKE :searchFullLikeQuery
    )
-HAVING COUNT(puzzle_solving_time.id) >= :solvedCount
+AND (:solvedCount = 0 OR puzzle_solving_time.id IS NOT NULL)
 SQL;
 
         $count = $this->database
@@ -63,8 +63,8 @@ SQL;
                 'searchFullLikeQuery' => "%$search%",
                 'brandId' => $brandId,
                 'solvedCount' => $onlyWithResults ? 1 : 0,
-                'minPieces' => 0,
-                'maxPieces' => 15000,
+                'minPieces' => $pieces->minPieces(),
+                'maxPieces' => $pieces->maxPieces(),
             ])
             ->fetchOne();
         assert(is_int($count));
@@ -80,7 +80,7 @@ SQL;
         null|string $brandId = null,
         null|string $search = null,
         bool $onlyWithResults = false,
-        null|PiecesFilter $pieces = null,
+        PiecesFilter $pieces = PiecesFilter::Any,
         int $offset = 0,
         int $limit = 20,
     ): array
@@ -152,8 +152,8 @@ SQL;
                 'brandId' => $brandId,
                 'solvedCount' => $onlyWithResults ? 1 : 0,
                 'limit' => $limit,
-                'minPieces' => 0,
-                'maxPieces' => 15000,
+                'minPieces' => $pieces->minPieces(),
+                'maxPieces' => $pieces->maxPieces(),
                 'offset' => $offset,
             ])
             ->fetchAllAssociative();

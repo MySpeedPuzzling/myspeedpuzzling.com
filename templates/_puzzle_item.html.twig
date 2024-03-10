@@ -1,0 +1,93 @@
+<div
+    class="shadow-lg my-3 py-3 px-3"
+    data-puzzle-filter-target="puzzleItem"
+    data-pieces-count="{{ puzzle.piecesCount }}"
+    data-puzzle-name="{{ puzzle.puzzleName }}"
+    data-puzzle-code="{{ puzzle.puzzleIdentificationNumber }}"
+    data-puzzle-alternative-name="{{ puzzle.puzzleAlternativeName }}"
+    data-manufacturer="{{ puzzle.manufacturerName }}"
+    data-available="{{ puzzle.isAvailable ? 1 : 0 }}"
+    data-has-time="{{ puzzle.solvedTimes > 0 ? 1 : 0 }}"
+    data-tags="{{ (tags[puzzle.puzzleId] ?? [])|json_encode }}"
+>
+    <div class="row">
+        <div class="col-md align-self-center">
+            <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                {{ include('_puzzle_name.html.twig', {
+                    puzzle_name: puzzle.puzzleName,
+                    alternative_puzzle_name: puzzle.puzzleAlternativeName,
+                }) }}
+
+                {% if puzzle.puzzleIdentificationNumber is not null %}
+                    <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                {% endif %}
+            </a>
+        </div>
+
+        <div class="col-md text-md-center align-self-center">
+            {% if puzzle.puzzleImage is not null%}
+                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                    <img class="rounded-2" style="max-width: 100px;max-height: 100px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                </a>
+            {% endif %}
+        </div>
+
+        <div class="col-md align-self-center text-md-center">
+            <b>{{ puzzle.manufacturerName|upper }}</b><br>
+            {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
+        </div>
+
+        <div class="col-md align-self-center text-md-center">
+            {% for tag in tags[puzzle.puzzleId] ?? [] %}
+                <span class="badge bg-primary rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
+            {% endfor %}
+
+            {% if puzzle.puzzleId in puzzles_solved_by_user %}
+                <span class="badge bg-success rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
+            {% endif %}
+
+            {% if app.request.locale is same as 'cs' %}
+                {% if puzzle.isAvailable %}
+                    <span class="badge bg-success rounded-pill">{{ 'puzzle_available'|trans }}</span>
+                {% else %}
+                    <span class="badge bg-dark rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="col-md align-self-center">
+            {% if puzzle.solvedTimes > 0 %}
+                <table class="table-times-overview">
+                    <tr>
+                        <td><small>{{ 'puzzle_solved_count'|trans }}</small></td>
+                        <td class="text-end"><small>{{ puzzle.solvedTimes }}</small></td>
+                    </tr>
+                    {% if ranking[puzzle.puzzleId] is defined %}
+                        <tr>
+                            <td><small>{{ 'my_time'|trans }}</small></td>
+                            <td class="text-end"><small>{{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small></td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <td><small>{{ 'fastest_time'|trans }}</small></td>
+                        <td class="text-end"><small>{{ puzzle.fastestTimeSolo|puzzlingTime }}</small></td>
+                    </tr>
+                    <tr>
+                        <td><small>{{ 'average_time'|trans }}</small></td>
+                        <td class="text-end"><small>{{ puzzle.averageTimeSolo|puzzlingTime }}</small></td>
+                    </tr>
+                </table>
+            {% else %}
+                <small>{{ 'never_solved_puzzles'|trans }}</small>
+            {% endif %}
+        </div>
+
+        <div class="col-md align-self-center text-md-center">
+            {% if puzzle.solvedTimes > 0 %}
+                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1 px-2 my-1 btn-sm btn-primary">{{ 'show_times'|trans }}</a>
+            {% endif %}
+            <a data-turbo-frame="_top" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> {{ 'add_my_time'|trans }}</a>
+            <a data-turbo-frame="_top" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> {{ 'start_solving'|trans }}</a>
+        </div>
+    </div>
+</div>

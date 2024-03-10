@@ -1,0 +1,24 @@
+{% if next_offset < total_puzzles_count %}
+    {% set loadMoreParameters = app.request.query.all|merge({'offset': next_offset}) %}
+
+    <p class="text-center mt-3">
+        <a
+           href="{{ url(app.request.attributes.get('_route'), loadMoreParameters) }}"
+           class="btn btn-sm btn-primary"
+           data-controller="load-more"
+           data-turbo-prefetch="false"
+           data-action="ajax:beforeSend->load-more#startLoading ajax:complete->load-more#stopLoading"
+        >
+            <span class="d-none" data-load-more-target="spinner">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Loading
+            </span>
+            <span class="d-inline" data-load-more-target="text">
+                Load more...
+            </span>
+        </a>
+        <br>
+        <small class="text-muted">Remaining: {{ total_puzzles_count - current_offset }}</small>
+        <br>
+        <a class="small" href="#top" data-turbo="false">back to top</a>
+    </p>
+{% endif %}

@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use SpeedPuzzling\Web\FormData\SearchPlayerFormData;
 use SpeedPuzzling\Web\FormData\SearchPuzzleFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @extends AbstractType<SearchPuzzleFormData>
@@ -22,7 +19,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final class SearchPuzzleFormType extends AbstractType
 {
     public function __construct(
-        readonly private UrlGeneratorInterface $urlGenerator,
         readonly private GetManufacturers $getManufacturers,
     ) {
     }
@@ -40,8 +36,9 @@ final class SearchPuzzleFormType extends AbstractType
         $builder->add('brand', ChoiceType::class, [
             'label' => 'Brand',
             'required' => false,
-            //'autocomplete' => true,
+            'autocomplete' => true,
             'choices' => $brandChoices,
+            'placeholder' => 'Any'
             // loading_more_text
             // no_results_found_text
             // no_more_results_text
@@ -57,7 +54,7 @@ final class SearchPuzzleFormType extends AbstractType
                 '500' => '500',
                 '501-999' => '501-999',
                 '1000' => '1000',
-                '1000+' => '1000+',
+                '1001+' => '1001+',
             ],
             'choice_translation_domain' => false,
         ]);
@@ -69,7 +66,7 @@ final class SearchPuzzleFormType extends AbstractType
         $builder->add('search', TextType::class, [
             'required' => false,
             'attr' => [
-                'placeholder' => 'Name, code or EAN...',
+                'placeholder' => 'Part of name, code or EAN...',
             ],
         ]);
 
@@ -88,6 +85,15 @@ final class SearchPuzzleFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => SearchPuzzleFormData::class,
+            'method' => 'get',
+            'csrf_protection' => false,
+            'allow_extra_fields' => true,
         ]);
+    }
+
+    public function getBlockPrefix(): string
+    {
+        // Return an empty string to remove form name prefix from field names
+        return '';
     }
 }

@@ -64,6 +64,7 @@ PuzzlesController extends AbstractController
             PiecesFilter::fromUserInput($searchData->pieces),
         );
 
+        /** @var null|int $offset */
         $offset = $request->query->get('offset');
         if (is_numeric($offset)) {
             $offset = max(0, (int) $offset);
@@ -82,7 +83,9 @@ PuzzlesController extends AbstractController
 
         $templateName = 'puzzles.html.twig';
 
-        if ($request->headers->has('x-turbo-request-id')) {
+        $search = $request->query->get('search');
+
+        if ((is_string($search) || $offset !== 0) && $request->headers->has('x-turbo-request-id')) {
             $templateName = '_puzzle_search_results.html.twig';
 
             if ($offset !== 0) {

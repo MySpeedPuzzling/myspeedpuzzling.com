@@ -118,6 +118,7 @@ SELECT
     puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.comment,
     puzzle_solving_time.tracked_at,
+    finished_at,
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo
 FROM puzzle_solving_time
@@ -154,6 +155,7 @@ SQL;
              *     tracked_at: string,
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
+             *     finished_at: string,
              * } $row
              */
 
@@ -182,6 +184,7 @@ SELECT
     pieces_count,
     finished_puzzle_photo,
     tracked_at,
+    finished_at,
     puzzle.identification_number AS puzzle_identification_number,
     pst.comment,
     manufacturer.name AS manufacturer_name,
@@ -236,6 +239,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
+             *     finished_at: string,
              * } $row
              */
 
@@ -267,6 +271,7 @@ SELECT
     pieces_count,
     finished_puzzle_photo,
     tracked_at,
+    finished_at,
     puzzle.identification_number AS puzzle_identification_number,
     pst.comment,
     manufacturer.name AS manufacturer_name,
@@ -321,6 +326,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
+             *     finished_at: string,
              * } $row
              */
 

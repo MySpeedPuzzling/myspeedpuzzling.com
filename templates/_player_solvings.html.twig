@@ -94,7 +94,8 @@
                             {% if loop.first %}
                                 <span class="d-inline-block">
                                     {{ puzzle.time|puzzlingTime }}
-
+                                    <br>
+                                    <small class="text-muted"><i class="ci-calendar"></i>&nbsp;{{ puzzle.finishedAt|date('d.m.Y') }}</small>
                                     <br>
                                     <small>
                                         <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
@@ -114,7 +115,7 @@
 
                         {% if solved_puzzle|length > 1 %}
                             <br>
-                            <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: loop.index})}}">
+                            <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: loop.index})}}>
                                 <span class="badge bg-dark badge-shadow rounded-pill">
                                     {{ 'show_more_solving_times'|trans({ '%count%': solved_puzzle|length-1 }) }}
                                 </span>
@@ -123,9 +124,10 @@
                             <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', loop.index) }}>
                                 {% for puzzle in solved_puzzle %}
                                     {% if not loop.first %}
-                                        <span class="d-inline-block">
+                                        <span class="d-inline-block mt-1">
                                             {{ puzzle.time|puzzlingTime }}
-
+                                            <br>
+                                            <small class="text-muted"><i class="ci-calendar"></i>&nbsp;{{ puzzle.finishedAt|date('d.m.Y') }}</small>
                                             <br>
                                             <small>
                                                 <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}

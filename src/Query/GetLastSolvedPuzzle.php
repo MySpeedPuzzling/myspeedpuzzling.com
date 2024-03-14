@@ -35,6 +35,7 @@ SELECT
     manufacturer.name AS manufacturer_name,
     puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.tracked_at AS tracked_at,
+    finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     CASE
@@ -85,6 +86,7 @@ SQL;
              *     team_id: null|string,
              *     players: null|string,
              *     puzzle_identification_number: null|string,
+             *     finished_at: string,
              * } $row
              */
 

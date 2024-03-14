@@ -28,6 +28,7 @@ SELECT
     pieces_count,
     comment,
     tracked_at,
+    finished_at,
     finished_puzzle_photo,
     puzzle_solving_time.seconds_to_solve AS time,
     player.name AS player_name,
@@ -84,6 +85,7 @@ SQL;
              *     comment: null|string,
              *     puzzle_identification_number: null|string,
              *     players: null|string,
+             *     finished_at: string,
              * } $row
              */
 

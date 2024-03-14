@@ -38,7 +38,8 @@ final class SearchPuzzleFormType extends AbstractType
             'required' => false,
             'autocomplete' => true,
             'choices' => $brandChoices,
-            'placeholder' => 'Any'
+            'placeholder' => 'Any',
+            'empty_data' => '',
             // loading_more_text
             // no_results_found_text
             // no_more_results_text
@@ -48,6 +49,7 @@ final class SearchPuzzleFormType extends AbstractType
             'required' => false,
             'expanded' => true,
             'multiple' => false,
+            'empty_data' => '',
             'choices' => [
                 '' => 'Any',
                 '1-499' => '1-499',
@@ -61,10 +63,12 @@ final class SearchPuzzleFormType extends AbstractType
 
         $builder->add('tags', ChoiceType::class, [
             'required' => false,
+            'empty_data' => '',
         ]);
 
         $builder->add('search', TextType::class, [
             'required' => false,
+            'empty_data' => '',
             'attr' => [
                 'placeholder' => 'Part of name, code or EAN...',
             ],

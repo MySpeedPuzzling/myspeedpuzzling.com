@@ -8,7 +8,7 @@
         <small class="ps-1 text-primary">Searching...</small>
     </div>
 
-    {% if form_data.search is null or total_puzzles_count == 0 %}
+    {% if form_data.search is same as null or total_puzzles_count == 0 %}
         <p class="mt-2 mb-3 text-muted small">{{ 'puzzle_overview.missing_puzzle_info'|trans }}</p>
     {% endif %}
 

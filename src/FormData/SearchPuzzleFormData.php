@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
-use SpeedPuzzling\Web\Results\PiecesFilter;
 use Symfony\Component\HttpFoundation\Request;
 
 final class SearchPuzzleFormData
@@ -35,6 +34,11 @@ final class SearchPuzzleFormData
         $tags = $request->query->get('tags');
         if (is_string($tags)) {
             $self->tags = $tags;
+        }
+
+        $pieces = $request->query->get('pieces');
+        if (is_string($pieces)) {
+            $self->pieces = $pieces;
         }
 
         $onlyWithResults = $request->query->get('only_with_results');

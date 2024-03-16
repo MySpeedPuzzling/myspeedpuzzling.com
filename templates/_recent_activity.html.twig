@@ -55,36 +55,38 @@
                             <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle.piecesCount })|raw }}</small>
                         </p>
 
-                        {% if solved_puzzle.players is null %}
-                            <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
-                                {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
-                                    <i class="ci-star-filled text-warning"></i>
-                                {% endif %}
-                                <small>{{ solved_puzzle.playerName }}</small>
-                            </a>
-                            {% if solved_puzzle.playerCountry is not null %}
-                                <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
-                            {% endif %}
-                        {% else %}
-                            {% for puzzle_solver in solved_puzzle.players %}
-                                {% if not loop.first %}
-                                    <br>
-                                {% endif %}
-                                {% if puzzle_solver.playerId is not null %}
-                                    <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                        <small>{{ puzzle_solver.playerName }}</small>
-                                        {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
-                                            <i class="ci-star-filled text-warning"></i>
-                                        {% endif %}
-                                    </a>
-                                    {% if puzzle_solver.playerCountry is not null %}
-                                        <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                        <p class="mb-0 low-line-height">
+                            {% if solved_puzzle.players is null %}
+                                <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                                    {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
+                                        <i class="ci-star-filled text-warning"></i>
                                     {% endif %}
-                                {% else %}
-                                    <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                    <small>{{ solved_puzzle.playerName }}</small>
+                                </a>
+                                {% if solved_puzzle.playerCountry is not null %}
+                                    <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
                                 {% endif %}
-                            {% endfor %}
-                        {% endif %}
+                            {% else %}
+                                {% for puzzle_solver in solved_puzzle.players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            <small>{{ puzzle_solver.playerName }}</small>
+                                            {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
+                                                <i class="ci-star-filled text-warning"></i>
+                                            {% endif %}
+                                        </a>
+                                        {% if puzzle_solver.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </p>
                     </td>
                 </tr>
             {% endfor %}

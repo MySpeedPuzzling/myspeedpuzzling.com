@@ -160,7 +160,7 @@
                     {% for player_id, aggregated_solver in solo_puzzle_solvers %}
                         <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
                             <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name text-nowrap">
+                            <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: player_id}) }}">
                                     {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
                                         <i class="ci-star-filled text-warning"></i>
@@ -216,7 +216,7 @@
                     {% for puzzlers_duo in duo_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
-                            <td class="player-name text-nowrap">
+                            <td class="player-name">
                                 {% for puzzle_solver in puzzlers_duo.players %}
                                     {% if not loop.first %}
                                         <br>
@@ -283,7 +283,7 @@
                     {% for puzzlers_team in team_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
-                            <td class="player-name text-nowrap">
+                            <td class="player-name">
                                 {% for puzzle_solver in puzzlers_team.players %}
                                     {% if not loop.first %}
                                         <br>

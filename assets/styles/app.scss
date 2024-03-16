@@ -142,10 +142,10 @@ main {
 
     td {
         padding-right: 0;
-        padding-left: 12px;
+        padding-left: 10px;
 
         &:last-child {
-            padding-right: 12px;
+            padding-right: 10px;
         }
     }
 
@@ -333,4 +333,8 @@ td.rank {
 .navbar.fixed-top {
     position: fixed;
     background: #fff;
+}
+
+.low-line-height {
+    line-height: 100%;
 }

@@ -1,17 +1,5 @@
 <div class="table-responsive custom-table-wrapper" {{ stimulus_controller('toggle') }}>
     <table class="table table-striped table-hover mb-0">
-        <thead>
-        <tr>
-            <th></th>
-            <th></th>
-
-            <th>{{ 'puzzle'|trans }}</th>
-
-            <th class="text-center"></th>
-
-            <th class="text-end">{{ 'time'|trans }}</th>
-        </tr>
-        </thead>
         <tbody>
             {% for puzzle_id, solved_puzzle in solved_puzzles %}
                 <tr
@@ -28,66 +16,37 @@
                     <td class="text-center">
                         {% if solved_puzzle[0].puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ solved_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
                             </a>
                         {% endif %}
-                    </td>
 
-                    <td class="text-center">
-                    {# Display photo of finished puzzle only to logged user #}
+                        {# Display photo of finished puzzle only to logged user #}
                         {% if logged_user.profile is not null and logged_user.profile.playerId is same as solved_puzzle[0].playerId %}
                             {% if solved_puzzle[0].finishedPuzzlePhoto is not null%}
-                                <div class="gallery">
+                                <div class="gallery mt-1">
                                     <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(solved_puzzle[0].finishedPuzzlePhoto) }}">
-                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ solved_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
+                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 50px;max-height: 66px;" src="{{ solved_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
                                     </a>
                                 </div>
                             {% endif %}
                         {% endif %}
                     </td>
 
-                    <td>
-                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                                <span class="puzzle-title">
-                                    {{ include('_puzzle_name.html.twig', {
-                                        puzzle_name: solved_puzzle[0].puzzleName,
-                                        alternative_puzzle_name: solved_puzzle[0].puzzleAlternativeName,
-                                    }) }}
-                                    <br>
-                                    <small>{{ solved_puzzle[0].manufacturerName }}</small>
-                                </span>
-                            <br>
-                            {{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}
+                    <td class="d-none d-sm-table-cell">
+                        <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
+                            <span style="color: #111;">
+                                {{ solved_puzzle[0].manufacturerName }}<br>
+                                <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
+                            </span><br>
+
+                            <small class="puzzle-title mt-2">
+                                {{ include('_puzzle_name.html.twig', {
+                                    puzzle_name: solved_puzzle[0].puzzleName,
+                                    alternative_puzzle_name: solved_puzzle[0].puzzleAlternativeName,
+                                }) }}
+                            </small>
                         </a>
                     </td>
-
-                    {# Display rank for solo #}
-                    {% if solved_puzzle[0].players is null %}
-                        <td class="text-center">
-                            {{ ranking[puzzle_id].rank }}.
-                        </td>
-                    {% endif %}
-
-                    {# Display player names for groups #}
-                    {% if solved_puzzle[0].players is not null %}
-                        <td class="player-name text-nowrap">
-                            {% for puzzle_solver in solved_puzzle[0].players %}
-                                {% if not loop.first %}
-                                    <br>
-                                {% endif %}
-                                {% if puzzle_solver.playerId is not null %}
-                                    <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                        {{ puzzle_solver.playerName }}
-                                    </a>
-                                    {% if puzzle_solver.playerCountry is not null %}
-                                        <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
-                                    {% endif %}
-                                {% else %}
-                                    <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                    {% endif %}
 
                     <td class="text-end text-nowrap with-ppm">
                         {% for puzzle in solved_puzzle %}
@@ -95,19 +54,19 @@
                                 <span class="d-inline-block">
                                     {{ puzzle.time|puzzlingTime }}
                                     <br>
-                                    <small class="text-muted"><i class="ci-calendar"></i>&nbsp;{{ puzzle.finishedAt|date('d.m.Y') }}</small>
+                                    <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
                                     <br>
                                     <small>
                                         <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
                                         {% if solved_puzzle[0].players is not null %}
-                                            ({{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
+                                            <br>({{ solved_puzzle[0].players|length }}x {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
                                         {% endif %}
                                     </small>
                                 </span>
 
                                 {# Display edit icon only to current user #}
                                 {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
-                                    <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
+                                    <a class="btn btn-sm btn-outline-dark p-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
                                 {% endif %}
 
                             {% endif %}
@@ -127,7 +86,7 @@
                                         <span class="d-inline-block mt-1">
                                             {{ puzzle.time|puzzlingTime }}
                                             <br>
-                                            <small class="text-muted"><i class="ci-calendar"></i>&nbsp;{{ puzzle.finishedAt|date('d.m.Y') }}</small>
+                                            <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
                                             <br>
                                             <small>
                                                 <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
@@ -139,7 +98,7 @@
 
                                         {# Display edit icon only to current user #}
                                         {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
-                                            <a class="btn btn-sm btn-outline-dark px-2 py-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
+                                            <a class="btn btn-sm btn-outline-dark p-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
                                         {% endif %}
 
                                         {% if not loop.last %}
@@ -150,15 +109,48 @@
                             </div>
                         {% endif %}
                     </td>
+
+                    <td>
+                        {# Display rank for solo #}
+                        {% if solved_puzzle[0].players is null %}
+                            <small>Rank {{ ranking[puzzle_id].rank }}</small><br>
+                        {% endif %}
+
+                        <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
+                            <small>{{ solved_puzzle[0].manufacturerName }}</small>
+                            <br>
+                            <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
+                        </a>
+
+                        {% if solved_puzzle[0].players|length > 0 %}
+                            <p class="low-line-height mt-1 mb-0 player-name">
+                                {% for puzzle_solver in solved_puzzle[0].players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            <small>{{ puzzle_solver.playerName }}</small>
+                                        </a>
+                                        {% if puzzle_solver.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
             {% if solved_puzzles|length < 1 %}
                 <tr>
-                    <td colspan="5" class="text-center">{{ 'profile.no_puzzles_solved'|trans }}</td>
+                    <td colspan="4" class="text-center">{{ 'profile.no_puzzles_solved'|trans }}</td>
                 </tr>
             {% else %}
                 <tr class="filter-no-results hidden mt-3">
-                    <td colspan="5">
+                    <td colspan="4">
                         <div class="alert alert-warning mb-0">
                             {{ 'filters.no_puzzle_matches_filters'|trans }}
                         </div>

@@ -11,7 +11,7 @@
         <tbody>
             {% for solved_puzzle in solved_puzzles %}
                 <tr class="{{ logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                    <td>
+                    <td class="text-center">
                         {% if solved_puzzle.puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
                                 <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">

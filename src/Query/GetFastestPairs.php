@@ -76,7 +76,6 @@ SQL;
              *     player_name: string,
              *     player_country: null|string,
              *     player_id: string,
-             *     solved_times: int,
              *     manufacturer_name: string,
              *     time_id: string,
              *     finished_puzzle_photo: null|string,

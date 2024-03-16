@@ -1,83 +1,87 @@
 <div class="table-responsive custom-table-wrapper mt-3 mb-3">
     <table class="table custom-table table-striped table-hover mb-0">
-        <thead>
-        <tr>
-            <th></th>
-            <th>{{ 'puzzler'|trans }}</th>
-            <th class="text-end">{{ 'time'|trans }}</th>
-            <th></th>
-            <th>{{ 'puzzle'|trans }}</th>
-        </tr>
-        </thead>
         <tbody>
         {% for solving_time in puzzle_solving_times %}
             <tr class="{{ logged_user.profile is not null and solving_time.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                <td class="rank">{{ loop.index }}.</td>
-                <td class="player-name text-nowrap">
-                    {% if solving_time.players is null %}
-                        <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
-                            {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
-                                <i class="ci-star-filled text-warning"></i>
-                            {% endif %}
-                            {{ solving_time.playerName }}</a>
-                        {% if solving_time.playerCountry is not null %}
-                            <small class="shadow-custom fi fi-{{ solving_time.playerCountry.name }}"></small>
-                        {% endif %}
-                    {% else %}
-                        {% for puzzle_solver in solving_time.players %}
-                            {% if not loop.first %}
-                                <br>
-                            {% endif %}
-                            {% if puzzle_solver.playerId is not null %}
-                                <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                    {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
-                                        <i class="ci-star-filled text-warning"></i>
-                                    {% endif %}
-                                    {{ puzzle_solver.playerName }}
-                                </a>
-                                {% if puzzle_solver.playerCountry is not null %}
-                                    <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
-                                {% endif %}
-                            {% else %}
-                                <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-
-                    {% if solving_time.solvedTimes > 1 %}
-                        <span class="badge bg-dark rounded-pill">{{ 'puzzle_solved_times'|trans({ '%count%': solving_time.solvedTimes }) }}x</span>
-                    {% endif %}
+                <td class="text-center" style="padding-left: 4px;">
+                    <small style="color: #000;">{{ loop.index }}</small>
                 </td>
-
-                <td class="text-end with-ppm">
-                    {{ solving_time.time|puzzlingTime }}
-                    <br>
-                    <small>
-                        <span class="text-muted">PPM</span> {{ ppm(solving_time.time, solving_time.piecesCount) }}
-                        {% if solving_time.players is not null %}
-                            ({{ ppm(solving_time.time, solving_time.piecesCount, solving_time.players|length) }})
-                        {% endif %}
-                    </small>
-                </td>
-
-                <td class="text-center">
+                <td class="text-center low-line-height" style="width: 90px;">
                     {% if solving_time.puzzleImage is not null%}
                         <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                            <img  alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}) }}" class="rounded-2" style="max-width: 100px;max-height: 100px;" src="{{ solving_time.puzzleImage|imagine_filter('puzzle_small') }}">
+                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}) }}" class="rounded-2 mt-1" style="max-width: 80px;max-height: 80px;" src="{{ solving_time.puzzleImage|imagine_filter('puzzle_small') }}">
                         </a>
                     {% endif %}
                 </td>
-                <td>
-                    <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                        <span class="puzzle-title">
+
+                <td class="d-none d-sm-table-cell">
+                    <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
+                        <span style="color: #111;">
+                            {{ solving_time.manufacturerName }}
+                        </span><br>
+
+                        <small class="puzzle-title mt-2">
                             {{ include('_puzzle_name.html.twig', {
                                 puzzle_name: solving_time.puzzleName,
                                 alternative_puzzle_name: solving_time.puzzleAlternativeName,
                             }) }}
-                            <br>
-                            <small>{{ solving_time.manufacturerName }}</small>
-                        </span>
+                        </small>
                     </a>
+                </td>
+
+                <td class="player-name text-nowrap">
+                    <p class="low-line-height mb-0">
+                        {% if solving_time.players is null %}
+                            <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
+                                {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
+                                    <i class="ci-star-filled text-warning"></i>
+                                {% endif %}
+                                <small>{{ solving_time.playerName }}</small></a>
+                            {% if solving_time.playerCountry is not null %}
+                                <small class="shadow-custom fi fi-{{ solving_time.playerCountry.name }}"></small>
+                            {% endif %}
+                        {% else %}
+                            {% for puzzle_solver in solving_time.players %}
+                                {% if not loop.first %}
+                                    <br>
+                                {% endif %}
+                                {% if puzzle_solver.playerId is not null %}
+                                    <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                        {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
+                                            <i class="ci-star-filled text-warning"></i>
+                                        {% endif %}
+                                        <small>{{ puzzle_solver.playerName }}</small>
+                                    </a>
+                                    {% if puzzle_solver.playerCountry is not null %}
+                                        <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                    {% endif %}
+                                {% else %}
+                                    <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                {% endif %}
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if solving_time.solvedTimes > 1 %}
+                            <span class="badge bg-dark rounded-pill">{{ 'puzzle_solved_times'|trans({ '%count%': solving_time.solvedTimes }) }}x</span>
+                        {% endif %}
+                    </p>
+
+                    <p class="mt-2 d-sm-none">
+                        <small>{{ solving_time.manufacturerName }}</small><br>
+                    </p>
+                </td>
+
+                <td class="with-ppm text-end text-nowrap">
+                    <span style="color: #000;">{{ solving_time.time|puzzlingTime }}</span>
+                    <br>
+                    <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                    <br>
+                    <small class="text-nowrap">
+                        <span class="text-muted">PPM</span> {{ ppm(solving_time.time, solving_time.piecesCount) }}
+                        {% if solving_time.players is not null %}
+                            <br>({{ solving_time.players|length }}x {{ ppm(solving_time.time, solving_time.piecesCount, solving_time.players|length) }})
+                        {% endif %}
+                    </small>
                 </td>
             </tr>
         {% endfor %}

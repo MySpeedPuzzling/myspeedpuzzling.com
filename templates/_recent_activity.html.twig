@@ -44,7 +44,7 @@
                         <small class="text-nowrap">
                             <span class="text-muted">PPM</span> {{ ppm(solved_puzzle.time, solved_puzzle.piecesCount) }}
                             {% if solved_puzzle.players is not null %}
-                                ({{ ppm(solved_puzzle.time, solved_puzzle.piecesCount, solved_puzzle.players|length) }})
+                                <br>({{ solved_puzzle.players|length }}x {{ ppm(solved_puzzle.time, solved_puzzle.piecesCount, solved_puzzle.players|length) }})
                             {% endif %}
                         </small>
                     </td>
@@ -60,7 +60,7 @@
                                 {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
                                     <i class="ci-star-filled text-warning"></i>
                                 {% endif %}
-                                {{ solved_puzzle.playerName }}
+                                <small>{{ solved_puzzle.playerName }}</small>
                             </a>
                             {% if solved_puzzle.playerCountry is not null %}
                                 <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
@@ -72,7 +72,7 @@
                                 {% endif %}
                                 {% if puzzle_solver.playerId is not null %}
                                     <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                        {{ puzzle_solver.playerName }}
+                                        <small>{{ puzzle_solver.playerName }}</small>
                                         {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                             <i class="ci-star-filled text-warning"></i>
                                         {% endif %}
@@ -81,7 +81,7 @@
                                         <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
                                     {% endif %}
                                 {% else %}
-                                    <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
+                                    <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
                                 {% endif %}
                             {% endfor %}
                         {% endif %}

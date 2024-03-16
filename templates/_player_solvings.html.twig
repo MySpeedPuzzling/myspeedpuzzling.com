@@ -13,7 +13,7 @@
                     data-has-time="1"
                     data-tags="{{ (tags[solved_puzzle[0].puzzleId] ?? [])|json_encode }}"
                 >
-                    <td class="text-center">
+                    <td class="text-center" style="width: 90px;">
                         {% if solved_puzzle[0].puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
                                 <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">

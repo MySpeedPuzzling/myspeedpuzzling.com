@@ -16,6 +16,7 @@ final class SearchPuzzleFormData
     public null|string $tags = null;
     public bool $onlyWithResults = false;
     public bool $onlySolvedByMe = false;
+    public bool $onlyAvailable = false;
 
     public static function fromRequest(Request $request): self
     {
@@ -49,6 +50,11 @@ final class SearchPuzzleFormData
         $onlySolvedByMe = $request->query->get('only_solved_by_me');
         if ($onlySolvedByMe === null) {
             $self->onlySolvedByMe = (bool) $onlySolvedByMe;
+        }
+
+        $onlyAvailable = $request->query->get('only_available');
+        if ($onlyAvailable === null) {
+            $self->onlyAvailable = (bool) $onlyAvailable;
         }
 
         return $self;

@@ -62,6 +62,7 @@ PuzzlesController extends AbstractController
             $searchData->search,
             $searchData->onlyWithResults,
             PiecesFilter::fromUserInput($searchData->pieces),
+            $searchData->onlyAvailable,
         );
 
         /** @var null|int $offset */
@@ -78,6 +79,7 @@ PuzzlesController extends AbstractController
             $searchData->search,
             $searchData->onlyWithResults,
             PiecesFilter::fromUserInput($searchData->pieces),
+            $searchData->onlyAvailable,
             $offset,
         );
 

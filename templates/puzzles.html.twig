@@ -56,6 +56,10 @@
                 {{ form_row(search_form.onlyWithResults) }}
             </div>
 
+            <div class="my-3 {{ app.request.locale != 'cs' ? 'd-none' }}">
+                {{ form_row(search_form.onlyAvailable) }}
+            </div>
+
             <div class="row">
                 <div class="col-sm-6">
                     <div class="input-group">

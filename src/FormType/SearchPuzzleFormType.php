@@ -83,6 +83,11 @@ final class SearchPuzzleFormType extends AbstractType
             'label' => 'Only puzzle I have solved',
             'required' => false,
         ]);
+
+        $builder->add('onlyAvailable', CheckboxType::class, [
+            'label' => 'Pouze k zapůjčení',
+            'required' => false,
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

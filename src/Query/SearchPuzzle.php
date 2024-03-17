@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
@@ -25,6 +26,7 @@ readonly final class SearchPuzzle
         null|string $search = null,
         bool $onlyWithResults = false,
         PiecesFilter $pieces = PiecesFilter::Any,
+        bool $onlyAvailable = false,
     ): int {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
@@ -53,6 +55,7 @@ WHERE
         OR ean LIKE :searchFullLikeQuery
    )
 AND (:solvedCount = 0 OR puzzle_solving_time.id IS NOT NULL)
+AND is_available IN (:isAvailable)
 SQL;
 
         $count = $this->database
@@ -65,6 +68,9 @@ SQL;
                 'solvedCount' => $onlyWithResults ? 1 : 0,
                 'minPieces' => $pieces->minPieces(),
                 'maxPieces' => $pieces->maxPieces(),
+                'isAvailable' => $onlyAvailable === true ? [true] : [true, false],
+            ], [
+                'isAvailable' => ArrayParameterType::INTEGER,
             ])
             ->fetchOne();
         assert(is_int($count));
@@ -81,6 +87,7 @@ SQL;
         null|string $search = null,
         bool $onlyWithResults = false,
         PiecesFilter $pieces = PiecesFilter::Any,
+        bool $onlyAvailable = false,
         int $offset = 0,
         int $limit = 20,
     ): array
@@ -136,7 +143,8 @@ WHERE
         OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
         OR identification_number LIKE :searchFullLikeQuery
         OR ean LIKE :searchFullLikeQuery
-   )
+    )
+    AND is_available IN (:isAvailable)
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
 HAVING COUNT(puzzle_solving_time.id) >= :solvedCount
 ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), manufacturer_name, pieces_count
@@ -154,7 +162,10 @@ SQL;
                 'limit' => $limit,
                 'minPieces' => $pieces->minPieces(),
                 'maxPieces' => $pieces->maxPieces(),
+                'isAvailable' => $onlyAvailable === true ? [true] : [true, false],
                 'offset' => $offset,
+            ], [
+                'isAvailable' => ArrayParameterType::INTEGER,
             ])
             ->fetchAllAssociative();
 

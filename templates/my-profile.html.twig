@@ -38,98 +38,127 @@
         </div>
     </div>
 
-
-    <div class="shadow-lg p-3 mt-3">
-        {% if player.playerName is null %}
-            <div class="alert alert-warning d-flex" role="alert">
-                <div class="alert-icon">
-                    <i class="ci-security-announcement"></i>
-                </div>
-                <div>
-                    {{ 'my_profile.missing_name_info'|trans }}
-                </div>
+    {% if player.playerName is null %}
+        <div class="my-2 alert alert-warning d-flex" role="alert">
+            <div class="alert-icon">
+                <i class="ci-security-announcement"></i>
             </div>
-        {% endif %}
-
-        <div class="row">
-            <div class="col-sm">
-                <p>
-                    <b>{{ 'my_profile.name'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.playerName is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.playerName }}
-                    {% endif %}
-                </p>
-
-                <p class="text-muted">
-                    <b>{{ 'email'|trans }} ({{ 'my_profile.not_public_info'|trans }}):</b><br>
-                    {% if player.email is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.email }}
-                    {% endif %}
-                </p>
-
-                <p>
-                    <b>{{ 'profile.avatar'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.avatar is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
-                    {% endif %}
-                </p>
-
-                <p>
-                    <b>{{ 'profile.about_me'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.bio is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.bio|nl2br }}
-                    {% endif %}<br>
-                </p>
+            <div>
+                {{ 'my_profile.missing_name_info'|trans }}
             </div>
+        </div>
+    {% endif %}
 
-            <div class="col-sm">
-                <p>
-                    <b>{{ 'profile.location'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.city is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.city }}
-                    {% endif %}
-                </p>
+    <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
+        <li class="nav-item">
+            <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
+                </div>
+            </a>
+        </li>
 
-                <p>
-                    <b>{{ 'profile.nationality'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.countryCode is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.countryCode.value }}
-                        <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
-                    {% endif %}
-                </p>
+        <li class="nav-item">
+            <a class="nav-link" href="#info" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.personal_info'|trans|raw }}</h6>
+                </div>
+            </a>
+        </li>
+    </ul>
 
-                <p>
-                    <b>Facebook:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.facebook is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.facebook|facebook }}
-                    {% endif %}<br>
-                </p>
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
+            {{ include('_recent_activity.html.twig', {
+                solved_puzzles: last_solved_puzzles,
+                is_on_profile: true,
+            }) }}
+        </div>
 
-                <p>
-                    <b>Instagram:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
-                    {% if player.instagram is null %}
-                        {{ 'profile.not_filled'|trans }}
-                    {% else %}
-                        {{ player.instagram|instagram }}
-                    {% endif %}<br>
-                </p>
+        <div class="tab-pane fade" id="info" role="tabpanel">
+            <div class="shadow-lg p-3 mt-3">
+                <div class="row">
+                    <div class="col-sm">
+                        <p>
+                            <b>{{ 'my_profile.name'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.playerName is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.playerName }}
+                            {% endif %}
+                        </p>
+
+                        <p class="text-muted">
+                            <b>{{ 'email'|trans }} ({{ 'my_profile.not_public_info'|trans }}):</b><br>
+                            {% if player.email is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.email }}
+                            {% endif %}
+                        </p>
+
+                        <p>
+                            <b>{{ 'profile.avatar'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.avatar is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+                            {% endif %}
+                        </p>
+
+                        <p>
+                            <b>{{ 'profile.about_me'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.bio is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.bio|nl2br }}
+                            {% endif %}<br>
+                        </p>
+                    </div>
+
+                    <div class="col-sm">
+                        <p>
+                            <b>{{ 'profile.location'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.city is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.city }}
+                            {% endif %}
+                        </p>
+
+                        <p>
+                            <b>{{ 'profile.nationality'|trans }}:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.countryCode is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.countryCode.value }}
+                                <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+                            {% endif %}
+                        </p>
+
+                        <p>
+                            <b>Facebook:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.facebook is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.facebook|facebook }}
+                            {% endif %}<br>
+                        </p>
+
+                        <p>
+                            <b>Instagram:</b> <small class="text-muted">*{{ 'my_profile.public_info'|trans }}</small><br>
+                            {% if player.instagram is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.instagram|instagram }}
+                            {% endif %}<br>
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
 
     <div class="row mt-4">
         <div class="col-sm">

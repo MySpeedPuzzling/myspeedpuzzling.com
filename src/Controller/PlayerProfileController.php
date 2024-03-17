@@ -5,6 +5,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -28,6 +29,7 @@ final class PlayerProfileController extends AbstractController
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
+        readonly private GetLastSolvedPuzzle $getLastSolvedPuzzle,
     ) {
     }
 
@@ -59,6 +61,7 @@ final class PlayerProfileController extends AbstractController
 
         return $this->render('player-profile.html.twig', [
             'player' => $player,
+            'last_solved_puzzles' => $this->getLastSolvedPuzzle->forPlayer($player->playerId, 3),
             'solo_results' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
             'duo_results' => $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles),
             'team_results' => $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles),

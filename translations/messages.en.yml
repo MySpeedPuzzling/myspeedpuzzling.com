@@ -266,6 +266,8 @@ profile:
     solved_puzzles: "Solved puzzles"
     solved_puzzles_solo: "Individual"
     solved_puzzles_group: "Group assembly"
+    recent_activity: "Recent<br>activity"
+    personal_info: "Personal<br>info"
 
 my_profile:
     meta:

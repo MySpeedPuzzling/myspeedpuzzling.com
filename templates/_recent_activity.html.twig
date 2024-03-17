@@ -1,16 +1,10 @@
+{% set is_on_profile = is_on_profile|default(false) %}
+
 <div class="table-responsive custom-table-wrapper mt-4">
     <table class="table table-striped custom-table table-hover mb-0">
-        <thead>
-        <tr>
-            <th>{{ 'puzzle'|trans }}</th>
-            <th class="d-none d-sm-table-cell"></th>
-            <th>{{ 'time'|trans }}</th>
-            <th></th>
-        </tr>
-        </thead>
         <tbody>
             {% for solved_puzzle in solved_puzzles %}
-                <tr class="{{ logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                <tr class="{{ is_on_profile is same as false and logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                     <td class="text-center" style="width: 90px;">
                         {% if solved_puzzle.puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
@@ -35,20 +29,6 @@
                         </a>
                     </td>
 
-                    <td class="with-ppm">
-                        <small style="line-height: 105%;">{{ solved_puzzle.trackedAt|ago }}</small><br>
-
-                        <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span>
-
-                        <br>
-                        <small class="text-nowrap">
-                            <span class="text-muted">PPM</span> {{ ppm(solved_puzzle.time, solved_puzzle.piecesCount) }}
-                            {% if solved_puzzle.players is not null %}
-                                <br>({{ solved_puzzle.players|length }}x {{ ppm(solved_puzzle.time, solved_puzzle.piecesCount, solved_puzzle.players|length) }})
-                            {% endif %}
-                        </small>
-                    </td>
-
                     <td class="player-name">
                         <p class="mt-0 mb-1 d-sm-none">
                             <small>{{ solved_puzzle.manufacturerName }}</small><br>
@@ -57,14 +37,16 @@
 
                         <p class="mb-0 low-line-height">
                             {% if solved_puzzle.players is null %}
-                                <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
-                                    {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
-                                        <i class="ci-star-filled text-warning"></i>
+                                {% if is_on_profile is same as false %}
+                                    <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                                        {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
+                                            <i class="ci-star-filled text-warning"></i>
+                                        {% endif %}
+                                        <small>{{ solved_puzzle.playerName }}</small>
+                                    </a>
+                                    {% if solved_puzzle.playerCountry is not null %}
+                                        <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
                                     {% endif %}
-                                    <small>{{ solved_puzzle.playerName }}</small>
-                                </a>
-                                {% if solved_puzzle.playerCountry is not null %}
-                                    <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
                                 {% endif %}
                             {% else %}
                                 {% for puzzle_solver in solved_puzzle.players %}
@@ -87,6 +69,20 @@
                                 {% endfor %}
                             {% endif %}
                         </p>
+                    </td>
+
+                    <td class="with-ppm text-end">
+                        <small style="line-height: 105%;">{{ solved_puzzle.trackedAt|ago }}</small><br>
+
+                        <span style="color: #000;">{{ solved_puzzle.time|puzzlingTime }}</span>
+
+                        <br>
+                        <small class="text-nowrap">
+                            <span class="text-muted">PPM</span> {{ ppm(solved_puzzle.time, solved_puzzle.piecesCount) }}
+                            {% if solved_puzzle.players is not null %}
+                                <br>({{ solved_puzzle.players|length }}x {{ ppm(solved_puzzle.time, solved_puzzle.piecesCount, solved_puzzle.players|length) }})
+                            {% endif %}
+                        </small>
                     </td>
                 </tr>
             {% endfor %}

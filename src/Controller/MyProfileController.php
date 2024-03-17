@@ -5,6 +5,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
@@ -28,6 +29,7 @@ final class MyProfileController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private GetTags $getTags,
+        readonly private GetLastSolvedPuzzle $getLastSolvedPuzzle,
     ) {
     }
 
@@ -57,6 +59,7 @@ final class MyProfileController extends AbstractController
 
         return $this->render('my-profile.html.twig', [
             'player' => $player,
+            'last_solved_puzzles' => $this->getLastSolvedPuzzle->forPlayer($player->playerId, 3),
             'solo_results' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
             'duo_results' => $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles),
             'team_results' => $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles),

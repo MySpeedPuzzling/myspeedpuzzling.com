@@ -87,7 +87,7 @@
                         {% if logged_user.profile is null or solved_puzzle.playerId is not same as logged_user.profile.playerId %}
                             {% if solved_puzzle.players is null and ranking[solved_puzzle.puzzleId] is defined %}
                                 <br>
-                                <small>{{ 'my_time'|trans }} {{ ranking[solved_puzzle.puzzleId].time|puzzlingTime }}</small>
+                                <small class="low-line-height d-inline-block">{{ 'my_time'|trans }} {{ ranking[solved_puzzle.puzzleId].time|puzzlingTime }}</small>
                             {% endif %}
                         {% endif %}
                     </td>

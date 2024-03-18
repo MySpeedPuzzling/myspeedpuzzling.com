@@ -54,7 +54,7 @@
             {% if country_players.countryCode is not null %}
                 <li class="list-inline-item">
                     <a href="{{ path('players_per_country', {'countryCode': country_players.countryCode.name}) }}">
-                        {{ country_players.countryCode.value }} ({{ country_players.playersCount }}) <i class="fi fi-{{ country_players.countryCode.name }}"></i>
+                        <span class="d-none d-sm-inline">{{ country_players.countryCode.value }}</span> ({{ country_players.playersCount }}) <i class="fi fi-{{ country_players.countryCode.name }}"></i>
                     </a>
                 </li>
             {% endif %}

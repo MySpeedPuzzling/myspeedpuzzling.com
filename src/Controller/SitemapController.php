@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -56,6 +57,13 @@ final class SitemapController extends AbstractController
                 $urls[] = $this->generateUrl('puzzle_detail', [
                     '_locale' => $locale,
                     'puzzleId' => $puzzles->puzzleId,
+                ], UrlGeneratorInterface::ABSOLUTE_URL);
+            }
+
+            foreach (CountryCode::cases() as $countryCode) {
+                $urls[] = $this->generateUrl('players_per_country', [
+                    '_locale' => $locale,
+                    'countryCode' => $countryCode->name,
                 ], UrlGeneratorInterface::ABSOLUTE_URL);
             }
         }

@@ -8,6 +8,7 @@ use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\FormData\SearchPlayerFormData;
 use SpeedPuzzling\Web\FormType\SearchPlayerFormType;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetPlayersPerCountry;
 use SpeedPuzzling\Web\Query\SearchPlayers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\SearchQuery;
@@ -23,6 +24,7 @@ final class PlayersController extends AbstractController
         readonly private SearchPlayers $searchPlayers,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetPlayersPerCountry $getPlayersPerCountry,
     ) {
     }
 
@@ -79,6 +81,7 @@ final class PlayersController extends AbstractController
             'search_string' => $searchString,
             'favorite_players' => $favoritePlayers,
             'most_favorite_players' => $this->getFavoritePlayers->mostFavorite(15),
+            'players_per_country' => $this->getPlayersPerCountry->count(),
         ]);
     }
 }

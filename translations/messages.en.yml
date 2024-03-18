@@ -301,6 +301,12 @@ puzzlers:
     my_favorites: "My Favorites"
     most_popular: "Most Popular"
 
+players_per_country:
+    meta:
+        title: "Players from country - %country%"
+    title:  "Players from country - %country%"
+    link: "Players per country"
+
 flashes:
     stopwatch_already_saved: "These stopwatches have already been saved."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."

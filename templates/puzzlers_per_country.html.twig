@@ -1,0 +1,19 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'players_per_country.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1>{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}"></i></h1>
+
+    {% for player in players %}
+        <div class="pb-1">
+            <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
+                {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
+                    <i class="ci-star-filled text-warning"></i>
+                {% endif %}
+                {{ player.playerName }}
+                <code class="text-muted">#{{ player.playerCode|upper }}</code>
+            </a>
+        </div>
+    {% endfor %}
+{% endblock %}

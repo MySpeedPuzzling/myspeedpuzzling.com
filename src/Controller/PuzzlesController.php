@@ -19,8 +19,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\UX\Turbo\TurboBundle;
 
-final class
-PuzzlesController extends AbstractController
+final class PuzzlesController extends AbstractController
 {
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,

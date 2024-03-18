@@ -48,6 +48,19 @@
         {% endif %}
     </div>
 
+    <h3>{{ 'players_per_country.link'|trans }}</h3>
+    <ul class="list-inline">
+        {% for country_players in players_per_country %}
+            {% if country_players.countryCode is not null %}
+                <li class="list-inline-item">
+                    <a href="{{ path('players_per_country', {'countryCode': country_players.countryCode.name}) }}">
+                        {{ country_players.countryCode.value }} ({{ country_players.playersCount }}) <i class="fi fi-{{ country_players.countryCode.name }}"></i>
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+
     <div class="row">
         {% if favorite_players is not null and favorite_players is not empty %}
             <div class="col-sm">

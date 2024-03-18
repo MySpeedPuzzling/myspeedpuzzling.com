@@ -76,6 +76,7 @@ CROSS JOIN LATERAL JSON_ARRAY_ELEMENTS_TEXT(player.favorite_players) AS fav_play
 JOIN player fav_player ON fav_player_id::uuid = fav_player.id
 GROUP BY fav_player.id, fav_player.name, fav_player.code
 ORDER BY favorite_count DESC
+LIMIT :limit
 SQL;
 
         $data = $this->database

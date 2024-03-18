@@ -303,6 +303,12 @@ puzzlers:
     my_favorites: "Moji oblíbení"
     most_popular: "Nejpopulárnější"
 
+players_per_country:
+    meta:
+        title: "Hráči ze země - %country%"
+    title:  "Hráči ze země - %country%"
+    link: "Hráči dle země"
+
 flashes:
     stopwatch_already_saved: "Tyto stopky byly již uloženy."
     puzzle_needs_approve: "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."

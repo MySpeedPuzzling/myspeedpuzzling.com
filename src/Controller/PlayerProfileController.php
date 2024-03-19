@@ -13,9 +13,12 @@ use SpeedPuzzling\Web\Query\GetStatistics;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PlayerProfileController extends AbstractController
@@ -30,6 +33,7 @@ final class PlayerProfileController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
         readonly private GetLastSolvedPuzzle $getLastSolvedPuzzle,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -41,7 +45,7 @@ final class PlayerProfileController extends AbstractController
         name: 'player_profile',
         methods: ['GET'],
     )]
-    public function __invoke(string $playerId): Response
+    public function __invoke(string $playerId, #[CurrentUser] UserInterface|null $user): Response
     {
         try {
             $player = $this->getPlayerProfile->byId($playerId);
@@ -59,6 +63,13 @@ final class PlayerProfileController extends AbstractController
         $duoSolvedPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId);
         $teamSolvedPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId);
 
+        $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
+        $loggedPlayerRanking = [];
+
+        if ($loggedPlayerProfile !== null) {
+            $loggedPlayerRanking = $this->getRanking->allForPlayer($loggedPlayerProfile->playerId);
+        }
+
         return $this->render('player-profile.html.twig', [
             'player' => $player,
             'last_solved_puzzles' => $this->getLastSolvedPuzzle->forPlayer($player->playerId, 3),
@@ -67,6 +78,7 @@ final class PlayerProfileController extends AbstractController
             'team_results' => $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles),
             'statistics' => $playerStatistics,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
+            'logged_player_ranking' => $loggedPlayerRanking,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'tags' => $this->getTags->allGroupedPerPuzzle(),
         ]);

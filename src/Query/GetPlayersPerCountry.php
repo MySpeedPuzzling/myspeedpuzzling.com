@@ -61,7 +61,8 @@ SELECT
     code AS player_code,
     country AS player_country
 FROM player
-WHERE player.country = :countryCode;
+WHERE player.country = :countryCode
+ORDER BY name
 SQL;
 
         $data = $this->database

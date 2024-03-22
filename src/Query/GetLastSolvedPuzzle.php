@@ -61,8 +61,7 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem ON true
 LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
 WHERE
-    player.name IS NOT NULL
-    AND (puzzle_solving_time.player_id = :playerId OR EXISTS (
+    (puzzle_solving_time.player_id = :playerId OR EXISTS (
         SELECT 1
         FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') as team_player
         WHERE team_player ->> 'player_id' = :playerId

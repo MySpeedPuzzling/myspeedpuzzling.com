@@ -123,7 +123,7 @@
 
     <!-- Tabs content -->
     <div class="tab-content">
-        <div class="tab-pane fade {{ solo_puzzle_solvers|length > 0 ? 'show active' }}" id="solo" role="tabpanel">
+        <div class="tab-pane fade {{ solo_puzzle_solvers|length > 0 ? 'show active' }}" id="solo" role="tabpanel" {{ stimulus_controller('toggle') }}>
 
             {% if puzzle.solvedTimes > 0 %}
                 <table class="mb-3 table-times-overview">
@@ -171,11 +171,39 @@
                                 {% endif %}
                             </td>
                             <td class="text-end with-ppm">
-                                {% if aggregated_solver|length > 1 %}
-                                    <span class="badge bg-dark rounded-pill me-2">{{ 'puzzle_solved_times'|trans({'%count%': aggregated_solver|length}) }}</span>
-                                {% endif %}
                                 {{ aggregated_solver[0].time|puzzlingTime }}
+                                <br>
+                                <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
                                 <br><small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
+
+                                {% if aggregated_solver|length > 1 %}
+                                    <br>
+                                    <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: loop.index})}}>
+                                        <span class="badge bg-dark badge-shadow rounded-pill">
+                                            {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
+                                        </span>
+                                    </a>
+
+                                    <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', loop.index) }}>
+                                        {% for solving_time in aggregated_solver %}
+                                            {% if not loop.first %}
+                                                <span class="d-inline-block mt-1">
+                                                    {{ solving_time.time|puzzlingTime }}
+                                                    <br>
+                                                    <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                    <br>
+                                                    <small>
+                                                        <span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}
+                                                    </small>
+                                                </span>
+
+                                                {% if not loop.last %}
+                                                    <br>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -238,6 +266,8 @@
                             </td>
                             <td class="text-end with-ppm">
                                 {{ puzzlers_duo.time|puzzlingTime }}
+                                <br>
+                                <small class="text-muted">{{ puzzlers_duo.finishedAt|date('d.m.Y') }}</small>
                                 <br>
                                 <small>
                                     <span class="text-muted">PPM</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount) }}
@@ -305,6 +335,8 @@
                             </td>
                             <td class="text-end with-ppm">
                                 {{ puzzlers_team.time|puzzlingTime }}
+                                <br>
+                                <small class="text-muted">{{ puzzlers_team.finishedAt|date('d.m.Y') }}</small>
                                 <br>
                                 <small>
                                     <span class="text-muted">PPM</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount) }}

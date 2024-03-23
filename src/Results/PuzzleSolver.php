@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class PuzzleSolver
@@ -13,6 +14,7 @@ readonly final class PuzzleSolver
         public string $playerName,
         public null|CountryCode $playerCountry,
         public int $time,
+        public DateTimeImmutable $finishedAt,
     ) {
     }
 
@@ -22,6 +24,7 @@ readonly final class PuzzleSolver
      *     player_name: string,
      *     player_country: null|string,
      *     time: int,
+     *     finished_at: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -31,6 +34,7 @@ readonly final class PuzzleSolver
             playerName: $row['player_name'],
             playerCountry: CountryCode::fromCode($row['player_country']),
             time: $row['time'],
+            finishedAt: new DateTimeImmutable($row['finished_at']),
         );
     }
 }

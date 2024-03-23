@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
-use Nette\Utils\Json;
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class PuzzleSolversGroup
@@ -14,6 +14,7 @@ readonly final class PuzzleSolversGroup
         public int $time,
         /** @var array<Puzzler> */
         public array $players,
+        public DateTimeImmutable $finishedAt,
     ) {
     }
 
@@ -25,6 +26,7 @@ readonly final class PuzzleSolversGroup
      *     comment: null|string,
      *     team_id: null|string,
      *     players: string,
+     *     finished_at: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -35,6 +37,7 @@ readonly final class PuzzleSolversGroup
             teamId: $row['team_id'],
             time: $row['time'],
             players: $players,
+            finishedAt: new DateTimeImmutable($row['finished_at']),
         );
     }
 }

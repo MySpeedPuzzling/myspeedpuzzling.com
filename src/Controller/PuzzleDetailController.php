@@ -94,6 +94,21 @@ final class PuzzleDetailController extends AbstractController
             $grouped[$solver->playerId][] = $solver;
         }
 
+        foreach ($grouped as $puzzleId => $puzzles) {
+            // Find the puzzle with the lowest time and place it at the beginning
+            usort($puzzles, static fn(PuzzleSolver $a, PuzzleSolver $b): int => $a->time <=> $b->time);
+            $fastestPuzzle = array_shift($puzzles);
+
+            // Sort the remaining puzzles by finishedAt
+            usort($puzzles, static fn(PuzzleSolver $a, PuzzleSolver $b): int => $b->finishedAt <=> $a->finishedAt);
+
+            // Prepend the fastest puzzle to the sorted array
+            array_unshift($puzzles, $fastestPuzzle);
+
+            // Update the group with the sorted puzzles
+            $grouped[$puzzleId] = $puzzles;
+        }
+
         return $grouped;
     }
 }

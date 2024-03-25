@@ -11,7 +11,7 @@
                 <i class="ci-edit"></i> {{ 'my_profile.edit'|trans }}
             </a>
 
-            <a class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}">
+            <a data-turbo-prefetch="false" class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}">
                 <i class="ci-sign-out"></i> {{ 'my_profile.logout'|trans }}
             </a>
         </div>

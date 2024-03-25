@@ -12,6 +12,7 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @extends AbstractType<SearchPuzzleFormData>
@@ -20,6 +21,7 @@ final class SearchPuzzleFormType extends AbstractType
 {
     public function __construct(
         readonly private GetManufacturers $getManufacturers,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -34,12 +36,13 @@ final class SearchPuzzleFormType extends AbstractType
         }
 
         $builder->add('brand', ChoiceType::class, [
-            'label' => 'Brand',
+            'label' => 'forms.brand',
             'required' => false,
             'autocomplete' => true,
             'choices' => $brandChoices,
-            'placeholder' => 'Any',
+            'placeholder' => 'any',
             'empty_data' => '',
+            'choice_translation_domain' => false,
             // loading_more_text
             // no_results_found_text
             // no_more_results_text
@@ -51,7 +54,7 @@ final class SearchPuzzleFormType extends AbstractType
             'multiple' => false,
             'empty_data' => '',
             'choices' => [
-                '' => 'Any',
+                '' => $this->translator->trans('any'),
                 '1-499' => '1-499',
                 '500' => '500',
                 '501-999' => '501-999',
@@ -62,6 +65,7 @@ final class SearchPuzzleFormType extends AbstractType
         ]);
 
         $builder->add('tags', ChoiceType::class, [
+            'label' => 'forms.tags',
             'required' => false,
             'empty_data' => '',
         ]);
@@ -70,22 +74,22 @@ final class SearchPuzzleFormType extends AbstractType
             'required' => false,
             'empty_data' => '',
             'attr' => [
-                'placeholder' => 'Part of name, code or EAN...',
+                'placeholder' => 'forms.puzzle_search_placeholder',
             ],
         ]);
 
         $builder->add('onlyWithResults', CheckboxType::class, [
-            'label' => 'Only puzzle with entered time',
+            'label' => 'forms.only_with_results',
             'required' => false,
         ]);
 
         $builder->add('onlySolvedByMe', CheckboxType::class, [
-            'label' => 'Only puzzle I have solved',
+            'label' => 'forms.only_solved_by_me',
             'required' => false,
         ]);
 
         $builder->add('onlyAvailable', CheckboxType::class, [
-            'label' => 'Pouze k zapůjčení',
+            'label' => 'forms.only_available',
             'required' => false,
         ]);
     }

@@ -34,6 +34,7 @@ SELECT
     puzzle.pieces_count,
     puzzle.is_available,
     puzzle.approved AS puzzle_approved,
+    manufacturer.id AS manufacturer_id,
     manufacturer.name AS manufacturer_name,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
@@ -48,7 +49,7 @@ FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE puzzle.id = :puzzleId
-GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
+GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 SQL;
 
         /**
@@ -58,6 +59,7 @@ SQL;
          *     puzzle_image: null|string,
          *     puzzle_alternative_name: null|string,
          *     puzzle_approved: bool,
+         *     manufacturer_id: string,
          *     manufacturer_name: string,
          *     pieces_count: int,
          *     average_time_solo: null|string,

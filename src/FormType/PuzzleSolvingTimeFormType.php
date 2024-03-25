@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
-use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -22,6 +20,8 @@ use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -31,10 +31,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class PuzzleSolvingTimeFormType extends AbstractType
 {
     public function __construct(
-        readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetManufacturers $getManufacturers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -43,23 +43,52 @@ final class PuzzleSolvingTimeFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $puzzleChoices = [];
-
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         // Must not be null - solving time is allowed only to logged-in users
         assert($userProfile !== null);
 
-        foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile->playerId) as $puzzle) {
-            $puzzleChoices[$puzzle->puzzleId] = $puzzle->puzzleId;
+        $brandChoices = [];
+        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer() as $manufacturer) {
+            $brandChoices[] = [
+                'value' => $manufacturer->manufacturerId,
+                'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
+            ];
         }
 
-        $builder->add('puzzleId', ChoiceType::class, [
-            'label' => 'Puzzle',
-            'required' => false,
-            'expanded' => true,
-            'multiple' => false,
-            'choices' => $puzzleChoices,
-            'choice_translation_domain' => false,
+        $builder->add('brand', TextType::class, [
+            'label' => 'forms.brand',
+            'help' => 'forms.brand_help',
+            'required' => true,
+            'autocomplete' => true,
+            'empty_data' => '',
+            'tom_select_options' => [
+                'create' => true,
+                'persist' => false,
+                'maxItems' => 1,
+                'options' => $brandChoices,
+                'closeAfterSelect' => true,
+            ],
+            'attr' => [
+                'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete')
+            ]
+        ]);
+
+        $builder->add('puzzle', TextType::class, [
+            'label' => 'forms.puzzle',
+            'help' => 'forms.puzzle_help',
+            'required' => true,
+            'autocomplete' => true,
+            'options_as_html' => true,
+            'tom_select_options' => [
+                'create' => true,
+                'persist' => false,
+                'maxItems' => 1,
+                'closeAfterSelect' => true,
+            ],
+            'attr' => [
+                'data-choose-brand-placeholder' => $this->translator->trans('forms.puzzle_choose_brand_placeholder'),
+                'data-choose-puzzle-placeholder' => $this->translator->trans('forms.puzzle_choose_placeholder'),
+            ],
         ]);
 
         $builder->add('time', TextType::class, [
@@ -83,44 +112,6 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                     maxSize: '10m',
                 ),
             ],
-        ]);
-
-        $builder->add('addPuzzle', CheckboxType::class, [
-            'label' => 'forms.add_new_puzzle',
-            'required' => false,
-        ]);
-
-        $builder->add('puzzleName', TextType::class, [
-            'label' => 'forms.puzzle_name',
-            'label_attr' => ['class' => 'required'],
-            'required' => false,
-        ]);
-
-        $manufacturerChoices = ['-' => ''];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId) as $manufacturer) {
-            $manufacturerChoices[$manufacturer->manufacturerName] = $manufacturer->manufacturerId;
-        }
-
-        $builder->add('puzzleManufacturerId', ChoiceType::class, [
-            'label' => 'forms.manufacturer',
-            'required' => false,
-            'expanded' => false,
-            'multiple' => false,
-            'choices' => $manufacturerChoices,
-            'attr' => ['data-manufacturerId' => true],
-            'label_attr' => ['class' => 'required'],
-            'choice_translation_domain' => false,
-        ]);
-
-        $builder->add('addManufacturer', CheckboxType::class, [
-            'label' => 'forms.add_new_manufacturer',
-            'required' => false,
-        ]);
-
-        $builder->add('puzzleManufacturerName', TextType::class, [
-            'label' => 'forms.manufacturer_name',
-            'label_attr' => ['class' => 'required'],
-            'required' => false,
         ]);
 
         $builder->add('puzzlePiecesCount', NumberType::class, [
@@ -183,26 +174,10 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         FormInterface $form,
         PuzzleSolvingTimeFormData $data,
     ): void {
-
-        if ($data->addPuzzle === false && $data->puzzleId === null) {
-            $form->get('puzzleId')->addError(new FormError($this->translator->trans('forms.choose_or_add_puzzle')));
-        }
-
-        if ($data->addPuzzle === true) {
-            if ($data->puzzleName === null) {
-                $form->get('puzzleName')->addError(new FormError($this->translator->trans('forms.required_field')));
-            }
-
+        // TODO: Should check if the puzzle exists in database as well
+        if (is_string($data->puzzle) && Uuid::isValid($data->puzzle) === false) {
             if ($data->puzzlePiecesCount === null) {
                 $form->get('puzzlePiecesCount')->addError(new FormError($this->translator->trans('forms.required_field')));
-            }
-
-            if ($data->addManufacturer === true) {
-                if ($data->puzzleManufacturerName === null || $data->puzzleManufacturerName === '') {
-                    $form->get('puzzleManufacturerName')->addError(new FormError($this->translator->trans('forms.add_or_choose_manufacturer')));
-                }
-            } elseif ($data->puzzleManufacturerId === null || $data->puzzleManufacturerId === '') {
-                $form->get('puzzleManufacturerId')->addError(new FormError($this->translator->trans('forms.choose_or_add_manufacturer')));
             }
 
             if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto === null) {

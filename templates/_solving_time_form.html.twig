@@ -3,171 +3,47 @@
     {{ form_start(solving_time_form) }}
         {{ form_errors(solving_time_form) }}
 
-        <div class="row pb-4" data-controller="time-form manufacturer-toggle choose-puzzle">
-            <div class="col-lg-6 offset-lg-1 order-lg-2 mb-3">
+        <div class="row pb-4" {% if active_puzzle is null %}data-controller="time-form-autocomplete"{% endif %}>
+            <div class="col-lg-6 offset-lg-1 order-lg-2">
 
-                {% if active_puzzle is not null and prevent_puzzle_change|default(false) %}
-                <div>
-                    <h5>{{ 'add_time.chosen_puzzle'|trans }}</h5>
+                {% if active_puzzle is not null %}
+                    <div>
+                        <h5>{{ 'add_time.chosen_puzzle'|trans }}</h5>
 
-                    {{ include('_puzzle_name.html.twig', {
-                        puzzle_name: active_puzzle.puzzleName,
-                        alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
-                    }) }}
 
-                    <br>
-                    <b>{{ active_puzzle.manufacturerName|upper }}</b><br>
-                    {{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}<br>
-
-                    {% if active_puzzle.puzzleImage is not null%}
-                        <p>
-                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;"  alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
-                        </p>
-                    {% endif %}
-
-                    {% if active_puzzle.fastestTimeSolo is not null %}
-                        <table class="table-times-overview">
-                            <tr>
-                                <td>{{ 'puzzle_solved_count'|trans }}</td>
-                                <td class="text-end">{{ active_puzzle.solvedTimes }}</td>
-                            </tr>
-                            <tr>
-                                <td>{{ 'fastest_time'|trans }}</td>
-                                <td class="text-end">{{ active_puzzle.fastestTimeSolo|puzzlingTime }}</td>
-                            </tr>
-                            <tr>
-                                <td>{{ 'average_time'|trans }}</td>
-                                <td class="text-end">{{ active_puzzle.averageTimeSolo|puzzlingTime }}</td>
-                            </tr>
-                        </table>
-                    {% endif %}
-
-                    </div>
-                {% endif %}
-
-                <div {% if active_puzzle is not null and prevent_puzzle_change|default(false) %}style="display: none;"{% endif %}>
-                    {% if not solving_time_form.puzzleId.vars.valid %}
-                        <div class="alert alert-danger py-2 px-3" role="alert">{{ 'add_time.puzzle_needed'|trans }}</div>
-                    {% endif %}
-
-                    <div class="form-switch mb-4">
-                        {{ form_widget(solving_time_form.addPuzzle, {'attr': {'data-time-form-target': 'checkbox', 'data-action': 'change->time-form#update'}}) }}
-                    </div>
-
-                    <div data-time-form-target="existingPuzzleForm">
-                        <h3 class="h5 required">{{ 'add_time.choose_puzzle'|trans }}</h3>
-
-                        <div id="add-puzzle-chosen" data-choose-puzzle-target="addPuzzleChosen" class="{% if active_puzzle is null %}hidden{% endif %}">
-                            <ul id="add-puzzle-chosen-item" data-choose-puzzle-target="addPuzzleChosenItem" class="widget-list">
-                                {% if active_puzzle is not null %}
-                                    <li class="widget-list-item mb-2 widget-filter-item">
-                                        <div class="form-check d-flex align-items-center">
-                                            <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ active_puzzle.puzzleId }}">
-                                                {% if active_puzzle.puzzleImage is not null %}
-                                                    <img class="rounded-2 me-2" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
-                                                {% endif %}
-                                                <span style="display: inline-block;">
-                                                    {{ include('_puzzle_name.html.twig', {
-                                                        puzzle_name: active_puzzle.puzzleName,
-                                                        alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
-                                                    }) }}
-
-                                                    <br>
-                                                    {{ active_puzzle.manufacturerName|upper }}<br>
-                                                    <span class="fs-xs text-muted">{{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</span>
-                                                </span>
-                                            </label>
-                                        </div>
-                                    </li>
-                                {% endif %}
-                            </ul>
-
-                            <button class="btn btn-sm btn-outline-primary" id="change-link" data-action="click->choose-puzzle#changeLink">{{ 'add_time.change_puzzle'|trans }}</button>
-                        </div>
-
-                        <div id="add-puzzle-form" data-choose-puzzle-target="addPuzzleForm" data-action="change->choose-puzzle#changePuzzle" class="{% if active_puzzle is not null %}hidden{% endif %}">
-                            <div class="widget widget-categories mb-2">
-                                <p class="mb-2"><small class="text-muted">{{ 'add_time.add_when_not_found_info'|trans }}</small></p>
-
-                                <div id="puzzle-manufacturers" class="accordion">
-                                    {% for manufacturerName, manufacturerPuzzles in puzzles %}
-                                        <div class="accordion-item">
-                                            <h3 class="accordion-header">
-                                                <a href="#{{ manufacturerName|slug }}" class="accordion-button collapsed" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="{{ manufacturerName|slug }}">
-                                                    {{ manufacturerName|upper }}
-                                                </a>
-                                            </h3>
-                                            <div id="{{ manufacturerName|slug }}" class="accordion-collapse collapse" data-bs-parent="#puzzle-manufacturers">
-                                                <div class="accordion-body">
-                                                    <div class="widget widget-links {% if manufacturerPuzzles|length > 7 %}widget-filter{% endif %}">
-                                                        {% if manufacturerPuzzles|length > 7 %}
-                                                            <div class="input-group input-group-sm mb-2">
-                                                                <input type="text" class="widget-filter-search form-control rounded-end" placeholder="{{ 'search'|trans }}">
-                                                                <i class="ci-search position-absolute top-50 end-0 translate-middle-y fs-sm me-3"></i>
-                                                            </div>
-                                                        {% endif %}
-
-                                                        <ul class="widget-list {% if manufacturerPuzzles|length > 7 %}widget-filter-list pt-1{% endif %}" {% if manufacturerPuzzles|length > 7 %}style="height: 18rem;" data-simplebar data-simplebar-auto-hide="false"{% endif %}>
-                                                            {% for puzzle in manufacturerPuzzles %}
-                                                                <li class="widget-list-item mb-2 {% if manufacturerPuzzles|length > 7 %}widget-filter-item{% endif %}">
-
-                                                                    <div class="form-check d-flex align-items-center">
-                                                                        <div class="me-1 checkbox-wrapper">
-                                                                            <input class="form-check-input" type="radio" id="{{ puzzle.puzzleId }}" name="{{ field_name(solving_time_form.puzzleId) }}" value="{{ puzzle.puzzleId }}" {% if active_puzzle is not null and active_puzzle.puzzleId is same as puzzle.puzzleId %}checked="checked"{% endif %}>
-                                                                        </div>
-                                                                        <label class="form-check-label widget-filter-item-text d-flex align-items-center" for="{{ puzzle.puzzleId }}">
-                                                                            {% if puzzle.puzzleImage is not null %}
-                                                                                <img class="rounded-2 me-2" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}" style="max-width: 50px;float: left;">
-                                                                            {% endif %}
-                                                                            <span style="display: inline-block;">
-                                                                                {{ include('_puzzle_name.html.twig', {
-                                                                                    puzzle_name: puzzle.puzzleName,
-                                                                                    alternative_puzzle_name: puzzle.puzzleAlternativeName,
-                                                                                }) }}
-                                                                                <br>
-                                                                                <span class="fs-xs text-muted">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</span>
-                                                                            </span>
-                                                                        </label>
-                                                                    </div>
-                                                                </li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
+                        <div class="py-1 d-flex low-line-height">
+                            {% if active_puzzle.puzzleImage is not null%}
+                                <div class="icon me-2">
+                                    <img class="rounded-2" style="max-width: 100px;max-height: 100px;"  alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                                 </div>
+                            {% endif %}
+
+                            <div class="pe-1">
+                                <div class="mb-1">
+                                    <span class="h6">{{ include('_puzzle_name.html.twig', {
+                                        puzzle_name: active_puzzle.puzzleName,
+                                        alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
+                                    }) }}</span>
+                                    <small class="text-muted">{{ active_puzzle.puzzleIdentificationNumber }}</small><br>
+                                    {{ active_puzzle.manufacturerName|upper }}<br>
+                                </div>
+                                <div class="description"><small>{{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</small></div>
                             </div>
                         </div>
                     </div>
+                {% endif %}
 
-                    <div data-time-form-target="customPuzzleForm" style="{% if not selected_add_puzzle %}display: none;{% endif %}">
+                <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
+
+                    {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
+
+                    {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+
+                    <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
                         <p>
                             <small class="text-muted">{{ 'add_time.need_approve_info'|trans }}</small>
                         </p>
 
-                        {{ form_row(solving_time_form.puzzleName) }}
-
-                        <div data-manufacturer-toggle-target="idRow" {% if selected_add_manufacturer %}style="display: none;"{% endif %}>
-                            {{ form_row(solving_time_form.puzzleManufacturerId) }}
-
-                            <div class="form-text mb-3 help-text" style="margin-top: -10px;">
-                                <a href="#" class="btn btn-outline-primary btn-xs me-1" data-action="click->manufacturer-toggle#showName">{{ 'add_time.add_manufacturer'|trans }}</a> {{ 'add_time.not_in_list'|trans }}
-                            </div>
-                        </div>
-
-                        <div style="display: none;">
-                            {{ form_widget(solving_time_form.addManufacturer, {'attr': {'data-action': 'manufacturer-toggle#toggleVisibility', 'data-manufacturer-toggle-target': 'checkbox'}}) }}
-                        </div>
-
-                        <div data-manufacturer-toggle-target="nameRow" {% if not selected_add_manufacturer %}style="display: none;"{% endif %}>
-                            {{ form_row(solving_time_form.puzzleManufacturerName) }}
-
-                            <div class="form-text mb-3 help-text" style="margin-top: -10px;">
-                                <a href="#" class="btn btn-outline-primary btn-xs me-1" data-action="click->manufacturer-toggle#showId">{{ 'add_time.choose_manufacturer'|trans }}</a>
-                            </div>
-                        </div>
                         {{ form_row(solving_time_form.puzzlePiecesCount) }}
 
                         {{ form_row(solving_time_form.puzzleEan) }}

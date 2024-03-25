@@ -15,11 +15,11 @@
                     {{ form_row(search_form.brand) }}
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label">Pieces</label><br>
+                    <label class="form-label">{{ 'forms.pieces_count'|trans }}</label><br>
 
                     <div class="form-check form-option form-check-inline mb-2">
                         <input type="radio" class="form-check-input" id="pieces-any" name="{{ field_name(search_form.pieces) }}" value="" {% if form_data.pieces is empty %}checked{% endif %}>
-                        <label for="pieces-any" class="form-option-label">Any</label>
+                        <label for="pieces-any" class="form-option-label">{{ 'any'|trans }}</label>
                     </div>
                     <div class="form-check form-option form-check-inline mb-2">
                         <input type="radio" class="form-check-input" id="pieces-1-499" value="1-499" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1-499' %}checked{% endif %}>
@@ -65,7 +65,7 @@
                     <div class="input-group">
                         {{ form_widget(search_form.search, {'attr': {'class': 'form-control'}}) }}
                         <button class="btn btn-primary btn-icon" type="submit" data-puzzle-search-target="submit">
-                            Search <i class="ci-search"></i>
+                            <i class="ci-search"></i> {{ 'search'|trans }}
                         </button>
                     </div>
                 </div>

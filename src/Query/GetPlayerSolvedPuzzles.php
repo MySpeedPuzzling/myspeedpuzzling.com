@@ -38,6 +38,7 @@ SELECT
     player.name AS player_name,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
+    manufacturer.id AS manufacturer_id,
     finished_at,
     finished_puzzle_photo,
     CASE
@@ -71,6 +72,7 @@ SQL;
          *     puzzle_name: string,
          *     puzzle_alternative_name: null|string,
          *     manufacturer_name: string,
+         *     manufacturer_id: string,
          *     puzzle_image: null|string,
          *     time: int,
          *     pieces_count: int,

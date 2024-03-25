@@ -22,12 +22,20 @@ export default class extends Controller {
     }
 
     _onBrandConnect(event) {
+        event.detail.options.render.option_create = function(data, escape) {
+            return '<div class="create py-2"><i class="ci-add small"></i> Add new brand: <strong>' + escape(data.input) + '</strong></div>';
+        };
+
         event.detail.options.onChange = (value) => {
             this.onBrandValueChanged(value);
         };
     }
 
     _onPuzzleConnect(event) {
+        event.detail.options.render.option_create = function(data, escape) {
+            return '<div class="create py-2"><i class="ci-add small"></i> Add new puzzle: <strong>' + escape(data.input) + '</strong></div>';
+        };
+
         event.detail.options.onChange = (value) => {
             this.onPuzzleValueChanged(value);
         };

@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %}{% if app.request.pathInfo != path('homepage') %} | My Speed Puzzling{% endif %}</title>
 
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
         <meta name="description" content="{% apply spaceless %}{% block meta_description %}{% endblock %}{% endapply %}{% if block('meta_description') is empty %}{{ 'homepage.meta.description'|trans }}{% endif %}">
         <meta name="keywords" content="Puzzle, Puzzling, Speed Puzzling, SpeedPuzzling, Community, Leaderboard{% apply spaceless %}{% block meta_keywords %}{% endblock %}{% endapply %}">

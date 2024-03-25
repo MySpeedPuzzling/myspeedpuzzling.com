@@ -8,6 +8,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
+use SpeedPuzzling\Web\Results\AutocompletePuzzle;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 
@@ -106,6 +107,7 @@ SELECT
     puzzle.is_available,
     puzzle.approved AS puzzle_approved,
     manufacturer.name AS manufacturer_name,
+    manufacturer.id AS manufacturer_id,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
     COUNT(puzzle_solving_time.id) AS solved_times,
@@ -145,7 +147,7 @@ WHERE
         OR ean LIKE :searchFullLikeQuery
     )
     AND is_available IN (:isAvailable)
-GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
+GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 HAVING COUNT(puzzle_solving_time.id) >= :solvedCount
 ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), manufacturer_name, pieces_count
 LIMIT :limit OFFSET :offset
@@ -178,6 +180,7 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     puzzle_approved: bool,
              *     manufacturer_name: string,
+             *     manufacturer_id: string,
              *     pieces_count: int,
              *     average_time_solo: null|string,
              *     fastest_time_solo: null|int,
@@ -193,6 +196,54 @@ SQL;
              */
 
             return PuzzleOverview::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<AutocompletePuzzle>
+     */
+    public function byBrandId(string $brandId): array
+    {
+        $query = <<<SQL
+SELECT
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.image AS puzzle_image,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.pieces_count,
+    puzzle.approved AS puzzle_approved,
+    manufacturer.name AS manufacturer_name,
+    ean AS puzzle_ean,
+    puzzle.identification_number AS puzzle_identification_number
+FROM puzzle
+INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+WHERE
+    manufacturer_id = :manufacturerId
+ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'manufacturerId' => $brandId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): AutocompletePuzzle {
+            /**
+             * @var array{
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_image: null|string,
+             *     puzzle_alternative_name: null|string,
+             *     manufacturer_name: string,
+             *     pieces_count: int,
+             *     puzzle_approved: bool,
+             *     puzzle_ean: null|string,
+             *     puzzle_identification_number: null|string
+             * } $row
+             */
+
+            return AutocompletePuzzle::fromDatabaseRow($row);
         }, $data);
     }
 }

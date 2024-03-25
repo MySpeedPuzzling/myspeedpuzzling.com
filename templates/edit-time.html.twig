@@ -5,15 +5,13 @@
 {% block content %}
     <h1>{{ 'edit_time.title'|trans }}</h1>
 
-    {{ include('_solving_time_form.html.twig', {
-        prevent_puzzle_change: true,
-    }) }}
-
     <p class="mt-3 mb-3">
         <button class="btn btn-sm btn-outline-danger text-wrap" data-bs-toggle="modal" data-bs-target="#modalConfirm">
-            {{ 'edit_time.delete_button'|trans }}
+            <i class="ci-trash"></i> {{ 'edit_time.delete_button'|trans }}
         </button>
     </p>
+
+    {{ include('_solving_time_form.html.twig') }}
 
     <div class="modal fade" tabindex="-1" role="dialog" id="modalConfirm">
         <div class="modal-dialog modal-dialog-centered" role="document">
@@ -27,7 +25,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'edit_time.delete_modal_discard_button'|trans }}</button>
-                    <a href="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}" class="btn btn-primary btn-sm">{{ 'edit_time.delete_modal_confirm_button'|trans }}</a>
+                    <a data-turbo-prefetch="false" href="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}" class="btn btn-primary btn-sm">{{ 'edit_time.delete_modal_confirm_button'|trans }}</a>
                 </div>
             </div>
         </div>

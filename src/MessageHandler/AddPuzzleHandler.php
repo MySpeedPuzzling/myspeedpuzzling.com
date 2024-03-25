@@ -40,14 +40,12 @@ readonly final class AddPuzzleHandler
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
         $now = new DateTimeImmutable();
 
-        if ($message->manufacturerId !== null && Uuid::isValid($message->manufacturerId)) {
-            $manufacturer = $this->manufacturerRepository->get($message->manufacturerId);
+        if (Uuid::isValid($message->brand)) {
+            $manufacturer = $this->manufacturerRepository->get($message->brand);
         } else {
-            assert($message->manufacturerName !== null);
-
             $manufacturer = new Manufacturer(
                 Uuid::uuid7(),
-                $message->manufacturerName,
+                $message->brand,
                 false,
                 $player,
                 $now,

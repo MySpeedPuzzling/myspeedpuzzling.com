@@ -14,9 +14,8 @@ readonly final class AddPuzzle
         public UuidInterface $puzzleId,
         public string $userId,
         public string $puzzleName,
+        public string $brand,
         public int $piecesCount,
-        public null|string $manufacturerId,
-        public null|string $manufacturerName,
         public null|UploadedFile $puzzlePhoto,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
@@ -29,16 +28,16 @@ readonly final class AddPuzzle
         PuzzleSolvingTimeFormData $data,
     ): self
     {
-        assert($data->puzzleName !== null);
+        assert($data->puzzle !== null);
         assert($data->puzzlePiecesCount !== null);
+        assert($data->brand !== null);
 
         return new self(
             puzzleId: $newPuzzleId,
             userId: $userId,
-            puzzleName: $data->puzzleName,
+            puzzleName: $data->puzzle,
+            brand: $data->brand,
             piecesCount: $data->puzzlePiecesCount,
-            manufacturerId: $data->puzzleManufacturerId,
-            manufacturerName: $data->puzzleManufacturerName,
             puzzlePhoto: $data->puzzlePhoto,
             puzzleEan: $data->puzzleEan,
             puzzleIdentificationNumber: $data->puzzleIdentificationNumber,

@@ -14,11 +14,11 @@
     {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
         <p>
             {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
-                <a href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-warning me-1 mb-1">
+                <a data-turbo-prefetch="false" href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-warning me-1 mb-1">
                     {{ 'profile.remove_from_favorites'|trans }} <i class="ms-1 ci-star-filled"></i>
                 </a>
             {% else %}
-                <a href="{{ path('add_player_to_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-warning me-1 mb-1">
+                <a data-turbo-prefetch="false" href="{{ path('add_player_to_favorite', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-warning me-1 mb-1">
                     {{ 'profile.add_to_favorites'|trans }} <i class="ms-1 ci-star"></i>
                 </a>
             {% endif %}

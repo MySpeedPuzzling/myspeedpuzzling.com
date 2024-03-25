@@ -29,6 +29,7 @@ SELECT
     puzzle.is_available,
     puzzle.approved AS puzzle_approved,
     manufacturer.name AS manufacturer_name,
+    manufacturer.id AS manufacturer_id,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
     COUNT(puzzle_solving_time.id) AS solved_times,
@@ -44,7 +45,7 @@ INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE
     puzzle.approved = true
     OR puzzle.added_by_user_id = :playerId
-GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, puzzle.alternative_name, puzzle.id
+GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 
@@ -63,6 +64,7 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     puzzle_approved: bool,
              *     manufacturer_name: string,
+             *     manufacturer_id: string,
              *     pieces_count: int,
              *     average_time_solo: null|string,
              *     fastest_time_solo: null|int,

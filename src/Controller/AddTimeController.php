@@ -13,9 +13,7 @@ use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\FinishStopwatch;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
-use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
@@ -33,7 +31,6 @@ final class AddTimeController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
-        readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetStopwatch $getStopwatch,
@@ -88,6 +85,11 @@ final class AddTimeController extends AbstractController
             }
         }
 
+        if ($activePuzzle !== null) {
+            $data->brand = $activePuzzle->manufacturerId;
+            $data->puzzle = $activePuzzle->puzzleId;
+        }
+
         /** @var array<string> $groupPlayers */
         $groupPlayers = $request->request->all('group_players');
 
@@ -101,70 +103,57 @@ final class AddTimeController extends AbstractController
 
         $addTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $data);
         $addTimeForm->handleRequest($request);
-        $data = $addTimeForm->getData();
-        assert($data instanceof PuzzleSolvingTimeFormData);
 
         if ($isGroupPuzzlersValid === true && $addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
-            if ($activePuzzle !== null) {
-                $data->puzzleId = $activePuzzle->puzzleId;
-                $data->addPuzzle = false;
-            }
-
             $userId = $user->getUserIdentifier();
 
             // Adding new puzzles by user
             if (
-                $data->addPuzzle === true
-                && $data->puzzleName !== null
+                is_string($data->puzzle)
                 && $data->puzzlePiecesCount !== null
-                && (
-                    $data->puzzleManufacturerId !== ''
-                    || $data->puzzleManufacturerName !== null
-                )
+                && Uuid::isValid($data->puzzle) === false
             ) {
                 $newPuzzleId = Uuid::uuid7();
-                $data->puzzleId = (string) $newPuzzleId;
 
                 if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
                     $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
-                }
-
-                if ($data->addManufacturer === true && $data->puzzleManufacturerName !== null) {
-                    $data->puzzleManufacturerId = null;
                 }
 
                 $this->messageBus->dispatch(
                     AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
                 );
 
+                // After adding puzzle, change the data to the puzzle id for further handlers
+                $data->puzzle = $newPuzzleId->toString();
+
                 $this->addFlash('warning', $this->translator->trans('flashes.puzzle_needs_approve'));
             }
 
-            if ($data->puzzleId !== null) {
-                try {
+            try {
+                $this->messageBus->dispatch(
+                    AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
+                );
+
+                if ($activeStopwatch !== null) {
+                    assert($data->puzzle !== null);
+
                     $this->messageBus->dispatch(
-                        AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
+                        new FinishStopwatch(
+                            $stopwatchId,
+                            $userId,
+                            $data->puzzle,
+                        ),
                     );
+                }
 
-                    if ($activeStopwatch !== null) {
-                        $this->messageBus->dispatch(
-                            new FinishStopwatch(
-                                $stopwatchId,
-                                $userId,
-                                $data->puzzleId,
-                            ),
-                        );
-                    }
+                $this->addFlash('success', $this->translator->trans('flashes.time_added'));
 
-                    $this->addFlash('success', $this->translator->trans('flashes.time_added'));
+                return $this->redirectToRoute('my_profile');
+            } catch (HandlerFailedException $exception) {
+                $realException = $exception->getPrevious();
 
-                    return $this->redirectToRoute('my_profile');
-                } catch (HandlerFailedException $exception) {
-                    $realException = $exception->getPrevious();
-
-                    if ($realException instanceof CanNotAssembleEmptyGroup) {
-                        $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
-                    }
+                if ($realException instanceof CanNotAssembleEmptyGroup) {
+                    $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
                 }
             }
         }
@@ -172,24 +161,11 @@ final class AddTimeController extends AbstractController
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         assert($userProfile !== null);
 
-        /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
-        $puzzlesPerManufacturer = [];
-        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($userProfile->playerId) as $puzzle) {
-            $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
-        }
-
-        if ($data->puzzleId !== null) {
-            $activePuzzle = $this->getPuzzleOverview->byId($data->puzzleId);
-        }
-
         return $this->render('add-time.html.twig', [
             'active_stopwatch' => $activeStopwatch,
             'active_puzzle' => $activePuzzle,
-            'puzzles' => $puzzlesPerManufacturer,
             'solving_time_form' => $addTimeForm,
             'filled_group_players' => $groupPlayers,
-            'selected_add_puzzle' => $data->addPuzzle,
-            'selected_add_manufacturer' => $data->addManufacturer,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
         ]);
     }

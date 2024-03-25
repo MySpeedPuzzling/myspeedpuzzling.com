@@ -47,6 +47,7 @@ total_found: "Total found: %count%"
 remaining: "Remaining: %count%"
 loading: "Loading"
 any: "Any"
+adding_puzzle_hint: "We have reworked the way of adding new (missing) puzzle and brands. Enter the name of new brand/puzzle to the according text input and then choose option \"Add ...\"."
 
 homepage:
     meta:

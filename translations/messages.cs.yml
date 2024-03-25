@@ -48,6 +48,7 @@ total_found: "Celkem nalezeno: %count%"
 remaining: "Zbývá: %count%"
 loading: "Načítám"
 any: "Libovolný"
+adding_puzzle_hint: "Přepracovali jsme způsob, jakým se přidávají nové (neexistující) puzzle a výrobci. Napište název nového výrobce/puzzlí do příslušného textového pole a poté vybrat možnost \"Add ...\"."
 
 homepage:
     meta:

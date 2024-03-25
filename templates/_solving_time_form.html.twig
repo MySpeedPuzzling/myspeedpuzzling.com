@@ -10,7 +10,6 @@
                     <div>
                         <h5>{{ 'add_time.chosen_puzzle'|trans }}</h5>
 
-
                         <div class="py-1 d-flex low-line-height">
                             {% if active_puzzle.puzzleImage is not null%}
                                 <div class="icon me-2">
@@ -34,6 +33,15 @@
                 {% endif %}
 
                 <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
+
+                    {% if show_add_hint|default(false) %}
+                        <div class="alert alert-accent small d-flex" role="alert">
+                            <div class="alert-icon py-0">
+                                <i class="ci-announcement"></i>
+                            </div>
+                            <div>{{ 'adding_puzzle_hint'|trans }}</div>
+                        </div>
+                    {% endif %}
 
                     {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 

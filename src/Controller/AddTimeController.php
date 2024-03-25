@@ -167,6 +167,7 @@ final class AddTimeController extends AbstractController
             'solving_time_form' => $addTimeForm,
             'filled_group_players' => $groupPlayers,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
+            'hide_new_puzzle' => Uuid::isValid($data->puzzle ?? '') || $data->brand === null,
         ]);
     }
 }

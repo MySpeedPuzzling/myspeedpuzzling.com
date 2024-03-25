@@ -3,6 +3,8 @@ import { Controller } from '@hotwired/stimulus';
 export default class extends Controller {
     static targets = ['brand', 'puzzle', 'newPuzzle'];
 
+    uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     initialize() {
         this._onBrandConnect = this._onBrandConnect.bind(this);
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
@@ -38,52 +40,39 @@ export default class extends Controller {
     onBrandValueChanged(value) {
         this.puzzleTarget.tomselect.clear();
 
-        // Regular expression to validate UUID format
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
         if (value) {
             this.puzzleTarget.tomselect.enable();
             this.puzzleTarget.tomselect.settings.placeholder = this.puzzleTarget.dataset.choosePuzzlePlaceholder;
             this.puzzleTarget.tomselect.inputState();
 
-            if (uuidRegex.test(value)) {
-                this.fetchPuzzleOptions(value);
+            if (this.uuidRegex.test(value)) {
+                this.fetchPuzzleOptions(value, true);
             } else {
-                // Value is not a UUID, treat it as a valid input for a new entry
                 this.onNewBrandCreated();
             }
         } else {
-            // No value entered, disable the second field
             this.disablePuzzleField();
         }
     }
 
     onPuzzleValueChanged(value) {
-        // Regular expression to validate UUID format
-        // Validates UUIDs like 123e4567-e89b-12d3-a456-426614174000
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
         if (value) {
-            if (uuidRegex.test(value)) {
+            if (this.uuidRegex.test(value)) {
                 this.newPuzzleTarget.classList.add('d-none');
             } else {
                 this.newPuzzleTarget.classList.remove('d-none');
             }
         } else {
-            // No value entered, disable the second field
             this.newPuzzleTarget.classList.add('d-none');
         }
 
         this.puzzleTarget.tomselect.blur();
     }
 
-    fetchPuzzleOptions(brandValue) {
+    fetchPuzzleOptions(brandValue, openDropdown) {
         const fetchUrl = this.brandTarget.getAttribute('data-fetch-url');
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-        if (uuidRegex.test(brandValue)) {
-            // Proceed with fetch if value is a valid UUID
-
+        if (this.uuidRegex.test(brandValue)) {
             fetch(`${fetchUrl}?brand=${brandValue}`)
                 .then(response => {
                     if (response.status === 404) {
@@ -102,7 +91,7 @@ export default class extends Controller {
                     if (data) {
                         const existingValue = this.puzzleTarget.tomselect.getValue();
 
-                        this.updatePuzzleSelectValues(data);
+                        this.updatePuzzleSelectValues(data, openDropdown);
 
                         if (existingValue && this.puzzleTarget.tomselect.getOption(existingValue)) {
                             this.puzzleTarget.tomselect.setValue(existingValue);
@@ -115,12 +104,12 @@ export default class extends Controller {
         }
     }
 
-    updatePuzzleSelectValues(data) {
+    updatePuzzleSelectValues(data, openDropdown) {
         const puzzleTomSelect = this.puzzleTarget.tomselect;
         puzzleTomSelect.clear();
         puzzleTomSelect.clearOptions();
         puzzleTomSelect.addOptions(data);
-        puzzleTomSelect.refreshOptions(true);
+        puzzleTomSelect.refreshOptions(openDropdown);
     }
 
     onNewBrandCreated() {
@@ -129,7 +118,7 @@ export default class extends Controller {
 
     handleInitialPuzzleValue() {
         if (this.brandTarget.value) {
-            this.fetchPuzzleOptions(this.brandTarget.value);
+            this.fetchPuzzleOptions(this.brandTarget.value, false);
         } else {
             this.disablePuzzleField();
         }

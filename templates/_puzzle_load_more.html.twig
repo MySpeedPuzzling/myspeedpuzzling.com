@@ -10,15 +10,15 @@
            data-action="ajax:beforeSend->load-more#startLoading ajax:complete->load-more#stopLoading"
         >
             <span class="d-none" data-load-more-target="spinner">
-                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Loading
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> {{ 'loading'|trans }}
             </span>
             <span class="d-inline" data-load-more-target="text">
-                Load more...
+                {{ 'load_more'|trans }}
             </span>
         </a>
         <br>
-        <small class="text-muted">Remaining: {{ total_puzzles_count - current_offset }}</small>
+        <small class="text-muted">{{ 'remaining'|trans({'%count%': total_puzzles_count - current_offset }) }}</small>
         <br>
-        <a class="small" href="#top" data-turbo="false">back to top</a>
+        <a class="small" href="#top" data-turbo="false">{{ 'back_to_top'|trans }}</a>
     </p>
 {% endif %}

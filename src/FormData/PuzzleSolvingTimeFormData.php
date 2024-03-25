@@ -18,8 +18,6 @@ final class PuzzleSolvingTimeFormData
 
     public null|UploadedFile $finishedPuzzlesPhoto = null;
 
-    public null|bool $addPuzzle = null;
-
     public null|string $brand = null;
 
     public null|string $puzzle = null;

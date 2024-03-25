@@ -21,6 +21,7 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Translation\TranslatableMessage;
 use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -55,8 +56,8 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         }
 
         $builder->add('brand', TextType::class, [
-            'label' => 'Brand',
-            'help' => 'Choose existing brand or enter the new brand name when not found.',
+            'label' => 'forms.brand',
+            'help' => 'forms.brand_help',
             'required' => true,
             'autocomplete' => true,
             'empty_data' => '',
@@ -67,15 +68,14 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
             ],
-            'no_results_found_text' => 'Brand not found', // TODO: translation
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete')
             ]
         ]);
 
         $builder->add('puzzle', TextType::class, [
-            'label' => 'Puzzle',
-            'help' => 'Choose existing puzzle (search by name, brand code, pieces) or add the new puzzle name when not found.',
+            'label' => 'forms.puzzle',
+            'help' => 'forms.puzzle_help',
             'required' => true,
             'autocomplete' => true,
             'options_as_html' => true,
@@ -86,8 +86,8 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 'closeAfterSelect' => true,
             ],
             'attr' => [
-                'data-choose-brand-placeholder' => 'Choose brand first', // todo: translation
-                'data-choose-puzzle-placeholder' => 'Search or enter the new puzzle name', // todo: translation
+                'data-choose-brand-placeholder' => $this->translator->trans('forms.puzzle_choose_brand_placeholder'),
+                'data-choose-puzzle-placeholder' => $this->translator->trans('forms.puzzle_choose_placeholder'),
             ],
         ]);
 

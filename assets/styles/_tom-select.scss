@@ -480,6 +480,9 @@
 .ts-control .item {
     display: flex;
     align-items: center;
+    background: #f4f4f4;
+    border-radius: 3px;
+    padding: 2px 4px;
 }
 
 .ts-wrapper.focus {

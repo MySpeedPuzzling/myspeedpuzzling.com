@@ -67,6 +67,8 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 'maxItems' => 1,
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
+                'createOnBlur' => true,
+                'addPrecedence' => true,
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete')
@@ -84,6 +86,8 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 'persist' => false,
                 'maxItems' => 1,
                 'closeAfterSelect' => true,
+                'createOnBlur' => true,
+                'addPrecedence' => true,
             ],
             'attr' => [
                 'data-choose-brand-placeholder' => $this->translator->trans('forms.puzzle_choose_brand_placeholder'),

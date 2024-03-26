@@ -112,6 +112,16 @@ final class PuzzleSolvingTimeFormType extends AbstractType
             'constraints' => [
                 new Image(
                     maxSize: '10m',
+                    mimeTypes: [
+                        'image/jpeg',
+                        'image/png',
+                        'image/gif',
+                        'image/webp',
+                        'image/heic',
+                        'image/heif',
+                        'image/avif',
+                    ],
+                    mimeTypesMessage: 'image_invalid_mime_type'
                 ),
             ],
         ]);
@@ -129,6 +139,16 @@ final class PuzzleSolvingTimeFormType extends AbstractType
             'constraints' => [
                 new Image(
                     maxSize: '10m',
+                    mimeTypes: [
+                        'image/jpeg',
+                        'image/png',
+                        'image/gif',
+                        'image/webp',
+                        'image/heic',
+                        'image/heif',
+                        'image/avif',
+                    ],
+                    mimeTypesMessage: 'image_invalid_mime_type'
                 ),
             ],
         ]);

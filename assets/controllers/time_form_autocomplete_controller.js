@@ -5,12 +5,17 @@ export default class extends Controller {
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+    initialBrandValue = '';
+    initialPuzzleValue = '';
+
     initialize() {
         this._onBrandConnect = this._onBrandConnect.bind(this);
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
     }
 
     connect() {
+        this.initialBrandValue = this.brandTarget.value;
+        this.initialPuzzleValue = this.puzzleTarget.value;
         this.brandTarget.addEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.addEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
     }
@@ -41,12 +46,15 @@ export default class extends Controller {
         };
 
         event.detail.options.onInitialize = () => {
-            this.handleInitialPuzzleValue();
+            this.handleInitialValues();
         };
     }
 
     onBrandValueChanged(value) {
-        this.puzzleTarget.tomselect.clear();
+        if (value !== this.initialBrandValue) {
+            this.puzzleTarget.tomselect.clear();
+            this.initialBrandValue = value;
+        }
 
         if (value) {
             this.puzzleTarget.tomselect.enable();
@@ -104,6 +112,12 @@ export default class extends Controller {
                         if (existingValue && this.puzzleTarget.tomselect.getOption(existingValue)) {
                             this.puzzleTarget.tomselect.setValue(existingValue);
                         }
+
+                        if (this.initialPuzzleValue && !this.puzzleTarget.tomselect.getOption(this.initialBrandValue) && !this.uuidRegex.test(this.initialPuzzleValue)) {
+                            this.puzzleTarget.tomselect.createItem(this.initialPuzzleValue);
+                        }
+
+                        this.initialPuzzleValue = '';
                     }
                 })
                 .catch(error => {
@@ -124,9 +138,17 @@ export default class extends Controller {
         this.newPuzzleTarget.classList.remove('d-none');
     }
 
-    handleInitialPuzzleValue() {
-        if (this.brandTarget.value) {
-            this.fetchPuzzleOptions(this.brandTarget.value, false);
+    handleInitialValues() {
+        if (this.initialBrandValue) {
+            if (!this.brandTarget.tomselect.getOption(this.initialBrandValue) && !this.uuidRegex.test(this.initialBrandValue)) {
+                this.brandTarget.tomselect.createItem(this.initialBrandValue);
+
+                if (this.initialPuzzleValue) {
+                    this.puzzleTarget.tomselect.createItem(this.initialPuzzleValue);
+                }
+            } else {
+                this.fetchPuzzleOptions(this.brandTarget.value, false);
+            }
         } else {
             this.disablePuzzleField();
         }

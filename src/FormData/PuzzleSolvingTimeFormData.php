@@ -11,7 +11,7 @@ use Symfony\Component\Validator\Constraints\Regex;
 
 final class PuzzleSolvingTimeFormData
 {
-    #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'Prosím zadejte čas ve formátu HH:MM:SS nebo MM:SS')]
+    #[Regex(PuzzlingTimeFormatter::TIME_FORMAT, 'puzzling_time_format')]
     public null|string $time = null;
 
     public null|string $comment = null;

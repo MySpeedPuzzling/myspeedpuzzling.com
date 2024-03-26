@@ -36,7 +36,7 @@ SELECT
     player.id AS player_id,
     manufacturer.name AS manufacturer_name,
     puzzle.identification_number AS puzzle_identification_number,
-    puzzle_solving_time AS time_id,
+    puzzle_solving_time.id AS time_id,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     JSON_AGG(
         JSON_BUILD_OBJECT(

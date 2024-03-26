@@ -36,7 +36,7 @@ SELECT
     player.id AS player_id,
     COUNT(puzzle_solving_time.puzzle_id) AS solved_times,
     manufacturer.name AS manufacturer_name,
-    puzzle_solving_time AS time_id,
+    puzzle_solving_time.id AS time_id,
     puzzle.identification_number AS puzzle_identification_number
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id

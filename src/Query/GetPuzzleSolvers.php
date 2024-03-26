@@ -84,15 +84,15 @@ SELECT
     finished_at,
     JSON_AGG(
         JSON_BUILD_OBJECT(
-            'player_id', player_elem ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_id', player_elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_country', p.country
-        )
+        ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
     puzzle_solving_time pst,
-    LATERAL json_array_elements(pst.team -> 'puzzlers') AS player_elem
-    LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) 
+    LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     pst.puzzle_id = :puzzleId
     AND pst.team IS NOT NULL
@@ -145,15 +145,15 @@ SELECT
     finished_at,
     JSON_AGG(
         JSON_BUILD_OBJECT(
-            'player_id', player_elem ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_id', player_elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_country', p.country
-        )
+        ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
     puzzle_solving_time pst,
-    LATERAL json_array_elements(pst.team -> 'puzzlers') AS player_elem
-    LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
+    LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     pst.puzzle_id = :puzzleId
     AND pst.team IS NOT NULL

@@ -40,17 +40,17 @@ SELECT
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     JSON_AGG(
         JSON_BUILD_OBJECT(
-            'player_id', player_elem ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+            'player_id', player_elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_country', p.country
-        )
+        ) ORDER BY player_elem.ordinality
     ) AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
-LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem
-LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
+LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE puzzle.pieces_count = :piecesCount
     AND puzzle_solving_time.team IS NOT NULL
     AND json_array_length(team -> 'puzzlers') > 2

@@ -48,18 +48,18 @@ SELECT
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
             JSON_BUILD_OBJECT(
-                'player_id', player_elem ->> 'player_id',
-                'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+                'player_id', player_elem.player ->> 'player_id',
+                'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                 'player_country', p.country
-            )
+            ) ORDER BY player_elem.ordinality
         )
     END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem ON true
-LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) ON true
+LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     (puzzle_solving_time.player_id = :playerId OR EXISTS (
         SELECT 1
@@ -133,18 +133,18 @@ SELECT
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
             JSON_BUILD_OBJECT(
-                'player_id', player_elem ->> 'player_id',
-                'player_name', COALESCE(p.name, player_elem ->> 'player_name'),
+                'player_id', player_elem.player ->> 'player_id',
+                'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                 'player_country', p.country
-            )
+            ) ORDER BY player_elem.ordinality
         )
     END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') AS player_elem ON true
-LEFT JOIN player p ON p.id = (player_elem ->> 'player_id')::UUID
+LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) ON true
+LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     player.name IS NOT NULL
 GROUP BY puzzle_solving_time.id, puzzle.id, manufacturer.id, time, player.id

@@ -53,6 +53,7 @@
         "liip/imagine-bundle": "^2.12",
         "lustmored/flysystem-v2-simple-cache-adapter": "^0.3.0",
         "monolog/monolog": "^3.0",
+        "nelmio/cors-bundle": "^2.4",
         "nette/utils": "^4.0",
         "oneup/flysystem-bundle": "^4.9",
         "psr-discovery/cache-implementations": "1.x-dev",

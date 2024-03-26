@@ -162,7 +162,7 @@ forms:
     add_new_puzzle: "Add new puzzle - not in the list"
     puzzle: "Puzzle"
     puzzle_help: "Choose existing puzzle (search by name, brand code, pieces) or add the new puzzle name when not found."
-    brand: "Výrobce"
+    brand: "Brand"
     brand_help: "Choose existing brand or enter the new brand name when not found."
     pieces_count: "Number of pieces"
     puzzle_box_photo: "Photo of the picture or puzzle box"

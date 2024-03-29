@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\CountryCode;
 
-readonly final class MostActivePuzzler
+readonly final class MostActivePlayer
 {
     public function __construct(
         public string $playerId,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
+use SpeedPuzzling\Web\Query\GetMostActivePlayers;
 use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
@@ -22,6 +23,7 @@ final class HubController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetRanking $getRanking,
         readonly private GetMostSolvedPuzzles $getMostSolvedPuzzles,
+        readonly private GetMostActivePlayers $getMostActivePlayers,
     ) {
     }
 
@@ -41,7 +43,7 @@ final class HubController extends AbstractController
 
         if ($playerProfile !== null) {
             $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
-            $favoritesSolvedPuzzle = $this->getLastSolvedPuzzle->favoritesOfPlayer(20, $playerProfile->playerId);
+            $favoritesSolvedPuzzle = $this->getLastSolvedPuzzle->ofPlayers(20, $playerProfile->playerId);
         }
 
         $thisMonth = (int) date("m");
@@ -62,11 +64,11 @@ final class HubController extends AbstractController
             'this_month_most_solved_puzzle' => $this->getMostSolvedPuzzles->topInMonth(5, $thisMonth, $thisYear),
             'last_month_most_solved_puzzle' => $this->getMostSolvedPuzzles->topInMonth(5, $lastMonth, $lastYear),
             'all_time_most_solved_puzzle' => $this->getMostSolvedPuzzles->top(5),
-            'this_month_most_active_solo_players' => $this->getStatistics->mostActiveSoloPlayersInMonth(5, $thisMonth, $thisYear),
-            'last_month_most_active_solo_players' => $this->getStatistics->mostActiveSoloPlayersInMonth(5, $lastMonth, $lastYear),
-            'all_time_most_active_solo_players' => $this->getStatistics->mostActiveSoloPlayers(5),
-            'this_month_global_statistics' => $this->getStatistics->globallyInMonth(5, $thisMonth, $thisYear),
-            'last_month_global_statistics' => $this->getStatistics->globallyInMonth(5, $lastMonth, $lastYear),
+            'this_month_most_active_solo_players' => $this->getMostActivePlayers->mostActiveSoloPlayersInMonth(5, $thisMonth, $thisYear),
+            'last_month_most_active_solo_players' => $this->getMostActivePlayers->mostActiveSoloPlayersInMonth(5, $lastMonth, $lastYear),
+            'all_time_most_active_solo_players' => $this->getMostActivePlayers->mostActiveSoloPlayers(5),
+            'this_month_global_statistics' => $this->getStatistics->globallyInMonth($thisMonth, $thisYear),
+            'last_month_global_statistics' => $this->getStatistics->globallyInMonth($lastMonth, $lastYear),
             'all_time_global_statistics' => $this->getStatistics->globally(),
         ]);
     }

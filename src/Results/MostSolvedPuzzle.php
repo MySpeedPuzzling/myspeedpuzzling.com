@@ -27,8 +27,8 @@ readonly final class MostSolvedPuzzle
      *     puzzle_image: null|string,
      *     solved_times: int,
      *     pieces_count: int,
-     *     average_time_solo: string,
-     *     fastest_time_solo: int,
+     *     average_time_solo: null|string,
+     *     fastest_time_solo: null|int,
      *     manufacturer_name: string,
      * } $row
      */
@@ -40,8 +40,8 @@ readonly final class MostSolvedPuzzle
             puzzleAlternativeName: $row['puzzle_alternative_name'],
             solvedTimes: $row['solved_times'],
             piecesCount: $row['pieces_count'],
-            averageTimeSolo: (int) $row['average_time_solo'],
-            fastestTimeSolo: $row['fastest_time_solo'],
+            averageTimeSolo: (int) ($row['average_time_solo'] ?? 0),
+            fastestTimeSolo: $row['fastest_time_solo'] ?? 0,
             puzzleImage: $row['puzzle_image'],
             manufacturerName: $row['manufacturer_name'],
         );

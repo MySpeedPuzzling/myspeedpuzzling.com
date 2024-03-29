@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'hub.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1>{{ 'hub.title'|trans }}</h1>
+
+    <ul class="nav nav-fill nav-tabs mt-2" role="tablist" data-controller="tabs">
+        <li class="nav-item">
+            <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                <div class="text-center">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                <div class="text-center">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
+                </div>
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
+            {{ include('_recent_activity.html.twig', {
+                solved_puzzles: last_solved_puzzles,
+                show_limit: 4,
+            }) }}
+        </div>
+
+        <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
+            {{ include('_recent_activity.html.twig', {
+                solved_puzzles: last_solved_puzzles,
+                show_limit: 4,
+            }) }}
+        </div>
+    </div>
+
+    {# TODO: Upcoming / News  #}
+
+    <h2>This month</h2>
+
+    This month:
+        Slider statistiky?
+        - Most 3 active SOLO player
+        - Most 3 solved puzzle
+        - Numbers z homepage
+
+{% endblock %}

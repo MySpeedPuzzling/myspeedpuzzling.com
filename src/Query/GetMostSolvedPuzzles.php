@@ -62,4 +62,13 @@ SQL;
             return MostSolvedPuzzle::fromDatabaseRow($row);
         }, $data);
     }
+
+    /**
+     * @return array<MostSolvedPuzzle>
+     */
+    public function topInMonth(int $limit, int $month, int $year): array
+    {
+        // TODO: implement
+        return [];
+    }
 }

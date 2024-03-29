@@ -185,4 +185,13 @@ SQL;
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);
     }
+
+    /**
+     * @return array<SolvedPuzzle>
+     */
+    public function favoritesOfPlayer(int $int, string $playerId): array
+    {
+        // TODO: implement
+        return [];
+    }
 }

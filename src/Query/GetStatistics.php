@@ -202,4 +202,28 @@ SQL;
 
         return GlobalStatistics::fromDatabaseRow($row);
     }
+
+    /**
+     * @return array<MostActivePuzzler>
+     */
+    public function mostActiveSoloPlayers(int $limint): array
+    {
+        // TODO: implement
+        return [];
+    }
+
+    /**
+     * @return array<MostActivePuzzler>
+     */
+    public function mostActiveSoloPlayersInMonth(int $limit, int $month, int $year): array
+    {
+        // TODO: implement
+        return [];
+    }
+
+    public function globallyInMonth(int $limit, int $month, int $year): GlobalStatistics
+    {
+        // TODO: implement
+        return new GlobalStatistics(0, 0, 0);
+    }
 }

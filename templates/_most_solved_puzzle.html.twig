@@ -1,54 +1,62 @@
-<div class="table-responsive custom-table-wrapper">
-    <table class="table table-striped table-hover mb-0">
-        <tbody>
-            {% for most_solved_puzzle in most_solved_puzzles %}
-                <tr>
-                    <td class="text-center">
-                        {% if most_solved_puzzle.puzzleImage is not null%}
-                            <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                <img class="rounded-2" style="max-width: 80px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}) }}" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                            </a>
-                        {% endif %}
-                    </td>
+{% set show_limit = show_limit|default(null) %}
 
-                    <td class="d-none d-sm-table-cell">
-                        <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                <span style="color: #111;">
-                                    {{ most_solved_puzzle.manufacturerName }}<br>
-                                    <small>{{ 'pieces_count'|trans({ '%count%': most_solved_puzzle.piecesCount })|raw }}</small>
-                                </span><br>
-
-                            <small class="puzzle-title mt-2">
-                                {{ include('_puzzle_name.html.twig', {
-                                    puzzle_name: most_solved_puzzle.puzzleName,
-                                    alternative_puzzle_name: most_solved_puzzle.puzzleAlternativeName,
-                                }) }}
-                            </small>
-                        </a>
-                    </td>
-
-                    <td>
-                        <small style="color: #000;">{{ 'puzzle_solved_times'|trans({'%count%': most_solved_puzzle.solvedTimes})|capitalize|raw }}</small><br>
-
-                        <p class="mt-0 mb-1 d-sm-none low-line-height">
-                            <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                <small>{{ most_solved_puzzle.manufacturerName }}</small><br>
-                                <small>{{ 'pieces_count'|trans({ '%count%': most_solved_puzzle.piecesCount })|raw }}</small>
-                            </a>
-                        </p>
-                    </td>
-                    <td class="text-end">
-                        <small class="low-line-height d-inline-block">{{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTimeSolo|puzzlingTime }) }}</small>
-
-                        {% if logged_user.profile is not null %}
-                            {% if ranking[most_solved_puzzle.puzzleId] is defined %}
-                                <br>
-                                <small class="mt-1 low-line-height d-inline-block">{{ 'my_time'|trans }} {{ ranking[most_solved_puzzle.puzzleId].time|puzzlingTime }}</small>
+<div data-controller="show-more-recent-activity">
+    <div class="table-responsive custom-table-wrapper">
+        <table class="table table-striped table-hover mb-0">
+            <tbody>
+                {% for most_solved_puzzle in most_solved_puzzles %}
+                    <tr class="{{ show_limit is not null and loop.index > show_limit ? 'd-none' }}">
+                        <td class="text-center">
+                            {% if most_solved_puzzle.puzzleImage is not null%}
+                                <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
+                                    <img class="rounded-2" style="max-width: 80px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}) }}" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                </a>
                             {% endif %}
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        </td>
+
+                        <td class="d-none d-sm-table-cell">
+                            <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
+                                    <span style="color: #111;">
+                                        {{ most_solved_puzzle.manufacturerName }}<br>
+                                        <small>{{ 'pieces_count'|trans({ '%count%': most_solved_puzzle.piecesCount })|raw }}</small>
+                                    </span><br>
+
+                                <small class="puzzle-title mt-2">
+                                    {{ include('_puzzle_name.html.twig', {
+                                        puzzle_name: most_solved_puzzle.puzzleName,
+                                        alternative_puzzle_name: most_solved_puzzle.puzzleAlternativeName,
+                                    }) }}
+                                </small>
+                            </a>
+                        </td>
+
+                        <td>
+                            <small style="color: #000;">{{ 'puzzle_solved_times'|trans({'%count%': most_solved_puzzle.solvedTimes})|capitalize|raw }}</small><br>
+
+                            <p class="mt-0 mb-1 d-sm-none low-line-height">
+                                <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
+                                    <small>{{ most_solved_puzzle.manufacturerName }}</small><br>
+                                    <small>{{ 'pieces_count'|trans({ '%count%': most_solved_puzzle.piecesCount })|raw }}</small>
+                                </a>
+                            </p>
+                        </td>
+                        <td class="text-end">
+                            <small class="low-line-height d-inline-block">{{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTimeSolo|puzzlingTime }) }}</small>
+
+                            {% if logged_user.profile is not null %}
+                                {% if ranking[most_solved_puzzle.puzzleId] is defined %}
+                                    <br>
+                                    <small class="mt-1 low-line-height d-inline-block">{{ 'my_time'|trans }} {{ ranking[most_solved_puzzle.puzzleId].time|puzzlingTime }}</small>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if show_limit is not null and most_solved_puzzles|length > show_limit %}
+        <button class="mt-3 btn btn-outline-primary btn-sm" data-action="click->show-more-recent-activity#revealRows" data-show-more-recent-activity-target="button">{{ 'show_more'|trans }}</button>
+    {% endif %}
 </div>

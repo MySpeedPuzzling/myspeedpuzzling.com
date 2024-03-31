@@ -100,18 +100,21 @@
                 <div class="tab-pane fade show active" id="most-active-players-this-month" role="tabpanel">
                     {{ include('_most_active_players.html.twig', {
                         'most_active_players': this_month_most_active_solo_players,
+                        show_limit: 4,
                     }) }}
                 </div>
 
                 <div class="tab-pane fade" id="most-active-players-last-month" role="tabpanel">
                     {{ include('_most_active_players.html.twig', {
                         'most_active_players': last_month_most_active_solo_players,
+                        show_limit: 4,
                     }) }}
                 </div>
 
                 <div class="tab-pane fade" id="most-active-players-all-time" role="tabpanel">
                     {{ include('_most_active_players.html.twig', {
                         'most_active_players': all_time_most_active_solo_players,
+                        show_limit: 4,
                     }) }}
                 </div>
             </div>
@@ -150,18 +153,21 @@
                 <div class="tab-pane fade show active" id="most-solved-puzzle-this-month" role="tabpanel">
                     {{ include('_most_solved_puzzle.html.twig', {
                         'most_solved_puzzles': this_month_most_solved_puzzle,
+                        show_limit: 4,
                     }) }}
                 </div>
 
                 <div class="tab-pane fade" id="most-solved-puzzle-last-month" role="tabpanel">
                     {{ include('_most_solved_puzzle.html.twig', {
                         'most_solved_puzzles': last_month_most_solved_puzzle,
+                        show_limit: 4,
                     }) }}
                 </div>
 
                 <div class="tab-pane fade" id="most-solved-puzzle-all-time" role="tabpanel">
                     {{ include('_most_solved_puzzle.html.twig', {
                         'most_solved_puzzles': all_time_most_solved_puzzle,
+                        show_limit: 4,
                     }) }}
                 </div>
             </div>

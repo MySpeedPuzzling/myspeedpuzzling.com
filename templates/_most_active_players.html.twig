@@ -1,0 +1,36 @@
+<div class="table-responsive custom-table-wrapper">
+    <table class="table table-striped table-hover mb-0">
+        <tbody>
+            {% for most_active_player in most_active_players %}
+                <tr class="{{ logged_user.profile is not null and most_active_player.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                    <td class="rank">{{ loop.index }}.</td>
+                    <td class="player-name">
+                        <a href="{{ path('player_profile', {playerId: most_active_player.playerId}) }}">
+                            {{ most_active_player.playerName }}
+                            {% if logged_user.profile is not null and most_active_player.playerId in logged_user.profile.favoritePlayers %}
+                                <i class="ci-star-filled text-warning"></i>
+                            {% endif %}
+                        </a>
+                        {% if most_active_player.playerCountry is not null %}
+                            <small class="shadow-custom fi fi-{{ most_active_player.playerCountry.name }}"></small>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <small>{{ 'solo_solved'|trans }}</small> {{ most_active_player.solvedPuzzlesCount }}&times;<br>
+
+                        <small class="text-muted">
+                            {{ 'pieces_count'|trans({'%count%': most_active_player.totalPiecesCount|format_number([], 'decimal', 'default', 'cs')})|raw }}<br>
+
+                            {% if most_active_player.totalSeconds|daysElapsed > 0 %}
+                                {{ most_active_player.totalSeconds|daysElapsed }}d
+                            {% endif %}
+                            {{ most_active_player.totalSeconds|hoursElapsed(false) }}h
+                            {{ most_active_player.totalSeconds|minutesElapsed }}m
+                            {{ most_active_player.totalSeconds|secondsElapsed }}s
+                        </small>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

@@ -36,7 +36,13 @@ final class HomepageController extends AbstractController
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {
         if ($request->getPathInfo() === '/') {
-            return $this->redirectToRoute('homepage', ['_locale' => $request->getPreferredLanguage(['en', 'cs']) ?? 'en']);
+            $locale = $request->getPreferredLanguage(['en', 'cs']) ?? 'en';
+
+            if ($user !== null) {
+                return $this->redirectToRoute('hub', ['_locale' => $locale]);
+            }
+
+            return $this->redirectToRoute('homepage', ['_locale' => $locale]);
         }
 
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();

@@ -62,7 +62,7 @@
                         {% endif %}
 
                         {% if solving_time.solvedTimes > 1 %}
-                            <span class="badge bg-dark rounded-pill">{{ 'puzzle_solved_times'|trans({ '%count%': solving_time.solvedTimes }) }}x</span>
+                            <span class="badge bg-dark rounded-pill">{{ 'puzzle_solved_times'|trans({ '%count%': solving_time.solvedTimes })|raw }}</span>
                         {% endif %}
                     </p>
 

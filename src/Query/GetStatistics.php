@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\GlobalStatistics;
-use SpeedPuzzling\Web\Results\MostActivePuzzler;
+use SpeedPuzzling\Web\Results\MostActivePlayer;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Results\PlayerStatistics;
 
@@ -17,62 +17,6 @@ readonly final class GetStatistics
     public function __construct(
         private Connection $database,
     ) {
-    }
-
-    /**
-     * @return array<MostActivePuzzler>
-     */
-    public function mostActivePlayers(int $limit): array
-    {
-        $query = <<<SQL
-SELECT
-    p.id AS player_id,
-    p.name AS player_name,
-    p.country AS player_country,
-    p.code AS player_code,
-    COUNT(DISTINCT subquery.puzzle_id || '-' || subquery.player_id) as solved_puzzles_count
-FROM (
-    SELECT
-        pst.id as puzzle_id,
-        pst.player_id
-    FROM
-        puzzle_solving_time pst
-
-    UNION
-
-    SELECT
-        pst.id as puzzle_id,
-        (json_array_elements_text(pst.team->'puzzlers')::json->>'player_id')::uuid as player_id
-    FROM
-        puzzle_solving_time pst
-        CROSS JOIN LATERAL json_array_elements(pst.team->'puzzlers')
-    WHERE
-        pst.team IS NOT NULL
-) as subquery
-JOIN player p ON subquery.player_id = p.id
-GROUP BY p.id, p.name, p.country
-ORDER BY solved_puzzles_count DESC
-LIMIT :limit
-SQL;
-
-        $data = $this->database
-            ->executeQuery($query, [
-                'limit' => $limit,
-            ])
-            ->fetchAllAssociative();
-
-        return array_map(static function(array $row): MostActivePuzzler {
-            /**
-             * @var array{
-             *     player_id: string,
-             *     player_name: null|string,
-             *     player_country: null|string,
-             *     solved_puzzles_count: int,
-             * } $row
-             */
-
-            return MostActivePuzzler::fromDatabaseRow($row);
-        }, $data);
     }
 
     /**
@@ -186,7 +130,6 @@ SELECT
     SUM(puzzle.pieces_count) AS total_pieces
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-
 SQL;
 
         /**
@@ -198,6 +141,36 @@ SQL;
          */
         $row = $this->database
             ->executeQuery($query)
+            ->fetchAssociative();
+
+        return GlobalStatistics::fromDatabaseRow($row);
+    }
+
+    public function globallyInMonth(int $month, int $year): GlobalStatistics
+    {
+        $query = <<<SQL
+SELECT
+    SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
+    COUNT(puzzle_solving_time.id) AS solved_puzzles_count,
+    SUM(puzzle.pieces_count) AS total_pieces
+FROM puzzle_solving_time
+INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+WHERE EXTRACT(MONTH FROM puzzle_solving_time.finished_at) = :month
+    AND EXTRACT(YEAR FROM puzzle_solving_time.finished_at) = :year
+SQL;
+
+        /**
+         * @var array{
+         *     total_seconds: null|int,
+         *     total_pieces: null|int,
+         *     solved_puzzles_count: null|int,
+         * } $row
+         */
+        $row = $this->database
+            ->executeQuery($query, [
+                'month' => $month,
+                'year' => $year,
+            ])
             ->fetchAssociative();
 
         return GlobalStatistics::fromDatabaseRow($row);

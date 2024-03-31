@@ -3,7 +3,7 @@
 {% block title %}{{ 'hub.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1 class="h3">
+    <h1 class="h3 mb-0">
         {% if logged_user.profile is null %}
             {{ 'hub.welcome'|trans }}
         {% else %}
@@ -14,7 +14,7 @@
         {% endif %}
     </h1>
 
-    <ul class="nav nav-fill nav-tabs mt-2" role="tablist" data-controller="tabs">
+    <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
         <li class="nav-item">
             <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
                 <div class="text-center">

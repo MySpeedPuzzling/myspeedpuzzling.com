@@ -90,7 +90,7 @@
                                     </a>
                                     <ul class="dropdown-menu">
                                         {% set currentRoute = app.request.attributes.get('_route') %}
-                                        {% set routeParams = app.request.attributes.get('_route_params')|merge({'_locale': 'en'}) %}
+                                        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
 
                                         {% if app.request.locale is not same as 'en' %}
                                             <li>
@@ -101,7 +101,7 @@
                                             </li>
                                         {% endif %}
 
-                                        {% set routeParams = app.request.attributes.get('_route_params')|merge({'_locale': 'cs'}) %}
+                                        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
                                         {% if app.request.locale is not same as 'cs' %}
                                             <li>
                                                 <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'cs'}) }}">

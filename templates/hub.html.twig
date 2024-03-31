@@ -14,201 +14,207 @@
         {% endif %}
     </h1>
 
-    <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
-        <li class="nav-item">
-            <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
-                </div>
-            </a>
-        </li>
+    <div class="row">
+        <div class="col-lg-6 pt-lg-4">
+            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
 
-        <li class="nav-item">
-            <a class="nav-link" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans|raw }}</h6>
-                </div>
-            </a>
-        </li>
-    </ul>
+                <li class="nav-item">
+                    <a class="nav-link" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
+            </ul>
 
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
-            {{ include('_recent_activity.html.twig', {
-                solved_puzzles: last_solved_puzzles,
-                show_limit: 4,
-            }) }}
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
+                    {{ include('_recent_activity.html.twig', {
+                        solved_puzzles: last_solved_puzzles,
+                        show_limit: 4,
+                    }) }}
+                </div>
+
+                <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
+                    {% if logged_user.profile is null %}
+                        <div class="alert alert-accent small d-flex mt-3" role="alert">
+                            <div class="alert-icon py-0">
+                                <i class="ci-announcement"></i>
+                            </div>
+                            <div>{{ 'hub.not_logged'|trans }}</div>
+                        </div>
+                    {% elseif last_solved_favorites_puzzles is empty %}
+                        <div class="alert alert-accent small d-flex mt-3" role="alert">
+                            <div class="alert-icon py-0">
+                                <i class="ci-announcement"></i>
+                            </div>
+                            <div>{{ 'hub.no_favorites'|trans }}</div>
+                        </div>
+                    {% else %}
+                        {{ include('_recent_activity.html.twig', {
+                            solved_puzzles: last_solved_favorites_puzzles,
+                            show_limit: 4,
+                        }) }}
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
-        <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
-            {% if logged_user.profile is null %}
-                <div class="alert alert-accent small d-flex mt-3" role="alert">
-                    <div class="alert-icon py-0">
-                        <i class="ci-announcement"></i>
-                    </div>
-                    <div>{{ 'hub.not_logged'|trans }}</div>
+        <div class="col-lg-6">
+            <h3 class="h4 mt-5 mt-lg-0 mb-0">{{ 'hub.most_active_solo_players'|trans }}</h3>
+
+            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#most-active-players-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#most-active-players-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="#most-active-players-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="most-active-players-this-month" role="tabpanel">
+                    {{ include('_most_active_players.html.twig', {
+                        'most_active_players': this_month_most_active_solo_players,
+                    }) }}
                 </div>
-            {% elseif last_solved_favorites_puzzles is empty %}
-                <div class="alert alert-accent small d-flex mt-3" role="alert">
-                    <div class="alert-icon py-0">
-                        <i class="ci-announcement"></i>
-                    </div>
-                    <div>{{ 'hub.no_favorites'|trans }}</div>
+
+                <div class="tab-pane fade" id="most-active-players-last-month" role="tabpanel">
+                    {{ include('_most_active_players.html.twig', {
+                        'most_active_players': last_month_most_active_solo_players,
+                    }) }}
                 </div>
-            {% else %}
-                {{ include('_recent_activity.html.twig', {
-                    solved_puzzles: last_solved_favorites_puzzles,
-                    show_limit: 4,
-                }) }}
-            {% endif %}
-        </div>
-    </div>
 
-    {# TODO: Upcoming / News  #}
-
-    <h3 class="h4 mt-5 mb-0">{{ 'hub.most_active_solo_players'|trans }}</h3>
-
-    <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
-        <li class="nav-item">
-            <a class="nav-link active" href="#most-active-players-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+                <div class="tab-pane fade" id="most-active-players-all-time" role="tabpanel">
+                    {{ include('_most_active_players.html.twig', {
+                        'most_active_players': all_time_most_active_solo_players,
+                    }) }}
                 </div>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link" href="#most-active-players-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
-                </div>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link" href="#most-active-players-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
-                </div>
-            </a>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="most-active-players-this-month" role="tabpanel">
-            {{ include('_most_active_players.html.twig', {
-                'most_active_players': this_month_most_active_solo_players,
-            }) }}
+            </div>
         </div>
 
-        <div class="tab-pane fade" id="most-active-players-last-month" role="tabpanel">
-            {{ include('_most_active_players.html.twig', {
-                'most_active_players': last_month_most_active_solo_players,
-            }) }}
-        </div>
+        <div class="col-lg-6">
+            <h3 class="h4 mt-5 mb-0">{{ 'hub.most_solved_puzzle'|trans }}</h3>
 
-        <div class="tab-pane fade" id="most-active-players-all-time" role="tabpanel">
-            {{ include('_most_active_players.html.twig', {
-                'most_active_players': all_time_most_active_solo_players,
-            }) }}
-        </div>
-    </div>
+            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#most-solved-puzzle-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
 
+                <li class="nav-item">
+                    <a class="nav-link" href="#most-solved-puzzle-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
 
-    <h3 class="h4 mt-5 mb-0">{{ 'hub.most_solved_puzzle'|trans }}</h3>
+                <li class="nav-item">
+                    <a class="nav-link" href="#most-solved-puzzle-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
+            </ul>
 
-    <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
-        <li class="nav-item">
-            <a class="nav-link active" href="#most-solved-puzzle-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="most-solved-puzzle-this-month" role="tabpanel">
+                    {{ include('_most_solved_puzzle.html.twig', {
+                        'most_solved_puzzles': this_month_most_solved_puzzle,
+                    }) }}
                 </div>
-            </a>
-        </li>
 
-        <li class="nav-item">
-            <a class="nav-link" href="#most-solved-puzzle-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+                <div class="tab-pane fade" id="most-solved-puzzle-last-month" role="tabpanel">
+                    {{ include('_most_solved_puzzle.html.twig', {
+                        'most_solved_puzzles': last_month_most_solved_puzzle,
+                    }) }}
                 </div>
-            </a>
-        </li>
 
-        <li class="nav-item">
-            <a class="nav-link" href="#most-solved-puzzle-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+                <div class="tab-pane fade" id="most-solved-puzzle-all-time" role="tabpanel">
+                    {{ include('_most_solved_puzzle.html.twig', {
+                        'most_solved_puzzles': all_time_most_solved_puzzle,
+                    }) }}
                 </div>
-            </a>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="most-solved-puzzle-this-month" role="tabpanel">
-            {{ include('_most_solved_puzzle.html.twig', {
-                'most_solved_puzzles': this_month_most_solved_puzzle,
-            }) }}
+            </div>
         </div>
 
-        <div class="tab-pane fade" id="most-solved-puzzle-last-month" role="tabpanel">
-            {{ include('_most_solved_puzzle.html.twig', {
-                'most_solved_puzzles': last_month_most_solved_puzzle,
-            }) }}
-        </div>
+        <div class="col-lg-6">
+            <h3 class="h4 mt-5 mb-0">{{ 'hub.statistics'|trans }}</h3>
 
-        <div class="tab-pane fade" id="most-solved-puzzle-all-time" role="tabpanel">
-            {{ include('_most_solved_puzzle.html.twig', {
-                'most_solved_puzzles': all_time_most_solved_puzzle,
-            }) }}
-        </div>
-    </div>
+            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#statistics-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
 
+                <li class="nav-item">
+                    <a class="nav-link" href="#statistics-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
 
-    <h3 class="h4 mt-5 mb-0">{{ 'hub.statistics'|trans }}</h3>
+                <li class="nav-item">
+                    <a class="nav-link" href="#statistics-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                        <div class="text-center">
+                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+                        </div>
+                    </a>
+                </li>
+            </ul>
 
-    <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
-        <li class="nav-item">
-            <a class="nav-link active" href="#statistics-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+            <div class="tab-content mb-3">
+                <div class="tab-pane fade show active" id="statistics-this-month" role="tabpanel">
+                    {{ include('_puzzle_statistics.html.twig', {
+                        'puzzle_statistics': this_month_global_statistics,
+                    }) }}
                 </div>
-            </a>
-        </li>
 
-        <li class="nav-item">
-            <a class="nav-link" href="#statistics-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+                <div class="tab-pane fade" id="statistics-last-month" role="tabpanel">
+                    {{ include('_puzzle_statistics.html.twig', {
+                        'puzzle_statistics': last_month_global_statistics,
+                    }) }}
                 </div>
-            </a>
-        </li>
 
-        <li class="nav-item">
-            <a class="nav-link" href="#statistics-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+                <div class="tab-pane fade" id="statistics-all-time" role="tabpanel">
+                    {{ include('_puzzle_statistics.html.twig', {
+                        'puzzle_statistics': all_time_global_statistics,
+                    }) }}
                 </div>
-            </a>
-        </li>
-    </ul>
-
-    <div class="tab-content mb-3">
-        <div class="tab-pane fade show active" id="statistics-this-month" role="tabpanel">
-            {{ include('_puzzle_statistics.html.twig', {
-                'puzzle_statistics': this_month_global_statistics,
-            }) }}
-        </div>
-
-        <div class="tab-pane fade" id="statistics-last-month" role="tabpanel">
-            {{ include('_puzzle_statistics.html.twig', {
-                'puzzle_statistics': last_month_global_statistics,
-            }) }}
-        </div>
-
-        <div class="tab-pane fade" id="statistics-all-time" role="tabpanel">
-            {{ include('_puzzle_statistics.html.twig', {
-                'puzzle_statistics': all_time_global_statistics,
-            }) }}
+            </div>
         </div>
     </div>
 {% endblock %}

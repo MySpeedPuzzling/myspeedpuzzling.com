@@ -7,6 +7,7 @@ menu:
     players: "Hráči"
     faq: "Časté dotazy"
     sign_in: "Přihlásit se"
+    hub: "Hub"
 
 
 footer:
@@ -30,7 +31,7 @@ fastest_time: "Nejrychlejší čas:"
 average_time: "Průměrný čas:"
 my_time: "Můj čas:"
 puzzle_solved_count: "Počet složení:"
-puzzle_solved_times: "skládáno %count%x"
+puzzle_solved_times: "skládáno %count%&times;"
 never_solved_puzzles: "Tyto puzzle ještě nikdo neskládal, buď první!"
 show_more_solving_times: "Více (%count%x)"
 be_first_to_solve: "Tyto puzzle ještě nikdo neskládal. Buď první!"
@@ -49,6 +50,7 @@ remaining: "Zbývá: %count%"
 loading: "Načítám"
 any: "Libovolný"
 adding_puzzle_hint: "Přepracovali jsme způsob, jakým se přidávají nové (neexistující) puzzle a výrobci. Napište název nového výrobce/puzzlí do příslušného textového pole a poté vybrat možnost \"Add new\"."
+solo_solved: "Skládáno SOLO:"
 
 homepage:
     meta:
@@ -335,3 +337,20 @@ flashes:
     can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
     player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
+
+hub:
+    title: "Speed Puzzling Hub"
+    welcome: "Vítej puzzlere!"
+    welcome_back: "Vítej zpět"
+    recent_favorites_activity: "Aktivita<br>oblíbených"
+    this_month: "Tento<br>měsíc"
+    last_month: "Minulý<br>měsíc"
+    all_time: "Za celou<br>dobu"
+    most_active_solo_players: "Nejaktivnější SOLO hráči"
+    most_solved_puzzle: "Nejskládanější puzzle"
+    statistics: "Statistiky"
+
+statistics:
+    puzzle_solved: "Složených puzzlí:"
+    total_pieces: "Celkem dílků:"
+    time_spent: "Čas strávený skládáním:"

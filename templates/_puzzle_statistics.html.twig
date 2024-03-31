@@ -1,0 +1,30 @@
+<div class="card border-0 shadow-lg text-center">
+    <div class="card-body p-3">
+
+        {{ 'statistics.puzzle_solved'|trans }} <b>{{ puzzle_statistics.solvedPuzzlesCount }}</b><br>
+
+        {{ 'statistics.total_pieces'|trans }} <b>{{ puzzle_statistics.totalPieces|format_number([], 'decimal', 'default', 'cs') }}</b><br><br>
+
+        {{ 'statistics.time_spent'|trans }}
+
+        <div class="countdown h5 mb-1 justify-content-center">
+            <div class="countdown-days mb-0">
+                <span class="countdown-value">{{ puzzle_statistics.totalSeconds|daysElapsed }}</span>
+                <span class="countdown-label text-muted">d</span>
+            </div>
+            <div class="countdown-hours mb-0">
+                <span class="countdown-value">{{ puzzle_statistics.totalSeconds|hoursElapsed(false) }}</span>
+                <span class="countdown-label text-muted">h</span>
+            </div>
+            <div class="countdown-minutes mb-0">
+                <span class="countdown-value">{{ puzzle_statistics.totalSeconds|minutesElapsed }}</span>
+                <span class="countdown-label text-muted">m</span>
+            </div>
+            <div class="countdown-seconds mb-0">
+                <span class="countdown-value">{{ puzzle_statistics.totalSeconds|secondsElapsed }}</span>
+                <span class="countdown-label text-muted">s</span>
+            </div>
+        </div>
+
+    </div>
+</div>

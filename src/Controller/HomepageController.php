@@ -11,6 +11,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class HomepageController extends AbstractController
 {
@@ -31,10 +33,16 @@ final class HomepageController extends AbstractController
         name: 'homepage',
         methods: ['GET']
     )]
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {
         if ($request->getPathInfo() === '/') {
-            return $this->redirectToRoute('homepage', ['_locale' => $request->getPreferredLanguage(['en', 'cs']) ?? 'en']);
+            $locale = $request->getPreferredLanguage(['en', 'cs']) ?? 'en';
+
+            if ($user !== null) {
+                return $this->redirectToRoute('hub', ['_locale' => $locale]);
+            }
+
+            return $this->redirectToRoute('homepage', ['_locale' => $locale]);
         }
 
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();

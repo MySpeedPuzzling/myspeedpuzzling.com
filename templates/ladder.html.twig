@@ -83,89 +83,10 @@
         </div>
     </div>
 
-    <div class="row">
-        <div class="col">
-            <h2 class="h4 mt-4">{{ 'ladder.most_solved_puzzle'|trans }}</h2>
-
-            <div class="table-responsive custom-table-wrapper mt-3 mb-5">
-                <table class="table table-striped table-hover mb-0">
-                    <thead>
-                    <tr>
-                        <th></th>
-                        <th></th>
-                        <th>{{ 'puzzle'|trans }}</th>
-                        <th class="text-end">{{ 'time'|trans }}</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for most_solved_puzzle in most_solved_puzzles %}
-                        <tr>
-                            <td class="text-center">{{ most_solved_puzzle.solvedTimes }}x</td>
-                            <td class="text-center">
-                                {% if most_solved_puzzle.puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}) }}" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                    <span class="puzzle-title">
-                                        {{ include('_puzzle_name.html.twig', {
-                                            puzzle_name: most_solved_puzzle.puzzleName,
-                                            alternative_puzzle_name: most_solved_puzzle.puzzleAlternativeName,
-                                        }) }}
-                                        <br>
-                                        <small>{{ most_solved_puzzle.manufacturerName }}</small>
-                                    </span>
-                                    <br>
-                                    <small>{{ 'pieces_count'|trans({ '%count%': most_solved_puzzle.piecesCount })|raw }}</small>
-                                </a>
-                            </td>
-                            <td class="text-end">
-                                {{ 'fastest_time_short'|trans({ '%time%': most_solved_puzzle.fastestTimeSolo|puzzlingTime }) }}<br>
-                                <small class="text-muted">{{ 'average_time_short'|trans({ '%time%': most_solved_puzzle.averageTimeSolo|puzzlingTime }) }}</small>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <div class="alert alert-accent small d-flex mt-3" role="alert">
+        <div class="alert-icon py-0">
+            <i class="ci-announcement"></i>
         </div>
-
-        <div class="col">
-            <h2 class="h4 mt-4">{{ 'ladder.most_active_puzzlers'|trans }}</h2>
-
-            <div class="table-responsive custom-table-wrapper mt-3 mb-5">
-                <table class="table table-striped table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th>{{ 'puzzler'|trans }}</th>
-                            <th class="text-center">{{ 'ladder.puzzle_solved_count'|trans }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for player_statistics in most_active_players %}
-                        <tr class="{{ logged_user.profile is not null and player_statistics.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                            <td class="rank">{{ loop.index }}.</td>
-                            <td class="player-name">
-                                <a href="{{ path('player_profile', {playerId: player_statistics.playerId}) }}">
-                                    {% if logged_user.profile is not null and player_statistics.playerId in logged_user.profile.favoritePlayers %}
-                                        <i class="ci-star-filled text-warning"></i>
-                                    {% endif %}
-                                    {{ player_statistics.playerName }}
-                                </a>
-                                {% if player_statistics.playerCountry is not null %}
-                                    <small class="shadow-custom fi fi-{{ player_statistics.playerCountry.name }}"></small>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">{{ player_statistics.solvedPuzzlesCount }}</td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        <div>Looking for most solved puzzle or most active players? We moved it <a class="text-decoration-underline" href="{{ path('hub') }}">to the Hub</a>!</div>
     </div>
 {% endblock %}

@@ -7,6 +7,7 @@ menu:
     players: "Players"
     faq: "FAQ"
     sign_in: "Sign in"
+    hub: "Hub"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -48,6 +49,7 @@ remaining: "Remaining: %count%"
 loading: "Loading"
 any: "Any"
 adding_puzzle_hint: "We have reworked the way of adding new (missing) puzzle and brands. Enter the name of new brand/puzzle to the according text input and then choose option \"Add new\"."
+solo_solved: "Solved SOLO:"
 
 homepage:
     meta:
@@ -333,3 +335,20 @@ flashes:
     can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
     player_already_in_favorites: "This puzzler is already in your list of favorites, so we won't add them again ;-)."
     player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
+
+hub:
+    title: "Speed Puzzling Hub"
+    welcome: "Welcome puzzler!"
+    welcome_back: "Welcome back"
+    recent_favorites_activity: "Favorites<br>activity"
+    this_month: "This<br>month"
+    last_month: "Last<br>month"
+    all_time: "All<br>time"
+    most_active_solo_players: "Most active SOLO players"
+    most_solved_puzzle: "Most solved puzzle"
+    statistics: "Statistics"
+
+statistics:
+    puzzle_solved: "Puzzle solved:"
+    total_pieces: "Total pieces:"
+    time_spent: "Time spent solving:"

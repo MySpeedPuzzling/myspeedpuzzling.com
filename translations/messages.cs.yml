@@ -91,6 +91,7 @@ ladder:
     most_solved_puzzle: "Nejskládanější puzzle"
     most_active_puzzlers: "Nejzapálenější puzzleři"
     puzzle_solved_count: "Složených puzzlí"
+    link_to_hub: "Hledáte nejskládanější puzzle nebo nejaktivnější hráče? Přesunuli jsme je&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">do nového Hubu</a>!"
 
 filters:
     filter_by: "Filtrovat podle"
@@ -349,6 +350,8 @@ hub:
     most_active_solo_players: "Nejaktivnější SOLO hráči"
     most_solved_puzzle: "Nejskládanější puzzle"
     statistics: "Statistiky"
+    no_favorites: "Nemáte žádné hráče v oblíbených. Přidejte si a sledujte zde jejich aktivitu."
+    not_logged: "Nejste přihlášení - pro využití plného potenciálu toho, co vám platforma nabízí se přihlašte."
 
 statistics:
     puzzle_solved: "Složených puzzlí:"

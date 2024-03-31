@@ -87,6 +87,7 @@
         <div class="alert-icon py-0">
             <i class="ci-announcement"></i>
         </div>
-        <div>Looking for most solved puzzle or most active players? We moved it <a class="text-decoration-underline" href="{{ path('hub') }}">to the Hub</a>!</div>
+        <div></div>
+        {{ 'ladder.link_to_hub'|trans({'%link%': path('hub')})|raw }}
     </div>
 {% endblock %}

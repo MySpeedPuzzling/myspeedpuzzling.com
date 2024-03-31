@@ -42,9 +42,19 @@
 
         <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
             {% if logged_user.profile is null %}
-                Not logged - to use full potential create account
+                <div class="alert alert-accent small d-flex mt-3" role="alert">
+                    <div class="alert-icon py-0">
+                        <i class="ci-announcement"></i>
+                    </div>
+                    <div>{{ 'hub.not_logged'|trans }}</div>
+                </div>
             {% elseif last_solved_favorites_puzzles is empty %}
-                You have no favorites - to use full potential, add favorites
+                <div class="alert alert-accent small d-flex mt-3" role="alert">
+                    <div class="alert-icon py-0">
+                        <i class="ci-announcement"></i>
+                    </div>
+                    <div>{{ 'hub.no_favorites'|trans }}</div>
+                </div>
             {% else %}
                 {{ include('_recent_activity.html.twig', {
                     solved_puzzles: last_solved_favorites_puzzles,

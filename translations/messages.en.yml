@@ -89,6 +89,7 @@ ladder:
     most_solved_puzzle: "Most Assembled Puzzle"
     most_active_puzzlers: "Most Enthusiastic Puzzlers"
     puzzle_solved_count: "Puzzles Solved"
+    link_to_hub: "Looking for most solved puzzle or most active players? We moved it to&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">the new Hub</a>!"
 
 filters:
     filter_by: "Filter by"
@@ -347,6 +348,8 @@ hub:
     most_active_solo_players: "Most active SOLO players"
     most_solved_puzzle: "Most solved puzzle"
     statistics: "Statistics"
+    no_favorites: "You have no favorite players. Add some and follow their activity here."
+    not_logged: "You are nog logged in - to use full potential of what this platform offers to you, log in."
 
 statistics:
     puzzle_solved: "Puzzle solved:"

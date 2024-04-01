@@ -82,8 +82,8 @@ SELECT
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-WHERE EXTRACT(MONTH FROM puzzle_solving_time.finished_at) = :month
-  AND EXTRACT(YEAR FROM puzzle_solving_time.finished_at) = :year
+WHERE EXTRACT(MONTH FROM puzzle_solving_time.tracked_at) = :month
+  AND EXTRACT(YEAR FROM puzzle_solving_time.tracked_at) = :year
 GROUP BY puzzle.id, manufacturer.id
 ORDER BY solved_times DESC
 LIMIT :howManyPuzzles

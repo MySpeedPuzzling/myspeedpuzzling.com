@@ -244,6 +244,7 @@ LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WI
 LEFT JOIN player p_inner ON p_inner.id = (player_elem.player ->> 'player_id')::UUID
 INNER JOIN filtered_puzzle_solving_time ON puzzle_solving_time.id = filtered_puzzle_solving_time.id
 GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id
+ORDER BY puzzle_solving_time.tracked_at DESC
 SQL;
 
         $data = $this->database

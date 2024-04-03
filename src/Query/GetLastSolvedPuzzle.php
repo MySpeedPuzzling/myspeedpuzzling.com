@@ -228,13 +228,14 @@ SELECT
     puzzle_solving_time.finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
-    JSON_AGG(
+    CASE
+        WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
             'player_name', COALESCE(p_inner.name, player_elem.player ->> 'player_name'),
             'player_country', p_inner.country
         ) ORDER BY player_elem.ordinality
-    ) AS players
+    ) END AS players
 FROM
     puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id

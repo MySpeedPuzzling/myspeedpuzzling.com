@@ -42,6 +42,7 @@ final class PuzzleDetailController extends AbstractController
     #[Route(
         path: [
             'cs' => '/skladam-puzzle/{puzzleId}',
+            'en' => '/solving-puzzle/{puzzleId}',
         ],
         name: 'puzzle_detail_qr',
         methods: ['GET'],

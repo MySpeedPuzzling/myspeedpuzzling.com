@@ -11,31 +11,36 @@
     data-tags="{{ (tags[puzzle.puzzleId] ?? [])|json_encode }}"
 >
     <div class="row">
-        <div class="col-md align-self-center">
-            <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                {{ include('_puzzle_name.html.twig', {
-                    puzzle_name: puzzle.puzzleName,
-                    alternative_puzzle_name: puzzle.puzzleAlternativeName,
-                }) }}
-
-                {% if puzzle.puzzleIdentificationNumber is not null %}
-                    <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
-                {% endif %}
-            </a>
-        </div>
-
-        <div class="col-md text-md-center align-self-center">
+        <div class="col text-md-center align-self-sm-center" style="max-width: 100px;">
             {% if puzzle.puzzleImage is not null%}
                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                    <img class="rounded-2" style="max-width: 100px;max-height: 100px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                    <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
                 </a>
             {% endif %}
         </div>
 
-        <div class="col-md align-self-center text-md-center">
-            <b>{{ puzzle.manufacturerName|upper }}</b><br>
-            {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
+        <div class="col col-sm-4 align-self-sm-center">
+            <div class="row mb-2 mb-sm-0">
+                <div class="col-sm">
+                    <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                        {{ include('_puzzle_name.html.twig', {
+                            puzzle_name: puzzle.puzzleName,
+                            alternative_puzzle_name: puzzle.puzzleAlternativeName,
+                        }) }}
+
+                        {% if puzzle.puzzleIdentificationNumber is not null %}
+                            <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                        {% endif %}
+                    </a>
+                </div>
+
+                <div class="col-sm align-self-center text-md-center low-line-height">
+                    {{ puzzle.manufacturerName|upper }}<br>
+                    <small>{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                </div>
+            </div>
         </div>
+
 
         <div class="col-md align-self-center text-md-center">
             {% for tag in tags[puzzle.puzzleId] ?? [] %}
@@ -59,7 +64,7 @@
             {% if puzzle.solvedTimes > 0 %}
                 <table class="table-times-overview">
                     <tr>
-                        <td><small>{{ 'puzzle_solved_count'|trans }}</small></td>
+                        <td class="low-line-height"><small>{{ 'puzzle_solved_count'|trans }}</small></td>
                         <td class="text-end"><small>{{ puzzle.solvedTimes }}</small></td>
                     </tr>
                     {% if ranking[puzzle.puzzleId] is defined %}
@@ -78,7 +83,7 @@
                     </tr>
                 </table>
             {% else %}
-                <small>{{ 'never_solved_puzzles'|trans }}</small>
+                <small class="d-inline-block low-line-height">{{ 'never_solved_puzzles'|trans }}</small>
             {% endif %}
         </div>
 

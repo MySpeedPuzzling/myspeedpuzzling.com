@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Message\CollectUserFeedback;
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
@@ -10,6 +11,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -21,6 +23,7 @@ final class HomepageController extends AbstractController
         readonly private GetStatistics $getStatistics,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetRanking $getRanking,
+        readonly private MessageBusInterface $messageBus,
     ) {
     }
 

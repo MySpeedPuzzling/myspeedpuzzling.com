@@ -5,9 +5,11 @@ declare(strict_types=1);
 use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
 use Monolog\Processor\PsrLogMessageProcessor;
+use SpeedPuzzling\Web\Services\SentryApiClient;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function(ContainerConfigurator $configurator): void
@@ -20,6 +22,10 @@ return static function(ContainerConfigurator $configurator): void
     $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
 
     $parameters->set('uploadedAssetsBaseUrl', '%env(UPLOADS_BASE_URL)%/puzzle');
+
+    $parameters->set('sentryAuthToken', '%env(SENTRY_AUTH_TOKEN)%');
+    $parameters->set('sentryOrganizationSlug', '%env(SENTRY_ORGANIZATION_SLUG)%');
+    $parameters->set('sentryProjectSlug', '%env(SENTRY_PROJECT_SLUG)%');
 
     $services = $configurator->services();
 
@@ -72,5 +78,12 @@ return static function(ContainerConfigurator $configurator): void
         ->args([
             '$adapter' => service('oneup_flysystem.minio_adapter'),
             '$cachePool' => service('cache.flysystem.psr6'),
+        ]);
+
+    $services->set(SentryApiClient::class)
+        ->args([
+            '$authToken' => param('sentryAuthToken'),
+            '$organizationSlug' => param('sentryOrganizationSlug'),
+            '$projectSlug' => param('sentryProjectSlug'),
         ]);
 };

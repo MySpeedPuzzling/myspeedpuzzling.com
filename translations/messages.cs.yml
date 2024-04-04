@@ -8,6 +8,7 @@ menu:
     faq: "Časté dotazy"
     sign_in: "Přihlásit se"
     hub: "Hub"
+    feedback: "Poslat zpětnou vazbu"
 
 
 footer:
@@ -184,6 +185,9 @@ forms:
     only_available: "Pouze k zapůjčení"
     puzzle_search_placeholder: "Část názvu, kód výrobce nebo EAN..."
     tags: "Tagy"
+    feedback: "Zpráva"
+    feedback_help: "Návrh na novou funkci nebo zlepšení, report chyby, muže být cokoliv, co vás napadne..."
+    send_feedback: "Odeslat"
 
 puzzlers_comparison:
     meta:
@@ -358,3 +362,7 @@ statistics:
     puzzle_solved: "Složených puzzlí:"
     total_pieces: "Celkem dílků:"
     time_spent: "Čas strávený skládáním:"
+
+feedback:
+    title: "Poslat zpětnou vazbu"
+    success_msg: "Obdrželi jsme vaši zpětnu vazbu, moc si jí vážíme! Brzy se vám ozveme."

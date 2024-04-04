@@ -5,6 +5,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ResetStopwatch;
+use SpeedPuzzling\Web\Query\GetStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -16,6 +17,7 @@ final class ResetStopwatchController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
+        private readonly GetStopwatch $getStopwatch,
     ) {
     }
 
@@ -33,12 +35,20 @@ final class ResetStopwatchController extends AbstractController
         string $stopwatchId,
     ): Response
     {
+        $stopwatch = $this->getStopwatch->byId($stopwatchId);
+
         $this->messageBus->dispatch(
             new ResetStopwatch(
                 Uuid::fromString($stopwatchId),
                 $user->getUserIdentifier(),
             )
         );
+
+        if ($stopwatch->puzzleId !== null) {
+            return $this->redirectToRoute('stopwatch_puzzle', [
+                'puzzleId' => $stopwatch->puzzleId,
+            ]);
+        }
 
         return $this->redirectToRoute('stopwatch');
     }

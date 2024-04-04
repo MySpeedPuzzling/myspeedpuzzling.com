@@ -8,3 +8,5 @@ import 'simplebar/dist/simplebar.css';
 
 // Twitter bootstrap
 import 'bootstrap';
+
+import './feedback_modal'

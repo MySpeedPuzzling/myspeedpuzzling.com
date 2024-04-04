@@ -1,0 +1,10 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'feedback.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1>{{ 'feedback.title'|trans }}</h1>
+
+    {{ include('_feedback_form.html.twig') }}
+
+{% endblock %}

@@ -8,6 +8,7 @@ menu:
     faq: "FAQ"
     sign_in: "Sign in"
     hub: "Hub"
+    feedback: "Send feedback"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -46,7 +47,7 @@ searching: "Searching..."
 load_more: "Load more..."
 back_to_top: "Back to top"
 total_found: "Total found: %count%"
-remaining: "Remaining: %count%"
+remaining: "Remaining: %puzzle%"
 loading: "Loading"
 any: "Any"
 adding_puzzle_hint: "We have reworked the way of adding new (missing) puzzle and brands. Enter the name of new brand/puzzle to the according text input and then choose option \"Add new\"."
@@ -182,6 +183,9 @@ forms:
     only_available: "Only available to borrow"
     puzzle_search_placeholder: "Part of name, code or EAN..."
     tags: "Tags"
+    feedback: "Message"
+    feedback_help: "Suggestion of new feature or improvement, bug report, can be anything that comes to your mind..."
+    send_feedback: "Send"
 
 puzzlers_comparison:
     meta:
@@ -356,3 +360,7 @@ statistics:
     puzzle_solved: "Puzzle solved:"
     total_pieces: "Total pieces:"
     time_spent: "Time spent solving:"
+
+feedback:
+    title: "Send feedback"
+    success_msg: "We have received your feedback and highly appreciate it! We will let you know soon."

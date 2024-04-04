@@ -81,6 +81,7 @@
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">{{ 'menu.players'|trans }}</a></li>
                         <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('feedback') %}active{% endif %}" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
                         <li class="nav-item">
                             <div class="nav-link">
                                 <div class="topbar-text dropdown disable-autohide">
@@ -169,6 +170,9 @@
                                 <li class="widget-list-item">
                                     <a href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
                                 </li>
+                                <li class="widget-list-item">
+                                    <a href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
+                                </li>
                             </ul>
                         </div>
                     </div>
@@ -188,6 +192,22 @@
                 <small class="text-muted">{{ 'footer.about'|trans }}</small>
             </div>
         </footer>
+
+        <div class="modal fade" tabindex="-1" role="dialog" id="feedbackModal">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ 'feedback.title'|trans }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <turbo-frame id="feedbackForm">
+                            {{ 'loading'|trans }}
+                        </turbo-frame>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         {% if ga_tracking is not empty %}
             <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking }}"></script>

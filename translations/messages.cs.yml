@@ -186,7 +186,7 @@ forms:
     puzzle_search_placeholder: "Část názvu, kód výrobce nebo EAN..."
     tags: "Tagy"
     feedback: "Zpráva"
-    feedback_help: "Návrh na novou funkci nebo zlepšení, report chyby, muže být cokoliv, co vás napadne..."
+    feedback_help: "Pošlete nám návrh na novou funkci nebo zlepšení, report chyby, co se vám (ne)líbí, může to být cokoliv, co vás napadne..."
     send_feedback: "Odeslat"
 
 puzzlers_comparison:

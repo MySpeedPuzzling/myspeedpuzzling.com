@@ -184,7 +184,7 @@ forms:
     puzzle_search_placeholder: "Part of name, code or EAN..."
     tags: "Tags"
     feedback: "Message"
-    feedback_help: "Suggestion of new feature or improvement, bug report, can be anything that comes to your mind..."
+    feedback_help: "Send us suggestion of new feature or improvement, bug report, what you (dis)like, it can be anything that comes to your mind..."
     send_feedback: "Send"
 
 puzzlers_comparison:

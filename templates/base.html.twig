@@ -60,8 +60,7 @@
                                 {% if app.request.locale is not same as 'en' %}
                                     <li>
                                         <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'en'}) }}">
-                                            <span class="fi fi-us me-1"></span>
-                                            {{ 'en'|locale_name(app.request.locale) }}
+                                            <span class="fi fi-us me-1"></span> English
                                         </a>
                                     </li>
                                 {% endif %}
@@ -70,8 +69,7 @@
                                 {% if app.request.locale is not same as 'cs' %}
                                     <li>
                                         <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'cs'}) }}">
-                                            <span class="fi fi-cz me-1"></span>
-                                            {{ 'cs'|locale_name(app.request.locale) }}
+                                            <span class="fi fi-cz me-1"></span> Čeština
                                         </a>
                                     </li>
                                 {% endif %}

@@ -9,6 +9,7 @@ menu:
     sign_in: "Sign in"
     hub: "Hub"
     feedback: "Send feedback"
+    support_us: "Support us"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"

@@ -29,7 +29,7 @@ body {
 
 main {
     flex-grow: 1;
-    padding-top: 83px;
+    padding-top: 104px;
 }
 
 .stopwatch {
@@ -339,9 +339,12 @@ td.rank {
     }
 }
 
-.navbar.fixed-top {
-    position: fixed;
+.navbar {
     background: #fff;
+
+    .navbar-brand {
+        padding: 4px 0;
+    }
 }
 
 .low-line-height {

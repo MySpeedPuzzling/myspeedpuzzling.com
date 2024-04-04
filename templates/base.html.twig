@@ -33,94 +33,106 @@
         {{ encore_entry_script_tags('app') }}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker">
-        <header class="navbar fixed-top navbar-expand-lg navbar-light shadow-sm" data-fixed-element>
-            <div class="container">
+        <header class="fixed-top shadow-sm" data-fixed-element>
+            <div class="topbar topbar-light bg-secondary">
+                <div class="container">
+                    <div class="topbar-text text-nowrap">
+                        <a class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>
+                            <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
+                        </a>
 
-                <a class="navbar-brand d-none d-lg-block order-lg-1" href="{{ path('homepage') }}">
-                    <img width="56" src="{{ asset('img/speedpuzzling-logo.png') }}" alt="MySpeedPuzzling.com"/>
-                </a>
+                        <a class="ms-3 topbar-link" href="https://www.buymeacoffee.com/myspeedpuzzling" target="_blank">
+                            <i class="ci-smile"></i> {{ 'menu.support_us'|trans }}
+                        </a>
+                    </div>
 
-                <a class="navbar-brand d-lg-none me-2" href="{{ path('homepage') }}">
-                    <img width="56" src="{{ asset('img/speedpuzzling-logo.png') }}" alt="MySpeedPuzzling.com"/>
-                </a>
+                    <div class="text-nowrap">
+                        <div class="topbar-text dropdown disable-autohide">
+                            <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' }} shadow-custom me-1"></span>
+                                {{ app.request.locale|upper }}
+                            </a>
 
-                <!-- Toolbar -->
-                <div class="navbar-toolbar d-flex align-items-center order-lg-3">
-                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('my_profile') %}active{% endif %}" href="{{ path('my_profile') }}">
-                        <div class="navbar-tool-icon-box">
-                            <i class="navbar-tool-icon ci-user"></i>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% set currentRoute = app.request.attributes.get('_route') %}
+                                {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
+
+                                {% if app.request.locale is not same as 'en' %}
+                                    <li>
+                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'en'}) }}">
+                                            <span class="fi fi-us me-1"></span>
+                                            {{ 'en'|locale_name(app.request.locale) }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
+                                {% if app.request.locale is not same as 'cs' %}
+                                    <li>
+                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'cs'}) }}">
+                                            <span class="fi fi-cz me-1"></span>
+                                            {{ 'cs'|locale_name(app.request.locale) }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
                         </div>
-                        <div class="navbar-tool-text ms-n3"><small>{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</small></div>
-                    </a>
-
-
-                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" href="{{ path('add_time') }}">
-                        <div class="navbar-tool-icon-box">
-                            <i class="navbar-tool-icon ci-add"></i>
-                        </div>
-                        <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
-                    </a>
-
-                    <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
-                        <div class="navbar-tool-icon-box">
-                            <i class="navbar-tool-icon ci-time"></i>
-                        </div>
-                        <div class="navbar-tool-text ms-n3"><small>{{ 'menu.stopwatch'|trans }}</small></div>
-                    </a>
-
-                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
+                    </div>
                 </div>
+            </div>
 
-                <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">
-                    <hr class="d-lg-none my-3">
-                    <ul class="navbar-nav">
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">{{ 'menu.hub'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">{{ 'menu.puzzles_overview'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">{{ 'menu.players'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
-                        <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('feedback') %}active{% endif %}" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
-                        <li class="nav-item">
-                            <div class="nav-link">
-                                <div class="topbar-text dropdown disable-autohide">
-                                    <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' }} shadow-custom me-1"></span>
-                                        {{ app.request.locale|upper }}
-                                    </a>
-                                    <ul class="dropdown-menu">
-                                        {% set currentRoute = app.request.attributes.get('_route') %}
-                                        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
+            <div class="navbar navbar-expand-lg navbar-light">
+                <div class="container">
+                    <a class="navbar-brand d-none d-lg-block order-lg-1" href="{{ path('homepage') }}">
+                        <img width="50" src="{{ asset('img/speedpuzzling-logo.png') }}" alt="MySpeedPuzzling.com"/>
+                    </a>
 
-                                        {% if app.request.locale is not same as 'en' %}
-                                            <li>
-                                                <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'en'}) }}">
-                                                    <span class="fi fi-us me-1"></span>
-                                                    {{ 'en'|locale_name(app.request.locale) }}
-                                                </a>
-                                            </li>
-                                        {% endif %}
+                    <a class="navbar-brand d-lg-none me-2" href="{{ path('homepage') }}">
+                        <img width="50" src="{{ asset('img/speedpuzzling-logo.png') }}" alt="MySpeedPuzzling.com"/>
+                    </a>
 
-                                        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
-                                        {% if app.request.locale is not same as 'cs' %}
-                                            <li>
-                                                <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'cs'}) }}">
-                                                    <span class="fi fi-cz me-1"></span>
-                                                    {{ 'cs'|locale_name(app.request.locale) }}
-                                                </a>
-                                            </li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
+                    <!-- Toolbar -->
+                    <div class="navbar-toolbar d-flex align-items-center order-lg-3">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('my_profile') %}active{% endif %}" href="{{ path('my_profile') }}">
+                            <div class="navbar-tool-icon-box">
+                                <i class="navbar-tool-icon ci-user"></i>
                             </div>
-                        </li>
-                    </ul>
+                            <div class="navbar-tool-text ms-n3"><small>{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</small></div>
+                        </a>
 
+
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" href="{{ path('add_time') }}">
+                            <div class="navbar-tool-icon-box">
+                                <i class="navbar-tool-icon ci-add"></i>
+                            </div>
+                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
+                        </a>
+
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                            <div class="navbar-tool-icon-box">
+                                <i class="navbar-tool-icon ci-time"></i>
+                            </div>
+                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.stopwatch'|trans }}</small></div>
+                        </a>
+
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </div>
+
+                    <div class="collapse navbar-collapse me-auto order-lg-2" id="navbarCollapse">
+                        <hr class="d-lg-none my-3">
+                        <ul class="navbar-nav">
+                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">{{ 'menu.hub'|trans }}</a></li>
+                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">{{ 'menu.puzzles_overview'|trans }}</a></li>
+                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
+                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">{{ 'menu.players'|trans }}</a></li>
+                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </header>
-
         <main>
             {% for label, messages in app.flashes %}
                 <div class="container mt-4">
@@ -172,6 +184,9 @@
                                 </li>
                                 <li class="widget-list-item">
                                     <a href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item">
+                                    <a target="_blank" href="https://www.buymeacoffee.com/myspeedpuzzling" class="widget-list-link">{{ 'menu.support_us'|trans }}</a>
                                 </li>
                             </ul>
                         </div>

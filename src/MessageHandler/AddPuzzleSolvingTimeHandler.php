@@ -46,7 +46,7 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         $solvingTimeId = Uuid::uuid7();
         $finishedPuzzlePhotoPath = null;
-        $trackedAt = new \DateTimeImmutable();
+        $trackedAt = $this->clock->now();
         $finishedAt = $message->finishedAt ?? $trackedAt;
 
         if ($message->finishedPuzzlesPhoto !== null) {

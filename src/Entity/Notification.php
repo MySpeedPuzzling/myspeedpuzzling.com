@@ -40,6 +40,7 @@ class Notification
         public DateTimeImmutable $notifiedAt,
 
         #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|PuzzleSolvingTime $targetSolvingTime = null,
     ) {

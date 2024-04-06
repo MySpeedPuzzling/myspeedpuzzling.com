@@ -37,7 +37,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         public Player $player,
 
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
+        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public Puzzle $puzzle,
 
         #[Column(type: Types::DATETIME_IMMUTABLE)]

@@ -15,11 +15,14 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
+use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 
 #[Entity]
-class PuzzleSolvingTime
+class PuzzleSolvingTime implements EntityWithEvents
 {
+    use HasEvents;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -64,6 +67,9 @@ class PuzzleSolvingTime
         #[Column(nullable: true)]
         public null|bool $qualified = null,
     ) {
+        $this->recordThat(
+            new PuzzleSolved($this->id),
+        );
     }
 
     public function modify(

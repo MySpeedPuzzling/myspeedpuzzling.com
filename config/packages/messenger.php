@@ -21,4 +21,5 @@ return static function (FrameworkConfig $framework): void {
         ->dsn('%env(MESSENGER_TRANSPORT_DSN)%');
 
     $messenger->routing(WarmupCache::class)->senders(['async']);
+    $messenger->routing('SpeedPuzzling\Web\Events\*')->senders(['async']);
 };

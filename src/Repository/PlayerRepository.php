@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetSubscribedPlayers;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;
 
 readonly final class PlayerRepository
@@ -17,6 +18,7 @@ readonly final class PlayerRepository
     public function __construct(
         private EntityManagerInterface $entityManager,
         private GenerateUniquePlayerCode $generateUniquePlayerCode,
+        private GetSubscribedPlayers $getSubscribedPlayers,
     ) {
     }
 
@@ -91,5 +93,24 @@ readonly final class PlayerRepository
         } catch (NoResultException) {
             throw new PlayerNotFound();
         }
+    }
+
+    /**
+     * @return array<Player>
+     */
+    public function findPlayersByFavoriteUuid(string $playerId): array
+    {
+        $subscribers = $this->getSubscribedPlayers->ofPlayer($playerId);
+
+        if (empty($subscribers)) {
+            return [];
+        }
+
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('p')
+            ->from(Player::class, 'p')
+            ->where($qb->expr()->in('p.id', $subscribers));
+
+        return $qb->getQuery()->getResult();
     }
 }

@@ -92,6 +92,11 @@
                                     <small class="low-line-height d-inline-block">{{ 'my_time'|trans }} {{ ranking[solved_puzzle.puzzleId].time|puzzlingTime }}</small>
                                 {% endif %}
                             {% endif %}
+
+                            {% if solved_puzzle.firstAttempt %}
+                                <br>
+                                <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

@@ -37,7 +37,8 @@ SELECT
     COUNT(puzzle_solving_time.puzzle_id) AS solved_times,
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.id AS time_id,
-    puzzle.identification_number AS puzzle_identification_number
+    puzzle.identification_number AS puzzle_identification_number,
+    first_attempt
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -77,6 +78,7 @@ SQL;
              *     comment: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 

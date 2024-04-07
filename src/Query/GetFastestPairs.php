@@ -38,6 +38,7 @@ SELECT
     puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.id AS time_id,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
+    first_attempt,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -85,6 +86,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     players: null|string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 

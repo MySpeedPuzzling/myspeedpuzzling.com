@@ -62,6 +62,11 @@
                                             <br>({{ solved_puzzle[0].players|length }}x {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
                                         {% endif %}
                                     </small>
+
+                                    {% if solved_puzzle[0].firstAttempt %}
+                                        <br>
+                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                    {% endif %}
                                 </span>
 
                                 {# Display edit icon only to current user #}
@@ -94,6 +99,11 @@
                                                     ({{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
                                                 {% endif %}
                                             </small>
+
+                                            {% if puzzle.firstAttempt %}
+                                                <br>
+                                                <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                            {% endif %}
                                         </span>
 
                                         {# Display edit icon only to current user #}

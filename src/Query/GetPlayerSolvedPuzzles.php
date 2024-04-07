@@ -124,7 +124,8 @@ SELECT
     puzzle_solving_time.tracked_at,
     finished_at,
     manufacturer.name AS manufacturer_name,
-    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo
+    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
+    first_attempt
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -160,6 +161,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 
@@ -193,6 +195,7 @@ SELECT
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
+    first_attempt,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -244,6 +247,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 
@@ -280,6 +284,7 @@ SELECT
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
+    first_attempt,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -331,6 +336,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 

@@ -15,6 +15,7 @@ readonly final class PuzzleSolver
         public null|CountryCode $playerCountry,
         public int $time,
         public DateTimeImmutable $finishedAt,
+        public bool $firstAttempt,
     ) {
     }
 
@@ -25,6 +26,7 @@ readonly final class PuzzleSolver
      *     player_country: null|string,
      *     time: int,
      *     finished_at: string,
+     *     first_attempt: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -35,6 +37,7 @@ readonly final class PuzzleSolver
             playerCountry: CountryCode::fromCode($row['player_country']),
             time: $row['time'],
             finishedAt: new DateTimeImmutable($row['finished_at']),
+            firstAttempt: $row['first_attempt'],
         );
     }
 }

@@ -45,6 +45,7 @@ SELECT
     finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
+    first_attempt,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -99,6 +100,7 @@ SQL;
              *     players: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 
@@ -130,6 +132,7 @@ SELECT
     finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
+    first_attempt,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
             JSON_BUILD_OBJECT(
@@ -179,6 +182,7 @@ SQL;
              *     players: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 
@@ -228,6 +232,7 @@ SELECT
     puzzle_solving_time.finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
+    first_attempt,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
         JSON_BUILD_OBJECT(
@@ -276,6 +281,7 @@ SQL;
              *     players: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 

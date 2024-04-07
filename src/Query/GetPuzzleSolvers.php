@@ -34,7 +34,8 @@ SELECT
     player.name AS player_name,
     player.country AS player_country,
     puzzle_solving_time.seconds_to_solve AS time,
-    finished_at
+    finished_at,
+    first_attempt
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
@@ -57,6 +58,7 @@ SQL;
              *     player_country: null|string,
              *     time: int,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 
@@ -82,6 +84,7 @@ SELECT
     comment,
     pst.team ->> 'team_id' AS team_id,
     finished_at,
+    first_attempt,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -118,6 +121,7 @@ SQL;
              *     team_id: null|string,
              *     players: string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 
@@ -143,6 +147,7 @@ SELECT
     comment,
     pst.team ->> 'team_id' AS team_id,
     finished_at,
+    first_attempt,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -179,6 +184,7 @@ SQL;
              *     team_id: null|string,
              *     players: string,
              *     finished_at: string,
+             *     first_attempt: bool,
              * } $row
              */
 

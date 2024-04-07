@@ -174,7 +174,13 @@
                                 {{ aggregated_solver[0].time|puzzlingTime }}
                                 <br>
                                 <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
-                                <br><small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
+                                <br>
+                                <small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
+
+                                {% if aggregated_solver[0].firstAttempt %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% endif %}
 
                                 {% if aggregated_solver|length > 1 %}
                                     <br>
@@ -195,6 +201,11 @@
                                                     <small>
                                                         <span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}
                                                     </small>
+
+                                                    {% if solving_time.firstAttempt %}
+                                                        <br>
+                                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                                    {% endif %}
                                                 </span>
 
                                                 {% if not loop.last %}
@@ -273,6 +284,10 @@
                                     <span class="text-muted">PPM</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount) }}
                                     ({{ ppm(puzzlers_duo.time, puzzle.piecesCount, puzzlers_duo.players|length) }})
                                 </small>
+                                {% if puzzlers_duo.firstAttempt %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -342,6 +357,10 @@
                                     <span class="text-muted">PPM</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount) }}
                                     ({{ ppm(puzzlers_team.time, puzzle.piecesCount, puzzlers_team.players|length) }})
                                 </small>
+                                {% if puzzlers_team.firstAttempt %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}

@@ -15,6 +15,7 @@ readonly final class PuzzleSolversGroup
         /** @var array<Puzzler> */
         public array $players,
         public DateTimeImmutable $finishedAt,
+        public bool $firstAttempt,
     ) {
     }
 
@@ -27,6 +28,7 @@ readonly final class PuzzleSolversGroup
      *     team_id: null|string,
      *     players: string,
      *     finished_at: string,
+     *     first_attempt: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -38,6 +40,7 @@ readonly final class PuzzleSolversGroup
             time: $row['time'],
             players: $players,
             finishedAt: new DateTimeImmutable($row['finished_at']),
+            firstAttempt: $row['first_attempt'],
         );
     }
 }

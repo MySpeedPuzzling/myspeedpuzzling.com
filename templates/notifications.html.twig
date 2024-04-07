@@ -21,6 +21,8 @@
                             <td class="text-center" style="width: 60px;">
                                 {% if notification.targetPlayerAvatar is not null %}
                                     <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|imagine_filter('puzzle_small') }}">
+                                {% else %}
+                                    <div class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</div>
                                 {% endif %}
                             </td>
 

@@ -358,3 +358,15 @@ td.rank {
         background: #e2e6ea !important;
     }
 }
+
+.avatar-name {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    text-align: center;
+    line-height: 60px;
+    background: #e2e6ea;
+    color: #333;
+    font-size: 24px;
+    font-weight: bold;
+}

@@ -370,3 +370,4 @@ notifications:
     title: "Notifications"
     solved_puzzle_with_time: "in"
     solved_puzzle: "solved puzzle"
+    no_notifications: "You have no notifications so far. Subscribe to some players by adding them to favorites."

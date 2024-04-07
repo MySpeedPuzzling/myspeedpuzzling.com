@@ -372,3 +372,4 @@ notifications:
     title: "Notifikace"
     solved_puzzle_with_time: "za"
     solved_puzzle: "{0,1} poskládal puzzle|[2,Inf] poskládali puzzle"
+    no_notifications: "Zatím nemáte žádné notifikace. Přihlašte se k odběru hráčů přidáním do oblíbených."

@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -71,6 +72,12 @@ final class PuzzleSolvingTimeFormType extends AbstractType
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete')
             ]
+        ]);
+
+        $builder->add('firstAttempt', CheckboxType::class, [
+            'label' => 'forms.first_attempt',
+            'required' => false,
+            'help' => 'forms.first_attempt_help',
         ]);
 
         $builder->add('puzzle', TextType::class, [

@@ -189,6 +189,8 @@ forms:
     feedback: "Zpráva"
     feedback_help: "Pošlete nám návrh na novou funkci nebo zlepšení, report chyby, co se vám (ne)líbí, může to být cokoliv, co vás napadne..."
     send_feedback: "Odeslat"
+    first_attempt: "Tvé první skládání těchto puzzlí v životě"
+    first_attempt_help: "Pokud jste skládali ve skupině, pak pouze pokud tyto puzzle nikdo předtím neskládal, ani sám"
 
 puzzlers_comparison:
     meta:

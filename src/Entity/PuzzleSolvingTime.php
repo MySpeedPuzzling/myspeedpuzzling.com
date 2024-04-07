@@ -58,6 +58,9 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[Column(nullable: true)]
         public null|string $finishedPuzzlePhoto,
 
+        #[Column(options: ['default' => 0])]
+        public bool $firstAttempt,
+
         #[ManyToOne]
         public null|CompetitionRound $competitionRound = null,
 
@@ -78,6 +81,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         null|PuzzlersGroup $puzzlersGroup,
         DateTimeImmutable $finishedAt,
         null|string $finishedPuzzlePhoto,
+        bool $firstAttempt,
     ): void
     {
         $this->secondsToSolve = $seconds;
@@ -85,5 +89,6 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->team = $puzzlersGroup;
         $this->finishedAt = $finishedAt;
         $this->finishedPuzzlePhoto = $finishedPuzzlePhoto;
+        $this->firstAttempt = $firstAttempt;
     }
 }

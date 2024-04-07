@@ -32,6 +32,8 @@ final class PuzzleSolvingTimeFormData
 
     public null|DateTimeImmutable $finishedAt;
 
+    public bool $firstAttempt = false;
+
     public function __construct()
     {
         $this->finishedAt = new DateTimeImmutable();

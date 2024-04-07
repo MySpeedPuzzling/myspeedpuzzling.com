@@ -19,6 +19,7 @@ readonly final class EditPuzzleSolvingTime
         public array $groupPlayers,
         public null|DateTimeImmutable $finishedAt,
         public null|UploadedFile $finishedPuzzlesPhoto,
+        public bool $firstAttempt,
     ) {
     }
 
@@ -37,6 +38,7 @@ readonly final class EditPuzzleSolvingTime
             groupPlayers: $groupPlayers,
             finishedAt: $formData->finishedAt,
             finishedPuzzlesPhoto: $formData->finishedPuzzlesPhoto,
+            firstAttempt: $formData->firstAttempt,
         );
     }
 }

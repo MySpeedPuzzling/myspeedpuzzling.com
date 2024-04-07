@@ -26,6 +26,7 @@ readonly final class SolvedPuzzleDetail
         public null|array $players,
         public DateTimeImmutable $finishedAt,
         public null|string $finishedPuzzlePhoto,
+        public bool $firstAttempt,
     ) {
     }
 
@@ -46,6 +47,7 @@ readonly final class SolvedPuzzleDetail
      *     players: null|string,
      *     finished_at: string,
      *     finished_puzzle_photo: string,
+     *     first_attempt: bool,
      *  } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -71,6 +73,7 @@ readonly final class SolvedPuzzleDetail
             players: $players,
             finishedAt: new DateTimeImmutable($row['finished_at']),
             finishedPuzzlePhoto: $row['finished_puzzle_photo'],
+            firstAttempt: $row['first_attempt'],
         );
     }
 }

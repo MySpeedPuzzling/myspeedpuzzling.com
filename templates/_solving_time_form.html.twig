@@ -104,6 +104,10 @@
                     </div>
                 </div>
 
+                <div class="form-switch">
+                    {{ form_row(solving_time_form.firstAttempt) }}
+                </div>
+
                 <div data-add-copuzzler-target="puzzlersGroup">
                     {% for filled_group_player in filled_group_players %}
                         {{ include('_group_puzzler_input.html.twig', {

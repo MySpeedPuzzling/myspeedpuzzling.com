@@ -19,11 +19,13 @@
                     {% for notification in notifications %}
                         <tr class="{{ notification.readAt is null ? 'table-active-player' }}">
                             <td class="text-center" style="width: 60px;">
-                                {% if notification.targetPlayerAvatar is not null %}
-                                    <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|imagine_filter('puzzle_small') }}">
-                                {% else %}
-                                    <div class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</div>
-                                {% endif %}
+                                <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
+                                    {% if notification.targetPlayerAvatar is not null %}
+                                        <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|imagine_filter('puzzle_small') }}">
+                                    {% else %}
+                                        <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
+                                    {% endif %}
+                                </a>
                             </td>
 
                             <td class="align-middle fs-sm text-muted">

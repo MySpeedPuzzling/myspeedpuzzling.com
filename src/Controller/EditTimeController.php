@@ -64,6 +64,7 @@ final class EditTimeController extends AbstractController
         $data->finishedAt = $solvedPuzzle->finishedAt;
         $data->puzzle = $solvedPuzzle->puzzleId;
         $data->brand = $solvedPuzzle->manufacturerId;
+        $data->firstAttempt = $solvedPuzzle->firstAttempt;
 
         $groupPlayers = [];
         foreach ($solvedPuzzle->players ?? [] as $groupPlayer) {

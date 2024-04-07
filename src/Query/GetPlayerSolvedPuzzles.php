@@ -41,6 +41,7 @@ SELECT
     manufacturer.id AS manufacturer_id,
     finished_at,
     finished_puzzle_photo,
+    first_attempt,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -80,6 +81,7 @@ SQL;
          *     players: null|string,
          *     finished_at: string,
          *     finished_puzzle_photo: string,
+         *     first_attempt: bool,
          * } $row
          */
         $row = $this->database

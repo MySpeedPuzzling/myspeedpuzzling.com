@@ -78,6 +78,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             $finishedAt,
             $message->comment,
             $finishedPuzzlePhotoPath,
+            $message->firstAttempt,
         );
 
         $this->entityManager->persist($solvingTime);

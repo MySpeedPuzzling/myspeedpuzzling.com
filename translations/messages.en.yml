@@ -187,6 +187,8 @@ forms:
     feedback: "Message"
     feedback_help: "Send us suggestion of new feature or improvement, bug report, what you (dis)like, it can be anything that comes to your mind..."
     send_feedback: "Send"
+    first_attempt: "Your first assembling of this puzzle ever"
+    first_attempt_help: "If assembling in a group, then only if no-one assembled this puzzle before, not even solo"
 
 puzzlers_comparison:
     meta:

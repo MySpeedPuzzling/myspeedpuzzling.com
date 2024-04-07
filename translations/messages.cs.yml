@@ -367,3 +367,8 @@ statistics:
 feedback:
     title: "Poslat zpětnou vazbu"
     success_msg: "Obdrželi jsme vaši zpětnu vazbu, moc si jí vážíme! Brzy se vám ozveme."
+
+notifications:
+    title: "Notifikace"
+    solved_puzzle_with_time: "za"
+    solved_puzzle: "{0,1} poskládal puzzle|[2,Inf] poskládali puzzle"

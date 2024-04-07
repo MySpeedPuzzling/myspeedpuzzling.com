@@ -350,3 +350,11 @@ td.rank {
 .low-line-height {
     line-height: 110%;
 }
+
+.navbar-tool .navbar-tool-label {
+    top: 1.6rem;
+
+    &.bg-secondary {
+        background: #e2e6ea !important;
+    }
+}

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
@@ -16,5 +18,8 @@ return static function (\Symfony\Config\TwigConfig $twig): void {
         ->value(env('GA_TRACKING'));
 
     $twig->global('logged_user')
-        ->value(service(\SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile::class));
+        ->value(service(RetrieveLoggedUserProfile::class));
+
+    $twig->global('get_notifications')
+        ->value(service(GetNotifications::class));
 };

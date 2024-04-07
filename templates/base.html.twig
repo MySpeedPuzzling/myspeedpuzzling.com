@@ -113,6 +113,15 @@
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.stopwatch'|trans }}</small></div>
                         </a>
 
+                        {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
+
+                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" href="{{ path('notifications') }}" data-turbo-prefetch="false">
+                            <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}">
+                                <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}">{{ notifications_count }}</span>
+                                <i class="navbar-tool-icon ci-bell"></i>
+                            </div>
+                        </a>
+
                         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
                             <span class="navbar-toggler-icon"></span>
                         </button>
@@ -156,34 +165,34 @@
                     <div class="col-sm-6">
                         <div class="widget widget-links">
                             <ul class="widget-list d-flex flex-wrap justify-content-center justify-content-md-start">
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('hub') }}" class="widget-list-link">{{ 'menu.hub'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('puzzles') }}" class="widget-list-link">{{ 'menu.puzzles_overview'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('ladder') }}" class="widget-list-link">{{ 'menu.ladder'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('players') }}" class="widget-list-link">{{ 'menu.players'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('faq') }}" class="widget-list-link">{{ 'menu.faq'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('my_profile') }}" class="widget-list-link">{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</a>
                                 </li>
-                                <li class="widget-list-item me-4">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('add_time') }}" class="widget-list-link">{{ 'menu.add_time'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
                                 </li>
-                                <li class="widget-list-item">
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a target="_blank" href="https://www.buymeacoffee.com/myspeedpuzzling" class="widget-list-link">{{ 'menu.support_us'|trans }}</a>
                                 </li>
                             </ul>

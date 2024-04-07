@@ -365,3 +365,8 @@ statistics:
 feedback:
     title: "Send feedback"
     success_msg: "We have received your feedback and highly appreciate it! We will let you know soon."
+
+notifications:
+    title: "Notifications"
+    solved_puzzle_with_time: "in"
+    solved_puzzle: "solved puzzle"

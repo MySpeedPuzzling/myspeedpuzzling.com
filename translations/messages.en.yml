@@ -348,7 +348,7 @@ flashes:
     can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
     player_already_in_favorites: "This puzzler is already in your list of favorites, so we won't add them again ;-)."
     player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
-    puzzle_added_to_collection: "Hi,.. to the puzzle."
+    puzzle_added_to_collection: "Hi,.. puzzle. Welcome to my collection!"
     puzzle_removed_from_collection: "Good bye puzzle..."
 
 hub:

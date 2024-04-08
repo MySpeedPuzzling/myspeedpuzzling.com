@@ -55,8 +55,8 @@ any: "Libovolný"
 adding_puzzle_hint: "Přepracovali jsme způsob, jakým se přidávají nové (neexistující) puzzle a výrobci. Napište název nového výrobce/puzzlí do příslušného textového pole a poté vybrat možnost \"Add new\"."
 solo_solved: "Skládáno SOLO:"
 first_attempt: "1. pokus"
-add_to_collection: "Přidat do mé kolekce"
-remove_from_collection: "Odebrat do mé kolekce"
+add_to_collection: "Přidat do mé sbírky"
+remove_from_collection: "Odebrat z mé sbírky"
 
 homepage:
     meta:
@@ -349,7 +349,7 @@ flashes:
     can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
     player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
-    puzzle_added_to_collection: "Ahoj,.. puzzle."
+    puzzle_added_to_collection: "Ahoj,.. puzzle. Vítejte v mé sbírce!"
     puzzle_removed_from_collection: "Sbohem puzzle..."
 
 hub:

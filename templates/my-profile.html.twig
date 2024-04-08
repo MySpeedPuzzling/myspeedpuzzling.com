@@ -160,6 +160,18 @@
         </div>
     </div>
 
+    {% if badges is not empty %}
+        <div class="mt-4">
+            <h3>{{ 'badges.my_title'|trans }}</h3>
+
+            {% for badge in badges %}
+                <span class="d-inline-block text-center small">
+                    <img alt="{{ ('badges.badge.' ~ badge.value)|trans }}" src="{{ asset('img/badges/' ~ badge.value ~ '.png') }}" style="width: 80px;"><br>
+                    {{ ('badges.badge.' ~ badge.value)|trans }}
+                </span>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <div class="row mt-4">
         <div class="col-sm">

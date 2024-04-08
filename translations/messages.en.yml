@@ -374,3 +374,9 @@ notifications:
     solved_puzzle_with_time: "in"
     solved_puzzle: "solved puzzle"
     no_notifications: "You have no notifications so far. Subscribe to some players by adding them to favorites."
+
+badges:
+    title: "Badges"
+    my_title: "My badges"
+    badge:
+        supporter: "Supporter"

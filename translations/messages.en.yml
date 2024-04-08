@@ -54,6 +54,9 @@ any: "Any"
 adding_puzzle_hint: "We have reworked the way of adding new (missing) puzzle and brands. Enter the name of new brand/puzzle to the according text input and then choose option \"Add new\"."
 solo_solved: "Solved SOLO:"
 first_attempt: "1st try"
+add_to_collection: "Add to my collection"
+in_collection: "In my collection"
+remove_from_collection: "Remove from collection"
 
 homepage:
     meta:
@@ -345,6 +348,8 @@ flashes:
     can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
     player_already_in_favorites: "This puzzler is already in your list of favorites, so we won't add them again ;-)."
     player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
+    puzzle_added_to_collection: "Hi,.. to the puzzle."
+    puzzle_removed_from_collection: "Good bye puzzle..."
 
 hub:
     title: "Speed Puzzling Hub"
@@ -380,3 +385,6 @@ badges:
     my_title: "My badges"
     badge:
         supporter: "Supporter"
+
+collection:
+    title: "Collection"

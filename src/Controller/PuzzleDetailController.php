@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Query\GetRanking;
@@ -28,6 +29,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
+        readonly private GetPuzzleCollection $getPuzzleCollection,
     ) {
     }
 
@@ -67,9 +69,11 @@ final class PuzzleDetailController extends AbstractController
 
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $userRanking = [];
+        $puzzleCollections = [];
 
         if ($playerProfile !== null) {
             $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
+            $puzzleCollections = $this->getPuzzleCollection->forPlayer($playerProfile->playerId);
         }
 
         return $this->render('puzzle_detail.html.twig', [
@@ -80,6 +84,7 @@ final class PuzzleDetailController extends AbstractController
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),
+            'puzzle_collections' => $puzzleCollections,
         ]);
     }
 

@@ -34,14 +34,30 @@
             </p>
 
             {% if puzzle.puzzleApproved %}
-                <p>
-                    <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
+                <div class="mb-2">
+                    <a data-turbo-prefetch="false" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
                         <i class="ci-time"></i> {{ 'start_solving'|trans }}
                     </a>
-                    <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 btn-sm">
+                    <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 me-1 btn-sm">
                         <i class="ci-add"></i> {{ 'add_my_time'|trans }}
                     </a>
-                </p>
+
+                    {% if puzzle_collections[puzzle.puzzleId] ?? null %}
+                        <div class="btn-group dropdown d-inline-block">
+                            <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="ci-view-list"></i> {{ 'in_collection'|trans }}
+                            </button>
+
+                            <div class="dropdown-menu">
+                                <a data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}" class="dropdown-item">{{ 'remove_from_collection'|trans }}</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a data-turbo-prefetch="false" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-outline-primary mb-1 btn-sm">
+                            <i class="ci-view-list"></i> {{ 'add_to_collection'|trans }}
+                        </a>
+                    {% endif %}
+                </div>
             {% else %}
                 <div class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</div>
 

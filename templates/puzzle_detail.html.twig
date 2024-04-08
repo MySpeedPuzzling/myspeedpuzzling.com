@@ -35,7 +35,7 @@
 
             {% if puzzle.puzzleApproved %}
                 <div class="mb-2">
-                    <a data-turbo-prefetch="false" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
+                    <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
                         <i class="ci-time"></i> {{ 'start_solving'|trans }}
                     </a>
                     <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 me-1 btn-sm">

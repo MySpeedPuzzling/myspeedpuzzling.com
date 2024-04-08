@@ -1,0 +1,10 @@
+{% if puzzle_collections is not empty %}
+    <h3 class="mt-4">{{ 'collection.title'|trans }}</h3>
+
+    {% for puzzle_collection in puzzle_collections %}
+        {{ include('_puzzle_item.html.twig', {
+            puzzle: puzzle_collection,
+            puzzles_solved_by_user: [],
+        }) }}
+    {% endfor %}
+{% endif %}

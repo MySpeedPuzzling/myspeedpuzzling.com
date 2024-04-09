@@ -10,8 +10,7 @@ return static function (SentryConfig $sentryConfig) {
     $sentryConfig->dsn(env('SENTRY_DSN'));
 
     $sentryConfig->tracing()
-        ->enabled(true)
-    ;
+        ->enabled(true);
 
     $sentryConfig->registerErrorListener(false);
 

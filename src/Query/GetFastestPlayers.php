@@ -17,20 +17,33 @@ readonly final class GetFastestPlayers
     /**
      * @return array<SolvedPuzzle>
      */
-    public function perPiecesCount(int $piecesCount, int $howManyPlayers): array
+    public function perPiecesCount(int $piecesCount, int $limit): array
     {
         $query = <<<SQL
+WITH FastestTimes AS (
+    SELECT
+        player_id,
+        puzzle_id,
+        MIN(seconds_to_solve) AS min_seconds_to_solve
+    FROM puzzle_solving_time
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN player ON player.id = puzzle_solving_time.player_id
+    WHERE team IS NULL AND puzzle.pieces_count = :piecesCount AND player.name IS NOT NULL
+    GROUP BY player_id, puzzle_id
+    ORDER BY min_seconds_to_solve
+    LIMIT :limit
+)
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.image AS puzzle_image,
-    pieces_count,
-    comment,
-    tracked_at,
-    finished_at,
-    finished_puzzle_photo,
-    MIN(puzzle_solving_time.seconds_to_solve) AS time,
+    puzzle.pieces_count,
+    puzzle_solving_time.comment,
+    puzzle_solving_time.tracked_at,
+    puzzle_solving_time.finished_at,
+    puzzle_solving_time.finished_puzzle_photo,
+    FastestTimes.min_seconds_to_solve AS time,
     player.name AS player_name,
     player.country AS player_country,
     player.id AS player_id,
@@ -38,23 +51,20 @@ SELECT
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.id AS time_id,
     puzzle.identification_number AS puzzle_identification_number,
-    first_attempt
-FROM puzzle_solving_time
-INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    puzzle_solving_time.first_attempt
+FROM FastestTimes
+INNER JOIN puzzle_solving_time ON FastestTimes.player_id = puzzle_solving_time.player_id AND FastestTimes.puzzle_id = puzzle_solving_time.puzzle_id AND FastestTimes.min_seconds_to_solve = puzzle_solving_time.seconds_to_solve
+INNER JOIN puzzle ON puzzle.id = FastestTimes.puzzle_id
+INNER JOIN player ON FastestTimes.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-WHERE puzzle.pieces_count = :piecesCount
-    AND puzzle_solving_time.team IS NULL
-    AND player.name IS NOT NULL
-GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id
-ORDER BY time ASC
-LIMIT :howManyPlayers
+GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id, FastestTimes.min_seconds_to_solve
+ORDER BY FastestTimes.min_seconds_to_solve
 SQL;
 
         $data = $this->database
             ->executeQuery($query, [
                 'piecesCount' => $piecesCount,
-                'howManyPlayers' => $howManyPlayers,
+                'limit' => $limit,
             ])
             ->fetchAllAssociative();
 

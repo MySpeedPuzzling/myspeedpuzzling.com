@@ -57,6 +57,7 @@ solo_solved: "Skládáno SOLO:"
 first_attempt: "1. pokus"
 add_to_collection: "Přidat do mé sbírky"
 remove_from_collection: "Odebrat z mé sbírky"
+ranking_out_of: "z"
 
 homepage:
     meta:

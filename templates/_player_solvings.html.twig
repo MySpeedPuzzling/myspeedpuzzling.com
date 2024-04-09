@@ -48,6 +48,40 @@
                         </a>
                     </td>
 
+                    <td>
+                        <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
+                            <small>{{ solved_puzzle[0].manufacturerName }}</small>
+                            <br>
+                            <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
+                        </a>
+
+                        {# Display rank for solo #}
+                        {% if solved_puzzle[0].players is null %}
+                            <br>
+                            <small>Rank {{ ranking[puzzle_id].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ ranking[puzzle_id].totalPlayers }})</span></small><br>
+                        {% endif %}
+
+                        {% if solved_puzzle[0].players|length > 0 %}
+                            <p class="low-line-height mt-1 mb-0 player-name">
+                                {% for puzzle_solver in solved_puzzle[0].players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            <small>{{ puzzle_solver.playerName }}</small>
+                                        </a>
+                                        {% if puzzle_solver.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                    </td>
+
                     <td class="text-end text-nowrap with-ppm">
                         {% for puzzle in solved_puzzle %}
                             {% if loop.first %}
@@ -117,39 +151,6 @@
                                     {% endif %}
                                 {% endfor %}
                             </div>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {# Display rank for solo #}
-                        {% if solved_puzzle[0].players is null %}
-                            <small>Rank {{ ranking[puzzle_id].rank }}</small><br>
-                        {% endif %}
-
-                        <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                            <small>{{ solved_puzzle[0].manufacturerName }}</small>
-                            <br>
-                            <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
-                        </a>
-
-                        {% if solved_puzzle[0].players|length > 0 %}
-                            <p class="low-line-height mt-1 mb-0 player-name">
-                                {% for puzzle_solver in solved_puzzle[0].players %}
-                                    {% if not loop.first %}
-                                        <br>
-                                    {% endif %}
-                                    {% if puzzle_solver.playerId is not null %}
-                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                            <small>{{ puzzle_solver.playerName }}</small>
-                                        </a>
-                                        {% if puzzle_solver.playerCountry is not null %}
-                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
-                                        {% endif %}
-                                    {% else %}
-                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
-                                    {% endif %}
-                                {% endfor %}
-                            </p>
                         {% endif %}
                     </td>
                 </tr>

@@ -43,13 +43,15 @@ RankedTimes AS (
         puzzle_id,
         player_id,
         best_time,
-        RANK() OVER (PARTITION BY puzzle_id ORDER BY best_time ASC) as rank
+        RANK() OVER (PARTITION BY puzzle_id ORDER BY best_time ASC) as rank,
+        COUNT(player_id) OVER (PARTITION BY puzzle_id) as total_players
     FROM
         BestTimes
 )
 SELECT
     player_id,
     rank,
+    total_players,
     best_time AS time,
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
@@ -79,6 +81,7 @@ SQL;
              * @var array{
              *     player_id: string,
              *     rank: int,
+             *     total_players: int,
              *     time: int,
              *     puzzle_id: string,
              *     puzzle_name: string,

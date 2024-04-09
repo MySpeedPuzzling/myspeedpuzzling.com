@@ -9,6 +9,7 @@ readonly final class PlayerRanking
     public function __construct(
         public string $playerId,
         public int $rank,
+        public int $totalPlayers,
         public string $puzzleId,
         public string $puzzleName,
         public null|string $puzzleAlternativeName,
@@ -23,6 +24,7 @@ readonly final class PlayerRanking
      * @param array{
      *     player_id: string,
      *     rank: int,
+     *     total_players: int,
      *     time: int,
      *     puzzle_id: string,
      *     puzzle_name: string,
@@ -37,6 +39,7 @@ readonly final class PlayerRanking
         return new self(
             playerId: $row['player_id'],
             rank: $row['rank'],
+            totalPlayers: $row['total_players'],
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             puzzleAlternativeName: $row['puzzle_alternative_name'],

@@ -68,7 +68,7 @@ INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE player.name IS NOT NULL
     AND puzzle_solving_time.team IS NULL
 GROUP BY player.id
-ORDER BY solved_puzzles_count DESC
+ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit
 SQL;
 
@@ -116,7 +116,7 @@ WHERE player.name IS NOT NULL
     AND EXTRACT(MONTH FROM puzzle_solving_time.tracked_at) = :month
     AND EXTRACT(YEAR FROM puzzle_solving_time.tracked_at) = :year
 GROUP BY player.id
-ORDER BY solved_puzzles_count DESC
+ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit
 SQL;
 

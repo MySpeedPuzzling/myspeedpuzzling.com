@@ -16,22 +16,6 @@
         {
             "type": "vcs",
             "url": "https://github.com/janmikes/auth0-symfony"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/JanMikes/http-client-implementations"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/JanMikes/cache-implementations"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/JanMikes/container-implementations"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/JanMikes/event-dispatcher-implementations"
         }
     ],
     "minimum-stability": "dev",
@@ -56,10 +40,10 @@
         "nelmio/cors-bundle": "^2.4",
         "nette/utils": "^4.0",
         "oneup/flysystem-bundle": "^4.9",
-        "psr-discovery/cache-implementations": "1.x-dev",
-        "psr-discovery/container-implementations": "1.x-dev",
-        "psr-discovery/event-dispatcher-implementations": "1.x-dev",
-        "psr-discovery/http-client-implementations": "1.x-dev",
+        "psr-discovery/cache-implementations": "^1.1",
+        "psr-discovery/container-implementations": "^1.1",
+        "psr-discovery/event-dispatcher-implementations": "^1.1",
+        "psr-discovery/http-client-implementations": "^1.1",
         "ramsey/uuid": "^4.2",
         "ramsey/uuid-doctrine": "^2.0",
         "sentry/sentry-symfony": "^5.0",

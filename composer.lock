@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "af2252f2a2de5df8f60f591e07c2b124",
+    "content-hash": "bf89fc5821c160ff4f5b47222aa7a417",
     "packages": [
         {
             "name": "async-aws/core",
@@ -3128,20 +3128,20 @@
         },
         {
             "name": "psr-discovery/cache-implementations",
-            "version": "1.x-dev",
+            "version": "1.1.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/JanMikes/cache-implementations.git",
-                "reference": "7c4a433edc0f4f9901d091d9f2c6b7c593a2bb07"
+                "url": "https://github.com/psr-discovery/cache-implementations.git",
+                "reference": "ebede0af34a7fd3c5564809e659ee69c0ab85ff6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/cache-implementations/zipball/7c4a433edc0f4f9901d091d9f2c6b7c593a2bb07",
-                "reference": "7c4a433edc0f4f9901d091d9f2c6b7c593a2bb07",
+                "url": "https://api.github.com/repos/psr-discovery/cache-implementations/zipball/ebede0af34a7fd3c5564809e659ee69c0ab85ff6",
+                "reference": "ebede0af34a7fd3c5564809e659ee69c0ab85ff6",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.0",
+                "php": "^8.1",
                 "psr-discovery/discovery": "^1.0",
                 "psr/cache": "^1.0 | ^2.0 | ^3.0"
             },
@@ -3155,7 +3155,6 @@
                 "vimeo/psalm": "^5.8",
                 "wikimedia/composer-merge-plugin": "^2.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "merge-plugin": {
@@ -3176,50 +3175,7 @@
                     "PsrDiscovery\\": "src"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "PsrDiscovery\\Tests\\": "tests"
-                }
-            },
-            "scripts": {
-                "mutate": [
-                    "@php ./vendor/bin/infection --test-framework=pest --show-mutations"
-                ],
-                "pest:coverage": [
-                    "@php vendor/bin/pest --order-by random --compact --coverage"
-                ],
-                "pest": [
-                    "@php vendor/bin/pest --order-by random --compact"
-                ],
-                "phpcs:fix": [
-                    "@php vendor/bin/php-cs-fixer fix src"
-                ],
-                "phpcs": [
-                    "@php vendor/bin/php-cs-fixer fix src --dry-run --diff"
-                ],
-                "phpstan": [
-                    "@php vendor/bin/phpstan analyze"
-                ],
-                "psalm:fix": [
-                    "@php vendor/bin/psalter --issues=all"
-                ],
-                "psalm": [
-                    "@php vendor/bin/psalm"
-                ],
-                "rector:fix": [
-                    "@php vendor/bin/rector process src"
-                ],
-                "rector": [
-                    "@php vendor/bin/rector process src --dry-run"
-                ],
-                "test": [
-                    "@pest",
-                    "@phpstan",
-                    "@psalm",
-                    "@rector",
-                    "@phpcs"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -3240,26 +3196,27 @@
                 "psr-6"
             ],
             "support": {
-                "source": "https://github.com/JanMikes/cache-implementations/tree/1.x"
+                "issues": "https://github.com/psr-discovery/cache-implementations/issues",
+                "source": "https://github.com/psr-discovery/cache-implementations/tree/1.1.1"
             },
-            "time": "2024-02-29T14:10:27+00:00"
+            "time": "2024-03-04T21:22:36+00:00"
         },
         {
             "name": "psr-discovery/container-implementations",
-            "version": "1.x-dev",
+            "version": "1.1.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/JanMikes/container-implementations.git",
-                "reference": "dacfb8408c4b9b0c05be6fd5b944c2cb3092bfe7"
+                "url": "https://github.com/psr-discovery/container-implementations.git",
+                "reference": "728a452b32b0bb60c4bac43b18db2e3105bb8d7e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/container-implementations/zipball/dacfb8408c4b9b0c05be6fd5b944c2cb3092bfe7",
-                "reference": "dacfb8408c4b9b0c05be6fd5b944c2cb3092bfe7",
+                "url": "https://api.github.com/repos/psr-discovery/container-implementations/zipball/728a452b32b0bb60c4bac43b18db2e3105bb8d7e",
+                "reference": "728a452b32b0bb60c4bac43b18db2e3105bb8d7e",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.0",
+                "php": "^8.1",
                 "psr-discovery/discovery": "^1.0",
                 "psr/container": "^1.0 | ^2.0"
             },
@@ -3273,7 +3230,6 @@
                 "vimeo/psalm": "^5.8",
                 "wikimedia/composer-merge-plugin": "^2.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "merge-plugin": {
@@ -3294,50 +3250,7 @@
                     "PsrDiscovery\\": "src"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "PsrDiscovery\\Tests\\": "tests"
-                }
-            },
-            "scripts": {
-                "mutate": [
-                    "@php ./vendor/bin/infection --test-framework=pest --show-mutations"
-                ],
-                "pest:coverage": [
-                    "@php vendor/bin/pest --order-by random --compact --coverage"
-                ],
-                "pest": [
-                    "@php vendor/bin/pest --order-by random --compact"
-                ],
-                "phpcs:fix": [
-                    "@php vendor/bin/php-cs-fixer fix src"
-                ],
-                "phpcs": [
-                    "@php vendor/bin/php-cs-fixer fix src --dry-run --diff"
-                ],
-                "phpstan": [
-                    "@php vendor/bin/phpstan analyze"
-                ],
-                "psalm:fix": [
-                    "@php vendor/bin/psalter --issues=all"
-                ],
-                "psalm": [
-                    "@php vendor/bin/psalm"
-                ],
-                "rector:fix": [
-                    "@php vendor/bin/rector process src"
-                ],
-                "rector": [
-                    "@php vendor/bin/rector process src --dry-run"
-                ],
-                "test": [
-                    "@pest",
-                    "@phpstan",
-                    "@psalm",
-                    "@rector",
-                    "@phpcs"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -3351,14 +3264,15 @@
             "description": "Lightweight library that discovers available PSR-11 Container implementations by searching for a list of well-known classes that implement the relevant interface, and returns an instance of the first one that is found.",
             "homepage": "https://github.com/psr-discovery/http-client-implementations",
             "keywords": [
+                "PSR-11",
                 "discovery",
-                "psr",
-                "psr-11"
+                "psr"
             ],
             "support": {
-                "source": "https://github.com/JanMikes/container-implementations/tree/1.x"
+                "issues": "https://github.com/psr-discovery/container-implementations/issues",
+                "source": "https://github.com/psr-discovery/container-implementations/tree/1.1.1"
             },
-            "time": "2024-02-29T14:13:12+00:00"
+            "time": "2024-03-04T21:24:05+00:00"
         },
         {
             "name": "psr-discovery/discovery",
@@ -3439,20 +3353,20 @@
         },
         {
             "name": "psr-discovery/event-dispatcher-implementations",
-            "version": "1.x-dev",
+            "version": "1.1.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/JanMikes/event-dispatcher-implementations.git",
-                "reference": "2be5f040dd8db9a77b29999405919eb673fa6794"
+                "url": "https://github.com/psr-discovery/event-dispatcher-implementations.git",
+                "reference": "9033bb984613703e4c4f795ef0657184dc1c70eb"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/event-dispatcher-implementations/zipball/2be5f040dd8db9a77b29999405919eb673fa6794",
-                "reference": "2be5f040dd8db9a77b29999405919eb673fa6794",
+                "url": "https://api.github.com/repos/psr-discovery/event-dispatcher-implementations/zipball/9033bb984613703e4c4f795ef0657184dc1c70eb",
+                "reference": "9033bb984613703e4c4f795ef0657184dc1c70eb",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.0",
+                "php": "^8.1",
                 "psr-discovery/discovery": "^1.0",
                 "psr/event-dispatcher": "^1.0"
             },
@@ -3466,7 +3380,6 @@
                 "vimeo/psalm": "^5.8",
                 "wikimedia/composer-merge-plugin": "^2.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "merge-plugin": {
@@ -3487,50 +3400,7 @@
                     "PsrDiscovery\\": "src"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "PsrDiscovery\\Tests\\": "tests"
-                }
-            },
-            "scripts": {
-                "mutate": [
-                    "@php ./vendor/bin/infection --test-framework=pest --show-mutations"
-                ],
-                "pest:coverage": [
-                    "@php vendor/bin/pest --order-by random --compact --coverage"
-                ],
-                "pest": [
-                    "@php vendor/bin/pest --order-by random --compact"
-                ],
-                "phpcs:fix": [
-                    "@php vendor/bin/php-cs-fixer fix src"
-                ],
-                "phpcs": [
-                    "@php vendor/bin/php-cs-fixer fix src --dry-run --diff"
-                ],
-                "phpstan": [
-                    "@php vendor/bin/phpstan analyze"
-                ],
-                "psalm:fix": [
-                    "@php vendor/bin/psalter --issues=all"
-                ],
-                "psalm": [
-                    "@php vendor/bin/psalm"
-                ],
-                "rector:fix": [
-                    "@php vendor/bin/rector process src"
-                ],
-                "rector": [
-                    "@php vendor/bin/rector process src --dry-run"
-                ],
-                "test": [
-                    "@pest",
-                    "@phpstan",
-                    "@psalm",
-                    "@rector",
-                    "@phpcs"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -3549,26 +3419,27 @@
                 "psr-18"
             ],
             "support": {
-                "source": "https://github.com/JanMikes/event-dispatcher-implementations/tree/1.x"
+                "issues": "https://github.com/psr-discovery/event-dispatcher-implementations/issues",
+                "source": "https://github.com/psr-discovery/event-dispatcher-implementations/tree/1.1.1"
             },
-            "time": "2024-02-29T14:15:22+00:00"
+            "time": "2024-03-04T21:27:10+00:00"
         },
         {
             "name": "psr-discovery/http-client-implementations",
-            "version": "1.x-dev",
+            "version": "1.2.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/JanMikes/http-client-implementations.git",
-                "reference": "5d0593b6eec4a3ec76da0f117ffff05f9a9635eb"
+                "url": "https://github.com/psr-discovery/http-client-implementations.git",
+                "reference": "a05c54087d13504d8e48c27395fbab638fb0a114"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/http-client-implementations/zipball/5d0593b6eec4a3ec76da0f117ffff05f9a9635eb",
-                "reference": "5d0593b6eec4a3ec76da0f117ffff05f9a9635eb",
+                "url": "https://api.github.com/repos/psr-discovery/http-client-implementations/zipball/a05c54087d13504d8e48c27395fbab638fb0a114",
+                "reference": "a05c54087d13504d8e48c27395fbab638fb0a114",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.0",
+                "php": "^8.1",
                 "psr-discovery/discovery": "^1.0",
                 "psr/http-client": "^1.0"
             },
@@ -3582,7 +3453,6 @@
                 "vimeo/psalm": "^5.8",
                 "wikimedia/composer-merge-plugin": "^2.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "merge-plugin": {
@@ -3603,50 +3473,7 @@
                     "PsrDiscovery\\": "src"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "PsrDiscovery\\Tests\\": "tests"
-                }
-            },
-            "scripts": {
-                "mutate": [
-                    "@php ./vendor/bin/infection --test-framework=pest --show-mutations"
-                ],
-                "pest:coverage": [
-                    "@php vendor/bin/pest --order-by random --compact --coverage"
-                ],
-                "pest": [
-                    "@php vendor/bin/pest --order-by random --compact"
-                ],
-                "phpcs:fix": [
-                    "@php vendor/bin/php-cs-fixer fix src"
-                ],
-                "phpcs": [
-                    "@php vendor/bin/php-cs-fixer fix src --dry-run --diff"
-                ],
-                "phpstan": [
-                    "@php vendor/bin/phpstan analyze"
-                ],
-                "psalm:fix": [
-                    "@php vendor/bin/psalter --issues=all"
-                ],
-                "psalm": [
-                    "@php vendor/bin/psalm"
-                ],
-                "rector:fix": [
-                    "@php vendor/bin/rector process src"
-                ],
-                "rector": [
-                    "@php vendor/bin/rector process src --dry-run"
-                ],
-                "test": [
-                    "@pest",
-                    "@phpstan",
-                    "@psalm",
-                    "@rector",
-                    "@phpcs"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -3665,9 +3492,10 @@
                 "psr-18"
             ],
             "support": {
-                "source": "https://github.com/JanMikes/http-client-implementations/tree/1.x"
+                "issues": "https://github.com/psr-discovery/http-client-implementations/issues",
+                "source": "https://github.com/psr-discovery/http-client-implementations/tree/1.2.0"
             },
-            "time": "2024-02-29T14:07:03+00:00"
+            "time": "2024-03-16T05:29:47+00:00"
         },
         {
             "name": "psr-discovery/http-factory-implementations",
@@ -11143,12 +10971,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "4c598536f599c2081f7a50b7f1b8e0290c811c30"
+                "reference": "31f373849a62ccfe23cba594e91b488e3ec2270b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/4c598536f599c2081f7a50b7f1b8e0290c811c30",
-                "reference": "4c598536f599c2081f7a50b7f1b8e0290c811c30",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/31f373849a62ccfe23cba594e91b488e3ec2270b",
+                "reference": "31f373849a62ccfe23cba594e91b488e3ec2270b",
                 "shasum": ""
             },
             "conflict": {
@@ -11235,6 +11063,7 @@
                 "concrete5/concrete5": "<9.2.8",
                 "concrete5/core": "<8.5.8|>=9,<9.1",
                 "contao-components/mediaelement": ">=2.14.2,<2.21.1",
+                "contao/comments-bundle": ">=2,<4.13.40|>=5.0.0.0-RC1-dev,<5.3.4",
                 "contao/contao": ">=4,<4.4.56|>=4.5,<4.9.40|>=4.10,<4.11.7|>=4.13,<4.13.21|>=5.1,<5.1.4",
                 "contao/core": ">=2,<3.5.39",
                 "contao/core-bundle": "<4.13.40|>=5,<5.3.4",
@@ -11880,7 +11709,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2024-04-09T17:04:16+00:00"
+            "time": "2024-04-09T19:04:27+00:00"
         },
         {
             "name": "sebastian/cli-parser",
@@ -13215,10 +13044,6 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "auth0/symfony": 20,
-        "psr-discovery/cache-implementations": 20,
-        "psr-discovery/container-implementations": 20,
-        "psr-discovery/event-dispatcher-implementations": 20,
-        "psr-discovery/http-client-implementations": 20,
         "roave/security-advisories": 20
     },
     "prefer-stable": true,

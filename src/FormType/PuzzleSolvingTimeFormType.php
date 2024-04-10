@@ -48,7 +48,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         assert($userProfile !== null);
 
         $brandChoices = [];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer() as $manufacturer) {
+        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId) as $manufacturer) {
             $brandChoices[] = [
                 'value' => $manufacturer->manufacturerId,
                 'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",

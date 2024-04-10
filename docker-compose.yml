@@ -32,6 +32,8 @@ services:
             - .:/app
         depends_on:
             - postgres
+            - redis
+            - minio
         environment:
             XDEBUG_CONFIG: "client_host=host.docker.internal"
             XDEBUG_MODE: debug

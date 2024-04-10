@@ -17,7 +17,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 readonly final class NotifyWhenPuzzleSolved
 {
-    function __construct(
+    public function __construct(
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PlayerRepository $playerRepository,
         private EntityManagerInterface $entityManager,
@@ -28,9 +28,36 @@ readonly final class NotifyWhenPuzzleSolved
     public function __invoke(PuzzleSolved $event): void
     {
         $solvingTime = $this->puzzleSolvingTimeRepository->get($event->puzzleSolvingTimeId->toString());
-        $players = $this->playerRepository->findPlayersByFavoriteUuid($solvingTime->player->id->toString());
 
-        foreach ($players as $targetPlayer) {
+        if ($solvingTime->team === null) {
+            $subscribedPlayers = $this->playerRepository->findPlayersByFavoriteUuid($solvingTime->player->id->toString());
+        } else {
+            $subscribedPlayers = [];
+
+            // Collect all favorites from all puzzlers from team
+            foreach ($solvingTime->team->puzzlers as $puzzler) {
+                if ($puzzler->playerId !== null) {
+                    foreach ($this->playerRepository->findPlayersByFavoriteUuid($puzzler->playerId) as $subscribedPlayer) {
+                        $subscribedPlayers[] = $subscribedPlayer;
+                    }
+                }
+            }
+
+            // Deduplicate, so one subscriber does not get multiple notifications
+            $playersAboutToBeNotified = [];
+            foreach ($subscribedPlayers as $key => $player) {
+                $playerId = $player->id->toString();
+
+                if (isset($playersAboutToBeNotified[$playerId])) {
+                    unset($subscribedPlayers[$key]);
+                    continue;
+                }
+
+                $playersAboutToBeNotified[$playerId] = true;
+            }
+        }
+
+        foreach ($subscribedPlayers as $targetPlayer) {
             $notification = new Notification(
                 Uuid::uuid7(),
                 $targetPlayer,

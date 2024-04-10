@@ -107,6 +107,7 @@ final class PuzzlesController extends AbstractController
             'form_data' => $searchData,
             'current_offset' => $offset,
             'next_offset' => $offset + $limit,
+            'remaining' => max($totalPuzzlesCount - $limit - $offset, 0),
         ]);
     }
 }

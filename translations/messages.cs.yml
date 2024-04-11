@@ -14,7 +14,8 @@ menu:
 
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
-    about: "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence. Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívat si zábavu ze skládání puzzlí společně."
+    about: "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence.<br>Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívání si zábavy ze skládání puzzlí společně."
+    popular_search: "Často hledané"
 
 puzzler_name: "Jméno"
 puzzler: "Puzzler"

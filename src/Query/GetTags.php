@@ -62,6 +62,7 @@ SQL;
         $query = <<<SQL
 SELECT id AS tag_id, name
 FROM tag
+ORDER BY name
 SQL;
 
         $data = $this->database
@@ -92,6 +93,7 @@ SELECT
   puzzle_id
 FROM tag
 LEFT JOIN tag_puzzle ON tag.id = tag_puzzle.tag_id
+ORDER BY tag.name
 SQL;
 
         $data = [];

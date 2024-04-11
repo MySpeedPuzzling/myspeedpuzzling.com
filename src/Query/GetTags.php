@@ -55,6 +55,32 @@ SQL;
     }
 
     /**
+     * @return array<PuzzleTag>
+     */
+    public function all(): array
+    {
+        $query = <<<SQL
+SELECT id AS tag_id, name
+FROM tag
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): PuzzleTag {
+            /**
+             * @var array{
+             *     tag_id: string,
+             *     name: string,
+             * } $row
+             */
+
+            return PuzzleTag::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
      * @return array<string, array<PuzzleTag>>
      */
     public function allGroupedPerPuzzle(): array

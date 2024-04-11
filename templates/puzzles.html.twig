@@ -44,20 +44,24 @@
                 </div>
             </div>
 
-            <div class="d-none">
-                {{ form_row(search_form.tags) }}
-            </div>
+            <div class="row my-3">
+                <div class="col-sm-6">
+                    {{ form_row(search_form.tag) }}
+                </div>
 
-            <div class="d-none">
-                {{ form_row(search_form.onlySolvedByMe) }}
-            </div>
+                <div class="col-sm-6">
+                    <div class="d-none">
+                        {{ form_row(search_form.onlySolvedByMe) }}
+                    </div>
 
-            <div class="my-3">
-                {{ form_row(search_form.onlyWithResults) }}
-            </div>
+                    <div class="my-3">
+                        {{ form_row(search_form.onlyWithResults) }}
+                    </div>
 
-            <div class="my-3 {{ app.request.locale != 'cs' ? 'd-none' }}">
-                {{ form_row(search_form.onlyAvailable) }}
+                    <div class="my-3 {{ app.request.locale != 'cs' ? 'd-none' }}">
+                        {{ form_row(search_form.onlyAvailable) }}
+                    </div>
+                </div>
             </div>
 
             <div class="row">

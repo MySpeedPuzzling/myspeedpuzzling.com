@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\SearchPuzzleFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Query\GetTags;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -21,6 +22,7 @@ final class SearchPuzzleFormType extends AbstractType
 {
     public function __construct(
         readonly private GetManufacturers $getManufacturers,
+        readonly private GetTags $getTags,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -35,6 +37,11 @@ final class SearchPuzzleFormType extends AbstractType
             $brandChoices["{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})"] = $manufacturer->manufacturerId;
         }
 
+        $tagChoices = [];
+        foreach ($this->getTags->all() as $tag) {
+            $tagChoices[$tag->name] = $tag->tagId;
+        }
+
         $builder->add('brand', ChoiceType::class, [
             'label' => 'forms.brand',
             'required' => false,
@@ -43,9 +50,6 @@ final class SearchPuzzleFormType extends AbstractType
             'placeholder' => 'any',
             'empty_data' => '',
             'choice_translation_domain' => false,
-            // loading_more_text
-            // no_results_found_text
-            // no_more_results_text
         ]);
 
         $builder->add('pieces', ChoiceType::class, [
@@ -64,10 +68,13 @@ final class SearchPuzzleFormType extends AbstractType
             'choice_translation_domain' => false,
         ]);
 
-        $builder->add('tags', ChoiceType::class, [
-            'label' => 'forms.tags',
+        $builder->add('tag', ChoiceType::class, [
+            'label' => 'forms.tag',
             'required' => false,
+            'autocomplete' => true,
             'empty_data' => '',
+            'choice_translation_domain' => false,
+            'choices' => $tagChoices,
         ]);
 
         $builder->add('search', TextType::class, [

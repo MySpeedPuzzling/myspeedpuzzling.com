@@ -13,9 +13,13 @@ final class SearchPuzzleFormData
     public null|string $search = null;
 
     public null|string $pieces = null;
-    public null|string $tags = null;
+
+    public null|string $tag = null;
+
     public bool $onlyWithResults = false;
+
     public bool $onlySolvedByMe = false;
+
     public bool $onlyAvailable = false;
 
     public static function fromRequest(Request $request): self
@@ -32,9 +36,9 @@ final class SearchPuzzleFormData
             $self->search = $search;
         }
 
-        $tags = $request->query->get('tags');
-        if (is_string($tags)) {
-            $self->tags = $tags;
+        $tag = $request->query->get('tag');
+        if (is_string($tag)) {
+            $self->tag = $tag;
         }
 
         $pieces = $request->query->get('pieces');

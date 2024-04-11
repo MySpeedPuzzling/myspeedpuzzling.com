@@ -20,14 +20,17 @@ readonly final class SearchPuzzle
     }
 
     /**
+     * @param array<string> $tags
+     *
      * @throws ManufacturerNotFound
      */
     public function countByUserInput(
-        null|string $brandId = null,
-        null|string $search = null,
-        bool $onlyWithResults = false,
-        PiecesFilter $pieces = PiecesFilter::Any,
-        bool $onlyAvailable = false,
+        null|string $brandId,
+        null|string $search,
+        bool $onlyWithResults,
+        PiecesFilter $pieces,
+        bool $onlyAvailable,
+        null|string $tag,
     ): int {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
@@ -39,6 +42,7 @@ SELECT
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 WHERE
     manufacturer_id = COALESCE(:brandId, manufacturer_id)
     AND pieces_count >= COALESCE(:minPieces, pieces_count)
@@ -55,8 +59,9 @@ WHERE
         OR identification_number LIKE :searchFullLikeQuery
         OR ean LIKE :searchFullLikeQuery
    )
-AND (:solvedCount = 0 OR puzzle_solving_time.id IS NOT NULL)
-AND is_available IN (:isAvailable)
+    AND (:solvedCount = 0 OR puzzle_solving_time.id IS NOT NULL)
+    AND is_available IN (:isAvailable)
+    AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
 SQL;
 
         $count = $this->database
@@ -70,8 +75,11 @@ SQL;
                 'minPieces' => $pieces->minPieces(),
                 'maxPieces' => $pieces->maxPieces(),
                 'isAvailable' => $onlyAvailable === true ? [true] : [true, false],
+                'useTags' => $tag !== null ? 1 : 0,
+                'tag' => $tag ? [$tag] : [],
             ], [
                 'isAvailable' => ArrayParameterType::INTEGER,
+                'tag' => ArrayParameterType::STRING,
             ])
             ->fetchOne();
         assert(is_int($count));
@@ -80,15 +88,17 @@ SQL;
     }
 
     /**
-     * @throws ManufacturerNotFound
      * @return list<PuzzleOverview>
+     *
+     * @throws ManufacturerNotFound
      */
     public function byUserInput(
-        null|string $brandId = null,
-        null|string $search = null,
-        bool $onlyWithResults = false,
-        PiecesFilter $pieces = PiecesFilter::Any,
-        bool $onlyAvailable = false,
+        null|string $brandId,
+        null|string $search,
+        bool $onlyWithResults,
+        PiecesFilter $pieces,
+        bool $onlyAvailable,
+        null|string $tag,
         int $offset = 0,
         int $limit = 20,
     ): array
@@ -130,6 +140,7 @@ SELECT
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 WHERE
     manufacturer_id = COALESCE(:brandId, manufacturer_id)
     AND pieces_count >= COALESCE(:minPieces, pieces_count)
@@ -147,6 +158,7 @@ WHERE
         OR ean LIKE :searchFullLikeQuery
     )
     AND is_available IN (:isAvailable)
+    AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 HAVING COUNT(puzzle_solving_time.id) >= :solvedCount
 ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), manufacturer_name, pieces_count
@@ -166,8 +178,11 @@ SQL;
                 'maxPieces' => $pieces->maxPieces(),
                 'isAvailable' => $onlyAvailable === true ? [true] : [true, false],
                 'offset' => $offset,
+                'useTags' => $tag !== null ? 1 : 0,
+                'tag' => $tag ? [$tag] : [],
             ], [
                 'isAvailable' => ArrayParameterType::INTEGER,
+                'tag' => ArrayParameterType::STRING,
             ])
             ->fetchAllAssociative();
 

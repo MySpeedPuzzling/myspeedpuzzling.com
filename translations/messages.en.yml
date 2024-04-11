@@ -188,6 +188,7 @@ forms:
     only_solved_by_me: "Only puzzle I have solved"
     only_available: "Only available to borrow"
     puzzle_search_placeholder: "Part of name, code or EAN..."
+    tag: "Tag"
     tags: "Tags"
     feedback: "Message"
     feedback_help: "Send us suggestion of new feature or improvement, bug report, what you (dis)like, it can be anything that comes to your mind..."

@@ -190,6 +190,7 @@ forms:
     only_solved_by_me: "Pouze mnou poskládané puzzle"
     only_available: "Pouze k zapůjčení"
     puzzle_search_placeholder: "Část názvu, kód výrobce nebo EAN..."
+    tag: "Tag"
     tags: "Tagy"
     feedback: "Zpráva"
     feedback_help: "Pošlete nám návrh na novou funkci nebo zlepšení, report chyby, co se vám (ne)líbí, může to být cokoliv, co vás napadne..."

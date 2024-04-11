@@ -20,8 +20,6 @@ readonly final class SearchPuzzle
     }
 
     /**
-     * @param array<string> $tags
-     *
      * @throws ManufacturerNotFound
      */
     public function countByUserInput(

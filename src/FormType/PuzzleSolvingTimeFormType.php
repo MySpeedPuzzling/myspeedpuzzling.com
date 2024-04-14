@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\FormType;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Results\PlayerProfile;
+use SpeedPuzzling\Web\Services\CheckFirstTryAvailability;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -35,6 +37,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
+        readonly private CheckFirstTryAvailability $checkFirstTryAvailability,
     ) {
     }
 
@@ -179,12 +182,12 @@ final class PuzzleSolvingTimeFormType extends AbstractType
             'required' => false,
         ]);
 
-        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) use ($userProfile): void {
             $form = $event->getForm();
             $data = $event->getData();
             assert($data instanceof PuzzleSolvingTimeFormData);
 
-            $this->applyDynamicRules($form, $data);
+            $this->applyDynamicRules($form, $data, $userProfile);
         });
     }
 
@@ -201,6 +204,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
     private function applyDynamicRules(
         FormInterface $form,
         PuzzleSolvingTimeFormData $data,
+        PlayerProfile $playerProfile,
     ): void {
         // TODO: Should check if the puzzle exists in database as well
         if (is_string($data->puzzle) && Uuid::isValid($data->puzzle) === false) {
@@ -210,6 +214,15 @@ final class PuzzleSolvingTimeFormType extends AbstractType
 
             if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto === null) {
                 $form->get('puzzlePhoto')->addError(new FormError($this->translator->trans('forms.puzzle_photo_is_required')));
+            }
+        }
+
+        if (is_string($data->puzzle) && Uuid::isValid($data->puzzle) === true && $data->firstAttempt === true) {
+            $firstTry = $this->checkFirstTryAvailability->forPlayer($playerProfile->playerId, $data->puzzle);
+
+            if ($firstTry === false) {
+                $form->get('firstAttempt')->addError(new FormError($this->translator->trans('Píčo tvůj first attempt už byl tady: ...')));
+                $form->addError(new FormError('ASdfda fasdf asdf asdf asdf as'));
             }
         }
     }

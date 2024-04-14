@@ -9,12 +9,12 @@ export default class extends Controller {
         const clickedElement = event.currentTarget;
         clickedElement.classList.add('hidden');
 
-        // Use the identifier to find the target element
-        const targetElement = this.element.querySelector(`[data-toggle-target="${targetSelector}"]`);
+        const targetElements = this.element.querySelectorAll(`[data-toggle-target="${targetSelector}"]`);
 
-        // Toggle the 'hidden' class on the target element
-        if (targetElement) {
-            targetElement.classList.remove('hidden');
-        }
+        targetElements.forEach(targetElement => {
+            if (targetElement) {
+                targetElement.classList.remove('hidden');
+            }
+        });
     }
 }

@@ -1,7 +1,7 @@
 <div class="table-responsive custom-table-wrapper" {{ stimulus_controller('toggle') }}>
     <table class="table table-striped table-hover mb-0">
         <tbody>
-            {% for puzzle_id, solved_puzzle in solved_puzzles %}
+            {% for solved_puzzle in solved_puzzles %}
                 <tr
                     data-puzzle-filter-target="puzzleItem"
                     data-pieces-count="{{ solved_puzzle[0].piecesCount }}"
@@ -15,7 +15,7 @@
                 >
                     <td class="text-center" style="width: 90px;">
                         {% if solved_puzzle[0].puzzleImage is not null%}
-                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
+                            <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
                                 <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
                             </a>
                         {% endif %}
@@ -48,89 +48,56 @@
                         </a>
                     </td>
 
-                    <td>
-                        <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}">
-                            <small>{{ solved_puzzle[0].manufacturerName }}</small>
-                            <br>
-                            <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
-                        </a>
+                    <td class="px-0">
+                        <table style="width: 100%;">
+                            {% for puzzle in solved_puzzle %}
+                                <tr {% if not loop.first %}class="hidden" data-toggle-target="{{ puzzle.puzzleId }}"{% endif %}>
+                                    <td class="align-top">
+                                        {% if loop.first %}
+                                            <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
+                                                <small>{{ solved_puzzle[0].manufacturerName }}</small>
+                                                <br>
+                                                <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
+                                            </a>
 
-                        {# Display rank for solo #}
-                        {% if solved_puzzle[0].players is null %}
-                            <br>
-                            <small>Rank {{ ranking[puzzle_id].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ ranking[puzzle_id].totalPlayers }})</span></small><br>
-                        {% endif %}
-
-                        {% if solved_puzzle[0].players|length > 0 %}
-                            <p class="low-line-height mt-1 mb-0 player-name">
-                                {% for puzzle_solver in solved_puzzle[0].players %}
-                                    {% if not loop.first %}
-                                        <br>
-                                    {% endif %}
-                                    {% if puzzle_solver.playerId is not null %}
-                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                            <small>{{ puzzle_solver.playerName }}</small>
-                                        </a>
-                                        {% if puzzle_solver.playerCountry is not null %}
-                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                            {# Display rank for solo #}
+                                            {% if solved_puzzle[0].players is null %}
+                                                <br>
+                                                <small>Rank {{ ranking[solved_puzzle[0].puzzleId].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ ranking[solved_puzzle[0].puzzleId].totalPlayers }})</span></small><br>
+                                            {% endif %}
                                         {% endif %}
-                                    {% else %}
-                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
-                                    {% endif %}
-                                {% endfor %}
-                            </p>
-                        {% endif %}
-                    </td>
 
-                    <td class="text-end text-nowrap with-ppm">
-                        {% for puzzle in solved_puzzle %}
-                            {% if loop.first %}
-                                <span class="d-inline-block">
-                                    {{ puzzle.time|puzzlingTime }}
-                                    <br>
-                                    <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
-                                    <br>
-                                    <small>
-                                        <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
-                                        {% if solved_puzzle[0].players is not null %}
-                                            <br>({{ solved_puzzle[0].players|length }}x {{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
+                                        {% if puzzle.players|length > 0 %}
+                                            <p class="low-line-height mt-1 mb-0 player-name">
+                                                {% for puzzle_solver in puzzle.players %}
+                                                    {% if not loop.first %}
+                                                        <br>
+                                                    {% endif %}
+                                                    {% if puzzle_solver.playerId is not null %}
+                                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                                            <small>{{ puzzle_solver.playerName }}</small>
+                                                        </a>
+                                                        {% if puzzle_solver.playerCountry is not null %}
+                                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </p>
                                         {% endif %}
-                                    </small>
+                                    </td>
 
-                                    {% if solved_puzzle[0].firstAttempt %}
-                                        <br>
-                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                                    {% endif %}
-                                </span>
-
-                                {# Display edit icon only to current user #}
-                                {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
-                                    <a class="btn btn-sm btn-outline-dark p-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
-                                {% endif %}
-
-                            {% endif %}
-                        {% endfor %}
-
-                        {% if solved_puzzle|length > 1 %}
-                            <br>
-                            <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: loop.index})}}>
-                                <span class="badge bg-dark badge-shadow rounded-pill">
-                                    {{ 'show_more_solving_times'|trans({ '%count%': solved_puzzle|length-1 }) }}
-                                </span>
-                            </a>
-
-                            <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', loop.index) }}>
-                                {% for puzzle in solved_puzzle %}
-                                    {% if not loop.first %}
-                                        <span class="d-inline-block mt-1">
+                                    <td class="text-end text-nowrap with-ppm align-top">
+                                        <span class="d-inline-block">
                                             {{ puzzle.time|puzzlingTime }}
                                             <br>
                                             <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
                                             <br>
                                             <small>
                                                 <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
-                                                {% if solved_puzzle[0].players is not null %}
-                                                    ({{ ppm(puzzle.time, puzzle.piecesCount, solved_puzzle[0].players|length) }})
+                                                {% if puzzle.players is not null %}
+                                                    <br>({{ puzzle.players|length }}x {{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }})
                                                 {% endif %}
                                             </small>
 
@@ -145,14 +112,21 @@
                                             <a class="btn btn-sm btn-outline-dark p-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
                                         {% endif %}
 
-                                        {% if not loop.last %}
+                                        {% if loop.first and solved_puzzle|length > 1 %}
                                             <br>
+                                            <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: puzzle.puzzleId}) }}>
+                                                <span class="badge bg-dark badge-shadow rounded-pill">
+                                                    {{ 'show_more_solving_times'|trans({ '%count%': solved_puzzle|length-1 }) }}
+                                                </span>
+                                            </a>
                                         {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+
                     </td>
+
                 </tr>
             {% endfor %}
             {% if solved_puzzles|length < 1 %}

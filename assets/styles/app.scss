@@ -103,35 +103,6 @@ main {
     }
 }
 
-#add-puzzle-form, #add-puzzle-chosen {
-    opacity: 1;
-    visibility: visible;
-    height: auto;
-    transition: all .5s ease;
-
-    &.hidden {
-        height: 0;
-        visibility: hidden;
-        opacity: 0;
-    }
-}
-
-#add-puzzle-chosen {
-    .checkbox-wrapper {
-        display: none !important;
-    }
-
-    .form-check {
-        padding-left: 0 !important;
-    }
-}
-
-#add-puzzler {
-    &.hidden {
-        display: none;
-    }
-}
-
 #puzzler-input-template {
     display: none;
 }
@@ -179,16 +150,6 @@ main {
     }
 }
 
-.filter-no-results {
-    &.hidden {
-        display: none;
-    }
-}
-
-#manufacturer-name-row.hidden {
-    display: none;
-}
-
 .table-active-player {
     --cz-table-color: #000;
     --cz-table-bg: #f0ecfb;
@@ -207,8 +168,7 @@ td.rank {
     padding-right: 0;
 }
 
-.show-more-times.hidden,
-.more-times.hidden {
+.hidden {
     display: none;
 }
 

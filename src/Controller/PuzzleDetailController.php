@@ -80,9 +80,9 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $this->puzzlesSorter->groupPuzzles($soloPuzzleSolvers),
-            'duo_puzzle_solvers' => $this->puzzlesSorter->groupGroupPuzzles($duoPuzzleSolvers),
-            'team_puzzle_solvers' => $this->puzzlesSorter->groupGroupPuzzles($teamPuzzleSolvers),
+            'solo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers),
+            'duo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers),
+            'team_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers),
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),

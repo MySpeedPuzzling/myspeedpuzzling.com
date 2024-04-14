@@ -200,13 +200,13 @@
 
                                 {% if aggregated_solver|length > 1 %}
                                     <br>
-                                    <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: loop.index})}}>
+                                    <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'solo' ~ loop.index})}}>
                                         <span class="badge bg-dark badge-shadow rounded-pill">
                                             {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
                                         </span>
                                     </a>
 
-                                    <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', loop.index) }}>
+                                    <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'solo' ~ loop.index) }}>
                                         {% for solving_time in aggregated_solver %}
                                             {% if not loop.first %}
                                                 <span class="d-inline-block mt-1">
@@ -258,7 +258,7 @@
                 </table>
             {% endif %}
 
-            <div class="table-responsive custom-table-wrapper mt-2 mb-5">
+            <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
@@ -268,11 +268,11 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzlers_duo in duo_puzzle_solvers %}
+                    {% for aggregated_puzzlers_duo in duo_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
                             <td class="player-name">
-                                {% for puzzle_solver in puzzlers_duo.players %}
+                                {% for puzzle_solver in aggregated_puzzlers_duo[0].players %}
                                     {% if not loop.first %}
                                         <br>
                                     {% endif %}
@@ -291,18 +291,51 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
+
                             <td class="text-end with-ppm">
-                                {{ puzzlers_duo.time|puzzlingTime }}
+                                {{ aggregated_puzzlers_duo[0].time|puzzlingTime }}
                                 <br>
-                                <small class="text-muted">{{ puzzlers_duo.finishedAt|date('d.m.Y') }}</small>
+                                <small class="text-muted">{{ aggregated_puzzlers_duo[0].finishedAt|date('d.m.Y') }}</small>
                                 <br>
-                                <small>
-                                    <span class="text-muted">PPM</span> {{ ppm(puzzlers_duo.time, puzzle.piecesCount) }}
-                                    ({{ ppm(puzzlers_duo.time, puzzle.piecesCount, puzzlers_duo.players|length) }})
-                                </small>
-                                {% if puzzlers_duo.firstAttempt %}
+                                <small><span class="text-muted">PPM</span> {{ ppm(aggregated_puzzlers_duo[0].time, puzzle.piecesCount) }}</small>
+
+                                {% if aggregated_puzzlers_duo[0].firstAttempt %}
                                     <br>
                                     <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% endif %}
+
+                                {% if aggregated_puzzlers_duo|length > 1 %}
+                                    <br>
+                                    <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'duo' ~ loop.index})}}>
+                                        <span class="badge bg-dark badge-shadow rounded-pill">
+                                            {{ 'show_more_solving_times'|trans({ '%count%': aggregated_puzzlers_duo|length-1 }) }}
+                                        </span>
+                                    </a>
+
+                                    <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'duo' ~ loop.index) }}>
+                                        {% for solving_time in aggregated_puzzlers_duo %}
+                                            {% if not loop.first %}
+                                                <span class="d-inline-block mt-1">
+                                                    {{ solving_time.time|puzzlingTime }}
+                                                    <br>
+                                                    <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                    <br>
+                                                    <small>
+                                                        <span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}
+                                                    </small>
+
+                                                    {% if solving_time.firstAttempt %}
+                                                        <br>
+                                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                                    {% endif %}
+                                                </span>
+
+                                                {% if not loop.last %}
+                                                    <br>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
                             </td>
                         </tr>
@@ -331,7 +364,7 @@
                 </table>
             {% endif %}
 
-            <div class="table-responsive custom-table-wrapper mt-2 mb-5">
+            <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
@@ -341,11 +374,12 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for puzzlers_team in team_puzzle_solvers %}
+                    {% for aggregated_puzzlers_team in team_puzzle_solvers %}
                         <tr>
                             <td>{{ loop.index }}.</td>
+
                             <td class="player-name">
-                                {% for puzzle_solver in puzzlers_team.players %}
+                                {% for puzzle_solver in aggregated_puzzlers_team[0].players %}
                                     {% if not loop.first %}
                                         <br>
                                     {% endif %}
@@ -364,18 +398,51 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
+
                             <td class="text-end with-ppm">
-                                {{ puzzlers_team.time|puzzlingTime }}
+                                {{ aggregated_puzzlers_team[0].time|puzzlingTime }}
                                 <br>
-                                <small class="text-muted">{{ puzzlers_team.finishedAt|date('d.m.Y') }}</small>
+                                <small class="text-muted">{{ aggregated_puzzlers_team[0].finishedAt|date('d.m.Y') }}</small>
                                 <br>
-                                <small>
-                                    <span class="text-muted">PPM</span> {{ ppm(puzzlers_team.time, puzzle.piecesCount) }}
-                                    ({{ ppm(puzzlers_team.time, puzzle.piecesCount, puzzlers_team.players|length) }})
-                                </small>
-                                {% if puzzlers_team.firstAttempt %}
+                                <small><span class="text-muted">PPM</span> {{ ppm(aggregated_puzzlers_team[0].time, puzzle.piecesCount) }}</small>
+
+                                {% if aggregated_puzzlers_team[0].firstAttempt %}
                                     <br>
                                     <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% endif %}
+
+                                {% if aggregated_puzzlers_team|length > 1 %}
+                                    <br>
+                                    <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'team' ~ loop.index})}}>
+                                        <span class="badge bg-dark badge-shadow rounded-pill">
+                                            {{ 'show_more_solving_times'|trans({ '%count%': aggregated_puzzlers_team|length-1 }) }}
+                                        </span>
+                                    </a>
+
+                                    <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'team' ~ loop.index) }}>
+                                        {% for solving_time in aggregated_puzzlers_team %}
+                                            {% if not loop.first %}
+                                                <span class="d-inline-block mt-1">
+                                                    {{ solving_time.time|puzzlingTime }}
+                                                    <br>
+                                                    <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                    <br>
+                                                    <small>
+                                                        <span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}
+                                                    </small>
+
+                                                    {% if solving_time.firstAttempt %}
+                                                        <br>
+                                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                                    {% endif %}
+                                                </span>
+
+                                                {% if not loop.last %}
+                                                    <br>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
                                 {% endif %}
                             </td>
                         </tr>

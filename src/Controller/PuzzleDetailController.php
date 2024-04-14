@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
+use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +31,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
         readonly private GetPuzzleCollection $getPuzzleCollection,
+        readonly private PuzzlesSorter $puzzlesSorter,
     ) {
     }
 
@@ -78,43 +80,13 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $this->aggregateSoloPuzzles($soloPuzzleSolvers),
-            'duo_puzzle_solvers' => $duoPuzzleSolvers,
-            'team_puzzle_solvers' => $teamPuzzleSolvers,
+            'solo_puzzle_solvers' => $this->puzzlesSorter->groupPuzzles($soloPuzzleSolvers),
+            'duo_puzzle_solvers' => $this->puzzlesSorter->groupGroupPuzzles($duoPuzzleSolvers),
+            'team_puzzle_solvers' => $this->puzzlesSorter->groupGroupPuzzles($teamPuzzleSolvers),
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
         ]);
-    }
-
-    /**
-     * @param array<PuzzleSolver> $solvers
-     * @return array<string, non-empty-array<PuzzleSolver>>
-     */
-    private function aggregateSoloPuzzles(array $solvers): array
-    {
-        $grouped = [];
-
-        foreach ($solvers as $solver) {
-            $grouped[$solver->playerId][] = $solver;
-        }
-
-        foreach ($grouped as $puzzleId => $puzzles) {
-            // Find the puzzle with the lowest time and place it at the beginning
-            usort($puzzles, static fn(PuzzleSolver $a, PuzzleSolver $b): int => $a->time <=> $b->time);
-            $fastestPuzzle = array_shift($puzzles);
-
-            // Sort the remaining puzzles by finishedAt
-            usort($puzzles, static fn(PuzzleSolver $a, PuzzleSolver $b): int => $b->finishedAt <=> $a->finishedAt);
-
-            // Prepend the fastest puzzle to the sorted array
-            array_unshift($puzzles, $fastestPuzzle);
-
-            // Update the group with the sorted puzzles
-            $grouped[$puzzleId] = $puzzles;
-        }
-
-        return $grouped;
     }
 }

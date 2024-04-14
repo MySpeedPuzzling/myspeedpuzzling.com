@@ -33,6 +33,7 @@ SELECT
     player.id AS player_id,
     player.name AS player_name,
     player.country AS player_country,
+    puzzle_solving_time.puzzle_id AS puzzle_id,
     puzzle_solving_time.seconds_to_solve AS time,
     finished_at,
     first_attempt
@@ -53,6 +54,7 @@ SQL;
         return array_map(static function(array $row): PuzzleSolver {
             /**
              * @var array{
+             *     puzzle_id: string,
              *     player_id: string,
              *     player_name: string,
              *     player_country: null|string,

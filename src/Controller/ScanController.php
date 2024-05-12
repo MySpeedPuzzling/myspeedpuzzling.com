@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeResumed;
 use SpeedPuzzling\Web\Message\ResumeStopwatch;
+use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -16,6 +18,11 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class ScanController extends AbstractController
 {
+    public function __construct(
+        readonly private GetPuzzleOverview $getPuzzleOverview,
+    ) {
+    }
+
     #[Route(
         path: [
             'cs' => '/scan-puzzli',
@@ -24,8 +31,30 @@ final class ScanController extends AbstractController
         name: 'scan',
         methods: ['GET'],
     )]
-    public function __invoke(): Response
+    #[Route(
+        path: [
+            'cs' => '/scan-puzzli/{code}',
+            'en' => '/en/scan-puzzle/{code}',
+        ],
+        name: 'scan_puzzle',
+        methods: ['GET'],
+    )]
+    public function __invoke(null|string $code): Response
     {
-        return $this->render('scan.html.twig');
+        if ($code !== null) {
+            try {
+                $puzzle = $this->getPuzzleOverview->byEan($code);
+
+                return $this->redirectToRoute('puzzle_detail', [
+                    'puzzleId' => $puzzle->puzzleId,
+                ]);
+            } catch (PuzzleNotFound) {
+                // Do nothing -> not found - we probably do not have these puzzle in database
+            }
+        }
+
+        return $this->render('scan.html.twig', [
+            'code' => $code,
+        ]);
     }
 }

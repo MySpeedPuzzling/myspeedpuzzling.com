@@ -5,9 +5,21 @@
 {% block content %}
     <h1>{{ 'scan.title'|trans }}</h1>
 
-    <div class="container mt-3">
-        <div data-controller="barcode-scanner">
-            <video style="width: 300px; height: 300px;border: 2px dashed rgb(254, 105, 106);" data-barcode-scanner-target="video" autoplay playsinline></video>
+    <div class="alert alert-accent mb-3 small">{{ 'scan.beta_info'|trans }}</div>
+
+    <p class="small">{{ 'scan.instructions'|trans }}</p>
+
+    <div class="container mt-3 mb-5">
+        <div
+            class="barcode-scanner-container"
+            data-controller="barcode-scanner"
+            data-barcode-scanner-url-value="{{ path('scan_puzzle', {'code': 'EAN_PLACEHOLDER'}) }}"
+        >
+            <video class="barcode-scanner-video" data-barcode-scanner-target="video" autoplay playsinline></video>
         </div>
+
+        {% if code %}
+            <div class="mt-3 alert alert-warning">{{ 'scan.not_found'|trans({'%code%': code}) }}</div>
+        {% endif %}
     </div>
 {% endblock %}

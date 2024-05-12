@@ -10,6 +10,7 @@ menu:
     hub: "Hub"
     feedback: "Zpětná vazba"
     support_us: "Podpořte nás"
+    scan: "Čtečka čárových kódu"
 
 
 footer:
@@ -393,3 +394,11 @@ badges:
 
 collection:
     title: "Sbírka"
+
+scan:
+    meta:
+        title: "Čtečka čárových kódů"
+    title: "Čtečka čárových kódů"
+    beta_info: "Toto je úplně nová funkce, kterou stále ještě ladíme. Budeme velmi vděční za váš feedback."
+    instructions: "Namiřte vaší kameru na EAN (čárový kód) na krabic a zkuste své štěstí - pokud jsou puzzle v naší databázi, najdeme je ;-)."
+    not_found: "Bohužel puzzle s EAN %code% u nás nejsou. Budeme velmi vděční, pokud k nám přidáte svůj čas s těmito puzzlemi."

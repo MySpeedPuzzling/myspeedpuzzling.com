@@ -330,3 +330,39 @@ td.rank {
     color: #333;
     font-size: 24px;
 }
+
+.barcode-scanner-container {
+    position: relative;
+    width: 100%; /* Responsive width */
+    max-width: 600px; /* Maximum width of the scanner area */
+    margin: auto; /* Centering the scanner */
+    overflow: hidden; /* Ensures no overflow */
+    border: 1px solid #000;
+}
+
+/* Video Display */
+.barcode-scanner-video {
+    width: 100%;
+    display: block;
+}
+
+/* Main overlay - entire area */
+.barcode-scanner-container::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.3); /* Semi-transparent black over the entire video */
+    z-index: 2; /* Ensures overlay is above the video but below the border */
+}
+
+/* Clear square cutout */
+.barcode-scanner-container::after {
+    content: "";
+    position: absolute;
+    top: 30%; left: 30%; /* Positioning to center the square */
+    width: 40%; height: 40%; /* Dimensions of the square */
+    background: transparent; /* Clear background */
+    outline: 1px solid $primary; /* White border around the square */
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3); /* Large shadow to create the transparent effect */
+    z-index: 3; /* Ensures border and clear area is above the overlay */
+}

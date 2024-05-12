@@ -10,6 +10,7 @@ menu:
     hub: "Hub"
     feedback: "Send feedback"
     support_us: "Support us"
+    scan: "Barcode reader"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -391,3 +392,11 @@ badges:
 
 collection:
     title: "Collection"
+
+scan:
+    meta:
+        title: "Barcode reader"
+    title: "Barcode reader"
+    beta_info: "This is fresh new feature, we are still testing it and working on improvements. We will be very grateful for any feedback!"
+    instructions: "Point your camera to the EAN (barcode) on the box and try your luck - if the puzzle is in database, we will find it ;-)."
+    not_found: "Unfortunately puzzle with EAN %code% are not in our database. Feel free to track time and add them, we will be grateful for that."

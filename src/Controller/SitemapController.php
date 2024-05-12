@@ -53,6 +53,7 @@ final class SitemapController extends AbstractController
             $urls[] = $this->generateUrl('recent_activity', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             $urls[] = $this->generateUrl('terms_of_service', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             $urls[] = $this->generateUrl('hub', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
+            $urls[] = $this->generateUrl('scan', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
 
             foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer(null) as $puzzles) {
                 $urls[] = $this->generateUrl('puzzle_detail', [

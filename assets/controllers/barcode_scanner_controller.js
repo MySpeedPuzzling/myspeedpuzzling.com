@@ -36,7 +36,7 @@ export default class extends Controller {
     }
 
     isValidEAN(barcode) {
-        return /^\d{7,}$/.test(barcode);
+        return /^\d{10,15}$/.test(barcode);
     }
 
     disconnect() {

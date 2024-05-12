@@ -26,6 +26,8 @@ readonly final class GetPuzzleOverview
             throw new PuzzleNotFound();
         }
 
+        $ean = ltrim($ean, '0');
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -49,7 +51,7 @@ SELECT
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-WHERE puzzle.ean = :ean
+WHERE puzzle.ean LIKE :ean
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 SQL;
 
@@ -77,7 +79,7 @@ SQL;
          */
         $row = $this->database
             ->executeQuery($query, [
-                'ean' => $ean,
+                'ean' => '%' . $ean,
             ])
             ->fetchAssociative();
 

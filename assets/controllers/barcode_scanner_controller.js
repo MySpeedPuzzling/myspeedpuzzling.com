@@ -1,39 +1,33 @@
 import { Controller } from '@hotwired/stimulus';
-import Quagga from 'quagga';
+import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 export default class extends Controller {
-    static targets = ["stream"];
+    static targets = ["video"]
 
     connect() {
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: this.streamTarget,  // This is where the video will be attached
-                constraints: {
-                    facingMode: "environment"
-                },
-            },
-            decoder: {
-                readers: ["ean_reader"]
-            },
-        }, (err) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            Quagga.start();
-        });
-
-        Quagga.onDetected(this.onDetected.bind(this));
+        this.reader = new BrowserMultiFormatReader();
+        this.startScanner();
     }
 
-    onDetected(result) {
-        console.log(result.codeResult.code); // Log barcode to console or handle as needed
-        // Optionally, send the code to your backend here
+    async startScanner() {
+        try {
+            const videoInputDevices = await this.reader.listVideoInputDevices();
+            const selectedDeviceId = videoInputDevices[0].deviceId;
+            this.reader.decodeFromVideoDevice(selectedDeviceId, this.videoTarget, (result, err) => {
+                if (result) {
+                    console.log(result);
+                    // Process result here (e.g., fetch data from backend)
+                }
+                if (err && !(err instanceof NotFoundException)) {
+                    console.error(err);
+                }
+            });
+        } catch (error) {
+            console.error('Error with ZXing:', error);
+        }
     }
 
     disconnect() {
-        Quagga.stop();
+        this.reader.reset();
     }
 }

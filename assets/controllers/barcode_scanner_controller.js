@@ -21,7 +21,7 @@ export default class extends Controller {
                     console.log(result.text);  // Log the barcode content
                     if (this.isValidEAN(result.text)) {
                         const finalUrl = this.urlValue.replace('EAN_PLACEHOLDER', result.text);
-                        window.location.replace(finalUrl);  // Redirect to the dynamically created URL
+                        window.location.href = finalUrl;  // Redirect to the dynamically created URL
                     } else {
                         console.log('Invalid EAN scanned:', result.text);
                     }

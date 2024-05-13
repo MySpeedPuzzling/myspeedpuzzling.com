@@ -45,7 +45,7 @@ final class ScanController extends AbstractController
             try {
                 $puzzle = $this->getPuzzleOverview->byEan($code);
 
-                return $this->redirectToRoute('puzzle_detail', [
+                return $this->forward('puzzle_detail', [
                     'puzzleId' => $puzzle->puzzleId,
                 ]);
             } catch (PuzzleNotFound) {

@@ -10,12 +10,9 @@
     <p class="small">{{ 'scan.instructions'|trans }}</p>
 
     <div class="container mt-3 mb-5">
-        <div
-            class="barcode-scanner-container"
-            data-controller="barcode-scanner"
-            data-barcode-scanner-url-value="{{ path('scan_puzzle', {'code': 'EAN_PLACEHOLDER'}) }}"
-        >
-            <video class="barcode-scanner-video" data-barcode-scanner-target="video" autoplay playsinline></video>
+        <div data-controller="barcode-scanner"
+             data-barcode-scanner-url-value="{{ path('scan_puzzle', {'code': 'EAN_PLACEHOLDER'}) }}">
+            <div data-barcode-scanner-target="video" autoplay playsinline></div>
         </div>
 
         {% if code %}

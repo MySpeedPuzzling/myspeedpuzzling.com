@@ -27,13 +27,18 @@ return static function(ContainerConfigurator $configurator): void
     $parameters->set('sentryOrganizationSlug', '%env(SENTRY_ORGANIZATION_SLUG)%');
     $parameters->set('sentryProjectSlug', '%env(SENTRY_PROJECT_SLUG)%');
 
+    $parameters->set('puzzlePuzzleUsername', '%env(PUZZLE_PUZZLE_USERNAME)%');
+    $parameters->set('puzzlePuzzlePassword', '%env(PUZZLE_PUZZLE_PASSWORD)%');
+
     $services = $configurator->services();
 
     $services->defaults()
         ->autoconfigure()
         ->autowire()
         ->public()
-        ->bind('$uploadedAssetsBaseUrl', '%uploadedAssetsBaseUrl%');
+        ->bind('$uploadedAssetsBaseUrl', '%uploadedAssetsBaseUrl%')
+        ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
+        ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%');
 
     $services->set(PdoSessionHandler::class)
         ->args([

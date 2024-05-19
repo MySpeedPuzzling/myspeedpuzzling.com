@@ -40,20 +40,34 @@ class Puzzle
         #[Column(nullable: true)]
         public null|string $alternativeName = null,
 
+        #[Immutable]
         #[ManyToOne]
         public null|Player $addedByUser = null,
 
+        #[Immutable]
         #[Column(nullable: true)]
         public null|DateTimeImmutable $addedAt = null,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $identificationNumber = null,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $ean = null,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public bool $isAvailable = false,
+
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(nullable: true)]
+        public null|string $remotePuzzlePuzzleUrl = null,
     ) {
+    }
+
+    public function changePuzzlePuzzleUrl(null|string $url): void
+    {
+        $this->remotePuzzlePuzzleUrl = $url;
     }
 }

@@ -54,7 +54,7 @@ final class ParsePuzzlePuzzleFeedConsoleCommand extends Command
 
         foreach ($xml->SHOPITEM as $shopItem) {
             if (isset($shopItem->EAN)) {
-                $eanFromFeed = (string) $shopItem->EAN;
+                $eanFromFeed = ltrim((string) $shopItem->EAN, '0');
 
                 if (isset($ourPuzzle[$eanFromFeed])) {
                     $puzzlePuzzleUrls[$eanFromFeed] = (string) $shopItem->URL;
@@ -64,7 +64,9 @@ final class ParsePuzzlePuzzleFeedConsoleCommand extends Command
 
         // Puzzle that are in our database, has URL but are no longer available on puzzle-puzzle
         // Remove remote url for those
-        foreach ($ourPuzzle as $ean => $puzzle) {
+        foreach ($ourPuzzle as $puzzle) {
+            $ean = ltrim($puzzle->ean, '0');
+
             if (!isset($puzzlePuzzleUrls[$ean]) && $puzzle->remoteUrl !== null) {
                 $output->writeln('Setting remote_url to null for puzzle EAN: ' . $ean);
 

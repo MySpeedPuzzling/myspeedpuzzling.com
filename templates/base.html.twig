@@ -332,5 +332,29 @@
                 gtag('config', '{{ ga_tracking }}');
             </script>
         {% endif %}
+
+        <div class="modal fade in" tabindex="-1" role="dialog" id="wjpc-modal">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">WJPC 2024 connection</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="fs-sm">Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there! Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. You can connect it any time later on your profile.</p>
+
+                        <form autocomplete="off">
+                            <div class="mb-3">
+                                <label class="form-label" for="wjpc_name">Your full name on WJPC <small><a href="https://www.worldjigsawpuzzle.org/myaccount" target="_blank">(find it here)</a></small></label>
+                                <input class="form-control" type="text" id="wjpc_name">
+                            </div>
+                            <button class="btn btn-primary d-inline-block w-50 me-2 btn-shadow" type="submit">Connect it!</button>
+                            <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">Not participating</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </body>
 </html>

@@ -7,27 +7,13 @@ namespace SpeedPuzzling\Web\Doctrine;
 use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
+use Doctrine\DBAL\Types\Exception\InvalidType;
 use Doctrine\DBAL\Types\JsonType;
 use SpeedPuzzling\Web\Value\Lap;
 
 final class LapsArrayDoctrineType extends JsonType
 {
-    public const NAME = 'laps[]';
-
-    public function getName(): string
-    {
-        return self::NAME;
-    }
-
-    public function requiresSQLCommentHint(AbstractPlatform $platform): bool
-    {
-        return true;
-    }
-
-    public function canRequireSQLConversion(): bool
-    {
-        return true;
-    }
+    public const string NAME = 'laps[]';
 
     /**
      * @return null|array<Lap>
@@ -74,7 +60,7 @@ final class LapsArrayDoctrineType extends JsonType
 
         foreach ($value as $lap) {
             if (!is_a($lap, Lap::class)) {
-                throw ConversionException::conversionFailedInvalidType($value, $this->getName(), [Lap::class]);
+                throw InvalidType::new($value, self::NAME, [Lap::class]);
             }
 
             $data[] = [

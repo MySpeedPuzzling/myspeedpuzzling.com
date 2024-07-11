@@ -46,7 +46,7 @@ GROUP BY
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     stopwatch_id: string,
          *     total_seconds: null|int,
          *     last_start_time: null|string,

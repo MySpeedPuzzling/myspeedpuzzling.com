@@ -44,7 +44,7 @@ WHERE player.id = :playerId
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     player_id: string,
          *     user_id: null|string,
          *     player_name: null|string,
@@ -96,7 +96,7 @@ WHERE player.user_id = :userId
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     player_id: string,
          *     user_id: null|string,
          *     player_name: null|string,

@@ -9,6 +9,9 @@
         <meta name="description" content="{% apply spaceless %}{% block meta_description %}{% endblock %}{% endapply %}{% if block('meta_description') is empty %}{{ 'homepage.meta.description'|trans }}{% endif %}">
         <meta name="keywords" content="Puzzle, Puzzling, Speed Puzzling, SpeedPuzzling, Community, Leaderboard{% apply spaceless %}{% block meta_keywords %}{% endblock %}{% endapply %}">
 
+        <meta name="turbo-prefetch" content="false">
+        <meta name="turbo-refresh-method" content="morph">
+
         <link rel="apple-touch-icon" sizes="57x57" href="{{ asset('apple-icon-57x57.png') }}">
         <link rel="apple-touch-icon" sizes="60x60" href="{{ asset('apple-icon-60x60.png') }}">
         <link rel="apple-touch-icon" sizes="72x72" href="{{ asset('apple-icon-72x72.png') }}">

@@ -65,7 +65,7 @@ GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     time_id: string,
          *     team_id: null|string,
          *     player_id: string,

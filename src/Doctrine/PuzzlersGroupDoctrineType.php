@@ -4,32 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Doctrine;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\JsonType;
-use SpeedPuzzling\Web\Value\Lap;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 
 final class PuzzlersGroupDoctrineType extends JsonType
 {
-    public const NAME = 'puzzlers_group';
-
-    public function getName(): string
-    {
-        return self::NAME;
-    }
-
-    public function requiresSQLCommentHint(AbstractPlatform $platform): bool
-    {
-        return true;
-    }
-
-    public function canRequireSQLConversion(): bool
-    {
-        return true;
-    }
+    public const string NAME = 'puzzlers_group';
 
     /**
      * @throws ConversionException

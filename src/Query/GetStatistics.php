@@ -45,7 +45,7 @@ GROUP BY
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     player_id: string,
          *     player_name: null|string,
          *     total_seconds: null|int,
@@ -100,7 +100,7 @@ GROUP BY
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     player_id: string,
          *     player_name: null|string,
          *     total_seconds: null|int,

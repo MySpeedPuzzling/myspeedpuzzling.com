@@ -57,7 +57,7 @@ GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, p
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     puzzle_image: null|string,
@@ -130,7 +130,7 @@ GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, p
 SQL;
 
         /**
-         * @var null|array{
+         * @var false|array{
          *     puzzle_id: string,
          *     puzzle_name: string,
          *     puzzle_image: null|string,

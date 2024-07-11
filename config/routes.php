@@ -16,4 +16,6 @@ return static function (RoutingConfigurator $routingConfigurator): void {
     $routingConfigurator->add('logout', '/logout')
         ->controller('Auth0\Symfony\Controllers\AuthenticationController::logout');
 
+    $routingConfigurator->add('app_logout', '/app-logout')
+        ->methods(['GET']);
 };

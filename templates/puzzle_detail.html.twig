@@ -33,50 +33,41 @@
                 {% endif %}
             </p>
 
-            {% if puzzle.puzzleApproved %}
-                <div class="mb-2">
-                    <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
-                        <i class="ci-time"></i> {{ 'start_solving'|trans }}
-                    </a>
-                    <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 me-1 btn-sm">
-                        <i class="ci-add"></i> {{ 'add_my_time'|trans }}
-                    </a>
-
-                    {% if puzzle_collections[puzzle.puzzleId] ?? null %}
-                        <div class="btn-group dropdown d-inline-block">
-                            <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="ci-view-list"></i> {{ 'in_collection'|trans }}
-                            </button>
-
-                            <div class="dropdown-menu">
-                                <a data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}" class="dropdown-item">{{ 'remove_from_collection'|trans }}</a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <a data-turbo-prefetch="false" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-outline-primary mb-1 btn-sm">
-                            <i class="ci-view-list"></i> {{ 'add_to_collection'|trans }}
-                        </a>
-                    {% endif %}
-
-                    {% if app.request.locale is same as 'cs' and puzzle.remotePuzzlePuzzleUrl %}
-                        <a href="{{ puzzle.remotePuzzlePuzzleUrl }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                            <i class="ci-cart"></i>
-                            Koupit na puzzle-puzzle.cz
-                        </a>
-                    {% endif %}
-                </div>
-            {% else %}
+            {% if not puzzle.puzzleApproved %}
                 <div class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</div>
-
-                <p>
-                    <a href="#" class="btn btn-accent btn-sm disabled mb-1 me-1">
-                        <i class="ci-time"></i> {{ 'start_solving'|trans }}
-                    </a>
-                    <a href="#" class="btn btn-accent disabled mb-1 btn-sm">
-                        <i class="ci-add"></i> {{ 'add_my_time'|trans }}
-                    </a>
-                </p>
             {% endif %}
+
+            <div class="mb-2">
+                <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
+                    <i class="ci-time"></i> {{ 'start_solving'|trans }}
+                </a>
+                <a href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 me-1 btn-sm">
+                    <i class="ci-add"></i> {{ 'add_my_time'|trans }}
+                </a>
+
+                {% if puzzle_collections[puzzle.puzzleId] ?? null %}
+                    <div class="btn-group dropdown d-inline-block">
+                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="ci-view-list"></i> {{ 'in_collection'|trans }}
+                        </button>
+
+                        <div class="dropdown-menu">
+                            <a data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}" class="dropdown-item">{{ 'remove_from_collection'|trans }}</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <a data-turbo-prefetch="false" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-outline-primary mb-1 btn-sm">
+                        <i class="ci-view-list"></i> {{ 'add_to_collection'|trans }}
+                    </a>
+                {% endif %}
+
+                {% if app.request.locale is same as 'cs' and puzzle.remotePuzzlePuzzleUrl %}
+                    <a href="{{ puzzle.remotePuzzlePuzzleUrl }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="ci-cart"></i>
+                        Koupit na puzzle-puzzle.cz
+                    </a>
+                {% endif %}
+            </div>
 
             <p class="card-text fs-sm text-muted mb-2">
                 <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>

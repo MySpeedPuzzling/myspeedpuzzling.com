@@ -7,8 +7,11 @@ use SpeedPuzzling\Web\Tests\TestingDatabaseCaching;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\ErrorHandler\ErrorHandler;
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+set_exception_handler([new ErrorHandler(), 'handleException']);
 
 $_ENV['APP_ENV'] = 'test';
 (new Dotenv())->loadEnv(__DIR__ . '/../.env');
@@ -22,12 +25,12 @@ $currentDatabaseHash = TestingDatabaseCaching::calculateDirectoriesHash(
 if (
     TestingDatabaseCaching::isCacheUpToDate($cacheFilePath, $currentDatabaseHash) === false
 ) {
-    bootstrapDatabase();
+    bootstrapDatabase($cacheFilePath);
     file_put_contents($cacheFilePath, $currentDatabaseHash);
 }
 
 
-function bootstrapDatabase(): void
+function bootstrapDatabase(string $cacheFilePath): void
 {
     $kernel = new SymfonyApplicationKernel('test', true);
     $kernel->boot();
@@ -35,14 +38,17 @@ function bootstrapDatabase(): void
     $application = new Application($kernel);
     $application->setAutoExit(false);
 
-    $application->run(new ArrayInput([
-        'command' => 'doctrine:database:drop',
-        '--if-exists' => '1',
-        '--force' => '1',
-    ]));
+    if (is_file($cacheFilePath)) {
+        $application->run(new ArrayInput([
+            'command' => 'doctrine:database:drop',
+            '--if-exists' => 1,
+            '--force' => 1,
+        ]));
+    }
 
     $application->run(new ArrayInput([
         'command' => 'doctrine:database:create',
+        '--if-not-exists' => 1
     ]));
 
     // Faster than running migrations

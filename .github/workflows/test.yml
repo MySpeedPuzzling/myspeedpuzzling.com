@@ -41,6 +41,7 @@ jobs:
 
   phpstan:
       runs-on: ubuntu-latest
+      container: ghcr.io/myspeedpuzzling/web-base:main
       steps:
         -   uses: actions/checkout@v4
         -   uses: actions/cache@v4

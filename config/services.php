@@ -70,6 +70,12 @@ return static function(ContainerConfigurator $configurator): void
     $services->load('SpeedPuzzling\\Web\\Services\\', __DIR__ . '/../src/Services/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
 
+    /** @see https://github.com/doctrine/migrations/issues/1406 */
+    $services->set(FixDoctrineMigrationTableSchema::class)
+        ->autoconfigure(false)
+        ->arg('$dependencyFactory', service('doctrine.migrations.dependency_factory'))
+        ->tag('doctrine.event_listener', ['event' => 'postGenerateSchema']);
+
     $services->set(S3Client::class)
         ->args([
             '$configuration' => [

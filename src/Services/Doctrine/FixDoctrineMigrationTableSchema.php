@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace WBoost\Web\Services\Doctrine;
+namespace SpeedPuzzling\Web\Services\Doctrine;
 
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\Schema\SchemaException;

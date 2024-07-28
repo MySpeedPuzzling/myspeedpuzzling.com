@@ -4,47 +4,78 @@ on:
     push:
     pull_request:
 
+env:
+    DATABASE_URL: postgresql://postgres:postgres@postgres:5432/speedpuzzling_test?serverVersion=16&charset=utf8
+
 jobs:
   tests:
     runs-on: ubuntu-latest
-    env:
-        DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres?serverVersion=16&charset=utf8
-
+    container: ghcr.io/myspeedpuzzling/web-base:main
     services:
-      db:
+      postgres:
           image: postgres:16
           env:
-              POSTGRES_USER: postgres
               POSTGRES_PASSWORD: postgres
           options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
           ports:
               - 5432:5432
-
     steps:
       -   uses: actions/checkout@v4
-      -   uses: shivammathur/setup-php@v2
+      -   uses: actions/cache@v4
           with:
-            php-version: 8.3
-            coverage: none # default is xdebug
-            extensions: mbstring, uuid # needed by phpunit
-
-      -   run: composer install --dev --no-progress
+              path: vendor
+              key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+              restore-keys: |
+                  ${{ runner.os }}-composer-
+      -   uses: actions/cache@v4
+          with:
+              path: node_modules
+              key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+              restore-keys: |
+                  ${{ runner.os }}-npm-
+      -   run: composer install --no-scripts --no-progress
       -   run: npm install
       -   run: npm run dev
-
       -   run: vendor/bin/phpunit
+
 
   phpstan:
       runs-on: ubuntu-latest
       steps:
         -   uses: actions/checkout@v4
-        -   uses: shivammathur/setup-php@v2
+        -   uses: actions/cache@v4
             with:
-              php-version: 8.3
-              coverage: none # default is xdebug
-              extensions: mbstring, uuid # needed by phpunit
-
-        -   run: composer install --dev --no-progress
-
+                path: vendor
+                key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                restore-keys: |
+                    ${{ runner.os }}-composer-
+        -   run: composer install --no-scripts --no-progress
         -   run: bin/console cache:warmup --env=dev
         -   run: composer run-script phpstan
+
+
+  migrations-up-to-date:
+      runs-on: ubuntu-latest
+      container: ghcr.io/myspeedpuzzling/web-base:main
+      services:
+          postgres:
+              image: postgres:16
+              env:
+                  POSTGRES_PASSWORD: postgres
+                  POSTGRES_DB: speedpuzzling_test
+              options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+              ports:
+                  - 5432:5432
+      steps:
+          -   uses: actions/checkout@v4
+          -   uses: actions/cache@v4
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-composer-
+
+          -   run: composer install --no-scripts --no-progress
+          -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+          -   run: bin/console doctrine:schema:update --dump-sql
+          -   run: bin/console doctrine:schema:validate

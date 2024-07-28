@@ -8,6 +8,7 @@ use Monolog\Processor\PsrLogMessageProcessor;
 use SpeedPuzzling\Web\Services\SentryApiClient;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
+use WBoost\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;

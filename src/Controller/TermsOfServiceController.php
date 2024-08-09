@@ -16,7 +16,6 @@ final class TermsOfServiceController extends AbstractController
             'en' => '/en/terms-of-service',
         ],
         name: 'terms_of_service',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request): Response
     {

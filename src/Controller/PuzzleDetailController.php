@@ -41,7 +41,6 @@ final class PuzzleDetailController extends AbstractController
             'en' => '/en/puzzle/{puzzleId}',
         ],
         name: 'puzzle_detail',
-        methods: ['GET'],
     )]
     #[Route(
         path: [
@@ -49,7 +48,6 @@ final class PuzzleDetailController extends AbstractController
             'en' => '/solving-puzzle/{puzzleId}',
         ],
         name: 'puzzle_detail_qr',
-        methods: ['GET'],
     )]
     public function __invoke(string $puzzleId, #[CurrentUser] UserInterface|null $user): Response
     {

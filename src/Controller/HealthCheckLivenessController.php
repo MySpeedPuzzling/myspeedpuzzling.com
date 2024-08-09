@@ -9,7 +9,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class HealthCheckLivenessController extends AbstractController
 {
-    #[Route(path: '/-/health-check/liveness', methods: ['GET'])]
+    #[Route(path: '/-/health-check/liveness')]
     public function __invoke(): Response
     {
         return $this->json([

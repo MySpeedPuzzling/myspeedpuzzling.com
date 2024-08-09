@@ -27,7 +27,6 @@ final class FeedbackController extends AbstractController
             'en' => '/en/feedback',
         ],
         name: 'feedback',
-        methods: ['GET', 'POST']
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
     {

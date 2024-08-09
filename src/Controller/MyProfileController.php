@@ -43,7 +43,6 @@ final class MyProfileController extends AbstractController
             'en' => '/en/my-profile',
         ],
         name: 'my_profile',
-        methods: ['GET'],
     )]
     public function __invoke(#[CurrentUser] User $user): Response
     {

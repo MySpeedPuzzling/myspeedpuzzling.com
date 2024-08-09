@@ -33,7 +33,6 @@ final class ToggleFavoritePlayerController extends AbstractController
             'en' => '/en/add-player-to-favorites/{playerId}',
         ],
         name: 'add_player_to_favorite',
-        methods: ['GET'],
     )]
     #[Route(
         path: [
@@ -41,7 +40,6 @@ final class ToggleFavoritePlayerController extends AbstractController
             'en' => '/en/remove-player-from-favorites/{playerId}',
         ],
         name: 'remove_player_from_favorite',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $playerId): Response
     {

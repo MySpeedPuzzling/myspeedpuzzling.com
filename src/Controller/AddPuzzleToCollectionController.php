@@ -37,7 +37,6 @@ final class AddPuzzleToCollectionController extends AbstractController
             'en' => '/en/add-puzzle-to-collection/{puzzleId}',
         ],
         name: 'add_puzzle_to_collection',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $puzzleId): Response
     {

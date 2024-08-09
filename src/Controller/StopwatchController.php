@@ -28,7 +28,6 @@ final class StopwatchController extends AbstractController
             'en' => '/en/stopwatch/{stopwatchId}',
         ],
         name: 'stopwatch',
-        methods: ['GET'],
     )]
     #[Route(
         path: [
@@ -36,7 +35,6 @@ final class StopwatchController extends AbstractController
             'en' => '/en/puzzle-stopwatch/{puzzleId}',
         ],
         name: 'stopwatch_puzzle',
-        methods: ['GET'],
     )]
     public function __invoke(#[CurrentUser] UserInterface $user, null|string $stopwatchId = null, null|string $puzzleId = null): Response
     {

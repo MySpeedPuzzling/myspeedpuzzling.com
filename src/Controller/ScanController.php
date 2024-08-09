@@ -29,7 +29,6 @@ final class ScanController extends AbstractController
             'en' => '/en/scan-puzzle',
         ],
         name: 'scan',
-        methods: ['GET'],
     )]
     #[Route(
         path: [
@@ -37,7 +36,6 @@ final class ScanController extends AbstractController
             'en' => '/en/scan-puzzle/{code}',
         ],
         name: 'scan_puzzle',
-        methods: ['GET'],
     )]
     public function __invoke(null|string $code): Response
     {

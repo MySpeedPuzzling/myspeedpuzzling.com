@@ -27,7 +27,6 @@ final class ResumeStopwatchController extends AbstractController
             'en' => '/en/stopwatch/{stopwatchId}/resume',
         ],
         name: 'resume_stopwatch',
-        methods: ['GET'],
     )]
     public function __invoke(
         #[CurrentUser]

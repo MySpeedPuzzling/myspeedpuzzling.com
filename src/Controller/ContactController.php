@@ -16,7 +16,6 @@ final class ContactController extends AbstractController
             'en' => '/en/contact',
         ],
         name: 'contact',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request): Response
     {

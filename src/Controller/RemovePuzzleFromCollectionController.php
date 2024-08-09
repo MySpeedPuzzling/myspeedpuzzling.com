@@ -38,7 +38,6 @@ final class RemovePuzzleFromCollectionController extends AbstractController
             'en' => '/en/remove-puzzle-from-collection/{puzzleId}',
         ],
         name: 'remove_puzzle_from_collection',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $puzzleId): Response
     {

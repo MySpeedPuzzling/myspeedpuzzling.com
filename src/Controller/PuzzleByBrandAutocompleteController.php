@@ -23,7 +23,6 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
     #[Route(
         path: '/{_locale}/puzzle-by-brand-autocomplete/',
         name: 'puzzle_by_brand_autocomplete',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request): Response
     {

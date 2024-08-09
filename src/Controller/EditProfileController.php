@@ -32,7 +32,6 @@ final class EditProfileController extends AbstractController
             'en' => '/en/edit-profile',
         ],
         name: 'edit_profile',
-        methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user): Response
     {

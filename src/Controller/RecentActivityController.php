@@ -28,7 +28,6 @@ final class RecentActivityController extends AbstractController
             'en' => '/en/recent-activity',
         ],
         name: 'recent_activity',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {

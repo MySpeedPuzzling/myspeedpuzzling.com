@@ -16,7 +16,6 @@ final class PrivacyPolicyController extends AbstractController
             'en' => '/en/privacy-policy',
         ],
         name: 'privacy_policy',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request): Response
     {

@@ -27,7 +27,6 @@ final class DeleteTimeController extends AbstractController
             'en' => '/en/delete-time/{timeId}',
         ],
         name: 'delete_time',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $timeId): Response
     {

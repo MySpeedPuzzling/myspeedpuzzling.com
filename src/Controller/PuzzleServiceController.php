@@ -16,7 +16,6 @@ final class PuzzleServiceController extends AbstractController
             'en' => '/en/borrow-puzzle',
         ],
         name: 'puzzle_service',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request): Response
     {

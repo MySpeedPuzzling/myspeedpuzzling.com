@@ -42,7 +42,6 @@ final class EditTimeController extends AbstractController
             'en' => '/en/edit-time/{timeId}',
         ],
         name: 'edit_time',
-        methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $timeId): Response
     {

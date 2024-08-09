@@ -26,7 +26,6 @@ final class LadderController extends AbstractController
             'en' => '/en/ladder',
         ],
         name: 'ladder',
-        methods: ['GET'],
     )]
     public function __invoke(Request $request): Response
     {

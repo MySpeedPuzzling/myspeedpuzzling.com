@@ -34,7 +34,6 @@ final class PlayersController extends AbstractController
             'en' => '/en/puzzlers',
         ],
         name: 'players',
-        methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request): Response
     {

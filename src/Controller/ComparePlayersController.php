@@ -30,7 +30,6 @@ final class ComparePlayersController extends AbstractController
             'en' => '/compare-with-puzzler/{opponentPlayerId}/',
         ],
         name: 'compare_players',
-        methods: ['GET'],
     )]
     public function __invoke(#[CurrentUser] User $user, string $opponentPlayerId): Response
     {

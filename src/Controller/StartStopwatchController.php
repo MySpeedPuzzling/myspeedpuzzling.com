@@ -25,7 +25,6 @@ final class StartStopwatchController extends AbstractController
             'en' => '/en/start-stopwatch/{puzzleId}',
         ],
         name: 'start_stopwatch',
-        methods: ['GET'],
     )]
     public function __invoke(#[CurrentUser] UserInterface $user, null|string $puzzleId = null): Response
     {

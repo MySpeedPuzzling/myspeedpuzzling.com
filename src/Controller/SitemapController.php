@@ -28,7 +28,7 @@ final class SitemapController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/sitemap.xml', methods: ['GET'])]
+    #[Route(path: '/sitemap.xml')]
     public function __invoke(): Response
     {
         /** @var array<string> $urls */

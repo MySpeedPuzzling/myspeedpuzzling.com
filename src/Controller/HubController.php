@@ -33,7 +33,6 @@ final class HubController extends AbstractController
             'en' => '/en/hub',
         ],
         name: 'hub',
-        methods: ['GET'],
     )]
     public function __invoke(#[CurrentUser] UserInterface|null $user): Response
     {

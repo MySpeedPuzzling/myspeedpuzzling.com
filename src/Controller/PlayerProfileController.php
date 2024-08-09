@@ -47,7 +47,6 @@ final class PlayerProfileController extends AbstractController
             'en' => '/en/player-profile/{playerId}',
         ],
         name: 'player_profile',
-        methods: ['GET'],
     )]
     public function __invoke(string $playerId, #[CurrentUser] UserInterface|null $user): Response
     {

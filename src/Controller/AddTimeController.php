@@ -46,7 +46,6 @@ final class AddTimeController extends AbstractController
             'en' => '/en/add-time/{puzzleId}',
         ],
         name: 'add_time',
-        methods: ['GET', 'POST'],
     )]
     #[Route(
         path: [
@@ -54,7 +53,6 @@ final class AddTimeController extends AbstractController
             'en' => '/en/save-stopwatch/{stopwatchId}',
         ],
         name: 'finish_stopwatch',
-        methods: ['GET', 'POST'],
     )]
     public function __invoke(
         Request $request,

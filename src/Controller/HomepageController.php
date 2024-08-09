@@ -24,14 +24,13 @@ final class HomepageController extends AbstractController
     ) {
     }
 
-    #[Route(path: '/', name: 'homepage_crossroads', methods: ['GET'])]
+    #[Route(path: '/', name: 'homepage_crossroads')]
     #[Route(
         path: [
             'cs' => '/uvod',
             'en' => '/en/home',
         ],
         name: 'homepage',
-        methods: ['GET']
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {

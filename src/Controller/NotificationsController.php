@@ -28,7 +28,6 @@ final class NotificationsController extends AbstractController
             'en' => '/en/notifications',
         ],
         name: 'notifications',
-        methods: ['GET'],
     )]
     public function __invoke(#[CurrentUser] User $user): Response
     {

@@ -27,7 +27,6 @@ final class ResetStopwatchController extends AbstractController
             'en' => '/en/stopwatch/{stopwatchId}/reset',
         ],
         name: 'reset_stopwatch',
-        methods: ['GET'],
     )]
     public function __invoke(
         #[CurrentUser]

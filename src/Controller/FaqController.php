@@ -19,7 +19,6 @@ final class FaqController extends AbstractController
             'en' => '/en/faq',
         ],
         name: 'faq',
-        methods: ['GET'],
     )]
     public function __invoke(): Response
     {

@@ -27,7 +27,6 @@ final class StopStopwatchController extends AbstractController
             'en' => '/en/stopwatch/{stopwatchId}/stop',
         ],
         name: 'stop_stopwatch',
-        methods: ['GET'],
     )]
     public function __invoke(
         #[CurrentUser]

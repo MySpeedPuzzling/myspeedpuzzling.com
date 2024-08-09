@@ -25,7 +25,6 @@ final class PlayersPerCountryController extends AbstractController
             'en' => '/en/players-from-country/{countryCode}',
         ],
         name: 'players_per_country',
-        methods: ['GET'],
     )]
     public function __invoke(string $countryCode, #[CurrentUser] UserInterface|null $user): Response
     {

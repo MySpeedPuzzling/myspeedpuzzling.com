@@ -36,7 +36,6 @@ final class PuzzlesController extends AbstractController
             'en' => '/en/puzzle',
         ],
         name: 'puzzles',
-        methods: ['GET', 'POST'],
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {

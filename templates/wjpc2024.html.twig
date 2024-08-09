@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzlers.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1><img style="width: 50px;" src="{{ asset('img/wjpc.jpg') }}" alt="WJPF logo"> {{ 'wjpc2024.title'|trans }}</h1>
+
+    <p><small>{{ 'wjpc2024.intro'|trans|raw }}</small></p>
+
+    <h2 class="h3">Connected participants (999)</h2>
+
+    <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+        <table class="table custom-table table-striped table-hover mb-0">
+            <thead>
+                <tr class="fs-sm">
+                    <td></td>
+                    <td>Name</td>
+                    <td class="d-none d-sm-table-cell"></td>
+                    <td class="text-end">Statistics <br class="d-sm-none">(500 pieces)</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rank in [1, 2, 3, 4, 5, 6, 7, 8, 9] %}
+                    <tr  class="{{ loop.index == 3 ? 'table-active-player' }}">
+                        <td class="text-center" style="width: 35px;">
+                            {{ rank }}
+                        </td>
+
+                        <td class="fs-sm">
+                            <small class="shadow-custom fi fi-cz me-1"></small> <a href="#" class="text-decoration-underline">Jméno na MSP</a><br>
+                            Jméno na WJPC
+                        </td>
+
+                        <td class="d-none d-sm-table-cell">
+                            <small class="text-muted">2023 rank:</small> -<br>
+                            <small class="text-muted">Puzzle solved:</small> 90
+                        </td>
+
+                        <td class="text-end">
+                            <small class="text-muted">Avg:</small> 1:23:45<br>
+                            <small class="text-muted">Top:</small> 1:23:45<br>
+                            <span class="d-inline d-sm-none">
+                                <small class="text-muted">Solved:</small> 90<br>
+                                <small class="text-muted">2023 rank:</small> -
+                            </span>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h2 class="h3 mt-5">Other participants (999)</h2>
+
+    <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+        <table class="table custom-table table-striped table-hover mb-0">
+            <tbody>
+                {% for rank in [1, 2, 3, 4, 5, 6, 7, 8, 9] %}
+                    <tr>
+                        <td class="fs-sm">
+                            Jméno <small class="shadow-custom fi fi-cz"></small>
+                        </td>
+                        <td class="fs-sm text-end">
+                            <span class="text-muted">2023 rank:</span> #3
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+{% endblock %}

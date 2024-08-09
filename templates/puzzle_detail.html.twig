@@ -14,7 +14,26 @@
     </h1>
 
     <div class="row">
-        <div class="col-sm-12 col-md-6">
+        <div class="col-sm-12 col-md-5">
+            {% if not puzzle.puzzleApproved %}
+                <div class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</div>
+            {% endif %}
+
+            <p class="card-text fs-sm mb-2">
+                <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
+                {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
+                {% if puzzle.solvedTimes > 0 %}
+                    <br>
+                    {{ 'puzzle_solved_count'|trans }} {{ puzzle.solvedTimes }}
+                {% endif %}
+                {#
+                {% if puzzle.solvedTimes > 1 %}
+                    <br>
+                    Most recent: 13 minutes ago by Xyz
+                {% endif %}
+                #}
+            </p>
+
             <p>
                 {% for tag in tags %}
                     <span class="badge bg-primary badge-shadow rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
@@ -32,11 +51,9 @@
                     <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
                 {% endif %}
             </p>
+        </div>
 
-            {% if not puzzle.puzzleApproved %}
-                <div class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</div>
-            {% endif %}
-
+        <div class="col-sm-12 col-md-3">
             <div class="mb-2">
                 <a href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
                     <i class="ci-time"></i> {{ 'start_solving'|trans }}
@@ -68,30 +85,18 @@
                     </a>
                 {% endif %}
             </div>
-
-            <p class="card-text fs-sm text-muted mb-2">
-                <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
-                {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
-                {% if puzzle.solvedTimes > 0 %}
-                    <br>
-                    {{ 'puzzle_solved_count'|trans }} {{ puzzle.solvedTimes }}
-                {% endif %}
-                {#
-                {% if puzzle.solvedTimes > 1 %}
-                    <br>
-                    Most recent: 13 minutes ago by Xyz
-                {% endif %}
-                #}
-            </p>
         </div>
 
-        <div class="col-sm-12 col-md-6">
+        <div class="col-sm-12 col-md-4">
             {% if puzzle.puzzleImage is not null%}
                 <div class="gallery">
                     <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
                         <img style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
                     </a>
                 </div>
+                {% if puzzle.puzzleEan %}
+                    <span class="text-muted fs-sm">EAN: {{ puzzle.puzzleEan }}</span>
+                {% endif %}
             {% endif %}
         </div>
     </div>

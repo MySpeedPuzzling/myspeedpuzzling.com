@@ -27,8 +27,6 @@ export default class extends Controller {
         const tabElement = event.currentTarget;
         if (tabElement) {
             new Tab(tabElement).show();
-            const newHash = tabElement.getAttribute('href');
-            history.replaceState(null, null, newHash);
         }
     }
 

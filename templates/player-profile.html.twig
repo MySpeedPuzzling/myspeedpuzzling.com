@@ -9,6 +9,13 @@
             <span class="h4 shadow-custom fi fi-{{ player.countryCode.name }}"></span>
         {% endif %}
         <code class="ps-3 text-muted h4">#{{ player.code|upper }}</code>
+
+        {% if wjpc_participants[player.playerId] is defined %}
+            <span class="d-block mt-1" style="line-height: 10px;">
+                <img src="{{ asset('img/wjpc.jpg') }}" alt="WJPF logo" style="height: 20px;" class="float-start me-1">
+                <small class="text-muted fs-sm fw-normal">{{ 'wjpc_participant'|trans({'%name%': wjpc_participants[player.playerId] }) }}</small>
+            </span>
+        {% endif %}
     </h1>
 
     {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}

@@ -12,7 +12,6 @@ menu:
     support_us: "Podpořte nás"
     scan: "Čtečka čárových kódu"
 
-
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
     about: "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence.<br>Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívání si zábavy ze skládání puzzlí společně."
@@ -61,6 +60,7 @@ add_to_collection: "Přidat do mé sbírky"
 in_collection: "V mé sbírce"
 remove_from_collection: "Odebrat z mé sbírky"
 ranking_out_of: "z"
+wjpc_participant: "WJPC 2024 účastník (%name%)"
 
 homepage:
     meta:
@@ -199,6 +199,7 @@ forms:
     send_feedback: "Odeslat"
     first_attempt: "Tvé první skládání těchto puzzlí v životě"
     first_attempt_help: "Pokud jste skládali ve skupině, pak pouze pokud tyto puzzle nikdo předtím neskládal, ani sám"
+    wjpc_participant: "Vaše celé jméno na WJPC"
 
 puzzlers_comparison:
     meta:
@@ -315,6 +316,7 @@ my_profile:
     stopwatches: "Moje stopky"
     missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
     share_metion_myspeedpuzzling: "Označ nás při sdílení:"
+    wjpc_connection: "WJPC propojení"
 
 edit_profile:
     meta:
@@ -356,6 +358,8 @@ flashes:
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
     puzzle_added_to_collection: "Ahoj,.. puzzle. Vítejte v mé sbírce!"
     puzzle_removed_from_collection: "Sbohem puzzle..."
+    wjpc2024_duplicate_connection: "Něco je špatně :-( vybrali jste WJPC účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
+    wjpc2024_connection_saved: "Super! WJPC účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
 
 hub:
     title: "Speed Puzzling Hub"
@@ -402,3 +406,22 @@ scan:
     beta_info: "Toto je úplně nová funkce, kterou stále ještě ladíme. Budeme velmi vděční za váš feedback."
     instructions: "Namiřte vaší kameru na EAN (čárový kód) na krabic a zkuste své štěstí - pokud jsou puzzle v naší databázi, najdeme je ;-)."
     not_found: "Bohužel puzzle s EAN %code% u nás nejsou. Budeme velmi vděční, pokud k nám přidáte svůj čas s těmito puzzlemi."
+
+
+wjpc2024:
+    meta:
+        title: "WJPC 2024"
+    title: "WJPC 2024"
+    intro: "The Speed Puzzling event of the year is here! We are bringing you some statistics so you can get to know who you will be competing against. All statistics presented are from 500-piece puzzles only, to ensure they are as relevant as possible. Connect your profile with your WJPC account in <a href=\"%link%\">your profile settings</a>."
+    connected_participants: "Connected participants"
+    not_connected_participants: "Participants"
+    puzzle_solved: "Puzzle solved"
+    average: "Avg"
+    fastest: "Top"
+
+wjpc2024_connection:
+    meta:
+        title: "WJPC 2024 propojení"
+    title: "WJPC 2024 propojení"
+    back_to_profile: "Zpět na můj profil"
+    description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantn, do statistik počítáme pouze 500-dílkové puzzle. Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>."

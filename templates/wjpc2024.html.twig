@@ -1,49 +1,41 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'puzzlers.meta.title'|trans }}{% endblock %}
+{% block title %}{{ 'wjpc2024.meta.title'|trans }}{% endblock %}
 
 {% block content %}
     <h1><img style="width: 50px;" src="{{ asset('img/wjpc.jpg') }}" alt="WJPF logo"> {{ 'wjpc2024.title'|trans }}</h1>
 
-    <p><small>{{ 'wjpc2024.intro'|trans|raw }}</small></p>
+    <p><small>{{ 'wjpc2024.intro'|trans({'%link%': path('wjpc2024_connection')})|raw }}</small></p>
 
-    <h2 class="h3">Connected participants (999)</h2>
+    <h2 class="h3">{{ 'wjpc2024.connected_participants'|trans }} ({{ connected_participants|length }})</h2>
 
     <div class="table-responsive custom-table-wrapper mt-3 mb-3">
         <table class="table custom-table table-striped table-hover mb-0">
-            <thead>
-                <tr class="fs-sm">
-                    <td></td>
-                    <td>Name</td>
-                    <td class="d-none d-sm-table-cell"></td>
-                    <td class="text-end">Statistics <br class="d-sm-none">(500 pieces)</td>
-                </tr>
-            </thead>
             <tbody>
-                {% for rank in [1, 2, 3, 4, 5, 6, 7, 8, 9] %}
-                    <tr  class="{{ loop.index == 3 ? 'table-active-player' }}">
+                {% for participant in connected_participants %}
+                    <tr class="{{ logged_user.profile is not null and participant.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
                         <td class="text-center" style="width: 35px;">
-                            {{ rank }}
+                            {{ loop.index }}
                         </td>
 
                         <td class="fs-sm">
-                            <small class="shadow-custom fi fi-cz me-1"></small> <a href="#" class="text-decoration-underline">Jméno na MSP</a><br>
-                            Jméno na WJPC
+                            <small class="shadow-custom fi fi-cz me-1"></small> <a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
+                            {{ participant.wjpcName }}
                             <span class="d-inline d-sm-none">
-                                <br><span class="text-muted">2023 rank:</span> -
+                                <br><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}
                             </span>
                         </td>
 
                         <td class="d-none d-sm-table-cell">
-                            <small class="text-muted">2023 rank:</small> -<br>
-                            <small class="text-muted">Puzzle solved:</small> 90
+                            <small class="text-muted">2023 rank:</small> {{ participant.rank2023 ?: '-' }}<br>
+                            <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
                         </td>
 
                         <td class="text-end">
-                            <small class="text-muted">Avg:</small> 1:23:45<br>
-                            <small class="text-muted">Top:</small> 1:23:45
+                            <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
+                            <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> {{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}
                             <span class="d-inline d-sm-none">
-                                <br><small class="text-muted">Solved:</small> 90
+                                <br><small class="text-muted">Solved:</small> {{ participant.solvedPuzzleCount }}
                             </span>
                         </td>
                     </tr>
@@ -52,18 +44,18 @@
         </table>
     </div>
 
-    <h2 class="h3 mt-5">Other participants (999)</h2>
+    <h2 class="h3 mt-5">{{ 'wjpc2024.not_connected_participants'|trans }} ({{ not_connected_participants|length }})</h2>
 
     <div class="table-responsive custom-table-wrapper mt-3 mb-3">
         <table class="table custom-table table-striped table-hover mb-0">
             <tbody>
-                {% for rank in [1, 2, 3, 4, 5, 6, 7, 8, 9] %}
+                {% for participant in not_connected_participants %}
                     <tr>
                         <td class="fs-sm">
-                            Jméno <small class="shadow-custom fi fi-cz"></small>
+                            {{ participant.wjpcName }}{# <small class="shadow-custom fi fi-cz"></small>#}
                         </td>
                         <td class="fs-sm text-end">
-                            <span class="text-muted">2023 rank:</span> #3
+                            <span class="text-muted">2023&nbsp;rank:</span>&nbsp;{{ participant.rank2023 ?: '-' }}
                         </td>
                     </tr>
                 {% endfor %}

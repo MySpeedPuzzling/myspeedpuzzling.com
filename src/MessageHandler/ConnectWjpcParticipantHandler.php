@@ -34,11 +34,20 @@ readonly final class ConnectWjpcParticipantHandler
      */
     public function __invoke(ConnectWjpcParticipant $message): void
     {
-        if ($message->participantName === null) {
-            throw new WjpcParticipantNotFound();
+        $player = $this->playerRepository->get($message->playerId);
+
+        // 1. Disconnect existing connection(s)
+        $connections = $this->getWjpcParticipants->getPlayerConnections($player->id->toString());
+        foreach ($connections as $participantId) {
+            $connectedParticipant = $this->participantRepository->get($participantId);
+            $connectedParticipant->disconnect();
         }
 
-        $player = $this->playerRepository->get($message->playerId);
+        if ($message->participantName === null) {
+            return;
+        }
+
+        // 2. Make new connection
         $participant = $this->participantRepository->get($message->participantName);
 
         if ($participant->player !== null && $participant->player->id->equals($player->id) === false) {
@@ -48,12 +57,6 @@ readonly final class ConnectWjpcParticipantHandler
             ]);
 
             throw new WjpcParticipantAlreadyConnectedToDifferentPlayer();
-        }
-
-        $connections = $this->getWjpcParticipants->getPlayerConnections($player->id->toString());
-        foreach ($connections as $participantId) {
-            $connectedParticipant = $this->participantRepository->get($participantId);
-            $connectedParticipant->disconnect();
         }
 
         $participant->connect(

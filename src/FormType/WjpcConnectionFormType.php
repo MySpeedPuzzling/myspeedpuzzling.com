@@ -36,7 +36,7 @@ final class WjpcConnectionFormType extends AbstractType
 
         $builder->add('participant', TextType::class, [
             'label' => 'forms.wjpc_participant',
-            'required' => true,
+            'required' => false,
             'autocomplete' => true,
             'tom_select_options' => [
                 'create' => false,

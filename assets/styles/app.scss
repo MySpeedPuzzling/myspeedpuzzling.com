@@ -366,3 +366,15 @@ td.rank {
     box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3); /* Large shadow to create the transparent effect */
     z-index: 3; /* Ensures border and clear area is above the overlay */
 }
+
+.wjpc-search {
+    height: 55px;
+    left: 0;
+    position: sticky;
+    top: 106px;
+    padding: 10px 0;
+
+    input {
+        max-width: 200px;
+    }
+}

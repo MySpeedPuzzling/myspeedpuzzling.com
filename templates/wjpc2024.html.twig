@@ -7,6 +7,12 @@
 
     <p><small>{{ 'wjpc2024.intro'|trans({'%link%': path('wjpc2024_connection')})|raw }}</small></p>
 
+    {#
+    <div class="wjpc-search">
+        <input type="text" id="search" name="search" placeholder="Filter by name" class="form-control form-control-sm mb-1">
+    </div>
+    #}
+
     <h2 class="h3">{{ 'wjpc2024.connected_participants'|trans }} ({{ connected_participants|length }})</h2>
 
     <div class="table-responsive custom-table-wrapper mt-3 mb-3">
@@ -19,7 +25,7 @@
                         </td>
 
                         <td class="fs-sm">
-                            <small class="shadow-custom fi fi-cz me-1"></small> <a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
+                            {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
                             {{ participant.wjpcName }}
                             <span class="d-inline d-sm-none">
                                 <br><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}

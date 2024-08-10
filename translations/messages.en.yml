@@ -60,6 +60,7 @@ add_to_collection: "Add to my collection"
 in_collection: "In my collection"
 remove_from_collection: "Remove from collection"
 ranking_out_of: "of"
+wjpc_participant: "WJPC 2024 participant (%name%)"
 
 homepage:
     meta:
@@ -197,6 +198,7 @@ forms:
     send_feedback: "Send"
     first_attempt: "Your first assembling of this puzzle ever"
     first_attempt_help: "If assembling in a group, then only if no-one assembled this puzzle before, not even solo"
+    wjpc_participant: "Your full name on WJPC"
 
 puzzlers_comparison:
     meta:
@@ -313,6 +315,7 @@ my_profile:
     stopwatches: "My stopwatches"
     missing_name_info: "We're sorry, but if you don't fill in a name or nickname, we don't know how to present you. Therefore, all your results are non-public."
     share_metion_myspeedpuzzling: "Tag us when sharing:"
+    wjpc_connection: "WJPC connection"
 
 edit_profile:
     meta:
@@ -354,6 +357,8 @@ flashes:
     player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
     puzzle_added_to_collection: "Hi,.. puzzle. Welcome to my collection!"
     puzzle_removed_from_collection: "Good bye puzzle..."
+    wjpc2024_duplicate_connection: "Something is wrong :-( you have chosen WJPC account, that is already connected to some MySpeedPuzzling profile. Worry not, we were automatically notified and we will check out what is wrong."
+    wjpc2024_connection_saved: "Nice! WJPC account successfully connected to your MySpeedPuzzling profile!"
 
 hub:
     title: "Speed Puzzling Hub"
@@ -402,5 +407,19 @@ scan:
     not_found: "Unfortunately puzzle with EAN %code% are not in our database. Feel free to track time and add them, we will be grateful for that."
 
 wjpc2024:
+    meta:
+        title: "WJPC 2024"
     title: "WJPC 2024"
     intro: "The Speed Puzzling event of the year is here! We are bringing you some statistics so you can get to know who you will be competing against. All statistics presented are from 500-piece puzzles only, to ensure they are as relevant as possible. Connect your profile with your WJPC account in <a href=\"%link%\">your profile settings</a>."
+    connected_participants: "Connected participants"
+    not_connected_participants: "Participants"
+    puzzle_solved: "Puzzle solved"
+    average: "Avg"
+    fastest: "Top"
+
+wjpc2024_connection:
+    meta:
+        title: "WJPC 2024 connection"
+    title: "WJPC 2024 connection"
+    back_to_profile: "Back to my profile"
+    description: "The Speed Puzzling event of the year is here! Connect your WJPC account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles into the statistics. You can find your <a href=\"%link%\" target=\"_blank\">registered name on WJPC</a>."

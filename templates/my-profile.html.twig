@@ -5,13 +5,26 @@
 {% block content %}
     <div class="row">
         <div class="col-md">
-            <h1>{{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code></h1>
+            <h1>
+                {{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code>
 
-            <a class="btn btn-sm btn-primary me-3" href="{{ path('edit_profile') }}">
+                {% if wjpc_participants[player.playerId] is defined %}
+                    <span class="d-block mt-1" style="line-height: 10px;">
+                        <img src="{{ asset('img/wjpc.jpg') }}" alt="WJPF logo" style="height: 20px;" class="float-start me-1">
+                        <small class="text-muted fs-sm fw-normal">{{ 'wjpc_participant'|trans({'%name%': wjpc_participants[player.playerId] }) }}</small>
+                    </span>
+                {% endif %}
+            </h1>
+
+            <a class="btn btn-sm btn-primary me-3 mb-1" href="{{ path('edit_profile') }}">
                 <i class="ci-edit"></i> {{ 'my_profile.edit'|trans }}
             </a>
 
-            <a data-turbo-prefetch="false" class="btn btn-sm btn-outline-primary" href="{{ path('logout') }}">
+            <a class="btn btn-sm btn-outline-info me-3 mb-1" href="{{ path('wjpc2024_connection') }}">
+                <i class="ci-edit"></i> {{ 'my_profile.wjpc_connection'|trans }}
+            </a>
+
+            <a data-turbo-prefetch="false" class="btn btn-sm btn-outline-primary mb-1" href="{{ path('logout') }}">
                 <i class="ci-sign-out"></i> {{ 'my_profile.logout'|trans }}
             </a>
         </div>

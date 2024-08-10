@@ -54,4 +54,10 @@ class WjpcParticipant
         $this->player = $player;
         $this->connectedAt = $connectedAt;
     }
+
+    public function disconnect(): void
+    {
+        $this->player = null;
+        $this->connectedAt = null;
+    }
 }

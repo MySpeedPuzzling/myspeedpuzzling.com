@@ -88,31 +88,55 @@ WITH Participants AS (
         player ON player.id = wjpc_participant.player_id
     WHERE 
         wjpc_participant.player_id IS NOT NULL
+),
+FilteredTimes AS (
+    SELECT
+        puzzle_solving_time.player_id,
+        puzzle_solving_time.puzzle_id,
+        MIN(puzzle_solving_time.seconds_to_solve) AS min_seconds_to_solve,
+        puzzle_solving_time.finished_at
+    FROM
+        puzzle_solving_time
+    INNER JOIN
+        puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    WHERE
+        puzzle_solving_time.player_id IN (SELECT player_id FROM Participants)
+        AND puzzle_solving_time.team IS NULL
+        AND puzzle.pieces_count = 500
+    GROUP BY
+        puzzle_solving_time.player_id, puzzle_solving_time.puzzle_id, puzzle_solving_time.finished_at
 )
-SELECT 
+SELECT
     Participants.wjpc_name,
     Participants.rank_2023,
     Participants.player_id,
     Participants.player_name,
     Participants.player_code,
     Participants.player_country,
-    AVG(CASE WHEN puzzle.pieces_count = 500 AND puzzle_solving_time.team IS NULL THEN puzzle_solving_time.seconds_to_solve ELSE NULL END) AS average_time,
-    MIN(CASE WHEN puzzle.pieces_count = 500 AND puzzle_solving_time.team IS NULL THEN puzzle_solving_time.seconds_to_solve ELSE NULL END) AS fastest_time,
-    COUNT(CASE WHEN puzzle.pieces_count = 500 AND puzzle_solving_time.team IS NULL THEN puzzle_solving_time.id ELSE NULL END) AS solved_puzzle_count
+    AVG(CASE
+            WHEN FilteredTimes.finished_at >= NOW() - INTERVAL '3 months'
+            THEN FilteredTimes.min_seconds_to_solve
+        END) AS average_time,
+    MIN(CASE
+            WHEN FilteredTimes.finished_at >= NOW() - INTERVAL '3 months'
+            THEN FilteredTimes.min_seconds_to_solve
+        END) AS fastest_time,
+    COUNT(CASE
+            WHEN FilteredTimes.finished_at >= NOW() - INTERVAL '3 months'
+            THEN FilteredTimes.min_seconds_to_solve
+        END) AS solved_puzzle_count
 FROM 
     Participants
-LEFT JOIN 
-    puzzle_solving_time ON Participants.player_id = puzzle_solving_time.player_id
-LEFT JOIN 
-    puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-GROUP BY 
+LEFT JOIN
+    FilteredTimes ON Participants.player_id = FilteredTimes.player_id
+GROUP BY
     Participants.wjpc_name,
     Participants.rank_2023,
     Participants.player_id,
     Participants.player_name,
     Participants.player_code,
     Participants.player_country
-ORDER BY 
+ORDER BY
     average_time, rank_2023;
 SQL;
 

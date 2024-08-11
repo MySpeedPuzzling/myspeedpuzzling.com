@@ -412,7 +412,7 @@ wjpc2024:
     meta:
         title: "WJPC 2024"
     title: "WJPC 2024"
-    intro: "Speed Puzzling událost roku je tady! Přinášíme vám statistiky, abyste mohli prozkoumat, proti komu budete soutěžit. Všechny statistiky zde, se počítají pouze z 500-dílkových puzzlí, aby byly co nejvíce relevantní. Propojte si váš profil s WJPC účtem v nastavení <a href=\"%link%\">vašeho profilu</a>."
+    intro: "Speed Puzzling událost roku je tady! Přinášíme vám statistiky, abyste mohli prozkoumat, proti komu budete soutěžit. Všechny statistiky zde, se počítají pouze z 500-dílkových puzzlí složených za poslední 3 měsíce, aby byly co nejvíce relevantní. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Propojte si váš profil s WJPC účtem v nastavení <a href=\"%link%\">vašeho profilu</a>."
     connected_participants: "Propojení účastníci"
     not_connected_participants: "Účastníci"
     puzzle_solved: "Puzzlí složeno"
@@ -426,10 +426,10 @@ wjpc2024_connection:
         title: "WJPC 2024 propojení"
     title: "WJPC 2024 propojení"
     back_to_profile: "Zpět na můj profil"
-    description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle. Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>."
+    description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>."
 
 wjpc2024_modal:
     title: "WJPC 2024 je tady!"
-    text: "Budeš se účastnit World Jigsaw Puzzle Championship 2024?<br>Dej vědět ostatním, že tam budeš skládat o 106!<br><br>Propoj svůj MySpeedPuzzling profil s WJPC účtem a zjisti co se bude dít dál... Po propojení můžeš porovnávat své 500-dílkové časy s ostatními účastníky. Propojení můžeš provést také kdykoliv později v nastavení svého profilu."
+    text: "Budeš se účastnit World Jigsaw Puzzle Championship 2024?<br>Dej vědět ostatním, že tam budeš skládat o 106!<br><br>Propoj svůj MySpeedPuzzling profil s WJPC účtem a zjisti co se bude dít dál... Po propojení můžeš porovnávat své 500-dílkové časy z posledních 3 měsíců s ostatními účastníky. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s tím nejrychlejším časem! Propojení můžeš provést také kdykoliv později v nastavení svého profilu."
     connect_it: "Propojit, hned!"
     not_participating: "Neúčastním se"

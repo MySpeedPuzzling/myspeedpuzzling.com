@@ -24,6 +24,7 @@ readonly final class PlayerProfile
         public null|string $bio,
         public null|string $facebook,
         public null|string $instagram,
+        public bool $wjpcModalDisplayed,
         public null|CountryCode $countryCode = null,
     ) {
     }
@@ -42,6 +43,7 @@ readonly final class PlayerProfile
      *     bio: null|string,
      *     facebook: null|string,
      *     instagram: null|string,
+     *     wjpc_modal_displayed: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -68,6 +70,7 @@ readonly final class PlayerProfile
             bio: $row['bio'],
             facebook: $row['facebook'],
             instagram: $row['instagram'],
+            wjpcModalDisplayed: $row['wjpc_modal_displayed'],
             countryCode: $countryCode,
         );
     }

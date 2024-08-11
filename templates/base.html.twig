@@ -138,7 +138,8 @@
                             <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">{{ 'menu.ladder'|trans }}</a></li>
                             <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">{{ 'menu.players'|trans }}</a></li>
                             <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">{{ 'menu.faq'|trans }}</a></li>
-                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('scan') %}active{% endif %}" href="{{ path('scan') }}">{{ 'menu.scan'|trans }}<span class="ms-2 badge rounded-pill bg-accent">beta</span></a></li>
+                            <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('wjpc2024') %}active{% endif %}" href="{{ path('wjpc2024') }}">WJPC 2024<span class="ms-2 badge rounded-pill bg-primary d-inline-block float-lg-end">new</span></a></li>
+                            {# <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('scan') %}active{% endif %}" href="{{ path('scan') }}">{{ 'menu.scan'|trans }}<span class="ms-2 badge rounded-pill bg-accent">beta</span></a></li> #}
                         </ul>
                     </div>
                 </div>
@@ -195,6 +196,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('wjpc2024') }}" class="widget-list-link">WJPC 2024</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
@@ -333,30 +337,24 @@
             </script>
         {% endif %}
 
-        {#
-        <div class="modal fade in" tabindex="-1" role="dialog" id="wjpc-modal">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">WJPC 2024 connection</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p class="fs-sm">Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there! Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. You can connect it any time later on your profile.</p>
+        {% if logged_user.profile is not null and logged_user.profile.wjpcModalDisplayed == false %}
+            <div class="modal fade in" tabindex="-1" role="dialog" id="wjpc-modal" data-controller="modal">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ 'wjpc2024_modal.title'|trans }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="fs-sm">{{ 'wjpc2024_modal.text'|trans|raw }}</p>
 
-                        <form autocomplete="off">
-                            <div class="mb-3">
-                                <label class="form-label" for="wjpc_name">Your full name on WJPC <small><a href="https://www.worldjigsawpuzzle.org/myaccount" target="_blank">(find it here)</a></small></label>
-                                <input class="form-control" type="text" id="wjpc_name">
-                            </div>
-                            <button class="btn btn-primary d-inline-block w-50 me-2 btn-shadow" type="submit">Connect it!</button>
-                            <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">Not participating</button>
-                        </form>
+                            <a href="{{ path('wjpc2024_connection') }}" class="btn btn-primary d-inline-block w-50 me-2 btn-shadow" type="submit">{{ 'wjpc2024_modal.connect_it'|trans }}</a>
+                            <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">{{ 'wjpc2024_modal.not_participating'|trans }}</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        #}
+        {% endif %}
 
     </body>
 </html>

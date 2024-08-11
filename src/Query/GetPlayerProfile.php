@@ -90,7 +90,8 @@ SELECT
     avatar,
     bio,
     facebook,
-    instagram
+    instagram,
+    wjpc_modal_displayed
 FROM player
 WHERE player.user_id = :userId
 SQL;
@@ -109,6 +110,7 @@ SQL;
          *     bio: null|string,
          *     facebook: null|string,
          *     instagram: null|string,
+         *     wjpc_modal_displayed: bool,
          * } $row
          */
         $row = $this->database

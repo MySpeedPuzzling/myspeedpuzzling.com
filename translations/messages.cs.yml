@@ -427,3 +427,9 @@ wjpc2024_connection:
     title: "WJPC 2024 propojení"
     back_to_profile: "Zpět na můj profil"
     description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle. Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>."
+
+wjpc2024_modal:
+    title: "WJPC 2024 je tady!"
+    text: "Budeš se účastnit World Jigsaw Puzzle Championship 2024?<br>Dej vědět ostatním, že tam budeš skládat o 106!<br><br>Propoj svůj MySpeedPuzzling profil s WJPC účtem a zjisti co se bude dít dál... Po propojení můžeš porovnávat své 500-dílkové časy s ostatními účastníky. Propojení můžeš provést také kdykoliv později v nastavení svého profilu."
+    connect_it: "Propojit, hned!"
+    not_participating: "Neúčastním se"

@@ -425,3 +425,9 @@ wjpc2024_connection:
     title: "WJPC 2024 connection"
     back_to_profile: "Back to my profile"
     description: "The Speed Puzzling event of the year is here! Connect your WJPC account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles into the statistics. You can find your <a href=\"%link%\" target=\"_blank\">registered name on WJPC</a>."
+
+wjpc2024_modal:
+    title: "WJPC 2024 is here!"
+    text: "Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there!<br><br>Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. After connecting you will be able to compare your 500-piece puzzling times against other participants. You can connect it any time later on your profile."
+    connect_it: "Connect it, now!"
+    not_participating: "Not participating"

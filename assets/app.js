@@ -10,4 +10,3 @@ import 'simplebar/dist/simplebar.css';
 import 'bootstrap';
 
 import './feedback_modal.js'
-import './wjpc_modal.js'

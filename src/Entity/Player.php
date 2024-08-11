@@ -49,6 +49,10 @@ class Player
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $bio = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
+    public bool $wjpcModalDisplayed = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -129,5 +133,10 @@ class Player
         unset($this->favoritePlayers[$key]);
 
         $this->favoritePlayers = array_values($this->favoritePlayers);
+    }
+
+    public function markWjpcModalAsDisplayed(): void
+    {
+        $this->wjpcModalDisplayed = true;
     }
 }

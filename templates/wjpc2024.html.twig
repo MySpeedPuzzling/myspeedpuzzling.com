@@ -7,66 +7,87 @@
 
     <p><small>{{ 'wjpc2024.intro'|trans({'%link%': path('wjpc2024_connection')})|raw }}</small></p>
 
-    {#
-    <div class="wjpc-search">
-        <input type="text" id="search" name="search" placeholder="Filter by name" class="form-control form-control-sm mb-1">
-    </div>
-    #}
+    <div data-controller="wjpc-filter">
+        <div class="wjpc-search text-sm-end">
+            <input type="text" id="search" name="search" placeholder="{{ 'wjpc2024.filter_by_name'|trans }}" class="form-control form-control-sm mb-1 d-inline-block" data-wjpc-filter-target="nameFilter" data-action="input->wjpc-filter#filter">
+        </div>
 
-    <h2 class="h3">{{ 'wjpc2024.connected_participants'|trans }} ({{ connected_participants|length }})</h2>
+        <h2 class="h3 d-inline-block position-relative zindex-1 zindex-sm-5">{{ 'wjpc2024.connected_participants'|trans }} ({{ connected_participants|length }})</h2>
 
-    <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-        <table class="table custom-table table-striped table-hover mb-0">
-            <tbody>
-                {% for participant in connected_participants %}
-                    <tr class="{{ logged_user.profile is not null and participant.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                        <td class="text-center" style="width: 35px;">
-                            {{ loop.index }}
-                        </td>
+        <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <tbody>
+                    {% for participant in connected_participants %}
+                        <tr
+                            class="{{ logged_user.profile is not null and participant.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}"
+                            data-wjpc-filter-target="participantItem"
+                            data-name="{{ participant.wjpcName }} {{ participant.playerName }}"
+                        >
+                            <td class="text-center" style="width: 35px;">
+                                {{ loop.index }}
+                            </td>
 
-                        <td class="fs-sm">
-                            {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
-                            {{ participant.wjpcName }}
-                            <span class="d-inline d-sm-none">
-                                <br><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}
-                            </span>
-                        </td>
+                            <td class="fs-sm">
+                                {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
+                                {{ participant.wjpcName }}
+                                <span class="d-inline d-sm-none">
+                                    <br><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}
+                                </span>
+                            </td>
 
-                        <td class="d-none d-sm-table-cell">
-                            <small class="text-muted">2023 rank:</small> {{ participant.rank2023 ?: '-' }}<br>
-                            <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
-                        </td>
+                            <td class="d-none d-sm-table-cell">
+                                <small class="text-muted">2023 rank:</small> {{ participant.rank2023 ?: '-' }}<br>
+                                <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
+                            </td>
 
-                        <td class="text-end">
-                            <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
-                            <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> {{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}
-                            <span class="d-inline d-sm-none">
-                                <br><small class="text-muted">Solved:</small> {{ participant.solvedPuzzleCount }}
-                            </span>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                            <td class="text-end">
+                                <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
+                                <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> {{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}
+                                <span class="d-inline d-sm-none">
+                                    <br><small class="text-muted">Solved:</small> {{ participant.solvedPuzzleCount }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                        <tr class="filter-no-results hidden mt-3">
+                            <td colspan="3">
+                                <div class="alert alert-warning mb-0">
+                                    {{ 'wjpc2024.no_participant_matches_filters'|trans }}
+                                </div>
+                            </td>
+                        </tr>
+                </tbody>
+            </table>
+        </div>
 
-    <h2 class="h3 mt-5">{{ 'wjpc2024.not_connected_participants'|trans }} ({{ not_connected_participants|length }})</h2>
+        <h2 class="h3 mt-5">{{ 'wjpc2024.not_connected_participants'|trans }} ({{ not_connected_participants|length }})</h2>
 
-    <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-        <table class="table custom-table table-striped table-hover mb-0">
-            <tbody>
-                {% for participant in not_connected_participants %}
-                    <tr>
-                        <td class="fs-sm">
-                            {{ participant.wjpcName }}{# <small class="shadow-custom fi fi-cz"></small>#}
-                        </td>
-                        <td class="fs-sm text-end">
-                            <span class="text-muted">2023&nbsp;rank:</span>&nbsp;{{ participant.rank2023 ?: '-' }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <tbody>
+                    {% for participant in not_connected_participants %}
+                        <tr
+                            data-wjpc-filter-target="participantItem"
+                            data-name="{{ participant.wjpcName }}"
+                        >
+                            <td class="fs-sm">
+                                {{ participant.wjpcName }}{# <small class="shadow-custom fi fi-cz"></small>#}
+                            </td>
+                            <td class="fs-sm text-end">
+                                <span class="text-muted">2023&nbsp;rank:</span>&nbsp;{{ participant.rank2023 ?: '-' }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                        <tr class="filter-no-results hidden mt-3">
+                            <td colspan="2">
+                                <div class="alert alert-warning mb-0">
+                                    {{ 'wjpc2024.no_participant_matches_filters'|trans }}
+                                </div>
+                            </td>
+                        </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
 

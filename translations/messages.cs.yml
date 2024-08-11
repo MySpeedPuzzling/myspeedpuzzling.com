@@ -418,6 +418,8 @@ wjpc2024:
     puzzle_solved: "Puzzlí složeno"
     average: "Průměr"
     fastest: "Nej"
+    no_participant_matches_filters: "Žádný účastník neodpovídá zadanému vyhledávání"
+    filter_by_name: "Vyhledávej podle jména"
 
 wjpc2024_connection:
     meta:

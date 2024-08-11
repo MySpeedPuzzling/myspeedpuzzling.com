@@ -372,9 +372,16 @@ td.rank {
     left: 0;
     position: sticky;
     top: 106px;
-    padding: 10px 0;
+    padding: 10px 15px;
+    margin: 0 -15px;
+    background: #fff;
+    z-index: 3;
 
     input {
         max-width: 200px;
+    }
+
+    @include media-breakpoint-up(sm) {
+        margin-bottom: -35px;
     }
 }

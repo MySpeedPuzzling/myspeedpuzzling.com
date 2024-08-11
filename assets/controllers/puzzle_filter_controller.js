@@ -74,9 +74,9 @@ export default class extends Controller {
             const isVisible = matchesTag && matchesPiecesCount && matchesNameOrCode && matchesManufacturer && matchesAvailability && matchesWithTime;
 
             puzzle.style.display = isVisible ? '' : 'none';
-
-            this.updateNoResultsMessage();
         });
+
+        this.updateNoResultsMessage();
     }
 
     matchesPiecesCount(puzzlePiecesCount, range) {

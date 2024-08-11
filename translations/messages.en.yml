@@ -416,6 +416,8 @@ wjpc2024:
     puzzle_solved: "Puzzle solved"
     average: "Avg"
     fastest: "Top"
+    no_participant_matches_filters: "No participant matches search query"
+    filter_by_name: "Search by name"
 
 wjpc2024_connection:
     meta:

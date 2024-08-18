@@ -6,13 +6,9 @@ namespace SpeedPuzzling\Web\Controller;
 use Intervention\Image\Geometry\Factories\RectangleFactory;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Typography\FontFactory;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Message\ResetStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class ResultImageController extends AbstractController
 {
@@ -27,10 +23,7 @@ final class ResultImageController extends AbstractController
         ],
         name: 'result_image',
     )]
-    public function __invoke(
-        #[CurrentUser]
-        UserInterface $user,
-    ): Response
+    public function __invoke(): Response
     {
         $image = $this->imageManager->read(__DIR__ . '/../../test_photo.jpg')
             ->resize(500, 500)

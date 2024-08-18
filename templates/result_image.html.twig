@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:description" content="{{ description }}" />
+    <meta property="og:image" content="{{ image_url }}" />
+    <meta property="og:url" content="{{ app.request.uri }}" />
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{ title }}" />
+    <meta name="twitter:description" content="{{ description }}" />
+    <meta name="twitter:image" content="{{ image_url }}" />
+
+    <!-- Instagram Meta Tags (Fallback to Open Graph) -->
+    <meta property="og:title" content="{{ title }}" />
+    <meta property="og:image" content="{{ image_url }}" />
+
+    <!-- Additional Meta Tags -->
+    <meta name="description" content="{{ description }}">
+</head>
+<body>
+<img src="{{ image_url }}" alt="{{ title }}" />
+
+<button onclick="shareImageAsset()">Share this Image</button>
+
+<script>
+    const shareImageAsset = async () => {
+        const response = await fetch('{{ image_url }}');
+        const blobImageAsset = await response.blob();
+
+        const filesArray = [
+            new File([blobImageAsset], '{{ title }}.png', {
+                type: 'image/png',
+                lastModified: new Date().getTime(),
+            }),
+        ];
+        const shareData = {
+            title: '{{ title }}',
+            files: filesArray,
+        };
+
+        if (navigator.canShare && navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+        } else {
+            alert('Sharing not supported');
+        }
+    };
+</script>
+</body>
+</html>

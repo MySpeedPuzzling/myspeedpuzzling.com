@@ -6,7 +6,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('intervention_image', [
-        'driver' => Intervention\Image\Drivers\Imagick\Driver::class,
+        'driver' => Intervention\Image\Drivers\Gd\Driver::class,
         'options' => [
             'autoOrientation' => true,
             'decodeAnimation' => false,

@@ -6,8 +6,6 @@ namespace SpeedPuzzling\Web\Controller;
 use Intervention\Image\Geometry\Factories\RectangleFactory;
 use Intervention\Image\ImageManager;
 use Intervention\Image\Typography\FontFactory;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Message\ResetStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -71,7 +69,7 @@ final class ResultImageController extends AbstractController
         $encodedImage = $image->encode();
 
         return new Response((string) $encodedImage, 200, [
-            'Content-Type' => $encodedImage->mimetype(),
+            'Content-Type' => 'image/png',
             'Content-Disposition' => 'inline; filename="output.png"',
         ]);
     }

@@ -26,10 +26,13 @@
     <meta name="description" content="{{ description }}">
 </head>
 <body>
-<img src="{{ image_url }}" alt="{{ title }}" />
 
-<!-- Hidden button for simulating click -->
 <button id="shareButton">Share this Image</button>
+<button id="downloadButton">Download Image As</button>
+
+<p>
+    <img src="{{ image_url }}" alt="{{ title }}" style="max-width: 100%;" />
+</p>
 
 <script>
     const shareImageAsset = async () => {
@@ -57,7 +60,25 @@
         }
     };
 
-    // Add event listener to the button
+    const downloadImage = async () => {
+        try {
+            const response = await fetch('{{ image_url }}');
+            const blobImage = await response.blob();
+            const url = window.URL.createObjectURL(blobImage);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = '{{ title }}.png';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading the image:', error);
+            alert('An error occurred while trying to download the image.');
+        }
+    };
+
+    document.getElementById('downloadButton').addEventListener('click', downloadImage);
     document.getElementById('shareButton').addEventListener('click', shareImageAsset);
 </script>
 </body>

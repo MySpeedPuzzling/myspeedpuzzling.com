@@ -9,6 +9,7 @@ use Intervention\Image\Typography\FontFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class ResultImageController extends AbstractController
 {
@@ -17,14 +18,10 @@ final class ResultImageController extends AbstractController
     ) {
     }
 
-    #[Route(
-        path: [
-            'en' => '/en/result-image/',
-        ],
-        name: 'result_image',
-    )]
-    public function __invoke(): Response
+    #[Route(path: '/result-image', name: 'result_image')]
+    public function sharingAction(): Response
     {
+        // Generate the image
         $image = $this->imageManager->read(__DIR__ . '/../../test_photo.jpg')
             ->resize(500, 500)
             ->drawRectangle(0, 0, function (RectangleFactory $rectangle) {
@@ -59,6 +56,25 @@ final class ResultImageController extends AbstractController
                 $font->align('left');
                 $font->valign('top');
             });
+
+        // Encode the image as a PNG and save it temporarily
+        $imagePath = sys_get_temp_dir() . '/output_image.png';
+        $image->save($imagePath);
+
+        // Render the HTML page with embedded image and meta tags
+        return $this->render('result_image.html.twig', [
+            'image_url' => $this->generateUrl('result_image_file', [], UrlGeneratorInterface::ABSOLUTE_URL),
+            'title' => 'My Image Title',
+            'description' => 'A description of the image goes here.',
+        ]);
+    }
+
+    #[Route('/result-image-file', name: 'result_image_file')]
+    public function resultImageFileAction(): Response
+    {
+        // Load the generated image from the temporary location
+        $imagePath = sys_get_temp_dir() . '/output_image.png';
+        $image = $this->imageManager->read($imagePath);
 
         // Return the image as a response
         $encodedImage = $image->encode();

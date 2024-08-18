@@ -28,30 +28,45 @@
 <body>
 <img src="{{ image_url }}" alt="{{ title }}" />
 
-<button onclick="shareImageAsset()">Share this Image</button>
+<!-- Hidden button for simulating click -->
+<button id="shareButton">Share this Image</button>
 
 <script>
     const shareImageAsset = async () => {
-        const response = await fetch('{{ image_url }}');
-        const blobImageAsset = await response.blob();
+        try {
+            const response = await fetch('{{ image_url }}');
+            const blobImageAsset = await response.blob();
 
-        const filesArray = [
-            new File([blobImageAsset], '{{ title }}.png', {
-                type: 'image/png',
-                lastModified: new Date().getTime(),
-            }),
-        ];
-        const shareData = {
-            title: '{{ title }}',
-            files: filesArray,
-        };
+            const filesArray = [
+                new File([blobImageAsset], '{{ title }}.png', {
+                    type: 'image/png',
+                    lastModified: new Date().getTime(),
+                }),
+            ];
+            const shareData = {
+                title: '{{ title }}',
+                files: filesArray,
+            };
 
-        if (navigator.canShare && navigator.canShare(shareData)) {
-            await navigator.share(shareData);
-        } else {
-            alert('Sharing not supported');
+            if (navigator.canShare && navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+            } else {
+                alert('Sharing is not supported on this device or browser.');
+            }
+        } catch (error) {
+            console.error('Error sharing the image:', error);
         }
     };
+
+    // Add event listener to the button
+    document.getElementById('shareButton').addEventListener('click', shareImageAsset);
+
+    // Simulate button click after a delay
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            document.getElementById('shareButton').click();
+        }, 2000); // 2-second delay before triggering the click
+    });
 </script>
 </body>
 </html>

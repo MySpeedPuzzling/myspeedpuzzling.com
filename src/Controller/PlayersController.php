@@ -49,7 +49,6 @@ final class PlayersController extends AbstractController
 
         if ($searchForm->isSubmitted() && $searchForm->isValid()) {
             $data = $searchForm->getData();
-            assert($data instanceof SearchPlayerFormData);
 
             return $this->redirectToRoute('players', [
                 'search' => (new SearchQuery($data->search))->value,

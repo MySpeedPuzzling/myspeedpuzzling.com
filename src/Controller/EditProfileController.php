@@ -48,7 +48,6 @@ final class EditProfileController extends AbstractController
 
         if ($editProfileForm->isSubmitted() && $editProfileForm->isValid()) {
             $data = $editProfileForm->getData();
-            assert($data instanceof EditProfileFormData);
 
             $this->messageBus->dispatch(
                 EditProfile::fromFormData($player->playerId, $data),

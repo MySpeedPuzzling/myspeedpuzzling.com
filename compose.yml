@@ -1,6 +1,7 @@
 volumes:
     postgres-data:
     redis-data:
+    mailpit-data:
 
 services:
     web:
@@ -87,3 +88,15 @@ services:
             - 19001:9001
         volumes:
             - .docker-data/minio-data:/data
+
+    mailer:
+        image: axllent/mailpit
+        ports:
+            - "1025:1025"
+            - "8025:8025"
+        environment:
+            MP_SMTP_AUTH_ACCEPT_ANY: 1
+            MP_SMTP_AUTH_ALLOW_INSECURE: 1
+            MP_DATABASE: "/data/mailpit.db"
+        volumes:
+            - mailpit-data:/data

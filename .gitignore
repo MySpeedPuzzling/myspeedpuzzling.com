@@ -11,7 +11,7 @@
 
 .docker-data/
 
-docker-compose.override.yml
+compose.override.yml
 
 ###> symfony/webpack-encore-bundle ###
 /node_modules/

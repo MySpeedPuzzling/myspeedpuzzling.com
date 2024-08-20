@@ -1,6 +1,7 @@
 <?php declare(strict_types=1);
 
 use Liip\ImagineBundle\Message\WarmupCache;
+use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 use Symfony\Config\FrameworkConfig;
 
 return static function (FrameworkConfig $framework): void {
@@ -10,6 +11,9 @@ return static function (FrameworkConfig $framework): void {
     $bus->middleware()->id('doctrine_transaction');
 
     $messenger->failureTransport('failed');
+
+    $messenger->transport('sync')
+        ->dsn('sync://');
 
     $messenger->transport('failed')
         ->dsn('doctrine://default?queue_name=failed');
@@ -21,5 +25,6 @@ return static function (FrameworkConfig $framework): void {
         ->dsn('%env(MESSENGER_TRANSPORT_DSN)%');
 
     $messenger->routing(WarmupCache::class)->senders(['async']);
+    $messenger->routing(SendEmailMessage::class)->senders(['async']);
     $messenger->routing('SpeedPuzzling\Web\Events\*')->senders(['async']);
 };

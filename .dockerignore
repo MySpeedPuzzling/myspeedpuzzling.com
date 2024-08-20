@@ -14,8 +14,8 @@ vendor/
 node_modules/
 var/
 
-docker-compose.yml
-docker-compose.override.yml
+compose.yml
+compose.override.yml
 phpstan.neon
 Dockerfile
 

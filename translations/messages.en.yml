@@ -61,6 +61,7 @@ in_collection: "In my collection"
 remove_from_collection: "Remove from collection"
 ranking_out_of: "of"
 wjpc_participant: "WJPC 2024 participant (%name%)"
+share: "Share"
 
 homepage:
     meta:

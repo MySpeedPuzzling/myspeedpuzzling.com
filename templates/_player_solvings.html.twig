@@ -29,6 +29,16 @@
                                     </a>
                                 </div>
                             {% endif %}
+
+                            <button
+                                data-controller="share-image"
+                                data-share-image-title-value="{{ solved_puzzle[0].puzzleName }}"
+                                data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle[0].timeId}) }}"
+                                data-action="click->share-image#shareImageAsset"
+                                class="btn btn-sm btn-outline-accent py-1 px-2 mt-1"
+                            >
+                                <i class="ci-share"></i> {{ 'share'|trans }}
+                            </button>
                         {% endif %}
                     </td>
 

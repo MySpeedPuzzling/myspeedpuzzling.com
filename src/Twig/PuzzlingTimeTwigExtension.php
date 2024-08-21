@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Value\SolvingTime;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
@@ -42,6 +43,6 @@ final class PuzzlingTimeTwigExtension extends AbstractExtension
 
     public function calculatePpm(int $timeInSeconds, int $pieces, int $puzzlersCount = 1): float
     {
-        return round($pieces / ($timeInSeconds / 60) / $puzzlersCount, 2);
+        return (new SolvingTime($timeInSeconds))->calculatePpm($pieces, $puzzlersCount);
     }
 }

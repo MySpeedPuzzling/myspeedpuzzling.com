@@ -32,4 +32,13 @@ readonly final class SolvingTime
 
         return new self($seconds);
     }
+
+    public function calculatePpm(int $pieces, int $puzzlersCount = 1): float
+    {
+        if ($this->seconds === null) {
+            return 0;
+        }
+
+        return round($pieces / ($this->seconds / 60) / $puzzlersCount, 2);
+    }
 }

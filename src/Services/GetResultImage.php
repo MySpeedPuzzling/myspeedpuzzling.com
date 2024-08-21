@@ -46,9 +46,14 @@ readonly final class GetResultImage
             return $this->filesystem->read($path);
         }
 
+        $rankingText = '';
+
         if ($solvingTime->players === null) {
             $ranking = $this->getRanking->ofPuzzleForPlayer($solvingTime->puzzleId, $player->playerId);
-            $rankingText = sprintf('Rank %s of %s', $ranking->rank, $ranking->totalPlayers);
+
+            if ($ranking->totalPlayers > 2) {
+                $rankingText = sprintf('Rank %s of %s', $ranking->rank, $ranking->totalPlayers);
+            }
         } else {
             $rankingText = count($solvingTime->players) === 1 ? 'Pair puzzling' : 'Group puzzling';
         }

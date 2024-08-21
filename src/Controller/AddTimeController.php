@@ -103,6 +103,7 @@ final class AddTimeController extends AbstractController
         $addTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
+            $timeId = Uuid::uuid7();
             $userId = $user->getUserIdentifier();
 
             // Adding new puzzles by user
@@ -129,7 +130,7 @@ final class AddTimeController extends AbstractController
 
             try {
                 $this->messageBus->dispatch(
-                    AddPuzzleSolvingTime::fromFormData($userId, $groupPlayers, $data),
+                    AddPuzzleSolvingTime::fromFormData($timeId, $userId, $groupPlayers, $data),
                 );
 
                 if ($activeStopwatch !== null) {
@@ -144,9 +145,7 @@ final class AddTimeController extends AbstractController
                     );
                 }
 
-                $this->addFlash('success', $this->translator->trans('flashes.time_added'));
-
-                return $this->redirectToRoute('my_profile');
+                return $this->redirectToRoute('added_time_recap', ['timeId' => $timeId]);
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 

@@ -392,3 +392,25 @@ td.rank {
         margin-bottom: -35px;
     }
 }
+
+.time-result-recap {
+    position: relative;
+
+    .button-wrapper {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+
+        button {
+            &:hover {
+                opacity: 1 !important;
+            }
+        }
+    }
+
+    @include media-breakpoint-up(md) {
+        .button-wrapper {
+            display: none;
+        }
+    }
+}

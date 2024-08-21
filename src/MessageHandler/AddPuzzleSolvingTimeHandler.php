@@ -44,7 +44,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
 
-        $solvingTimeId = Uuid::uuid7();
+        $solvingTimeId = $message->timeId;
         $finishedPuzzlePhotoPath = null;
         $trackedAt = $this->clock->now();
         $finishedAt = $message->finishedAt ?? $trackedAt;

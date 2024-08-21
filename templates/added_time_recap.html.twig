@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'add_time.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h2">{{ 'added_time_recap.title'|trans }}</h1>
+
+    <div class="alert alert-success d-flex" role="alert">
+        <div class="alert-icon">
+            <i class="ci-check-circle"></i>
+        </div>
+        <div>
+            {{ 'flashes.time_added'|trans }}
+        </div>
+    </div>
+
+    <div class="my-4">
+        <div class="btn-group btn-group">
+            <a href="{{ path('add_time') }}" class="btn btn-accent pe-2"><i class="ci-add"></i> {{ 'added_time_recap.add_time'|trans }}</a>
+            <button type="button" class="btn btn-accent dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu shadow-custom">
+                <li><a class="dropdown-item" href="{{ path('add_time', {puzzleId: solved_puzzle.puzzleId}) }}">{{ 'added_time_recap.the_same_puzzle'|trans }}</a></li>
+            </ul>
+        </div>
+
+        <a href="{{ path('puzzle_detail', {'puzzleId': solved_puzzle.puzzleId}) }}" class="btn btn-accent btn">{{ 'added_time_recap.puzzle_detail'|trans }}</a>
+    </div>
+
+    <div class="time-result-recap">
+        <div class="button-wrapper">
+            <button
+                data-controller="share-image"
+                data-share-image-title-value="{{ solved_puzzle.puzzleName }}"
+                data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}"
+                data-action="click->share-image#shareImageAsset"
+                class="btn btn-primary shadow-lg opacity-80"
+            >
+                <i class="ci-share"></i> {{ 'share'|trans }}
+            </button>
+        </div>
+
+        <img style="max-width: 100%;" src="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}">
+    </div>
+
+{% endblock %}

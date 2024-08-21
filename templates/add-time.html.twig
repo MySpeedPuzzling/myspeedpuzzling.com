@@ -5,8 +5,6 @@
 {% block content %}
     <h1>{{ 'add_time.title'|trans }}</h1>
 
-    {{ include('_solving_time_form.html.twig', {
-        show_add_hint: true,
-    }) }}
+    {{ include('_solving_time_form.html.twig') }}
 
 {% endblock %}

@@ -53,7 +53,6 @@ total_found: "Celkem nalezeno: %count%"
 remaining: "Zbývá: %puzzle%"
 loading: "Načítám"
 any: "Libovolný"
-adding_puzzle_hint: "Přepracovali jsme způsob, jakým se přidávají nové (neexistující) puzzle a výrobci. Napište název nového výrobce/puzzlí do příslušného textového pole a poté vybrat možnost \"Add new\"."
 solo_solved: "Skládáno SOLO:"
 first_attempt: "1. pokus"
 add_to_collection: "Přidat do mé sbírky"
@@ -346,7 +345,7 @@ players_per_country:
 flashes:
     stopwatch_already_saved: "Tyto stopky byly již uloženy."
     puzzle_needs_approve: "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
-    time_added: "Skvělá práce! Skládání jsme zaznamenali."
+    time_added: "Skládání jsme zaznamenali."
     time_deleted: "Smazali jsme veškeré důkazy. Nikdo se nikdy nedozví, co se právě stalo!"
     profile_saved: "Změna profilu uložena!"
     time_edited: "Upravené údaje jsme uložili."
@@ -434,3 +433,9 @@ wjpc2024_modal:
     text: "Budeš se účastnit World Jigsaw Puzzle Championship 2024?<br>Dej vědět ostatním, že tam budeš skládat o 106!<br><br>Propoj svůj MySpeedPuzzling profil s WJPC účtem a zjisti co se bude dít dál... Po propojení můžeš porovnávat své 500-dílkové časy z posledních 3 měsíců s ostatními účastníky. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s tím nejrychlejším časem! Propojení můžeš provést také kdykoliv později v nastavení svého profilu."
     connect_it: "Propojit, hned!"
     not_participating: "Neúčastním se"
+
+added_time_recap:
+    title: "Skvělý čas, jen tak dál!"
+    add_time: "Přidat další čas"
+    the_same_puzzle: "Ke stejným puzzlím"
+    puzzle_detail: "Výsledky"

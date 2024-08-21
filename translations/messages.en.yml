@@ -53,7 +53,6 @@ total_found: "Total found: %count%"
 remaining: "Remaining: %puzzle%"
 loading: "Loading"
 any: "Any"
-adding_puzzle_hint: "We have reworked the way of adding new (missing) puzzle and brands. Enter the name of new brand/puzzle to the according text input and then choose option \"Add new\"."
 solo_solved: "Solved SOLO:"
 first_attempt: "1st try"
 add_to_collection: "Add to my collection"
@@ -345,7 +344,7 @@ players_per_country:
 flashes:
     stopwatch_already_saved: "These stopwatches have already been saved."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
-    time_added: "Great job! We've recorded your assembly."
+    time_added: "We have saved your puzzling time."
     time_deleted: "We've deleted all evidence. No one will ever know what just happened!"
     profile_saved: "Profile changes saved!"
     time_edited: "Edited information has been saved."
@@ -432,3 +431,9 @@ wjpc2024_modal:
     text: "Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there!<br><br>Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. After connecting you will be able to compare your 500-piece puzzling times against other participants. You can connect it any time later on your profile."
     connect_it: "Connect it, now!"
     not_participating: "Not participating"
+
+added_time_recap:
+    title: "Great time, keep it up!"
+    add_time: "Add new time"
+    the_same_puzzle: "For the same puzzle"
+    puzzle_detail: "Results"

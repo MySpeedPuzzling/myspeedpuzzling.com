@@ -69,7 +69,7 @@ final class ResultImageController extends AbstractController
         $offsetTop = 20;
 
 
-        $puzzleNameLines = (int) ceil(strlen($puzzleName) / 26);
+        $puzzleNameLines = (int) ceil(strlen($puzzleName) / 25);
         $puzzleNameOffset = (int) ((3 - $puzzleNameLines) * $fontSizeNormal / 3);
         $puzzleNameHeight = $puzzleNameLines * $fontSizeNormal;
         $imagePath = $solvingTime->finishedPuzzlePhoto ?? $solvingTime->puzzleImage ?? throw $this->createNotFoundException();

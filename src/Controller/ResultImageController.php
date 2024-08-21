@@ -87,7 +87,7 @@ final class ResultImageController extends AbstractController
                 $rectangle->background('rgba(0, 0, 0, 0.55)');
             })
             ->text($puzzleName, $size / 2, 100 + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeNormal, $size) {
-                $font->wrap((int) ($size * 0.9));
+                $font->wrap((int) ($size * 0.97));
                 $font->lineHeight(1.4);
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
                 $font->color('#ffffff');

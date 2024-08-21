@@ -89,7 +89,6 @@ readonly final class GetResultImage
 
         $image = $this->imageManager->read($imageContent)
             ->cover($size, $size)
-            ->blur(4)
             ->drawRectangle(0, 0, function (RectangleFactory $rectangle) use ($size) {
                 $rectangle->size($size, $size);
                 $rectangle->background('rgba(250, 114, 111, 0.44)');

@@ -41,7 +41,7 @@ final class ResultImageController extends AbstractController
             $ranking = $this->getRanking->ofPuzzleForPlayer($solvingTime->puzzleId, $player->playerId);
             $rankingText = sprintf('Rank %s of %s', $ranking->rank, $ranking->totalPlayers);
         } else {
-            $rankingText = count($solvingTime->players) === 2 ? 'Pair puzzling' : 'Group (' . count($solvingTime->players) . ') puzzling';
+            $rankingText = count($solvingTime->players) === 1 ? 'Pair puzzling' : 'Group puzzling';
         }
 
         $size = 800;
@@ -80,11 +80,11 @@ final class ResultImageController extends AbstractController
             ->blur(4)
             ->drawRectangle(0, 0, function (RectangleFactory $rectangle) use ($size) {
                 $rectangle->size($size, $size);
-                $rectangle->background('rgba(236, 114, 111, 0.4)');
+                $rectangle->background('rgba(250, 114, 111, 0.44)');
             })
             ->drawRectangle(0, 0, function (RectangleFactory $rectangle) use ($size) {
                 $rectangle->size($size, $size);
-                $rectangle->background('rgba(0, 0, 0, 0.6)');
+                $rectangle->background('rgba(0, 0, 0, 0.55)');
             })
             ->text($puzzleName, $size / 2, 100 + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeNormal, $size) {
                 $font->wrap((int) ($size * 0.9));

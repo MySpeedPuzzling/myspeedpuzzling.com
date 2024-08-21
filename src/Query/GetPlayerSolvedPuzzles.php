@@ -18,6 +18,9 @@ readonly final class GetPlayerSolvedPuzzles
     ) {
     }
 
+    /**
+     * @throws PuzzleSolvingTimeNotFound
+     */
     public function byTimeId(string $timeId): SolvedPuzzleDetail
     {
         if (Uuid::isValid($timeId) === false) {

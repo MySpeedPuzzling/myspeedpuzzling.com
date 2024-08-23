@@ -65,7 +65,7 @@ readonly final class GetResultImage
         $fontSizeLittle = (int) ($size / 30);
 
         $logo = $this->imageManager->read(__DIR__ . '/../../public/img/speedpuzzling-logo.png')
-            ->scaleDown(50, 50)
+            ->scaleDown(60, 60)
             ->sharpen(3);
 
         $ppm = (new SolvingTime($solvingTime->time))->calculatePpm(
@@ -155,7 +155,7 @@ readonly final class GetResultImage
                 $font->align('center');
                 $font->valign('top');
             })
-            ->text($signature, 65, $size - $fontSizeLittle - 18, function (FontFactory $font) use ($fontSizeLittle) {
+            ->text($signature, 80, $size - $fontSizeLittle - 18, function (FontFactory $font) use ($fontSizeLittle) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Light.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);

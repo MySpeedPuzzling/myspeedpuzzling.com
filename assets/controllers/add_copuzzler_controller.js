@@ -9,7 +9,7 @@ export default class extends Controller {
     }
 
     addPuzzler() {
-        if (this.puzzlersGroupTarget.children.length < 6) {
+        if (this.puzzlersGroupTarget.children.length < 10) {
             this.puzzlersGroupTarget.insertAdjacentHTML('beforeend', this.puzzlerTemplateTarget.innerHTML);
             const newPuzzler = this.puzzlersGroupTarget.lastElementChild;
             this.initializePuzzler(newPuzzler, ++this.puzzlerCounter);
@@ -85,7 +85,7 @@ export default class extends Controller {
     }
 
     checkButtonVisibility() {
-        if (this.puzzlersGroupTarget.children.length >= 6) {
+        if (this.puzzlersGroupTarget.children.length >= 10) {
             this.addPuzzlerBtnTarget.classList.add('hidden');
         } else {
             this.addPuzzlerBtnTarget.classList.remove('hidden');

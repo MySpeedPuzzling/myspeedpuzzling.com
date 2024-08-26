@@ -414,3 +414,15 @@ td.rank {
         }
     }
 }
+
+button[data-submit-prevention-target] {
+    .spinner-border {
+        display: none;
+    }
+
+    &.is-loading {
+        .spinner-border {
+            display: inline-block;
+        }
+    }
+}

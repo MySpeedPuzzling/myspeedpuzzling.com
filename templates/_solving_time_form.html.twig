@@ -1,6 +1,6 @@
 <div data-controller="add-copuzzler">
 
-    {{ form_start(solving_time_form) }}
+    {{ form_start(solving_time_form, { 'attr': { 'data-controller': 'submit-prevention' } }) }}
         {{ form_errors(solving_time_form) }}
 
         <div class="row pb-4" {% if active_puzzle is null %}data-controller="time-form-autocomplete"{% endif %}>
@@ -128,7 +128,10 @@
                     <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
                 </div>
 
-                <input type="submit" name="submit" value="{{ 'forms.save'|trans }}" class="btn btn-primary mt-3" />
+                <button type="submit" name="submit" class="btn btn-primary mt-3" data-submit-prevention-target="submit">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    {{ 'forms.save'|trans }}
+                </button>
 
             </div>
 

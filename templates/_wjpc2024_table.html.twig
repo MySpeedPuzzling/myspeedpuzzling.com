@@ -16,14 +16,6 @@
                 <td class="fs-sm">
                     {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
                     {{ participant.wjpcName }}
-                    <span class="d-inline d-sm-none">
-                                    <br><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}
-                                </span>
-                </td>
-
-                <td class="d-none d-sm-table-cell">
-                    <small class="text-muted">2023 rank:</small> {{ participant.rank2023 ?: '-' }}<br>
-                    <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
                 </td>
 
                 <td style="width: 1px;">
@@ -44,10 +36,8 @@
 
                 <td class="text-end text-nowrap">
                     <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
-                    <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> {{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}
-                    <span class="d-inline d-sm-none">
-                        <br><small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
-                    </span>
+                    <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> {{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}<br>
+                    <small class=""><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}</small>
                 </td>
             </tr>
         {% endfor %}
@@ -77,7 +67,7 @@
                 </td>
                 <td style="width: 1px;">
                     {% if 'A' in participant.rounds %}
-                        <span class="badge text-bg-light">A</span>
+                        <span class="badge text-bg-light" style="background: #ddd !important;">A</span>
                     {% elseif 'B' in participant.rounds %}
                         <span class="badge text-bg-dark">B</span>
                     {% elseif 'C' in participant.rounds %}

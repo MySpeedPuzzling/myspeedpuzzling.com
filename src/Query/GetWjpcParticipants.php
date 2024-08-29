@@ -127,7 +127,8 @@ WHERE
     AND puzzle_solving_time.team IS NULL
     AND puzzle.pieces_count = 500
 GROUP BY
-    puzzle_solving_time.player_id;
+    puzzle_solving_time.player_id
+ORDER BY average_time
 SQL;
 
         $times = $this->database

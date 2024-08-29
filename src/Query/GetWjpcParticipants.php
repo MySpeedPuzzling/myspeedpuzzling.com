@@ -128,7 +128,6 @@ WHERE
     AND puzzle.pieces_count = 500
 GROUP BY
     puzzle_solving_time.player_id
-ORDER BY average_time
 SQL;
 
         $times = $this->database
@@ -154,7 +153,8 @@ SQL;
             $timesByPlayerId[$time['player_id']] = $time;
         }
 
-        return array_map(static function(array $participant) use ($timesByPlayerId): ConnectedWjpcParticipant {
+        /** @var array<ConnectedWjpcParticipant> $results */
+        $results = array_map(static function(array $participant) use ($timesByPlayerId): ConnectedWjpcParticipant {
             /**
              * @var array{
              *     wjpc_name: string,
@@ -196,6 +196,15 @@ SQL;
                 rounds: $rounds,
             );
         }, $participants);
+
+        usort($results, function(ConnectedWjpcParticipant $a, ConnectedWjpcParticipant $b): int {
+            if ($a->averageTime === null) return 1;
+            if ($b->averageTime === null) return -1;
+
+            return $a->averageTime <=> $b->averageTime;
+        });
+
+        return $results;
     }
 
     /**

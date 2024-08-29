@@ -188,7 +188,7 @@ SQL;
                 playerId: $playerId,
                 playerName: $participant['player_name'] ?? $participant['player_code'],
                 playerCountry: CountryCode::fromCode($participant['player_country']),
-                fastestTime: is_numeric($timeData['average_time']) ? (int) $timeData['average_time'] : null,
+                fastestTime: is_numeric($timeData['fastest_time']) ? (int) $timeData['fastest_time'] : null,
                 averageTime: is_numeric($timeData['average_time']) ? (int) $timeData['average_time'] : null,
                 solvedPuzzleCount: $timeData['solved_puzzle_count'],
                 wjpcName: $participant['wjpc_name'],

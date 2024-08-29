@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\WjpcParticipant;
 use SpeedPuzzling\Web\Message\SyncWjpcIndividualParticipants;
@@ -18,6 +18,7 @@ readonly final class SyncWjpcIndividualParticipantsHandler
     public function __construct(
         private WjpcParticipantRepository $participantRepository,
         private GetWjpcParticipants $getWjpcParticipants,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -30,17 +31,30 @@ readonly final class SyncWjpcIndividualParticipantsHandler
 
         foreach ($message->individuals as $participant) {
             $name = $participant['name'];
+            $country = $participant['country'];
+            $rank = $participant['rank'];
+            $group = $participant['group'];
             $participantNamesFromSync[$name] = true;
+            $existingParticipantId = $existingParticipants[$name] ?? null;
 
-            if (isset($existingParticipants[$name]) === false) {
+            if ($existingParticipantId === null) {
+                $this->logger->info('Adding participant (new in csv) - ' . $name);
+
+                $rounds = $group !== null ? [$group] : [];
                 $this->participantRepository->save(
                     new WjpcParticipant(
                         Uuid::uuid7(),
-                        $name,
-                        $participant['country'],
-                        [],
-                        $participant['rank'],
+                        name: $name,
+                        country: $country,
+                        rounds: $rounds,
+                        year2023Rank: $rank,
                     ),
+                );
+            } else {
+                $existingParticipant = $this->participantRepository->get($existingParticipantId);
+                $existingParticipant->update(
+                    $country,
+                    $group,
                 );
             }
         }
@@ -49,7 +63,11 @@ readonly final class SyncWjpcIndividualParticipantsHandler
             if (isset($participantNamesFromSync[$name]) === false) {
                 $participantToDelete = $this->participantRepository->get($id);
 
-                $this->participantRepository->delete($participantToDelete);
+                if ($participantToDelete->player !== null) {
+                    $this->logger->notice('Deleting connected participant (missing in csv) - ' . $participantToDelete->name);
+                } else {
+                    $this->participantRepository->delete($participantToDelete);
+                }
             }
         }
     }

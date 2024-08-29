@@ -34,12 +34,13 @@ class WjpcParticipant
         #[Column]
         readonly public string $name,
 
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
-        readonly public string $country,
+        public string $country,
 
         /** @var array<string> */
         #[Column(type: Types::JSON, options: ['default' => '[]'])]
-        readonly public array $rounds = [],
+        public array $rounds = [],
 
         #[Column(nullable: true)]
         readonly public null|int $year2023Rank = null,
@@ -59,5 +60,14 @@ class WjpcParticipant
     {
         $this->player = null;
         $this->connectedAt = null;
+    }
+
+    public function update(string $country, null|string $individualsGroup): void
+    {
+        $this->country = $country;
+
+        if ($individualsGroup !== null) {
+            $this->rounds = [$individualsGroup];
+        }
     }
 }

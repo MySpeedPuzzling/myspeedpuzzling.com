@@ -26,9 +26,32 @@ final class Wjpc2024Controller extends AbstractController
     )]
     public function __invoke(#[CurrentUser] UserInterface|null $user): Response
     {
+        $connectedParticipants = $this->getWjpcParticipants->getConnectedParticipants();
+        $notConnectedParticipants = $this->getWjpcParticipants->getNotConnectedParticipants();
+        $connectedParticipantsByGroup = [];
+        $notConnectedParticipantsByGroup = [];
+
+        foreach ($connectedParticipants as $connectedParticipant) {
+            $firstRound = $connectedParticipant->rounds[0] ?? null;
+
+            if ($firstRound !== null) {
+                $connectedParticipantsByGroup[$firstRound][] = $connectedParticipant;
+            }
+        }
+
+        foreach ($notConnectedParticipants as $notConnectedParticipant) {
+            $firstRound = $notConnectedParticipant->rounds[0] ?? null;
+
+            if ($firstRound !== null) {
+                $notConnectedParticipantsByGroup[$firstRound][] = $notConnectedParticipant;
+            }
+        }
+
         return $this->render('wjpc2024.html.twig', [
-            'connected_participants' => $this->getWjpcParticipants->getConnectedParticipants(),
-            'not_connected_participants' => $this->getWjpcParticipants->getNotConnectedParticipants(),
+            'connected_participants' => $connectedParticipants,
+            'connected_participants_by_group' => $connectedParticipantsByGroup,
+            'not_connected_participants' => $notConnectedParticipants,
+            'not_connected_participants_by_group' => $notConnectedParticipantsByGroup,
         ]);
     }
 }

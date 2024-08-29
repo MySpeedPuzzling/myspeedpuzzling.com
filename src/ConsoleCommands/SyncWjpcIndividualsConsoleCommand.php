@@ -28,12 +28,12 @@ final class SyncWjpcIndividualsConsoleCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $filePath = __DIR__ . '/../../wjpc_individuals.csv';
-        /** @var array<array{name: string, country: string, rank: null|int}> $data */
+        /** @var array<array{name: string, country: string, group: null|string, rank: null|int}> $data */
         $data = [];
 
         if (($handle = fopen($filePath, 'r')) !== false) {
             while (($row = fgetcsv($handle)) !== false) {
-                $rank = $row[2] ?? '';
+                [$name, $location, $country, $group, $rank] = $row;
 
                 if ($rank === '') {
                     $rank = null;
@@ -41,9 +41,14 @@ final class SyncWjpcIndividualsConsoleCommand extends Command
                     $rank = (int) str_replace(['#', 'º'], '', $rank);
                 }
 
+                if ($group === '') {
+                    $group = null;
+                }
+
                 $data[] = [
-                    'name' => $row[0] ?? '',
-                    'country' => $row[1] ?? '',
+                    'name' => $name,
+                    'country' => $country,
+                    'group' => $group,
                     'rank' => $rank,
                 ];
             }

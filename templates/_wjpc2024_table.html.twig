@@ -14,13 +14,13 @@
                 </td>
 
                 <td class="fs-sm">
-                    {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline">{{ participant.playerName }}</a><br>
+                    {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name">{{ participant.playerName }}</a><br>
                     {{ participant.wjpcName }}
                 </td>
 
                 <td style="width: 1px;">
                     {% if 'A' in participant.rounds %}
-                        <span class="badge text-bg-light">A</span>
+                        <span class="badge text-bg-light" style="background: #ddd !important;">A</span>
                     {% elseif 'B' in participant.rounds %}
                         <span class="badge text-bg-dark">B</span>
                     {% elseif 'C' in participant.rounds %}

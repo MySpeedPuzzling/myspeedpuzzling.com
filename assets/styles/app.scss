@@ -426,3 +426,13 @@ button[data-submit-prevention-target] {
         }
     }
 }
+
+@media (max-width: 419px) {
+    .wjpc-participant-name {
+        display: inline-block;
+        max-width: 14ch;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+    }
+}

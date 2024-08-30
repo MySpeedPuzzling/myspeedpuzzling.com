@@ -44,7 +44,7 @@ return static function(ContainerConfigurator $configurator): void
         ->tag('monolog.processor');
 
     // Controllers
-    $services->load('SpeedPuzzling\\Web\\Controller\\', __DIR__ . '/../src/Controller/{*Controller.php}');
+    $services->load('SpeedPuzzling\\Web\\Controller\\', __DIR__ . '/../src/Controller/**/{*Controller.php}');
 
     // Twig extensions
     $services->load('SpeedPuzzling\\Web\\Twig\\', __DIR__ . '/../src/Twig/{*TwigExtension.php}');

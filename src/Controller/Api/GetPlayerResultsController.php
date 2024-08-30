@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Api;
 
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,11 +26,29 @@ final class GetPlayerResultsController extends AbstractController
             return $this->json(['error' => 'Unauthorized.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $results = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
+        try {
+            $results = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
+        } catch (PlayerNotFound) {
+            return $this->json(['error' => 'Player not found.'], Response::HTTP_NOT_FOUND);
+        }
 
-        return $this->json([
-            ['resultId' => null],
-            ['resultId' => null],
-        ]);
+        $data = [];
+
+        foreach ($results as $result) {
+            $data[] = [
+                'id' => $result->timeId,
+                'time_seconds' => $result->time,
+                'puzzle_name' => $result->puzzleName,
+                'puzzle_pieces' => $result->piecesCount,
+                'puzzle_image' => $result->puzzleImage,
+                'puzzle_brand' => $result->manufacturerName,
+                'type' => 'solo',
+                'team' => null,
+                'finished_at' => $result->finishedAt->format(DATE_ATOM),
+                'solved_times' => $result->solvedTimes,
+            ];
+        }
+
+        return $this->json($data);
     }
 }

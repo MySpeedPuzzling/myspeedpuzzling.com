@@ -52,7 +52,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $finishedAt,
 
-        #[Column(nullable: true)]
+        #[Column(type: Types::TEXT, nullable: true)]
         public null|string $comment,
 
         #[Column(nullable: true)]

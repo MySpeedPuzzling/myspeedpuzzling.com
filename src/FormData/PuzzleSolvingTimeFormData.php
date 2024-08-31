@@ -7,6 +7,9 @@ namespace SpeedPuzzling\Web\FormData;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\Positive;
+use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Constraints\Regex;
 
 final class PuzzleSolvingTimeFormData
@@ -22,12 +25,16 @@ final class PuzzleSolvingTimeFormData
 
     public null|string $puzzle = null;
 
+    #[Positive]
+    #[Range(min: 10, max: 25000)]
     public null|int $puzzlePiecesCount = null;
 
     public null|UploadedFile $puzzlePhoto = null;
 
+    #[Length(max: 15)]
     public null|string $puzzleEan = null;
 
+    #[Length(max: 50)]
     public null|string $puzzleIdentificationNumber = null;
 
     public null|DateTimeImmutable $finishedAt;

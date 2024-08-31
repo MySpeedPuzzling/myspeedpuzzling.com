@@ -44,8 +44,17 @@ readonly final class UpdateWjpcPlayerIdHandler
         $response = $this->client->request('GET', $url);
 
         if ($response->getStatusCode() === 200) {
-            /** @var array{idjugador: int} $data */
+            /** @var array{idjugador?: int} $data */
             $data = $response->toArray();
+
+            if (!isset($data['idjugador'])) {
+                $this->logger->error('Response from WJPC not containing "idjugador"', [
+                    'participant_id' => $message->participantId,
+                    'response' => $response->getContent(),
+                ]);
+
+                return;
+            }
 
             $participant->updateRemoteId((string) $data['idjugador']);
         }

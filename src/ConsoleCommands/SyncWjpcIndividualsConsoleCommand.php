@@ -20,11 +20,6 @@ final class SyncWjpcIndividualsConsoleCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        parent::configure();
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $filePath = __DIR__ . '/../../wjpc_individuals.csv';

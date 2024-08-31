@@ -34,84 +34,68 @@ final class GetPlayerResultsController extends AbstractController
         }
 
         try {
-            $soloResults = array_map(function(SolvedPuzzle $result): array {
-                return [
-                    'id' => $result->timeId,
-                    'time_seconds' => $result->time,
-                    'time' => $this->puzzlingTimeFormatter->formatTime($result->time),
-                    'ppm' => (new SolvingTime($result->time))->calculatePpm($result->piecesCount),
-                    'first_attempt' => $result->firstAttempt,
-                    'player_name' => $result->playerName,
-                    'puzzle_name' => $result->puzzleName,
-                    'puzzle_pieces' => $result->piecesCount,
-                    'puzzle_image' => $result->puzzleImage,
-                    'puzzle_brand' => $result->manufacturerName,
-                    'finished_at' => $result->finishedAt->format(DATE_ATOM),
-                    'finished_at_alt_format' => $result->finishedAt->format('d/m/Y'),
-                    'finished_at_ago' => $this->dateTimeFormatter->formatDiff($result->finishedAt),
-                    'solved_times' => $result->solvedTimes,
-                ];
-            }, $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId));
+            $soloResults = array_map(
+                fn (SolvedPuzzle $result): array => $this->resultToApiShape($result),
+                $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId),
+            );
 
-            $duoResults = array_map(function(SolvedPuzzle $result): array {
-                assert($result->players !== null);
-                $players = array_map(function(Puzzler $player): array {
-                    return [
-                        'id' => $player->playerId,
-                        'name' => $player->playerName,
-                    ];
-                }, $result->players);
+            $duoResults = array_map(
+                fn (SolvedPuzzle $result): array => $this->resultToApiShape($result),
+                $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId),
+            );
 
-                return [
-                    'id' => $result->timeId,
-                    'time_seconds' => $result->time,
-                    'time' => $this->puzzlingTimeFormatter->formatTime($result->time),
-                    'ppm' => (new SolvingTime($result->time))->calculatePpm($result->piecesCount, 2),
-                    'first_attempt' => $result->firstAttempt,
-                    'players' => $players,
-                    'puzzle_pieces' => $result->piecesCount,
-                    'puzzle_image' => $result->puzzleImage,
-                    'puzzle_brand' => $result->manufacturerName,
-                    'finished_at' => $result->finishedAt->format(DATE_ATOM),
-                    'finished_at_alt_format' => $result->finishedAt->format('d/m/Y'),
-                    'finished_at_ago' => $this->dateTimeFormatter->formatDiff($result->finishedAt),
-                    'solved_times' => $result->solvedTimes,
-                ];
-            }, $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId));
+            $teamResults = array_map(
+                fn (SolvedPuzzle $result): array => $this->resultToApiShape($result),
+                $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId),
+            );
 
-            $teamResults = array_map(function(SolvedPuzzle $result): array {
-                assert($result->players !== null);
-                $players = array_map(function(Puzzler $player): array {
-                    return [
-                        'id' => $player->playerId,
-                        'name' => $player->playerName,
-                    ];
-                }, $result->players);
-
-                return [
-                    'id' => $result->timeId,
-                    'time_seconds' => $result->time,
-                    'time' => $this->puzzlingTimeFormatter->formatTime($result->time),
-                    'ppm' => (new SolvingTime($result->time))->calculatePpm($result->piecesCount, count($result->players)),
-                    'first_attempt' => $result->firstAttempt,
-                    'players' => $players,
-                    'puzzle_pieces' => $result->piecesCount,
-                    'puzzle_image' => $result->puzzleImage,
-                    'puzzle_brand' => $result->manufacturerName,
-                    'finished_at' => $result->finishedAt->format(DATE_ATOM),
-                    'finished_at_alt_format' => $result->finishedAt->format('d/m/Y'),
-                    'finished_at_ago' => $this->dateTimeFormatter->formatDiff($result->finishedAt),
-                    'solved_times' => $result->solvedTimes,
-                ];
-            }, $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId));
+            return $this->json([
+                'solo' => $soloResults,
+                'duo' => $duoResults,
+                'team' => $teamResults,
+            ]);
         } catch (PlayerNotFound) {
             return $this->json(['error' => 'Player not found.'], Response::HTTP_NOT_FOUND);
         }
+    }
 
-        return $this->json([
-            'solo' => $soloResults,
-            'duo' => $duoResults,
-            'team' => $teamResults,
-        ]);
+    /**
+     * @return array<mixed>
+     */
+    function resultToApiShape(SolvedPuzzle $result): array
+    {
+        $ppm = (new SolvingTime($result->time))->calculatePpm(
+            $result->piecesCount,
+            $result->players === null ? 1 : count($result->players),
+        );
+
+        $data = [
+            'id' => $result->timeId,
+            'time_seconds' => $result->time,
+            'time' => $this->puzzlingTimeFormatter->formatTime($result->time),
+            'ppm' => $ppm,
+            'first_attempt' => $result->firstAttempt,
+            'puzzle_name' => $result->puzzleName,
+            'puzzle_pieces' => $result->piecesCount,
+            'puzzle_image' => $result->puzzleImage,
+            'puzzle_brand' => $result->manufacturerName,
+            'finished_at' => $result->finishedAt->format(DATE_ATOM),
+            'finished_at_alt_format' => $result->finishedAt->format('d/m/Y'),
+            'finished_at_ago' => $this->dateTimeFormatter->formatDiff($result->finishedAt),
+            'solved_times' => $result->solvedTimes,
+        ];
+
+        if ($result->players === null) {
+            $data['player_name'] = $result->playerName;
+        } else {
+            $data['players'] = array_map(function(Puzzler $player): array {
+                return [
+                    'id' => $player->playerId,
+                    'name' => $player->playerName,
+                ];
+            }, $result->players);
+        }
+
+        return $data;
     }
 }

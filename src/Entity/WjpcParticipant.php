@@ -25,6 +25,10 @@ class WjpcParticipant
     #[ManyToOne]
     public null|Player $player = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $remoteId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -69,5 +73,10 @@ class WjpcParticipant
         if ($individualsGroup !== null) {
             $this->rounds = [$individualsGroup];
         }
+    }
+
+    public function updateRemoteId(string $remoteId): void
+    {
+        $this->remoteId = $remoteId;
     }
 }

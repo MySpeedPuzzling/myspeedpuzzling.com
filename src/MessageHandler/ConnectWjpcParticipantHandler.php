@@ -43,12 +43,12 @@ readonly final class ConnectWjpcParticipantHandler
             $connectedParticipant->disconnect();
         }
 
-        if ($message->participantName === null) {
+        if ($message->participantId === null) {
             return;
         }
 
         // 2. Make new connection
-        $participant = $this->participantRepository->get($message->participantName);
+        $participant = $this->participantRepository->get($message->participantId);
 
         if ($participant->player !== null && $participant->player->id->equals($player->id) === false) {
             $this->logger->warning('WJPC participant connection to multiple players', [

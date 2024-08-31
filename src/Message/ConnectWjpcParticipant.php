@@ -10,7 +10,7 @@ readonly final class ConnectWjpcParticipant
 {
     public function __construct(
         public string $playerId,
-        public null|string $participantName,
+        public null|string $participantId,
     ) {
     }
 }

@@ -77,6 +77,7 @@ SQL;
     {
         $query1 = <<<SQL
 SELECT 
+    wjpc_participant.id AS participant_id,
     wjpc_participant.name AS wjpc_name, 
     wjpc_participant.year2023_rank AS rank_2023, 
     wjpc_participant.rounds,
@@ -157,6 +158,7 @@ SQL;
         $results = array_map(static function(array $participant) use ($timesByPlayerId): ConnectedWjpcParticipant {
             /**
              * @var array{
+             *     participant_id: string,
              *     wjpc_name: string,
              *     rank_2023: null|int,
              *     player_id: string,
@@ -185,6 +187,7 @@ SQL;
             }
 
             return new ConnectedWjpcParticipant(
+                participantId: $participant['participant_id'],
                 playerId: $playerId,
                 playerName: $participant['player_name'] ?? $participant['player_code'],
                 playerCountry: CountryCode::fromCode($participant['player_country']),

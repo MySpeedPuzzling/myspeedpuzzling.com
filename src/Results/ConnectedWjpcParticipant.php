@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 readonly final class ConnectedWjpcParticipant
 {
     public function __construct(
+        public string $participantId,
         public string $playerId,
         public string $playerName,
         public null|CountryCode $playerCountry,

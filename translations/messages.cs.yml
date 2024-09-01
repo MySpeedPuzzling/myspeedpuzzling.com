@@ -412,7 +412,7 @@ wjpc2024:
     meta:
         title: "WJPC 2024"
     title: "WJPC 2024"
-    intro: "Speed Puzzling událost roku je tady! Přinášíme vám statistiky, abyste mohli prozkoumat, proti komu budete soutěžit. Všechny statistiky zde, se počítají pouze z 500-dílkových puzzlí složených za poslední 3 měsíce, aby byly co nejvíce relevantní. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Propojte si váš profil s WJPC účtem v nastavení <a href=\"%link%\">vašeho profilu</a>."
+    intro: "Speed Puzzling událost roku je tady! Přinášíme vám statistiky, abyste mohli prozkoumat, proti komu budete soutěžit. Všechny statistiky zde, se počítají pouze z 500-dílkových puzzlí složených za poslední 3 měsíce, aby byly co nejvíce relevantní. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Propojte si váš profil s WJPC účtem v nastavení <a href=\"%link%\">vašeho profilu. Pouze pro soutěžící v kategorii jednotlice.</a>."
     connected_participants: "Propojení účastníci"
     not_connected_participants: "Účastníci"
     puzzle_solved: "Puzzlí složeno"

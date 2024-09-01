@@ -424,7 +424,7 @@ wjpc2024_connection:
         title: "WJPC 2024 connection"
     title: "WJPC 2024 connection"
     back_to_profile: "Back to my profile"
-    description: "The Speed Puzzling event of the year is here! Connect your WJPC account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest! You can find your <a href=\"%link%\" target=\"_blank\">registered name on WJPC</a>."
+    description: "The Speed Puzzling event of the year is here! Connect your WJPC account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest! You can find your <a href=\"%link%\" target=\"_blank\">registered name on WJPC</a>. Only for competitors in the individual category."
 
 wjpc2024_modal:
     title: "WJPC 2024 is here!"

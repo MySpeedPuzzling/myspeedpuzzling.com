@@ -410,7 +410,7 @@ wjpc2024:
     meta:
         title: "WJPC 2024"
     title: "WJPC 2024"
-    intro: "The Speed Puzzling event of the year is here! We are bringing you some statistics so you can get to know who you will be competing against. All statistics presented are 500-piece puzzles from last 3 months only, to ensure they are as relevant as possible. If you have solved the same puzzle multiple times, we take only the fastest! Connect your profile with your WJPC account in <a href=\"%link%\">your profile settings</a>."
+    intro: "The Speed Puzzling event of the year is here! We are bringing you some statistics so you can get to know who you will be competing against. All statistics presented are 500-piece puzzles from last 3 months only, to ensure they are as relevant as possible. If you have solved the same puzzle multiple times, we take only the fastest! Connect your profile with your WJPC account in <a href=\"%link%\">your profile settings</a>. Only for competitors in the individual category."
     connected_participants: "Connected participants"
     not_connected_participants: "Participants"
     puzzle_solved: "Puzzle solved"
@@ -428,7 +428,7 @@ wjpc2024_connection:
 
 wjpc2024_modal:
     title: "WJPC 2024 is here!"
-    text: "Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there!<br><br>Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. After connecting you will be able to compare your 500-piece puzzling times against other participants. You can connect it any time later on your profile."
+    text: "Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there!<br><br>Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. After connecting you will be able to compare your 500-piece puzzling times against other participants. You can connect it any time later on your profile. Only for competitors in the individual category."
     connect_it: "Connect it, now!"
     not_participating: "Not participating"
 

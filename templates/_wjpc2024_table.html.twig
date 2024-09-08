@@ -15,7 +15,10 @@
 
                 <td class="fs-sm">
                     {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name">{{ participant.playerName }}</a><br>
-                    {{ participant.wjpcName }}
+                    {{ participant.wjpcName }}<br>
+                    {% if participant.rank2023 %}
+                        <small class="text-muted">2023:</small> #{{ participant.rank2023 }}
+                    {% endif %}
                 </td>
 
                 <td style="width: 1px;">
@@ -34,10 +37,10 @@
                     {% endif %}
                 </td>
 
-                <td class="text-end text-nowrap">
+                <td class="text-end text-nowrap" style="line-height: 120%;">
                     <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
-                    <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> {{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}<br>
-                    <small class=""><span class="text-muted">2023 rank:</span> {{ participant.rank2023 ?: '-' }}</small>
+                    <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>
+                    <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
                 </td>
             </tr>
         {% endfor %}

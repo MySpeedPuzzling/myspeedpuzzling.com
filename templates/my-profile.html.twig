@@ -8,10 +8,23 @@
             <h1>
                 {{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code>
 
-                {% if wjpc_participants[player.playerId] is defined %}
+                {% if wjpc_participant is defined %}
                     <span class="d-block mt-1" style="line-height: 10px;">
                         <img src="{{ asset('img/wjpc.jpg') }}" alt="WJPF logo" style="height: 20px;" class="float-start me-1">
-                        <small class="text-muted fs-sm fw-normal">{{ 'wjpc_participant'|trans({'%name%': wjpc_participants[player.playerId] }) }}</small>
+                        <small class="text-muted fs-sm fw-normal">{{ 'wjpc_participant'|trans({'%name%': wjpc_participant.wjpcName }) }}</small>
+                        {% if 'A' in wjpc_participant.rounds %}
+                            <span class="fs-sm badge text-bg-light" style="background: #ddd !important;">A</span>
+                        {% elseif 'B' in wjpc_participant.rounds %}
+                            <span class="fs-sm badge text-bg-dark">B</span>
+                        {% elseif 'C' in wjpc_participant.rounds %}
+                            <span class="fs-sm badge text-bg-success">C</span>
+                        {% elseif 'D' in wjpc_participant.rounds %}
+                            <span class="fs-sm badge text-bg-danger">D</span>
+                        {% elseif 'E' in wjpc_participant.rounds %}
+                            <span class="fs-sm badge text-bg-warning">E</span>
+                        {% elseif 'F' in wjpc_participant.rounds %}
+                            <span class="fs-sm badge text-bg-info">F</span>
+                        {% endif %}
                     </span>
                 {% endif %}
             </h1>

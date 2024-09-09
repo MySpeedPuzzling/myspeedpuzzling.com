@@ -88,7 +88,7 @@ final class PlayerProfileController extends AbstractController
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
             'puzzle_collections' => $this->getPuzzleCollection->forPlayer($player->playerId),
-            'wjpc_participants' => $this->getWjpcParticipants->mappingToPlayers(),
+            'wjpc_participant' => $this->getWjpcParticipants->forPlayer($player->playerId),
         ]);
     }
 }

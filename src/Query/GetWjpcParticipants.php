@@ -8,6 +8,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\ConnectedWjpcParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedWjpcParticipant;
+use SpeedPuzzling\Web\Results\WjpcParticipantInfo;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetWjpcParticipants
@@ -258,5 +259,49 @@ SQL;
             ->fetchFirstColumn();
 
         return $rows;
+    }
+
+    public function forPlayer(string $playerId): null|WjpcParticipantInfo
+    {
+        $query = <<<SQL
+SELECT 
+    wjpc_participant.id AS participant_id,
+    wjpc_participant.name AS wjpc_name, 
+    wjpc_participant.year2023_rank AS rank_2023, 
+    wjpc_participant.rounds
+FROM 
+    wjpc_participant
+WHERE 
+    wjpc_participant.player_id = :playerId
+SQL;
+
+        /**
+         * @var false|array{
+         *     participant_id: string,
+         *     wjpc_name: string,
+         *     rank_2023: null|int,
+         *     rounds: string,
+         * } $row
+         */
+        $row = $this->database
+            ->executeQuery($query, ['playerId' => $playerId])
+            ->fetchAssociative();
+
+        if (is_array($row) === false) {
+            return null;
+        }
+
+        $rounds = [];
+        if (json_validate($row['rounds'])) {
+            /** @var array<string> $rounds */
+            $rounds = json_decode($row['rounds'], true);
+        }
+
+        return new WjpcParticipantInfo(
+            participantId: $row['participant_id'],
+            wjpcName: $row['wjpc_name'],
+            rank2023: $row['rank_2023'],
+            rounds: $rounds,
+        );
     }
 }

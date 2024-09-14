@@ -111,6 +111,15 @@ SQL;
         }
 
         $query = <<<SQL
+WITH solved_counts AS (
+    SELECT
+        puzzle_id,
+        COUNT(id) AS solved_times
+    FROM puzzle_solving_time
+    WHERE team IS NULL
+      AND player_id = :playerId
+    GROUP BY puzzle_id
+)
 SELECT
     puzzle_solving_time.id as time_id,
     puzzle.id AS puzzle_id,
@@ -128,15 +137,17 @@ SELECT
     finished_at,
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
-    first_attempt
+    first_attempt,
+    solved_counts.solved_times AS solved_times
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.team IS NULL
-ORDER BY seconds_to_solve ASC
+ORDER BY seconds_to_solve
 SQL;
 
         $data = $this->database
@@ -165,6 +176,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     solved_times: int,
              * } $row
              */
 

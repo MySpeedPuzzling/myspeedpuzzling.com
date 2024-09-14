@@ -75,6 +75,7 @@ final class GetPlayerResultsController extends AbstractController
             'time' => $this->puzzlingTimeFormatter->formatTime($result->time),
             'ppm' => $ppm,
             'first_attempt' => $result->firstAttempt,
+            'puzzle_id' => $result->puzzleId,
             'puzzle_name' => $result->puzzleName,
             'puzzle_pieces' => $result->piecesCount,
             'puzzle_image' => $result->puzzleImage,

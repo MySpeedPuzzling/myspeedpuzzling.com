@@ -72,6 +72,30 @@ SQL;
     }
 
     /**
+     * @return array<string>
+     */
+    public function getConnectedParticipantsWithoutRemoteId(): array
+    {
+        $query = <<<SQL
+SELECT 
+    wjpc_participant.id AS participant_id
+FROM 
+    wjpc_participant
+INNER JOIN 
+    player ON player.id = wjpc_participant.player_id
+WHERE 
+    wjpc_participant.player_id IS NOT NULL AND wjpc_participant.remote_id IS NULL
+SQL;
+
+        /** @var array<string> $participants */
+        $participants = $this->database
+            ->executeQuery($query)
+            ->fetchFirstColumn();
+
+        return $participants;
+    }
+
+    /**
      * @return array<ConnectedWjpcParticipant>
      */
     public function getConnectedParticipants(): array

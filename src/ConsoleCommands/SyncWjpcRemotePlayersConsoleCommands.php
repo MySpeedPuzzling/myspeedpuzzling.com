@@ -42,11 +42,11 @@ final class SyncWjpcRemotePlayersConsoleCommands extends Command
         }
 
         if ($participantId === null) {
-            $connectedParticipants = $this->getWjpcParticipants->getConnectedParticipants();
+            $notSyncedParticipants = $this->getWjpcParticipants->getConnectedParticipantsWithoutRemoteId();
 
-            foreach ($connectedParticipants as $participant) {
+            foreach ($notSyncedParticipants as $participantId) {
                 $this->messageBus->dispatch(
-                    new UpdateWjpcPlayerId($participant->participantId),
+                    new UpdateWjpcPlayerId($participantId),
                 );
             }
         }

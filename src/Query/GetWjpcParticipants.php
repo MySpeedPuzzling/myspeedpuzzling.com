@@ -91,7 +91,7 @@ FROM
 INNER JOIN 
     player ON player.id = wjpc_participant.player_id
 WHERE 
-    wjpc_participant.player_id IS NOT NULL AND wjpc_participant.remote_id IS NULL;
+    wjpc_participant.player_id IS NOT NULL
 SQL;
 
         $participants = $this->database

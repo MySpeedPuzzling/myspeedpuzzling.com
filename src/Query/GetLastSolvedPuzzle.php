@@ -13,6 +13,7 @@ readonly final class GetLastSolvedPuzzle
 {
     public function __construct(
         private Connection $database,
+        private GetTeamPlayers $getTeamPlayers,
     ) {
     }
 
@@ -161,7 +162,14 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): SolvedPuzzle {
+
+        // TODO: optimize, filter out rows without teams
+        /** @var array<string> $timeIds */
+        $timeIds = array_column($data, 'time_id');
+
+        $players = $this->getTeamPlayers->byIds($timeIds);
+
+        return array_map(static function(array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -179,12 +187,13 @@ SQL;
              *     tracked_at: string,
              *     finished_puzzle_photo: null|string,
              *     team_id: null|string,
-             *     players: null|string,
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
              * } $row
              */
+
+            $row['players'] = $players[$row['time_id']] ?? null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);

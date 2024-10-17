@@ -53,7 +53,7 @@ readonly final class SolvedPuzzle
      *     finished_puzzle_photo: null|string,
      *     puzzle_identification_number: null|string,
      *     team_id?: null|string,
-     *     players?: null|string,
+     *     players?: null|string|array<Puzzler>,
      *     solved_times?: int,
      *     finished_at: string,
      *     first_attempt: bool,
@@ -62,6 +62,11 @@ readonly final class SolvedPuzzle
     public static function fromDatabaseRow(array $row): self
     {
         $players = null;
+
+        if (is_array($row['players'] ?? null)) {
+            $players = $row['players'];
+        }
+
         if (is_string($row['players'] ?? null)) {
             $players = Puzzler::createPuzzlersFromJson($row['players']);
         }

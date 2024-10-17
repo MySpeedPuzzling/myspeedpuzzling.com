@@ -16,6 +16,25 @@ readonly final class Puzzler
     ) {
     }
 
+
+    /**
+     * @param array{
+     *     player_id: null|string,
+     *     player_name: null|string,
+     *     player_code: null|string,
+     *     player_country: null|string,
+     * } $row
+     */
+    public static function fromDatabaseRow(array $row): self
+    {
+        return new self(
+            playerId: $row['player_id'],
+            playerName: $row['player_name'] ?? '',
+            playerCode: $row['player_code'],
+            playerCountry: CountryCode::fromCode($row['player_country']),
+        );
+    }
+
     /**
      * @return array<self>
      */

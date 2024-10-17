@@ -133,25 +133,12 @@ SELECT
     finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
-    first_attempt,
-    CASE
-        WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
-            JSON_BUILD_OBJECT(
-                'player_id', player_elem.player ->> 'player_id',
-                'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-                'player_country', p.country
-            ) ORDER BY player_elem.ordinality
-        )
-    END AS players
+    first_attempt
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) ON true
-LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-WHERE
-    player.name IS NOT NULL
-GROUP BY puzzle_solving_time.id, puzzle.id, manufacturer.id, time, player.id
+WHERE player.name IS NOT NULL
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;

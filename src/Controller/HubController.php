@@ -42,7 +42,7 @@ final class HubController extends AbstractController
 
         if ($playerProfile !== null) {
             $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
-            $favoritesSolvedPuzzle = $this->getLastSolvedPuzzle->ofPlayers(20, $playerProfile->playerId);
+            $favoritesSolvedPuzzle = $this->getLastSolvedPuzzle->ofPlayerFavorites(20, $playerProfile->playerId);
         }
 
         $thisMonth = (int) date("m");

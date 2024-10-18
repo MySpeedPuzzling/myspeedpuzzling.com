@@ -15,6 +15,7 @@ readonly final class GetPlayerSolvedPuzzles
 {
     public function __construct(
         private Connection $database,
+        private GetTeamPlayers $getTeamPlayers,
     ) {
     }
 
@@ -194,6 +195,13 @@ SQL;
         }
 
         $query = <<<SQL
+WITH filtered_pst_ids AS (
+    SELECT id
+    FROM puzzle_solving_time
+    WHERE
+        (team::jsonb -> 'puzzlers') @> '[{"player_id": ":playerId"}]'
+        AND json_array_length(team -> 'puzzlers') = 2
+)
 SELECT
     pst.id as time_id,
     puzzle.id AS puzzle_id,
@@ -210,29 +218,12 @@ SELECT
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
-    first_attempt,
-    JSON_AGG(
-        JSON_BUILD_OBJECT(
-            'player_id', player_elem.player ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-            'player_country', p.country
-        ) ORDER BY player_elem.ordinality
-    ) AS players
-FROM puzzle_solving_time pst
+    first_attempt
+FROM filtered_pst_ids fids
+INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
-LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
-LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-WHERE
-    EXISTS (
-        SELECT 1
-        FROM json_array_elements(pst.team -> 'puzzlers') AS sub_player_elem
-        WHERE (sub_player_elem ->> 'player_id')::UUID = :playerId::UUID
-    )
-    AND json_array_length(team -> 'puzzlers') = 2
-GROUP BY
-    pst.id, puzzle.id, manufacturer.id, time
-ORDER BY time ASC
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+ORDER BY pst.seconds_to_solve ASC
 SQL;
 
         $data = $this->database
@@ -241,7 +232,12 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): SolvedPuzzle {
+        /** @var array<string> $timeIds */
+        $timeIds = array_column($data, 'time_id');
+
+        $players = $this->getTeamPlayers->byIds($timeIds);
+
+        return array_map(static function(array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -257,7 +253,6 @@ SQL;
              *     time: int,
              *     pieces_count: int,
              *     comment: null|string,
-             *     players: string,
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
@@ -268,6 +263,7 @@ SQL;
 
             $row['player_name'] = null;
             $row['player_country'] = null;
+            $row['players'] = $players[$row['time_id']] ?? null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);
@@ -283,6 +279,13 @@ SQL;
         }
 
         $query = <<<SQL
+WITH filtered_pst_ids AS (
+    SELECT id
+    FROM puzzle_solving_time
+    WHERE
+        (team::jsonb -> 'puzzlers') @> '[{"player_id": ":playerId"}]'
+        AND json_array_length(team -> 'puzzlers') > 2
+)
 SELECT
     pst.id as time_id,
     puzzle.id AS puzzle_id,
@@ -299,29 +302,12 @@ SELECT
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
-    first_attempt,
-    JSON_AGG(
-        JSON_BUILD_OBJECT(
-            'player_id', player_elem.player ->> 'player_id',
-            'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-            'player_country', p.country
-        ) ORDER BY player_elem.ordinality
-    ) AS players
-FROM puzzle_solving_time pst
+    first_attempt
+FROM filtered_pst_ids fids
+INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
-LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
-LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-WHERE
-    EXISTS (
-        SELECT 1
-        FROM json_array_elements(pst.team -> 'puzzlers') AS sub_player_elem
-        WHERE (sub_player_elem ->> 'player_id')::UUID = :playerId::UUID
-    )
-    AND json_array_length(team -> 'puzzlers') > 2
-GROUP BY
-    pst.id, puzzle.id, manufacturer.id, time
-ORDER BY time ASC
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+ORDER BY pst.seconds_to_solve ASC
 SQL;
 
         $data = $this->database
@@ -330,7 +316,12 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): SolvedPuzzle {
+        /** @var array<string> $timeIds */
+        $timeIds = array_column($data, 'time_id');
+
+        $players = $this->getTeamPlayers->byIds($timeIds);
+
+        return array_map(static function(array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -346,7 +337,6 @@ SQL;
              *     time: int,
              *     pieces_count: int,
              *     comment: null|string,
-             *     players: string,
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
@@ -357,6 +347,7 @@ SQL;
 
             $row['player_name'] = null;
             $row['player_country'] = null;
+            $row['players'] = $players[$row['time_id']] ?? null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);

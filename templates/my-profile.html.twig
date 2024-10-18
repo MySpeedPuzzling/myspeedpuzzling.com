@@ -8,7 +8,7 @@
             <h1>
                 {{ 'my_profile.title'|trans }} <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code>
 
-                {% if wjpc_participant is defined %}
+                {% if wjpc_participant %}
                     <span class="d-block mt-1" style="line-height: 10px;">
                         <img src="{{ asset('img/wjpc.jpg') }}" alt="WJPF logo" style="height: 20px;" class="float-start me-1">
                         <small class="text-muted fs-sm fw-normal">{{ 'wjpc_participant'|trans({'%name%': wjpc_participant.wjpcName }) }}</small>

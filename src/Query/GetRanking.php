@@ -28,45 +28,58 @@ readonly final class GetRanking
         }
 
         $query = <<<SQL
-WITH BestTimes AS (
-    SELECT
-        puzzle_id,
-        player_id,
-        MIN(seconds_to_solve) as best_time
+WITH PlayerPuzzles AS (
+    SELECT DISTINCT
+        puzzle_id
     FROM
         puzzle_solving_time
-    WHERE team IS NULL
+    WHERE
+        player_id = :playerId AND
+        team IS NULL
+),
+BestTimes AS (
+    SELECT
+        pst.puzzle_id,
+        pst.player_id,
+        MIN(pst.seconds_to_solve) AS best_time
+    FROM
+        puzzle_solving_time pst
+        INNER JOIN PlayerPuzzles pp ON pst.puzzle_id = pp.puzzle_id
+    WHERE
+        pst.team IS NULL
     GROUP BY
-        puzzle_id, player_id
+        pst.puzzle_id, pst.player_id
 ),
 RankedTimes AS (
+    -- Compute ranks and total players for each puzzle
     SELECT
-        puzzle_id,
-        player_id,
-        best_time,
-        RANK() OVER (PARTITION BY puzzle_id ORDER BY best_time ASC) as rank,
-        COUNT(player_id) OVER (PARTITION BY puzzle_id) as total_players
+        bt.puzzle_id,
+        bt.player_id,
+        bt.best_time,
+        RANK() OVER (PARTITION BY bt.puzzle_id ORDER BY bt.best_time ASC) AS rank,
+        COUNT(bt.player_id) OVER (PARTITION BY bt.puzzle_id) AS total_players
     FROM
-        BestTimes
+        BestTimes bt
 )
 SELECT
-    player_id,
-    rank,
-    total_players,
-    best_time AS time,
-    puzzle.id AS puzzle_id,
-    puzzle.name AS puzzle_name,
-    puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.pieces_count,
-    puzzle.image AS puzzle_image,
-    manufacturer.name AS manufacturer_name
+    rt.player_id,
+    rt.rank,
+    rt.total_players,
+    rt.best_time AS time,
+    p.id AS puzzle_id,
+    p.name AS puzzle_name,
+    p.alternative_name AS puzzle_alternative_name,
+    p.pieces_count,
+    p.image AS puzzle_image,
+    m.name AS manufacturer_name
 FROM
-    RankedTimes
-INNER JOIN puzzle ON puzzle.id = RankedTimes.puzzle_id
-INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    RankedTimes rt
+    INNER JOIN puzzle p ON p.id = rt.puzzle_id
+    INNER JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE
-    player_id = :playerId
-ORDER BY rank
+    rt.player_id = :playerId
+ORDER BY
+    rt.rank
 SQL;
 
         $data = $this->database

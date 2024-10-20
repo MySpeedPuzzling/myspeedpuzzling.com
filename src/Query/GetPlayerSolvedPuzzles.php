@@ -199,7 +199,7 @@ WITH filtered_pst_ids AS (
     SELECT id
     FROM puzzle_solving_time
     WHERE
-        (team::jsonb -> 'puzzlers') @> '[{"player_id": ":playerId"}]'
+        (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
         AND json_array_length(team -> 'puzzlers') = 2
 )
 SELECT
@@ -283,7 +283,7 @@ WITH filtered_pst_ids AS (
     SELECT id
     FROM puzzle_solving_time
     WHERE
-        (team::jsonb -> 'puzzlers') @> '[{"player_id": ":playerId"}]'
+        (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
         AND json_array_length(team -> 'puzzlers') > 2
 )
 SELECT

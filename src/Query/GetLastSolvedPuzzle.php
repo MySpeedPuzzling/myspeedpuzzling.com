@@ -52,7 +52,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE
-    (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> '[{"player_id": ":playerId"}]')
+    (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;

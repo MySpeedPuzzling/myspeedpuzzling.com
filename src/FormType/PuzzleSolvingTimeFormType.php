@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -43,12 +44,18 @@ final class PuzzleSolvingTimeFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         // Must not be null - solving time is allowed only to logged-in users
         assert($userProfile !== null);
 
+        /** @var null|PuzzleOverview $activePuzzle */
+        $activePuzzle = $options['active_puzzle'];
+
+        $extraManufacturerId = $activePuzzle?->manufacturerId;
+
         $brandChoices = [];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId) as $manufacturer) {
+        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId, $extraManufacturerId) as $manufacturer) {
             $brandChoices[] = [
                 'value' => $manufacturer->manufacturerId,
                 'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
@@ -192,6 +199,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => PuzzleSolvingTimeFormData::class,
+            'active_puzzle' => null,
         ]);
     }
 

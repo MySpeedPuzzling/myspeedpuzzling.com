@@ -99,7 +99,9 @@ final class AddTimeController extends AbstractController
             }
         }
 
-        $addTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $data);
+        $addTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $data, [
+            'active_puzzle' => $activePuzzle,
+        ]);
         $addTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $addTimeForm->isSubmitted() && $addTimeForm->isValid()) {

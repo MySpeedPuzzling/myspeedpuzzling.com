@@ -17,7 +17,7 @@ readonly final class GetManufacturers
     /**
      * @return array<ManufacturerOverview>
      */
-    public function onlyApprovedOrAddedByPlayer(null|string $playerId = null): array
+    public function onlyApprovedOrAddedByPlayer(null|string $playerId = null, null|string $extraManufacturerId = null): array
     {
         $query = <<<SQL
 SELECT
@@ -27,7 +27,7 @@ SELECT
     COUNT(puzzle.id) AS puzzles_count
 FROM manufacturer
 LEFT JOIN puzzle ON puzzle.manufacturer_id = manufacturer.id
-WHERE (manufacturer.approved = true OR manufacturer.added_by_user_id = :playerId)
+WHERE (manufacturer.approved = true OR manufacturer.added_by_user_id = :playerId OR manufacturer.id = :extraManufacturerId)
 GROUP BY manufacturer.id
 ORDER BY COUNT(puzzle.id) DESC, manufacturer.name ASC
 SQL;
@@ -35,6 +35,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'extraManufacturerId' => $extraManufacturerId,
             ])
             ->fetchAllAssociative();
 

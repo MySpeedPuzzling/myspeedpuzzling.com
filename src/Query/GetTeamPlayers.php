@@ -58,7 +58,7 @@ SQL;
              * } $row
              */
 
-            if ($row['player_code'] === null) {
+            if ($row['player_name'] === null) {
                 continue;
             }
 

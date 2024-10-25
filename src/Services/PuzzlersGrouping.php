@@ -59,14 +59,12 @@ readonly final class PuzzlersGrouping
 
     private function getPuzzlerFromUserInput(string $playerCodeOrName): Puzzler
     {
-        $isRegisteredPlayer = str_starts_with($playerCodeOrName, '#');
-
         // Can start with hashtag and contains space on the end
         $playerCodeOrName = trim($playerCodeOrName, "\# \t\n\r\0");
 
         try {
             // Do not look up for players when not starting with #
-            if ($isRegisteredPlayer === true) {
+            if (str_starts_with($playerCodeOrName, '#') === false) {
                 throw new PlayerNotFound();
             }
 

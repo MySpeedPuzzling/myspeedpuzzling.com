@@ -50,6 +50,18 @@
             "migrations/.gitignore"
         ]
     },
+    "intervention/image-symfony": {
+        "version": "1.1",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "1.0",
+            "ref": "110ca861597ba48dca940221bf37dcc6ad9641ae"
+        },
+        "files": [
+            "config/packages/intervention_image.yaml"
+        ]
+    },
     "knplabs/knp-time-bundle": {
         "version": "v2.2.0"
     },
@@ -327,8 +339,32 @@
             "config/routes/ux_autocomplete.yaml"
         ]
     },
+    "symfony/ux-live-component": {
+        "version": "2.21",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.6",
+            "ref": "73e69baf18f47740d6f58688c5464b10cdacae06"
+        },
+        "files": [
+            "config/routes/ux_live_component.yaml"
+        ]
+    },
     "symfony/ux-turbo": {
         "version": "v2.6.1"
+    },
+    "symfony/ux-twig-component": {
+        "version": "2.21",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "2.13",
+            "ref": "67814b5f9794798b885cec9d3f48631424449a01"
+        },
+        "files": [
+            "config/packages/twig_component.yaml"
+        ]
     },
     "symfony/validator": {
         "version": "6.2",

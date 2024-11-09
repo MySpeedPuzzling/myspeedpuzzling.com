@@ -30,7 +30,6 @@ SELECT
     puzzle.approved AS puzzle_approved,
     manufacturer.name AS manufacturer_name,
     manufacturer.id AS manufacturer_id,
-    remote_puzzle_puzzle_url,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
     COUNT(puzzle_solving_time.id) AS solved_times,
@@ -79,7 +78,6 @@ SQL;
              *     is_available: bool,
              *     puzzle_ean: null|string,
              *     puzzle_identification_number: null|string,
-             *     remote_puzzle_puzzle_url: null|string,
              * } $row
              */
 

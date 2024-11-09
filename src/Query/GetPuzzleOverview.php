@@ -39,7 +39,6 @@ SELECT
     puzzle.approved AS puzzle_approved,
     manufacturer.id AS manufacturer_id,
     manufacturer.name AS manufacturer_name,
-    remote_puzzle_puzzle_url,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
     COUNT(puzzle_solving_time.id) AS solved_times,
@@ -76,7 +75,6 @@ SQL;
          *     is_available: bool,
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
-         *     remote_puzzle_puzzle_url: null|string,
          * } $row
          */
         $row = $this->database
@@ -114,7 +112,6 @@ SELECT
     manufacturer.name AS manufacturer_name,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
-    remote_puzzle_puzzle_url,
     COUNT(puzzle_solving_time.id) AS solved_times,
     AVG(CASE WHEN team IS NULL THEN seconds_to_solve END) AS average_time_solo,
     MIN(CASE WHEN team IS NULL THEN seconds_to_solve END) AS fastest_time_solo,
@@ -149,7 +146,6 @@ SQL;
          *     is_available: bool,
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
-         *     remote_puzzle_puzzle_url: null|string,
          * } $row
          */
         $row = $this->database

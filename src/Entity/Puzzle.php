@@ -59,15 +59,6 @@ class Puzzle
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public bool $isAvailable = false,
-
-        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(nullable: true)]
-        public null|string $remotePuzzlePuzzleUrl = null,
     ) {
-    }
-
-    public function changePuzzlePuzzleUrl(null|string $url): void
-    {
-        $this->remotePuzzlePuzzleUrl = $url;
     }
 }

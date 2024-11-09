@@ -25,7 +25,6 @@ readonly final class PuzzleOverview
         public bool $isAvailable,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
-        public null|string $remotePuzzlePuzzleUrl,
     ) {
     }
 
@@ -49,7 +48,6 @@ readonly final class PuzzleOverview
      *     is_available: bool,
      *     puzzle_ean: null|string,
      *     puzzle_identification_number: null|string,
-     *     remote_puzzle_puzzle_url: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -73,7 +71,6 @@ readonly final class PuzzleOverview
             isAvailable: $row['is_available'],
             puzzleEan: $row['puzzle_ean'],
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
-            remotePuzzlePuzzleUrl: $row['remote_puzzle_puzzle_url'],
         );
     }
 }

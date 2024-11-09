@@ -77,13 +77,6 @@
                         <i class="ci-view-list"></i> {{ 'add_to_collection'|trans }}
                     </a>
                 {% endif %}
-
-                {% if app.request.locale is same as 'cs' and puzzle.remotePuzzlePuzzleUrl %}
-                    <a href="{{ puzzle.remotePuzzlePuzzleUrl }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                        <i class="ci-cart"></i>
-                        Koupit na puzzle-puzzle.cz
-                    </a>
-                {% endif %}
             </div>
         </div>
 

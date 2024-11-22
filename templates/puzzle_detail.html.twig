@@ -135,28 +135,43 @@
 
     <!-- Tabs content -->
     <div class="tab-content">
-        <div class="tab-pane fade {{ solo_puzzle_solvers|length > 0 ? 'show active' }}" id="solo" role="tabpanel" {{ stimulus_controller('toggle') }}>
+        <div class="tab-pane fade {{ solo_puzzle_solvers|length > 0 ? 'show active' }}" id="solo" role="tabpanel" data-controller="toggle first-attempts-toggle">
 
             {% if puzzle.solvedTimes > 0 %}
-                <table class="mb-3 table-times-overview">
-                    {% if ranking[puzzle.puzzleId] is defined %}
-                        <tr>
-                            <td>
-                                <strong>{{ 'my_time'|trans }}</strong>
-                            </td>
-                            <td class="text-end"><strong>{{ ranking[puzzle.puzzleId].time|puzzlingTime }}</strong></td>
-                        </tr>
-                    {% endif %}
+                <div class="row">
+                    <div class="col-6">
+                        <table class="mb-3 table-times-overview">
+                            {% if ranking[puzzle.puzzleId] is defined %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ 'my_time'|trans }}</strong>
+                                    </td>
+                                    <td class="text-end"><strong>{{ ranking[puzzle.puzzleId].time|puzzlingTime }}</strong></td>
+                                </tr>
+                            {% endif %}
 
-                    <tr>
-                        <td>{{ 'fastest_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.fastestTimeSolo|puzzlingTime }}</td>
-                    </tr>
-                    <tr>
-                        <td>{{ 'average_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.averageTimeSolo|puzzlingTime }}</td>
-                    </tr>
-                </table>
+                            <tr>
+                                <td>{{ 'fastest_time'|trans }}</td>
+                                <td>{{ puzzle.fastestTimeSolo|puzzlingTime }}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ 'average_time'|trans }}</td>
+                                <td>{{ puzzle.averageTimeSolo|puzzlingTime }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-6">
+                        <div class="form-switch">
+                            <div class="form-check mb-0">
+                                <input type="checkbox" class="form-check-input" data-action="first-attempts-toggle#toggle" id="solo-first-attempts-toggle">
+                                <label class="form-check-label" for="solo-first-attempts-toggle">
+                                    Only 1st tries
+                                    <span class="form-text mt-0 help-text"><br>(or the oldest one)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             {% endif %}
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
@@ -171,7 +186,7 @@
                     <tbody>
                     {% for player_id, aggregated_solver in solo_puzzle_solvers %}
                         <tr class="{{ logged_user.profile is not null and player_id is same as logged_user.profile.playerId ? 'table-active-player' }}">
-                            <td class="rank">{{ loop.index }}.</td>
+                            <td class="rank" style="width: 1px;">{{ loop.index }}.</td>
                             <td class="player-name">
                                 <a href="{{ path('player_profile', {playerId: player_id}) }}">
                                     {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
@@ -183,50 +198,65 @@
                                 {% endif %}
                             </td>
                             <td class="text-end with-ppm">
-                                {{ aggregated_solver[0].time|puzzlingTime }}
-                                <br>
-                                <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
-                                <br>
-                                <small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
+                                <div class="d-none" data-first-attempts-toggle-target="firstAttempt">
+                                    {% for solving_time in aggregated_solver %}
+                                        {% if solving_time.firstAttempt or solving_time.isOldest %}
+                                            {{ solving_time.time|puzzlingTime }}
+                                            <br>
+                                            <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                            <br>
+                                            <small><span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}</small>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
 
-                                {% if aggregated_solver[0].firstAttempt %}
+                                <div data-first-attempts-toggle-target="allAttempts">
+                                    {{ aggregated_solver[0].time|puzzlingTime }}
                                     <br>
-                                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                                {% endif %}
-
-                                {% if aggregated_solver|length > 1 %}
+                                    <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
                                     <br>
-                                    <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'solo' ~ loop.index})}}>
-                                        <span class="badge bg-dark badge-shadow rounded-pill">
-                                            {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
-                                        </span>
-                                    </a>
+                                    <small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, puzzle.piecesCount) }}</small>
 
-                                    <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'solo' ~ loop.index) }}>
-                                        {% for solving_time in aggregated_solver %}
-                                            {% if not loop.first %}
-                                                <span class="d-inline-block mt-1">
-                                                    {{ solving_time.time|puzzlingTime }}
-                                                    <br>
-                                                    <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
-                                                    <br>
-                                                    <small>
-                                                        <span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}
-                                                    </small>
+                                    {% if aggregated_solver[0].firstAttempt %}
+                                        <br>
+                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                    {% endif %}
 
-                                                    {% if solving_time.firstAttempt %}
+                                    {% if aggregated_solver|length > 1 %}
+                                        <br>
+                                        <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'solo' ~ loop.index})}}>
+                                            <span class="badge bg-dark badge-shadow rounded-pill">
+                                                {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
+                                            </span>
+                                        </a>
+
+                                        <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'solo' ~ loop.index) }}>
+                                            {% for solving_time in aggregated_solver %}
+                                                {% if not loop.first %}
+                                                    <span class="d-inline-block mt-1">
+                                                        {{ solving_time.time|puzzlingTime }}
                                                         <br>
-                                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
-                                                    {% endif %}
-                                                </span>
+                                                        <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                        <br>
+                                                        <small>
+                                                            <span class="text-muted">PPM</span> {{ ppm(solving_time.time, puzzle.piecesCount) }}
+                                                        </small>
 
-                                                {% if not loop.last %}
-                                                    <br>
+                                                        {% if solving_time.firstAttempt %}
+                                                            <br>
+                                                            <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                                        {% endif %}
+                                                    </span>
+
+                                                    {% if not loop.last %}
+                                                        <br>
+                                                    {% endif %}
                                                 {% endif %}
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
                             </td>
                         </tr>
                     {% endfor %}
@@ -245,11 +275,11 @@
                 <table class="mb-3 table-times-overview">
                     <tr>
                         <td>{{ 'fastest_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.fastestTimeDuo|puzzlingTime }}</td>
+                        <td>{{ puzzle.fastestTimeDuo|puzzlingTime }}</td>
                     </tr>
                     <tr>
                         <td>{{ 'average_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.averageTimeDuo|puzzlingTime }}</td>
+                        <td>{{ puzzle.averageTimeDuo|puzzlingTime }}</td>
                     </tr>
                 </table>
             {% endif %}
@@ -351,11 +381,11 @@
                 <table class="mb-3 table-times-overview">
                     <tr>
                         <td>{{ 'fastest_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.fastestTimeTeam|puzzlingTime }}</td>
+                        <td>{{ puzzle.fastestTimeTeam|puzzlingTime }}</td>
                     </tr>
                     <tr>
                         <td>{{ 'average_time'|trans }}</td>
-                        <td class="text-end">{{ puzzle.averageTimeTeam|puzzlingTime }}</td>
+                        <td>{{ puzzle.averageTimeTeam|puzzlingTime }}</td>
                     </tr>
                 </table>
             {% endif %}

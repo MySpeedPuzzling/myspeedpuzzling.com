@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
@@ -47,12 +48,27 @@ readonly final class PuzzlesSorter
     public function groupPlayers(array $solvedPuzzles): array
     {
         $grouped = [];
+        /** @var array<string, DateTimeImmutable> $oldest */
+        $oldest = [];
+        $oldestTimes = [];
+        /** @var array<string, bool> $withFirstAttempt */
+        $withFirstAttempt = [];
 
         foreach ($solvedPuzzles as $solvedPuzzle) {
             if ($solvedPuzzle instanceof PuzzleSolversGroup) {
                 $playersIdentification = $this->calculatePlayersIdentification($solvedPuzzle);
             } else {
                 $playersIdentification = $solvedPuzzle->playerId;
+                $currentlyOldest = $oldest[$solvedPuzzle->playerId] ?? null;
+
+                if ($currentlyOldest === null || $currentlyOldest->getTimestamp() > $solvedPuzzle->finishedAt->getTimestamp()) {
+                    $oldest[$playersIdentification] = $solvedPuzzle->finishedAt;
+                    $oldestTimes[$playersIdentification] = $solvedPuzzle->timeId;
+                }
+
+                if ($solvedPuzzle->firstAttempt === true) {
+                    $withFirstAttempt[$playersIdentification] = true;
+                }
             }
 
             $grouped[$playersIdentification][] = $solvedPuzzle;
@@ -71,6 +87,20 @@ readonly final class PuzzlesSorter
 
             // Update the group with the sorted puzzles
             $grouped[$identification] = $puzzles;
+        }
+
+        foreach ($grouped as $identification => $puzzles) {
+            $oldestId = $oldestTimes[$identification] ?? null;
+            $hasFirstAttempt = $withFirstAttempt[$identification] ?? false;
+
+            if ($hasFirstAttempt === false && $oldestId !== null) {
+                foreach ($puzzles as $index => $solvingTime) {
+                    if ($solvingTime instanceof PuzzleSolver && $oldestId === $solvingTime->timeId) {
+                        $grouped[$identification][$index] = $solvingTime->makeOldest();
+                        break;
+                    }
+                }
+            }
         }
 
         return $grouped;

@@ -73,7 +73,6 @@ jobs:
                     host: myspeedpuzzling.com
                     username: ${{ secrets.DEPLOY_USERNAME }}
                     key: ${{ secrets.DEPLOY_PRIVATE_KEY }}
-                    script_stop: true
                     script: cd /deployment/speedpuzzling && ./deploy.sh
 
             -   name: Create Sentry release

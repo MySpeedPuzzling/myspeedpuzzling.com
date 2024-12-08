@@ -35,7 +35,7 @@ readonly final class SolvingTime
 
     public function calculatePpm(int $pieces, int $puzzlersCount = 1): float
     {
-        if ($this->seconds === null) {
+        if ($this->seconds === null || $pieces === 0) {
             return 0;
         }
 

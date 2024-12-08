@@ -6,6 +6,7 @@ use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
 use Monolog\Processor\PsrLogMessageProcessor;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
+use Stripe\StripeClient;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
@@ -87,5 +88,10 @@ return static function(ContainerConfigurator $configurator): void
         ->args([
             '$adapter' => service('oneup_flysystem.minio_adapter'),
             '$cachePool' => service('cache.flysystem.psr6'),
+        ]);
+
+    $services->set(StripeClient::class)
+        ->args([
+            env('STRIPE_API_KEY'),
         ]);
 };

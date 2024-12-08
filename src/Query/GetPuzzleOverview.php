@@ -122,7 +122,7 @@ SELECT
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-WHERE puzzle.id = :puzzleId
+WHERE puzzle.id = :puzzleId AND seconds_to_solve > 0
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 SQL;
 

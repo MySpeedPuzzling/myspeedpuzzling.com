@@ -54,6 +54,7 @@ LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINAL
 LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE puzzle.pieces_count = :piecesCount
     AND puzzle_solving_time.team IS NOT NULL
+    AND seconds_to_solve > 0
     AND json_array_length(team -> 'puzzlers') = 2
 GROUP BY puzzle.id, player.id, manufacturer.id, puzzle_solving_time.id
 ORDER BY time ASC

@@ -37,7 +37,7 @@ readonly final class SolvingTime
     {
         $puzzlersCount = max(1, $puzzlersCount);
 
-        if ($this->seconds === null || $pieces === 0) {
+        if ($this->seconds === null || $this->seconds === 0 || $pieces === 0) {
             return 0;
         }
 

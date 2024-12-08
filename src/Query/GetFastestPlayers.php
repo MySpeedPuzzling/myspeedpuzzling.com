@@ -28,7 +28,7 @@ WITH FastestTimes AS (
     FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON player.id = puzzle_solving_time.player_id
-    WHERE team IS NULL AND puzzle.pieces_count = :piecesCount AND player.name IS NOT NULL
+    WHERE team IS NULL AND puzzle.pieces_count = :piecesCount AND player.name IS NOT NULL AND seconds_to_solve > 0
     GROUP BY player_id, puzzle_id
     ORDER BY min_seconds_to_solve
     LIMIT :limit

@@ -160,6 +160,7 @@ forms:
     save: "Save"
     required_field: "This field is required!"
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
+    too_high_ppm: "Please check the time you entered, there is no way you can solve the puzzle that fast! :-) The time should be entered in HH:MM:SS format. The time you entered would be a new world record! :-)"
     name_help: "Under this name you will assemble puzzles and it will be visible to all community members."
     email_help: "Your email is private, not displayed anywhere and is only used in case the administrator needs to contact you."
     location_help: "The place, you currently live at (optional)."

@@ -8,10 +8,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -37,17 +37,29 @@ readonly final class AddPuzzleSolvingTimeHandler
     /**
      * @throws CouldNotGenerateUniqueCode
      * @throws CanNotAssembleEmptyGroup
+     * @throws SuspiciousPpm
      */
     public function __invoke(AddPuzzleSolvingTime $message): void
     {
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
         $player = $this->playerRepository->getByUserIdCreateIfNotExists($message->userId);
         $group = $this->puzzlersGrouping->assembleGroup($player, $message->groupPlayers);
-
         $solvingTimeId = $message->timeId;
         $finishedPuzzlePhotoPath = null;
         $trackedAt = $this->clock->now();
         $finishedAt = $message->finishedAt ?? $trackedAt;
+        $solvingTime = SolvingTime::fromUserInput($message->time);
+        $puzzlersCount = 1;
+
+        if ($group !== null) {
+            $puzzlersCount = count($group->puzzlers);
+        }
+
+        $ppm = $solvingTime->calculatePpm($puzzle->piecesCount, $puzzlersCount);
+
+        if ($ppm >= 50) {
+            throw new SuspiciousPpm($solvingTime, $ppm);
+        }
 
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
@@ -69,7 +81,7 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         $solvingTime = new PuzzleSolvingTime(
             $solvingTimeId,
-            SolvingTime::fromUserInput($message->time)->seconds,
+            $solvingTime->seconds,
             $player,
             $puzzle,
             $trackedAt,

@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\PuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
@@ -37,6 +39,7 @@ final class AddTimeController extends AbstractController
         readonly private PuzzlingTimeFormatter $timeFormatter,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private LoggerInterface $logger,
     ) {
     }
 
@@ -154,6 +157,14 @@ final class AddTimeController extends AbstractController
                 if ($realException instanceof CanNotAssembleEmptyGroup) {
                     $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
                 }
+
+                if ($realException instanceof SuspiciousPpm) {
+                    $addTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
+                }
+
+                $this->logger->warning('Puzzle time could not be added', [
+                    'exception' => $exception,
+                ]);
             }
         }
 

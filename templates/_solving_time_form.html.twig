@@ -86,7 +86,7 @@
                     <div class="col-sm mb-3">
                         {{ form_label(solving_time_form.finishedAt) }}
                         <div class="input-group">
-                            {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "locale": "' ~ app.request.locale ~ '", "maxDate": "today"}'}}) }}
+                            {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
                             <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
                         </div>
                         {{ form_help(solving_time_form.finishedAt) }}

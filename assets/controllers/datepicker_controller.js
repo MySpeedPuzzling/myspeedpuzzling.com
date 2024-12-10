@@ -7,6 +7,15 @@ import 'flatpickr/dist/flatpickr.min.css'
 
 export default class extends Controller {
     connect() {
+        const lang = document.documentElement.lang;
+
+        if (lang === 'cs') {
+            flatpickr.localize(flatpickr.l10ns.cs);
+        } else {
+            flatpickr.localize(flatpickr.l10ns.en);
+            flatpickr.l10ns.default.firstDayOfWeek = 1;
+        }
+
         let picker = document.querySelectorAll('.date-picker');
 
         if (picker.length === 0) return;

@@ -42,12 +42,12 @@ SELECT
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
     COUNT(puzzle_solving_time.id) AS solved_times,
-    AVG(CASE WHEN team IS NULL THEN seconds_to_solve END) AS average_time_solo,
-    MIN(CASE WHEN team IS NULL THEN seconds_to_solve END) AS fastest_time_solo,
-    AVG(CASE WHEN json_array_length(team->'puzzlers') = 2 THEN seconds_to_solve END) AS average_time_duo,
-    MIN(CASE WHEN json_array_length(team->'puzzlers') = 2 THEN seconds_to_solve END) AS fastest_time_duo,
-    AVG(CASE WHEN json_array_length(team->'puzzlers') > 2 THEN seconds_to_solve END) AS average_time_team,
-    MIN(CASE WHEN json_array_length(team->'puzzlers') > 2 THEN seconds_to_solve END) AS fastest_time_team
+    AVG(CASE WHEN team IS NULL AND seconds_to_solve > 0 THEN seconds_to_solve END) AS average_time_solo,
+    MIN(CASE WHEN team IS NULL AND seconds_to_solve > 0 THEN seconds_to_solve END) AS fastest_time_solo,
+    AVG(CASE WHEN json_array_length(team->'puzzlers') = 2 AND seconds_to_solve > 0 THEN seconds_to_solve END) AS average_time_duo,
+    MIN(CASE WHEN json_array_length(team->'puzzlers') = 2 AND seconds_to_solve > 0 THEN seconds_to_solve END) AS fastest_time_duo,
+    AVG(CASE WHEN json_array_length(team->'puzzlers') > 2 AND seconds_to_solve > 0 THEN seconds_to_solve END) AS average_time_team,
+    MIN(CASE WHEN json_array_length(team->'puzzlers') > 2 AND seconds_to_solve > 0 THEN seconds_to_solve END) AS fastest_time_team
 FROM puzzle
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id

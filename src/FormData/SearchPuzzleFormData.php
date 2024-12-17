@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 
 final class SearchPuzzleFormData
@@ -37,7 +38,7 @@ final class SearchPuzzleFormData
         }
 
         $tag = $request->query->get('tag');
-        if (is_string($tag)) {
+        if (is_string($tag) && Uuid::isValid($tag)) {
             $self->tag = $tag;
         }
 

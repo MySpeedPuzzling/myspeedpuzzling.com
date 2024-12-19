@@ -156,15 +156,15 @@ final class AddTimeController extends AbstractController
 
                 if ($realException instanceof CanNotAssembleEmptyGroup) {
                     $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
-                }
-
-                if ($realException instanceof SuspiciousPpm) {
+                } elseif ($realException instanceof SuspiciousPpm) {
                     $addTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
-                }
+                } else {
+                    $addTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
 
-                $this->logger->warning('Puzzle time could not be added', [
-                    'exception' => $exception,
-                ]);
+                    $this->logger->warning('Puzzle time could not be added', [
+                        'exception' => $exception,
+                    ]);
+                }
             }
         }
 

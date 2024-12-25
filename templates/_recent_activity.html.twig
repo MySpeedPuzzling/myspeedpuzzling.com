@@ -8,23 +8,46 @@
                 {% for solved_puzzle in solved_puzzles %}
                     <tr class="{{ is_on_profile is same as false and logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId ? 'table-active-player' }} {{ show_limit is not null and loop.index > show_limit ? 'd-none' }}">
                         <td class="text-center" style="width: 90px;">
-                            {% if solved_puzzle.puzzleImage is not null%}
-                                <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
-                                    <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                                </a>
-                            {% endif %}
+                            <div class="position-relative">
+                                {% if solved_puzzle.puzzleImage is not null%}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}">
+                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% endif %}
 
-                            {% if logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId %}
-                                <button
-                                    data-controller="share-image"
-                                    data-share-image-title-value="{{ solved_puzzle.puzzleName }}"
-                                    data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}"
-                                    data-action="click->share-image#shareImageAsset"
-                                    class="btn btn-sm btn-outline-accent py-1 px-2 mt-1"
-                                >
-                                    <i class="ci-share"></i> {{ 'share'|trans }}
-                                </button>
-                            {% endif %}
+                                {% if logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId %}
+                                    <div class="dropdown position-absolute" style="left: -5px;top : -5px;">
+                                        <button class="btn btn-accent btn-xs dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ci-menu"></i>
+                                        </button>
+
+                                        <!-- Dropdown menu -->
+                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                            <li>
+                                                <button
+                                                    data-controller="share-image"
+                                                    data-share-image-title-value="{{ solved_puzzle.puzzleName }}"
+                                                    data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}"
+                                                    data-action="click->share-image#shareImageAsset"
+                                                    class="dropdown-item"
+                                                >
+                                                    <i class="ci-share"></i> {{ 'share'|trans }}
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_time', {'timeId': solved_puzzle.timeId}) }}">
+                                                    <i class="ci-edit me-2"></i> {{ 'edit'|trans }}
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="{{ path('delete_time', {timeId: solved_puzzle.timeId}) }}">
+                                                    <i class="ci-trash me-2"></i> {{ 'delete'|trans }}
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </div>
                         </td>
 
                         <td class="d-none d-sm-table-cell">

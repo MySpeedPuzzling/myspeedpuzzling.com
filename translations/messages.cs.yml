@@ -61,6 +61,8 @@ remove_from_collection: "Odebrat z mé sbírky"
 ranking_out_of: "z"
 wjpc_participant: "WJPC 2024 účastník (%name%)"
 share: "Sdílet"
+edit: "Upravit"
+delete: "Smazat"
 
 homepage:
     meta:

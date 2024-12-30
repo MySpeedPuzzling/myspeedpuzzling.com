@@ -53,6 +53,10 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
     public bool $wjpcModalDisplayed = false;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $stripeCustomerId = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -138,5 +142,10 @@ class Player
     public function markWjpcModalAsDisplayed(): void
     {
         $this->wjpcModalDisplayed = true;
+    }
+
+    public function updateStripeCustomerId(string $stripeCustomerId): void
+    {
+        $this->stripeCustomerId = $stripeCustomerId;
     }
 }

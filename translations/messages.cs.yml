@@ -443,3 +443,28 @@ added_time_recap:
     add_time: "Přidat další čas"
     the_same_puzzle: "Ke stejným puzzlím"
     puzzle_detail: "Výsledky"
+
+membership:
+    meta:
+        title: "Členství"
+        description: ""
+    title: "MySpeedPuzzling členství"
+    become_member: "Předplaťte si MySpeedPuzzling členství - podpořte vývoj a získejte přístup k exkluzivním funkcím pouze pro členy. Nyní s výhodnější zavádějící cenou, která vám zůstane po celou dobu členství."
+    membership_enabled: "Děkujeme, že jste součástí!"
+    next_payment: "Příští platba"
+    membership_expiration: "Platnost členství do"
+    payment_portal_button: "Upravit předplatné (platební portál)"
+    description_title: "Proč se stát členem?"
+    full_description: "<p>To brzy doplníme ... :-)</p>"
+    subscribe_for: "Předplatit za"
+    original_price_per_month: "150 Kč / měsíc"
+    price_per_month: "100 Kč / měsíc"
+
+membership_payment_cancelled:
+    meta:
+        title: "Platba byla zrušena"
+        description: ""
+    title: "Platba byla zrušena"
+    text: "Platební proces byl přerušen, nejspíše vámi :-)."
+    membership_link: "Zpět na přehled o členství"
+    payment_link: "Opakovat platbu"

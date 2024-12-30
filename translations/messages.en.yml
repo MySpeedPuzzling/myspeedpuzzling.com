@@ -441,3 +441,28 @@ added_time_recap:
     add_time: "Add new time"
     the_same_puzzle: "For the same puzzle"
     puzzle_detail: "Results"
+
+membership:
+    meta:
+        title: "Membership"
+        description: ""
+    title: "MySpeedPuzzling Membership"
+    become_member: "Subscribe to MySpeedPuzzling Membership - support development and gain access to exclusive member-only features. Now at an introductory price that stays with you for the duration of your membership."
+    membership_enabled: "Thank you for being part of the community!"
+    next_payment: "Next payment"
+    membership_expiration: "Membership valid until"
+    payment_portal_button: "Manage subscription (payment portal)"
+    description_title: "Why become a member?"
+    full_description: "<p>We will fill this in soon ... :-)</p>"
+    subscribe_for: "Subscribe for"
+    original_price_per_month: "6€ / month"
+    price_per_month: "4€ / month"
+
+membership_payment_cancelled:
+    meta:
+        title: "Payment Cancelled"
+        description: ""
+    title: "Payment Cancelled"
+    text: "The payment process was interrupted, most likely by you :-)."
+    membership_link: "Back to membership overview"
+    payment_link: "Retry payment"

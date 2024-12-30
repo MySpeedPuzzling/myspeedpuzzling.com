@@ -6,35 +6,48 @@
 {% block content %}
     <div class="pb-4">
         <div class="row gy-3 pb-3">
-            <div class="col-lg-5 col-md-8 col-sm-10">
+            <div class="col-lg-5 col-md-8">
                 <h1 class="h2">{{ 'membership.title'|trans }}</h1>
 
-                <p>{{ 'membership.intro_text'|trans }}</p>
 
                 {% if membership %}
+                    <p class="text-success fs-3">
+                        <i class="ci-check-circle me-2"></i> {{ 'membership.membership_enabled'|trans }}
+                    </p>
+
                     {% if membership.billingPeriodEndsAt %}
-                        Příští platba: {{ membership.billingPeriodEndsAt|date('d.m.Y') }}
+                        <p>
+                            {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
+                        </p>
                     {% endif %}
 
                     {% if membership.endsAt %}
-                        Platnost členství do: {{ membership.billingPeriodEndsAt|date('d.m.Y') }}
+                        {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y') }}</strong>
                     {% endif %}
 
                     <p>
-                        <a class="btn btn-outline-primary" href="{{ path('billing_portal') }}">Správa platební metody</a>
+                        <a class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
                     </p>
                 {% else %}
-                    Koupit členství
+                    <p>{{ 'membership.become_member'|trans }}</p>
 
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <a class="btn btn-outline-primary mt-2" href="{{ path('buy_membership', {'priceLookupKey': 'puzzlership_monthly_promo'}) }}"><del class="small">6 € / month</del><br>3 € / month</a>
-                        </div>
-                    </div>
+                    <p class="mt-2 text-center">
+                        <a class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
+                            <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for'|trans }}</small>
+                            <br><del class="small">{{ 'membership.original_price_per_month'|trans }}</del>
+                            <br>{{ 'membership.price_per_month'|trans }}
+                        </a>
+                    </p>
                 {% endif %}
 
-                <p>Seznam věcí, které získám jako člen..</p>
+                <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
+                {{ 'membership.full_description'|trans|raw }}
+            </div>
+
+            <div class="col-lg-5 offset-lg-1 col-md-4 text-center">
+                <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="Mascot">
             </div>
         </div>
+
     </div>
 {% endblock %}

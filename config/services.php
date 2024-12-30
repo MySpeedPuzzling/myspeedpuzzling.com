@@ -26,6 +26,8 @@ return static function(ContainerConfigurator $configurator): void
     $parameters->set('puzzlePuzzleUsername', '%env(PUZZLE_PUZZLE_USERNAME)%');
     $parameters->set('puzzlePuzzlePassword', '%env(PUZZLE_PUZZLE_PASSWORD)%');
 
+    $parameters->set('stripeWebhookSecret', '%env(STRIPE_WEBHOOK_SECRET)%');
+
     $services = $configurator->services();
 
     $services->defaults()

@@ -42,10 +42,6 @@ final class RetrieveLoggedUserProfile
 
             try {
                 $this->foundProfile = $this->getPlayerProfile->byUserId($userId);
-
-                $this->messageBus->dispatch(
-                    new HideWjpcModal($this->foundProfile->playerId)
-                );
             } catch (PlayerNotFound) {
                 // Case that user just came from registration -> has userId but no Player exists in db yet
                 $this->messageBus->dispatch(
@@ -58,10 +54,6 @@ final class RetrieveLoggedUserProfile
 
                 try {
                     $this->foundProfile = $this->getPlayerProfile->byUserId($userId);
-
-                    $this->messageBus->dispatch(
-                        new HideWjpcModal($this->foundProfile->playerId)
-                    );
                 } catch (PlayerNotFound $e) {
                     $this->logger->critical('Could not create player profile for logged in user.', [
                         'user_id' => $userId,

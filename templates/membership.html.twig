@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'membership.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'membership.meta.description'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-5 col-md-8 col-sm-10">
+                <h1 class="h2">{{ 'membership.title'|trans }}</h1>
+
+                <p>{{ 'membership.intro_text'|trans }}</p>
+
+                {% if membership %}
+                    {% if membership.billingPeriodEndsAt %}
+                        Příští platba: {{ membership.billingPeriodEndsAt|date('d.m.Y') }}
+                    {% endif %}
+
+                    {% if membership.endsAt %}
+                        Platnost členství do: {{ membership.billingPeriodEndsAt|date('d.m.Y') }}
+                    {% endif %}
+
+                    <p>
+                        <a class="btn btn-outline-primary" href="{{ path('billing_portal') }}">Správa platební metody</a>
+                    </p>
+                {% else %}
+                    Koupit členství
+
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <a class="btn btn-outline-primary mt-2" href="{{ path('buy_membership', {'priceLookupKey': 'puzzlership_monthly_promo'}) }}"><del class="small">6 € / month</del><br>3 € / month</a>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <p>Seznam věcí, které získám jako člen..</p>
+            </div>
+        </div>
+    </div>
+{% endblock %}

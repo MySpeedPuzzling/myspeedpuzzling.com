@@ -39,6 +39,7 @@ SELECT
     bio,
     facebook,
     instagram,
+    stripe_customer_id,
     wjpc_modal_displayed
 FROM player
 WHERE player.id = :playerId
@@ -58,6 +59,7 @@ SQL;
          *     bio: null|string,
          *     facebook: null|string,
          *     instagram: null|string,
+         *     stripe_customer_id: null|string,
          *     wjpc_modal_displayed: bool,
          * } $row
          */
@@ -93,6 +95,7 @@ SELECT
     bio,
     facebook,
     instagram,
+    stripe_customer_id,
     wjpc_modal_displayed
 FROM player
 WHERE player.user_id = :userId
@@ -112,6 +115,7 @@ SQL;
          *     bio: null|string,
          *     facebook: null|string,
          *     instagram: null|string,
+         *     stripe_customer_id: null|string,
          *     wjpc_modal_displayed: bool,
          * } $row
          */

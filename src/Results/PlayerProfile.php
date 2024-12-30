@@ -25,6 +25,8 @@ readonly final class PlayerProfile
         public null|string $facebook,
         public null|string $instagram,
         public bool $wjpcModalDisplayed,
+        public null|string $stripeCustomerId,
+        public bool $isMember,
         public null|CountryCode $countryCode = null,
     ) {
     }
@@ -43,6 +45,7 @@ readonly final class PlayerProfile
      *     bio: null|string,
      *     facebook: null|string,
      *     instagram: null|string,
+     *     stripe_customer_id: null|string,
      *     wjpc_modal_displayed: bool,
      * } $row
      */
@@ -71,6 +74,8 @@ readonly final class PlayerProfile
             facebook: $row['facebook'],
             instagram: $row['instagram'],
             wjpcModalDisplayed: $row['wjpc_modal_displayed'],
+            stripeCustomerId: $row['stripe_customer_id'],
+            isMember: false,
             countryCode: $countryCode,
         );
     }

@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
-use Stripe\Event;
 use Stripe\Price;
 use Stripe\StripeClient;
-use Stripe\Subscription;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -25,8 +22,6 @@ readonly final class MembershipManagement
         private StripeClient $stripeClient,
         private GetPlayerProfile $getPlayerProfile,
         private MessageBusInterface $messageBus,
-        private LoggerInterface $logger,
-        private StripeWebhookHandler $stripeWebhookHandler,
     ) {
     }
 
@@ -96,44 +91,5 @@ readonly final class MembershipManagement
         }
 
         return $playerProfile->stripeCustomerId;
-    }
-
-    public function handleEvent(Event $event): void
-    {
-        switch ($event->type) {
-            case 'customer.subscription.trial_will_end':
-                $subscription = $event->data->object ?? null;
-
-                if ($subscription instanceof Subscription) {
-                    $this->stripeWebhookHandler->handleTrialWillEnd($subscription);
-                }
-                break;
-            case 'customer.subscription.created':
-                $subscription = $event->data->object ?? null;
-
-                if ($subscription instanceof Subscription) {
-                    $this->stripeWebhookHandler->handleSubscriptionCreated($subscription);
-                }
-                break;
-            case 'customer.subscription.deleted':
-                $subscription = $event->data->object ?? null;
-
-                if ($subscription instanceof Subscription) {
-                    $this->stripeWebhookHandler->handleSubscriptionDeleted($subscription);
-                }
-                break;
-            case 'customer.subscription.updated':
-                $subscription = $event->data->object ?? null;
-
-                if ($subscription instanceof Subscription) {
-                    $this->stripeWebhookHandler->handleSubscriptionUpdated($subscription);
-                }
-                break;
-            default:
-                $this->logger->error('Unsupported Stripe webhook event', [
-                    'event_id' => $event->id,
-                    'event_type' => $event->type,
-                ]);
-        }
     }
 }

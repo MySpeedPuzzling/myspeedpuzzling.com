@@ -43,6 +43,25 @@ readonly final class MembershipRepository
         }
     }
 
+    public function getByStripeSubscriptionId(string $subscriptionId): Membership
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+
+        try {
+            $membership = $queryBuilder->select('membership')
+                ->from(Membership::class, 'membership')
+                ->where('membership.stripeSubscriptionId = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->getQuery()
+                ->getSingleResult();
+
+            assert($membership instanceof Membership);
+            return $membership;
+        } catch (NoResultException) {
+            throw new MembershipNotFound();
+        }
+    }
+
     public function save(Membership $membership): void
     {
         $this->entityManager->persist($membership);

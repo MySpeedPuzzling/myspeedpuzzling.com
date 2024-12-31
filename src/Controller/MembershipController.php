@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -17,6 +18,7 @@ final class MembershipController extends AbstractController
     public function __construct(
         readonly private GetPlayerMembership $getPlayerMembership,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ClockInterface $clock,
     ) {
     }
     
@@ -43,6 +45,7 @@ final class MembershipController extends AbstractController
 
         return $this->render('membership.html.twig', [
             'membership' => $membership,
+            'now' => $this->clock->now(),
         ]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
@@ -12,6 +13,7 @@ readonly final class CancelMembershipSubscriptionHandler
 {
     public function __construct(
         private MembershipRepository $membershipRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -22,6 +24,6 @@ readonly final class CancelMembershipSubscriptionHandler
     {
         $membership = $this->membershipRepository->getByStripeSubscriptionId($message->stripeSubscriptionId);
 
-        $membership->cancel();
+        $membership->cancel($this->clock->now());
     }
 }

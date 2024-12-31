@@ -22,4 +22,7 @@ return static function (\Symfony\Config\TwigConfig $twig): void {
 
     $twig->global('get_notifications')
         ->value(service(GetNotifications::class));
+
+    $twig->path('%kernel.project_dir%/public/img', 'images');
+    $twig->path('%kernel.project_dir%/public/css', 'styles');
 };

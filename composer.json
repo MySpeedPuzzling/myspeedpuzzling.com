@@ -85,8 +85,8 @@
         "symfony/web-link": "^7.0",
         "symfony/webpack-encore-bundle": "^2.0",
         "symfony/yaml": "^7.0",
-        "twig/cssinliner-extra": "^3.11",
-        "twig/extra-bundle": "^3.11",
+        "twig/cssinliner-extra": "^3.18",
+        "twig/extra-bundle": "^3.18",
         "twig/intl-extra": "^3.8",
         "twig/string-extra": "^3.7",
         "twig/twig": "^3.0"

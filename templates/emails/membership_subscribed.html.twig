@@ -1,0 +1,22 @@
+{% apply inline_css(source('@styles/email.css')) %}
+    <html>
+    <body>
+
+    <div class="newsletterContainer">
+        <div class="text-center">
+            <img src="{{ email.image('@images/speedpuzzling-logo.png') }}" class="logo" alt="Logo">
+
+            <h1 class="newsletter">Thank you for subscribing to the membership!</h1>
+
+            <p>Thank you very much for your support and congratulations to become a MySpeedPuzzling member!</p>
+            <p>Next billing period is: <strong>{{ nextBillingPeriod }}</strong></p>
+
+            <p>
+                You can always manage your subscription, cancel, download receipts/invoices on the <a href="{{ url('membership') }}">membership page</a>.
+            </p>
+        </div>
+    </div>
+
+    </body>
+    </html>
+{% endapply %}

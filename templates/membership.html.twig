@@ -21,17 +21,21 @@
                                 <p>
                                     {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
                                 </p>
-                            {% elseif membership.endsAt %}
+                            {% elseif membership.endsAt and membership.endsAt > now %}
                                 <p class="text-warning fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
                                 </p>
-                            {% elseif membership.endsAt is null %}
+                            {% elseif membership.endsAt and membership.endsAt < now %}
+                                <p class="text-danger fs-5">
+                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
+                                </p>
+                            {% else %}
                                 <p class="text-danger fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_inactive'|trans }}
                                 </p>
                             {% endif %}
 
-                            {% if membership.endsAt %}
+                            {% if membership.endsAt and membership.endsAt > now %}
                                 <p>
                                     {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y') }}</strong>
                                 </p>

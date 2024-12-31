@@ -455,6 +455,7 @@ membership:
     membership_active: "Aktivní členství, děkujeme že jste součástí!"
     membership_inactive: "Členství není aktivní"
     membership_cancelling: "Předplatné bylo zrušeno, členství je aktivní do konce období"
+    membership_expired: "Vaše členství vypršelo"
     next_payment: "Příští platba"
     membership_expiration: "Platnost členství do"
     payment_portal_button: "Upravit předplatné (platební portál)"

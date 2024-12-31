@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Events;
 
 use Ramsey\Uuid\UuidInterface;
 
-readonly final class MembershipCancelled
+readonly final class MembershipSubscriptionRenewed
 {
     public function __construct(
         public UuidInterface $membershipId,

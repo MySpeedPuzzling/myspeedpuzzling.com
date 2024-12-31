@@ -13,10 +13,15 @@ use Doctrine\ORM\Mapping\OneToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
+use SpeedPuzzling\Web\Events\MembershipStarted;
+use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
 
 #[Entity]
-class Membership
+class Membership implements EntityWithEvents
 {
+    use HasEvents;
+
     #[Column(nullable: true)]
     public null|DateTimeImmutable $endsAt = null;
 
@@ -31,21 +36,37 @@ class Membership
         #[Immutable]
         public Player $player,
 
+        #[Column]
+        public DateTimeImmutable $createdAt,
+
         #[Column(nullable: true)]
         public null|string $stripeSubscriptionId = null,
 
         #[Column(nullable: true)]
         public null|DateTimeImmutable $billingPeriodEndsAt = null,
     ) {
+        $this->recordThat(new MembershipStarted($this->id));
     }
 
-    public function renewStripeSubscription(
+    public function updateStripeSubscription(
         string $stripeSubscriptionId,
         DateTimeImmutable $billingPeriodEndsAt,
     ): void
     {
+        if ($this->billingPeriodEndsAt === null || $billingPeriodEndsAt > $this->billingPeriodEndsAt) {
+            $this->recordThat(new MembershipSubscriptionRenewed($this->id));
+        }
+
         $this->stripeSubscriptionId = $stripeSubscriptionId;
         $this->billingPeriodEndsAt = $billingPeriodEndsAt;
         $this->endsAt = null;
+    }
+
+    public function cancel(): void
+    {
+        $this->endsAt = $this->billingPeriodEndsAt;
+        $this->billingPeriodEndsAt = null;
+
+        $this->recordThat(new MembershipSubscriptionCancelled($this->id));
     }
 }

@@ -6,10 +6,12 @@ use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
 use Monolog\Processor\PsrLogMessageProcessor;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
+use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function(ContainerConfigurator $configurator): void
@@ -26,6 +28,7 @@ return static function(ContainerConfigurator $configurator): void
     $parameters->set('puzzlePuzzleUsername', '%env(PUZZLE_PUZZLE_USERNAME)%');
     $parameters->set('puzzlePuzzlePassword', '%env(PUZZLE_PUZZLE_PASSWORD)%');
 
+    $parameters->set('stripeApiKey', '%env(STRIPE_API_KEY)%');
     $parameters->set('stripeWebhookSecret', '%env(STRIPE_WEBHOOK_SECRET)%');
 
     $services = $configurator->services();
@@ -94,6 +97,11 @@ return static function(ContainerConfigurator $configurator): void
 
     $services->set(StripeClient::class)
         ->args([
-            env('STRIPE_API_KEY'),
+            param('stripeApiKey'),
+        ]);
+
+    $services->set(StripeWebhookHandler::class)
+        ->args([
+            param('stripeWebhookSecret'),
         ]);
 };

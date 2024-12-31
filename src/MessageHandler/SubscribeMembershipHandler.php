@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
@@ -21,6 +22,7 @@ readonly final class SubscribeMembershipHandler
         private PlayerRepository $playerRepository,
         private MembershipRepository $membershipRepository,
         private StripeClient $stripeClient,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -38,11 +40,12 @@ readonly final class SubscribeMembershipHandler
 
         try {
             $membership = $this->membershipRepository->get($message->playerId);
-            $membership->renewStripeSubscription($subscriptionId, $billingPeriodEnd);
+            $membership->updateStripeSubscription($subscriptionId, $billingPeriodEnd);
         } catch (MembershipNotFound) {
             $membership = new Membership(
                 Uuid::uuid7(),
                 $player,
+                $this->clock->now(),
                 $subscriptionId,
                 $billingPeriodEnd,
             );

@@ -1,14 +1,18 @@
 {% apply inline_css(source('@styles/email.css')) %}
     <html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html charset=UTF-8">
+    </head>
     <body>
+    <div class="body">
+        <div class="newsletterContainer">
+            <div class="text-center">
+                <img src="{{ email.image('@images/speedpuzzling-logo.png') }}" class="logo" alt="MySpeedPuzzling.com Logo" width="80">
 
-    <div class="newsletterContainer">
-        <div class="text-center">
-            <img src="{{ email.image('@images/speedpuzzling-logo.png') }}" class="logo" alt="Logo">
+                <h1 class="newsletter">Subscription payment have failed</h1>
 
-            <h1 class="newsletter">Subscription payment have failed</h1>
-
-            <p>Something unexpected happened, please check your payment method on the <a href="{{ url('billing_portal') }}">billing portal page</a>.</p>
+                <p>Something unexpected happened, please check your payment method on the <a href="{{ url('billing_portal') }}">billing portal page</a>.</p>
+            </div>
         </div>
     </div>
 

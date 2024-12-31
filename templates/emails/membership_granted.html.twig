@@ -1,22 +1,25 @@
 {% apply inline_css(source('@styles/email.css')) %}
     <html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html charset=UTF-8">
+    </head>
     <body>
+    <div class="body">
+        <div class="newsletterContainer">
+            <div class="text-center">
+                <img src="{{ email.image('@images/speedpuzzling-logo.png') }}" class="logo" alt="MySpeedPuzzling.com Logo" width="80">
 
-    <div class="newsletterContainer">
-        <div class="text-center">
-            <img src="{{ email.image('@images/speedpuzzling-logo.png') }}" class="logo" alt="Logo">
+                <h1 class="newsletter">You have been granted with a membership!</h1>
 
-            <h1 class="newsletter">You have been granted with a membership!</h1>
+                <p>We appreciate you, so you have been granted with a membership!</p>
+                <p>The membership will expire at: <b>{{ membershipExpiresAt }}</b></p>
 
-            <p>We appreciate you, so you have been granted with a membership!</p>
-            <p>The membership will expire at: <strong>{{ membershipExpiresAt }}</strong></p>
-
-            <p>
-                You can always manage your membership on the <a href="{{ url('membership') }}">membership page</a>.
-            </p>
+                <p>
+                    You can always manage your membership on the <a href="{{ url('membership') }}">membership page</a>.
+                </p>
+            </div>
         </div>
     </div>
-
     </body>
     </html>
 {% endapply %}

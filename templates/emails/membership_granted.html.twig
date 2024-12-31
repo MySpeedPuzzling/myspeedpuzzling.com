@@ -1,25 +1,36 @@
-{% apply inline_css(source('@styles/email.css')) %}
-    <html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html charset=UTF-8">
-    </head>
-    <body>
-    <div class="body">
-        <div class="newsletterContainer">
-            <div class="text-center">
-                <img src="{{ email.image('@images/speedpuzzling-logo.png') }}" class="logo" alt="MySpeedPuzzling.com Logo" width="80">
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            <row>
+                <columns>
+                    <h3>Your membership is now active!</h3>
 
-                <h1>You have been granted with a membership!</h1>
+                    <p>We appreciate you, so you have been granted with a membership!</p>
+                    <p>The membership will expire at: <b>{{ membershipExpiresAt }}</b></p>
+                </columns>
+            </row>
 
-                <p>We appreciate you, so you have been granted with a membership!</p>
-                <p>The membership will expire at: <b>{{ membershipExpiresAt }}</b></p>
+            <row>
+                <columns>
+                    <p>
+                        You can always check and manage your membership on the <a href="{{ url('membership') }}">membership page</a>.
+                    </p>
+                </columns>
+            </row>
 
-                <p>
-                    You can always manage your membership on the <a href="{{ url('membership') }}">membership page</a>.
-                </p>
-            </div>
-        </div>
-    </div>
-    </body>
-    </html>
+            <row>
+                <columns>
+                    <center>
+                        <a href="{{ url('membership') }}">
+                            <img src="{{ email.image('@images/speedpuzzling-logo-mini.png') }}" alt="MySpeedPuzzling.com Logo" style="width: 80px; height: auto; margin-top: 20px;" width="80" height="auto">
+                        </a>
+
+                        <p class="text-center">
+                            <small>Thank you for being a part of <a href="{{ url('homepage') }}" >MySpeedPuzzling.com</a>.</small>
+                        </p>
+                    </center>
+                </columns>
+            </row>
+        </container>
+    </wrapper>
 {% endapply %}

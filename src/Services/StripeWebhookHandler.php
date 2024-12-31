@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use Psr\Log\LoggerInterface;
-use SpeedPuzzling\Web\Events\SubscriptionPaymentFailed;
+use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
+use SpeedPuzzling\Web\Message\CreateMembershipSubscription;
+use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
+use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use Stripe\Invoice;
-use Stripe\StripeClient;
 use Stripe\Subscription;
 use Stripe\Webhook;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -18,7 +20,6 @@ readonly final class StripeWebhookHandler
         private string $stripeWebhookSecret,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
-        private StripeClient $stripeClient,
     ) {
     }
 
@@ -69,27 +70,26 @@ readonly final class StripeWebhookHandler
 
     private function handleSubscriptionCreated(Subscription $stripeSubscription): void
     {
+        $this->messageBus->dispatch(new CreateMembershipSubscription($stripeSubscription->id));
     }
 
     private function handleSubscriptionDeleted(Subscription $stripeSubscription): void
     {
+        $this->messageBus->dispatch(new CancelMembershipSubscription($stripeSubscription->id));
     }
 
-    private function handlePaymentSucceeded(string $subscriptionId): void
+    private function handlePaymentSucceeded(string $stripeSubscriptionId): void
     {
-        $subscriptionId = $invoice->subscription;
-        assert(is_string($subscriptionId));
-
-        $this->messageBus->dispatch(new SubscriptionPaymentFailed($subscriptionId));
+        $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscriptionId));
     }
 
     private function handlePaymentFailed(Invoice $invoice): void
     {
         if ($invoice->attempt_count === 1) {
-            $subscriptionId = $invoice->subscription;
-            assert(is_string($subscriptionId));
+            $stripeSubscriptionId = $invoice->subscription;
+            assert(is_string($stripeSubscriptionId));
 
-            $this->messageBus->dispatch(new SubscriptionPaymentFailed($subscriptionId));
+            $this->messageBus->dispatch(new NotifyAboutFailedPayment($stripeSubscriptionId));
         }
     }
 }

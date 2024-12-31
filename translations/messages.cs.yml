@@ -364,6 +364,7 @@ flashes:
     puzzle_removed_from_collection: "Sbohem puzzle..."
     wjpc2024_duplicate_connection: "Něco je špatně :-( vybrali jste WJPC účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
     wjpc2024_connection_saved: "Super! WJPC účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
+    membership_subscribed_successfully: "Platba proběhla úspěšně, vaše členství je nyní aktivní!"
 
 hub:
     title: "Speed Puzzling Hub"
@@ -450,15 +451,19 @@ membership:
         description: ""
     title: "MySpeedPuzzling členství"
     become_member: "Předplaťte si MySpeedPuzzling členství - podpořte vývoj a získejte přístup k exkluzivním funkcím pouze pro členy. Nyní s výhodnější zavádějící cenou, která vám zůstane po celou dobu členství."
-    membership_enabled: "Děkujeme, že jste součástí!"
+    subscription_active: "Aktivní předplatné, děkujeme že jste součástí!"
+    membership_active: "Aktivní členství, děkujeme že jste součástí!"
+    membership_inactive: "Členství není aktivní"
+    membership_cancelling: "Předplatné bylo zrušeno, členství je aktivní do konce období"
     next_payment: "Příští platba"
     membership_expiration: "Platnost členství do"
     payment_portal_button: "Upravit předplatné (platební portál)"
-    description_title: "Proč se stát členem?"
+    description_title: "Jaké jsou výhody členství?"
     full_description: "<p>To brzy doplníme ... :-)</p>"
     subscribe_for: "Předplatit za"
     original_price_per_month: "150 Kč / měsíc"
     price_per_month: "100 Kč / měsíc"
+    billing_portal_info: "Na platebním portále můžete měnit platební své údaje, zrušit členství, stáhnout faktury nebo účtenky."
 
 membership_payment_cancelled:
     meta:

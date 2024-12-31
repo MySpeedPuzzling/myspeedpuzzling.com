@@ -20,7 +20,25 @@ readonly final class MembershipRepository
     /**
      * @throws MembershipNotFound
      */
-    public function get(string $playerId): Membership
+    public function get(string $membershipId): Membership
+    {
+        if (!Uuid::isValid($membershipId)) {
+            throw new MembershipNotFound();
+        }
+
+        $membership = $this->entityManager->find(Membership::class, $membershipId);
+
+        if ($membership === null) {
+            throw new MembershipNotFound();
+        }
+
+        return $membership;
+    }
+
+    /**
+     * @throws MembershipNotFound
+     */
+    public function getByPlayerId(string $playerId): Membership
     {
         if (!Uuid::isValid($playerId)) {
             throw new MembershipNotFound();

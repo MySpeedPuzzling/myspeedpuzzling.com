@@ -1,0 +1,76 @@
+body {
+    color: #111;
+    font-family: Arial, Tahoma, Sans-serif, serif;
+    background: #ebebeb;
+    font-size: 15px;
+}
+
+h1 {
+    font-weight: normal;
+    font-size: 26px;
+}
+
+h2 {
+    font-weight: normal;
+    font-size: 22px;
+}
+
+h3 {
+    font-weight: normal;
+    font-size: 18px;
+}
+
+p {
+    margin: 1em 0;
+}
+
+a {
+    color: #f34770;
+    text-decoration: underline;
+}
+
+hr {
+    border-bottom: 1px solid #ccc;
+    margin: 15px 0;
+    padding: 0;
+    height: 1px;
+}
+
+
+h1.newsletter {
+    color: #f34770;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+.admin-h1 {
+    font-size: 24px;
+    font-weight: normal;
+}
+
+.logo {
+    width: 80px;
+}
+
+.newsletterContainer {
+    width: 100%;
+    max-width: 600px;
+    margin: 15px auto;
+    border: 1px solid #f34770;
+    padding: 15px;
+    background: #fff;
+}
+
+.border-bottom {
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-end {
+    text-align: right;
+}

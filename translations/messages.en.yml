@@ -363,6 +363,7 @@ flashes:
     puzzle_removed_from_collection: "Good bye puzzle..."
     wjpc2024_duplicate_connection: "Something is wrong :-( you have chosen WJPC account, that is already connected to some MySpeedPuzzling profile. Worry not, we were automatically notified and we will check out what is wrong."
     wjpc2024_connection_saved: "Nice! WJPC account successfully connected to your MySpeedPuzzling profile!"
+    membership_subscribed_successfully: "Payment was successful, your membership is now active!"
 
 hub:
     title: "Speed Puzzling Hub"
@@ -448,15 +449,19 @@ membership:
         description: ""
     title: "MySpeedPuzzling Membership"
     become_member: "Subscribe to MySpeedPuzzling Membership - support development and gain access to exclusive member-only features. Now at an introductory price that stays with you for the duration of your membership."
-    membership_enabled: "Thank you for being part of the community!"
+    subscription_active: "Active subscription, thank you for being part of the community!"
+    membership_active: "Active membership, thank you for being part of the community!"
+    membership_inactive: "Membership is not active"
+    membership_cancelling: "Subscription has been canceled, membership is active until the end of the period"
     next_payment: "Next payment"
     membership_expiration: "Membership valid until"
     payment_portal_button: "Manage subscription (payment portal)"
-    description_title: "Why become a member?"
+    description_title: "What are the benefits of membership?"
     full_description: "<p>We will fill this in soon ... :-)</p>"
     subscribe_for: "Subscribe for"
     original_price_per_month: "6€ / month"
     price_per_month: "4€ / month"
+    billing_portal_info: "In the payment portal, you can update your payment details, cancel your membership, or download invoices or receipts."
 
 membership_payment_cancelled:
     meta:

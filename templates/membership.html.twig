@@ -6,39 +6,55 @@
 {% block content %}
     <div class="pb-4">
         <div class="row gy-3 pb-3">
-            <div class="col-lg-5 col-md-8">
+            <div class="col-lg-6 col-md-8">
                 <h1 class="h2">{{ 'membership.title'|trans }}</h1>
 
 
-                {% if membership %}
-                    <p class="text-success fs-3">
-                        <i class="ci-check-circle me-2"></i> {{ 'membership.membership_enabled'|trans }}
-                    </p>
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {% if membership %}
+                            {% if membership.billingPeriodEndsAt %}
+                                <p class="text-success fs-5">
+                                    <i class="ci-check-circle me-2"></i> {{ 'membership.subscription_active'|trans }}
+                                </p>
 
-                    {% if membership.billingPeriodEndsAt %}
-                        <p>
-                            {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
-                        </p>
-                    {% endif %}
+                                <p>
+                                    {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
+                                </p>
+                            {% elseif membership.endsAt %}
+                                <p class="text-warning fs-5">
+                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
+                                </p>
+                            {% elseif membership.endsAt is null %}
+                                <p class="text-danger fs-5">
+                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_inactive'|trans }}
+                                </p>
+                            {% endif %}
 
-                    {% if membership.endsAt %}
-                        {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y') }}</strong>
-                    {% endif %}
+                            {% if membership.endsAt %}
+                                {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y') }}</strong>
+                            {% endif %}
 
-                    <p>
-                        <a class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
-                    </p>
-                {% else %}
-                    <p>{{ 'membership.become_member'|trans }}</p>
+                            <p class="mb-1">
+                                <a class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
+                            </p>
 
-                    <p class="mt-2 text-center">
-                        <a class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
-                            <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for'|trans }}</small>
-                            <br><del class="small">{{ 'membership.original_price_per_month'|trans }}</del>
-                            <br>{{ 'membership.price_per_month'|trans }}
-                        </a>
-                    </p>
-                {% endif %}
+                            <p class="text-muted small mb-0">
+                                {{ 'membership.billing_portal_info'|trans }}
+                            </p>
+                        {% else %}
+                            <p>{{ 'membership.become_member'|trans }}</p>
+
+                            <p class="mt-2 text-center">
+                                <a class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
+                                    <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for'|trans }}</small>
+                                    <br><del class="small">{{ 'membership.original_price_per_month'|trans }}</del>
+                                    <br>{{ 'membership.price_per_month'|trans }}
+                                </a>
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
 
                 <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
                 {{ 'membership.full_description'|trans|raw }}

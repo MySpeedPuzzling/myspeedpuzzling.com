@@ -11,12 +11,14 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class StripeCheckoutSuccessController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -42,7 +44,7 @@ final class StripeCheckoutSuccessController extends AbstractController
             ),
         );
 
-        $this->addFlash('success', 'flashes.membership_subscribed_successfully');
+        $this->addFlash('success', $this->translator->trans('flashes.membership_subscribed_successfully'));
 
         return $this->redirectToRoute('membership');
     }

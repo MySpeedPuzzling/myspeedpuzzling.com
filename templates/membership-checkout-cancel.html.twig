@@ -13,7 +13,7 @@
 
                 <p>
                     <a class="btn btn-outline-primary me-2" href="{{ path('membership') }}"><i class="ci-arrow-left"></i> {{ 'membership_payment_cancelled.membership_link'|trans }}</a>
-                    <a class="btn btn-primary" href="{{ path('buy_membership') }}"><i class="ci-card"></i> {{ 'membership_payment_cancelled.payment_link'|trans }}</a>
+                    <a data-turbo-prefetch="false" class="btn btn-primary" href="{{ path('buy_membership') }}"><i class="ci-card"></i> {{ 'membership_payment_cancelled.payment_link'|trans }}</a>
                 </p>
             </div>
         </div>

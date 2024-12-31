@@ -53,7 +53,11 @@ class Membership implements EntityWithEvents
         DateTimeImmutable $billingPeriodEndsAt,
     ): void
     {
-        if ($this->billingPeriodEndsAt === null || $billingPeriodEndsAt > $this->billingPeriodEndsAt) {
+        if (
+            $this->billingPeriodEndsAt === null
+            || $this->endsAt !== null
+            || $billingPeriodEndsAt > $this->billingPeriodEndsAt
+        ) {
             $this->recordThat(new MembershipSubscriptionRenewed($this->id));
         }
 
@@ -62,11 +66,13 @@ class Membership implements EntityWithEvents
         $this->endsAt = null;
     }
 
-    public function cancel(): void
+    public function cancel(DateTimeImmutable $billingPeriodEndsAt): void
     {
-        $this->endsAt = $this->billingPeriodEndsAt;
-        $this->billingPeriodEndsAt = null;
+        if ($this->endsAt === null || $billingPeriodEndsAt > $this->endsAt) {
+            $this->recordThat(new MembershipSubscriptionCancelled($this->id));
+        }
 
-        $this->recordThat(new MembershipSubscriptionCancelled($this->id));
+        $this->endsAt = $billingPeriodEndsAt;
+        $this->billingPeriodEndsAt = null;
     }
 }

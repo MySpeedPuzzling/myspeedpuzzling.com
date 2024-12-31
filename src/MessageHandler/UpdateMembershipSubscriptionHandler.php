@@ -40,6 +40,10 @@ readonly final class UpdateMembershipSubscriptionHandler
         $billingPeriodEnd = DateTimeImmutable::createFromFormat('U', (string) $subscription->current_period_end);
         assert($billingPeriodEnd instanceof DateTimeImmutable);
 
-        $membership->updateStripeSubscription($subscriptionId, $billingPeriodEnd);
+        if ($subscription->cancel_at_period_end === true) {
+            $membership->cancel($billingPeriodEnd);
+        } else {
+            $membership->updateStripeSubscription($subscriptionId, $billingPeriodEnd);
+        }
     }
 }

@@ -36,6 +36,14 @@ readonly final class StripeWebhookHandler
                 }
                 break;
 
+            case 'customer.subscription.updated':
+                $subscription = $event->data->object ?? null;
+
+                if ($subscription instanceof Subscription) {
+                    $this->handleSubscriptionUpdated($subscription);
+                }
+                break;
+
             case 'customer.subscription.deleted':
                 $subscription = $event->data->object ?? null;
 
@@ -73,14 +81,19 @@ readonly final class StripeWebhookHandler
         $this->messageBus->dispatch(new CreateMembershipSubscription($stripeSubscription->id));
     }
 
-    private function handleSubscriptionDeleted(Subscription $stripeSubscription): void
+    private function handleSubscriptionUpdated(Subscription $stripeSubscription): void
     {
-        $this->messageBus->dispatch(new CancelMembershipSubscription($stripeSubscription->id));
+        $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscription->id));
     }
 
     private function handlePaymentSucceeded(string $stripeSubscriptionId): void
     {
         $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscriptionId));
+    }
+
+    private function handleSubscriptionDeleted(Subscription $stripeSubscription): void
+    {
+        $this->messageBus->dispatch(new CancelMembershipSubscription($stripeSubscription->id));
     }
 
     private function handlePaymentFailed(Invoice $invoice): void

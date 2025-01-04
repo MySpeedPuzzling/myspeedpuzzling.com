@@ -34,7 +34,7 @@ final class BuyMembershipController extends AbstractController
             return $this->redirectToRoute('homepage');
         }
 
-        $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl();
+        $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale);
 
         return $this->redirect($paymentUrl, 303);
     }

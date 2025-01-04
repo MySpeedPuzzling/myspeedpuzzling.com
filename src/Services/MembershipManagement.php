@@ -25,7 +25,7 @@ readonly final class MembershipManagement
     ) {
     }
 
-    public function getMembershipPaymentUrl(): string
+    public function getMembershipPaymentUrl(null|string $locale): string
     {
         // Currently we have only one subscription plan so it is okay to have it hardcoded
         $priceLookupKey = self::PRICE_LOOKUP_KEY;
@@ -38,9 +38,23 @@ readonly final class MembershipManagement
         $price = $prices->data[0] ?? null;
         assert($price instanceof Price);
 
-        $successUrl = $this->router->generate('stripe_checkout_success', ['sessionId' => 'CHECKOUT_SESSION_ID'], referenceType: UrlGeneratorInterface::ABSOLUTE_URL);
+        $successUrl = $this->router->generate(
+            'stripe_checkout_success',
+            parameters: [
+                'sessionId' => 'CHECKOUT_SESSION_ID',
+                '_locale' => $locale,
+            ],
+            referenceType: UrlGeneratorInterface::ABSOLUTE_URL
+        );
         $successUrl = str_replace('CHECKOUT_SESSION_ID', '{CHECKOUT_SESSION_ID}', $successUrl);
-        $cancelUrl = $this->router->generate('stripe_checkout_cancel', referenceType: UrlGeneratorInterface::ABSOLUTE_URL);
+
+        $cancelUrl = $this->router->generate(
+            'stripe_checkout_cancel',
+            parameters: [
+                '_locale' => $locale,
+            ],
+            referenceType: UrlGeneratorInterface::ABSOLUTE_URL,
+        );
 
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         assert($userProfile !== null);
@@ -63,9 +77,15 @@ readonly final class MembershipManagement
         return $checkoutUrl;
     }
 
-    public function getBillingPortalUrl(string $stripeCustomerId): string
+    public function getBillingPortalUrl(string $stripeCustomerId, null|string $locale = null): string
     {
-        $returnUrl = $this->router->generate('membership', referenceType: UrlGeneratorInterface::ABSOLUTE_URL);
+        $returnUrl = $this->router->generate(
+            'membership',
+            parameters: [
+                '_locale' => $locale,
+            ],
+            referenceType: UrlGeneratorInterface::ABSOLUTE_URL
+        );
 
         $session = $this->stripeClient->billingPortal->sessions->create([
             'customer' => $stripeCustomerId,

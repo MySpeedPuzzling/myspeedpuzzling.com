@@ -40,7 +40,7 @@ final class BillingPortalController extends AbstractController
             return $this->redirectToRoute('membership');
         }
 
-        $portalUrl = $this->membershipManagement->getBillingPortalUrl($customerId);
+        $portalUrl = $this->membershipManagement->getBillingPortalUrl($customerId, $player->locale);
 
         return $this->redirect($portalUrl, 303);
     }

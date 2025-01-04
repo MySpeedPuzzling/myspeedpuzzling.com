@@ -1,14 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Privacy policy{% endblock %}
+{% block title %}{{ 'privacy_policy.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'privacy_policy.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>Privacy policy</h1>
+    <section class="terms-of-service">
 
-    <div class="alert alert-primary d-flex" role="alert">
-        <div class="alert-icon">
-            <i class="ci-bell"></i>
-        </div>
-        <div>Tato stránka nefunguje! Jde o prototyp toho, jak bude brzy vypadat a fungovat. Děkujeme za trpělivost!</div>
-    </div>
+        {{ 'privacy_policy.content'|trans|raw }}
+    </section>
 {% endblock %}

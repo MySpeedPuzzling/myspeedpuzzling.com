@@ -12,7 +12,7 @@ final class PrivacyPolicyController extends AbstractController
 {
     #[Route(
         path: [
-            'cs' => '/privacy-policy',
+            'cs' => '/zasady-ochrany-osobnich-udaju',
             'en' => '/en/privacy-policy',
         ],
         name: 'privacy_policy',

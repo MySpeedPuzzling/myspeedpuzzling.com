@@ -12,6 +12,7 @@ menu:
     support_us: "Podpořte nás"
     scan: "Čtečka čárových kódu"
     terms_of_service: "Obchodní podmínky"
+    privacy_policy: "Zásady ochrany osobních údajů"
 
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
@@ -537,4 +538,47 @@ terms_of_service:
             <li>Věříme, že žádné spory nebudou, ale pokud by přece jen nastaly, můžete se obrátit na Českou obchodní inspekci (ČOI) nebo využít evropskou platformu pro mimosoudní řešení sporů (ODR).</li>
             <li>Aktuální znění podmínek je vždy dostupné na MySpeedPuzzling.com. Vyhrazujeme si právo je v přiměřeném rozsahu měnit, abychom je udrželi v souladu s legislativou nebo provozními potřebami.</li>
         </ul>
+        <p><em><small>Poslední aktualizace: leden 2025</small></em></p>
+
+privacy_policy:
+    meta:
+        title: "Zásady ochrany osobních údajů"
+        description: "Zásady ochrany osobních údajů platformy MySpeedPuzzling.com"
+    content: |
+        <h1>Zásady ochrany osobních údajů</h1>
+        <p>Cílem tohoto dokumentu je informovat vás o tom, jakým způsobem na MySpeedPuzzling.com nakládáme s vašimi osobními údaji, které nám svěříte. Velmi si vážíme vaší důvěry a soukromí.</p>
+        <h2>1. Veřejné jméno</h2>
+        <p>Při registraci na MySpeedPuzzling.com si můžete zvolit své <strong>veřejné jméno</strong> – může to být přezdívka, zkratka nebo iniciály. Toto jméno se zobrazí všem návštěvníkům webové stránky. Proto buďte prosím opatrní při výběru jména, pokud si přejete zůstat více v anonymitě.</p>
+        <h2>2. E-mail</h2>
+        <ul>
+            <li>E-mail zadáváte pro účely přihlašování a komunikace s administrátory platformy.</li>
+            <li><strong>E-mail je neveřejný</strong> – nezobrazuje se nikde v profilu a není přístupný třetím stranám.</li>
+            <li>E-mail je uložen v šifrované databázi a přístup k němu mají pouze autoři aplikace.</li>
+            <li>Žádným dalším subjektům váš e-mail neposkytujeme.</li>
+        </ul>
+        <h2>3. Heslo</h2>
+        <ul>
+            <li>Heslo je v naší databázi uloženo pouze ve formě <strong>hashe</strong> – jedná se o nevratné zašifrování, takže nikdo z administrátorů ani z vývojářů nemůže zjistit jeho původní znění.</li>
+            <li>Při přihlašování se váš zadaný údaj pouze porovnává s hashem uloženým v databázi.</li>
+            <li>Z bezpečnostních důvodů proto nikdy nezasíláme původní heslo e-mailem; v případě potřeby si jej můžete obnovit pomocí procesu „Zapomenuté heslo“.</li>
+        </ul>
+        <h2>4. Volitelné veřejné údaje</h2>
+        <p>Uživatel má možnost vyplnit na svém profilu další <strong>veřejné informace</strong> (např. město, stát, odkazy na sociální sítě, popisek, avatar), které slouží k lepší interakci v komunitě.</p>
+        <ul>
+            <li>Tyto údaje se zobrazují všem návštěvníkům a <strong>nejsou považovány za citlivé</strong> osobní údaje.</li>
+            <li>Při vyplňování jste upozorněni, že se jedná o veřejné informace.</li>
+            <li>Přesto jsou i tyto údaje ukládány v naší šifrované databázi.</li>
+        </ul>
+        <h2>5. Platební údaje</h2>
+        <ul>
+            <li>Platforma MySpeedPuzzling.com <strong>neshromažďuje žádné údaje o platebních metodách</strong> – všechny platby jsou zpracovávány výhradně přes partnerskou společnost Stripe.</li>
+            <li>Nikdy nemáme přístup k vašim platebním kartám, bankovním údajům ani jiným finančním údajům.</li>
+        </ul>
+        <h2>6. Zabezpečení a soukromí</h2>
+        <ul>
+            <li>Bezpečí našich uživatelů je pro nás prioritou – servery a databáze jsou chráněny proti neoprávněným přístupům, únikům dat a jiným kybernetickým hrozbám.</li>
+            <li>Vaše osobní údaje (např. e-mail či volitelné profilové údaje) jsou vždy šifrovány a mají k nim přístup pouze autoři aplikace.</li>
+            <li>Zachováváme všechny běžné bezpečnostní standardy a na zabezpečení neustále pracujeme.</li>
+        </ul>
+        <p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
         <p><em><small>Poslední aktualizace: leden 2025</small></em></p>

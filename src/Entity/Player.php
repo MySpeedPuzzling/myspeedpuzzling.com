@@ -57,6 +57,10 @@ class Player
     #[Column(nullable: true)]
     public null|string $stripeCustomerId = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $locale = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -147,5 +151,10 @@ class Player
     public function updateStripeCustomerId(string $stripeCustomerId): void
     {
         $this->stripeCustomerId = $stripeCustomerId;
+    }
+
+    public function changeLocale(string $locale): void
+    {
+        $this->locale = $locale;
     }
 }

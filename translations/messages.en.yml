@@ -11,6 +11,7 @@ menu:
     feedback: "Send feedback"
     support_us: "Support us"
     scan: "Barcode reader"
+    terms_of_service: "Terms of service"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -472,3 +473,64 @@ membership_payment_cancelled:
     text: "The payment process was interrupted, most likely by you :-)."
     membership_link: "Back to membership overview"
     payment_link: "Retry payment"
+
+terms_of_service:
+    meta:
+        title: "Terms of Service"
+        description: "Terms of Service for the MySpeedPuzzling.com platform"
+    content: |
+        <h1>Terms of Service</h1>
+        <p>These Terms of Service govern the provision of subscription (membership) on the MySpeedPuzzling.com platform. We want you to have all the important information in one place so you can easily review it.</p>
+        <h2>1. Who We Are</h2>
+        <ul>
+            <li><strong>Provider:</strong> Simona Mikešová (Sole Proprietor)</li>
+            <li><strong>Address:</strong> Františka Formana 237/31, 700 30 Ostrava, Czech Republic</li>
+            <li><strong>ID No.:</strong> 06868878</li>
+            <li><strong>Contact Email:</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
+        </ul>
+        <p>As the operator of the MySpeedPuzzling.com platform, we are your contractual partner for purchasing and using paid membership.</p>
+        <h2>2. How the Service Works</h2>
+        <p>MySpeedPuzzling.com is an online platform for jigsaw puzzle enthusiasts. We offer various features, while premium parts of the application are accessible only to users with an active membership.</p>
+        <ul>
+            <li>Membership is a virtual (digital) product – once you pay, you immediately gain access to exclusive features.</li>
+            <li>Since it is an electronic service, no physical delivery or shipping conditions apply.</li>
+            <li>The content and features available as part of the membership may change over time – we are continuously improving them.</li>
+        </ul>
+        <h2>3. Ordering and Conclusion of the Contract</h2>
+        <p>If you decide to purchase a paid membership, simply choose the monthly subscription in the “Membership” section. You will then be redirected to the Stripe payment gateway.</p>
+        <ul>
+            <li><strong>Payment Details:</strong> All payment details are processed via Stripe using encrypted communication – we do not have access to this information.</li>
+            <li><strong>Order Confirmation:</strong> The contract between you and us is concluded at the moment of successful payment. Your membership is immediately activated afterward.</li>
+            <li><strong>Invoice:</strong> You can download the invoice for your paid subscription directly from the Stripe payment portal.</li>
+            <li><strong>Further Membership Management:</strong> Changes to the payment method, cancellation, or extension are also managed through the Stripe payment portal, accessible via the “Membership” section in your account.</li>
+        </ul>
+        <h2>4. Prices and Payment Terms</h2>
+        <ul>
+            <li><strong>Membership Price:</strong> All prices are stated including VAT. Depending on the currency you use for payment, prices may vary slightly.</li>
+            <li><strong>Payment Methods:</strong> Stripe supports card payments, Apple Pay, and Link (other methods may be added over time).</li>
+            <li><strong>Recurring Payment:</strong> This is a monthly subscription, which means the payment recurs each month until you cancel your membership.</li>
+        </ul>
+        <h2>5. Cancellation and Refunds</h2>
+        <ul>
+            <li><strong>You can cancel your membership at any time:</strong> After cancellation, you will retain access until the end of the prepaid period. No further payments will be taken once that period ends.</li>
+            <li><strong>Refunds:</strong> If you request a refund for the current billing period, we will refund the payment using the same method you used to pay, and your membership will end immediately.</li>
+            <li><strong>Processing Speed:</strong> We process refunds and claims promptly (usually within the next business day), no later than within 30 days as required by law.</li>
+            <li><strong>Refund Costs:</strong> We cover any fees for refunds – we want you to be satisfied.</li>
+        </ul>
+        <h2>6. Claims</h2>
+        <p>If you feel the service has not been provided with the appropriate quality or you experience technical issues, please contact us at
+            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.
+        </p>
+        <ul>
+            <li>We handle claims as quickly as possible, typically within 1–2 business days.</li>
+            <li>The maximum resolution time for claims is 30 days.</li>
+        </ul>
+        <h2>7. Personal Data Protection</h2>
+        <p>We provide information on the processing of personal data on <a href="%privacyPolicyLink%">a separate page</a> dedicated to privacy protection. There you will find all the details about what data we collect, why we process it, and how we handle it.</p>
+        <h2>8. Final Provisions</h2>
+        <ul>
+            <li>These terms are governed by Czech law, and any disputes shall be resolved by the competent courts of the Czech Republic.</li>
+            <li>We believe no disputes will arise, but if they do, you can contact the Czech Trade Inspection Authority (ČOI) or use the European Online Dispute Resolution (ODR) platform.</li>
+            <li>The current version of the terms is always available at MySpeedPuzzling.com. We reserve the right to make reasonable changes to keep them in line with legislation or operational needs.</li>
+        </ul>
+        <p><em><small>Last updated: January 2025</small></em></p>

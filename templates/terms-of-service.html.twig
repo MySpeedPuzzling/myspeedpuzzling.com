@@ -3,12 +3,8 @@
 {% block title %}Terms of service{% endblock %}
 
 {% block content %}
-    <h1>Terms of service</h1>
+    <section class="terms-of-service">
 
-    <div class="alert alert-primary d-flex" role="alert">
-        <div class="alert-icon">
-            <i class="ci-bell"></i>
-        </div>
-        <div>Tato stránka nefunguje! Jde o prototyp toho, jak bude brzy vypadat a fungovat. Děkujeme za trpělivost!</div>
-    </div>
+        {{ 'terms_of_service.content'|trans({ '%privacyPolicyLink%': path('privacy_policy') })|raw }}
+    </section>
 {% endblock %}

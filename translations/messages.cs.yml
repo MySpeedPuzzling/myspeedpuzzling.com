@@ -11,6 +11,7 @@ menu:
     feedback: "Zpětná vazba"
     support_us: "Podpořte nás"
     scan: "Čtečka čárových kódu"
+    terms_of_service: "Obchodní podmínky"
 
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
@@ -474,3 +475,66 @@ membership_payment_cancelled:
     text: "Platební proces byl přerušen, nejspíše vámi :-)."
     membership_link: "Zpět na přehled o členství"
     payment_link: "Opakovat platbu"
+
+terms_of_service:
+    meta:
+        title: "Obchodní podmínky"
+        description: "Obchodní podmínky platformy MySpeedPuzzling.com"
+    content: |
+        <h1>Obchodní podmínky</h1>
+        <p>Tyto obchodní podmínky upravují poskytování předplatného (členství) na platformě MySpeedPuzzling.com. Chceme, abyste měli všechny důležité informace na jednom místě a mohli si je jednoduše projít.</p>
+        <h2>1. Kdo jsme</h2>
+        <ul>
+            <li><strong>Provozovatel:</strong> Simona Mikešová (OSVČ)</li>
+            <li><strong>Sídlo:</strong> Františka Formana 237/31, 700 30 Ostrava, Česká republika</li>
+            <li><strong>IČ:</strong> 06868878</li>
+            <li><strong>Kontaktní e-mail:</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
+        </ul>
+        <p>Jako provozovatel platformy MySpeedPuzzling.com jsme vaším smluvním partnerem pro nákup a využívání placeného členství.</p>
+        <h2>2. Jak služba funguje</h2>
+        <p>MySpeedPuzzling.com je online platforma pro nadšence do skládání puzzlí. Nabízíme různé funkce, přičemž prémiové části aplikace jsou přístupné pouze uživatelům s aktivním členstvím.</p>
+        <ul>
+            <li>Členství je virtuální (digitální) produkt – po zaplacení získáte okamžitý přístup k exkluzivním funkcím.</li>
+            <li>Protože jde o elektronickou službu, nevztahují se na ni žádné fyzické dodací či přepravní podmínky.</li>
+            <li>Obsah a funkce dostupné v rámci členství se mohou v čase měnit – snažíme se je průběžně vylepšovat.</li>
+        </ul>
+        <h2>3. Objednávka a uzavření smlouvy</h2>
+        <p>Pokud se rozhodnete pro placené členství, stačí v sekci „Členství“ vybrat měsíční předplatné. Poté budete přesměrováni na platební bránu Stripe.</p>
+        <ul>
+            <li><strong>Platební údaje:</strong> Veškeré platební údaje zpracovává za šifrovaného spojení služba Stripe – my k těmto údajům nemáme přístup.</li>
+            <li><strong>Potvrzení objednávky:</strong> Ke uzavření smlouvy mezi vámi a námi dojde v okamžiku úspěšného provedení platby. Poté vám bude okamžitě aktivováno členství.</li>
+            <li><strong>Faktura:</strong> Fakturu za zaplacené předplatné si můžete stáhnout přímo v platebním portále Stripe.</li>
+            <li><strong>Další správa členství:</strong> Změny platební metody, zrušení nebo prodloužení probíhá rovněž přes platební portál Stripe. Na tento portál se dostanete přes sekci „Členství“ ve vašem účtu.</li>
+        </ul>
+        <h2>4. Ceny a platební podmínky</h2>
+        <ul>
+            <li><strong>Cena členství:</strong> Cena je vždy uvedena včetně DPH. V závislosti na měně, ve které platbu provádíte, se mohou ceny mírně lišit.</li>
+            <li><strong>Platební metody:</strong> Stripe podporuje platby kartou, Apple Pay a Link (další metody se mohou postupně přidávat).</li>
+            <li><strong>Opakovaná platba:</strong> Jde o měsíční předplatné, což znamená, že se platba opakuje každý měsíc, dokud členství nezrušíte.</li>
+        </ul>
+        <h2>5. Zrušení a vrácení peněz</h2>
+        <ul>
+            <li><strong>Kdykoliv můžete své předplatné zrušit:</strong> Po zrušení předplatného vám zůstává přístup do konce předplaceného období. Po jeho uplynutí už se vám nic nestrhává.</li>
+            <li><strong>Vracení peněz:</strong> Pokud požádáte o vrácení peněz za aktuální běžící období, vrátíme vám platbu stejným způsobem, jakým jste ji uhradili, a vaše členství se ihned ukončí.</li>
+            <li><strong>Rychlost vyřízení:</strong> Vrácení a reklamace zpracováváme obratem (obvykle do druhého pracovního dne), nejpozději do 30 dnů, jak stanovuje zákon.</li>
+            <li><strong>Náklady na vrácení:</strong> Jakékoliv poplatky za vrácení neseme my – chceme, abyste byli spokojení.</li>
+        </ul>
+        <h2>6. Reklamace</h2>
+        <p>V případě, že máte pocit, že vám služba nebyla poskytnuta v odpovídající kvalitě nebo máte technické potíže, ozvěte se nám na e-mail
+            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.
+        </p>
+        <ul>
+            <li>Reklamace vyřizujeme co nejdříve, typicky do 1–2 pracovních dnů.</li>
+            <li>Maximální lhůta k vyřízení reklamace je 30 dní.</li>
+        </ul>
+
+        <h2>7. Ochrana osobních údajů</h2>
+        <p>O zpracování osobních údajů informujeme na <a href="%privacyPolicyLink%">samostatné stránce</a>, která se věnuje ochraně soukromí. Tam najdete všechny podrobnosti o tom, jaké údaje shromažďujeme, proč je zpracováváme a jak s nimi nakládáme.</p>
+
+        <h2>8. Závěrečná ustanovení</h2>
+        <ul>
+            <li>Tyto podmínky se řídí českým právem a případné spory se řeší u příslušných soudů České republiky.</li>
+            <li>Věříme, že žádné spory nebudou, ale pokud by přece jen nastaly, můžete se obrátit na Českou obchodní inspekci (ČOI) nebo využít evropskou platformu pro mimosoudní řešení sporů (ODR).</li>
+            <li>Aktuální znění podmínek je vždy dostupné na MySpeedPuzzling.com. Vyhrazujeme si právo je v přiměřeném rozsahu měnit, abychom je udrželi v souladu s legislativou nebo provozními potřebami.</li>
+        </ul>
+        <p><em><small>Poslední aktualizace: leden 2025</small></em></p>

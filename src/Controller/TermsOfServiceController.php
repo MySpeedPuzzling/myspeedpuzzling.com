@@ -12,7 +12,7 @@ final class TermsOfServiceController extends AbstractController
 {
     #[Route(
         path: [
-            'cs' => '/terms-of-service',
+            'cs' => '/obchodni-podminky',
             'en' => '/en/terms-of-service',
         ],
         name: 'terms_of_service',

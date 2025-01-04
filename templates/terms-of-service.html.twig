@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Terms of service{% endblock %}
+{% block title %}{{ 'terms_of_service.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'terms_of_service.meta.description'|trans }}{% endblock %}
 
 {% block content %}
     <section class="terms-of-service">

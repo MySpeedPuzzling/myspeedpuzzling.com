@@ -30,10 +30,16 @@ readonly final class NotifyWhenMembershipSubscriptionRenewed
             return;
         }
 
+        $playerLocale = $player->locale;
+        $subject = $this->translator->trans('subscription_renewed.subject',
+            domain: 'emails',
+            locale: $playerLocale,
+        );
+
         $email = (new TemplatedEmail())
             ->to($player->email)
-            ->locale($player->locale)
-            ->subject($this->translator->trans('subscription_renewed.subject', domain: 'emails'))
+            ->locale($playerLocale)
+            ->subject($subject)
             ->htmlTemplate('emails/subscription_renewed.html.twig')
             ->context([
                 'nextBillingPeriod' => $membership->billingPeriodEndsAt?->format('d.m.Y H:i'),

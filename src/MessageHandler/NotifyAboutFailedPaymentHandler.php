@@ -30,10 +30,16 @@ readonly final class NotifyAboutFailedPaymentHandler
             return;
         }
 
+        $playerLocale = $player->locale;
+        $subject = $this->translator->trans('subscription_payment_failed.subject',
+            domain: 'emails',
+            locale: $playerLocale,
+        );
+
         $email = (new TemplatedEmail())
             ->to($player->email)
             ->locale($player->locale)
-            ->subject($this->translator->trans('subscription_payment_failed.subject', domain: 'emails'))
+            ->subject($subject)
             ->htmlTemplate('emails/subscription_payment_failed.html.twig')
             ->context([]);
 

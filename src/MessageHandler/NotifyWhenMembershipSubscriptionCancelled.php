@@ -30,10 +30,16 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
             return;
         }
 
+        $playerLocale = $player->locale;
+        $subject = $this->translator->trans('membership_cancelled.subject',
+            domain: 'emails',
+            locale: $playerLocale,
+        );
+
         $email = (new TemplatedEmail())
             ->to($player->email)
             ->locale($player->locale)
-            ->subject($this->translator->trans('membership_cancelled.subject', domain: 'emails'))
+            ->subject($subject)
             ->htmlTemplate('emails/membership_cancelled.html.twig')
             ->context([
                 'membershipExpiresAt' => $membership->endsAt?->format('d.m.Y H:i'),

@@ -34,11 +34,18 @@ readonly final class NotifyWhenMembershipStarted
             return;
         }
 
+        $playerLocale = $player->locale;
+
         if ($membership->billingPeriodEndsAt === null) {
+            $subject = $this->translator->trans('membership_granted.subject',
+                domain: 'emails',
+                locale: $playerLocale,
+            );
+
             $email = (new TemplatedEmail())
                 ->to($player->email)
                 ->locale($player->locale)
-                ->subject($this->translator->trans('membership_granted.subject', domain: 'emails'))
+                ->subject($subject)
                 ->htmlTemplate('emails/membership_granted.html.twig')
                 ->context([
                     'membershipExpiresAt' => $membership->endsAt?->format('d.m.Y'),
@@ -48,10 +55,15 @@ readonly final class NotifyWhenMembershipStarted
         }
 
         if ($membership->billingPeriodEndsAt !== null) {
+            $subject = $this->translator->trans('membership_subscribed.subject',
+                domain: 'emails',
+                locale: $playerLocale,
+            );
+
             $email = (new TemplatedEmail())
                 ->to($player->email)
                 ->locale($player->locale)
-                ->subject($this->translator->trans('membership_subscribed.subject', domain: 'emails'))
+                ->subject($subject)
                 ->htmlTemplate('emails/membership_subscribed.html.twig')
                 ->context([
                     'nextBillingPeriod' => $membership->billingPeriodEndsAt->format('d.m.Y H:i'),

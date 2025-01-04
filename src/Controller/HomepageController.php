@@ -34,21 +34,22 @@ final class HomepageController extends AbstractController
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
     {
+        $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
+        $locale = $request->getPreferredLanguage(['en', 'cs']) ?? 'en';
+        $userRanking = [];
+
+        if ($playerProfile !== null) {
+            $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
+            $locale = $playerProfile->locale ?? $locale;
+        }
+
         if ($request->getPathInfo() === '/') {
-            $locale = $request->getPreferredLanguage(['en', 'cs']) ?? 'en';
 
             if ($user !== null) {
                 return $this->redirectToRoute('hub', ['_locale' => $locale]);
             }
 
             return $this->redirectToRoute('homepage', ['_locale' => $locale]);
-        }
-
-        $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
-        $userRanking = [];
-
-        if ($playerProfile !== null) {
-            $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
         }
 
         return $this->render('homepage.html.twig', [

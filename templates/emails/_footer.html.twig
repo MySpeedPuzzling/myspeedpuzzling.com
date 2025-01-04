@@ -1,0 +1,16 @@
+{% trans_default_domain 'emails' %}
+<row>
+    <columns>
+        <h-line></h-line>
+
+        <center>
+            <a href="{{ url('membership') }}">
+                <img src="{{ email.image('@images/speedpuzzling-logo-mini.png') }}" alt="MySpeedPuzzling.com Logo" style="width: 80px; height: auto; margin-top: 20px;" width="80" height="auto">
+            </a>
+        </center>
+
+        <p class="text-center">
+            <small>{{ 'footer'|trans({'%homepageLink%': url('homepage') }) }}</small>
+        </p>
+    </columns>
+</row>

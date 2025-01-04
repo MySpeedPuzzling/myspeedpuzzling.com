@@ -4,36 +4,17 @@
         <container>
             <row>
                 <columns>
-                    <h3>Your subscription has been cancelled</h3>
-
-                    <p>Sorry to see you go, maybe we will see you back one day :-).</p>
-                    <p>You will not be charged anymore. The membership will remain active until the end of the billing period: <b>{{ membershipExpiresAt }}</b></p>
+                    <h3>{{ 'membership_cancelled.title'|trans }}</h3>
                 </columns>
             </row>
 
             <row>
                 <columns>
-                    <p>
-                        You can always manage your membership on the: <a href="{{ url('membership') }}">membership page</a>.
-                    </p>
+                    {{ 'membership_cancelled.content'|trans({'%membershipExpiresAt%': membershipExpiresAt, '%membershipUrl%': url('membership')})|raw }}
                 </columns>
             </row>
 
-            <row>
-                <columns>
-                    <h-line></h-line>
-
-                    <center>
-                        <a href="{{ url('membership') }}">
-                            <img src="{{ email.image('@images/speedpuzzling-logo-mini.png') }}" alt="MySpeedPuzzling.com Logo" style="width: 80px; height: auto; margin-top: 20px;" width="80" height="auto">
-                        </a>
-                    </center>
-
-                    <p class="text-center">
-                        <small>Thank you for being a part of <a href="{{ url('homepage') }}" >MySpeedPuzzling.com</a>.</small>
-                    </p>
-                </columns>
-            </row>
+            {{ include('emails/_footer.html.twig') }}
         </container>
     </wrapper>
 {% endapply %}

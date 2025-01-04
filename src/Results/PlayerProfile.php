@@ -27,6 +27,7 @@ readonly final class PlayerProfile
         public bool $wjpcModalDisplayed,
         public null|string $stripeCustomerId,
         public bool $isMember,
+        public null|string $locale,
         public null|CountryCode $countryCode = null,
     ) {
     }
@@ -47,6 +48,7 @@ readonly final class PlayerProfile
      *     instagram: null|string,
      *     stripe_customer_id: null|string,
      *     wjpc_modal_displayed: bool,
+     *     locale: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -76,6 +78,7 @@ readonly final class PlayerProfile
             wjpcModalDisplayed: $row['wjpc_modal_displayed'],
             stripeCustomerId: $row['stripe_customer_id'],
             isMember: false,
+            locale: $row['locale'],
             countryCode: $countryCode,
         );
     }

@@ -40,7 +40,8 @@ SELECT
     facebook,
     instagram,
     stripe_customer_id,
-    wjpc_modal_displayed
+    wjpc_modal_displayed,
+    locale
 FROM player
 WHERE player.id = :playerId
 SQL;
@@ -61,6 +62,7 @@ SQL;
          *     instagram: null|string,
          *     stripe_customer_id: null|string,
          *     wjpc_modal_displayed: bool,
+         *     locale: null|string,
          * } $row
          */
         $row = $this->database
@@ -96,7 +98,8 @@ SELECT
     facebook,
     instagram,
     stripe_customer_id,
-    wjpc_modal_displayed
+    wjpc_modal_displayed,
+    locale
 FROM player
 WHERE player.user_id = :userId
 SQL;
@@ -117,6 +120,7 @@ SQL;
          *     instagram: null|string,
          *     stripe_customer_id: null|string,
          *     wjpc_modal_displayed: bool,
+         *     locale: null|string,
          * } $row
          */
         $row = $this->database

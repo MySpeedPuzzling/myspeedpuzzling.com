@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Repository\MembershipRepository;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
 readonly final class NotifyWhenMembershipSubscriptionRenewed
@@ -16,6 +17,7 @@ readonly final class NotifyWhenMembershipSubscriptionRenewed
     public function __construct(
         private MembershipRepository $membershipRepository,
         private MailerInterface $mailer,
+        private TranslatorInterface $translator,
     ) {
     }
 
@@ -30,8 +32,8 @@ readonly final class NotifyWhenMembershipSubscriptionRenewed
 
         $email = (new TemplatedEmail())
             ->to($player->email)
-            ->locale('en') // TODO: take locale from user object
-            ->subject('MySpeedPuzzling subscription renewed')
+            ->locale($player->locale)
+            ->subject($this->translator->trans('subscription_renewed.subject', domain: 'emails'))
             ->htmlTemplate('emails/subscription_renewed.html.twig')
             ->context([
                 'nextBillingPeriod' => $membership->billingPeriodEndsAt?->format('d.m.Y H:i'),

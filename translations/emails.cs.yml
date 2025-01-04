@@ -1,0 +1,14 @@
+membership_cancelled:
+    subject: "MySpeedPuzzling - Membership subscription cancelled"
+
+membership_granted:
+    subject: "Congratulations to your MySpeedPuzzling membership"
+
+membership_subscribed:
+    subject: "Congratulations to your MySpeedPuzzling membership"
+
+subscription_payment_failed:
+    subject: "MySpeedPuzzling - Payment failed"
+
+subscription_renewed:
+    subject: "MySpeedPuzzling - Membership renewed"

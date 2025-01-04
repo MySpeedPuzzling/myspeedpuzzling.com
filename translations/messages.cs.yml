@@ -65,6 +65,7 @@ wjpc_participant: "WJPC 2024 účastník (%name%)"
 share: "Sdílet"
 edit: "Upravit"
 delete: "Smazat"
+active_membership: "Aktivní členství"
 
 homepage:
     meta:

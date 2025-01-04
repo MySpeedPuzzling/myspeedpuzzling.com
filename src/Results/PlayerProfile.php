@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use DateTimeImmutable;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -26,8 +27,9 @@ readonly final class PlayerProfile
         public null|string $instagram,
         public bool $wjpcModalDisplayed,
         public null|string $stripeCustomerId,
-        public bool $isMember,
         public null|string $locale,
+        public null|DateTimeImmutable $membershipEndsAt,
+        public bool $activeMembership,
         public null|CountryCode $countryCode = null,
     ) {
     }
@@ -49,9 +51,10 @@ readonly final class PlayerProfile
      *     stripe_customer_id: null|string,
      *     wjpc_modal_displayed: bool,
      *     locale: null|string,
+     *     membership_ends_at: null|string,
      * } $row
      */
-    public static function fromDatabaseRow(array $row): self
+    public static function fromDatabaseRow(array $row, DateTimeImmutable $now): self
     {
         try {
             /** @var array<string> $favoritePlayers */
@@ -61,6 +64,17 @@ readonly final class PlayerProfile
         }
 
         $countryCode = CountryCode::fromCode($row['country']);
+
+        $membershipEndsAt = null;
+        $hasMembership = false;
+
+        if ($row['membership_ends_at'] !== null) {
+            $membershipEndsAt = new DateTimeImmutable($row['membership_ends_at']);
+
+            if ($membershipEndsAt > $now) {
+                $hasMembership = true;
+            }
+        }
 
         return new self(
             playerId: $row['player_id'],
@@ -77,8 +91,9 @@ readonly final class PlayerProfile
             instagram: $row['instagram'],
             wjpcModalDisplayed: $row['wjpc_modal_displayed'],
             stripeCustomerId: $row['stripe_customer_id'],
-            isMember: false,
             locale: $row['locale'],
+            membershipEndsAt: $membershipEndsAt,
+            activeMembership: $hasMembership,
             countryCode: $countryCode,
         );
     }

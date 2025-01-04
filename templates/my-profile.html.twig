@@ -29,6 +29,15 @@
                 {% endif %}
             </h1>
 
+            {% if player.activeMembership %}
+                <p>
+                    <span class="badge bg-primary py-1 px-2">
+                        <i class="ci ci-heart-filled"></i>
+                        {{ 'active_membership'|trans }}
+                    </span>
+                </p>
+            {% endif %}
+
             <a class="btn btn-sm btn-primary me-3 mb-1" href="{{ path('edit_profile') }}">
                 <i class="ci-edit"></i> {{ 'my_profile.edit'|trans }}
             </a>

@@ -31,6 +31,15 @@
         {% endif %}
     </h1>
 
+    {% if player.activeMembership %}
+        <p>
+            <span class="badge bg-primary py-1 px-2">
+                <i class="ci ci-heart-filled"></i>
+                {{ 'active_membership'|trans }}
+            </span>
+        </p>
+    {% endif %}
+
     {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
         <p>
             {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}

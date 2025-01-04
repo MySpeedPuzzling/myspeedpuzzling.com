@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerProfile;
@@ -13,6 +14,7 @@ readonly final class GetPlayerProfile
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -41,8 +43,10 @@ SELECT
     instagram,
     stripe_customer_id,
     wjpc_modal_displayed,
-    locale
+    locale,
+    COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
+LEFT JOIN membership ON membership.player_id = player.id
 WHERE player.id = :playerId
 SQL;
 
@@ -63,6 +67,7 @@ SQL;
          *     stripe_customer_id: null|string,
          *     wjpc_modal_displayed: bool,
          *     locale: null|string,
+         *     membership_ends_at: null|string,
          * } $row
          */
         $row = $this->database
@@ -75,7 +80,7 @@ SQL;
             throw new PlayerNotFound();
         }
 
-        return PlayerProfile::fromDatabaseRow($row);
+        return PlayerProfile::fromDatabaseRow($row, $this->clock->now());
     }
 
     /**
@@ -99,8 +104,10 @@ SELECT
     instagram,
     stripe_customer_id,
     wjpc_modal_displayed,
-    locale
+    locale,
+    COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
+LEFT JOIN membership ON membership.player_id = player.id
 WHERE player.user_id = :userId
 SQL;
 
@@ -121,6 +128,7 @@ SQL;
          *     stripe_customer_id: null|string,
          *     wjpc_modal_displayed: bool,
          *     locale: null|string,
+         *     membership_ends_at: null|string,
          * } $row
          */
         $row = $this->database
@@ -133,6 +141,6 @@ SQL;
             throw new PlayerNotFound();
         }
 
-        return PlayerProfile::fromDatabaseRow($row);
+        return PlayerProfile::fromDatabaseRow($row, $this->clock->now());
     }
 }

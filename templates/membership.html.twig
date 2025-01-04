@@ -37,7 +37,7 @@
 
                             {% if membership.endsAt and membership.endsAt > now %}
                                 <p>
-                                    {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y') }}</strong>
+                                    {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.endsAt|date('d.m.Y') }}</strong>
                                 </p>
                             {% endif %}
 

@@ -1,8 +1,8 @@
-footer: 'Thank you for being a valued member of <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>If you have any questions or need assistance, feel free to contact us anytime at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>. We’re here to help!'
+footer: 'Thank you for being a valued member of <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>If you have any questions or need assistance, feel free to contact us anytime at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
 
 membership_cancelled:
-    subject: "MySpeedPuzzling - Membership Subscription Cancelled"
-    title: "Your Subscription Has Been Cancelled"
+    subject: "Membership Subscription Cancelled"
+    title: "Membership Subscription Cancelled"
     content: |
         <p>We're sad to see you go, but we truly appreciate the time you've spent with us in the Speed Puzzling community!</p>
         <p>Rest assured, you will not be charged any further. Your membership will remain active until the end of your current billing period, which ends on <b>%membershipExpiresAt%</b>.</p>
@@ -30,15 +30,15 @@ membership_subscribed:
         <p>Thank you for being a valuable part of our Speed Puzzling community. We’re excited to have you with us!</p>
 
 subscription_payment_failed:
-    subject: "MySpeedPuzzling - Payment Failed"
-    title: "Subscription Payment Failed"
+    subject: "Membership Payment Failed"
+    title: "Membership Payment Failed"
     content: |
         <p>We noticed that your recent subscription payment did not go through. This could be due to an issue with your payment method.</p>
         <p>If you’d like to keep your membership active, please check and update your payment method on the <a href="%billingPortalUrl%">billing portal page</a>.</p>
         <p>If the payment continues to fail, your membership will be deactivated after a few more attempts. We hope to keep you as a part of our Speed Puzzling community!</p>
 
 subscription_renewed:
-    subject: "MySpeedPuzzling - Payment Succeeded"
+    subject: "Membership Payment Succeeded"
     title: "Membership Successfully Renewed!"
     content: |
         <p>Thank you so much for staying with us and being an important part of the Speed Puzzling community!</p>

@@ -33,10 +33,10 @@
 
     {% if player.activeMembership %}
         <p>
-            <span class="badge bg-primary py-1 px-2">
+            <a href="{{ path('membership') }}" class="badge bg-primary py-1 px-2 text-light">
                 <i class="ci ci-heart-filled"></i>
                 {{ 'active_membership'|trans }}
-            </span>
+            </a>
         </p>
     {% endif %}
 

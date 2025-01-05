@@ -38,7 +38,7 @@
                         </a>
 
                         {% if logged_user.profile %}
-                            <a class="ms-3 topbar-link" href="{{ path('membership') }}">
+                            <a class="ms-2 ms-sm-3 topbar-link" href="{{ path('membership') }}">
                                 <i class="ci-user-circle"></i> {{ 'menu.membership'|trans }}
 
                                 {% if not logged_user.profile.activeMembership %}

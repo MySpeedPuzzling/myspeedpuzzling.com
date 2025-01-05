@@ -460,8 +460,10 @@ membership:
     meta:
         title: "Membership"
         description: ""
-    title: "MySpeedPuzzling Membership"
-    become_member: "Subscribe to MySpeedPuzzling Membership - support development and gain access to exclusive member-only features. Now at an introductory price that stays with you for the duration of your membership."
+    title: "Membership"
+    intro_text: "Membership is a way to gain access to exclusive features for true puzzle enthusiasts! By subscribing to a membership, you also support the development of the platform and help us achieve our vision of creating the best community puzzle platform in the world."
+    become_member: "Since membership currently offers only a few benefits (we're gradually adding more and more exclusive features!), we are offering a limited-time discounted price of 4 €, valid only until <strong>February 14, 2025</strong>. If you join now, this lower price will remain <strong>for the entire duration of your membership</strong>."
+    redirect_to_stripe: "You will be redirected to the Stripe payment gateway."
     subscription_active: "Active subscription, thank you for being part of the community!"
     membership_active: "Active membership, thank you for being part of the community!"
     membership_inactive: "Membership is not active"
@@ -471,11 +473,30 @@ membership:
     membership_expiration: "Membership valid until"
     payment_portal_button: "Manage subscription (payment portal)"
     description_title: "What are the benefits of membership?"
-    full_description: "<p>We will fill this in soon ... :-)</p>"
     subscribe_for: "Subscribe for"
     original_price_per_month: "6€ / month"
     price_per_month: "4€ / month"
     billing_portal_info: "In the payment portal, you can update your payment details, cancel your membership, or download invoices or receipts."
+    full_description: |
+        <ul>
+            <li>A big thank you for supporting the platform's development</li>
+            <li>Your own personalized player code (you can change it in your profile)</li>
+            <li>Membership badge</li>
+        </ul>
+        
+        <h3 class="h4">What can you look forward to soon?</h3>
+        <ul>
+            <li>Charts <small class="ms-1 text-muted">(01/2025)</small></li>
+            <li>Filtering and searching by first attempts <small class="ms-1 text-muted">(01/2025)</small></li>
+            <li>Detailed statistics <small class="ms-1 text-muted">(02/2025)</small></li>
+            <li>Monthly and yearly reports <small class="ms-1 text-muted">(02/2025)</small></li>
+            <li>Public mypuzzler.com profile <small class="ms-1 text-muted">(02/2025)</small></li>
+            <li class="mt-2">Special challenges exclusively for members</li>
+            <li>Puzzle borrowing and selling among members</li>
+            <li>Gamification - earning experience and levels</li>
+            <li>Badges for various achievements</li>
+            <li>&hellip; and much more, this is just a small preview of what we’re preparing for you!</li>
+        </ul>
 
 membership_payment_cancelled:
     meta:

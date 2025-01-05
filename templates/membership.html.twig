@@ -9,6 +9,10 @@
             <div class="col-lg-6 col-md-8">
                 <h1 class="h2">{{ 'membership.title'|trans }}</h1>
 
+                <p>{{ 'membership.intro_text'|trans }}</p>
+
+                <p></p>
+
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {% if membership %}
@@ -48,14 +52,18 @@
                                 {{ 'membership.billing_portal_info'|trans }}
                             </p>
                         {% else %}
-                            <p>{{ 'membership.become_member'|trans }}</p>
+                            <p>{{ 'membership.become_member'|trans|raw }}</p>
 
-                            <p class="mt-2 text-center">
+                            <p class="mt-2 text-center mb-1">
                                 <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
                                     <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for'|trans }}</small>
                                     <br><del class="small">{{ 'membership.original_price_per_month'|trans }}</del>
                                     <br>{{ 'membership.price_per_month'|trans }}
                                 </a>
+                            </p>
+
+                            <p class="text-center mb-0">
+                                <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>
                             </p>
                         {% endif %}
                     </div>
@@ -63,6 +71,7 @@
 
                 <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
                 {{ 'membership.full_description'|trans|raw }}
+
             </div>
 
             <div class="col-lg-5 offset-lg-1 col-md-4 text-center">

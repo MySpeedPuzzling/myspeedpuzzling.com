@@ -41,7 +41,7 @@
                             <i class="ci-user-circle"></i> {{ 'menu.membership'|trans }}
 
                             {% if logged_user.profile is null or not logged_user.profile.activeMembership %}
-                                <span class="badge bg-primary">NEW</span>
+                                <span class="badge bg-primary">{{ 'new_badge'|trans }}</span>
                             {% endif %}
                         </a>
                     </div>

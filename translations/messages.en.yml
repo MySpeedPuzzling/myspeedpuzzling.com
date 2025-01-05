@@ -67,6 +67,7 @@ share: "Share"
 edit: "Edit"
 delete: "Delete"
 active_membership: "Active membership"
+new_badge: "New"
 
 homepage:
     meta:

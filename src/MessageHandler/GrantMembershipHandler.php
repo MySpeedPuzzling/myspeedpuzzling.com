@@ -13,7 +13,9 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\GrantMembership;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
+#[AsMessageHandler]
 readonly final class GrantMembershipHandler
 {
     public function __construct(

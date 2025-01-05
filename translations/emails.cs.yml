@@ -1,48 +1,48 @@
-footer: 'Děkujeme, že jste cennou součástí <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>Pokud máte jakékoli dotazy nebo potřebujete pomoc, neváhejte nás kdykoli kontaktovat na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
+footer: 'Děkujeme, že jste součástí <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>Pokud máte jakékoli dotazy, neváhejte nás kdykoli kontaktovat na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
 
 membership_cancelled:
-    subject: "Předplatné členství bylo zrušeno"
-    title: "Předplatné členství bylo zrušeno"
+    subject: "Předplatné členství na MySpeedPuzzling.com bylo zrušeno"
+    title: "Předplatné členství  bylo zrušeno!"
     content: |
-        <p>Mrzí nás, že odcházíte, ale velmi si vážíme času, který jste strávili s naší Speed Puzzling komunitou!</p>
+        <p>Mrzí nás, že odcházíte, ale vážíme si času, který jste strávili s MySpeedPuzzling.com</p>
         <p>Nemusíte se obávat, další poplatky vám již nebudou účtovány. Vaše členství však zůstane aktivní až do konce aktuálního fakturačního období, které končí dne <b>%membershipExpiresAt%</b>.</p>
-        <p>Pokud změníte názor nebo budete chtít prozkoumat své možnosti, můžete své členství kdykoli spravovat na <a href="%membershipUrl%">stránce členství</a>.</p>
-        <p>Neustále se snažíme naši komunitu zlepšovat a velmi by nás potěšila jakákoli vaše zpětná vazba nebo návrhy. Nebojte se nám napsat – vaše názory jsou pro nás důležité a pomáhají nám se zlepšovat!</p>
-        <p>Děkujeme, že jste byli součástí naší cesty, a doufáme, že vás jednou opět přivítáme!</p>
+        <p>Pokud změníte názor, můžete své členství kdykoli spravovat na <a href="%membershipUrl%">stránce členství</a>.</p>
+        <p>Neustále se snažíme MySpeedPuzzling.com zlepšovat a velmi by nás potěšila jakákoli vaše zpětná vazba nebo nápady. </p>
+        <p>Děkujeme, že jste byli součástí MySpeedPuzzling.com, a doufáme, že vás jednou opět přivítáme! :)</p>
 
 membership_granted:
-    subject: "Gratulujeme k členství na MySpeedPuzzling"
+    subject: "Gratulujeme k členství na MySpeedPuzzling.com"
     title: "Vaše členství je nyní aktivní!"
     content: |
-        <p>Jsme nadšení, že můžeme ocenit váš úžasný přínos a úsilí v naší Speed Puzzling komunitě!</p>
-        <p>Jako projev naší vděčnosti jsme vám poskytli členství. Vaše členství zůstane aktivní do: <b>%membershipExpiresAt%</b>.</p>
+        <p>Jsme nadšení, že můžeme ocenit váš přínos a úsilí v Speed Puzzling komunitě!</p>
+        <p>Jako projev vděčnosti jsme vám poskytli členství na MySpeedPuzzling.com. Vaše členství zůstane aktivní do: <b>%membershipExpiresAt%</b>.</p>
         <p>Kdykoli si můžete své členství zkontrolovat a spravovat na <a href="%membershipUrl%">stránce členství</a>.</p>
-        <p>Děkujeme, že jste tak skvělou součástí naší komunity. Pokračujte v luštění a inspirujte ostatní!</p>
+        <p>Děkujeme, že jste tak skvělou součástí Speed Puzzling komunity. Pokračujte ve skládání a nadále inspirujte další puzzlery!</p>
 
 membership_subscribed:
-    subject: "Gratulujeme k členství na MySpeedPuzzling"
+    subject: "Gratulujeme k členství na MySpeedPuzzling.com"
     title: "Děkujeme, že jste s námi!"
     content: |
         <h4>Vaše členství je nyní aktivní.</h4>
-        <p>Velmi si vážíme vaší podpory a jsme nadšeni, že vás můžeme přivítat jako člena MySpeedPuzzling!</p>
+        <<p>Velmi si vážíme vaší podpory a jsme nadšeni, že vás můžeme přivítat jako člena MySpeedPuzzling.com!</p>
         <p>Vaše další fakturační období začíná: <b>%nextBillingPeriod%</b>.</p>
-        <p>Kdykoli můžete spravovat své předplatné, upravit své preference, zrušit členství nebo stáhnout účtenky/faktury na <a href="%membershipUrl%">stránce členství</a>.</p>
-        <p>Děkujeme, že jste cennou součástí naší Speed Puzzling komunity. Jsme rádi, že jste s námi!</p>
+        <p>Kdykoli můžete spravovat své předplatné, zrušit členství nebo stáhnout faktury na <a href="%membershipUrl%">stránce členství</a>.</p>
+        <p>Děkujeme, že jste součástí MySpeedPuzzling.com! a také za vaši podporu. Přejeme spoustu rychle poskládaných puzzlí a skvělých výsledků!</p>
 
 subscription_payment_failed:
-    subject: "Platba členství selhala"
-    title: "Platba členství selhala"
+    subject: "Platba členství na MySpeedPuzzling.com selhala"
+    title: "Platba členství selhala!"
     content: |
         <p>Všimli jsme si, že vaše poslední platba za předplatné neproběhla úspěšně. Mohlo dojít k problému s vaší platební metodou.</p>
         <p>Pokud si přejete, aby vaše členství zůstalo aktivní, zkontrolujte a aktualizujte svou platební metodu na <a href="%billingPortalUrl%">stránce platebního portálu</a>.</p>
-        <p>Pokud platba nadále selhává, vaše členství bude po několika dalších pokusech deaktivováno. Doufáme, že zůstanete součástí naší Speed Puzzling komunity!</p>
+        <p>Pokud platba nadále selhává, vaše členství bude po několika dalších pokusech deaktivováno. Doufáme, že zůstanete součástí MySpeedPuzzling.com!</p>
 
 subscription_renewed:
-    subject: "Platba proběhla úspěšně"
+    subject: "Platba členství na MySpeedPuzzling.com proběhla úspěšně"
     title: "Platba proběhla úspěšně, děkujeme!"
     content: |
-        <p>Moc vám děkujeme, že zůstáváte s námi a jste důležitou součástí Speed Puzzling komunity!</p>
+        <p>Moc vám děkujeme, že zůstáváte s námi a jste součástí MySpeedPuzzling.com!</p>
         <p>S radostí vám oznamujeme, že vaše členství bylo úspěšně prodlouženo. Vaše další fakturační období začíná: <b>%nextBillingPeriod%</b>.</p>
-        <p>Pokud budete chtít upravit své preference nebo zkontrolovat podrobnosti o svém předplatném, můžete tak učinit na <a href="%membershipUrl%">stránce členství</a>.</p>
-        <p>Neustále pracujeme na vylepšování a přidávání nových funkcí pro naše členy. Pokud je něco, co bychom mohli udělat pro zlepšení vaší zkušenosti, dejte nám vědět.</p>
-        <p>Ještě jednou děkujeme za vaši podporu. Přejeme příjemné luštění!</p>
+        <p>Pokud budete chtít upravit nebo zkontrolovat podrobnosti o svém předplatném, můžete tak učinit na <a href="%membershipUrl%">stránce členství</a>.</p>
+        <p>Neustále pracujeme na vylepšování a přidávání nových funkcí pro naše členy. Pokud je něco, co bychom mohli udělat pro zlepšení, dejte nám vědět.</p>
+        <p>Ještě jednou děkujeme za vaši podporu. Přejeme spoustu rychle poskládaných puzzlí a skvělých výsledků!</p>

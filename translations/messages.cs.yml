@@ -377,6 +377,7 @@ flashes:
     membership_subscribed_successfully: "Platba proběhla úspěšně, vaše členství je nyní aktivní!"
     non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
+    exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
 
 hub:
     title: "Speed Puzzling Hub"

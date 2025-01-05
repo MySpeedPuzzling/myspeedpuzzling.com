@@ -49,6 +49,12 @@ final class EditPlayerCodeController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        if ($player->activeMembership !== true) {
+            $this->addFlash('warning', $this->translator->trans('flashes.exclusive_membership_feature'));
+
+            return $this->redirectToRoute('membership');
+        }
+
         $formData = PlayerCodeFormData::fromPlayerProfile($player);
 
         $form = $this->createForm(PlayerCodeFormType::class, $formData);

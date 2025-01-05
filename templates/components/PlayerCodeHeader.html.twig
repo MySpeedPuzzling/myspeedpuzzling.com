@@ -1,0 +1,7 @@
+<code class="text-muted h4 ps-3">#{{ player.code|upper }}</code>
+
+{% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId and logged_user.profile.activeMembership %}
+    <a href="{{ path('edit_player_code') }}" class="h5 ps-0 text-primary">
+        <i class="ci ci-edit"></i>
+    </a>
+{% endif %}

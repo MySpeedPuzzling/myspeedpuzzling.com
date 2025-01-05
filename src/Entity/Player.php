@@ -67,7 +67,7 @@ class Player
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
 
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(unique: true)]
         public string $code,
 
@@ -156,5 +156,10 @@ class Player
     public function changeLocale(string $locale): void
     {
         $this->locale = $locale;
+    }
+
+    public function changeCode(string $code): void
+    {
+        $this->code = strtolower($code);
     }
 }

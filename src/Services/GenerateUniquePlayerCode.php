@@ -26,16 +26,9 @@ readonly final class GenerateUniquePlayerCode
 
         do {
             $randomCode = Random::generate(6);
-            $queryBuilder = $this->entityManager->createQueryBuilder();
+            $isAvailable = $this->isCodeAvailable($randomCode, null);
 
-            try {
-                $queryBuilder->select('player')
-                    ->from(Player::class, 'player')
-                    ->where('LOWER(player.code) = :code')
-                    ->setParameter('code', strtolower($randomCode))
-                    ->getQuery()
-                    ->getSingleResult();
-            } catch (NoResultException) {
+            if ($isAvailable === true) {
                 return $randomCode;
             }
 
@@ -43,5 +36,29 @@ readonly final class GenerateUniquePlayerCode
         } while($attempts <= 5);
 
         throw new CouldNotGenerateUniqueCode('Could not generate unique code, max attempts reached');
+    }
+
+    public function isCodeAvailable(string $code, null|string $exceptPlayerId): bool
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+
+        try {
+            $queryBuilder->select('player')
+                ->from(Player::class, 'player')
+                ->where('LOWER(player.code) = :code')
+                ->setParameter('code', strtolower($code));
+
+            if ($exceptPlayerId !== null) {
+                $queryBuilder
+                    ->andWhere('player.id != :exceptPlayerId')
+                    ->setParameter('exceptPlayerId', $exceptPlayerId);
+            }
+
+            $queryBuilder->getQuery()->getSingleResult();
+        } catch (NoResultException) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -207,6 +207,8 @@ forms:
     first_attempt: "Tvé první skládání těchto puzzlí v životě"
     first_attempt_help: "Pokud jste skládali ve skupině, pak pouze pokud tyto puzzle nikdo předtím neskládal, ani sám"
     wjpc_participant: "Vaše celé jméno na WJPC"
+    player_code: "Kód hráče"
+    player_code_help: "Unikátní kód hráče - minimálně 3 znaky, maximálně 8 znaků. Může obsahovat pouze písmena a číslice, bez speciálních znaků nebo mezer."
 
 puzzlers_comparison:
     meta:
@@ -325,6 +327,11 @@ my_profile:
     share_metion_myspeedpuzzling: "Označ nás při sdílení:"
     wjpc_connection: "WJPC propojení"
 
+edit_player_code:
+    meta:
+        title: "Změna kódu hráče"
+    title: "Změna kódu hráče"
+
 edit_profile:
     meta:
         title: "Úprava profilu"
@@ -368,6 +375,8 @@ flashes:
     wjpc2024_duplicate_connection: "Něco je špatně :-( vybrali jste WJPC účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
     wjpc2024_connection_saved: "Super! WJPC účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
     membership_subscribed_successfully: "Platba proběhla úspěšně, vaše členství je nyní aktivní!"
+    non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
+    unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
 
 hub:
     title: "Speed Puzzling Hub"

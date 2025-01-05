@@ -436,3 +436,9 @@ button[data-submit-prevention-target] {
         hyphens: auto;
     }
 }
+
+.player-code-row {
+    input {
+        max-width: 200px;
+    }
+}

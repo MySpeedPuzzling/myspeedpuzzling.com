@@ -206,6 +206,8 @@ forms:
     first_attempt: "Your first assembling of this puzzle ever"
     first_attempt_help: "If assembling in a group, then only if no-one assembled this puzzle before, not even solo"
     wjpc_participant: "Your full name on WJPC"
+    player_code: "Player Code"
+    player_code_help: "A unique player code - at least 3 characters, up to 8 characters. It can only contain letters and numbers, no special characters or spaces."
 
 puzzlers_comparison:
     meta:
@@ -324,6 +326,11 @@ my_profile:
     share_metion_myspeedpuzzling: "Tag us when sharing:"
     wjpc_connection: "WJPC connection"
 
+edit_player_code:
+    meta:
+        title: "Change Player Code"
+    title: "Change Player Code"
+
 edit_profile:
     meta:
         title: "Edit profile"
@@ -367,6 +374,8 @@ flashes:
     wjpc2024_duplicate_connection: "Something is wrong :-( you have chosen WJPC account, that is already connected to some MySpeedPuzzling profile. Worry not, we were automatically notified and we will check out what is wrong."
     wjpc2024_connection_saved: "Nice! WJPC account successfully connected to your MySpeedPuzzling profile!"
     membership_subscribed_successfully: "Payment was successful, your membership is now active!"
+    non_unique_player_code: "We're sorry, but it seems this code is already taken. Please choose another one."
+    unknown_error: "We're sorry, but something went wrong - we've been notified and will try to fix it as soon as possible. Please try again later."
 
 hub:
     title: "Speed Puzzling Hub"

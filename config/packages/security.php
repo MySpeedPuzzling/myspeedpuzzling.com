@@ -29,7 +29,7 @@ return static function (SecurityConfig $securityConfig): void {
             ->target('/');
 
     $securityConfig->accessControl()
-        ->path('^/(muj-profil|upravit-profil|pridat-cas|puzzle-stopky|zapnout-stopky|stopky|upravit-cas|smazat-cas|ulozit-stopky|porovnat-s-puzzlerem|pridat-hrace-k-oblibenym|odebrat-hrace-z-oblibenych|feedback|notifikace|wjpc-2024/connect|cas-pridan|clenstvi|koupit-clenstvi)|(en/(save-stopwatch|add-time|compare-with-puzzler|delete-time|edit-profile|edit-time|my-profile|stopwatch|start-stopwatch|puzzle-stopwatch|add-player-to-favorites|remove-player-from-favorites|feedback|notifications|wjpc-2024/connect|time-added|membership|buy-membership))')
+        ->path('^/(muj-profil|upravit-profil|upravit-kod-hrace|pridat-cas|puzzle-stopky|zapnout-stopky|stopky|upravit-cas|smazat-cas|ulozit-stopky|porovnat-s-puzzlerem|pridat-hrace-k-oblibenym|odebrat-hrace-z-oblibenych|feedback|notifikace|wjpc-2024/connect|cas-pridan|clenstvi|koupit-clenstvi)|(en/(save-stopwatch|add-time|compare-with-puzzler|delete-time|edit-profile|edit-player-code|edit-time|my-profile|stopwatch|start-stopwatch|puzzle-stopwatch|add-player-to-favorites|remove-player-from-favorites|feedback|notifications|wjpc-2024/connect|time-added|membership|buy-membership))')
         ->roles([AuthenticatedVoter::IS_AUTHENTICATED_FULLY]);
 
     $securityConfig->accessControl()

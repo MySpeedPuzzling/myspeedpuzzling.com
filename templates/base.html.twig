@@ -37,9 +37,15 @@
                             <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
                         </a>
 
-                        <a class="ms-3 topbar-link" href="https://www.buymeacoffee.com/myspeedpuzzling" target="_blank">
-                            <i class="ci-smile"></i> {{ 'menu.support_us'|trans }}
-                        </a>
+                        {% if logged_user.profile %}
+                            <a class="ms-3 topbar-link" href="{{ path('membership') }}">
+                                <i class="ci-user-circle"></i> {{ 'menu.membership'|trans }}
+
+                                {% if not logged_user.profile.activeMembership %}
+                                    <span class="badge bg-primary">NEW</span>
+                                {% endif %}
+                            </a>
+                        {% endif %}
                     </div>
 
                     <div class="text-nowrap">

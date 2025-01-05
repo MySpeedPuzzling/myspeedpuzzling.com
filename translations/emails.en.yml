@@ -1,48 +1,48 @@
-footer: 'Thank you for being a valued member of <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>If you have any questions or need assistance, feel free to contact us anytime at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
+footer: 'Thank you for being part of <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>If you have any questions, feel free to contact us anytime at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
 
 membership_cancelled:
-    subject: "Membership Subscription Cancelled"
-    title: "Membership Subscription Cancelled"
+    subject: "Membership subscription on MySpeedPuzzling.com has been canceled"
+    title: "Membership subscription has been canceled!"
     content: |
-        <p>We're sad to see you go, but we truly appreciate the time you've spent with us in the Speed Puzzling community!</p>
-        <p>Rest assured, you will not be charged any further. Your membership will remain active until the end of your current billing period, which ends on <b>%membershipExpiresAt%</b>.</p>
-        <p>If you change your mind or would like to explore your options, you can always manage your membership on the <a href="%membershipUrl%">membership page</a>.</p>
-        <p>We’re constantly working to make our community better and would love to hear from you. If you have any feedback or suggestions, please don’t hesitate to let us know. Your input means a lot to us and helps us improve!</p>
-        <p>Thank you for being part of our journey, and we hope to welcome you back someday!</p>
+        <p>We're sorry to see you go, but we appreciate the time you spent with MySpeedPuzzling.com.</p>
+        <p>Don't worry, you won't be charged any further. However, your membership will remain active until the end of the current billing period, which ends on <b>%membershipExpiresAt%</b>.</p>
+        <p>If you change your mind, you can manage your membership anytime on the <a href="%membershipUrl%">membership page</a>.</p>
+        <p>We're constantly working to improve MySpeedPuzzling.com and would greatly appreciate any feedback or ideas you have.</p>
+        <p>Thank you for being part of MySpeedPuzzling.com, and we hope to welcome you back someday! :)</p>
 
 membership_granted:
-    subject: "Congratulations on Your MySpeedPuzzling Membership"
-    title: "Your Membership Is Now Active!"
+    subject: "Congratulations on your membership at MySpeedPuzzling.com"
+    title: "Your membership is now active!"
     content: |
-        <p>We are thrilled to recognize your amazing effort and contributions to the Speed Puzzling community!</p>
-        <p>As a token of our appreciation, you have been granted a membership. Your membership will remain active until: <b>%membershipExpiresAt%</b>.</p>
-        <p>Feel free to check and manage your membership anytime on the <a href="%membershipUrl%">membership page</a>.</p>
-        <p>Thank you for being an incredible part of our community. Keep puzzling and inspiring others!</p>
+        <p>We are thrilled to recognize your contribution and efforts in the Speed Puzzling community!</p>
+        <p>As a token of our appreciation, we've granted you a membership on MySpeedPuzzling.com. Your membership will remain active until: <b>%membershipExpiresAt%</b>.</p>
+        <p>You can check and manage your membership anytime on the <a href="%membershipUrl%">membership page</a>.</p>
+        <p>Thank you for being such a valuable part of the Speed Puzzling community. Keep puzzling and inspiring other puzzlers!</p>
 
 membership_subscribed:
-    subject: "Congratulations on Your MySpeedPuzzling Membership"
-    title: "Thank You for Subscribing!"
+    subject: "Congratulations on your membership at MySpeedPuzzling.com"
+    title: "Thank you for joining us!"
     content: |
         <h4>Your membership is now active.</h4>
-        <p>We are truly grateful for your support and thrilled to welcome you as a MySpeedPuzzling member!</p>
+        <p>We deeply value your support and are excited to welcome you as a member of MySpeedPuzzling.com!</p>
         <p>Your next billing period begins on: <b>%nextBillingPeriod%</b>.</p>
-        <p>You can always manage your subscription, update your preferences, cancel, or download receipts/invoices on the <a href="%membershipUrl%">membership page</a>.</p>
-        <p>Thank you for being a valuable part of our Speed Puzzling community. We’re excited to have you with us!</p>
+        <p>You can manage your subscription, cancel membership, or download invoices anytime on the <a href="%membershipUrl%">membership page</a>.</p>
+        <p>Thank you for being part of MySpeedPuzzling.com and for your support. We wish you lots of fast speed puzzling and amazing results!</p>
 
 subscription_payment_failed:
-    subject: "Membership Payment Failed"
-    title: "Membership Payment Failed"
+    subject: "Membership payment on MySpeedPuzzling.com failed"
+    title: "Membership payment failed!"
     content: |
-        <p>We noticed that your recent subscription payment did not go through. This could be due to an issue with your payment method.</p>
-        <p>If you’d like to keep your membership active, please check and update your payment method on the <a href="%billingPortalUrl%">billing portal page</a>.</p>
-        <p>If the payment continues to fail, your membership will be deactivated after a few more attempts. We hope to keep you as a part of our Speed Puzzling community!</p>
+        <p>We noticed that your recent membership payment was unsuccessful. There may have been an issue with your payment method.</p>
+        <p>If you wish to keep your membership active, please check and update your payment method on the <a href="%billingPortalUrl%">billing portal page</a>.</p>
+        <p>If the payment continues to fail, your membership will be deactivated after a few more attempts. We hope you’ll stay with MySpeedPuzzling.com!</p>
 
 subscription_renewed:
-    subject: "Membership Payment Succeeded"
-    title: "Membership Successfully Renewed!"
+    subject: "Membership payment on MySpeedPuzzling.com was successful"
+    title: "Payment successful, thank you!"
     content: |
-        <p>Thank you so much for staying with us and being an important part of the Speed Puzzling community!</p>
-        <p>We’re thrilled to let you know that your membership has been successfully renewed. Your next billing period starts on: <b>%nextBillingPeriod%</b>.</p>
-        <p>If you ever need to update your preferences or review your subscription details, you can do so on the <a href="%membershipUrl%">membership page</a>.</p>
-        <p>We’re constantly working to improve and add more features for our members, and we’d love to hear from you if there’s anything we can do to make your experience even better.</p>
-        <p>Thank you once again for your support. Happy puzzling!</p>
+        <p>Thank you so much for staying with us and being part of MySpeedPuzzling.com!</p>
+        <p>We’re excited to inform you that your membership has been successfully renewed. Your next billing period begins on: <b>%nextBillingPeriod%</b>.</p>
+        <p>If you’d like to update or review the details of your subscription, you can do so on the <a href="%membershipUrl%">membership page</a>.</p>
+        <p>We’re constantly working on improving and adding new features for our members. If there’s anything we can do better, let us know.</p>
+        <p>Once again, thank you for your support. We wish you lots of fast speed puzzling and amazing results!</p>

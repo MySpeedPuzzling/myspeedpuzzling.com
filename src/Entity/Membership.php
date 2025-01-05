@@ -22,9 +22,6 @@ class Membership implements EntityWithEvents
 {
     use HasEvents;
 
-    #[Column(nullable: true)]
-    public null|DateTimeImmutable $endsAt = null;
-
     public function __construct(
         #[Id]
         #[Immutable]
@@ -44,6 +41,9 @@ class Membership implements EntityWithEvents
 
         #[Column(nullable: true)]
         public null|DateTimeImmutable $billingPeriodEndsAt = null,
+
+        #[Column(nullable: true)]
+        public null|DateTimeImmutable $endsAt = null,
     ) {
         $this->recordThat(new MembershipStarted($this->id));
     }

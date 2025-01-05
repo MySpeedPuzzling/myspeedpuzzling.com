@@ -13,6 +13,7 @@ menu:
     scan: "Barcode reader"
     terms_of_service: "Terms of service"
     privacy_policy: "Privacy policy"
+    membership: "Membership"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"

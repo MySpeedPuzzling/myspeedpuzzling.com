@@ -442,3 +442,9 @@ button[data-submit-prevention-target] {
         max-width: 200px;
     }
 }
+
+.topbar-link .badge {
+    float: right;
+    margin-top: -1px;
+    margin-left: 3px !important;
+}

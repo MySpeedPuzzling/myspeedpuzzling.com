@@ -13,6 +13,7 @@ menu:
     scan: "Čtečka čárových kódu"
     terms_of_service: "Obchodní podmínky"
     privacy_policy: "Ochrana osobních údajů"
+    membership: "Členství"
 
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"

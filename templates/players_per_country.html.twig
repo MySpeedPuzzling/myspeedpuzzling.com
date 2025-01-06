@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'players_per_country.meta.title'|trans }}{% endblock %}
+{% block title %}{{ 'players_per_country.meta.title'|trans({'%country%': country.value}) }}{% endblock %}
 
 {% block content %}
     <h1>{{ 'players_per_country.title'|trans({'%country%': country.value}) }} <i class="shadow-custom fi fi-{{ country.name }}"></i></h1>

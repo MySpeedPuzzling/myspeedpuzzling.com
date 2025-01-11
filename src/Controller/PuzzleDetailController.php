@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -49,13 +50,22 @@ final class PuzzleDetailController extends AbstractController
         ],
         name: 'puzzle_detail_qr',
     )]
-    public function __invoke(string $puzzleId, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(string $puzzleId, #[CurrentUser] UserInterface|null $user, Request $request): Response
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
-            $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
-            $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($puzzleId);
-            $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($puzzleId);
+
+            $soloPuzzleSolvers = $this->puzzlesSorter->groupPlayers(
+                $this->getPuzzleSolvers->soloByPuzzleId($puzzleId),
+            );
+
+            $duoPuzzleSolvers = $this->puzzlesSorter->groupPlayers(
+                $this->getPuzzleSolvers->duoByPuzzleId($puzzleId),
+            );
+
+            $teamPuzzleSolvers = $this->puzzlesSorter->groupPlayers(
+                $this->getPuzzleSolvers->teamByPuzzleId($puzzleId),
+            );
         } catch (PuzzleNotFound) {
             $this->addFlash('primary', $this->translator->trans('flashes.puzzle_not_found'));
 
@@ -76,11 +86,24 @@ final class PuzzleDetailController extends AbstractController
             $puzzleCollections = $this->getPuzzleCollection->forPlayer($playerProfile->playerId);
         }
 
+
+        $onlyFirstTimes = (bool) $request->get('sortByFirstTry', false);
+
+        if ($onlyFirstTimes === true) {
+            $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
+            $duoPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($duoPuzzleSolvers);
+            $teamPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($teamPuzzleSolvers);
+        } else {
+            $soloPuzzleSolvers = $this->puzzlesSorter->sortByFastest($soloPuzzleSolvers);
+            $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
+            $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
+        }
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers),
-            'duo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers),
-            'team_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers),
+            'solo_puzzle_solvers' => $soloPuzzleSolvers,
+            'duo_puzzle_solvers' => $duoPuzzleSolvers,
+            'team_puzzle_solvers' => $teamPuzzleSolvers,
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),

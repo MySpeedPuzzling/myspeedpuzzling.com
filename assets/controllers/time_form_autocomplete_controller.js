@@ -27,12 +27,38 @@ export default class extends Controller {
     }
 
     _onBrandConnect(event) {
-        event.detail.options.render.option_create = function(data, escape) {
+        event.detail.options.render.option_create = function (data, escape) {
             return '<div class="create py-2"><i class="ci-add small"></i> Add new brand: <strong>' + escape(data.input) + '</strong></div>';
         };
 
         event.detail.options.onChange = (value) => {
             this.onBrandValueChanged(value);
+        };
+
+
+        event.detail.options.create = (input) => {
+            const tom = this.brandTarget.tomselect;
+
+            const normalizedInput = this.removeDiacritics(input).toLowerCase();
+
+            for (const [value, optionData] of Object.entries(tom.options)) {
+                const normalizedOption = this.removeDiacritics(optionData.text).toLowerCase();
+
+                // Partial matching: e.g. "ravensbur" matches "Ravensburger (499)"
+                if (normalizedOption.includes(normalizedInput)) {
+                    // Instead of creating a new brand, select the existing one
+                    tom.addItem(value);
+
+                    return false;
+                }
+            }
+
+            // Otherwise, if no partial match found, create a new item
+            // This is the original behaviour
+            return {
+                value: input,
+                text: input,
+            };
         };
     }
 
@@ -162,5 +188,10 @@ export default class extends Controller {
         puzzleTomSelect.inputState();
 
         this.newPuzzleTarget.classList.add('d-none');
+    }
+
+    removeDiacritics(str) {
+        // normalize and remove "diacritics" characters (e.g. é, ü, etc.)
+        return str.normalize('NFD').replace(/\p{M}/gu, '');
     }
 }

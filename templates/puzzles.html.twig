@@ -1,5 +1,12 @@
 {% extends 'base.html.twig' %}
 
+{% block canonical %}
+    {% set routeName = app.request.attributes.get('_route') %}
+    {% set routeParams = app.request.attributes.get('_route_params') %}
+
+    <link rel="canonical" href="{{ url(routeName, routeParams) }}">
+{% endblock %}
+
 {% block robots %}
     {% if using_search %}
         <meta name="robots" content="noindex, nofollow">

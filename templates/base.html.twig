@@ -27,6 +27,8 @@
 
         <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}">
 
+        {% block canonical %}{% endblock %}
+
         {{ encore_entry_link_tags('app') }}
         {{ encore_entry_script_tags('app') }}
 

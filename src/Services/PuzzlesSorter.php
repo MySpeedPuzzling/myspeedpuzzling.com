@@ -56,7 +56,13 @@ readonly final class PuzzlesSorter
                 return 1;
             }
 
-            // Both have the same firstAttempt value => compare by finishedAt ascending
+            // Fallback to time comparison
+            $timeComparison = $a->time <=> $b->time;
+
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
+
             return $a->finishedAt <=> $b->finishedAt;
         });
 

@@ -58,7 +58,7 @@ loading: "Načítám"
 any: "Libovolný"
 solo_solved: "Skládáno SOLO:"
 first_attempt: "1. pokus"
-first_attempt_info_missing: 'Chybějící 1. pokus'
+first_attempt_info_missing: 'nejstarší čas'
 add_to_collection: "Přidat do mé sbírky"
 in_collection: "V mé sbírce"
 remove_from_collection: "Odebrat z mé sbírky"

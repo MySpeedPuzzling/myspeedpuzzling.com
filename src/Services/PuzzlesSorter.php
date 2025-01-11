@@ -96,8 +96,9 @@ readonly final class PuzzlesSorter
      */
     public function groupPlayers(array $solvedPuzzles): array
     {
-        // 1) Group puzzles by single player ID or derived multi-player ID
+        // 1) Group puzzles by single player ID or derived multi-player ID.
         $grouped = [];
+
         foreach ($solvedPuzzles as $solvedPuzzle) {
             if ($solvedPuzzle instanceof PuzzleSolversGroup) {
                 $playersIdentification = $this->calculatePlayersIdentification($solvedPuzzle);
@@ -108,35 +109,33 @@ readonly final class PuzzlesSorter
             $grouped[$playersIdentification][] = $solvedPuzzle;
         }
 
-        // 2) Sort each group internally by ascending `time`, then (if tied) by ascending `finishedAt`
+        // For each group, keep the first element as is,
+        // Then sort the rest by finishedAt descending (newest first).
         foreach ($grouped as $playerKey => $puzzles) {
-            usort($puzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
-                $timeComparison = $a->time <=> $b->time;
+            // If only one puzzle, nothing to sort
+            if (count($puzzles) > 1) {
+                // Shift out the original first item
+                $firstItem = array_shift($puzzles);
 
-                if ($timeComparison !== 0) {
-                    return $timeComparison;
-                }
-                return $a->finishedAt <=> $b->finishedAt;
-            });
+                // Sort the remaining by finishedAt descending
+                usort($puzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
+                    return $b->finishedAt <=> $a->finishedAt;
+                });
+
+                // Put the first item back on top
+                array_unshift($puzzles, $firstItem);
+            }
 
             $grouped[$playerKey] = $puzzles;
         }
 
-        // 3) Now sort the entire $grouped array so that the group whose first item is the “fastest”
-        //    overall puzzle is first, the next-fastest group is second, etc.
+        //Now sort the entire $grouped by the time of the first item (ascending).
         uasort($grouped, static function (array $puzzlesA, array $puzzlesB): int {
-            // Compare the first (fastest) puzzle from each group
+            // Compare the first puzzle from each group by time
             $fastestA = $puzzlesA[0];
             $fastestB = $puzzlesB[0];
 
-            $timeComparison = $fastestA->time <=> $fastestB->time;
-
-            if ($timeComparison !== 0) {
-                return $timeComparison;
-            }
-
-            // If times are tied, compare by finishedAt ascending
-            return $fastestA->finishedAt <=> $fastestB->finishedAt;
+            return $fastestA->time <=> $fastestB->time;
         });
 
         return $grouped;

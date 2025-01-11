@@ -40,60 +40,47 @@ readonly final class PuzzlesSorter
         return $grouped;
     }
 
+
     /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
-     * @phpstan-param array<string, non-empty-array<T>> $solvedPuzzlesByPlayer
-     * @phpstan-return array<string, non-empty-array<T>>
+     * @phpstan-param array<T> $solvedPuzzles
+     * @phpstan-return array<T>
      */
-    public function sortByFastest(array $solvedPuzzlesByPlayer): array
+    public function sortByFirstTry(array $solvedPuzzles): array
     {
-        foreach ($solvedPuzzlesByPlayer as $playerId => $puzzles) {
-            // Find the puzzle with the lowest time and place it at the beginning
-            usort($puzzles, static fn(PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int => $a->time <=> $b->time);
-            $fastestPuzzle = array_shift($puzzles);
+        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
+            if ($a->firstAttempt && $b->firstAttempt === false) {
+                return -1;
+            }
+            if ($a->firstAttempt === false && $b->firstAttempt) {
+                return 1;
+            }
 
-            // Sort the remaining puzzles by finishedAt
-            usort($puzzles, static fn(PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int => $b->finishedAt <=> $a->finishedAt);
+            // Both have the same firstAttempt value => compare by finishedAt ascending
+            return $a->finishedAt <=> $b->finishedAt;
+        });
 
-            // Prepend the fastest puzzle to the sorted array
-            array_unshift($puzzles, $fastestPuzzle);
-
-            // Update the group with the sorted puzzles
-            $solvedPuzzlesByPlayer[$playerId] = $puzzles;
-        }
-
-        return $solvedPuzzlesByPlayer;
+        return $solvedPuzzles;
     }
 
     /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
-     * @phpstan-param array<string, non-empty-array<T>> $solvedPuzzlesByPlayer
-     * @phpstan-return array<string, non-empty-array<T>>
+     * @phpstan-param array<T> $solvedPuzzles
+     * @phpstan-return array<T>
      */
-    public function sortByFirstTry(array $solvedPuzzlesByPlayer): array
+    public function sortByFastest(array $solvedPuzzles): array
     {
-        foreach ($solvedPuzzlesByPlayer as $playerId => $puzzles) {
-            usort($puzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
-                if ($a->firstAttempt && $b->firstAttempt === false) {
-                    return -1;
-                }
+        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
+            $timeComparison = $a->time <=> $b->time;
 
-                if ($a->firstAttempt === false && $b->firstAttempt) {
-                    return 1;
-                }
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
 
-                return $a->finishedAt <=> $b->finishedAt;
-            });
+            return $a->finishedAt <=> $b->finishedAt;
+        });
 
-            $firstItem = array_shift($puzzles);
-
-            usort($puzzles, fn (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int => $b->finishedAt <=> $a->finishedAt);
-            array_unshift($puzzles, $firstItem);
-
-            $solvedPuzzlesByPlayer[$playerId] = $puzzles;
-        }
-
-        return $solvedPuzzlesByPlayer;
+        return $solvedPuzzles;
     }
 
     /**

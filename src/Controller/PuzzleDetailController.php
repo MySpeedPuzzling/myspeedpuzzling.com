@@ -54,18 +54,9 @@ final class PuzzleDetailController extends AbstractController
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);
-
-            $soloPuzzleSolvers = $this->puzzlesSorter->groupPlayers(
-                $this->getPuzzleSolvers->soloByPuzzleId($puzzleId),
-            );
-
-            $duoPuzzleSolvers = $this->puzzlesSorter->groupPlayers(
-                $this->getPuzzleSolvers->duoByPuzzleId($puzzleId),
-            );
-
-            $teamPuzzleSolvers = $this->puzzlesSorter->groupPlayers(
-                $this->getPuzzleSolvers->teamByPuzzleId($puzzleId),
-            );
+            $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
+            $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($puzzleId);
+            $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($puzzleId);
         } catch (PuzzleNotFound) {
             $this->addFlash('primary', $this->translator->trans('flashes.puzzle_not_found'));
 
@@ -101,9 +92,9 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $soloPuzzleSolvers,
-            'duo_puzzle_solvers' => $duoPuzzleSolvers,
-            'team_puzzle_solvers' => $teamPuzzleSolvers,
+            'solo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers),
+            'duo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers),
+            'team_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers),
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),

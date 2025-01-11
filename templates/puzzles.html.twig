@@ -1,5 +1,13 @@
 {% extends 'base.html.twig' %}
 
+{% block robots %}
+    {% if using_search %}
+        <meta name="robots" content="noindex, nofollow">
+    {% else %}
+        <meta name="robots" content="index, follow">
+    {% endif %}
+{% endblock %}
+
 {% block title %}{{ 'puzzle_overview.meta.title'|trans }}{% endblock %}
 
 {% block content %}

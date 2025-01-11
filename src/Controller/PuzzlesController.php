@@ -98,6 +98,8 @@ final class PuzzlesController extends AbstractController
 
         $limit = 20;
 
+        $usingSearch = is_string($search);
+
         return $this->render($templateName, [
             'puzzles' => $foundPuzzle,
             'total_puzzles_count' => $totalPuzzlesCount,
@@ -109,6 +111,7 @@ final class PuzzlesController extends AbstractController
             'current_offset' => $offset,
             'next_offset' => $offset + $limit,
             'remaining' => max($totalPuzzlesCount - $limit - $offset, 0),
+            'using_search' => $usingSearch,
         ]);
     }
 }

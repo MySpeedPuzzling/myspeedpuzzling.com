@@ -12,6 +12,8 @@
         <meta name="turbo-prefetch" content="false">
         <meta name="turbo-refresh-method" content="morph">
 
+        {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
+
         <link rel="manifest" href="{{ asset('manifest.json') }}">
 
         <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}?v=2">
@@ -23,7 +25,7 @@
         <meta name="msapplication-TileColor" content="#2d89ef">
         <meta name="theme-color" content="#ffffff">
 
-        <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}" />
+        <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}">
 
         {{ encore_entry_link_tags('app') }}
         {{ encore_entry_script_tags('app') }}
@@ -33,9 +35,9 @@
         {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
 
         {% if currentRoute %}
-            <link rel="alternate" hreflang="cs" href="{{ path(currentRoute, routeParamsCs) }}" />
-            <link rel="alternate" hreflang="en" href="{{ path(currentRoute, routeParamsEn) }}" />
-            <link rel="alternate" hreflang="x-default" href="{{ path(currentRoute, routeParamsEn) }}" />
+            <link rel="alternate" hreflang="cs" href="{{ path(currentRoute, routeParamsCs) }}">
+            <link rel="alternate" hreflang="en" href="{{ path(currentRoute, routeParamsEn) }}">
+            <link rel="alternate" hreflang="x-default" href="{{ path(currentRoute, routeParamsEn) }}">
         {% endif %}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker">

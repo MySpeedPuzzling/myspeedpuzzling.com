@@ -105,14 +105,14 @@
                         </a>
 
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" href="{{ path('add_time') }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" rel="nofollow" href="{{ path('add_time') }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-add"></i>
                             </div>
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
                         </a>
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" rel="nofollow" href="{{ path('stopwatch') }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-time"></i>
                             </div>
@@ -121,7 +121,7 @@
 
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" href="{{ path('notifications') }}" data-turbo-prefetch="false">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false">
                             <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}">
                                 <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}">{{ notifications_count }}</span>
                                 <i class="navbar-tool-icon ci-bell"></i>
@@ -192,22 +192,22 @@
                                     <a href="{{ path('scan') }}" class="widget-list-link">{{ 'menu.scan'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('my_profile') }}" class="widget-list-link">{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('my_profile') }}" class="widget-list-link">{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('add_time') }}" class="widget-list-link">{{ 'menu.add_time'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('add_time') }}" class="widget-list-link">{{ 'menu.add_time'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('wjpc2024') }}" class="widget-list-link">WJPC 2024</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('membership') }}" class="widget-list-link">{{ 'menu.membership'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('membership') }}" class="widget-list-link">{{ 'menu.membership'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('terms_of_service') }}" class="widget-list-link">{{ 'menu.terms_of_service'|trans }}</a>

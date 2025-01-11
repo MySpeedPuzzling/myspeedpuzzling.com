@@ -1,3 +1,22 @@
 Sitemap: https://myspeedpuzzling.com/sitemap.xml
 User-agent: *
-Disallow:
+
+Disallow: /muj-profil
+Disallow: /pridat-cas
+Disallow: /puzzle-stopky
+Disallow: /stopky
+Disallow: /notifikace
+Disallow: /porovnat-s-puzzlerem
+Disallow: /pridat-hrace-k-oblibenym
+Disallow: /clenstvi
+Disallow: /feedback
+
+Disallow: /en/my-profile
+Disallow: /en/add-time
+Disallow: /en/puzzle-stopwatch
+Disallow: /en/stopwatch
+Disallow: /en/notifications
+Disallow: /en/compare-with-puzzler
+Disallow: /en/add-player-to-favorites
+Disallow: /en/membership
+Disallow: /en/feedback

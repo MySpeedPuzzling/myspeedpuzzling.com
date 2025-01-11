@@ -91,8 +91,8 @@
             {% if puzzle.solvedTimes > 0 %}
                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1 px-2 my-1 btn-sm btn-primary">{{ 'show_times'|trans }}</a>
             {% endif %}
-            <a data-turbo-frame="_top" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> {{ 'add_my_time'|trans }}</a>
-            <a data-turbo-frame="_top" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> {{ 'start_solving'|trans }}</a>
+            <a data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> {{ 'add_my_time'|trans }}</a>
+            <a data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> {{ 'start_solving'|trans }}</a>
         </div>
     </div>
 </div>

@@ -31,40 +31,31 @@ final class SitemapController extends AbstractController
     #[Route(path: '/sitemap.xml')]
     public function __invoke(): Response
     {
-        /** @var array<string> $urls */
+        /** @var array<string, array<string, string>> $urls */
         $urls = [
-            $this->generateUrl('homepage_crossroads', [], UrlGeneratorInterface::ABSOLUTE_URL),
+            'homepage_crossroads' => [
+                'en' => $this->generateUrl('homepage_crossroads', [], UrlGeneratorInterface::ABSOLUTE_URL),
+            ],
         ];
 
-        foreach (['cs', 'en'] as $locale) {
-            $urls[] = $this->generateUrl('homepage', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('contact', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('faq', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder_solo_500_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder_solo_1000_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder_pairs_500_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder_pairs_1000_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder_groups_500_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('ladder_groups_1000_pieces', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('privacy_policy', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('puzzles', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('players', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('recent_activity', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('terms_of_service', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('hub', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('scan', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
-            $urls[] = $this->generateUrl('wjpc2024', ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
+        $staticRoutes = ['homepage', 'contact', 'faq', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'scan', 'wjpc2024'];
 
+        foreach ($staticRoutes as $route) {
+            foreach (['cs', 'en'] as $locale) {
+                $urls[$route][$locale] = $this->generateUrl($route, ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
+            }
+        }
+
+        foreach (['cs', 'en'] as $locale) {
             foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer(null) as $puzzles) {
-                $urls[] = $this->generateUrl('puzzle_detail', [
+                $urls[$puzzles->puzzleId][$locale] = $this->generateUrl('puzzle_detail', [
                     '_locale' => $locale,
                     'puzzleId' => $puzzles->puzzleId,
                 ], UrlGeneratorInterface::ABSOLUTE_URL);
             }
 
             foreach (CountryCode::cases() as $countryCode) {
-                $urls[] = $this->generateUrl('players_per_country', [
+                $urls['players_per_country_' . $countryCode->name][$locale] = $this->generateUrl('players_per_country', [
                     '_locale' => $locale,
                     'countryCode' => $countryCode->name,
                 ], UrlGeneratorInterface::ABSOLUTE_URL);

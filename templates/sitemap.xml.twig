@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    {% for url in urls %}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    {% for urlInfo in urls %}
         <url>
-            <loc>{{ url }}</loc>
-            <lastmod>2024-08-09</lastmod>
+            <lastmod>{{ 'now'|date('Y-m-d') }}</lastmod>
+            {% for locale, url in urlInfo %}
+                {% if loop.first %}
+                    <loc>{{ url }}</loc>
+                {% endif %}
+                <xhtml:link rel="alternate" hreflang="{{ locale }}" href="{{ url }}" />
+            {% endfor %}
         </url>
     {% endfor %}
 </urlset>

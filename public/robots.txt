@@ -8,6 +8,7 @@ Disallow: /stopky
 Disallow: /notifikace
 Disallow: /porovnat-s-puzzlerem
 Disallow: /pridat-hrace-k-oblibenym
+Disallow: /pridat-puzzle-do-kolecke
 Disallow: /clenstvi
 Disallow: /feedback
 
@@ -18,5 +19,6 @@ Disallow: /en/stopwatch
 Disallow: /en/notifications
 Disallow: /en/compare-with-puzzler
 Disallow: /en/add-player-to-favorites
+Disallow: /en/add-puzzle-to-collection
 Disallow: /en/membership
 Disallow: /en/feedback

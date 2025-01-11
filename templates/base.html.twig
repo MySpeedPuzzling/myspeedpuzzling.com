@@ -27,6 +27,16 @@
 
         {{ encore_entry_link_tags('app') }}
         {{ encore_entry_script_tags('app') }}
+
+        {% set currentRoute = app.request.attributes.get('_route') %}
+        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
+        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
+
+        {% if currentRoute %}
+            <link rel="alternate" hreflang="cs" href="{{ cpath(currentRoute, routeParamsCs) }}" />
+            <link rel="alternate" hreflang="en" href="{{ cpath(currentRoute, routeParamsEn) }}" />
+            <link rel="alternate" hreflang="x-default" href="{{ cpath(currentRoute, routeParamsEn) }}" />
+        {% endif %}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker">
         <header class="fixed-top shadow-sm" data-fixed-element>
@@ -54,21 +64,17 @@
                             </a>
 
                             <ul class="dropdown-menu dropdown-menu-end">
-                                {% set currentRoute = app.request.attributes.get('_route') %}
-                                {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
-
                                 {% if app.request.locale is not same as 'en' %}
                                     <li>
-                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'en'}) }}">
+                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsEn) : path('homepage', {'_locale': 'en'}) }}">
                                             <span class="fi fi-us me-1"></span> English
                                         </a>
                                     </li>
                                 {% endif %}
 
-                                {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
                                 {% if app.request.locale is not same as 'cs' %}
                                     <li>
-                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParams) : path('homepage', {'_locale': 'cs'}) }}">
+                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsCs) : path('homepage', {'_locale': 'cs'}) }}">
                                             <span class="fi fi-cz me-1"></span> Čeština
                                         </a>
                                     </li>

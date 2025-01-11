@@ -99,6 +99,7 @@ final class PuzzleDetailController extends AbstractController
             'ranking' => $userRanking,
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
+            'first_try_only' => $onlyFirstTimes,
         ]);
     }
 }

@@ -192,6 +192,9 @@
                                 {% if aggregated_solver[0].firstAttempt %}
                                     <br>
                                     <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% elseif first_try_only %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-warning">{{ 'first_attempt_info_missing'|trans }}</span>
                                 {% endif %}
 
                                 {% if aggregated_solver|length > 1 %}
@@ -298,6 +301,9 @@
                                 {% if aggregated_puzzlers_duo[0].firstAttempt %}
                                     <br>
                                     <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% elseif first_try_only %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-warning">{{ 'first_attempt_info_missing'|trans }}</span>
                                 {% endif %}
 
                                 {% if aggregated_puzzlers_duo|length > 1 %}
@@ -405,6 +411,9 @@
                                 {% if aggregated_puzzlers_team[0].firstAttempt %}
                                     <br>
                                     <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% elseif first_try_only %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-warning">{{ 'first_attempt_info_missing'|trans }}</span>
                                 {% endif %}
 
                                 {% if aggregated_puzzlers_team|length > 1 %}

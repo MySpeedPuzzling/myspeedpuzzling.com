@@ -487,12 +487,12 @@ membership:
             <li>A big thank you for supporting the platform's development</li>
             <li>Your own personalized player code (you can change it in your profile)</li>
             <li>Membership badge</li>
+            <li>Filtering by first attempts</li>
         </ul>
         
         <h3 class="h4">What can you look forward to soon?</h3>
         <ul>
             <li>Charts <small class="ms-1 text-muted">(01/2025)</small></li>
-            <li>Filtering and searching by first attempts <small class="ms-1 text-muted">(01/2025)</small></li>
             <li>Detailed statistics <small class="ms-1 text-muted">(02/2025)</small></li>
             <li>Monthly and yearly reports <small class="ms-1 text-muted">(02/2025)</small></li>
             <li>Public mypuzzler.com profile <small class="ms-1 text-muted">(02/2025)</small></li>

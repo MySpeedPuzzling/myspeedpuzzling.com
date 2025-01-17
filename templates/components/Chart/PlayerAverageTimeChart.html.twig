@@ -1,0 +1,9 @@
+<div {{ attributes }}>
+    <div
+        data-controller="chart"
+        data-chart-data-value="{{ this.chartData|json_encode }}"
+        data-chart-type-value="line"
+    >
+        <canvas></canvas>
+    </div>
+</div>

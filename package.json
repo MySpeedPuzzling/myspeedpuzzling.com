@@ -30,7 +30,7 @@
         "@zxing/library": "^0.21.0",
         "bootstrap": "5.2.*",
         "card": "^2.5.4",
-        "chartist": "^0.11.4",
+        "chart.js": "^4.4.7",
         "drift-zoom": "^1.5.1",
         "flag-icons": "^7.1.0",
         "flatpickr": "^4.6.13",

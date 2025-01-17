@@ -71,6 +71,9 @@ return static function(ContainerConfigurator $configurator): void
     $services->load('SpeedPuzzling\\Web\\Services\\', __DIR__ . '/../src/Services/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
 
+    // Components
+    $services->load('SpeedPuzzling\\Web\\Component\\', __DIR__ . '/../src/Component/**/{*.php}');
+
     /** @see https://github.com/doctrine/migrations/issues/1406 */
     $services->set(FixDoctrineMigrationTableSchema::class)
         ->autoconfigure(false)

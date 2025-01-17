@@ -75,6 +75,12 @@
         </div>
     </div>
 
+    {% if player.code in ['lexinek', 'simonka'] %}
+        <div class="my-4">
+            <twig:Chart:PlayerAverageTimeChart />
+        </div>
+    {% endif %}
+
     {% if player.playerName is null %}
         <div class="my-2 alert alert-warning d-flex" role="alert">
             <div class="alert-icon">

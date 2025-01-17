@@ -60,7 +60,6 @@ loading: "Loading"
 any: "Any"
 solo_solved: "Solved SOLO:"
 first_attempt: "1st try"
-first_attempt_info_missing: 'oldest time'
 add_to_collection: "Add to my collection"
 in_collection: "In my collection"
 remove_from_collection: "Remove from collection"

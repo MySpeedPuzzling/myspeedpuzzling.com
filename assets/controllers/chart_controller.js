@@ -17,8 +17,9 @@ export default class extends Controller {
                 maintainAspectRatio: false,
                 scales: {
                     y: {
-                        beginAtZero: true, // Ensure the y-axis starts at 0
+                        beginAtZero: true, // Start the y-axis at 0
                         ticks: {
+                            stepSize: 900,
                             callback: function (value) {
                                 const hours = Math.floor(value / 3600);
                                 const minutes = Math.floor((value % 3600) / 60);

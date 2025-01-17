@@ -179,7 +179,7 @@
                                 </div>
                             </div>
 
-                            {% if filtered_out_puzzlers > 0 %}
+                            {% if first_try_only and filtered_out_puzzlers > 0 %}
                                 <p class="form-text mt-2 mb-1">{{ 'filtered_out_puzzlers_count_info'|trans({'%count%': filtered_out_puzzlers})|raw }}</p>
                             {% endif %}
                         </div>

@@ -85,8 +85,21 @@ readonly final class PuzzlesSorter
 
     /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
-     * @phpstan-param array<T> $solvedPuzzles
-     * @phpstan-return array<string, non-empty-array<T>>
+     * @param array<string, non-empty-array<T>> $groupedSolvers
+     * @return array<string, non-empty-array<T>>
+     */
+    public function filterOutNonFirstTriesGrouped(array $groupedSolvers): array
+    {
+        return array_filter(
+            array: $groupedSolvers,
+            callback: fn (array $grouped): bool => $grouped[0]->firstAttempt === true,
+        );
+    }
+
+    /**
+     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @param array<T> $solvedPuzzles
+     * @return array<string, non-empty-array<T>>
      */
     public function groupPlayers(array $solvedPuzzles): array
     {

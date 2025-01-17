@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
+use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -77,22 +78,30 @@ final class PuzzleDetailController extends AbstractController
             $puzzleCollections = $this->getPuzzleCollection->forPlayer($playerProfile->playerId);
         }
 
-
-        $onlyFirstTimes = (bool) $request->get('sortByFirstTry', false);
+        $onlyFirstTimes = (bool) $request->get('firstTryOnly', false);
 
         if ($onlyFirstTimes === true) {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
-            $duoPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($duoPuzzleSolvers);
-            $teamPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($teamPuzzleSolvers);
         } else {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFastest($soloPuzzleSolvers);
-            $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
-            $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
         }
+
+        $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
+        $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
+
+        $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
+        $totalCount = count($soloPuzzleSolversGrouped);
+        $firstTryOnlySoloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
+        $afterFirstTryFilterCount = count($firstTryOnlySoloPuzzleSolversGrouped);
+
+        if ($onlyFirstTimes === true && $afterFirstTryFilterCount > 0) {
+            $soloPuzzleSolversGrouped = $firstTryOnlySoloPuzzleSolversGrouped;
+        }
+
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'solo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers),
+            'solo_puzzle_solvers' => $soloPuzzleSolversGrouped,
             'duo_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers),
             'team_puzzle_solvers' => $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers),
             'puzzles_solved_by_user' => $userSolvedPuzzles,
@@ -100,6 +109,8 @@ final class PuzzleDetailController extends AbstractController
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
             'first_try_only' => $onlyFirstTimes,
+            'filtered_out_puzzlers' => $totalCount - $afterFirstTryFilterCount,
+            'first_try_only_count' => $afterFirstTryFilterCount,
         ]);
     }
 }

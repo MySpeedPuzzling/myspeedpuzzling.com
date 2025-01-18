@@ -30,6 +30,12 @@ final class PlayerAverageTimeChart
      */
     public function getChartData(): array
     {
+        $data = [];
+
+        for ($i=0; $i<16; $i++) {
+            $data[] = rand(2000, 4000);
+        }
+
         return [
             'labels' => [
                 'Week 1', 'Week 2', 'Week 3', 'Week 4',
@@ -40,12 +46,7 @@ final class PlayerAverageTimeChart
             'datasets' => [
                 [
                     'label' => '500 pieces Average Time per Week',
-                    'data' => [
-                        4815, 5630, 5020, 5235, // Week 1 to Week 4
-                        4805, 4950, 5105, 4680, // Week 5 to Week 8
-                        5200, 5400, 5505, 5300, // Week 9 to Week 12
-                        4900, 5000, 5200, 4800, // Week 13 to Week 16
-                    ],
+                    'data' => $data,
                     'borderColor' => '#fe4042',
                     'borderWidth' => 2,
                     'backgroundColor' => 'rgba(254, 64, 66, 0.2)',

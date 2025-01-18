@@ -1,6 +1,7 @@
 {
     "devDependencies": {
         "@symfony/ux-autocomplete": "file:vendor/symfony/ux-autocomplete/assets",
+        "@symfony/ux-chartjs": "file:vendor/symfony/ux-chartjs/assets",
         "@symfony/ux-live-component": "file:vendor/symfony/ux-live-component/assets",
         "@symfony/webpack-encore": "^4.2.0",
         "core-js": "^3.26.1",

@@ -16,6 +16,10 @@
         {
             "type": "vcs",
             "url": "https://github.com/janmikes/auth0-symfony"
+        },
+        {
+            "type": "vcs",
+            "url": "https://github.com/JanMikes/ux-chartjs"
         }
     ],
     "minimum-stability": "dev",
@@ -78,7 +82,7 @@
         "symfony/translation": "^7.0",
         "symfony/twig-bundle": "^7.0",
         "symfony/ux-autocomplete": "*",
-        "symfony/ux-chartjs": "^2.22",
+        "symfony/ux-chartjs": "2.x-dev",
         "symfony/ux-live-component": "^2.21",
         "symfony/ux-turbo": "^2.1",
         "symfony/ux-twig-component": "^2.21",

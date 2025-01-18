@@ -2,20 +2,24 @@ import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
     connect() {
-        this.element.addEventListener('chartjs:pre-connect', this._onPreConnect);
-        this.element.addEventListener('chartjs:connect', this._onConnect);
+        this.element.addEventListener('chartjs:pre-connect', this._onPreConnect.bind(this));
     }
 
     disconnect() {
-        // Clean up event listeners when the controller disconnects
-        this.element.removeEventListener('chartjs:pre-connect', this._onPreConnect);
-        this.element.removeEventListener('chartjs:connect', this._onConnect);
+        this.element.removeEventListener('chartjs:pre-connect', this._onPreConnect.bind(this));
     }
 
     _onPreConnect(event) {
         const config = event.detail.config;
 
         config.options.maintainAspectRatio = false;
+
+        if (!config.options.scales) {
+            config.options.scales = {};
+        }
+        if (!config.options.scales.y) {
+            config.options.scales.y = {};
+        }
 
         config.options.scales = {
             y: {

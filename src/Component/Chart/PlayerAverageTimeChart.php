@@ -54,6 +54,8 @@ final class PlayerAverageTimeChart
                     'borderWidth' => 2,
                     'backgroundColor' => 'rgba(254, 64, 66, 0.2)',
                     'fill' => true,
+                    'cubicInterpolationMode' => 'monotone',
+                    'tension' => 0.4,
                 ],
             ]
         ]);

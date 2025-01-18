@@ -77,7 +77,7 @@
 
     {% if player.code in ['lexinek', 'lexi', 'simonka'] %}
         <div class="my-4">
-            <twig:Chart:PlayerAverageTimeChart />
+            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
         </div>
     {% endif %}
 

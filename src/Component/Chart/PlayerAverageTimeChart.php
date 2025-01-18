@@ -4,17 +4,32 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component\Chart;
 
-use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
+use SpeedPuzzling\Web\Query\GetManufacturers;
+use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\DefaultActionTrait;
 
-#[AsTwigComponent]
-class PlayerAverageTimeChart
+#[AsLiveComponent]
+final class PlayerAverageTimeChart
 {
+    use DefaultActionTrait;
+
+    #[LiveProp]
+    public null|string $playerId = null;
+
+    #[LiveProp(writable: true)]
+    public null|string $brand = 'all';
+
+    public function __construct(
+        readonly private GetManufacturers $getManufacturers,
+    ) {
+    }
+
     /**
      * @return array<mixed>
      */
     public function getChartData(): array
     {
-        // Sample data for the last 4 months (16 weeks)
         return [
             'labels' => [
                 'Week 1', 'Week 2', 'Week 3', 'Week 4',
@@ -24,7 +39,7 @@ class PlayerAverageTimeChart
             ],
             'datasets' => [
                 [
-                    'label' => 'Average Time per Week',
+                    'label' => '500 pieces Average Time per Week',
                     'data' => [
                         4815, 5630, 5020, 5235, // Week 1 to Week 4
                         4805, 4950, 5105, 4680, // Week 5 to Week 8
@@ -38,5 +53,22 @@ class PlayerAverageTimeChart
                 ],
             ],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function availableBrands(): array
+    {
+        $brandChoices = [
+            'all' => 'All brands',
+        ];
+
+        // TODO: only brands that player have solved
+        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer() as $manufacturer) {
+            $brandChoices[$manufacturer->manufacturerId] = $manufacturer->manufacturerName;
+        }
+
+        return $brandChoices;
     }
 }

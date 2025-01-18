@@ -1,4 +1,17 @@
 <div {{ attributes }}>
+    <div style="max-width: 300px;">
+        <select
+            data-model="brand"
+            id="brands-chart-filter"
+            data-controller="symfony--ux-autocomplete--autocomplete"
+            class="form-select"
+        >
+            {% for brandId, brandName in this.availableBrands %}
+                <option value="{{ brandId }}">{{ brandName }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
     <div
         data-controller="chart"
         data-chart-data-value="{{ this.chartData|json_encode }}"

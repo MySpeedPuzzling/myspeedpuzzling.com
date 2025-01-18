@@ -448,3 +448,21 @@ button[data-submit-prevention-target] {
     margin-top: -1px;
     margin-left: 3px !important;
 }
+
+.filters {
+    .form-select {
+        padding: 4px 25px 4px 6px;
+        font-size: 12px;
+        height: 32px;
+        background-position: right 5px center;
+    }
+
+    .ts-control {
+        padding: 4px 20px 4px 4px !important;
+        flex-wrap: nowrap;
+
+        .clear-button {
+            right: 25px !important;
+        }
+    }
+}

@@ -22,6 +22,9 @@ final class PlayerAverageTimeChart
     #[LiveProp(writable: true)]
     public null|string $brand = 'all';
 
+    #[LiveProp(writable: true)]
+    public string $interval = 'week';
+
     public function __construct(
         readonly private GetManufacturers $getManufacturers,
         readonly private ChartBuilderInterface $chartBuilder,
@@ -32,23 +35,34 @@ final class PlayerAverageTimeChart
     {
 
         $data = [];
-
-        for ($i=0; $i<16; $i++) {
-            $data[] = rand(2000, 4000);
-        }
+        $labels = [];
+        $label = '';
 
         $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
 
+        if ($this->interval === 'week') {
+            $label = '500 pieces Average Time per Week';
+
+            for ($i=1; $i<=70; $i++) {
+                $labels[] = 'W ' . $i;
+                $data[] = rand(2000, 4000);
+            }
+        }
+
+        if ($this->interval === 'month') {
+            $label = '500 pieces Average Time per Month';
+
+            for ($i=1; $i<=18; $i++) {
+                $labels[] = 'M ' . $i;
+                $data[] = rand(2000, 4000);
+            }
+        }
+
         $chart->setData([
-            'labels' => [
-                'Week 1', 'Week 2', 'Week 3', 'Week 4',
-                'Week 5', 'Week 6', 'Week 7', 'Week 8',
-                'Week 9', 'Week 10', 'Week 11', 'Week 12',
-                'Week 13', 'Week 14', 'Week 15', 'Week 16',
-            ],
+            'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => '500 pieces Average Time per Week',
+                    'label' => $label,
                     'data' => $data,
                     'borderColor' => '#fe4042',
                     'borderWidth' => 2,
@@ -57,7 +71,15 @@ final class PlayerAverageTimeChart
                     'cubicInterpolationMode' => 'monotone',
                     'tension' => 0.4,
                 ],
-            ]
+            ],
+        ]);
+
+        $chart->setOptions([
+            'plugins' => [
+                'legend' => [
+                    'align' => 'end',
+                ],
+            ],
         ]);
 
         return $chart;

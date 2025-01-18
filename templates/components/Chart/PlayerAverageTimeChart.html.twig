@@ -1,15 +1,26 @@
 <div {{ attributes }} class="card card-body p-2 shadow">
-    <div style="max-width: 300px;">
+    <div class="d-flex flex-wrap justify-content-end filters">
         <select
-            data-model="brand"
-            id="brands-chart-filter"
-            data-controller="symfony--ux-autocomplete--autocomplete"
-            class="form-select"
+            data-model="interval"
+            class="form-select d-inline-block me-2"
+            style="max-width: 100px;"
         >
-            {% for brandId, brandName in this.availableBrands %}
-                <option value="{{ brandId }}">{{ brandName }}</option>
-            {% endfor %}
+            <option value="week">Per week</option>
+            <option value="month">Per month</option>
         </select>
+
+        <div style="width: 170px;">
+            <select
+                data-model="brand"
+                data-controller="symfony--ux-autocomplete--autocomplete"
+                class="form-select"
+            >
+                {% for brandId, brandName in this.availableBrands %}
+                    <option value="{{ brandId }}">{{ brandName }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
     </div>
 
     <div style="height: 250px;">

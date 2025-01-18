@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component\Chart;
 
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
+use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
@@ -22,21 +24,22 @@ final class PlayerAverageTimeChart
 
     public function __construct(
         readonly private GetManufacturers $getManufacturers,
+        readonly private ChartBuilderInterface $chartBuilder,
     ) {
     }
 
-    /**
-     * @return array<mixed>
-     */
-    public function getChartData(): array
+    public function getChart(): Chart
     {
+
         $data = [];
 
         for ($i=0; $i<16; $i++) {
             $data[] = rand(2000, 4000);
         }
 
-        return [
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
+
+        $chart->setData([
             'labels' => [
                 'Week 1', 'Week 2', 'Week 3', 'Week 4',
                 'Week 5', 'Week 6', 'Week 7', 'Week 8',
@@ -52,8 +55,10 @@ final class PlayerAverageTimeChart
                     'backgroundColor' => 'rgba(254, 64, 66, 0.2)',
                     'fill' => true,
                 ],
-            ],
-        ];
+            ]
+        ]);
+
+        return $chart;
     }
 
     /**

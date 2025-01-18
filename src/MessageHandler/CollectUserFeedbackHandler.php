@@ -22,14 +22,16 @@ readonly final class CollectUserFeedbackHandler
     public function __invoke(CollectUserFeedback $message): void
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
+        $userEmail = $profile->email ?? 'anonymous@speedpuzzling.cz';
 
         $email = (new TemplatedEmail())
             ->to('simona@speedpuzzling.cz')
+            ->replyTo($userEmail, 'simona@speedpuzzling.cz')
             ->subject('MySpeedPuzzling Feedback')
             ->htmlTemplate('emails/feedback.html.twig')
             ->context([
                 'name' => $profile->playerName ?? $profile->playerId ?? 'Anonymous',
-                'userEmail' => $profile->email ?? 'anonymous@speedpuzzling.cz',
+                'userEmail' => $userEmail,
                 'url' => $message->url,
                 'message' => $message->message,
             ]);

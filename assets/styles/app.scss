@@ -464,5 +464,9 @@ button[data-submit-prevention-target] {
         .clear-button {
             right: 25px !important;
         }
+
+        .item {
+            text-wrap: nowrap;
+        }
     }
 }

@@ -27,6 +27,7 @@ final class PuzzleTimesChart
         $labels = [];
         $chartData = [];
         $backgrounds = [];
+        $borderWidths = [];
 
         foreach ($this->results as $groupedResult) {
             $result = $groupedResult[0];
@@ -35,8 +36,10 @@ final class PuzzleTimesChart
 
             if ($result->playerId === '018e3842-06c0-72bf-a510-7300844df66a') {
                 $backgrounds[] = 'rgba(254, 64, 66, 1)';
+                $borderWidths[] = 2;
             } else {
                 $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
+                $borderWidths[] = 0;
             }
         }
 
@@ -46,6 +49,8 @@ final class PuzzleTimesChart
             'datasets' => [
                 [
                     'backgroundColor' => $backgrounds,
+                    'borderColor' => 'rgba(254, 64, 66, 1)',
+                    'borderWidth' => $borderWidths,
                     'data' => $chartData,
                 ],
             ],

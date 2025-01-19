@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7234dd15f9e791c1fedf172d6af66ba1",
+    "content-hash": "07a7defec0ddc26c3851b02f82890941",
     "packages": [
         {
             "name": "async-aws/core",
@@ -9361,16 +9361,16 @@
         },
         {
             "name": "symfony/ux-chartjs",
-            "version": "2.x-dev",
+            "version": "v2.22.1",
             "source": {
                 "type": "git",
-                "url": "https://github.com/JanMikes/ux-chartjs.git",
-                "reference": "d8b0cc67979327280598848b8e051cfe4cad37fa"
+                "url": "https://github.com/symfony/ux-chartjs.git",
+                "reference": "6e7de01ea469840da2b7458b660b52e846e279e1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/ux-chartjs/zipball/d8b0cc67979327280598848b8e051cfe4cad37fa",
-                "reference": "d8b0cc67979327280598848b8e051cfe4cad37fa",
+                "url": "https://api.github.com/repos/symfony/ux-chartjs/zipball/6e7de01ea469840da2b7458b660b52e846e279e1",
+                "reference": "6e7de01ea469840da2b7458b660b52e846e279e1",
                 "shasum": ""
             },
             "require": {
@@ -9389,12 +9389,11 @@
                 "symfony/twig-bundle": "^5.4|^6.0|^7.0",
                 "symfony/var-dumper": "^5.4|^6.0|^7.0"
             },
-            "default-branch": true,
             "type": "symfony-bundle",
             "extra": {
                 "thanks": {
-                    "name": "symfony/ux",
-                    "url": "https://github.com/symfony/ux"
+                    "url": "https://github.com/symfony/ux",
+                    "name": "symfony/ux"
                 }
             },
             "autoload": {
@@ -9402,11 +9401,7 @@
                     "Symfony\\UX\\Chartjs\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Symfony\\UX\\Chartjs\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -9426,9 +9421,23 @@
                 "symfony-ux"
             ],
             "support": {
-                "source": "https://github.com/JanMikes/ux-chartjs/tree/2.x"
+                "source": "https://github.com/symfony/ux-chartjs/tree/v2.22.1"
             },
-            "time": "2025-01-18T21:12:09+00:00"
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2024-12-05T14:25:02+00:00"
         },
         {
             "name": "symfony/ux-live-component",
@@ -13993,8 +14002,7 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "auth0/symfony": 20,
-        "roave/security-advisories": 20,
-        "symfony/ux-chartjs": 20
+        "roave/security-advisories": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

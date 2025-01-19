@@ -37,7 +37,6 @@ final class PlayerAverageTimeChart
     {
         $chartData = [];
         $labels = [];
-        $borders = [];
         $period = $this->interval === 'month' ? ChartTimePeriodType::Month : ChartTimePeriodType::Week;
         $brand = Uuid::isValid($this->brand ?? '') ? $this->brand : null;
 
@@ -66,7 +65,6 @@ final class PlayerAverageTimeChart
             'datasets' => [
                 [
                     'data' => $chartData,
-                    'borderWidth' => $borders,
                     'backgroundColor' => 'rgba(254, 64, 66, 0.7)',
                 ],
             ],

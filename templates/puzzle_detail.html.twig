@@ -138,6 +138,14 @@
         <div class="tab-pane fade {{ solo_puzzle_solvers|length > 0 ? 'show active' }}" id="solo" role="tabpanel" {{ stimulus_controller('toggle') }}>
 
             {% if puzzle.solvedTimes > 0 %}
+                {% if logged_user.profile and logged_user.profile.isAdmin %}
+                    <twig:Chart:PuzzleTimesChart
+                        results="{{ solo_puzzle_solvers }}"
+                        playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}"
+                        title="Time per puzzler"
+                    />
+                {% endif %}
+
                 <div class="row">
                     <div class="col-6">
                         <table class="mb-3 table-times-overview">
@@ -185,10 +193,6 @@
                         </div>
                     {% endif %}
                 </div>
-            {% endif %}
-
-            {% if logged_user.profile and logged_user.profile.isAdmin %}
-                <twig:Chart:PuzzleTimesChart results="{{ solo_puzzle_solvers }}" playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}" />
             {% endif %}
 
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
@@ -274,6 +278,14 @@
 
         <div class="tab-pane fade {{ solo_puzzle_solvers|length == 0 and duo_puzzle_solvers|length > 0 ? 'show active' }}" id="duo" role="tabpanel">
             {% if puzzle.solvedTimes > 0 %}
+                {% if logged_user.profile and logged_user.profile.isAdmin %}
+                    <twig:Chart:PuzzleTimesChart
+                        results="{{ duo_puzzle_solvers }}"
+                        playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}"
+                        title="Time per duo"
+                    />
+                {% endif %}
+
                 <table class="mb-3 table-times-overview">
                     <tr>
                         <td>{{ 'fastest_time'|trans }}</td>
@@ -380,6 +392,14 @@
 
         <div class="tab-pane fade {{ solo_puzzle_solvers|length == 0 and duo_puzzle_solvers|length == 0 and team_puzzle_solvers|length > 0 ? 'show active' }}" id="team" role="tabpanel">
             {% if puzzle.solvedTimes > 0 %}
+                {% if logged_user.profile and logged_user.profile.isAdmin %}
+                    <twig:Chart:PuzzleTimesChart
+                        results="{{ team_puzzle_solvers }}"
+                        playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}"
+                        title="Time per group"
+                    />
+                {% endif %}
+
                 <table class="mb-3 table-times-overview">
                     <tr>
                         <td>{{ 'fastest_time'|trans }}</td>

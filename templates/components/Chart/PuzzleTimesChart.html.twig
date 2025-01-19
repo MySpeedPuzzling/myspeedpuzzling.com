@@ -2,8 +2,16 @@
     <div class="card card-body p-2 my-3 shadow">
         <h2 class="fs-6 text-center text-md-start mb-2">Time per puzzler</h2>
 
-        <div style="height: 200px;">
-            {{ render_chart(computed.chart, {'data-controller': 'time-chart'}) }}
+        <div style="height: 200px;" data-controller="time-chart" class="position-relative">
+            {{ render_chart(computed.chart) }}
+
+            <button
+                class="d-none position-absolute btn btn-sm btn-secondary shadow zoom-reset"
+                data-action="time-chart#resetZoom"
+                data-time-chart-target="zoomButton"
+            >
+                Reset zoom
+            </button>
         </div>
     </div>
 {% endif %}

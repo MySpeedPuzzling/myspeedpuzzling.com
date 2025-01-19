@@ -1,7 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
+import Chart from 'chart.js/auto';
 
 export default class extends Controller {
+    static targets = ['zoomButton'];
+
     connect() {
+        this.canvasElement = this.element.querySelector('canvas');
+
         this.element.addEventListener('chartjs:pre-connect', this._onPreConnect.bind(this));
         this.element.addEventListener('chartjs:view-value-change', this._onViewValueChanged.bind(this));
     }
@@ -23,7 +28,17 @@ export default class extends Controller {
         this.applyOptions(options);
     }
 
+    resetZoom() {
+        const chart = this.chart;
+        if (chart) {
+            chart.resetZoom();
+            this._toggleResetZoomButton(false);
+        }
+    }
+
     applyOptions(options) {
+        this._toggleResetZoomButton(false);
+
         options.maintainAspectRatio = false;
 
         if (!options.scales) {
@@ -67,5 +82,40 @@ export default class extends Controller {
                     .padStart(2, '0')}`;
             },
         };
+
+        if (!options.plugins.zoom) {
+            options.plugins.zoom = {};
+        }
+
+        options.plugins.zoom = {
+            zoom: {
+                drag: {
+                    enabled: true,
+                },
+                pinch: {
+                    enabled: true,
+                },
+                mode: 'x',
+                onZoomComplete: () => {
+                    this._toggleResetZoomButton(true);
+                }
+            },
+            resetZoom: {
+                onResetZoomComplete: () => {
+                    this._toggleResetZoomButton(false);
+                },
+            },
+        };
+    }
+
+    _toggleResetZoomButton(show) {
+        if (this.hasZoomButtonTarget) {
+            this.zoomButtonTarget.classList.toggle('d-none', !show);
+            this.zoomButtonTarget.classList.toggle('d-inline-block', show);
+        }
+    }
+
+    get chart() {
+        return Chart.getChart(this.canvasElement);
     }
 }

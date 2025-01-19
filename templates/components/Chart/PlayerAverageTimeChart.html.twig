@@ -30,8 +30,16 @@
         <h2 class="text-muted text-center my-3">Not enough data for the chart</h2>
     {% else %}
 
-        <div style="height: 250px;">
-            {{ render_chart(computed.chart, {'data-controller': 'time-chart'}) }}
+        <div style="height: 250px;" data-controller="time-chart" class="position-relative">
+            {{ render_chart(computed.chart) }}
+
+            <button
+                class="d-none position-absolute btn btn-sm btn-outline-secondary shadow zoom-reset"
+                data-action="time-chart#resetZoom"
+                data-time-chart-target="zoomButton"
+            >
+                Reset zoom
+            </button>
         </div>
     {% endif %}
 </div>

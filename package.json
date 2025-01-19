@@ -32,6 +32,7 @@
         "bootstrap": "5.2.*",
         "card": "^2.5.4",
         "chart.js": "^4.4.7",
+        "chartjs-plugin-zoom": "^2.2.0",
         "drift-zoom": "^1.5.1",
         "flag-icons": "^7.1.0",
         "flatpickr": "^4.6.13",

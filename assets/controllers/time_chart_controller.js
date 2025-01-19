@@ -36,7 +36,7 @@ export default class extends Controller {
         options.scales.y = {
             beginAtZero: true,
             ticks: {
-                stepSize: 900, // Step size of 15 minutes in seconds
+                stepSize: 30 * 60, // Step size of 30 minutes in seconds
                 callback: function (value) {
                     const hours = Math.floor(value / 3600);
                     const minutes = Math.floor((value % 3600) / 60);

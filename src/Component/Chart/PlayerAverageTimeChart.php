@@ -59,23 +59,26 @@ final class PlayerAverageTimeChart
             $chartData[] = $data->time;
         }
 
-        $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
         $chart->setData([
             'labels' => $labels,
             'datasets' => [
                 [
                     'data' => $chartData,
-                    'borderColor' => '#fe4042',
-                    'borderWidth' => 2,
-                    'backgroundColor' => 'rgba(254, 64, 66, 0.2)',
-                    'fill' => true,
-                    'cubicInterpolationMode' => 'monotone',
-                    'tension' => 0.4,
+                    'borderWidth' => 0,
+                    'backgroundColor' => 'rgba(254, 64, 66, 0.7)',
                 ],
             ],
         ]);
 
         $chart->setOptions([
+            'scales' => [
+                'x' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
             'plugins' => [
                 'legend' => [
                     'display' => false,

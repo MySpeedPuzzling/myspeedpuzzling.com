@@ -100,6 +100,11 @@ export default class extends Controller {
                     this._toggleResetZoomButton(true);
                 }
             },
+            pan: {
+                enabled: true,
+                modifierKey: 'shift',
+                mode: 'x',
+            },
             resetZoom: {
                 onResetZoomComplete: () => {
                     this._toggleResetZoomButton(false);

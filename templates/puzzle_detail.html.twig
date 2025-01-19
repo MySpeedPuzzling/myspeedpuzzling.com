@@ -187,6 +187,10 @@
                 </div>
             {% endif %}
 
+            {% if logged_user.profile and logged_user.profile.isAdmin %}
+                <twig:Chart:PuzzleTimesChart results="{{ solo_puzzle_solvers }}" />
+            {% endif %}
+
             <div class="table-responsive custom-table-wrapper mt-2 mb-5">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>

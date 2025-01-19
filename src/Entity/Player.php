@@ -54,6 +54,10 @@ class Player
     public bool $wjpcModalDisplayed = false;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
+    public bool $isAdmin = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|string $stripeCustomerId = null;
 

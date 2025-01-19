@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    {% if player.code in ['lexinek', 'lexi', 'simonka'] %}
+    {% if logged_user.profile and logged_user.profile.isAdmin %}
         <div class="my-4">
             <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
         </div>

@@ -10,6 +10,9 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 
+/**
+ * @phpstan-import-type PlayerProfileRow from PlayerProfile
+ */
 readonly final class GetPlayerProfile
 {
     public function __construct(
@@ -44,6 +47,7 @@ SELECT
     stripe_customer_id,
     wjpc_modal_displayed,
     locale,
+    is_admin,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id
@@ -51,24 +55,7 @@ WHERE player.id = :playerId
 SQL;
 
         /**
-         * @var false|array{
-         *     player_id: string,
-         *     user_id: null|string,
-         *     player_name: null|string,
-         *     email: null|string,
-         *     country: null|string,
-         *     city: null|string,
-         *     code: string,
-         *     favorite_players: string,
-         *     avatar: null|string,
-         *     bio: null|string,
-         *     facebook: null|string,
-         *     instagram: null|string,
-         *     stripe_customer_id: null|string,
-         *     wjpc_modal_displayed: bool,
-         *     locale: null|string,
-         *     membership_ends_at: null|string,
-         * } $row
+         * @var false|PlayerProfileRow $row
          */
         $row = $this->database
             ->executeQuery($query, [
@@ -105,6 +92,7 @@ SELECT
     stripe_customer_id,
     wjpc_modal_displayed,
     locale,
+    is_admin,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id
@@ -112,24 +100,7 @@ WHERE player.user_id = :userId
 SQL;
 
         /**
-         * @var false|array{
-         *     player_id: string,
-         *     user_id: null|string,
-         *     player_name: null|string,
-         *     email: null|string,
-         *     country: null|string,
-         *     city: null|string,
-         *     code: string,
-         *     favorite_players: string,
-         *     avatar: null|string,
-         *     bio: null|string,
-         *     facebook: null|string,
-         *     instagram: null|string,
-         *     stripe_customer_id: null|string,
-         *     wjpc_modal_displayed: bool,
-         *     locale: null|string,
-         *     membership_ends_at: null|string,
-         * } $row
+         * @var false|PlayerProfileRow $row
          */
         $row = $this->database
             ->executeQuery($query, [

@@ -59,6 +59,12 @@
         </p>
     {% endif %}
 
+    {% if logged_user.profile and logged_user.profile.isAdmin %}
+        <div class="my-4">
+            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
+        </div>
+    {% endif %}
+
     <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">
             <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>

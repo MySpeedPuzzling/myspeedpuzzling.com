@@ -9,6 +9,27 @@ use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use SpeedPuzzling\Web\Value\CountryCode;
 
+/**
+ * @phpstan-type PlayerProfileRow array{
+ *     player_id: string,
+ *     user_id: null|string,
+ *     player_name: null|string,
+ *     email: null|string,
+ *     country: null|string,
+ *     city: null|string,
+ *     code: string,
+ *     favorite_players: string,
+ *     avatar: null|string,
+ *     bio: null|string,
+ *     facebook: null|string,
+ *     instagram: null|string,
+ *     stripe_customer_id: null|string,
+ *     wjpc_modal_displayed: bool,
+ *     locale: null|string,
+ *     membership_ends_at: null|string,
+ *     is_admin: bool,
+ *  }
+ */
 readonly final class PlayerProfile
 {
     public function __construct(
@@ -30,29 +51,13 @@ readonly final class PlayerProfile
         public null|string $locale,
         public null|DateTimeImmutable $membershipEndsAt,
         public bool $activeMembership,
+        public bool $isAdmin = false,
         public null|CountryCode $countryCode = null,
     ) {
     }
 
     /**
-     * @param array{
-     *     player_id: string,
-     *     user_id: null|string,
-     *     player_name: null|string,
-     *     email: null|string,
-     *     country: null|string,
-     *     city: null|string,
-     *     code: string,
-     *     favorite_players: string,
-     *     avatar: null|string,
-     *     bio: null|string,
-     *     facebook: null|string,
-     *     instagram: null|string,
-     *     stripe_customer_id: null|string,
-     *     wjpc_modal_displayed: bool,
-     *     locale: null|string,
-     *     membership_ends_at: null|string,
-     * } $row
+     * @param PlayerProfileRow $row
      */
     public static function fromDatabaseRow(array $row, DateTimeImmutable $now): self
     {
@@ -94,6 +99,7 @@ readonly final class PlayerProfile
             locale: $row['locale'],
             membershipEndsAt: $membershipEndsAt,
             activeMembership: $hasMembership,
+            isAdmin: $row['is_admin'],
             countryCode: $countryCode,
         );
     }

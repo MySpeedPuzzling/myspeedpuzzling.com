@@ -12,6 +12,8 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 #[AsTwigComponent]
 final class PuzzleTimesChart
 {
+    public string|null $playerId = null;
+
     /**
      * @var array<array<PuzzleSolver>>
      */
@@ -33,7 +35,7 @@ final class PuzzleTimesChart
             $labels[] = $result->playerName;
             $chartData[] = $result->time;
 
-            if ($result->playerId === '018e3842-06c0-72bf-a510-7300844df66a') {
+            if ($result->playerId === $this->playerId) {
                 $backgrounds[] = 'rgba(254, 64, 66, 1)';
             } else {
                 $backgrounds[] = 'rgba(254, 105, 106, 0.6)';

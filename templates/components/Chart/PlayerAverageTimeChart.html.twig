@@ -1,29 +1,37 @@
 <div {{ attributes }} class="card card-body p-2 shadow">
-    <div class="d-flex flex-wrap justify-content-end filters">
-        <select
-            data-model="interval"
-            class="form-select d-inline-block me-2"
-            style="max-width: 100px;"
-        >
-            <option value="week">Per week</option>
-            <option value="month">Per month</option>
-        </select>
+    <div class="d-md-flex mb-2 mt-1 w-100 justify-content-between">
+        <h2 class="fs-6 text-center mb-2">500 pieces average time per {{ interval }}</h2>
 
-        <div style="width: 200px;">
+        <div class="d-flex flex-wrap flex-md-nowrap justify-content-center justify-content-md-end filters">
             <select
-                data-model="brand"
-                data-controller="symfony--ux-autocomplete--autocomplete"
-                class="form-select"
+                data-model="interval"
+                class="form-select d-inline-block me-2"
+                style="max-width: 100px;"
             >
-                {% for brandId, brandName in this.availableBrands %}
-                    <option value="{{ brandId }}">{{ brandName }}</option>
-                {% endfor %}
+                <option value="week">Per week</option>
+                <option value="month">Per month</option>
             </select>
+
+            <div style="width: 200px;">
+                <select
+                    data-model="brand"
+                    data-controller="symfony--ux-autocomplete--autocomplete"
+                    class="form-select"
+                >
+                    {% for brandId, brandName in computed.availableBrands %}
+                        <option value="{{ brandId }}">{{ brandName }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
-
     </div>
 
-    <div style="height: 250px;">
-        {{ render_chart(this.chart, {'data-controller': 'time-chart'}) }}
-    </div>
+    {% if computed.chart.data['labels']|length < 3 %}
+        <h2 class="text-muted text-center my-3">Not enough data for the chart</h2>
+    {% else %}
+
+        <div style="height: 250px;">
+            {{ render_chart(computed.chart, {'data-controller': 'time-chart'}) }}
+        </div>
+    {% endif %}
 </div>

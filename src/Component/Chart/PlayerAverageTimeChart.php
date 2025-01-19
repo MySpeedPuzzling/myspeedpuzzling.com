@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component\Chart;
 
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Query\GetPlayerChartData;
 use SpeedPuzzling\Web\Value\ChartTimePeriodType;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
@@ -40,12 +39,9 @@ final class PlayerAverageTimeChart
         $labels = [];
         $period = $this->interval === 'month' ? ChartTimePeriodType::Month : ChartTimePeriodType::Week;
         $brand = Uuid::isValid($this->brand ?? '') ? $this->brand : null;
+
         $playerId = $this->playerId;
         assert($playerId !== null);
-
-        $label = sprintf('500 pieces average time per %s',
-            $period === ChartTimePeriodType::Week ? 'week' : 'month',
-        );
 
         $playerData = $this->getPlayerChartData->getForPlayer(
             playerId: $playerId,
@@ -54,7 +50,12 @@ final class PlayerAverageTimeChart
         );
 
         foreach ($playerData as $data) {
-            $labels[] = $data->period->format($period === ChartTimePeriodType::Week ? 'W/Y' : 'm/Y');
+            if ($period === ChartTimePeriodType::Week) {
+                $labels[] = 'W' . $data->period->format('W/Y');
+            } else {
+                $labels[] = $data->period->format('m/y');
+            }
+
             $chartData[] = $data->time;
         }
 
@@ -63,7 +64,6 @@ final class PlayerAverageTimeChart
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => $label,
                     'data' => $chartData,
                     'borderColor' => '#fe4042',
                     'borderWidth' => 2,
@@ -78,7 +78,7 @@ final class PlayerAverageTimeChart
         $chart->setOptions([
             'plugins' => [
                 'legend' => [
-                    'align' => 'end',
+                    'display' => false,
                 ],
             ],
         ]);

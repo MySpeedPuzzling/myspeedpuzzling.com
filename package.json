@@ -30,6 +30,7 @@
         "@symfony/ux-turbo": "file:vendor/symfony/ux-turbo/assets",
         "@zxing/library": "^0.21.0",
         "bootstrap": "5.2.*",
+        "bootstrap-icons": "^1.11.3",
         "card": "^2.5.4",
         "chart.js": "^4.4.7",
         "chartjs-plugin-zoom": "^2.2.0",

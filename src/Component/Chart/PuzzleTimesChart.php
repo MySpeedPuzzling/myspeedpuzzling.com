@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component\Chart;
 
 use SpeedPuzzling\Web\Results\PuzzleSolver;
-use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
@@ -25,14 +24,20 @@ final class PuzzleTimesChart
 
     public function getChart(): Chart
     {
-        $chartData = [];
         $labels = [];
+        $chartData = [];
+        $backgrounds = [];
 
         foreach ($this->results as $groupedResult) {
             $result = $groupedResult[0];
-
             $labels[] = $result->playerName;
             $chartData[] = $result->time;
+
+            if ($result->playerId === '018e3842-06c0-72bf-a510-7300844df66a') {
+                $backgrounds[] = 'rgba(254, 64, 66, 1)';
+            } else {
+                $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
+            }
         }
 
         $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
@@ -40,18 +45,23 @@ final class PuzzleTimesChart
             'labels' => $labels,
             'datasets' => [
                 [
+                    'backgroundColor' => $backgrounds,
                     'data' => $chartData,
-                    'borderColor' => '#fe4042',
-                    'borderWidth' => 2,
-                    'backgroundColor' => 'rgba(254, 64, 66, 0.2)',
-                    'fill' => true,
-                    'cubicInterpolationMode' => 'monotone',
-                    'tension' => 0.4,
                 ],
             ],
         ]);
 
         $chart->setOptions([
+            'scales' => [
+                'x' => [
+                    'ticks' => [
+                        'display' => false,
+                    ],
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
             'plugins' => [
                 'legend' => [
                     'display' => false,

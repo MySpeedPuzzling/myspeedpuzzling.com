@@ -1,5 +1,7 @@
 {% if computed.chart.data['labels']|length > 3 %}
     <div class="card card-body p-2 my-3 shadow">
+        <h2 class="fs-6 text-center text-md-start mb-2">Time per puzzler</h2>
+
         <div style="height: 200px;">
             {{ render_chart(computed.chart, {'data-controller': 'time-chart'}) }}
         </div>

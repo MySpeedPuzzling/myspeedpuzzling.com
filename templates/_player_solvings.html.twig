@@ -56,6 +56,14 @@
                                 }) }}
                             </small>
                         </a>
+
+                        {% if logged_user.profile and logged_user.profile.isAdmin %}
+                            {% if  solved_puzzle|length > 1 %}
+                                <div class="hidden" data-toggle-target="{{ solved_puzzle[0].puzzleId }}">
+                                    <twig:Chart:PlayerPuzzleTimesChart results="{{ solved_puzzle }}" />
+                                </div>
+                            {% endif %}
+                        {% endif %}
                     </td>
 
                     <td class="px-0">

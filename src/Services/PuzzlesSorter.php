@@ -43,8 +43,8 @@ readonly final class PuzzlesSorter
 
     /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
-     * @phpstan-param array<T> $solvedPuzzles
-     * @phpstan-return array<T>
+     * @param array<T> $solvedPuzzles
+     * @return array<T>
      */
     public function sortByFirstTry(array $solvedPuzzles): array
     {
@@ -64,9 +64,26 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    public function sortByFinishedAt(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
+            if ($a->finishedAt->getTimestamp() === $b->finishedAt->getTimestamp()) {
+                return $a->time <=> $b->time;
+            }
+
+            return $a->finishedAt <=> $b->finishedAt;
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
-     * @phpstan-param array<T> $solvedPuzzles
-     * @phpstan-return array<T>
+     * @param array<T> $solvedPuzzles
+     * @return array<T>
      */
     public function sortByFastest(array $solvedPuzzles): array
     {

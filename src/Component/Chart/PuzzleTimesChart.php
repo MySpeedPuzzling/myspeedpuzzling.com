@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component\Chart;
 
+use Nette\Utils\Strings;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
@@ -31,11 +32,16 @@ final class PuzzleTimesChart
         $chartData = [];
         $backgrounds = [];
 
-        foreach ($this->results as $groupedResult) {
+        $rank = 0;
+        foreach ($this->results as $i => $groupedResult) {
+            $rank = $rank + 1;
             $result = $groupedResult[0];
 
             if ($result instanceof PuzzleSolver) {
-                $labels[] = $result->playerName;
+                $labels[] = sprintf('%d. %s',
+                    $rank,
+                    Strings::truncate($result->playerName, 15),
+                );
 
                 if ($result->playerId === $this->playerId) {
                     $backgrounds[] = 'rgba(254, 64, 66, 1)';
@@ -49,7 +55,7 @@ final class PuzzleTimesChart
                 $label = [];
 
                 foreach ($result->players as $player) {
-                    $label[] = $player->playerName;
+                    $label[] = Strings::truncate($player->playerName ?? '', 15);
 
                     if ($player->playerId === $this->playerId) {
                         $isMe = true;
@@ -83,9 +89,6 @@ final class PuzzleTimesChart
         $chart->setOptions([
             'scales' => [
                 'x' => [
-                    'ticks' => [
-                        'display' => false,
-                    ],
                     'grid' => [
                         'display' => false,
                     ],

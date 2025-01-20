@@ -24,7 +24,7 @@ membership_subscribed:
     title: "Děkujeme, že jste s námi!"
     content: |
         <h4>Vaše členství je nyní aktivní.</h4>
-        <<p>Velmi si vážíme vaší podpory a jsme nadšeni, že vás můžeme přivítat jako člena MySpeedPuzzling.com!</p>
+        <p>Velmi si vážíme vaší podpory a jsme nadšeni, že vás můžeme přivítat jako člena MySpeedPuzzling.com!</p>
         <p>Vaše další fakturační období začíná: <b>%nextBillingPeriod%</b>.</p>
         <p>Kdykoli můžete spravovat své předplatné, zrušit členství nebo stáhnout faktury na <a href="%membershipUrl%">stránce členství</a>.</p>
         <p>Děkujeme, že jste součástí MySpeedPuzzling.com! a také za vaši podporu. Přejeme spoustu rychle poskládaných puzzlí a skvělých výsledků!</p>

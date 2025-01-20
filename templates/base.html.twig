@@ -154,7 +154,7 @@
         </header>
         <main>
             {% for label, messages in app.flashes %}
-                <div class="container mt-4">
+                <div class="container mt-2">
                     {% for message in messages %}
                         <div class="alert-dismissible fade show alert alert-{{ label }}" role="alert">
                             {{ message }}
@@ -165,7 +165,7 @@
             {% endfor %}
 
             {% block full_content %}
-                <section class="container pt-4">
+                <section class="container pt-3">
                     {% block content %}{% endblock %}
                 </section>
             {% endblock %}

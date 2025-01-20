@@ -47,7 +47,7 @@ final class SearchPuzzleFormType extends AbstractType
             'required' => false,
             'autocomplete' => true,
             'choices' => $brandChoices,
-            'placeholder' => 'any',
+            'placeholder' => 'forms.brand',
             'empty_data' => '',
             'choice_translation_domain' => false,
         ]);
@@ -58,7 +58,7 @@ final class SearchPuzzleFormType extends AbstractType
             'multiple' => false,
             'empty_data' => '',
             'choices' => [
-                '' => $this->translator->trans('any'),
+                '' => $this->translator->trans('all_pieces'),
                 '1-499' => '1-499',
                 '500' => '500',
                 '501-999' => '501-999',
@@ -69,12 +69,13 @@ final class SearchPuzzleFormType extends AbstractType
         ]);
 
         $builder->add('tag', ChoiceType::class, [
-            'label' => 'forms.tag',
+            'label' => 'forms.competition',
             'required' => false,
             'autocomplete' => true,
             'empty_data' => '',
             'choice_translation_domain' => false,
             'choices' => $tagChoices,
+            'placeholder' => 'forms.competition',
         ]);
 
         $builder->add('search', TextType::class, [
@@ -83,21 +84,6 @@ final class SearchPuzzleFormType extends AbstractType
             'attr' => [
                 'placeholder' => 'forms.puzzle_search_placeholder',
             ],
-        ]);
-
-        $builder->add('onlyWithResults', CheckboxType::class, [
-            'label' => 'forms.only_with_results',
-            'required' => false,
-        ]);
-
-        $builder->add('onlySolvedByMe', CheckboxType::class, [
-            'label' => 'forms.only_solved_by_me',
-            'required' => false,
-        ]);
-
-        $builder->add('onlyAvailable', CheckboxType::class, [
-            'label' => 'forms.only_available',
-            'required' => false,
         ]);
     }
 

@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ["form", "spinner", "submit"];
+    static targets = ["form", "spinner"];
 
     initialize() {
         this._onConnect = this._onConnect.bind(this);
@@ -69,11 +69,9 @@ export default class extends Controller {
 
     showSpinner() {
         this.spinnerTarget.classList.remove('invisible');
-        this.submitTarget.classList.add('disabled');
     }
 
     hideSpinner() {
         this.spinnerTarget.classList.add('invisible');
-        this.submitTarget.classList.remove('disabled');
     }
 }

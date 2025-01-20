@@ -25,9 +25,7 @@ readonly final class SearchPuzzle
     public function countByUserInput(
         null|string $brandId,
         null|string $search,
-        bool $onlyWithResults,
         PiecesFilter $pieces,
-        bool $onlyAvailable,
         null|string $tag,
     ): int {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
@@ -46,10 +44,6 @@ WHERE
     AND pieces_count >= COALESCE(:minPieces, pieces_count)
     AND pieces_count <= COALESCE(:maxPieces, pieces_count)
     AND (
-        puzzle.approved = true
-        -- OR puzzle.added_by_user_id = :playerId
-    )
-    AND (
         LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery)
         OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery)
         OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
@@ -57,8 +51,6 @@ WHERE
         OR identification_number LIKE :searchFullLikeQuery
         OR ean LIKE :searchFullLikeQuery
    )
-    AND (:solvedCount = 0 OR puzzle_solving_time.id IS NOT NULL)
-    AND is_available IN (:isAvailable)
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
 SQL;
 
@@ -69,14 +61,11 @@ SQL;
                 'searchEndLikeQuery' => "$search%",
                 'searchFullLikeQuery' => "%$search%",
                 'brandId' => $brandId,
-                'solvedCount' => $onlyWithResults ? 1 : 0,
                 'minPieces' => $pieces->minPieces(),
                 'maxPieces' => $pieces->maxPieces(),
-                'isAvailable' => $onlyAvailable === true ? [true] : [true, false],
                 'useTags' => $tag !== null ? 1 : 0,
                 'tag' => $tag ? [$tag] : [],
             ], [
-                'isAvailable' => ArrayParameterType::INTEGER,
                 'tag' => ArrayParameterType::STRING,
             ])
             ->fetchOne();
@@ -93,9 +82,7 @@ SQL;
     public function byUserInput(
         null|string $brandId,
         null|string $search,
-        bool $onlyWithResults,
         PiecesFilter $pieces,
-        bool $onlyAvailable,
         null|string $tag,
         int $offset = 0,
         int $limit = 20,
@@ -155,10 +142,8 @@ WHERE
         OR identification_number LIKE :searchFullLikeQuery
         OR ean LIKE :searchFullLikeQuery
     )
-    AND is_available IN (:isAvailable)
     AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
-HAVING COUNT(puzzle_solving_time.id) >= :solvedCount
 ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), manufacturer_name, pieces_count
 LIMIT :limit OFFSET :offset
 SQL;
@@ -170,16 +155,13 @@ SQL;
                 'searchEndLikeQuery' => "$search%",
                 'searchFullLikeQuery' => "%$search%",
                 'brandId' => $brandId,
-                'solvedCount' => $onlyWithResults ? 1 : 0,
                 'limit' => $limit,
                 'minPieces' => $pieces->minPieces(),
                 'maxPieces' => $pieces->maxPieces(),
-                'isAvailable' => $onlyAvailable === true ? [true] : [true, false],
                 'offset' => $offset,
                 'useTags' => $tag !== null ? 1 : 0,
                 'tag' => $tag ? [$tag] : [],
             ], [
-                'isAvailable' => ArrayParameterType::INTEGER,
                 'tag' => ArrayParameterType::STRING,
             ])
             ->fetchAllAssociative();

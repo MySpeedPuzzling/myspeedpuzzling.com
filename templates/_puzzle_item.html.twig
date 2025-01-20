@@ -1,5 +1,5 @@
 <div
-    class="shadow-lg my-3 py-3 px-3"
+    class="shadow-lg my-2 p-2"
     data-puzzle-filter-target="puzzleItem"
     data-pieces-count="{{ puzzle.piecesCount }}"
     data-puzzle-name="{{ puzzle.puzzleName }}"
@@ -22,16 +22,13 @@
         <div class="col col-sm-4 align-self-sm-center">
             <div class="row mb-2 mb-sm-0">
                 <div class="col-sm">
-                    <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                        {{ include('_puzzle_name.html.twig', {
-                            puzzle_name: puzzle.puzzleName,
-                            alternative_puzzle_name: puzzle.puzzleAlternativeName,
-                        }) }}
-
-                        {% if puzzle.puzzleIdentificationNumber is not null %}
-                            <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
-                        {% endif %}
+                    <a class="text-decoration-underline" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                        {{ puzzle.puzzleName }}
                     </a>
+
+                    {% if puzzle.puzzleIdentificationNumber is not null %}
+                        <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                    {% endif %}
                 </div>
 
                 <div class="col-sm align-self-center text-md-center low-line-height">
@@ -49,14 +46,6 @@
 
             {% if puzzle.puzzleId in puzzles_solved_by_user %}
                 <span class="badge bg-success rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
-            {% endif %}
-
-            {% if app.request.locale is same as 'cs' %}
-                {% if puzzle.isAvailable %}
-                    <span class="badge bg-success rounded-pill">{{ 'puzzle_available'|trans }}</span>
-                {% else %}
-                    <span class="badge bg-dark rounded-pill">{{ 'puzzle_not_available'|trans }}</span>
-                {% endif %}
             {% endif %}
         </div>
 

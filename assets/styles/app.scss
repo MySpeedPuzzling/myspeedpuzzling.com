@@ -457,6 +457,20 @@ button[data-submit-prevention-target] {
         background-position: right 5px center;
     }
 
+    button {
+        font-size: 12px;
+        height: 32px;
+        padding: 0 10px;
+        line-height: 32px;
+    }
+
+    .form-control {
+        padding: 4px 25px 4px 6px;
+        font-size: 12px;
+        height: 32px;
+        background-position: right 5px center;
+    }
+
     .ts-control {
         padding: 4px 20px 4px 4px !important;
         flex-wrap: nowrap;

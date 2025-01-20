@@ -58,9 +58,7 @@ final class PuzzlesController extends AbstractController
         $totalPuzzlesCount = $this->searchPuzzle->countByUserInput(
             $searchData->brand,
             $searchData->search,
-            $searchData->onlyWithResults,
             PiecesFilter::fromUserInput($searchData->pieces),
-            $searchData->onlyAvailable,
             $searchData->tag,
         );
 
@@ -76,9 +74,7 @@ final class PuzzlesController extends AbstractController
         $foundPuzzle = $this->searchPuzzle->byUserInput(
             $searchData->brand,
             $searchData->search,
-            $searchData->onlyWithResults,
             PiecesFilter::fromUserInput($searchData->pieces),
-            $searchData->onlyAvailable,
             $searchData->tag,
             $offset,
         );

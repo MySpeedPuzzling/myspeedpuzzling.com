@@ -491,11 +491,11 @@ membership:
             <li>Vlastní personalizovaný kód hráče (můžete změnit na svém profilu)</li>
             <li>Odznak člena</li>
             <li>Filtrování podle prvních pokusů</li>
+            <li>Grafy</li>
         </ul>
 
         <h3 class="h4">Na co se můžete brzy těšit?</h3>
         <ul>
-            <li>Grafy <small class="ms-1 text-muted">(01/2025)</small></li>
             <li>Detailní statistiky <small class="ms-1 text-muted">(02/2025)</small></li>
             <li>Měsíční a roční reporty <small class="ms-1 text-muted">(02/2025)</small></li>
             <li>Veřejný mypuzzler.com profil <small class="ms-1 text-muted">(02/2025)</small></li>

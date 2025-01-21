@@ -75,11 +75,9 @@
         </div>
     </div>
 
-    {% if logged_user.profile and logged_user.profile.isAdmin %}
-        <div class="my-4">
-            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
-        </div>
-    {% endif %}
+    <div class="my-4">
+        <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
+    </div>
 
     {% if player.playerName is null %}
         <div class="my-2 alert alert-warning d-flex" role="alert">

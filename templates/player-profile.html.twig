@@ -59,11 +59,9 @@
         </p>
     {% endif %}
 
-    {% if logged_user.profile and logged_user.profile.isAdmin %}
-        <div class="my-4">
-            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
-        </div>
-    {% endif %}
+    <div class="my-4">
+        <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
+    </div>
 
     <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">

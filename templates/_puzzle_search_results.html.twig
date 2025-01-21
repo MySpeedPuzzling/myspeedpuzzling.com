@@ -1,6 +1,6 @@
 <turbo-frame id="search-results">
     <div class="d-flex">
-        <p class="my-0 me-2">
+        <p class="mt-0 mb-1 me-2">
             <small class="text-muted">{{ 'total_found'|trans({'%count%': total_puzzles_count }) }}</small>
         </p>
 
@@ -15,7 +15,7 @@
         <p class="mt-2 mb-3 text-muted small">{{ 'puzzle_overview.missing_puzzle_info'|trans }}</p>
     {% endif %}
 
-    <turbo-frame id="search-results-items">
+    <turbo-frame id="search-results-items" class="row g-2 g-md-3">
         {% for puzzle in puzzles %}
             {{ include('_puzzle_item.html.twig') }}
         {% endfor %}

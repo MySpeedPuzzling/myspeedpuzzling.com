@@ -496,3 +496,25 @@ button[data-submit-prevention-target] {
     right: 8px;
     top: 8px;
 }
+
+.puzzle-list-item {
+    line-height: 120%;
+
+    .puzzle-name {
+        @media (min-width: 768px) {
+            width: 50%;
+        }
+    }
+
+    .puzzle-times-info {
+        @media (min-width: 768px) {
+            width: 160px;
+        }
+    }
+
+    .manufacturer-name {
+        @media (min-width: 768px) {
+            padding-right: 50px;
+        }
+    }
+}

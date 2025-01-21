@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ app.request.locale }}">
+<html lang="{{ app.request.locale }}" data-turbo="false">
     <head>
         <meta charset="UTF-8">
         <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %}{% if app.request.pathInfo != path('homepage') %} | My Speed Puzzling{% endif %}</title>

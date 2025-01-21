@@ -32,9 +32,6 @@ export default class extends Controller {
                 const newUrl = new URL(form.action);
                 const formData = new FormData(form);
                 formData.forEach((value, key) => newUrl.searchParams.append(key, value));
-
-                // Update the URL without causing a navigation
-                history.pushState({}, '', newUrl);
             }
         });
 

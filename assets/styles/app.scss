@@ -501,8 +501,11 @@ button[data-submit-prevention-target] {
     line-height: 120%;
 
     .puzzle-name {
+        padding-right: 50px;
+
         @media (min-width: 768px) {
             width: 50%;
+            padding-right: 0;
         }
     }
 

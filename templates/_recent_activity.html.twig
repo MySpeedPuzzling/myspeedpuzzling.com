@@ -17,12 +17,12 @@
 
                                 {% if logged_user.profile is not null and solved_puzzle.playerId is same as logged_user.profile.playerId %}
                                     <div class="dropdown position-absolute" style="left: -5px;top : -5px;">
-                                        <button class="btn btn-accent btn-xs dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <button class="btn btn-accent btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="ci-menu"></i>
                                         </button>
 
                                         <!-- Dropdown menu -->
-                                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        <ul class="dropdown-menu">
                                             <li>
                                                 <button
                                                     data-controller="share-image"

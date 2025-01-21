@@ -1,5 +1,5 @@
 <div
-    class="shadow-lg my-2 p-2"
+    class="shadow-lg my-2 p-2 position-relative card card-body"
     data-puzzle-filter-target="puzzleItem"
     data-pieces-count="{{ puzzle.piecesCount }}"
     data-puzzle-name="{{ puzzle.puzzleName }}"
@@ -11,7 +11,7 @@
     data-tags="{{ (tags[puzzle.puzzleId] ?? [])|json_encode }}"
 >
     <div class="row">
-        <div class="col text-md-center align-self-sm-center" style="max-width: 100px;">
+        <div class="col text-md-center align-self-center" style="max-width: 100px;">
             {% if puzzle.puzzleImage is not null%}
                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                     <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
@@ -19,69 +19,65 @@
             {% endif %}
         </div>
 
-        <div class="col col-sm-4 align-self-sm-center">
-            <div class="row mb-2 mb-sm-0">
-                <div class="col-sm">
-                    <a class="text-decoration-underline" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                        {{ puzzle.puzzleName }}
-                    </a>
+        <div class="col col-md-5 align-self-sm-center">
+            <div class="row mb-2 mb-md-0">
+                <div class="col-lg-6">
+                    <a class="text-decoration-underline low-line-height" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                        {{ puzzle.puzzleName }}</a>
 
-                    {% if puzzle.puzzleIdentificationNumber is not null %}
-                        <br><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                    {% if puzzle.puzzleId in puzzles_solved_by_user %}
+                        <i class="ms-0 ci-check-circle text-success"></i>
                     {% endif %}
+
+                    <br><small>{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                 </div>
 
-                <div class="col-sm align-self-center text-md-center low-line-height">
-                    {{ puzzle.manufacturerName|upper }}<br>
-                    <small>{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                <div class="col-lg-6 align-self-center text-lg-center low-line-height fs-sm">
+                    {{ puzzle.manufacturerName|upper }}
+                    {% if puzzle.puzzleIdentificationNumber is not null %}
+                        <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
 
-        <div class="col-md align-self-center text-md-center">
+        <div class="col-md-2 col-lg-3 align-self-center text-md-center">
             {% for tag in tags[puzzle.puzzleId] ?? [] %}
-                <span class="badge bg-primary rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                <span class="badge text-wrap bg-primary rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
             {% endfor %}
-
-            {% if puzzle.puzzleId in puzzles_solved_by_user %}
-                <span class="badge bg-success rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
-            {% endif %}
         </div>
 
-        <div class="col-md align-self-center">
+        <div class="col-md-3 col-lg-2 align-self-center d-flex d-md-block justify-content-between text-nowrap">
             {% if puzzle.solvedTimes > 0 %}
-                <table class="table-times-overview">
-                    <tr>
-                        <td class="low-line-height"><small>{{ 'puzzle_solved_count'|trans }}</small></td>
-                        <td class="text-end"><small>{{ puzzle.solvedTimes }}</small></td>
-                    </tr>
-                    {% if ranking[puzzle.puzzleId] is defined %}
-                        <tr>
-                            <td><small>{{ 'my_time'|trans }}</small></td>
-                            <td class="text-end"><small>{{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small></td>
-                        </tr>
-                    {% endif %}
-                    <tr>
-                        <td><small>{{ 'fastest_time'|trans }}</small></td>
-                        <td class="text-end"><small>{{ puzzle.fastestTimeSolo|puzzlingTime }}</small></td>
-                    </tr>
-                    <tr>
-                        <td><small>{{ 'average_time'|trans }}</small></td>
-                        <td class="text-end"><small>{{ puzzle.averageTimeSolo|puzzlingTime }}</small></td>
-                    </tr>
-                </table>
+                <small>{{ 'puzzle_solved_count'|trans }} {{ puzzle.solvedTimes }}</small>
+
+                <br class="d-none d-md-block">
+                {% if ranking[puzzle.puzzleId] is defined %}
+                    <small><i class="ci-user"></i> {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small>
+                {% endif %}
             {% else %}
                 <small class="d-inline-block low-line-height">{{ 'never_solved_puzzles'|trans }}</small>
             {% endif %}
         </div>
+    </div>
 
-        <div class="col-md align-self-center text-md-center">
-            {% if puzzle.solvedTimes > 0 %}
-                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1 px-2 my-1 btn-sm btn-primary">{{ 'show_times'|trans }}</a>
-            {% endif %}
-            <a data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn py-1  px-2 my-1 btn-accent btn-sm"><i class="ci-add"></i> {{ 'add_my_time'|trans }}</a>
-            <a data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm py-1 px-2 my-1"><i class="ci-time"></i> {{ 'start_solving'|trans }}</a>
-        </div>
+    <div class="dropdown position-absolute puzzle-list-dropdown">
+        <button class="btn btn-accent btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="ci-menu"></i>
+        </button>
+
+        <ul class="dropdown-menu">
+            <li>
+                <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}">
+                    <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}">
+                    <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
+                </a>
+            </li>
+        </ul>
     </div>
 </div>

@@ -46,11 +46,23 @@ export default class extends Controller {
         if (!options.scales) {
             options.scales = {};
         }
+        if (!options.scales.x) {
+            options.scales.x = {};
+        }
+
+        options.scales.x = {
+            type: 'category',
+            min: 10,
+        };
+
+
+
         if (!options.scales.y) {
             options.scales.y = {};
         }
 
         options.scales.y = {
+            type: 'linear',
             beginAtZero: true,
             ticks: {
                 stepSize: 30 * 60, // Step size of 30 minutes in seconds
@@ -101,6 +113,11 @@ export default class extends Controller {
                 onZoomComplete: () => {
                     this._toggleResetZoomButton(true);
                     this.canvasElement.style.touchAction = 'none';
+                },
+                limits: {
+                    x: {
+                        minRange: 10,
+                    },
                 }
             },
             pan: {

@@ -12,7 +12,7 @@
 >
     <div class="card card-body shadow p-2 puzzle-list-item">
         <div class="d-flex">
-            <div>
+            <div style="width: 90px;">
                 {% if puzzle.puzzleImage is not null%}
                     <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                         <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
@@ -26,8 +26,6 @@
                         <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                             {{ puzzle.puzzleName }}{% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
                         </a>
-
-
 
                         <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                     </div>

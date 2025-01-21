@@ -41,6 +41,19 @@ export default class extends Controller {
 
         options.maintainAspectRatio = false;
 
+        if (!options.transitions) {
+            options.transitions = {};
+        }
+
+        options.transitions = {
+            zoom: {
+                animation: {
+                    duration: 200,
+                    easing: 'easeOutCubic'
+                }
+            }
+        };
+
         if (!options.scales) {
             options.scales = {};
         }

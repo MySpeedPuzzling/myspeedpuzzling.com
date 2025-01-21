@@ -6,6 +6,7 @@
            href="{{ url(app.request.attributes.get('_route'), loadMoreParameters) }}"
            class="btn btn-sm btn-primary"
            data-controller="load-more"
+           data-turbo="true"
            data-turbo-prefetch="false"
            data-action="ajax:beforeSend->load-more#startLoading ajax:complete->load-more#stopLoading"
         >

@@ -65,7 +65,12 @@ final class PlayerAverageTimeChart
             'datasets' => [
                 [
                     'data' => $chartData,
-                    'backgroundColor' => 'rgba(254, 64, 66, 0.7)',
+                    'borderColor' => '#fe4042',
+                    'borderWidth' => 2,
+                    'backgroundColor' => 'rgba(254, 64, 66, 0.2)',
+                    'fill' => true,
+                    'cubicInterpolationMode' => 'monotone',
+                    'tension' => 0.4,
                 ],
             ],
         ]);

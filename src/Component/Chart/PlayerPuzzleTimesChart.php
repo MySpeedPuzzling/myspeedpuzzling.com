@@ -42,8 +42,13 @@ final class PlayerPuzzleTimesChart
             'labels' => $labels,
             'datasets' => [
                 [
-                    'backgroundColor' => 'rgba(254, 105, 106, 0.6)',
                     'data' => $chartData,
+                    'borderColor' => '#fe4042',
+                    'borderWidth' => 2,
+                    'backgroundColor' => 'rgba(254, 64, 66, 0.2)',
+                    'fill' => true,
+                    'cubicInterpolationMode' => 'monotone',
+                    'tension' => 0.4,
                 ],
             ],
         ]);

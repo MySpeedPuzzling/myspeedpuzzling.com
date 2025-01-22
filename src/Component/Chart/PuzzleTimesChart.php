@@ -92,6 +92,9 @@ final class PuzzleTimesChart
                     'grid' => [
                         'display' => false,
                     ],
+                    'ticks' => [
+                        'display' => false,
+                    ],
                 ],
             ],
             'plugins' => [

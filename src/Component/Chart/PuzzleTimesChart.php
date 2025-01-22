@@ -44,9 +44,9 @@ final class PuzzleTimesChart
                 );
 
                 if ($result->playerId === $this->playerId) {
-                    $backgrounds[] = 'rgba(254, 64, 66, 0.6)';
+                    $backgrounds[] = 'rgba(254, 64, 66, 1)';
                 } else {
-                    $backgrounds[] = 'rgba(254, 64, 66, 0.2)';
+                    $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
                 }
             }
 
@@ -65,9 +65,9 @@ final class PuzzleTimesChart
                 $labels[] = implode("\n", $label);
 
                 if ($isMe) {
-                    $backgrounds[] = 'rgba(254, 64, 66, 0.6)';
+                    $backgrounds[] = 'rgba(254, 64, 66, 1)';
                 } else {
-                    $backgrounds[] = 'rgba(254, 64, 66, 0.2)';
+                    $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
                 }
             }
 
@@ -82,11 +82,6 @@ final class PuzzleTimesChart
                 [
                     'backgroundColor' => $backgrounds,
                     'data' => $chartData,
-                    'borderColor' => '#fe4042',
-                    'borderWidth' => 2,
-                    'fill' => true,
-                    'cubicInterpolationMode' => 'monotone',
-                    'tension' => 0.4,
                 ],
             ],
         ]);

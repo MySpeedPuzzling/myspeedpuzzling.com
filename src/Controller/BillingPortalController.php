@@ -37,7 +37,7 @@ final class BillingPortalController extends AbstractController
         $customerId = $player->stripeCustomerId;
 
         if ($customerId === null) {
-            return $this->redirectToRoute('membership');
+            return $this->redirectToRoute('buy_membership');
         }
 
         $portalUrl = $this->membershipManagement->getBillingPortalUrl($customerId, $player->locale);

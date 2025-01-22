@@ -25,9 +25,16 @@
                                     {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
                                 </p>
                             {% elseif membership.endsAt and membership.endsAt > now %}
-                                <p class="text-warning fs-5">
-                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
-                                </p>
+                                {% if membership.stripeSubscriptionId %}
+                                    <p class="text-warning fs-5">
+                                        <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
+                                    </p>
+                                {% else %}
+                                    <p class="text-warning fs-5">
+                                        <i class="ci-close-circle me-2"></i> {{ 'membership.free_membership_active'|trans }}
+                                    </p>
+                                {% endif %}
+
                             {% elseif membership.endsAt and membership.endsAt < now %}
                                 <p class="text-danger fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
@@ -40,7 +47,7 @@
 
                             {% if membership.endsAt and membership.endsAt > now %}
                                 <p>
-                                    {{ 'membership.membership_expiration'|trans }}: <strong>{{ membership.endsAt|date('d.m.Y') }}</strong>
+                                    {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.endsAt|date('d.m.Y') }}</strong>
                                 </p>
                             {% endif %}
 

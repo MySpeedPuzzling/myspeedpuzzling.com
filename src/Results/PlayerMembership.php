@@ -9,6 +9,7 @@ use DateTimeImmutable;
 readonly final class PlayerMembership
 {
     public function __construct(
+        public null|string $stripeSubscriptionId,
         public null|DateTimeImmutable $endsAt,
         public null|DateTimeImmutable $billingPeriodEndsAt,
     ) {
@@ -16,6 +17,7 @@ readonly final class PlayerMembership
 
     /**
      * @param array{
+     *     stripe_subscription_id: null|string,
      *     ends_at: null|string,
      *     billing_period_ends_at: null|string,
      * } $row
@@ -35,6 +37,7 @@ readonly final class PlayerMembership
         }
 
         return new self(
+            stripeSubscriptionId: $row['stripe_subscription_id'],
             endsAt: $endsAt,
             billingPeriodEndsAt: $billingPeriodEndsAt,
         );

@@ -25,9 +25,14 @@ readonly final class UpdateMembershipSubscriptionHandler
     public function __invoke(UpdateMembershipSubscription $message): void
     {
         $subscriptionId = $message->stripeSubscriptionId;
+        $membershipId = $message->membershipId;
 
         try {
-            $membership = $this->membershipRepository->getByStripeSubscriptionId($subscriptionId);
+            if ($membershipId !== null) {
+                $membership = $this->membershipRepository->get($membershipId);
+            } else {
+                $membership = $this->membershipRepository->getByStripeSubscriptionId($subscriptionId);
+            }
         } catch (MembershipNotFound) {
             $this->logger->warning('Attempted to update unknown membership', [
                 'subscription_id' => $subscriptionId,

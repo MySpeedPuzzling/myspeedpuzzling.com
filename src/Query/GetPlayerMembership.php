@@ -28,6 +28,7 @@ readonly final class GetPlayerMembership
 
         $query = <<<SQL
 SELECT
+    stripe_subscription_id,
     ends_at,
     billing_period_ends_at
 FROM membership
@@ -36,6 +37,7 @@ SQL;
 
         /**
          * @var false|array{
+         *     stripe_subscription_id: null|string,
          *     ends_at: null|string,
          *     billing_period_ends_at: null|string,
          * } $row

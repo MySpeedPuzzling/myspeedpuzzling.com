@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Services\MembershipManagement;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -34,7 +35,11 @@ final class BuyMembershipController extends AbstractController
             return $this->redirectToRoute('homepage');
         }
 
-        $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale);
+        try {
+            $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale);
+        } catch (PlayerAlreadyHaveMembership) {
+            return $this->redirectToRoute('billing_portal');
+        }
 
         return $this->redirect($paymentUrl, 303);
     }

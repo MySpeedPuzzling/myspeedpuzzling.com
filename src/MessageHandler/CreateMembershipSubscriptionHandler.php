@@ -52,9 +52,9 @@ readonly final class CreateMembershipSubscriptionHandler
         }
 
         try {
-            $this->membershipRepository->getByPlayerId($playerId);
+            $membership = $this->membershipRepository->getByPlayerId($playerId);
             $this->messageBus->dispatch(
-                new UpdateMembershipSubscription($subscriptionId),
+                new UpdateMembershipSubscription($subscriptionId, $membership->id->toString()),
             );
         } catch (MembershipNotFound) {
             $player = $this->playerRepository->get($playerId);

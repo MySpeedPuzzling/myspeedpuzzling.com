@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
+use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
+use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use Stripe\Price;
 use Stripe\StripeClient;
@@ -22,9 +26,14 @@ readonly final class MembershipManagement
         private StripeClient $stripeClient,
         private GetPlayerProfile $getPlayerProfile,
         private MessageBusInterface $messageBus,
+        private GetPlayerMembership $getPlayerMembership,
+        private ClockInterface $clock,
     ) {
     }
 
+    /**
+     * @throws PlayerAlreadyHaveMembership
+     */
     public function getMembershipPaymentUrl(null|string $locale): string
     {
         // Currently we have only one subscription plan so it is okay to have it hardcoded
@@ -60,7 +69,7 @@ readonly final class MembershipManagement
         assert($userProfile !== null);
         $stripeCustomerId = $userProfile->stripeCustomerId ?? $this->createCustomerId($userProfile->playerId);
 
-        $checkoutSession = $this->stripeClient->checkout->sessions->create([
+        $checkoutData = [
             'customer' => $stripeCustomerId,
             'mode' => 'subscription',
             'success_url' => $successUrl,
@@ -69,7 +78,32 @@ readonly final class MembershipManagement
                 'price' => $price->id,
                 'quantity' => 1,
             ]],
-        ]);
+        ];
+
+        try {
+            $now = $this->clock->now();
+            $membership = $this->getPlayerMembership->byId($userProfile->playerId);
+
+            if ($membership->stripeSubscriptionId !== null) {
+                throw new PlayerAlreadyHaveMembership;
+            }
+
+            if ($membership->endsAt !== null && $now < $membership->endsAt) {
+                $checkoutData['subscription_data'] = [
+                    'trial_settings' => [
+                        'end_behavior' => [
+                            'missing_payment_method' => 'pause',
+                        ]
+                    ],
+                    'trial_end' => $membership->endsAt->getTimestamp(),
+                ];
+            }
+
+        } catch (MembershipNotFound) {
+            // Do nothing, the membership does not exist, do not activate trial
+        }
+
+        $checkoutSession = $this->stripeClient->checkout->sessions->create($checkoutData);
 
         $checkoutUrl = $checkoutSession->url;
         assert($checkoutUrl !== null);

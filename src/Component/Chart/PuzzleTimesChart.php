@@ -75,7 +75,7 @@ final class PuzzleTimesChart
 
         }
 
-        $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
         $chart->setData([
             'labels' => $labels,
             'datasets' => [

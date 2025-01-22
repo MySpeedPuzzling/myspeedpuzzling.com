@@ -25,7 +25,7 @@ final class PlayerAverageTimeChart
     public null|string $brand = 'all';
 
     #[LiveProp(writable: true)]
-    public string $interval = 'week';
+    public string $interval = 'month';
 
     public function __construct(
         readonly private ChartBuilderInterface $chartBuilder,

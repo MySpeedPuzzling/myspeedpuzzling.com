@@ -521,3 +521,7 @@ button[data-submit-prevention-target] {
         }
     }
 }
+
+canvas {
+    touch-action: pan-y !important;
+}

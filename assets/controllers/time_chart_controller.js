@@ -114,9 +114,9 @@ export default class extends Controller {
                 }
             },
             pan: {
-                enabled: true,
-                modifierKey: 'shift',
-                mode: 'x',
+                enabled: false,
+                // modifierKey: 'shift',
+                // mode: 'x',
             },
             resetZoom: {
                 onResetZoomComplete: () => {

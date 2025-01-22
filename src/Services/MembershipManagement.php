@@ -98,7 +98,6 @@ readonly final class MembershipManagement
                     'trial_end' => $membership->endsAt->getTimestamp(),
                 ];
             }
-
         } catch (MembershipNotFound) {
             // Do nothing, the membership does not exist, do not activate trial
         }

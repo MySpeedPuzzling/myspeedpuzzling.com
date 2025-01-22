@@ -37,7 +37,7 @@ final class PlayerPuzzleTimesChart
             $labels[] = $result->finishedAt->format('d.m.Y');
         }
 
-        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
         $chart->setData([
             'labels' => $labels,
             'datasets' => [

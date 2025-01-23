@@ -91,59 +91,72 @@ SQL;
         }
 
         $query = <<<SQL
+WITH puzzle_base AS (
+    SELECT
+        puzzle.id AS puzzle_id,
+        puzzle.name AS puzzle_name,
+        puzzle.image AS puzzle_image,
+        puzzle.alternative_name AS puzzle_alternative_name,
+        puzzle.pieces_count,
+        puzzle.is_available,
+        puzzle.approved AS puzzle_approved,
+        puzzle.manufacturer_id,
+        puzzle.ean AS puzzle_ean,
+        puzzle.identification_number AS puzzle_identification_number,
+        CASE
+            WHEN LOWER(puzzle.alternative_name) = LOWER(:searchQuery) OR LOWER(puzzle.name) = LOWER(:searchQuery) OR puzzle.identification_number = :searchQuery OR puzzle.ean = :searchQuery THEN 7 -- Exact match with diacritics
+            WHEN LOWER(unaccent(puzzle.alternative_name)) = LOWER(unaccent(:searchQuery)) OR LOWER(unaccent(puzzle.name)) = LOWER(unaccent(:searchQuery)) THEN 6 -- Exact match without diacritics
+            WHEN puzzle.identification_number LIKE :searchEndLikeQuery OR puzzle.identification_number LIKE :searchStartLikeQuery OR puzzle.ean LIKE :searchEndLikeQuery OR puzzle.ean LIKE :searchStartLikeQuery THEN 5 -- Starts or ends with the query - code + ean
+            WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(puzzle.alternative_name) LIKE LOWER(:searchStartLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchStartLikeQuery) THEN 4 -- Starts or ends with the query with diacritics
+            WHEN LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) THEN 3 -- Starts or ends with the query without diacritics
+            WHEN puzzle.identification_number LIKE :searchFullLikeQuery OR puzzle.ean LIKE :searchFullLikeQuery THEN 2 -- Partial match - ean + code
+            WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery) THEN 1 -- Partial match with diacritics
+            ELSE 0 -- Partial match without diacritics or any other case
+        END AS match_score
+    FROM puzzle
+    LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
+    WHERE
+        manufacturer_id = COALESCE(:brandId, manufacturer_id)
+        AND pieces_count >= COALESCE(:minPieces, pieces_count)
+        AND pieces_count <= COALESCE(:maxPieces, pieces_count)
+        AND (
+            LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery)
+            OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery)
+            OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
+            OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
+            OR puzzle.identification_number LIKE :searchFullLikeQuery
+            OR puzzle.ean LIKE :searchFullLikeQuery
+        )
+        AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
+    ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), puzzle.pieces_count
+    LIMIT :limit OFFSET :offset
+)
 SELECT
-    puzzle.id AS puzzle_id,
-    puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
-    puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.pieces_count,
-    puzzle.is_available,
-    puzzle.approved AS puzzle_approved,
-    manufacturer.name AS manufacturer_name,
-    manufacturer.id AS manufacturer_id,
-    ean AS puzzle_ean,
-    puzzle.identification_number AS puzzle_identification_number,
-    COUNT(puzzle_solving_time.id) AS solved_times,
-    AVG(CASE WHEN team IS NULL THEN seconds_to_solve END) AS average_time_solo,
-    MIN(CASE WHEN team IS NULL THEN seconds_to_solve END) AS fastest_time_solo,
-    AVG(CASE WHEN json_array_length(team->'puzzlers') = 2 THEN seconds_to_solve END) AS average_time_duo,
-    MIN(CASE WHEN json_array_length(team->'puzzlers') = 2 THEN seconds_to_solve END) AS fastest_time_duo,
-    AVG(CASE WHEN json_array_length(team->'puzzlers') > 2 THEN seconds_to_solve END) AS average_time_team,
-    MIN(CASE WHEN json_array_length(team->'puzzlers') > 2 THEN seconds_to_solve END) AS fastest_time_team,
-    CASE
-        WHEN LOWER(puzzle.alternative_name) = LOWER(:searchQuery) OR LOWER(puzzle.name) = LOWER(:searchQuery) OR identification_number = :searchQuery OR ean = :searchQuery THEN 7 -- Exact match with diacritics
-        WHEN LOWER(unaccent(puzzle.alternative_name)) = LOWER(unaccent(:searchQuery)) OR LOWER(unaccent(puzzle.name)) = LOWER(unaccent(:searchQuery)) THEN 6 -- Exact match without diacritics
-        WHEN identification_number LIKE :searchEndLikeQuery OR identification_number LIKE :searchStartLikeQuery OR ean LIKE :searchEndLikeQuery OR ean LIKE :searchStartLikeQuery THEN 5 -- Starts or ends with the query - code + ean
-        WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(puzzle.alternative_name) LIKE LOWER(:searchStartLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchStartLikeQuery) THEN 4 -- Starts or ends with the query with diacritics
-        WHEN LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) THEN 3 -- Starts or ends with the query without diacritics
-        WHEN identification_number LIKE :searchFullLikeQuery OR ean LIKE :searchFullLikeQuery THEN 2 -- Partial match - ean + code
-        WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery) THEN 1 -- Partial match with diacritics
-        ELSE 0 -- Partial match without diacritics or any other case
-    END as match_score
-FROM puzzle
-LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
-INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
-WHERE
-    manufacturer_id = COALESCE(:brandId, manufacturer_id)
-    AND pieces_count >= COALESCE(:minPieces, pieces_count)
-    AND pieces_count <= COALESCE(:maxPieces, pieces_count)
-    AND (
-        puzzle.approved = true
-        -- OR puzzle.added_by_user_id = :playerId
-    )
-    AND (
-        LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery)
-        OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery)
-        OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-        OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-        OR identification_number LIKE :searchFullLikeQuery
-        OR ean LIKE :searchFullLikeQuery
-    )
-    AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
-GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
-ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), manufacturer_name, pieces_count
-LIMIT :limit OFFSET :offset
+    pb.puzzle_id,
+    pb.puzzle_name,
+    pb.puzzle_image,
+    pb.puzzle_alternative_name,
+    pb.pieces_count,
+    pb.is_available,
+    pb.puzzle_approved,
+    m.name AS manufacturer_name,
+    m.id AS manufacturer_id,
+    pb.puzzle_ean,
+    pb.puzzle_identification_number,
+    COUNT(pst.id) AS solved_times,
+    AVG(CASE WHEN pst.team IS NULL THEN pst.seconds_to_solve END) AS average_time_solo,
+    MIN(CASE WHEN pst.team IS NULL THEN pst.seconds_to_solve END) AS fastest_time_solo,
+    AVG(CASE WHEN json_array_length(pst.team->'puzzlers') = 2 THEN pst.seconds_to_solve END) AS average_time_duo,
+    MIN(CASE WHEN json_array_length(pst.team->'puzzlers') = 2 THEN pst.seconds_to_solve END) AS fastest_time_duo,
+    AVG(CASE WHEN json_array_length(pst.team->'puzzlers') > 2 THEN pst.seconds_to_solve END) AS average_time_team,
+    MIN(CASE WHEN json_array_length(pst.team->'puzzlers') > 2 THEN pst.seconds_to_solve END) AS fastest_time_team
+FROM puzzle_base pb
+LEFT JOIN puzzle_solving_time pst ON pst.puzzle_id = pb.puzzle_id
+INNER JOIN manufacturer m ON pb.manufacturer_id = m.id
+GROUP BY pb.puzzle_id, pb.puzzle_name, pb.puzzle_image, pb.puzzle_alternative_name,
+         pb.pieces_count, pb.is_available, pb.puzzle_approved, pb.puzzle_ean,
+         pb.puzzle_identification_number, m.name, m.id, pb.match_score
+ORDER BY pb.match_score DESC, COALESCE(pb.puzzle_alternative_name, pb.puzzle_name), m.name, pb.pieces_count
 SQL;
 
         $data = $this->database

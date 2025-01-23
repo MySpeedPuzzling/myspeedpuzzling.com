@@ -36,8 +36,6 @@ readonly final class SearchPuzzle
 SELECT
     COUNT(DISTINCT puzzle.id) AS count
 FROM puzzle
-LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
-INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 WHERE
     manufacturer_id = COALESCE(:brandId, manufacturer_id)

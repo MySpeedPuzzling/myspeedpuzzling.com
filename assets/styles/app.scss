@@ -301,6 +301,7 @@ td.rank {
 
 .navbar-light .nav-item {
     background: transparent !important;
+    margin-bottom: 0;
 }
 
 .navbar {
@@ -490,6 +491,14 @@ button[data-submit-prevention-target] {
         .item {
             text-wrap: nowrap;
         }
+    }
+}
+
+.btn-outline-primary {
+    background: #fff;
+
+    &:hover {
+        background: $primary;
     }
 }
 

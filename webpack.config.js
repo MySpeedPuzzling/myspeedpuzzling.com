@@ -48,18 +48,24 @@ Encore
     // enables Sass/SCSS support
     .enableSassLoader()
 
-    // uncomment if you use TypeScript
-    //.enableTypeScriptLoader()
+    .enableIntegrityHashes(Encore.isProduction())
 
-    // uncomment if you use React
-    //.enableReactPreset()
+    .enablePostCssLoader((options) => {
+        options.postcssOptions = {
+            plugins: [
+                require('autoprefixer'),
+                require('cssnano')({ preset: 'default' }), // Minifies CSS
+            ],
+        };
+    })
 
-    // uncomment to get integrity="..." attributes on your script & link tags
-    // requires WebpackEncoreBundle 1.4 or higher
-    //.enableIntegrityHashes(Encore.isProduction())
-
-    // uncomment if you're having problems with a jQuery plugin
-    //.autoProvidejQuery()
+    .configureTerserPlugin((options) => {
+        options.terserOptions = {
+            compress: {
+                drop_console: true, // Removes console logs in production
+            },
+        };
+    })
 ;
 
 module.exports = Encore.getWebpackConfig();

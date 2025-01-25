@@ -83,11 +83,11 @@
     </div>
 
     {% if not puzzle.puzzleApproved %}
-    <div class="alert-warning alert small">{{ 'puzzle_waiting_for_approval'|trans }}</div>
+    <div class="alert-warning alert small my-1">{{ 'puzzle_waiting_for_approval'|trans }}</div>
     {% endif %}
 
 
-    <ul class="nav nav-fill nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
+    <ul class="nav nav-fill nav-tabs" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">
             <a class="nav-link {{ solo_puzzle_solvers|length > 0 ? 'active' : 'disabled' }}" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
                 <div class="text-center">

@@ -48,10 +48,7 @@
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: comparison.puzzleId}) }}">
                                     <span class="puzzle-title">
-                                        {{ include('_puzzle_name.html.twig', {
-                                            puzzle_name: comparison.puzzleName,
-                                            alternative_puzzle_name: comparison.puzzleAlternativeName,
-                                        }) }}
+                                        {{ comparison.puzzleName }}
                                         <br>
                                         <small>{{ comparison.manufacturerName }}</small>
                                     </span>

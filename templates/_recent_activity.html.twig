@@ -58,10 +58,7 @@
                                 </span><br>
 
                                 <small class="puzzle-title mt-2">
-                                    {{ include('_puzzle_name.html.twig', {
-                                        puzzle_name: solved_puzzle.puzzleName,
-                                        alternative_puzzle_name: solved_puzzle.puzzleAlternativeName,
-                                    }) }}
+                                    {{ solved_puzzle.puzzleName }}
                                 </small>
                             </a>
                         </td>

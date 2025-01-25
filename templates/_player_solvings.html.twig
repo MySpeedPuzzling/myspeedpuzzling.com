@@ -50,10 +50,7 @@
                             </span><br>
 
                             <small class="puzzle-title mt-2">
-                                {{ include('_puzzle_name.html.twig', {
-                                    puzzle_name: solved_puzzle[0].puzzleName,
-                                    alternative_puzzle_name: solved_puzzle[0].puzzleAlternativeName,
-                                }) }}
+                                {{ solved_puzzle[0].puzzleName }}
                             </small>
                         </a>
 

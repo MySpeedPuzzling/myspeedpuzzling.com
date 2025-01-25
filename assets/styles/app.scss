@@ -525,3 +525,14 @@ button[data-submit-prevention-target] {
 canvas {
     touch-action: pan-y !important;
 }
+
+.puzzle-detail-image {
+    img {
+        width: 18%;
+        max-width: 90px;
+
+        @media (min-width: 768px) {
+            max-width: 110px;
+        }
+    }
+}

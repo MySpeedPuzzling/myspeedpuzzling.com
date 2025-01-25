@@ -4,80 +4,88 @@
 {% block meta_description %}{{ 'puzzle_detail.meta.description'|trans({ '%puzzle%': puzzle.puzzleName, '%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
 
 {% block content %}
-    <h1>{{ puzzle.puzzleName }}</h1>
+    <div class="position-relative">
 
-    <div class="row">
-        <div class="col-sm-12 col-md-5">
-            {% if not puzzle.puzzleApproved %}
-                <div class="alert-warning alert">{{ 'puzzle_waiting_for_approval'|trans }}</div>
-            {% endif %}
-
-            <p class="card-text fs-sm mb-2">
-                <b class="h5">{{ puzzle.manufacturerName|upper }}</b> <span class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</span><br>
-                {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}
-                {% if puzzle.solvedTimes > 0 %}
-                    <br>
-                    {{ 'puzzle_solved_count'|trans }} {{ puzzle.solvedTimes }}
-                {% endif %}
-                {#
-                {% if puzzle.solvedTimes > 1 %}
-                    <br>
-                    Most recent: 13 minutes ago by Xyz
-                {% endif %}
-                #}
-            </p>
-
-            <p>
-                {% for tag in tags %}
-                    <span class="badge bg-primary badge-shadow rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
-                {% endfor %}
-
-                {% if puzzle.puzzleId in puzzles_solved_by_user %}
-                    <span class="badge bg-success badge-shadow rounded-pill"><i class="ci-check"></i> {{ 'puzzle_solved'|trans }}</span>
-                {% endif %}
-            </p>
-        </div>
-
-        <div class="col-sm-12 col-md-3">
-            <div class="mb-2">
-                <a rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent btn-sm mb-1 me-1">
-                    <i class="ci-time"></i> {{ 'start_solving'|trans }}
-                </a>
-                <a rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-accent mb-1 me-1 btn-sm">
-                    <i class="ci-add"></i> {{ 'add_my_time'|trans }}
-                </a>
-
-                {% if puzzle_collections[puzzle.puzzleId] ?? null %}
-                    <div class="btn-group dropdown d-inline-block">
-                        <button type="button" class="btn btn-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <i class="ci-view-list"></i> {{ 'in_collection'|trans }}
-                        </button>
-
-                        <div class="dropdown-menu">
-                            <a rel="nofollow" data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}" class="dropdown-item">{{ 'remove_from_collection'|trans }}</a>
-                        </div>
+        <div class="d-flex">
+            <div class="flex-shrink-1 puzzle-detail-image text-center me-2 me-md-3">
+                {% if puzzle.puzzleImage is not null%}
+                    <div class="gallery mb-1">
+                        <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
+                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                        </a>
                     </div>
-                {% else %}
-                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-outline-primary mb-1 btn-sm">
-                        <i class="ci-view-list"></i> {{ 'add_to_collection'|trans }}
-                    </a>
                 {% endif %}
+            </div>
+
+            <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
+                <div class="me-md-4">
+                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }}
+                        {% if puzzle.puzzleId in puzzles_solved_by_user %}
+                            <i class="small text-decoration-none ci-check-circle text-success"></i>
+                        {% endif %}
+                    </h1>
+
+                    <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                </div>
+                <div>
+                    <div class="fs-sm manufacturer-name">
+                        {{ puzzle.manufacturerName }}
+                        {% if puzzle.puzzleIdentificationNumber is not null %}
+                            <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                        {% endif %}
+                    </div>
+
+                    {% if puzzle.puzzleEan %}
+                        <small class="text-muted"><i class="bi-upc-scan"></i> {{ puzzle.puzzleEan }}</small>
+                    {% endif %}
+
+                    {% if tags %}
+                        <p>
+                            {% for tag in tags %}
+                                <span class="badge bg-primary badge-shadow rounded-pill"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                            {% endfor %}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="ci-menu"></i>
+                </button>
+
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}">
+                            <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: puzzle.puzzleId}) }}">
+                            <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
+                        </a>
+                    </li>
+                    <li>
+                        {% if puzzle_collections[puzzle.puzzleId] ?? null %}
+                            <a class="dropdown-item text-danger" rel="nofollow" data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}">
+                                <i class="bi-list-check me-1"></i> {{ 'remove_from_collection'|trans }}
+                            </a>
+                        {% else %}
+                            <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}">
+                                <i class="bi-list me-1"></i> {{ 'add_to_collection'|trans }}
+                            </a>
+                        {% endif %}
+                    </li>
+                </ul>
             </div>
         </div>
 
-        <div class="col-sm-12 col-md-4">
-            {% if puzzle.puzzleImage is not null%}
-                <div class="gallery">
-                    <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
-                        <img style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
-                    </a>
-                </div>
-                {% if puzzle.puzzleEan %}
-                    <span class="text-muted fs-sm">EAN: {{ puzzle.puzzleEan }}</span>
-                {% endif %}
-            {% endif %}
-        </div>
     </div>
+
+    {% if not puzzle.puzzleApproved %}
+    <div class="alert-warning alert small">{{ 'puzzle_waiting_for_approval'|trans }}</div>
+    {% endif %}
+
 
     <ul class="nav nav-fill nav-tabs mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
         <li class="nav-item">

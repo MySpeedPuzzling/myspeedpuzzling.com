@@ -22,10 +22,7 @@
                                     </span><br>
 
                                 <small class="puzzle-title mt-2">
-                                    {{ include('_puzzle_name.html.twig', {
-                                        puzzle_name: most_solved_puzzle.puzzleName,
-                                        alternative_puzzle_name: most_solved_puzzle.puzzleAlternativeName,
-                                    }) }}
+                                    {{ most_solved_puzzle.puzzleName }}
                                 </small>
                             </a>
                         </td>

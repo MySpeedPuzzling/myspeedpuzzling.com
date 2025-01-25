@@ -59,10 +59,7 @@
             <div class="col-lg-6 col-md-8 col-sm-10">
                 {% if active_puzzle is not null %}
                     <strong>
-                        {{ include('_puzzle_name.html.twig', {
-                            puzzle_name: active_puzzle.puzzleName,
-                            alternative_puzzle_name: active_puzzle.puzzleAlternativeName,
-                        }) }}
+                        {{ active_puzzle.puzzleName }}
                     </strong>
                     <br>
                     {{ active_puzzle.manufacturerName|upper }}<br>

@@ -299,8 +299,16 @@ td.rank {
     }
 }
 
+.navbar-light .nav-item {
+    background: transparent !important;
+}
+
 .navbar {
     background: #fff;
+
+    .active.nav-link > i {
+        color: $primary !important;
+    }
 
     .navbar-brand {
         padding: 4px 0;

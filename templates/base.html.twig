@@ -30,7 +30,6 @@
         {% block canonical %}{% endblock %}
 
         {{ encore_entry_link_tags('app') }}
-        {{ encore_entry_script_tags('app') }}
 
         {% set currentRoute = app.request.attributes.get('_route') %}
         {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
@@ -369,5 +368,6 @@
             </div>
         {% endif %}
 
+        {{ encore_entry_script_tags('app') }}
     </body>
 </html>

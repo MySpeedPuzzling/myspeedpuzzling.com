@@ -37,9 +37,9 @@
         {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
 
         {% if currentRoute %}
-            <link rel="alternate" hreflang="cs" href="{{ path(currentRoute, routeParamsCs) }}">
-            <link rel="alternate" hreflang="en" href="{{ path(currentRoute, routeParamsEn) }}">
-            <link rel="alternate" hreflang="x-default" href="{{ path(currentRoute, routeParamsEn) }}">
+            <link rel="alternate" hreflang="cs" href="{{ url(currentRoute, routeParamsCs) }}">
+            <link rel="alternate" hreflang="en" href="{{ url(currentRoute, routeParamsEn) }}">
+            <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker">

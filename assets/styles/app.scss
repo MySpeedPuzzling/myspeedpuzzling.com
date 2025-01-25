@@ -566,7 +566,7 @@ canvas {
     justify-content: space-between; /* Adds space between bars */
     align-items: center;
     cursor: pointer;
-    padding: 18px 15px;
+    padding: 18px 14px;
 }
 
 .toggler-bar {
@@ -580,8 +580,8 @@ canvas {
 
 /* When toggler is opened */
 .navbar-toggler[aria-expanded="true"] .toggler-bar:nth-child(1) {
-    transform: rotate(45deg) translateY(9px);
-    margin-left: 5px;
+    transform: rotate(-45deg) translateY(9px);
+    margin-right: 4px;
 }
 
 .navbar-toggler[aria-expanded="true"] .toggler-bar:nth-child(2) {
@@ -589,6 +589,6 @@ canvas {
 }
 
 .navbar-toggler[aria-expanded="true"] .toggler-bar:nth-child(3) {
-    transform: rotate(-45deg) translateY(-8px);
-    margin-left: 5px;
+    transform: rotate(45deg) translateY(-8px);
+    margin-right: 3px;
 }

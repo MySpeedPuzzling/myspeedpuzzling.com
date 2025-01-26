@@ -251,19 +251,20 @@ faq:
         <p>All our source codes are open-source and public on <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. We adhere to the philosophy of "sharing is caring" and strive to share everything about myspeedpuzzling.com openly.</p>
 
     question_fair_play: |
+    answer_fair_play: |
         <h4 class="mb-3">How do you know I'm not cheating when entering times?</h4>
         <p>Honestly - we probably won't. In the public leaderboard, where puzzlers enter times themselves, we rely on the honesty and integrity of each individual puzzler. Would you really enjoy a dishonestly entered result?</p>
         <p>We assume that, like us, other puzzlers assemble primarily for the joy of it, and the times from this type of assembly are indicative for a rough idea of how we compare to others and will measure up during some competition. Tell me, wouldn't it look suspicious if I had a time of 20 minutes on the platform but took 3 hours during a competition?</p>
         <p>In the future, we also plan rated leagues, where time verification might be required, for example, through video recording.</p>
         <p class="text-danger mb-0"><small>Since our community includes finalists of the World Jigsaw Championship, who have placed at the top, we can take their times as reference. Suspicious times will be monitored and if fraud is proven, they will be mercilessly deleted. In case of repeated cheating, the player's access to the platform will be restricted.</small></p>
 
-    question_qr: |
-        <h4 class="mb-3">I received puzzles with a QR code and myspeedpuzzling.com logo, what should I do?</h4>
+    question_qr: I received puzzles with a QR code and myspeedpuzzling.com logo, what should I do?
+    answer_qr: |
         <p>To make assembling and entering times as pleasant as possible for you, we add a QR code to all puzzles that pass through our hands - scanning it takes you to the page with the given puzzles, where you can directly start timing or enter your time.</p>
         <p class="mb-0">If you'd like to help spread the word about speedpuzzling and add a flyer with a QR code to your puzzles, please write to us - we'll send you a PDF that you can print out, or we can mail you printed flyers directly.</p>
 
-    question_add_time_for_missing_puzzle: |
-        <h4 class="mb-3">Can I add time for puzzles not on the platform?</h4>
+    question_add_time_for_missing_puzzle: Can I add time for puzzles not on the platform?
+    answer_add_time_for_missing_puzzle: |
         <p>Definitely! If you've assembled a puzzle that isn't yet on our platform, when adding time, switch to the option:</p>
         <div class="form-check form-switch mb-3">
             <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
@@ -271,28 +272,21 @@ faq:
         </div>
         <p class="mb-0">Then you have the option to select from a list of manufacturers. If the manufacturer is also not in the database, you can enter it yourself.</p>
 
-    question_edit_or_delete_time: |
-        <h4 class="mb-3">How do I edit or delete an entered time?</h4>
+    question_edit_or_delete_time: How do I edit or delete an entered time?
+    answer_edit_or_delete_time: |
         <p>In the <a href="%link%">My Profile</a> section, next to each entered time, you'll find a link to edit (the link looks like a pencil icon <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
-        <p class="mb-0">On the editing page, at the very bottom, there's a <button class="btn btn-sm btn-outline-danger">magic button</button> that once and for all deletes the record from the entire internet.</p>
+        <p class="mb-0">On the editing page, at the very bottom, there's a <a class="btn btn-sm btn-outline-danger mx-2">magic button</a> that once and for all deletes the record from the entire internet.</p>
 
-    question_button_start_solving: |
-        <h4 class="mb-3">What does the <button class="btn btn-accent btn-sm me-1"><i class="ci-time"></i> Start Solving</button> button do?</h4>
+    question_button_start_solving: What does the <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> Start Solving</a> button do?
+    answer_button_start_solving: |
         <p class="mb-0">Opens the stopwatch with selected puzzles - you can start assembling and timing right away.</p>
 
-    question_button_add_my_time: |
-        <h4 class="mb-3">What does the <button class="btn btn-accent btn-sm me-1"><i class="ci-add"></i> Add My Time</button> button do?</h4>
+    question_button_add_my_time: What does the <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> Add My Time</a> button do?
+    answer_button_add_my_time: |
         <p class="mb-0">Opens adding your time to selected puzzles - suitable if you use your own stopwatch and have just finished assembling. If you assembled in the past and want to record the time, you have the option to also specify the date you assembled.</p>
 
-    question_borrowing: |
-        <h4 class="mb-3">How do I borrow puzzles?</h4>
-        <p>Currently, I offer my own collection of puzzles - only for the cost of postage and handling, or for a symbolic fee, in exchange for adding your assembly time and thus supporting the growth of the speed puzzling community!</p>
-        <p>Puzzles that I currently have available for loan are always marked in the puzzle overview as <span class="badge bg-success badge-shadow rounded-pill">available for loan</span>. If I do not have the puzzle, or it is currently borrowed by someone else, they are marked as <span class="badge bg-dark badge-shadow rounded-pill">not available</span>.</p>
-        <p>If you are interested in borrowing any puzzles (I recommend borrowing several at once :-)), please write to me and we will arrange it.</p>
-        <p class="mb-0">In the future, we plan to allow every user on the platform to publish their own collection of puzzles and offer the opportunity to directly connect puzzlers with each other.</p>
-
-    question_helping: |
-        <h4 class="mb-3">Do you want a helping hand?</h4>
+    question_helping: Do you want a helping hand?
+    answer_helping: |
         <p class="mb-0">Sure! Connect with us, ideally with an idea of how you would like to get involved in building the speed puzzling community, we'll put our heads together and surely come up with something.</p>
 
 profile:

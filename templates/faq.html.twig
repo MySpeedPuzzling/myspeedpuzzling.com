@@ -7,54 +7,20 @@
 
     {{ 'faq.intro_block'|trans|raw }}
 
-    <!--
-    <h4>Co je to speed puzzling?</h4>
-    <p>odpověď</p>
-
-    <h4>Jak přidat nové puzzle?</h4>
-    <p>odpověď</p>
-
-    <h4>Proč vznikla platforma myspeedpuzzling.com?</h4>
-    <p>odpověď</p>
-
-    <h4>Jak správně stopovat čas?</h4>
-    <p>odpověď</p>
-
-    <h4>Jak se počítají statistiky?</h4>
-    <p>odpověď</p>
-    -->
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_fair_play'|trans|raw }}
-    </div>
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_qr'|trans|raw }}
-    </div>
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_add_time_for_missing_puzzle'|trans|raw }}
-    </div>
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_edit_or_delete_time'|trans({'%link%': path('my_profile') })|raw }}
-    </div>
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_button_start_solving'|trans|raw }}
-    </div>
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_button_add_my_time'|trans|raw }}
-    </div>
-
-    {% if app.request.locale is same as 'cs' %}
-        <div class="shadow-lg p-4 mt-4">
-            {{ 'faq.question_borrowing'|trans|raw }}
-        </div>
-    {% endif %}
-
-    <div class="shadow-lg p-4 mt-4">
-        {{ 'faq.question_helping'|trans|raw }}
+    <div class="accordion accordion-faq my-3">
+        {% for item in ['fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+            <div class="accordion-item my-2 shadow">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">
+                        {{ ('faq.question_' ~ item)|trans|raw }}
+                    </button>
+                </h2>
+                <div id="item-{{ item }}" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        {{ ('faq.answer_' ~ item)|trans|raw }}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
     </div>
 {% endblock %}

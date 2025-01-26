@@ -46,7 +46,7 @@
             <div class="topbar topbar-light bg-secondary">
                 <div class="container">
                     <div class="topbar-text text-nowrap">
-                        <a class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>
+                        <a data-turbo="true" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>
                             <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
                         </a>
 

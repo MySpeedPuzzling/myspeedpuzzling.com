@@ -268,7 +268,7 @@
                         <small class="text-muted">{{ 'footer.popular_search'|trans }}:</small>
                     </p>
 
-                    <ul class="widget-list d-flex flex-wrap justify-content-center justify-content-md-start">
+                    <ul class="widget-list d-flex flex-wrap justify-content-center justify-content-md-start pb-2">
                         <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                             <a href="{{ path('puzzles', {'brand': '2e6ea6b1-6ef8-46d7-8445-fd2d77cfd09c', 'pieces': 500}) }}" class="widget-list-link">
                                 Puzzle Ravensburger 500 pieces
@@ -346,9 +346,11 @@
                         </li>
                     </ul>
 
-                    <hr class="mt-2 mb-3">
+                    {% if logged_user.profile is null %}
+                        <hr class="mb-3">
 
-                    <div class="pb-3 fs-xs text-muted text-center text-md-start">{{ 'footer.about'|trans|raw }}</div>
+                        <div class="pb-3 fs-xs text-muted text-center text-md-start">{{ 'footer.about'|trans|raw }}</div>
+                    {% endif %}
                 </div>
             </div>
         </footer>

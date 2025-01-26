@@ -10,7 +10,7 @@
     "listeners": {
         "*:8080": {
             "pass": "routes",
-            "ip_filter": ["deny 193.165.96.151", "deny 91.108.255.120", "allow all"]
+            "ip_filter": ["deny 144.76.17.105", "deny 91.108.255.120", "allow all"]
         }
     },
     "routes": [

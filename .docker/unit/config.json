@@ -1,0 +1,52 @@
+{
+    "settings": {
+        "http": {
+            "max_body_size": 134217728,
+            "send_timeout": 35,
+            "idle_timeout": 35,
+            "server_version": false
+        }
+    },
+    "listeners": {
+        "*:8080": {
+            "pass": "routes",
+            "ip_filter": ["deny 193.165.96.151", "deny 91.108.255.120", "allow all"]
+        }
+    },
+    "routes": [
+        {
+            "action": {
+                "share": "/app/public$uri",
+                "fallback": {
+                    "pass": "applications/php/index"
+                }
+            }
+        }
+    ],
+    "applications": {
+        "php": {
+            "type": "php",
+            "targets": {
+                "direct": {
+                    "root": "/app/public/"
+                },
+                "index": {
+                    "root": "/app/public/",
+                    "script": "index.php"
+                }
+            },
+            "processes": {
+                "max": 30,
+                "spare": 15,
+                "idle_timeout": 30
+            },
+            "options": {
+                "user": {
+                    "memory_limit": "512M"
+                },
+                "admin": {}
+            }
+        }
+    },
+    "access_log": "/var/log/access.log"
+}

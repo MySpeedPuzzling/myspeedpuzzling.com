@@ -6,7 +6,7 @@ ENV APP_ENV="prod" \
 
 RUN rm $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini
 
-COPY .docker/on-startup.sh /docker-entrypoint.d/
+COPY .docker/unit/ /docker-entrypoint.d/
 
 COPY composer.json composer.lock symfony.lock ./
 RUN composer install --no-dev --no-interaction --no-scripts

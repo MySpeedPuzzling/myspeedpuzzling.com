@@ -22,6 +22,7 @@ final class SearchPlayerFormType extends AbstractType
     {
         $builder
             ->add('search', TextType::class, [
+                'empty_data' => '',
                 'attr' => [
                     'placeholder' => 'forms.search_puzzler',
                 ],

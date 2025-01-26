@@ -10,8 +10,7 @@ services:
         tty: true
         volumes:
             - .:/app
-            - .docker/unit/config.json:/docker-entrypoint.d/config.json
-            - .docker/unit/on-startup.sh:/docker-entrypoint.d/on-startup.sh
+            - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
         depends_on:
             - postgres
             - redis

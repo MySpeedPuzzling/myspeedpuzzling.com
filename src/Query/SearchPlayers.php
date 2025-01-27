@@ -17,7 +17,7 @@ readonly final class SearchPlayers
     /**
      * @return list<PlayerIdentification>
      */
-    public function fulltext(string $search): array
+    public function fulltext(string $search, null|int $limit = null): array
     {
         $query = <<<SQL
 SELECT
@@ -43,12 +43,17 @@ WHERE LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:se
 ORDER BY match_score DESC
 SQL;
 
+        if ($limit !== null) {
+            $query .= ' LIMIT ' . $limit;
+        }
+
         $data = $this->database
             ->executeQuery($query, [
                 'searchQuery' => $search,
                 'searchStartLikeQuery' => "%$search",
                 'searchEndLikeQuery' => "$search%",
                 'searchFullLikeQuery' => "%$search%",
+                'limit' => $limit,
             ])
             ->fetchAllAssociative();
 

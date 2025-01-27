@@ -41,7 +41,7 @@
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
     </head>
-    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker">
+    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search">
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light bg-secondary">
                 <div class="container">
@@ -100,6 +100,14 @@
 
                     <!-- Toolbar -->
                     <div class="navbar-toolbar d-flex align-items-center order-lg-3">
+                        {% if logged_user.profile and logged_user.profile.isAdmin %}
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#openSearchBar" href="#">
+                                <div class="navbar-tool-icon-box">
+                                    <i class="navbar-tool-icon ci-search"></i>
+                                </div>
+                            </a>
+                        {% endif %}
+
                         <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('my_profile') %}active{% endif %}" href="{{ path('my_profile') }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-user"></i>
@@ -178,6 +186,12 @@
             </div>
         </header>
         <main>
+            {% if logged_user.profile and logged_user.profile.isAdmin %}
+                <div data-global-search-target="searchBar" class="not-shown global-search">
+                    <twig:GlobalSearch />
+                </div>
+            {% endif %}
+
             {% for label, messages in app.flashes %}
                 <div class="container mt-2">
                     {% for message in messages %}

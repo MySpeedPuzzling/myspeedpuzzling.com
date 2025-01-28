@@ -33,5 +33,8 @@ final class SearchHighlighterTest extends TestCase
         yield ['Karen Puzzle', 'kar puz', '<span class="search-highlight">Kar</span>en <span class="search-highlight">Puz</span>zle'];
         yield ['KAREN PUZZLE', 'kar puz', '<span class="search-highlight">KAR</span>EN <span class="search-highlight">PUZ</span>ZLE'];
         yield ['karen puzzle', 'kAR pUZ', '<span class="search-highlight">kar</span>en <span class="search-highlight">puz</span>zle'];
+        yield ['Trňas', 'trn', '<span class="search-highlight">Trň</span>as'];
+        yield ['Paní Trňasová', 'ani trn', 'P<span class="search-highlight">aní</span> <span class="search-highlight">Trň</span>asová'];
+        yield ['Pani Trnasova', 'aní trň', 'P<span class="search-highlight">ani</span> <span class="search-highlight">Trn</span>asova'];
     }
 }

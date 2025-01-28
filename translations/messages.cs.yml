@@ -460,7 +460,7 @@ added_time_recap:
     puzzle_detail: "Výsledky"
 
 global_search:
-    info: "Vítejte v novém vyhledávání! Momentálně je vyhledávání docela základní, ale budeme ho neustále vylepšovat! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
+    info: "Přivítejte nové vyhledávání! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
     no_player_found: "Nenalezen žádný hráč :-("
     no_puzzle_found: "Nenalezeny žádné puzzle :-("
 

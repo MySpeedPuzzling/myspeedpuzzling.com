@@ -459,7 +459,7 @@ added_time_recap:
     puzzle_detail: "Results"
 
 global_search:
-    info: "Welcome new search! Currently, the search pretty basic, but we will keep improving! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."
+    info: "Welcome new search! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."
     no_player_found: "No player found :-("
     no_puzzle_found: "No puzzle found :-("
 

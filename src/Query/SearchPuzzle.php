@@ -54,9 +54,6 @@ SQL;
 
         $count = $this->database
             ->executeQuery($query, [
-                'searchQuery' => $search,
-                'searchStartLikeQuery' => "%$search",
-                'searchEndLikeQuery' => "$search%",
                 'searchFullLikeQuery' => "%$search%",
                 'brandId' => $brandId,
                 'minPieces' => $pieces->minPieces(),

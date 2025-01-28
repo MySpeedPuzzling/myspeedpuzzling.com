@@ -101,10 +101,11 @@
                     <!-- Toolbar -->
                     <div class="navbar-toolbar d-flex align-items-center order-lg-3">
                         {% if logged_user.profile and logged_user.profile.isAdmin %}
-                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#openSearchBar" href="#">
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#">
                                 <div class="navbar-tool-icon-box">
                                     <i class="navbar-tool-icon ci-search"></i>
                                 </div>
+                                <div class="navbar-tool-text ms-n3"><small>Search</small></div>
                             </a>
                         {% endif %}
 
@@ -121,13 +122,6 @@
                                 <i class="navbar-tool-icon ci-add"></i>
                             </div>
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
-                        </a>
-
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" rel="nofollow" href="{{ path('stopwatch') }}">
-                            <div class="navbar-tool-icon-box">
-                                <i class="navbar-tool-icon ci-time"></i>
-                            </div>
-                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.stopwatch'|trans }}</small></div>
                         </a>
 
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
@@ -174,11 +168,18 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a rel="nofollow" class="nav-link {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                                    <i class="me-1 me-lg-0 ci-time"></i>
+                                    {{ 'menu.stopwatch'|trans }}
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
                                     <i class="me-1 me-lg-0 bi bi-patch-question"></i>
                                     {{ 'menu.faq'|trans }}
                                 </a>
                             </li>
+
                             {# <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('scan') %}active{% endif %}" href="{{ path('scan') }}">{{ 'menu.scan'|trans }}<span class="ms-2 badge rounded-pill bg-accent">beta</span></a></li> #}
                         </ul>
                     </div>
@@ -187,7 +188,7 @@
         </header>
         <main>
             {% if logged_user.profile and logged_user.profile.isAdmin %}
-                <div data-global-search-target="searchBar" class="not-shown global-search">
+                <div data-global-search-target="searchBar" class="global-search">
                     <twig:GlobalSearch />
                 </div>
             {% endif %}
@@ -416,5 +417,7 @@
         {% endif %}
 
         {{ encore_entry_script_tags('app') }}
+
+        <div class="global-search-overlay" data-global-search-target="overlay"></div>
     </body>
 </html>

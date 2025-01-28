@@ -313,6 +313,7 @@ td.rank {
 
     .navbar-brand {
         padding: 4px 0;
+        margin-right: 0 !important;
     }
 
     @include media-breakpoint-up(lg) {
@@ -602,21 +603,32 @@ canvas {
     border-radius: 0 !important;
 }
 
-body::before {
-    content: '';
-    opacity: 0;
-}
-
-body.search-overlay::before {
+.global-search-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 5;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
     transition: opacity 0.3s ease-in-out;
-    opacity: 1;
+}
+
+.global-search-shown {
+    overflow: hidden;
+
+    .global-search-overlay {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .global-search {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        pointer-events: all;
+    }
 }
 
 .global-search {
@@ -631,37 +643,23 @@ body.search-overlay::before {
     opacity: 0;
     margin: 0 auto;
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    pointer-events: none;
 
     .input-group {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+        border-radius: 5px;
     }
-
-    &.not-shown {
-        display: block; /* Keep block but hidden with opacity and transform */
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px); /* Hide by moving up */
-    }
-}
-
-body.search-overlay .global-search {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0); /* Slide to original position */
 }
 
 .global-search-results {
     z-index: 20;
     width: 100%;
     margin: 15px 0 0;
-    background: #f9f9f9;
+    background: #fff;
     padding: 15px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
     border-radius: 8px;
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
-
-    body.search-overlay & {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    max-height: calc(100vh - 210px);
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: hidden; /* Disable horizontal scrolling (optional) */
 }

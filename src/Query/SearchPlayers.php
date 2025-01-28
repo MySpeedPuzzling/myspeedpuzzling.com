@@ -26,20 +26,19 @@ SELECT
     country AS player_country,
     code AS player_code,
     CASE
-        WHEN LOWER(name) = LOWER(:searchQuery) OR LOWER(code) = LOWER(:searchQuery) THEN 5 -- Exact match with diacritics
-        WHEN LOWER(unaccent(name)) = LOWER(unaccent(:searchQuery)) OR LOWER(unaccent(code)) = LOWER(unaccent(:searchQuery)) THEN 4 -- Exact match without diacritics
-        WHEN LOWER(name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(name) LIKE LOWER(:searchStartLikeQuery) OR LOWER(code) LIKE LOWER(:searchEndLikeQuery) OR LOWER(code) LIKE LOWER(:searchStartLikeQuery) THEN 3 -- Starts or ends with the query with diacritics
-        WHEN LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchStartLikeQuery)) THEN 2 -- Starts or ends with the query without diacritics
-        WHEN LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:searchFullLikeQuery) THEN 1 -- Partial match with diacritics
-        ELSE 0 -- Partial match without diacritics or any other case
+        WHEN LOWER(code) = LOWER(:searchQuery) THEN 6 -- Exact match on code with diacritics
+        WHEN LOWER(name) = LOWER(:searchQuery) THEN 5 -- Exact match on name with diacritics
+        WHEN LOWER(unaccent(code)) = LOWER(unaccent(:searchQuery)) THEN 4 -- Exact match on code without diacritics
+        WHEN LOWER(unaccent(name)) = LOWER(unaccent(:searchQuery)) THEN 3 -- Exact match on name without diacritics
+        WHEN LOWER(code) LIKE LOWER(:searchFullLikeQuery) THEN 3 -- Partial match on code with diacritics
+        WHEN LOWER(name) LIKE LOWER(:searchFullLikeQuery) THEN 2 -- Partial match on name with diacritics
+        WHEN LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchFullLikeQuery)) THEN 2 -- Partial match on code without diacritics
+        WHEN LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) THEN 1 -- Partial match on name without diacritics
+        ELSE 0 -- Other cases
     END as match_score
 FROM player
 WHERE LOWER(name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(code) LIKE LOWER(:searchFullLikeQuery)
    OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchFullLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-   OR LOWER(name) = LOWER(:searchQuery) OR LOWER(code) = LOWER(:searchQuery)
-   OR LOWER(unaccent(name)) = LOWER(unaccent(:searchQuery)) OR LOWER(unaccent(code)) = LOWER(unaccent(:searchQuery))
-   OR LOWER(name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(name) LIKE LOWER(:searchStartLikeQuery) OR LOWER(code) LIKE LOWER(:searchEndLikeQuery) OR LOWER(code) LIKE LOWER(:searchStartLikeQuery)
-   OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(code)) LIKE LOWER(unaccent(:searchStartLikeQuery))
 ORDER BY match_score DESC
 SQL;
 

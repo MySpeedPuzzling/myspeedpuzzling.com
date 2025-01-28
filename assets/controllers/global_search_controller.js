@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus";
 
 export default class extends Controller {
-    static targets = ["searchBar", "searchResults"];
+    static targets = ["searchInput"];
 
     connect() {
         this.ignoreNextClick = false; // Prevents conflict on initial click
@@ -9,7 +9,7 @@ export default class extends Controller {
     }
 
     toggleSearchBar(event) {
-        event.preventDefault(); // Prevent default link behavior
+        event.preventDefault(); // Prevent default anchor behavior
 
         if (this.isSearchBarOpen()) {
             this.closeSearchBar();
@@ -19,23 +19,19 @@ export default class extends Controller {
     }
 
     openSearchBar() {
-        // Add "search-overlay" class to <body>
-        document.body.classList.add("search-overlay");
-        // Remove "not-shown" class from the search bar
-        this.searchBarTarget.classList.remove("not-shown");
-        // Ignore the next click to avoid immediate close
-        this.ignoreNextClick = true;
-        // Add event listener to detect clicks outside the search bar
-        document.addEventListener("click", this.handleOutsideClick);
+        document.body.classList.add("global-search-shown"); // Add class to <body>
+        this.searchInputTarget.focus(); // Focus the input field
+        this.ignoreNextClick = true; // Prevent immediate close
+        document.addEventListener("click", this.handleOutsideClick); // Add outside click listener
     }
 
-    closeSearchBar() {
-        // Remove "search-overlay" class from <body>
-        document.body.classList.remove("search-overlay");
-        // Add "not-shown" class to the search bar
-        this.searchBarTarget.classList.add("not-shown");
-        // Remove event listener for outside clicks
-        document.removeEventListener("click", this.handleOutsideClick);
+    closeSearchBar(event) {
+        if (event) {
+            event.preventDefault(); // Prevent default behavior
+        }
+
+        document.body.classList.remove("global-search-shown"); // Remove class from <body>
+        document.removeEventListener("click", this.handleOutsideClick); // Remove outside click listener
     }
 
     handleOutsideClick(event) {
@@ -44,16 +40,15 @@ export default class extends Controller {
             return;
         }
 
-        const isClickInsideSearch =
-            this.searchBarTarget.contains(event.target) ||
-            this.searchResultsTargets.some((target) => target.contains(event.target));
+        const clickedOverlay = event.target.classList.contains("global-search-overlay");
 
-        if (!isClickInsideSearch) {
+        // Close if the click is on the overlay or outside the search elements
+        if (clickedOverlay || !event.target.closest(".global-search")) {
             this.closeSearchBar();
         }
     }
 
     isSearchBarOpen() {
-        return !this.searchBarTarget.classList.contains("not-shown");
+        return document.body.classList.contains("global-search-shown");
     }
 }

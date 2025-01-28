@@ -1,20 +1,21 @@
 <div {{ attributes }}>
-
-    <div class="input-group">
-        <span class="input-group-text bg-primary text-white">
-            <i class="bi bi-search"></i>
-        </span>
-        <input type="search" data-model="debounce(150)|query" class="form-control">
+    <div class="input-group position-relative">
+        <input type="search" data-model="debounce(150)|query" class="form-control" data-global-search-target="searchInput" placeholder="Search...">
+        <button type="button"
+                class="close btn btn-primary fw-bold px-3 fs-6"
+                aria-label="Close"
+                data-action="click->global-search#closeSearchBar">
+            <span aria-hidden="true">&times;</span>
+        </button>
     </div>
 
-
-    <div class="global-search-results" data-global-search-target="searchResults">
-        {% if computed.players|length == 0 and computed.puzzle|length == 0 %}
-            <p class="text-muted m-0"><small>Currently, the search pretty basic, but we will keep improving! Search by puzzle name, ean or code. Search player by name or code.</small></p>
+    <div class="global-search-results">
+        {% if not this.query %}
+            <p class="text-muted m-0"><small>Welcome new search! Currently, the search pretty basic, but we will keep improving! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback.</small></p>
         {% endif %}
 
         {% if this.query %}
-            <h3 class="h6"><i class="bi-people"></i> {{ 'menu.players'|trans }}</h3>
+            <h3 class="h6 mb-2"><i class="bi-people"></i> {{ 'menu.players'|trans }}</h3>
 
             {% if computed.players|length == 0 %}
                 <p class="small text-muted mt-2 mb-0">No players found :-(</p>
@@ -22,27 +23,25 @@
         {% endif %}
 
         {% for player in computed.players %}
-            {% if loop.index < 5 %}
-                <div class="pb-1">
-                    <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
-                        {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
-                            <i class="ci-star-filled text-warning"></i>
-                        {% endif %}
+            <div class="pb-1 pe-3 d-inline-block">
+                <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
+                    {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
+                        <i class="ci-star-filled text-warning"></i>
+                    {% endif %}
 
-                        {{ player.playerName }}
-                        <code class="text-muted">#{{ player.playerCode|upper }}</code>
-                        {% if player.playerCountry is not null %}
-                            <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
-                        {% endif %}
-                    </a>
-                </div>
-            {% endif %}
+                    {{ player.playerName }}
+                    <code class="text-muted">#{{ player.playerCode|upper }}</code>
+                    {% if player.playerCountry is not null %}
+                        <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
+                    {% endif %}
+                </a>
+            </div>
         {% endfor %}
 
         {% if this.query %}
             <hr class="my-2">
 
-            <h3 class="h6"><i class="bi-puzzle"></i> {{ 'menu.puzzles_overview'|trans }}</h3>
+            <h3 class="h6 mb-2"><i class="bi-puzzle"></i> {{ 'menu.puzzles_overview'|trans }}</h3>
 
             {% if computed.puzzle|length == 0 %}
                 <p class="small text-muted mt-2 mb-0">No players found :-(</p>
@@ -50,59 +49,52 @@
         {% endif %}
 
         {% for puzzle in computed.puzzle %}
-            {% if loop.index < 5 %}
-                <div class="shadow">
-                    <div class="d-flex py-2">
-                        <div style="width: 90px;">
-                            {% if puzzle.puzzleImage is not null%}
-                                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                    <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                                </a>
+            <div class="shadow">
+                <div class="d-flex py-2">
+                    <div style="width: 90px;" class="text-center">
+                        {% if puzzle.puzzleImage is not null%}
+                            <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                <img class="rounded-2" style="max-width: 90px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="ps-2 flex-grow-1">
+                        <div class="puzzle-name">
+                            <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                {{ puzzle.puzzleName }}
+                                {#
+                                    {% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
+                                #}
+                            </a>
+
+                            <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                        </div>
+
+                        <div class="fs-sm manufacturer-name">
+                            {{ puzzle.manufacturerName }}
+                            {% if puzzle.puzzleIdentificationNumber is not null %}
+                                <small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
                             {% endif %}
                         </div>
 
-                        <div class="ps-2 flex-grow-1">
-                            <div class="d-md-flex">
-                                <div class="puzzle-name">
+                        <div class="d-flex justify-content-between text-nowrap puzzle-times-info">
+                            <small>{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
 
-                                    <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                        {{ puzzle.puzzleName }}
-                                        {#
-                                            {% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
-                                        #}
-                                    </a>
+                            <br class="d-none d-md-block">
+                            {% if ranking[puzzle.puzzleId] is defined %}
+                                <small><i class="ci-user"></i> {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small>
+                            {% endif %}
+                        </div>
 
-                                    <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
-                                </div>
-
-                                <div class="fs-sm manufacturer-name ps-md-2">
-                                    {{ puzzle.manufacturerName }}
-                                    {% if puzzle.puzzleIdentificationNumber is not null %}
-                                        <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="d-md-flex justify-content-between">
-                                <div class="d-flex justify-content-between text-nowrap puzzle-times-info">
-                                    <small>{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
-
-                                    <br class="d-none d-md-block">
-                                    {% if ranking[puzzle.puzzleId] is defined %}
-                                        <small><i class="ci-user"></i> {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small>
-                                    {% endif %}
-                                </div>
-
-                                <div class="text-md-center">
-                                    {% for tag in tags[puzzle.puzzleId] ?? [] %}
-                                        <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
-                                    {% endfor %}
-                                </div>
-                            </div>
+                        <div class="text-md-center">
+                            {% for tag in tags[puzzle.puzzleId] ?? [] %}
+                                <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
-            {% endif %}
+            </div>
         {% endfor %}
     </div>
 </div>

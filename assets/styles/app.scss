@@ -673,3 +673,8 @@ canvas {
     overflow-y: auto; /* Enable vertical scrolling */
     overflow-x: hidden; /* Disable horizontal scrolling (optional) */
 }
+
+.search-highlight {
+    background: rgba(254, 64, 66, .1);
+    border-radius: 2px;
+}

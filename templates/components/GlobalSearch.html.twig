@@ -29,8 +29,8 @@
                         <i class="ci-star-filled text-warning"></i>
                     {% endif %}
 
-                    {{ player.playerName }}
-                    <code class="text-muted">#{{ player.playerCode|upper }}</code>
+                    {{ highlight(player.playerName, this.query) }}
+                    <code class="text-muted">#{{ highlight(player.playerCode|upper, this.query) }}</code>
                     {% if player.playerCountry is not null %}
                         <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
                     {% endif %}
@@ -62,7 +62,7 @@
                     <div class="ps-2 flex-grow-1">
                         <div class="puzzle-name">
                             <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                {{ puzzle.puzzleName }}
+                                {{ highlight(puzzle.puzzleName, this.query) }}
                                 {#
                                     {% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
                                 #}
@@ -74,7 +74,7 @@
                         <div class="fs-sm manufacturer-name">
                             {{ puzzle.manufacturerName }}
                             {% if puzzle.puzzleIdentificationNumber is not null %}
-                                <small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                                <small class="text-muted">{{ highlight(puzzle.puzzleIdentificationNumber, this.query) }}</small>
                             {% endif %}
                         </div>
 

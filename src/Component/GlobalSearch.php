@@ -53,7 +53,7 @@ final class GlobalSearch
             search: $this->query,
             pieces: PiecesFilter::Any,
             tag: null,
-            limit: 10,
+            limit: 15,
         );
     }
 }

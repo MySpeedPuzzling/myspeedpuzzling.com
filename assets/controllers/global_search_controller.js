@@ -23,6 +23,18 @@ export default class extends Controller {
         this.searchInputTarget.focus(); // Focus the input field
         this.ignoreNextClick = true; // Prevent immediate close
         document.addEventListener("click", this.handleOutsideClick); // Add outside click listener
+
+        // Close the Bootstrap navbar collapse menu
+        const navbarCollapse = document.querySelector(".navbar-collapse.show");
+        if (navbarCollapse) {
+            navbarCollapse.classList.remove("show"); // Remove Bootstrap "show" class
+
+            // Update the toggler button's aria-expanded attribute
+            const navbarToggler = document.querySelector('.navbar-toggler[aria-expanded="true"]');
+            if (navbarToggler) {
+                navbarToggler.setAttribute("aria-expanded", "false"); // Set aria-expanded to false
+            }
+        }
     }
 
     closeSearchBar(event) {

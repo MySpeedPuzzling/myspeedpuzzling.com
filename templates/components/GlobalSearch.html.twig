@@ -1,6 +1,6 @@
 <div {{ attributes }}>
     <div class="input-group position-relative">
-        <input type="search" data-model="debounce(150)|query" class="form-control" data-global-search-target="searchInput" placeholder="Search...">
+        <input type="search" data-model="debounce(150)|query" class="form-control" data-global-search-target="searchInput" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
         <button type="button"
                 class="close btn btn-primary fw-bold px-3 fs-6"
                 aria-label="Close"
@@ -11,14 +11,14 @@
 
     <div class="global-search-results">
         {% if not this.query %}
-            <p class="text-muted m-0"><small>Welcome new search! Currently, the search pretty basic, but we will keep improving! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback.</small></p>
+            <p class="text-muted m-0"><small>{{ 'global_search.info'|trans }}</small></p>
         {% endif %}
 
         {% if this.query %}
             <h3 class="h6 mb-2"><i class="bi-people"></i> {{ 'menu.players'|trans }}</h3>
 
             {% if computed.players|length == 0 %}
-                <p class="small text-muted mt-2 mb-0">No players found :-(</p>
+                <p class="small text-muted mt-2 mb-0">{{ 'global_search.no_player_found'|trans }}</p>
             {% endif %}
         {% endif %}
 
@@ -44,7 +44,7 @@
             <h3 class="h6 mb-2"><i class="bi-puzzle"></i> {{ 'menu.puzzles_overview'|trans }}</h3>
 
             {% if computed.puzzle|length == 0 %}
-                <p class="small text-muted mt-2 mb-0">No players found :-(</p>
+                <p class="small text-muted mt-2 mb-0">{{ 'global_search.no_puzzle_found'|trans }}</p>
             {% endif %}
         {% endif %}
 

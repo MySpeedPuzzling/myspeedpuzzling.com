@@ -14,6 +14,7 @@ menu:
     terms_of_service: "Terms of service"
     privacy_policy: "Privacy policy"
     membership: "Membership"
+    search: "Search"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -214,6 +215,7 @@ forms:
     wjpc_participant: "Your full name on WJPC"
     player_code: "Player Code"
     player_code_help: "A unique player code - at least 3 characters, up to 8 characters. It can only contain letters and numbers, no special characters or spaces."
+    global_search_placeholder: "Search puzzle or player..."
 
 puzzlers_comparison:
     meta:
@@ -455,6 +457,11 @@ added_time_recap:
     add_time: "Add new time"
     the_same_puzzle: "For the same puzzle"
     puzzle_detail: "Results"
+
+global_search:
+    info: "Welcome new search! Currently, the search pretty basic, but we will keep improving! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."
+    no_player_found: "No player found :-("
+    no_puzzle_found: "No puzzle found :-("
 
 membership:
     meta:

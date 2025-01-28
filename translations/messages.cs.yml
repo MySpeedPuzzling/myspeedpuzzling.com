@@ -14,6 +14,7 @@ menu:
     terms_of_service: "Obchodní podmínky"
     privacy_policy: "Ochrana osobních údajů"
     membership: "Členství"
+    search: "Hledej"
 
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
@@ -215,6 +216,7 @@ forms:
     wjpc_participant: "Vaše celé jméno na WJPC"
     player_code: "Kód hráče"
     player_code_help: "Unikátní kód hráče - minimálně 3 znaky, maximálně 8 znaků. Může obsahovat pouze písmena a číslice, bez speciálních znaků nebo mezer."
+    global_search_placeholder: "Hledat puzzle nebo hráče..."
 
 puzzlers_comparison:
     meta:
@@ -456,6 +458,11 @@ added_time_recap:
     add_time: "Přidat další čas"
     the_same_puzzle: "Ke stejným puzzlím"
     puzzle_detail: "Výsledky"
+
+global_search:
+    info: "Vítejte v novém vyhledávání! Momentálně je vyhledávání docela základní, ale budeme ho neustále vylepšovat! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
+    no_player_found: "Nenalezen žádný hráč :-("
+    no_puzzle_found: "Nenalezeny žádné puzzle :-("
 
 membership:
     meta:

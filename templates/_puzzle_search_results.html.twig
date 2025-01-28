@@ -17,7 +17,9 @@
 
     <turbo-frame id="search-results-items" class="row g-2 g-md-3">
         {% for puzzle in puzzles %}
-            {{ include('_puzzle_item.html.twig') }}
+            {{ include('_puzzle_item.html.twig', {
+                'search': form_data.search,
+            }) }}
         {% endfor %}
     </turbo-frame>
 

@@ -24,7 +24,7 @@
                 <div class="d-md-flex">
                     <div class="puzzle-name">
                         <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                            {{ puzzle.puzzleName }}{% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
+                            {{ highlight(puzzle.puzzleName, search) }}{% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
                         </a>
 
                         <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>

@@ -1,7 +1,9 @@
 <turbo-stream target="search-results-items" action="append">
     <template>
         {% for puzzle in puzzles %}
-            {{ include('_puzzle_item.html.twig') }}
+            {{ include('_puzzle_item.html.twig', {
+                'search': form_data.search,
+            }) }}
         {% endfor %}
     </template>
 </turbo-stream>

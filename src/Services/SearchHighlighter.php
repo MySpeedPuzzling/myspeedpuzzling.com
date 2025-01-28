@@ -6,11 +6,11 @@ namespace SpeedPuzzling\Web\Services;
 
 readonly final class SearchHighlighter
 {
-    public function highlight(string|int|null $text, string $query): string
+    public function highlight(string|int|null $text, null|string $query): string
     {
         $text = trim((string) $text);
 
-        if ($text === '' || $query === '') {
+        if ($query === null || $text === '' || $query === '') {
             return $text;
         }
 

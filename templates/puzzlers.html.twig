@@ -34,7 +34,7 @@
                                 <i class="ci-star-filled text-warning"></i>
                             {% endif %}
 
-                            {{ found_player.playerName }}
+                            {{ highlight(found_player.playerName, search_string) }}
                             <code class="text-muted">#{{ found_player.playerCode|upper }}</code>
                             {% if found_player.playerCountry is not null %}
                                 <small class="shadow-custom fi fi-{{ found_player.playerCountry.name }}"></small>

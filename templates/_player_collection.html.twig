@@ -4,8 +4,9 @@
     <div class="row g-2 g-md-3">
         {% for puzzle_collection in puzzle_collections %}
             {{ include('_puzzle_item.html.twig', {
-                puzzle: puzzle_collection,
-                puzzles_solved_by_user: [],
+                'puzzle': puzzle_collection,
+                'puzzles_solved_by_user': [],
+                'search': null,
             }) }}
         {% endfor %}
     </div>

@@ -322,7 +322,19 @@ td.rank {
             margin-left: 3px !important;
         }
     }
+
+    @media (min-width: 992px) and (max-width: 1100px) {
+        .nav-item {
+            a {
+                padding-left: 10px !important;
+                padding-right: 10px !important;
+                font-size: 15px !important;
+            }
+        }
+    }
 }
+
+
 
 .low-line-height {
     line-height: 110%;

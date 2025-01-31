@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetFastestPlayers
 {
@@ -17,7 +18,7 @@ readonly final class GetFastestPlayers
     /**
      * @return array<SolvedPuzzle>
      */
-    public function perPiecesCount(int $piecesCount, int $limit): array
+    public function perPiecesCount(int $piecesCount, int $limit, null|CountryCode $countryCode): array
     {
         $query = <<<SQL
 WITH FastestTimes AS (
@@ -29,6 +30,15 @@ WITH FastestTimes AS (
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON player.id = puzzle_solving_time.player_id
     WHERE team IS NULL AND puzzle.pieces_count = :piecesCount AND player.name IS NOT NULL AND seconds_to_solve > 0
+SQL;
+
+        if ($countryCode != null) {
+            $query .= <<<SQL
+    AND player.country = :countryCode
+SQL;
+        }
+
+        $query .= <<<SQL
     GROUP BY player_id, puzzle_id
     ORDER BY min_seconds_to_solve
     LIMIT :limit
@@ -65,6 +75,7 @@ SQL;
             ->executeQuery($query, [
                 'piecesCount' => $piecesCount,
                 'limit' => $limit,
+                'countryCode' => $countryCode?->name,
             ])
             ->fetchAllAssociative();
 

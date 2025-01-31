@@ -2,48 +2,48 @@
 
 <div class="dropdown d-inline-block">
     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-        {% if currentLadder == 'ladder' %}
+        {% if currentLadder starts with 'ladder' %}
             {{ 'ladder.overview'|trans }}
-        {% elseif currentLadder == 'ladder_solo_500_pieces' %}
+        {% elseif currentLadder starts with 'ladder_solo_500_pieces' %}
             {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
-        {% elseif currentLadder == 'ladder_solo_1000_pieces' %}
+        {% elseif currentLadder starts with 'ladder_solo_1000_pieces' %}
             {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
-        {% elseif currentLadder == 'ladder_pairs_500_pieces' %}
+        {% elseif currentLadder starts with 'ladder_pairs_500_pieces' %}
             {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
-        {% elseif currentLadder == 'ladder_pairs_1000_pieces' %}
+        {% elseif currentLadder starts with 'ladder_pairs_1000_pieces' %}
             {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
-        {% elseif currentLadder == 'ladder_groups_500_pieces' %}
+        {% elseif currentLadder starts with 'ladder_groups_500_pieces' %}
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
-        {% elseif currentLadder == 'ladder_groups_1000_pieces' %}
+        {% elseif currentLadder starts with 'ladder_groups_1000_pieces' %}
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         {% endif %}
     </button>
     <div class="dropdown-menu">
-        <a href="{{ path('ladder') }}" class="dropdown-item {{ currentLadder == 'ladder' ? 'active'}}">
+        <a href="{{ path('ladder' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder' ? 'active'}}">
             {{ 'ladder.overview'|trans }}
         </a>
 
-        <a href="{{ path('ladder_solo_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_solo_500_pieces' ? 'active'}}">
+        <a href="{{ path('ladder_solo_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_solo_500_pieces' ? 'active'}}">
             {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         </a>
 
-        <a href="{{ path('ladder_solo_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_solo_1000_pieces' ? 'active'}}">
+        <a href="{{ path('ladder_solo_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_solo_1000_pieces' ? 'active'}}">
             {{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         </a>
 
-        <a href="{{ path('ladder_pairs_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_500_pieces' ? 'active'}}">
+        <a href="{{ path('ladder_pairs_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_500_pieces' ? 'active'}}">
             {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         </a>
 
-        <a href="{{ path('ladder_pairs_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_1000_pieces' ? 'active'}}">
+        <a href="{{ path('ladder_pairs_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_pairs_1000_pieces' ? 'active'}}">
             {{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         </a>
 
-        <a href="{{ path('ladder_groups_500_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_groups_500_pieces' ? 'active'}}">
+        <a href="{{ path('ladder_groups_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_groups_500_pieces' ? 'active'}}">
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         </a>
 
-        <a href="{{ path('ladder_groups_1000_pieces') }}" class="dropdown-item {{ currentLadder == 'ladder_groups_1000_pieces' ? 'active'}}">
+        <a href="{{ path('ladder_groups_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="dropdown-item {{ currentLadder == 'ladder_groups_1000_pieces' ? 'active'}}">
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         </a>
     </div>

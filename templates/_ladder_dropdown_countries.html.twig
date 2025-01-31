@@ -1,0 +1,22 @@
+{% set currentLadder = app.request.attributes.get('_route') %}
+
+<div class="dropdown d-inline-block mt-n2">
+    <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {% if active_country %}
+            <small class="shadow-custom fi fi-{{ active_country.name }}"></small>
+            {{ active_country.value }}
+        {% else %}
+            All countries
+        {% endif %}
+    </button>
+    <ul class="dropdown-menu player-country-dropdown-menu">
+        {% for player_country in countries %}
+            <li>
+                <a href="{{ path(currentLadder|replace({'_country': ''}) ~ '_country', {'countryCode': player_country.countryCode.name}) }}" class="dropdown-item {{ active_country and active_country == player_country.countryCode ? 'active'}}">
+                    <small class="shadow-custom fi fi-{{ player_country.countryCode.name }}"></small>
+                    {{ player_country.countryCode.value }} ({{ player_country.playersCount }})
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

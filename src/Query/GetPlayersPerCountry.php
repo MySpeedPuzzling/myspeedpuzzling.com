@@ -5,12 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetPlayersPerCountry

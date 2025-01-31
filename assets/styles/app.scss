@@ -678,3 +678,13 @@ canvas {
     background: rgba(254, 64, 66, .1);
     border-radius: 2px;
 }
+
+.player-country-dropdown-menu {
+    max-height: 350px;
+    width: 280px;
+    overflow-y: scroll;
+
+    a {
+        text-wrap: auto;
+    }
+}

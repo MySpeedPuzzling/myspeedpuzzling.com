@@ -5,6 +5,8 @@
 {% block content %}
     <h1><span class="me-3">{{ 'ladder.title'|trans }}</span> {{ include('_ladder_dropdown.html.twig') }}</h1>
 
+    {{ include('_ladder_dropdown_countries.html.twig') }}
+
     <div class="row">
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
@@ -14,7 +16,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_solo_500_pieces') }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
+                <a href="{{ path('ladder_solo_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </p>
         </div>
 
@@ -26,7 +28,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_solo_1000_pieces') }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
+                <a href="{{ path('ladder_solo_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </p>
         </div>
     </div>
@@ -40,7 +42,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_pairs_500_pieces') }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
+                <a href="{{ path('ladder_pairs_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </p>
         </div>
 
@@ -52,7 +54,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_pairs_1000_pieces') }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
+                <a href="{{ path('ladder_pairs_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </p>
         </div>
     </div>
@@ -66,7 +68,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_groups_500_pieces') }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
+                <a href="{{ path('ladder_groups_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </p>
         </div>
 
@@ -78,7 +80,7 @@
             }) }}
 
             <p class="mb-3">
-                <a href="{{ path('ladder_groups_1000_pieces') }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
+                <a href="{{ path('ladder_groups_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
             </p>
         </div>
     </div>

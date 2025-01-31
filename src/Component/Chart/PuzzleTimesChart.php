@@ -45,6 +45,8 @@ final class PuzzleTimesChart
 
                 if ($result->playerId === $this->playerId) {
                     $backgrounds[] = 'rgba(254, 64, 66, 1)';
+                } elseif ($result->firstAttempt === true) {
+                    $backgrounds[] = 'rgba(105, 179, 254, 0.6)';
                 } else {
                     $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
                 }
@@ -66,6 +68,8 @@ final class PuzzleTimesChart
 
                 if ($isMe) {
                     $backgrounds[] = 'rgba(254, 64, 66, 1)';
+                } elseif ($result->firstAttempt === true) {
+                    $backgrounds[] = 'rgba(105, 179, 254, 0.6)';
                 } else {
                     $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
                 }

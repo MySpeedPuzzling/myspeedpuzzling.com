@@ -22,25 +22,30 @@ readonly final class GetFastestPlayers
     {
         $query = <<<SQL
 WITH FastestTimes AS (
-    SELECT
-        player_id,
-        puzzle_id,
-        MIN(seconds_to_solve) AS min_seconds_to_solve
-    FROM puzzle_solving_time
-    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-    INNER JOIN player ON player.id = puzzle_solving_time.player_id
-    WHERE team IS NULL AND puzzle.pieces_count = :piecesCount AND player.name IS NOT NULL AND seconds_to_solve > 0
+    SELECT puzzle_solving_time_id
+    FROM (
+        SELECT DISTINCT ON (pst.player_id)
+            pst.id AS puzzle_solving_time_id,
+            pst.seconds_to_solve
+        FROM puzzle_solving_time pst
+        INNER JOIN puzzle p ON p.id = pst.puzzle_id
+        INNER JOIN player pl ON pl.id = pst.player_id
+        WHERE pst.team IS NULL
+          AND p.pieces_count = :piecesCount
+          AND pl.name IS NOT NULL
+          AND pst.seconds_to_solve > 0
 SQL;
 
         if ($countryCode != null) {
             $query .= <<<SQL
-    AND player.country = :countryCode
+    AND pl.country = :countryCode
 SQL;
         }
 
         $query .= <<<SQL
-    GROUP BY player_id, puzzle_id
-    ORDER BY min_seconds_to_solve
+        ORDER BY pst.player_id, pst.seconds_to_solve ASC
+    )
+    ORDER BY seconds_to_solve ASC
     LIMIT :limit
 )
 SELECT
@@ -53,7 +58,7 @@ SELECT
     puzzle_solving_time.tracked_at,
     puzzle_solving_time.finished_at,
     puzzle_solving_time.finished_puzzle_photo,
-    FastestTimes.min_seconds_to_solve AS time,
+    puzzle_solving_time.seconds_to_solve AS time,
     player.name AS player_name,
     player.country AS player_country,
     player.id AS player_id,
@@ -63,12 +68,12 @@ SELECT
     puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.first_attempt
 FROM FastestTimes
-INNER JOIN puzzle_solving_time ON FastestTimes.player_id = puzzle_solving_time.player_id AND FastestTimes.puzzle_id = puzzle_solving_time.puzzle_id AND FastestTimes.min_seconds_to_solve = puzzle_solving_time.seconds_to_solve
-INNER JOIN puzzle ON puzzle.id = FastestTimes.puzzle_id
-INNER JOIN player ON FastestTimes.player_id = player.id
+INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = puzzle_solving_time_id
+INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+INNER JOIN player ON player.id = puzzle_solving_time.player_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id, FastestTimes.min_seconds_to_solve
-ORDER BY FastestTimes.min_seconds_to_solve
+GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id
+ORDER BY puzzle_solving_time.seconds_to_solve
 SQL;
 
         $data = $this->database

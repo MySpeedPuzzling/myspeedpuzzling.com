@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\GetPlayersPerCountry;
 use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
@@ -34,6 +35,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetTags $getTags,
         readonly private GetPuzzleCollection $getPuzzleCollection,
         readonly private PuzzlesSorter $puzzlesSorter,
+        readonly private GetPlayersPerCountry $getPlayersPerCountry,
     ) {
     }
 
@@ -58,6 +60,7 @@ final class PuzzleDetailController extends AbstractController
             $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($puzzleId);
             $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($puzzleId);
             $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($puzzleId);
+            $countries = $this->getPlayersPerCountry->forPuzzle($puzzleId);
         } catch (PuzzleNotFound) {
             $this->addFlash('primary', $this->translator->trans('flashes.puzzle_not_found'));
 

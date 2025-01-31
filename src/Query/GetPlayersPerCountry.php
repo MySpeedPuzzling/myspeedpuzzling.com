@@ -80,4 +80,33 @@ SQL;
             return PlayerIdentification::fromDatabaseRow($row);
         }, $data);
     }
+
+    /**
+     * @return array<PlayersPerCountry>
+     */
+    public function forPuzzle(string $puzzleId): array
+    {
+        $query = <<<SQL
+SELECT COUNT(id) AS players_count, country
+FROM player
+WHERE country IS NOT NULL
+GROUP BY country
+ORDER BY COUNT(id) DESC, country
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): PlayersPerCountry {
+            /**
+             * @var array{
+             *     country: string,
+             *     players_count: int,
+             * } $row
+             */
+
+            return PlayersPerCountry::fromDatabaseRow($row);
+        }, $data);
+    }
 }

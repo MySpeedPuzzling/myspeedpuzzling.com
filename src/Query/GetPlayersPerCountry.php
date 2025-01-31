@@ -24,7 +24,7 @@ readonly final class GetPlayersPerCountry
         $query = <<<SQL
 SELECT COUNT(id) AS players_count, country
 FROM player
-WHERE country IS NOT NULL
+WHERE country IS NOT NULL AND name IS NOT NULL
 GROUP BY country
 ORDER BY COUNT(id) DESC, country
 SQL;
@@ -57,7 +57,7 @@ SELECT
     code AS player_code,
     country AS player_country
 FROM player
-WHERE player.country = :countryCode
+WHERE player.country = :countryCode AND name IS NOT NULL
 ORDER BY name
 SQL;
 
@@ -89,7 +89,7 @@ SQL;
         $query = <<<SQL
 SELECT COUNT(id) AS players_count, country
 FROM player
-WHERE country IS NOT NULL
+WHERE country IS NOT NULL AND name IS NOT NULL
 GROUP BY country
 ORDER BY COUNT(id) DESC, country
 SQL;

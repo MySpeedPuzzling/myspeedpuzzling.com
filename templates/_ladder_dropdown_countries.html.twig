@@ -6,7 +6,7 @@
             <small class="shadow-custom fi fi-{{ active_country.name }}"></small>
             {{ active_country.value }}
         {% else %}
-            All countries
+            {{ 'forms.country_all'|trans }}
         {% endif %}
     </button>
     <ul class="dropdown-menu player-country-dropdown-menu">

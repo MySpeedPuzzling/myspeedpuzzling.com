@@ -1,0 +1,30 @@
+<div {{ attributes }}>
+    <p>Radio: Type - Solo / Pairs / Teams</p>
+
+    <button
+        class="btn btn-outline-primary {{ this.category == 'solo' ? 'active' }}"
+        data-action="live#action"
+        data-live-action-param="changeResultsCategory"
+        data-live-category-param="solo">Solo</button>
+
+    <button
+        class="btn btn-outline-primary {{ this.category == 'duo' ? 'active' }}"
+        data-action="live#action"
+        data-live-action-param="changeResultsCategory"
+        data-live-category-param="duo">Pairs</button>
+
+    <button
+        class="btn btn-outline-primary {{ this.category == 'group' ? 'active' }}"
+        data-action="live#action"
+        data-live-action-param="changeResultsCategory"
+        data-live-category-param="group">Teams</button>
+
+    <p>Checkbox: First try only</p>
+    <p>Select: Country</p>
+
+    <p>Info: average, my rank, my time</p>
+
+    <p>graf</p>
+
+    <p>tabulka</p>
+</div>

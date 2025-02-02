@@ -43,4 +43,17 @@ readonly final class PuzzleSolversGroup
             firstAttempt: $row['first_attempt'],
         );
     }
+
+    public function containsPlayer(null|string $playerId): bool
+    {
+        if ($playerId !== null) {
+            foreach ($this->players as $puzzler) {
+                if ($puzzler->playerId === $playerId) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

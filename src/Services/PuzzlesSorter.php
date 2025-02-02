@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
+use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class PuzzlesSorter
 {
@@ -110,6 +111,31 @@ readonly final class PuzzlesSorter
         return array_filter(
             array: $groupedSolvers,
             callback: fn (array $grouped): bool => $grouped[0]->firstAttempt === true,
+        );
+    }
+
+    /**
+     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @param array<string, non-empty-array<T>> $groupedSolvers
+     * @return array<string, non-empty-array<T>>
+     */
+    public function filterByCountry(array $groupedSolvers, CountryCode $countryCode): array
+    {
+        return array_filter(
+            array: $groupedSolvers,
+            callback: function (array $grouped) use ($countryCode): bool {
+                if ($grouped[0] instanceof PuzzleSolversGroup) {
+                    foreach ($grouped[0]->players as $player) {
+                        return $player->playerCountry === $countryCode;
+                    }
+                }
+
+                if ($grouped[0] instanceof PuzzleSolver) {
+                    return $grouped[0]->playerCountry === $countryCode;
+                }
+
+                return false;
+            }
         );
     }
 

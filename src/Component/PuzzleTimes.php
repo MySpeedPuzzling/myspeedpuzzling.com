@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
+use SpeedPuzzling\Web\Results\PlayersPerCountry;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -37,17 +40,22 @@ final class PuzzleTimes
     public null|string $country = null;
 
     public null|int $myRank = null;
-
     public null|int $averageTime = null;
-
     public null|int $myTime = null;
+    public int $soloTimesCount = 0;
+    public int $duoTimesCount = 0;
+    public int $groupTimesCount = 0;
 
-    /** @var null|array<string, array<PuzzleSolver|PuzzleSolversGroup>> */
-    private null|array $times = null;
+    /** @var array<string, array<PuzzleSolver|PuzzleSolversGroup>> */
+    public array $times = [];
+
+    /** @var null|array<string, int> */
+    private null|array $availableCountries = null;
 
     public function __construct(
         readonly private GetPuzzleSolvers $getPuzzleSolvers,
         readonly private PuzzlesSorter $puzzlesSorter,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -65,6 +73,9 @@ final class PuzzleTimes
     {
         assert($this->puzzleId !== null);
 
+        $loggedProfile = $this->retrieveLoggedUserProfile->getProfile();
+        $loggedPlayerId = $loggedProfile?->playerId;
+
         if (in_array($this->category, ['solo', 'duo', 'group'], true) === false) {
             $this->category = 'solo';
         }
@@ -73,38 +84,122 @@ final class PuzzleTimes
             $this->onlyFirstTries = false;
         }
 
-        if ($this->category === 'group') {
-            $puzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
-            $puzzleSolvers = $this->puzzlesSorter->sortByFastest($puzzleSolvers);
-            $puzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($puzzleSolvers);
-        } elseif ($this->category === 'duo') {
-            $puzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
-            $puzzleSolvers = $this->puzzlesSorter->sortByFastest($puzzleSolvers);
-            $puzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($puzzleSolvers);
-        } else {
-            $puzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
+        $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
 
-            if ($this->onlyFirstTries === true) {
-                $puzzleSolvers = $this->puzzlesSorter->sortByFirstTry($puzzleSolvers);
-                $puzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($puzzleSolvers);
-                $puzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($puzzleSolversGrouped);
-            } else {
-                $puzzleSolvers = $this->puzzlesSorter->sortByFastest($puzzleSolvers);
-                $puzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($puzzleSolvers);
+        if ($this->onlyFirstTries === true) {
+            $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
+        } else {
+            $soloPuzzleSolvers = $this->puzzlesSorter->sortByFastest($soloPuzzleSolvers);
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
+        }
+
+        $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
+        $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
+        $duoPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers);
+
+        $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
+        $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
+        $teamPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers);
+
+        if ($this->category === 'group') {
+            $this->times = $teamPuzzleSolversGrouped;
+        } elseif ($this->category === 'duo') {
+            $this->times = $duoPuzzleSolversGrouped;
+        } else {
+            $this->times = $soloPuzzleSolversGrouped;
+        }
+
+        $this->availableCountries = [];
+
+        foreach ($this->times as $grouped) {
+            if ($grouped[0] instanceof PuzzleSolversGroup) {
+                foreach ($grouped[0]->players as $player) {
+                    $countryCode = $player->playerCountry;
+                    if ($countryCode !== null) {
+                        $this->availableCountries[$countryCode->name] = ($this->availableCountries[$countryCode->name] ?? 0) + 1;
+                    }
+                }
+            }
+
+            if ($grouped[0] instanceof PuzzleSolver) {
+                $countryCode = $grouped[0]->playerCountry;
+                if ($countryCode !== null) {
+                    $this->availableCountries[$countryCode->name] = ($this->availableCountries[$countryCode->name] ?? 0) + 1;
+                }
             }
         }
 
-        $this->times = $puzzleSolversGrouped;
-        $this->myRank = 1; // TODO
-        $this->myTime = 600; // TODO
-        $this->averageTime = 1000; // TODO
+        $activeCountry = CountryCode::fromCode($this->country);
+
+        if ($this->country !== null && $activeCountry === null) {
+            $this->country = null;
+        }
+
+        if ($activeCountry !== null) {
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterByCountry($soloPuzzleSolversGrouped, $activeCountry);
+            $duoPuzzleSolversGrouped = $this->puzzlesSorter->filterByCountry($duoPuzzleSolversGrouped, $activeCountry);
+            $teamPuzzleSolversGrouped = $this->puzzlesSorter->filterByCountry($teamPuzzleSolversGrouped, $activeCountry);
+
+            if ($this->category === 'group') {
+                $this->times = $teamPuzzleSolversGrouped;
+            } elseif ($this->category === 'duo') {
+                $this->times = $duoPuzzleSolversGrouped;
+            } else {
+                $this->times = $soloPuzzleSolversGrouped;
+            }
+        }
+
+        $myRank = null;
+        $myTime = null;
+        $totalTime = 0;
+
+        $i = 0;
+        foreach ($this->times as $groupedSolver) {
+            $i++;
+            $result = $groupedSolver[0];
+
+            $totalTime += $result->time;
+
+            if ($result instanceof PuzzleSolver) {
+                if ($myRank === null && $result->playerId === $loggedPlayerId) {
+                    $myRank = $i;
+                    $myTime = $result->time;
+                }
+            }
+
+            if ($result instanceof PuzzleSolversGroup) {
+                if ($myRank === null && $result->containsPlayer($loggedPlayerId) === true) {
+                    $myRank = $i;
+                    $myTime = $result->time;
+                }
+            }
+        }
+
+        $this->myRank = $myRank;
+        $this->myTime = $myTime;
+        $this->averageTime = (int) ($totalTime / max(1, count($this->times)));
+        $this->soloTimesCount = count($soloPuzzleSolversGrouped);
+        $this->duoTimesCount = count($duoPuzzleSolversGrouped);
+        $this->groupTimesCount = count($teamPuzzleSolversGrouped);
     }
 
     /**
-     * @return array<string, array<PuzzleSolver|PuzzleSolversGroup>>
+     * @return array<PlayersPerCountry>
      */
-    public function getTimes(): array
+    public function getAvailableCountries(): array
     {
-        return $this->times ?? [];
+        $availableCountries = [];
+
+        foreach ($this->availableCountries ?? [] as $countryCode => $count) {
+            $availableCountries[] = new PlayersPerCountry(CountryCode::fromCode($countryCode), $count);
+        }
+
+        usort($availableCountries, function (PlayersPerCountry $a, PlayersPerCountry $b): int {
+            return $b->playersCount <=> $a->playersCount;
+        });
+
+        return $availableCountries;
     }
 }

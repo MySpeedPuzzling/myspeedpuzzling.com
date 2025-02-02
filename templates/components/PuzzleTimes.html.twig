@@ -3,19 +3,19 @@
         class="btn btn-outline-primary {{ this.category == 'solo' ? 'active' }}"
         data-action="live#action"
         data-live-action-param="changeResultsCategory"
-        data-live-category-param="solo">Solo</button>
+        data-live-category-param="solo">Solo ({{ this.soloTimesCount }})</button>
 
     <button
         class="btn btn-outline-primary {{ this.category == 'duo' ? 'active' }}"
         data-action="live#action"
         data-live-action-param="changeResultsCategory"
-        data-live-category-param="duo">Pairs</button>
+        data-live-category-param="duo">Pairs ({{ this.duoTimesCount }})</button>
 
     <button
         class="btn btn-outline-primary {{ this.category == 'group' ? 'active' }}"
         data-action="live#action"
         data-live-action-param="changeResultsCategory"
-        data-live-category-param="group">Teams</button>
+        data-live-category-param="group">Teams ({{ this.groupTimesCount }})</button>
 
     {% if this.category == 'solo' %}
         <div class="form-check form-switch">
@@ -26,7 +26,9 @@
 
     <select data-model="country">
         <option {{ this.country == null ? 'selected' }}>All countries</option>
-        <option {{ this.country == 'cz' ? 'selected' }}>Czechia</option>
+        {% for availableCountry in this.availableCountries %}
+            <option value="{{ availableCountry.countryCode.name }}" {{ this.country == availableCountry.countryCode.name ? 'selected' }}>{{ availableCountry.countryCode.value }} ({{ availableCountry.playersCount }})</option>
+        {% endfor %}
     </select>
 
     <div data-loading="addClass(opacity-50)">
@@ -40,14 +42,14 @@
             {% if this.myTime %}
                 <tr>
                     <td><strong>{{ 'my_time'|trans }}</strong></td>
-                    <td class="text-end"><strong>TODO: {{ this.myTime|puzzlingTime }}</strong></td>
+                    <td class="text-end"><strong>{{ this.myTime|puzzlingTime }}</strong></td>
                 </tr>
             {% endif %}
 
             {% if this.averageTime %}
                 <tr>
                     <td>{{ 'average_time'|trans }}</td>
-                    <td class="text-end">TODO: {{ this.averageTime|puzzlingTime }}</td>
+                    <td class="text-end">{{ this.averageTime|puzzlingTime }}</td>
                 </tr>
             {% endif %}
         </table>
@@ -72,7 +74,7 @@
 
                 <tbody>
                 {% for aggregated_solver in this.times %}
-                    <tr class="{{ logged_user.profile is not null and aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                    <tr class="{{ logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) ? 'table-active-player' }}">
                         <td class="rank">{{ loop.index }}.</td>
 
                         <td class="player-name">

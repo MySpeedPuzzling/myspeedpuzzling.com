@@ -24,12 +24,26 @@
         </div>
     {% endif %}
 
-    <select data-model="country">
-        <option {{ this.country == null ? 'selected' }}>All countries</option>
-        {% for availableCountry in this.availableCountries %}
-            <option value="{{ availableCountry.countryCode.name }}" {{ this.country == availableCountry.countryCode.name ? 'selected' }}>{{ availableCountry.countryCode.value }} ({{ availableCountry.playersCount }})</option>
-        {% endfor %}
-    </select>
+    <div class="filters">
+        <div style="max-width: 250px;">
+            <select data-model="country"
+                class="form-select"
+                data-controller="country-autocomplete symfony--ux-autocomplete--autocomplete"
+            >
+                <option value="" data-icon="" {{ this.country == null ? 'selected' }}>All countries</option>
+
+                {% for availableCountry in this.availableCountries %}
+                    <option
+                        value="{{ availableCountry.countryCode.name }}"
+                        data-icon="fi fi-{{ availableCountry.countryCode.name|lower }}"
+                        {{ this.country == availableCountry.countryCode.name ? 'selected' }}
+                    >
+                        {{ availableCountry.countryCode.value }} ({{ availableCountry.playersCount }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
 
     <div data-loading="addClass(opacity-50)">
         <table class="mb-3 table-times-overview">

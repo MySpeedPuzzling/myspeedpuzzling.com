@@ -469,6 +469,12 @@ button[data-submit-prevention-target] {
     margin-left: 3px !important;
 }
 
+.dropdown-menu.filters {
+    width: 100%;
+    min-width: 300px;
+    max-width: 320px;
+}
+
 .filters {
     .form-select {
         padding: 4px 25px 4px 6px;
@@ -692,5 +698,66 @@ canvas {
 
     a {
         text-wrap: auto;
+    }
+}
+
+.puzzle-category-types {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-items: baseline;
+    justify-content: space-between;
+
+    .btn {
+        border: 0;
+        border-bottom: 2px solid #ccc;
+        padding: 6px 0;
+        border-radius: 0;
+        flex-shrink: 0;
+        flex-grow: 1;
+        font-size: 13px;
+        font-weight: bold;
+
+        &.active {
+            color: $primary;
+            border-bottom-color: $primary;
+        }
+
+        .users-icons {
+            display: block;
+            letter-spacing: 0;
+        }
+
+        i {
+            font-size: 14px;
+
+            + i {
+                padding-left: 2px;
+            }
+        }
+    }
+
+    @media (min-width: 479px) {
+        .btn {
+            font-size: 15px;
+            padding: 8px;
+
+            i {
+                font-size: 17px;
+
+                + i {
+                    padding-left: 4px;
+                }
+            }
+        }
+    }
+
+    @media (min-width: 800px) {
+        .btn {
+            font-size: 17px;
+
+            i {
+                font-size: 20px;
+            }
+        }
     }
 }

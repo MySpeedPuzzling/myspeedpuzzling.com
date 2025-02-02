@@ -114,6 +114,7 @@ ladder:
     link_to_hub: "Looking for most solved puzzle or most active players? We moved it to&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">the new Hub</a>!"
 
 filters:
+    button: "Filters"
     filter_by: "Filter by"
     pieces_placeholder: "- Pieces -"
     manufacturer_placeholder: "- Manufacturer -"

@@ -115,6 +115,7 @@ ladder:
     link_to_hub: "Hledáte nejskládanější puzzle nebo nejaktivnější hráče? Přesunuli jsme je&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">do nového Hubu</a>!"
 
 filters:
+    button: "Filtry"
     filter_by: "Filtrovat podle"
     pieces_placeholder: "- Dílků -"
     manufacturer_placeholder: "- Výrobce -"

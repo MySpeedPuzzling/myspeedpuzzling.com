@@ -115,10 +115,17 @@ final class PuzzleTimes
 
         foreach ($this->times as $grouped) {
             if ($grouped[0] instanceof PuzzleSolversGroup) {
+                // This prevents to add 4 times for team of 4 US puzzlers
+                $countedCountries = [];
+
                 foreach ($grouped[0]->players as $player) {
                     $countryCode = $player->playerCountry;
+
                     if ($countryCode !== null) {
-                        $this->availableCountries[$countryCode->name] = ($this->availableCountries[$countryCode->name] ?? 0) + 1;
+                        if (($countedCountries[$countryCode->name] ?? null) === null) {
+                            $this->availableCountries[$countryCode->name] = ($this->availableCountries[$countryCode->name] ?? 0) + 1;
+                            $countedCountries[$countryCode->name] = true;
+                        }
                     }
                 }
             }

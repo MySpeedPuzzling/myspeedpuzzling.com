@@ -1,6 +1,4 @@
 <div {{ attributes }}>
-    <p>Radio: Type - Solo / Pairs / Teams</p>
-
     <button
         class="btn btn-outline-primary {{ this.category == 'solo' ? 'active' }}"
         data-action="live#action"
@@ -19,12 +17,153 @@
         data-live-action-param="changeResultsCategory"
         data-live-category-param="group">Teams</button>
 
-    <p>Checkbox: First try only</p>
-    <p>Select: Country</p>
+    {% if this.category == 'solo' %}
+        <div class="form-check form-switch">
+            <input data-model="onlyFirstTries" type="checkbox" class="form-check-input" role="switch" id="only-first-attempt" {{ this.onlyFirstTries ? 'checked' }}>
+            <label for="only-first-attempt" class="form-check-label">Only first attempt</label>
+        </div>
+    {% endif %}
 
-    <p>Info: average, my rank, my time</p>
+    <select data-model="country">
+        <option {{ this.country == null ? 'selected' }}>All countries</option>
+        <option {{ this.country == 'cz' ? 'selected' }}>Czechia</option>
+    </select>
 
-    <p>graf</p>
+    <div data-loading="addClass(opacity-50)">
+        <table class="mb-3 table-times-overview">
+            {% if this.myRank %}
+                <tr>
+                    <td>{{ this.myRank }} / {{ this.times|length }}</td>
+                </tr>
+            {% endif %}
 
-    <p>tabulka</p>
+            {% if this.myTime %}
+                <tr>
+                    <td><strong>{{ 'my_time'|trans }}</strong></td>
+                    <td class="text-end"><strong>TODO: {{ this.myTime|puzzlingTime }}</strong></td>
+                </tr>
+            {% endif %}
+
+            {% if this.averageTime %}
+                <tr>
+                    <td>{{ 'average_time'|trans }}</td>
+                    <td class="text-end">TODO: {{ this.averageTime|puzzlingTime }}</td>
+                </tr>
+            {% endif %}
+        </table>
+
+        {% if this.times|length > 0 %}
+            <twig:Chart:PuzzleTimesChart
+                results="{{ this.times }}"
+                playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}"
+                title="Time per group"
+            />
+        {% endif %}
+
+        <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>
+            <table class="table custom-table table-striped table-hover mb-0">
+                <thead>
+                <tr>
+                    <th></th>
+                    <th>{{ 'puzzler_name'|trans }}</th>
+                    <th class="text-end">{{ 'time'|trans }}</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {% for aggregated_solver in this.times %}
+                    <tr class="{{ logged_user.profile is not null and aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId ? 'table-active-player' }}">
+                        <td class="rank">{{ loop.index }}.</td>
+
+                        <td class="player-name">
+                            {% if aggregated_solver[0].players is defined %}
+                                {% for puzzle_solver in aggregated_solver[0].players %}
+                                    {% if not loop.first %}
+                                        <br>
+                                    {% endif %}
+                                    {% if puzzle_solver.playerId is not null %}
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                            {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
+                                                <i class="ci-star-filled text-warning"></i>
+                                            {% endif %}
+                                            {{ puzzle_solver.playerName }}
+                                        </a>
+                                        {% if puzzle_solver.playerCountry is not null %}
+                                            <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <a href="{{ path('player_profile', {playerId: aggregated_solver[0].playerId}) }}">
+                                    {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
+                                        <i class="ci-star-filled text-warning"></i>
+                                    {% endif %}
+                                    {{ aggregated_solver[0].playerName }}</a>
+                                {% if aggregated_solver[0].playerCountry is not null %}
+                                    <small class="shadow-custom fi fi-{{ aggregated_solver[0].playerCountry.name }}"></small>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+
+                        <td class="text-end with-ppm">
+                            {{ aggregated_solver[0].time|puzzlingTime }}
+                            <br>
+                            <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
+                            <br>
+                            <small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, this.piecesCount) }}</small>
+
+                            {% if aggregated_solver[0].firstAttempt %}
+                                <br>
+                                <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                            {% endif %}
+
+                            {% if aggregated_solver|length > 1 %}
+                                <br>
+                                <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'row' ~ loop.index})}}>
+                                            <span class="badge bg-dark badge-shadow rounded-pill">
+                                                {{ 'show_more_solving_times'|trans({ '%count%': aggregated_solver|length-1 }) }}
+                                            </span>
+                                </a>
+
+                                <div class="more-times hidden with-ppm" {{ stimulus_target('toggle', 'row' ~ loop.index) }}>
+                                    {% for solving_time in aggregated_solver %}
+                                        {% if not loop.first %}
+                                            <span class="d-inline-block mt-1">
+                                                        {{ solving_time.time|puzzlingTime }}
+                                                        <br>
+                                                        <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                        <br>
+                                                        <small>
+                                                            <span class="text-muted">PPM</span> {{ ppm(solving_time.time, this.piecesCount) }}
+                                                        </small>
+
+                                                        {% if solving_time.firstAttempt %}
+                                                            <br>
+                                                            <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                                        {% endif %}
+                                                    </span>
+
+                                            {% if not loop.last %}
+                                                <br>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </td>
+
+                    </tr>
+                {% endfor %}
+
+                {% if this.times|length < 1 %}
+                    <tr>
+                        <td colspan="3" class="text-center">{{ 'be_first_to_solve'|trans }}</td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

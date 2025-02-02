@@ -86,6 +86,6 @@
         <div class="alert-warning alert small my-1">{{ 'puzzle_waiting_for_approval'|trans }}</div>
     {% endif %}
 
-    <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" />
+    <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" />
 
 {% endblock %}

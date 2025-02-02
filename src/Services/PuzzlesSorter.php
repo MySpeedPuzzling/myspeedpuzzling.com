@@ -126,7 +126,9 @@ readonly final class PuzzlesSorter
             callback: function (array $grouped) use ($countryCode): bool {
                 if ($grouped[0] instanceof PuzzleSolversGroup) {
                     foreach ($grouped[0]->players as $player) {
-                        return $player->playerCountry === $countryCode;
+                        if ($player->playerCountry === $countryCode) {
+                            return true;
+                        }
                     }
                 }
 

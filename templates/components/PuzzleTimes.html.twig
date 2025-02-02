@@ -1,31 +1,33 @@
 <div {{ attributes }}>
     <button
-        class="btn btn-outline-primary {{ this.category == 'solo' ? 'active' }}"
+        class="btn btn-outline-primary {{ this.category == 'solo' ? 'active' }} {{ this.soloTimesCount == 0 ? 'disabled'}}"
         data-action="live#action"
         data-live-action-param="changeResultsCategory"
         data-live-category-param="solo">Solo ({{ this.soloTimesCount }})</button>
 
     <button
-        class="btn btn-outline-primary {{ this.category == 'duo' ? 'active' }}"
+        class="btn btn-outline-primary {{ this.category == 'duo' ? 'active' }} {{ this.duoTimesCount == 0 ? 'disabled'}}"
         data-action="live#action"
         data-live-action-param="changeResultsCategory"
         data-live-category-param="duo">Pairs ({{ this.duoTimesCount }})</button>
 
     <button
-        class="btn btn-outline-primary {{ this.category == 'group' ? 'active' }}"
+        class="btn btn-outline-primary {{ this.category == 'group' ? 'active' }} {{ this.groupTimesCount == 0 ? 'disabled'}}"
         data-action="live#action"
         data-live-action-param="changeResultsCategory"
         data-live-category-param="group">Teams ({{ this.groupTimesCount }})</button>
 
-    {% if this.category == 'solo' %}
-        <div class="form-check form-switch">
-            <input data-model="onlyFirstTries" type="checkbox" class="form-check-input" role="switch" id="only-first-attempt" {{ this.onlyFirstTries ? 'checked' }}>
-            <label for="only-first-attempt" class="form-check-label">Only first attempt</label>
-        </div>
-    {% endif %}
+    <div class="my-1">
+        {% if this.category == 'solo' %}
+            <div class="form-check form-switch">
+                <input data-model="onlyFirstTries" type="checkbox" class="form-check-input" role="switch" id="only-first-attempt" {{ this.onlyFirstTries ? 'checked' }}>
+                <label for="only-first-attempt" class="form-check-label">Only first attempt</label>
+            </div>
+        {% endif %}
+    </div>
 
     <div class="filters">
-        <div style="max-width: 250px;">
+        <div style="max-width: 250px;" class="my-1">
             <select data-model="country"
                 class="form-select"
                 data-controller="country-autocomplete symfony--ux-autocomplete--autocomplete"

@@ -33,7 +33,7 @@ final class PuzzleTimesChart
         $backgrounds = [];
 
         $rank = 0;
-        foreach ($this->results as $i => $groupedResult) {
+        foreach ($this->results as $groupedResult) {
             $rank = $rank + 1;
             $result = $groupedResult[0];
 
@@ -43,7 +43,7 @@ final class PuzzleTimesChart
                     Strings::truncate($result->playerName, 15),
                 );
 
-                if ($result->playerId === $this->playerId) {
+                if ($this->playerId !== null && $result->playerId === $this->playerId) {
                     $backgrounds[] = 'rgba(254, 64, 66, 1)';
                 } elseif ($result->firstAttempt === true) {
                     $backgrounds[] = 'rgba(105, 179, 254, 0.6)';
@@ -59,7 +59,7 @@ final class PuzzleTimesChart
                 foreach ($result->players as $player) {
                     $label[] = Strings::truncate($player->playerName ?? '', 15);
 
-                    if ($player->playerId === $this->playerId) {
+                    if ($this->playerId !== null && $player->playerId === $this->playerId) {
                         $isMe = true;
                     }
                 }

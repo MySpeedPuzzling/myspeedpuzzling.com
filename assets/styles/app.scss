@@ -473,7 +473,8 @@ button[data-submit-prevention-target] {
     .form-select {
         padding: 4px 25px 4px 6px;
         font-size: 12px;
-        height: 32px;
+        min-height: 32px;
+        height: auto;
         background-position: right 5px center;
     }
 
@@ -493,14 +494,18 @@ button[data-submit-prevention-target] {
 
     .ts-control {
         padding: 4px 20px 4px 4px !important;
-        flex-wrap: nowrap;
 
         .clear-button {
             right: 25px !important;
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.26);
+        }
+
+        input[type="text"] {
+            min-width: 1px !important;
         }
 
         .item {
-            text-wrap: nowrap;
+            max-width: 99% !important;
         }
     }
 }

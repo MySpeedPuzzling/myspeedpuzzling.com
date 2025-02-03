@@ -49,7 +49,7 @@
             {% endif %}
         </div>
 
-        {% if this.availableCountries|length > 1 or (this.category == 'solo' and this.times|length > 1) %}
+        {% if this.activeFiltersCount > 0 or this.availableCountries|length > 1 or (this.category == 'solo' and this.times|length > 1) %}
             <div class="dropdown">
                 <button
                     class="btn btn-outline-primary btn-sm dropdown-toggle"

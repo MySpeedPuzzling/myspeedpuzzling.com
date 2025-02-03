@@ -54,7 +54,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        /** @var array<PuzzleOverview> $results */
+        /** @var array<string, PuzzleOverview> $results */
         $results = [];
 
         foreach ($data as $row) {

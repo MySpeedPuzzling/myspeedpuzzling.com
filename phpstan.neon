@@ -22,7 +22,7 @@ parameters:
         - tests/bootstrap.php
         - tests/object-manager.php
     symfony:
-        container_xml_path: var/cache/dev/SpeedPuzzling_Web_SymfonyApplicationKernelDevDebugContainer.xml
+        containerXmlPath: var/cache/dev/SpeedPuzzling_Web_SymfonyApplicationKernelDevDebugContainer.xml
     doctrine:
         objectManagerLoader: tests/object-manager.php
     checkUninitializedProperties: true

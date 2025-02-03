@@ -33,7 +33,7 @@ final class SyncWjpcIndividualsConsoleCommand extends Command
                 if ($rank === '') {
                     $rank = null;
                 } else {
-                    $rank = (int) str_replace(['#', 'º'], '', $rank);
+                    $rank = (int) str_replace(['#', 'º'], '', (string) $rank);
                 }
 
                 if ($group === '') {
@@ -41,8 +41,8 @@ final class SyncWjpcIndividualsConsoleCommand extends Command
                 }
 
                 $data[] = [
-                    'name' => $name,
-                    'country' => $country,
+                    'name' => (string) $name,
+                    'country' => (string) $country,
                     'group' => $group,
                     'rank' => $rank,
                 ];

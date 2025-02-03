@@ -53,11 +53,16 @@ readonly final class StripeWebhookHandler
                 break;
 
             case 'invoice.payment_succeeded':
-                $subscriptionId = $event->data->object->subscription ?? null;
+                $invoice = $event->data->object ?? null;
 
-                if (is_string($subscriptionId)) {
-                    $this->handlePaymentSucceeded($subscriptionId);
+                if ($invoice instanceof Invoice) {
+                    $subscriptionId = $invoice->subscription;
+
+                    if (is_string($subscriptionId)) {
+                        $this->handlePaymentSucceeded($subscriptionId);
+                    }
                 }
+
                 break;
 
             case 'invoice.payment_failed':

@@ -17,13 +17,13 @@ export default class extends Controller {
         event.detail.options.render = {
             option: function(data, escape) {
                 return `<div>
-                            ${data.icon ? `<i class="${escape(data.icon)} me-1"></i> ` : ''}
+                            ${data.icon ? `<i class="${escape(data.icon)} shadow-custom me-1"></i> ` : ''}
                             ${escape(data.text)}
                         </div>`;
             },
             item: function(data, escape) {
                 return `<div>
-                            ${data.icon ? `<i class="${escape(data.icon)} me-1"></i> ` : ''}
+                            ${data.icon ? `<i class="${escape(data.icon)} shadow-custom me-1"></i> ` : ''}
                             ${escape(data.text)}
                         </div>`;
             }

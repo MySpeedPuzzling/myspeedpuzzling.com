@@ -29,6 +29,7 @@
         "ext-redis": "*",
         "ext-simplexml": "*",
         "ext-uuid": "*",
+        "ext-mbstring": "*",
         "auth0/symfony": "dev-main",
         "doctrine/doctrine-bundle": "^2.4",
         "doctrine/doctrine-migrations-bundle": "^3.1",

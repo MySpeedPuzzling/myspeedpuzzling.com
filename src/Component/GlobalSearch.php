@@ -32,11 +32,13 @@ final class GlobalSearch
      */
     public function getPlayers(): array
     {
-        if ($this->query === '') {
+        $query = trim($this->query);
+
+        if ($query === '') {
             return [];
         }
 
-        return $this->searchPlayers->fulltext($this->query, limit: 10);
+        return $this->searchPlayers->fulltext($query, limit: 10);
     }
 
     /**
@@ -44,13 +46,15 @@ final class GlobalSearch
      */
     public function getPuzzle(): array
     {
-        if ($this->query === '') {
+        $query = trim($this->query);
+
+        if ($query === '') {
             return [];
         }
 
         return $this->searchPuzzle->byUserInput(
             brandId: null,
-            search: $this->query,
+            search: $query,
             pieces: PiecesFilter::Any,
             tag: null,
             limit: 15,

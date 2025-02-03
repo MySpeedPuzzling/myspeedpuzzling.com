@@ -98,7 +98,7 @@
     },
     "require-dev": {
         "dama/doctrine-test-bundle": "^8.0",
-        "doctrine/doctrine-fixtures-bundle": "^3.4",
+        "doctrine/doctrine-fixtures-bundle": "^4.0",
         "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-doctrine": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",

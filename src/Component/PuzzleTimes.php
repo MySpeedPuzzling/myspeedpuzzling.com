@@ -49,8 +49,8 @@ final class PuzzleTimes
     /** @var array<string, array<PuzzleSolver|PuzzleSolversGroup>> */
     public array $times = [];
 
-    /** @var null|array<string, int> */
-    private null|array $availableCountries = null;
+    /** @var array<string, int> */
+    public array $availableCountries = [];
 
     public function __construct(
         readonly private GetPuzzleSolvers $getPuzzleSolvers,
@@ -195,11 +195,11 @@ final class PuzzleTimes
     /**
      * @return array<PlayersPerCountry>
      */
-    public function getAvailableCountries(): array
+    public function getCountries(): array
     {
         $availableCountries = [];
 
-        foreach ($this->availableCountries ?? [] as $countryCode => $count) {
+        foreach ($this->availableCountries as $countryCode => $count) {
             $availableCountries[] = new PlayersPerCountry(CountryCode::fromCode($countryCode), $count);
         }
 

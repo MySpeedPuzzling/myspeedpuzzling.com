@@ -209,4 +209,19 @@ final class PuzzleTimes
 
         return $availableCountries;
     }
+
+    public function getActiveFiltersCount(): int
+    {
+        $count = 0;
+
+        if ($this->onlyFirstTries !== false) {
+            $count++;
+        }
+
+        if ($this->country !== null) {
+            $count++;
+        }
+
+        return $count;
+    }
 }

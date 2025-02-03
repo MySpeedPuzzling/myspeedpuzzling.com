@@ -57,7 +57,9 @@
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
             >
-                <i class="bi-filter"></i> {{ 'filters.button'|trans }}
+                <i class="bi-filter"></i>
+                {{ 'filters.button'|trans }}
+                {% if this.activeFiltersCount > 0 %}<sup>{{ this.activeFiltersCount }}</sup>{% endif%}
             </button>
 
             <div class="dropdown-menu dropdown-menu-end filters px-3 py-0" aria-labelledby="filtersDropdown">

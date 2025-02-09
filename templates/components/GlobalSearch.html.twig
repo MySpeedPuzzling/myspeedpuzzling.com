@@ -1,5 +1,8 @@
 <div {{ attributes }}>
     <div data-controller="barcode-scanner">
+        {% if logged_user.profile is null or not logged_user.profile.activeMembership %}
+            <span class="badge bg-primary position-absolute" style="z-index: 20;right: 62px;top: -12px;">{{ 'new_badge'|trans }}</span>
+        {% endif %}
 
         <div class="input-group position-relative">
             <input type="search" data-model="debounce(150)|query" class="form-control" data-barcode-scanner-target="input" data-global-search-target="searchInput" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
@@ -18,36 +21,30 @@
             </button>
         </div>
 
-        <div class="global-search-results">
-            {% if not this.query %}
-                <p class="text-muted m-0"><small>{{ 'global_search.info'|trans }}</small></p>
-            {% endif %}
-
-            {% if this.query %}
+        {% if this.query %}
+            <div class="global-search-results">
                 <h3 class="h6 mb-2"><i class="bi-people"></i> {{ 'menu.players'|trans }}</h3>
 
                 {% if computed.players|length == 0 %}
                     <p class="small text-muted mt-2 mb-0">{{ 'global_search.no_player_found'|trans }}</p>
                 {% endif %}
-            {% endif %}
 
-            {% for player in computed.players %}
-                <div class="pb-1 pe-3 d-inline-block">
-                    <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
-                        {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
-                            <i class="ci-star-filled text-warning"></i>
-                        {% endif %}
+                {% for player in computed.players %}
+                    <div class="pb-1 pe-3 d-inline-block">
+                        <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
+                            {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
+                                <i class="ci-star-filled text-warning"></i>
+                            {% endif %}
 
-                        {{ highlight(player.playerName, this.query) }}
-                        <code class="text-muted">#{{ highlight(player.playerCode|upper, this.query) }}</code>
-                        {% if player.playerCountry is not null %}
-                            <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
-                        {% endif %}
-                    </a>
-                </div>
-            {% endfor %}
+                            {{ highlight(player.playerName, this.query) }}
+                            <code class="text-muted">#{{ highlight(player.playerCode|upper, this.query) }}</code>
+                            {% if player.playerCountry is not null %}
+                                <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
+                            {% endif %}
+                        </a>
+                    </div>
+                {% endfor %}
 
-            {% if this.query %}
                 <hr class="my-2">
 
                 <h3 class="h6 mb-2"><i class="bi-puzzle"></i> {{ 'menu.puzzles_overview'|trans }}</h3>
@@ -55,63 +52,64 @@
                 {% if computed.puzzle|length == 0 %}
                     <p class="small text-muted mt-2 mb-0">{{ 'global_search.no_puzzle_found'|trans }}</p>
                 {% endif %}
-            {% endif %}
 
-            {% for puzzle in computed.puzzle %}
-                <div class="shadow">
-                    <div class="d-flex py-2">
-                        <div style="width: 90px;" class="text-center">
-                            {% if puzzle.puzzleImage is not null%}
-                                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                    <img class="rounded-2" style="max-width: 90px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                                </a>
-                            {% endif %}
-                        </div>
-
-                        <div class="ps-2 flex-grow-1">
-                            <div class="puzzle-name">
-                                <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                    {{ highlight(puzzle.puzzleName, this.query) }}
-                                    {#
-                                        {% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
-                                    #}
-                                </a>
-
-                                <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
-                            </div>
-
-                            <div class="fs-sm manufacturer-name">
-                                {{ puzzle.manufacturerName }}
-                                {% if puzzle.puzzleIdentificationNumber is not null %}
-                                    <small class="text-muted">{{ highlight(puzzle.puzzleIdentificationNumber, this.query) }}</small>
+                {% for puzzle in computed.puzzle %}
+                    <div class="shadow">
+                        <div class="d-flex py-2">
+                            <div style="width: 90px;" class="text-center">
+                                {% if puzzle.puzzleImage is not null%}
+                                    <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 90px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
                                 {% endif %}
                             </div>
 
-                            <div class="d-flex justify-content-between text-nowrap puzzle-times-info">
-                                <small>{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
+                            <div class="ps-2 flex-grow-1">
+                                <div class="puzzle-name">
+                                    <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                        {{ highlight(puzzle.puzzleName, this.query) }}
+                                        {#
+                                            {% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
+                                        #}
+                                    </a>
 
-                                <br class="d-none d-md-block">
-                                {% if ranking[puzzle.puzzleId] is defined %}
-                                    <small><i class="ci-user"></i> {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small>
-                                {% endif %}
-                            </div>
+                                    <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                                </div>
 
-                            <div class="text-md-center">
-                                {% for tag in tags[puzzle.puzzleId] ?? [] %}
-                                    <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
-                                {% endfor %}
+                                <div class="fs-sm manufacturer-name">
+                                    {{ puzzle.manufacturerName }}
+                                    {% if puzzle.puzzleIdentificationNumber is not null %}
+                                        <small class="text-muted">{{ highlight(puzzle.puzzleIdentificationNumber, this.query) }}</small>
+                                    {% endif %}
+                                </div>
+
+                                <div class="d-flex justify-content-between text-nowrap puzzle-times-info">
+                                    <small>{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
+
+                                    <br class="d-none d-md-block">
+                                    {% if ranking[puzzle.puzzleId] is defined %}
+                                        <small><i class="ci-user"></i> {{ ranking[puzzle.puzzleId].time|puzzlingTime }}</small>
+                                    {% endif %}
+                                </div>
+
+                                <div class="text-md-center">
+                                    {% for tag in tags[puzzle.puzzleId] ?? [] %}
+                                        <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
+                                    {% endfor %}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            {% endfor %}
-        </div>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-        <div data-barcode-scanner-target="wrapper" class="global-search-barcode-scan d-none">
+        <div data-barcode-scanner-target="wrapper" class="global-search-barcode-scan position-relative d-none">
             <div class="spinner spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <video class="barcode-scanner-video" data-barcode-scanner-target="video" autoplay playsinline></video>
+            <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+            <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>
         </div>
     </div>
 </div>

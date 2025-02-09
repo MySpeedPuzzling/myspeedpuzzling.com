@@ -54,6 +54,11 @@ export default class extends Controller {
         window.dispatchEvent(
             new CustomEvent('barcode-scan:close')
         );
+
+        if (this.searchInputTarget.value !== '') {
+            this.searchInputTarget.value = '';
+            this.searchInputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+        }
     }
 
     handleOutsideClick(event) {

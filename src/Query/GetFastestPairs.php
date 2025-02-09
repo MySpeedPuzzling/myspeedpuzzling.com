@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use Auth0\Symfony\Models\User;
-use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -89,6 +87,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
+        return array_map(static function(array $row): SolvedPuzzle {
             /** @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -112,10 +111,6 @@ SQL;
              */
 
             return SolvedPuzzle::fromDatabaseRow($row);
-
-            /** @var Collection<User> $collection */
-            $collection = '';
-
-            $collection->get()->xyz;
+        }, $data);
     }
 }

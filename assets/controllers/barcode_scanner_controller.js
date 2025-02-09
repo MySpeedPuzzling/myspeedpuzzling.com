@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ["video", "input", "wrapper", "toggleButton", "overlay"]
+    static targets = ["video", "input", "wrapper", "toggleButton", "overlay", "results"]
 
     connect() {
         this.scanning = false;
@@ -29,7 +29,10 @@ export default class extends Controller {
 
         if (this.inputTarget.value !== '') {
             this.inputTarget.value = '';
-            this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        if (this.hasResultsTarget) {
+            this.resultsTarget.classList.add('d-none');
         }
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -71,8 +74,6 @@ export default class extends Controller {
                     let barcode = barcodes[0];
                     const code = barcode.rawValue;
 
-                    console.log(barcode);
-
                     // Draw bounding polygon if corner points are provided.
                     if (barcode.cornerPoints && barcode.cornerPoints.length > 0) {
                         ctx.beginPath();
@@ -89,8 +90,8 @@ export default class extends Controller {
                     // Check for quality: if quality is provided, accept only if >20.
                     if (barcode.quality === undefined || barcode.quality > 20) {
                         const now = Date.now();
-                        // Only push if at least 5ms have elapsed since the last push.
-                        if (!this.lastPushTime || now - this.lastPushTime >= 5) {
+                        // Only push if at least 4ms have elapsed since the last push.
+                        if (!this.lastPushTime || now - this.lastPushTime >= 4) {
                             this.lastPushTime = now;
                             this.scanBuffer.push(code);
 
@@ -101,6 +102,7 @@ export default class extends Controller {
                                 this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
                                 // Remove all entries for this code, leaving other codes in the buffer.
                                 this.scanBuffer = [];
+                                this.stopScanning();
                             }
                         }
                     }
@@ -116,6 +118,10 @@ export default class extends Controller {
     }
 
     stopScanning() {
+        if (this.hasResultsTarget) {
+            this.resultsTarget.classList.remove('d-none');
+        }
+
         this.scanning = false;
         this.wrapperTarget.classList.add('d-none');
         this.toggleButtonTarget.classList.remove('active');

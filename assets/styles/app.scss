@@ -666,6 +666,10 @@ canvas {
         position: relative;
         z-index: 20;
     }
+
+    canvas {
+        z-index: 30;
+    }
 }
 
 .global-search-results {

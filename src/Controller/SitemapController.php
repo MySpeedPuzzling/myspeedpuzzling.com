@@ -38,7 +38,7 @@ final class SitemapController extends AbstractController
             ],
         ];
 
-        $staticRoutes = ['homepage', 'contact', 'faq', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'scan', 'wjpc2024'];
+        $staticRoutes = ['homepage', 'contact', 'faq', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'wjpc2024'];
 
         foreach ($staticRoutes as $route) {
             foreach (['cs', 'en'] as $locale) {

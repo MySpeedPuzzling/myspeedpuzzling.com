@@ -44,6 +44,10 @@ Encore
     .enableSourceMaps()
     .enableVersioning(Encore.isProduction())
 
+    .configureBabelPresetEnv((config) => {
+        config.targets = { esmodules: true };
+    })
+
     // enables Sass/SCSS support
     .enableSassLoader()
 

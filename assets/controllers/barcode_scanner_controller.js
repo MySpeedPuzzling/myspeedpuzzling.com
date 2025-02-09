@@ -1,45 +1,85 @@
 import { Controller } from '@hotwired/stimulus';
-import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 export default class extends Controller {
-    static targets = ["video"]
-    static values = {
-        url: String
-    }
+    static targets = ["video", "input", "wrapper", "toggleButton"]
 
     connect() {
-        this.reader = new BrowserMultiFormatReader();
-        this.startScanner();
+        this.scanning = false;
+        this.lastScan = '';
+
+        window.addEventListener('barcode-scan:close', () => this.stopScanning());
     }
 
-    async startScanner() {
-        try {
-            const videoInputDevices = await this.reader.listVideoInputDevices();
-            const selectedDeviceId = videoInputDevices[0].deviceId;
-            this.reader.decodeFromVideoDevice(selectedDeviceId, this.videoTarget, (result, err) => {
-                if (result) {
-                    console.log(result.text);  // Log the barcode content
-                    if (this.isValidEAN(result.text)) {
-                        const finalUrl = this.urlValue.replace('EAN_PLACEHOLDER', result.text);
-                        window.location.href = finalUrl;  // Redirect to the dynamically created URL
-                    } else {
-                        console.log('Invalid EAN scanned:', result.text);
-                    }
-                }
-                if (err && !(err instanceof NotFoundException)) {
-                    console.error(err);
-                }
-            });
-        } catch (error) {
-            console.error('Error with ZXing:', error);
+    toggle(event) {
+        event.preventDefault();
+
+        if (this.scanning) {
+            this.stopScanning()
+        } else {
+            this.initCamera();
         }
     }
 
-    isValidEAN(barcode) {
-        return /^\d{10,15}$/.test(barcode);
+    initCamera() {
+        this.wrapperTarget.classList.remove('d-none');
+        this.toggleButtonTarget.classList.add('active');
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => {
+                this.videoTarget.srcObject = stream;
+                this.videoTarget.play();
+                this.scanning = true;
+                this.scanLoop();
+            })
+            .catch(error => {
+                console.error('Error accessing the camera:', error);
+            });
     }
 
-    disconnect() {
-        this.reader.reset();
+    async scanLoop() {
+        // Use the global BarcodeDetector that is either native or provided by the polyfill.
+        const formats = await BarcodeDetector.getSupportedFormats()
+        const barcodeDetector = new BarcodeDetector({ formats });
+
+        const scanFrame = async () => {
+            if (!this.scanning) {
+                return;
+            }
+
+            try {
+                const barcodes = await barcodeDetector.detect(this.videoTarget);
+                if (barcodes.length > 0) {
+                    // TODO: Consider barcodes[0].quality > x
+
+                    const code = barcodes[0].rawValue;
+
+                    this.lastScan = code;
+                    this.inputTarget.value = code;
+                    const changeEvent = new Event('change', { bubbles: true });
+                    this.inputTarget.dispatchEvent(changeEvent);
+
+                    return;
+                }
+            } catch (error) {
+                console.error('Barcode detection error:', error);
+            }
+
+            requestAnimationFrame(scanFrame);
+        };
+
+        scanFrame();
+    }
+
+    stopScanning() {
+        this.scanning = false;
+        this.wrapperTarget.classList.add('d-none');
+        this.toggleButtonTarget.classList.remove('active');
+
+        const stream = this.videoTarget.srcObject;
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+
+        this.videoTarget.srcObject = null;
     }
 }

@@ -11,12 +11,14 @@ use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent]
 final class GlobalSearch
 {
     use DefaultActionTrait;
+    use ComponentToolsTrait;
 
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
@@ -24,8 +26,13 @@ final class GlobalSearch
     ) {
     }
 
-    #[LiveProp(writable: true)]
+    #[LiveProp(writable: true, onUpdated: 'onQueryUpdated')]
     public string $query = '';
+
+    /**
+     * @var null|list<PuzzleOverview>
+     */
+    private null|array $puzzle = null;
 
     /**
      * @return list<PlayerIdentification>
@@ -46,18 +53,31 @@ final class GlobalSearch
      */
     public function getPuzzle(): array
     {
+        if ($this->puzzle !== null) {
+            return $this->puzzle;
+        }
+
         $query = trim($this->query);
 
         if ($query === '') {
             return [];
         }
 
-        return $this->searchPuzzle->byUserInput(
+        $this->puzzle = $this->searchPuzzle->byUserInput(
             brandId: null,
             search: $query,
             pieces: PiecesFilter::Any,
             tag: null,
             limit: 15,
         );
+
+        return $this->puzzle;
+    }
+
+    public function onQueryUpdated(string $previousValue): void
+    {
+        if (count($this->getPuzzle()) > 0) {
+            $this->dispatchBrowserEvent('barcode-scan:close');
+        }
     }
 }

@@ -358,41 +358,11 @@ td.rank {
     font-size: 24px;
 }
 
-.barcode-scanner-container {
-    position: relative;
-    width: 100%; /* Responsive width */
-    max-width: 600px; /* Maximum width of the scanner area */
-    margin: auto; /* Centering the scanner */
-    overflow: hidden; /* Ensures no overflow */
-    border: 1px solid #000;
-}
-
-/* Video Display */
 .barcode-scanner-video {
     width: 100%;
     display: block;
 }
 
-/* Main overlay - entire area */
-.barcode-scanner-container::before {
-    content: "";
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.3); /* Semi-transparent black over the entire video */
-    z-index: 2; /* Ensures overlay is above the video but below the border */
-}
-
-/* Clear square cutout */
-.barcode-scanner-container::after {
-    content: "";
-    position: absolute;
-    top: 30%; left: 30%; /* Positioning to center the square */
-    width: 40%; height: 40%; /* Dimensions of the square */
-    background: transparent; /* Clear background */
-    outline: 1px solid $primary; /* White border around the square */
-    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3); /* Large shadow to create the transparent effect */
-    z-index: 3; /* Ensures border and clear area is above the overlay */
-}
 
 .wjpc-search {
     height: 55px;
@@ -670,6 +640,31 @@ canvas {
     .input-group {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
         border-radius: 5px;
+    }
+}
+
+.global-search-barcode-scan {
+    z-index: 20;
+    width: 100%;
+    margin: 15px 0 0;
+    background: #fff;
+    padding: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    position: relative;
+
+    .spinner {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin-left: -16px;
+        margin-top: -16px;
+        z-index: 19;
+    }
+
+    video {
+        position: relative;
+        z-index: 20;
     }
 }
 

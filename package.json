@@ -31,7 +31,6 @@
         "@symfony/stimulus-bridge": "^3.2.1",
         "@symfony/stimulus-bundle": "file:vendor/symfony/stimulus-bundle/assets",
         "@symfony/ux-turbo": "file:vendor/symfony/ux-turbo/assets",
-        "@zxing/library": "^0.21.0",
         "bootstrap": "5.2.*",
         "bootstrap-icons": "^1.11.3",
         "card": "^2.5.4",

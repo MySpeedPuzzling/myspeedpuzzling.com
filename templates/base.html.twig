@@ -40,6 +40,20 @@
             <link rel="alternate" hreflang="en" href="{{ url(currentRoute, routeParamsEn) }}">
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
+
+        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
+        <script defer>
+            document.addEventListener('DOMContentLoaded', function () {
+                try {
+                    window['BarcodeDetector'].getSupportedFormats();
+                } catch {
+                    window['BarcodeDetector'] = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                }
+            });
+        </script>
+
+        {{ encore_entry_script_tags('app') }}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search">
         <header class="fixed-top shadow-sm" data-fixed-element>
@@ -177,8 +191,6 @@
                                     {{ 'menu.faq'|trans }}
                                 </a>
                             </li>
-
-                            {# <li class="nav-item"><a class="nav-link {% if app.request.pathInfo == path('scan') %}active{% endif %}" href="{{ path('scan') }}">{{ 'menu.scan'|trans }}<span class="ms-2 badge rounded-pill bg-accent">beta</span></a></li> #}
                         </ul>
                     </div>
                 </div>
@@ -227,9 +239,6 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('faq') }}" class="widget-list-link">{{ 'menu.faq'|trans }}</a>
-                                </li>
-                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('scan') }}" class="widget-list-link">{{ 'menu.scan'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('my_profile') }}" class="widget-list-link">{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</a>
@@ -411,8 +420,6 @@
                 </div>
             </div>
         {% endif %}
-
-        {{ encore_entry_script_tags('app') }}
 
         <div class="global-search-overlay" data-global-search-target="overlay"></div>
     </body>

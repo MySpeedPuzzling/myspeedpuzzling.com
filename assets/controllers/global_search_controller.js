@@ -6,6 +6,12 @@ export default class extends Controller {
     connect() {
         this.ignoreNextClick = false; // Prevents conflict on initial click
         this.handleOutsideClick = this.handleOutsideClick.bind(this);
+
+        this.searchInputTarget.addEventListener("focus", this.handleSearchInputFocus.bind(this));
+    }
+
+    handleSearchInputFocus(event) {
+        window.dispatchEvent(new CustomEvent('barcode-scan:close'));
     }
 
     toggleSearchBar(event) {
@@ -44,6 +50,10 @@ export default class extends Controller {
 
         document.body.classList.remove("global-search-shown"); // Remove class from <body>
         document.removeEventListener("click", this.handleOutsideClick); // Remove outside click listener
+
+        window.dispatchEvent(
+            new CustomEvent('barcode-scan:close')
+        );
     }
 
     handleOutsideClick(event) {

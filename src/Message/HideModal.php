@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
-readonly final class HideWjpcModal
+readonly final class HideModal
 {
     public function __construct(
         public string $playerId,

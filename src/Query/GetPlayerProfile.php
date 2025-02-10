@@ -45,7 +45,7 @@ SELECT
     facebook,
     instagram,
     stripe_customer_id,
-    wjpc_modal_displayed,
+    modal_displayed,
     locale,
     is_admin,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
@@ -90,7 +90,7 @@ SELECT
     facebook,
     instagram,
     stripe_customer_id,
-    wjpc_modal_displayed,
+    modal_displayed,
     locale,
     is_admin,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at

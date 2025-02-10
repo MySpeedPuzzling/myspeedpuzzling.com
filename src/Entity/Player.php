@@ -51,7 +51,7 @@ class Player
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
-    public bool $wjpcModalDisplayed = false;
+    public bool $modalDisplayed = false;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
@@ -147,9 +147,9 @@ class Player
         $this->favoritePlayers = array_values($this->favoritePlayers);
     }
 
-    public function markWjpcModalAsDisplayed(): void
+    public function markModalAsDisplayed(): void
     {
-        $this->wjpcModalDisplayed = true;
+        $this->modalDisplayed = true;
     }
 
     public function updateStripeCustomerId(string $stripeCustomerId): void

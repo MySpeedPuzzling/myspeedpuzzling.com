@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Message\HideWjpcModal;
+use SpeedPuzzling\Web\Message\HideModal;
 use SpeedPuzzling\Web\Message\RegisterUserToPlay;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Results\PlayerProfile;

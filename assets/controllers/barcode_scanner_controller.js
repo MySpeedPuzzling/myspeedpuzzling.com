@@ -1,12 +1,27 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ["video", "input", "wrapper", "toggleButton", "overlay", "results"]
+    static targets = [
+        "video",
+        "input",
+        "wrapper",
+        "toggleButton",
+        "overlay",
+        "results",
+        "zoomContainer",
+        "zoomValue",
+        "zoomIn",
+        "zoomOut",
+    ];
 
     connect() {
         this.scanning = false;
         this.scanBuffer = [];
         this.lastPushTime = 0;
+        this.currentZoom = 1;
+        this.zoomSupported = false;
+        this.videoTrack = null;
+        this.zoomCapabilities = null;
 
         window.addEventListener('barcode-scan:close', () => this.stopScanning());
     }
@@ -45,6 +60,32 @@ export default class extends Controller {
                     this.overlayTarget.width = this.videoTarget.videoWidth;
                     this.overlayTarget.height = this.videoTarget.videoHeight;
                 }, { once: true });
+
+                // --- Zoom Setup ---
+                const videoTrack = stream.getVideoTracks()[0];
+                const capabilities = videoTrack.getCapabilities();
+                if (capabilities.zoom) {
+                    this.zoomSupported = true;
+                    this.videoTrack = videoTrack;
+                    this.zoomCapabilities = capabilities.zoom;
+                    // Clamp default zoom (2) between min and max.
+                    const defaultZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2));
+                    videoTrack.applyConstraints({
+                        advanced: [{ zoom: defaultZoom }]
+                    })
+                        .then(() => {
+                            this.currentZoom = defaultZoom;
+                            if (this.hasZoomContainerTarget) {
+                                this.zoomContainerTarget.classList.remove('d-none');
+                                this.updateZoomUI();
+                            }
+                        })
+                        .catch(err => console.error('Failed to apply zoom constraint:', err));
+                } else if (this.hasZoomContainerTarget) {
+                    // Hide zoom UI if zoom is not supported.
+                    this.zoomContainerTarget.classList.add('d-none');
+                }
+                // --- End Zoom Setup ---
 
                 this.scanLoop();
             })
@@ -135,5 +176,49 @@ export default class extends Controller {
 
         const ctx = this.overlayTarget.getContext('2d');
         ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+    }
+
+    zoomIn() {
+        if (!this.videoTrack || !this.zoomCapabilities) return;
+        // Increase zoom by 0.5, but do not exceed max.
+        const newZoom = Math.min(this.zoomCapabilities.max, this.currentZoom + 0.5);
+        if (newZoom === this.currentZoom) return;
+        this.videoTrack.applyConstraints({ advanced: [{ zoom: newZoom }] })
+            .then(() => {
+                this.currentZoom = newZoom;
+                this.updateZoomUI();
+            })
+            .catch(err => console.error('Failed to apply zoom constraint:', err));
+    }
+
+    zoomOut() {
+        if (!this.videoTrack || !this.zoomCapabilities) return;
+        // Decrease zoom by 0.5, but do not go below min.
+        const newZoom = Math.max(this.zoomCapabilities.min, this.currentZoom - 0.5);
+        if (newZoom === this.currentZoom) return;
+        this.videoTrack.applyConstraints({ advanced: [{ zoom: newZoom }] })
+            .then(() => {
+                this.currentZoom = newZoom;
+                this.updateZoomUI();
+            })
+            .catch(err => console.error('Failed to apply zoom constraint:', err));
+    }
+
+    updateZoomUI() {
+        if (!this.hasZoomValueTarget || !this.hasZoomInTarget || !this.hasZoomOutTarget || !this.zoomCapabilities) return;
+        // Update the display for the current zoom level.
+        this.zoomValueTarget.textContent = `Zoom: ${this.currentZoom.toFixed(1)}x`;
+
+        // Disable zoomIn if at maximum, disable zoomOut if at minimum.
+        if (this.currentZoom >= this.zoomCapabilities.max) {
+            this.zoomInTarget.classList.add('disabled');
+        } else {
+            this.zoomInTarget.classList.remove('disabled');
+        }
+        if (this.currentZoom <= this.zoomCapabilities.min) {
+            this.zoomOutTarget.classList.add('disabled');
+        } else {
+            this.zoomOutTarget.classList.remove('disabled');
+        }
     }
 }

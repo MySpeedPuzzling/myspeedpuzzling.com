@@ -108,6 +108,19 @@
             </div>
             <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
             <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>
+
+            <div data-barcode-scanner-target="zoomContainer" class="zoom-container">
+                <span data-barcode-scanner-target="zoomValue">Zoom 1x</span>
+
+                <button type="button"
+                        data-action="click->barcode-scanner#zoomOut"
+                        data-barcode-scanner-target="zoomOut"
+                        class="btn btn-sm btn-outline-primary ms-2 me-1">–</button>
+                <button type="button"
+                        data-action="click->barcode-scanner#zoomIn"
+                        data-barcode-scanner-target="zoomIn"
+                        class="btn btn-sm btn-outline-primary">+</button>
+            </div>
         </div>
     </div>
 </div>

@@ -670,6 +670,17 @@ canvas {
     canvas {
         z-index: 30;
     }
+
+    .zoom-container {
+        background: #fff;
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        border-radius: 8px;
+        padding: 4px 6px 4px 8px;
+        font-size: 11px;
+        z-index: 31;
+    }
 }
 
 .global-search-results {

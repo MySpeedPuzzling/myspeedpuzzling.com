@@ -95,9 +95,7 @@ export default class extends Controller {
     }
 
     async scanLoop() {
-        // Use the global BarcodeDetector that is either native or provided by the polyfill.
-        const formats = await BarcodeDetector.getSupportedFormats()
-        const barcodeDetector = new BarcodeDetector({ formats });
+        const barcodeDetector = new BarcodeDetector({ formats: ['ean_8', 'ean_13'] });
         const ctx = this.overlayTarget.getContext('2d');
 
         const scanFrame = async () => {

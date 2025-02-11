@@ -47,14 +47,17 @@ WHERE
         OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
         OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
         OR identification_number LIKE :searchFullLikeQuery
-        OR ean LIKE :searchFullLikeQuery
+        OR ean LIKE :eanSearchFullLikeQuery
    )
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
 SQL;
 
+        $eanSearch = trim($search ?? '', '0');
+
         $count = $this->database
             ->executeQuery($query, [
                 'searchFullLikeQuery' => "%$search%",
+                'eanSearchFullLikeQuery' => "%$eanSearch%",
                 'brandId' => $brandId,
                 'minPieces' => $pieces->minPieces(),
                 'maxPieces' => $pieces->maxPieces(),
@@ -101,12 +104,12 @@ WITH puzzle_base AS (
         puzzle.ean AS puzzle_ean,
         puzzle.identification_number AS puzzle_identification_number,
         CASE
-            WHEN LOWER(puzzle.alternative_name) = LOWER(:searchQuery) OR LOWER(puzzle.name) = LOWER(:searchQuery) OR puzzle.identification_number = :searchQuery OR puzzle.ean = :searchQuery THEN 7 -- Exact match with diacritics
+            WHEN LOWER(puzzle.alternative_name) = LOWER(:searchQuery) OR LOWER(puzzle.name) = LOWER(:searchQuery) OR puzzle.identification_number = :searchQuery OR puzzle.ean = :eanSearchQuery THEN 7 -- Exact match with diacritics
             WHEN LOWER(unaccent(puzzle.alternative_name)) = LOWER(unaccent(:searchQuery)) OR LOWER(unaccent(puzzle.name)) = LOWER(unaccent(:searchQuery)) THEN 6 -- Exact match without diacritics
-            WHEN puzzle.identification_number LIKE :searchEndLikeQuery OR puzzle.identification_number LIKE :searchStartLikeQuery OR puzzle.ean LIKE :searchEndLikeQuery OR puzzle.ean LIKE :searchStartLikeQuery THEN 5 -- Starts or ends with the query - code + ean
+            WHEN puzzle.identification_number LIKE :searchEndLikeQuery OR puzzle.identification_number LIKE :searchStartLikeQuery OR puzzle.ean LIKE :eanSearchEndLikeQuery OR puzzle.ean LIKE :eanSearchStartLikeQuery THEN 5 -- Starts or ends with the query - code + ean
             WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(puzzle.alternative_name) LIKE LOWER(:searchStartLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchEndLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchStartLikeQuery) THEN 4 -- Starts or ends with the query with diacritics
             WHEN LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchEndLikeQuery)) OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) THEN 3 -- Starts or ends with the query without diacritics
-            WHEN puzzle.identification_number LIKE :searchFullLikeQuery OR puzzle.ean LIKE :searchFullLikeQuery THEN 2 -- Partial match - ean + code
+            WHEN puzzle.identification_number LIKE :searchFullLikeQuery OR puzzle.ean LIKE :eanSearchFullLikeQuery THEN 2 -- Partial match - ean + code
             WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery) OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery) THEN 1 -- Partial match with diacritics
             ELSE 0 -- Partial match without diacritics or any other case
         END AS match_score
@@ -122,7 +125,7 @@ WITH puzzle_base AS (
             OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
             OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
             OR puzzle.identification_number LIKE :searchFullLikeQuery
-            OR puzzle.ean LIKE :searchFullLikeQuery
+            OR puzzle.ean LIKE :eanSearchFullLikeQuery
         )
         AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
     ORDER BY match_score DESC, COALESCE(puzzle.alternative_name, puzzle.name), puzzle.pieces_count
@@ -156,12 +159,18 @@ GROUP BY pb.puzzle_id, pb.puzzle_name, pb.puzzle_image, pb.puzzle_alternative_na
 ORDER BY pb.match_score DESC, COALESCE(pb.puzzle_alternative_name, pb.puzzle_name), m.name, pb.pieces_count
 SQL;
 
+        $eanSearch = trim($search ?? '', '0');
+
         $data = $this->database
             ->executeQuery($query, [
                 'searchQuery' => $search,
                 'searchStartLikeQuery' => "%$search",
                 'searchEndLikeQuery' => "$search%",
                 'searchFullLikeQuery' => "%$search%",
+                'eanSearchQuery' => $eanSearch,
+                'eanSearchStartLikeQuery' => "%$eanSearch",
+                'eanSearchEndLikeQuery' => "$eanSearch%",
+                'eanSearchFullLikeQuery' => "%$eanSearch%",
                 'brandId' => $brandId,
                 'limit' => $limit,
                 'minPieces' => $pieces->minPieces(),

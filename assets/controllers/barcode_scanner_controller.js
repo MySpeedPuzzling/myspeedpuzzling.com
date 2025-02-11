@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import Barcoder from 'barcoder';
 
 export default class extends Controller {
     static targets = [
@@ -126,24 +127,10 @@ export default class extends Controller {
                         ctx.stroke();
                     }
 
-                    // Check for quality: if quality is provided, accept only if >20.
-                    if (barcode.quality === undefined || barcode.quality > 20) {
-                        const now = Date.now();
-                        // Only push if at least 4ms have elapsed since the last push.
-                        if (!this.lastPushTime || now - this.lastPushTime >= 4) {
-                            this.lastPushTime = now;
-                            this.scanBuffer.push(code);
-
-                            // Count how many times this code appears in the buffer.
-                            const count = this.scanBuffer.filter(c => c === code).length;
-                            if (count >= 10) {
-                                this.inputTarget.value = code;
-                                this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
-                                // Remove all entries for this code, leaving other codes in the buffer.
-                                this.scanBuffer = [];
-                                this.stopScanning();
-                            }
-                        }
+                    if (Barcoder.validate(code)) {
+                        this.inputTarget.value = code;
+                        this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+                        this.stopScanning();
                     }
                 }
             } catch (error) {

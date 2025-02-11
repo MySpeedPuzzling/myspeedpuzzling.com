@@ -127,10 +127,22 @@ export default class extends Controller {
                         ctx.stroke();
                     }
 
-                    if (Barcoder.validate(code)) {
-                        this.inputTarget.value = code;
-                        this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
-                        this.stopScanning();
+                    if (Barcoder.validate(code) && (barcode.quality === undefined || barcode.quality > 8)) {
+                        const now = Date.now();
+                        // Only push if at least X...ms have elapsed since the last push.
+                        if (!this.lastPushTime || now - this.lastPushTime >= 2) {
+                            this.lastPushTime = now;
+                            this.scanBuffer.push(code);
+                            // Count how many times this code appears in the buffer.
+                            const count = this.scanBuffer.filter(c => c === code).length;
+                            if (count >= 10) {
+                                this.inputTarget.value = code;
+                                this.inputTarget.dispatchEvent(new Event('change', {bubbles: true}));
+                                // Remove all entries for this code, leaving other codes in the buffer.
+                                this.scanBuffer = [];
+                                this.stopScanning();
+                            }
+                        }
                     }
                 }
             } catch (error) {

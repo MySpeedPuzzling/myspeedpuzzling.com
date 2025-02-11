@@ -447,11 +447,23 @@ wjpc2024_connection:
     back_to_profile: "Zpět na můj profil"
     description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>. Pouze pro soutěžící v kategorii jednotlivců."
 
-wjpc2024_modal:
-    title: "WJPC 2024 je tady!"
-    text: "Budeš se účastnit World Jigsaw Puzzle Championship 2024?<br>Dej vědět ostatním, že tam budeš skládat o 106!<br><br>Propoj svůj MySpeedPuzzling profil s WJPC účtem a zjisti co se bude dít dál... Po propojení můžeš porovnávat své 500-dílkové časy z posledních 3 měsíců s ostatními účastníky. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s tím nejrychlejším časem! Propojení můžeš provést také kdykoliv později v nastavení svého profilu. Určeno pouze pro soutěžící v kategorii jednotlivců."
-    connect_it: "Propojit, hned!"
-    not_participating: "Neúčastním se"
+global_modal:
+    title: "Speciální early supporter sleva brzy skončí!"
+    text: |
+        <p>
+            Právě teď si můžeš předplatit členství za pouhých <strong>100 Kč</strong> – naše speciální early access cena, která se <strong>už nikdy nevrátí</strong>.
+            Od <strong>15. února</strong> se cena <strong>zvýší na 150 Kč</strong> a od té doby budou <strong>některé funkce dostupné pouze pro členy</strong>,
+            přičemž <strong>neustále přidáváme nové exkluzivní výhody</strong>.
+        </p>
+        <p>
+            Předplať si nyní a <strong>zajisti si cenu 100 Kč napořád</strong>! Navíc <strong>podpoříš naši misi</strong>
+            vybudovat <strong>nejlepší speed puzzling platformu</strong> na světě — pomůžeš nám vytvářet nové funkce, zlepšovat zážitek
+            a spojovat speed puzzlery jako nikdy předtím.
+        </p>
+        <p>Nepropásni tuto šanci získat slevu a stát se součástí něčeho výjimečného!</p>
+
+    button_cta: "Předplatit nyní"
+    button_dismiss: "Ne, děkuji!"
 
 added_time_recap:
     title: "Skvělý čas, jen tak dál!"
@@ -621,3 +633,9 @@ privacy_policy:
         </ul>
         <p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
         <p><em><small>Poslední aktualizace: leden 2025</small></em></p>
+
+countdown:
+    days: dny
+    hours: hod
+    minutes: min
+    seconds: sek

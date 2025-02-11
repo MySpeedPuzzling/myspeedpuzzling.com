@@ -771,3 +771,17 @@ canvas {
         }
     }
 }
+
+.blinking {
+    animation: blinking 1s infinite
+}
+
+@keyframes blinking {
+    0% {
+        opacity:0
+    }
+}
+
+div[data-countdown-target] {
+    font-variant-numeric: tabular-nums;
+}

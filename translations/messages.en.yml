@@ -446,11 +446,23 @@ wjpc2024_connection:
     back_to_profile: "Back to my profile"
     description: "The Speed Puzzling event of the year is here! Connect your WJPC account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest! You can find your <a href=\"%link%\" target=\"_blank\">registered name on WJPC</a>. Only for competitors in the individual category."
 
-wjpc2024_modal:
-    title: "WJPC 2024 is here!"
-    text: "Are you participating in World Jigsaw Puzzle Championship 2024?<br>Let others know that you will be there!<br><br>Connect your MySpeedPuzzling profile with WJPC account and see the magic happens. After connecting you will be able to compare your 500-piece puzzling times against other participants. You can connect it any time later on your profile. Only for competitors in the individual category."
-    connect_it: "Connect it, now!"
-    not_participating: "Not participating"
+global_modal:
+    title: "Early supporter membership price ends soon!"
+    text: |
+        <p>
+            Right now, you can subscribe for just <strong>4€</strong> – our special early access price, and it will <strong>never come back</strong>.
+            On <strong>February 15th</strong>, the price will <strong>increase to 6€</strong>, and from then on,
+            <strong>some features will be exclusive to members</strong>, with <strong>new perks continuously added</strong>.
+        </p>
+        <p>
+            Subscribe now to <strong>lock in the 4€ price forever</strong>! Plus, <strong>you’ll be supporting our mission</strong>
+            to build <strong>the best speed puzzling platform</strong> in the world — helping us create new features, improve the experience,
+            and unite speed puzzlers like never before.
+        </p>
+        <p>Don’t miss this chance to secure the best deal and be part of something special!</p>
+
+    button_cta: "Subscribe now"
+    button_dismiss: "No, thanks!"
 
 added_time_recap:
     title: "Great time, keep it up!"
@@ -618,3 +630,9 @@ privacy_policy:
         </ul>
         <p>If you have any questions about personal data protection or if you are unsure whether something is sufficiently clear, please contact us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
         <p><em><small>Last updated: January 2025</small></em></p>
+
+countdown:
+    days: days
+    hours: hours
+    minutes: mins
+    seconds: secs

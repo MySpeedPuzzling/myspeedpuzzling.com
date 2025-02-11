@@ -402,19 +402,49 @@
             </script>
         {% endif %}
 
-        {% if false %}
-            <div class="modal fade in" tabindex="-1" role="dialog" id="wjpc-modal" data-controller="modal">
+        {% if logged_user.profile is not null and not logged_user.profile.activeMembership and not logged_user.profile.modalDisplayed %}
+            <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="modal">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">{{ 'wjpc2024_modal.title'|trans }}</h5>
+                            <h5 class="modal-title">{{ 'global_modal.title'|trans }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <p class="fs-sm">{{ 'wjpc2024_modal.text'|trans|raw }}</p>
+                            <div class="d-flex flex-wrap justify-content-center" data-controller="countdown" data-countdown-end-value="2025-02-14T23:59:59">
+                                <div class="text-center mb-2">
+                                    <div class="bg-secondary shadow-custom rounded p-2">
+                                        <div class="h3 fw-medium mb-0 mx-1" data-countdown-target="days">0</div>
+                                    </div>
+                                    <span class="fs-sm">{{ 'countdown.days'|trans }}</span>
+                                </div>
+                                <span class="blinking text-body-secondary fs-2 mx-2">:</span>
+                                <div class="text-center mb-2">
+                                    <div class="bg-secondary shadow-custom rounded p-2">
+                                        <div class="h3 fw-medium mb-0 mx-1" data-countdown-target="hours">0</div>
+                                    </div>
+                                    <span class="fs-sm">{{ 'countdown.hours'|trans }}</span>
+                                </div>
+                                <span class="blinking text-body-secondary fs-2 mx-2">:</span>
+                                <div class="text-center mb-2">
+                                    <div class="bg-secondary shadow-custom rounded p-2">
+                                        <div class="h3 fw-medium mb-0 mx-1" data-countdown-target="minutes">0</div>
+                                    </div>
+                                    <span class="fs-sm">{{ 'countdown.minutes'|trans }}</span>
+                                </div>
+                                <span class="blinking text-body-secondary fs-2 mx-2">:</span>
+                                <div class="text-center mb-2">
+                                    <div class="bg-secondary shadow-custom rounded p-2">
+                                        <div class="h3 fw-medium mb-0 mx-1" data-countdown-target="seconds">0</div>
+                                    </div>
+                                    <span class="fs-sm">{{ 'countdown.seconds'|trans }}</span>
+                                </div>
+                            </div>
 
-                            <a href="{{ path('wjpc2024_connection') }}" class="btn btn-primary d-inline-block w-50 me-2 btn-shadow" type="submit">{{ 'wjpc2024_modal.connect_it'|trans }}</a>
-                            <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">{{ 'wjpc2024_modal.not_participating'|trans }}</button>
+                            <div class="fs-sm">{{ 'global_modal.text'|trans|raw }}</div>
+
+                            <a href="{{ path('membership') }}" class="btn btn-primary d-inline-block w-50 me-2 btn-shadow" type="submit"><i class="bi-person-circle"></i> {{ 'global_modal.button_cta'|trans }}</a>
+                            <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">{{ 'global_modal.button_dismiss'|trans }}</button>
                         </div>
                     </div>
                 </div>

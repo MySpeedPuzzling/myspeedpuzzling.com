@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Services;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
-use SpeedPuzzling\Web\Message\CreateMembershipSubscription;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use Stripe\Invoice;
@@ -83,7 +82,7 @@ readonly final class StripeWebhookHandler
 
     private function handleSubscriptionCreated(Subscription $stripeSubscription): void
     {
-        $this->messageBus->dispatch(new CreateMembershipSubscription($stripeSubscription->id));
+        $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscription->id));
     }
 
     private function handleSubscriptionUpdated(Subscription $stripeSubscription): void

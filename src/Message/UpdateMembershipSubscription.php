@@ -8,7 +8,6 @@ readonly final class UpdateMembershipSubscription
 {
     public function __construct(
         public string $stripeSubscriptionId,
-        public null|string $membershipId = null,
     ) {
     }
 }

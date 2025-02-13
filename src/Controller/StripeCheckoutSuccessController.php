@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Message\SubscribeMembership;
+use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use Stripe\StripeClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -19,6 +20,7 @@ final class StripeCheckoutSuccessController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private StripeClient $stripeClient,
     ) {
     }
 
@@ -37,11 +39,12 @@ final class StripeCheckoutSuccessController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $checkoutSession = $this->stripeClient->checkout->sessions->retrieve($sessionId);
+        $subscriptionId = $checkoutSession->subscription;
+        assert(is_string($subscriptionId));
+
         $this->messageBus->dispatch(
-            new SubscribeMembership(
-                $player->playerId,
-                $sessionId,
-            ),
+            new UpdateMembershipSubscription($subscriptionId),
         );
 
         $this->addFlash('success', $this->translator->trans('flashes.membership_subscribed_successfully'));

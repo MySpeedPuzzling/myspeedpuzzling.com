@@ -375,7 +375,7 @@ flashes:
     puzzle_removed_from_collection: "Good bye puzzle..."
     wjpc2024_duplicate_connection: "Something is wrong :-( you have chosen WJPC account, that is already connected to some MySpeedPuzzling profile. Worry not, we were automatically notified and we will check out what is wrong."
     wjpc2024_connection_saved: "Nice! WJPC account successfully connected to your MySpeedPuzzling profile!"
-    membership_subscribed_successfully: "Payment was successful, your membership is now active!"
+    membership_subscribed_successfully: "Your membership is now active!"
     non_unique_player_code: "We're sorry, but it seems this code is already taken. Please choose another one."
     unknown_error: "We're sorry, but something went wrong - we've been notified and will try to fix it as soon as possible. Please try again later."
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."

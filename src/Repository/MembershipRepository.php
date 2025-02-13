@@ -61,6 +61,9 @@ readonly final class MembershipRepository
         }
     }
 
+    /**
+     * @throws MembershipNotFound
+     */
     public function getByStripeSubscriptionId(string $subscriptionId): Membership
     {
         $queryBuilder = $this->entityManager->createQueryBuilder();

@@ -202,9 +202,9 @@
             </div>
 
             {% for label, messages in app.flashes %}
-                <div class="container mt-2">
+                <div class="container mt-3">
                     {% for message in messages %}
-                        <div class="alert-dismissible fade show alert alert-{{ label }}" role="alert">
+                        <div class="alert-dismissible mb-0 fade show alert alert-{{ label }}" role="alert">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>

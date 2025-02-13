@@ -503,7 +503,9 @@ membership:
             <li>Your own personalized player code (you can change it in your profile)</li>
             <li>Membership badge</li>
             <li>Filtering by first attempts</li>
+            <li>Filtering by country</li>
             <li>Charts</li>
+            <li>Barcode scanner</li>
         </ul>
         
         <h3 class="h4">What can you look forward to soon?</h3>

@@ -7,6 +7,7 @@ use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Services\MembershipManagement;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\BillingPeriod;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,12 +23,13 @@ final class BuyMembershipController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/koupit-clenstvi',
-            'en' => '/en/buy-membership',
+            'cs' => '/koupit-clenstvi/{period}',
+            'en' => '/en/buy-membership/{period}',
         ],
         name: 'buy_membership',
+        defaults: ['period' => null],
     )]
-    public function __invoke(#[CurrentUser] User $user): Response
+    public function __invoke(#[CurrentUser] User $user, null|string $period): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -35,8 +37,10 @@ final class BuyMembershipController extends AbstractController
             return $this->redirectToRoute('homepage');
         }
 
+        $billingPeriod = BillingPeriod::tryFrom($period ?? BillingPeriod::Monthly->value) ?? BillingPeriod::Monthly;
+
         try {
-            $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale);
+            $paymentUrl = $this->membershipManagement->getMembershipPaymentUrl($player->locale, $billingPeriod);
         } catch (PlayerAlreadyHaveMembership) {
             return $this->redirectToRoute('billing_portal');
         }

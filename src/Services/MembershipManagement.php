@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
 use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Value\BillingPeriod;
 use Stripe\Price;
 use Stripe\StripeClient;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -18,8 +19,6 @@ use Symfony\Component\Routing\RouterInterface;
 
 readonly final class MembershipManagement
 {
-    private const string PRICE_LOOKUP_KEY = 'puzzlership_monthly_promo';
-
     public function __construct(
         private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private RouterInterface $router,
@@ -34,10 +33,13 @@ readonly final class MembershipManagement
     /**
      * @throws PlayerAlreadyHaveMembership
      */
-    public function getMembershipPaymentUrl(null|string $locale): string
+    public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period): string
     {
-        // Currently we have only one subscription plan so it is okay to have it hardcoded
-        $priceLookupKey = self::PRICE_LOOKUP_KEY;
+        $priceLookupKey = 'puzzlership_monthly_promo';
+
+        if ($period === BillingPeriod::Yearly) {
+            $priceLookupKey = 'puzzlership_yearly_promo';
+        }
 
         $prices = $this->stripeClient->prices->all([
             'lookup_keys' => [$priceLookupKey],

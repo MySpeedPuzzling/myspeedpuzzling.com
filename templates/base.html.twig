@@ -66,10 +66,6 @@
 
                         <a class="ms-2 ms-sm-3 topbar-link" href="{{ path('membership') }}">
                             <i class="ci-user-circle"></i> {{ 'menu.membership'|trans }}
-
-                            {% if logged_user.profile is null or not logged_user.profile.activeMembership %}
-                                <span class="badge bg-primary">{{ 'new_badge'|trans }}</span>
-                            {% endif %}
                         </a>
                     </div>
 
@@ -402,7 +398,7 @@
             </script>
         {% endif %}
 
-        {% if logged_user.profile is not null and not logged_user.profile.activeMembership and not logged_user.profile.modalDisplayed %}
+        {% if true == false %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="modal">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">

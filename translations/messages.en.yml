@@ -481,7 +481,6 @@ membership:
         description: ""
     title: "Membership"
     intro_text: "Membership is a way to gain access to exclusive features for true puzzle enthusiasts! By subscribing to a membership, you also support the development of the platform and help us achieve our vision of creating the best community puzzle platform in the world."
-    become_member: "Since membership currently offers only a few benefits (we're gradually adding more and more exclusive features!), we are offering a limited-time discounted price of 4 €, valid only until <strong>February 14, 2025</strong>. If you join now, this lower price will remain <strong>for the entire duration of your membership</strong>."
     redirect_to_stripe: "You will be redirected to the Stripe payment gateway."
     subscription_active: "Active subscription, thank you for being part of the community!"
     membership_active: "Active membership, thank you for being part of the community!"
@@ -493,9 +492,11 @@ membership:
     membership_active_until: "Membership active until"
     payment_portal_button: "Manage subscription (payment portal)"
     description_title: "What are the benefits of membership?"
-    subscribe_for: "Subscribe for"
-    original_price_per_month: "6€ / month"
-    price_per_month: "4€ / month"
+    choose_your_subscription: "Choose your subscription"
+    subscribe_for_monthly: "Monthly for"
+    subscribe_for_yearly: "Yearly for"
+    price_per_month: "€6 / month"
+    price_per_year: "€60 / year"
     billing_portal_info: "In the payment portal, you can update your payment details, cancel your membership, or download invoices or receipts."
     full_description: |
         <ul>

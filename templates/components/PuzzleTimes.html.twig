@@ -51,8 +51,6 @@
 
         {% if this.activeFiltersCount > 0 or this.availableCountries|length > 1 or (this.category == 'solo' and this.times|length > 1) %}
             <div class="dropdown position-relative">
-                <span class="badge bg-primary position-absolute" style="right: 103%;">{{ 'new_badge'|trans }}</span>
-
                 <button
                     class="btn btn-outline-primary btn-sm dropdown-toggle"
                     type="button"

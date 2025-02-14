@@ -59,15 +59,23 @@
                                 {{ 'membership.billing_portal_info'|trans }}
                             </p>
                         {% else %}
-                            <p>{{ 'membership.become_member'|trans|raw }}</p>
+                            <h4>{{ 'membership.choose_your_subscription'|trans }}</h4>
 
-                            <p class="mt-2 text-center mb-1">
-                                <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
-                                    <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for'|trans }}</small>
-                                    <br><del class="small">{{ 'membership.original_price_per_month'|trans }}</del>
-                                    <br>{{ 'membership.price_per_month'|trans }}
-                                </a>
-                            </p>
+                            <div class="d-flex mt-2 text-center justify-content-center">
+                                <p class="my-1 mx-1">
+                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
+                                        <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                                        <br>{{ 'membership.price_per_month'|trans }}
+                                    </a>
+                                </p>
+
+                                <p class="my-1 mx-1">
+                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership', {'period': 'yearly'}) }}">
+                                        <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                                        <br>{{ 'membership.price_per_year'|trans }}
+                                    </a>
+                                </p>
+                            </div>
 
                             <p class="text-center mb-0">
                                 <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>

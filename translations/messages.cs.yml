@@ -482,7 +482,6 @@ membership:
         description: ""
     title: "Členství"
     intro_text: "Členství je způsob jak získat přístup k exkluzivním funkcím pro opravdové puzzle nadšence! Předplacením členství zároveň podpoříte vývoj platformy a tím i naši vizi tvořit tu nejlepší komunitní puzzle platformu na světě."
-    become_member: "Protože členství v tuto chvíli nabízí pouze pár výhod (postupně přidáváme další a další exkluzivní funkce!), nabízíme časem omezenou výhodnější cenu 100 Kč, pouze do <strong>14.2.2025</strong>. Při koupi nyní vám tato nižší cena zůstane <strong>po celou dobu vašeho členství</strong>"
     redirect_to_stripe: "Budete přesměrování na platební bránu Stripe"
     subscription_active: "Aktivní předplatné, děkujeme že jste součástí!"
     membership_active: "Aktivní členství, děkujeme že jste součástí!"
@@ -494,9 +493,11 @@ membership:
     membership_active_until: "Platnost členství do"
     payment_portal_button: "Upravit předplatné (platební portál)"
     description_title: "Jaké jsou výhody členství?"
-    subscribe_for: "Předplatit za"
-    original_price_per_month: "150 Kč / měsíc"
-    price_per_month: "100 Kč / měsíc"
+    choose_your_subscription: "Vyber si předplatné"
+    subscribe_for_monthly: "Měsíčně za"
+    subscribe_for_yearly: "Ročně za"
+    price_per_month: "150 Kč / měsíc"
+    price_per_year: "1500 Kč / rok"
     billing_portal_info: "Na platebním portále můžete měnit platební své údaje, zrušit členství, stáhnout faktury nebo účtenky."
     full_description: |
         <ul>

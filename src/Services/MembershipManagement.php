@@ -35,10 +35,10 @@ readonly final class MembershipManagement
      */
     public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period): string
     {
-        $priceLookupKey = 'puzzlership_monthly_promo';
+        $priceLookupKey = 'puzzlership_monthly';
 
         if ($period === BillingPeriod::Yearly) {
-            $priceLookupKey = 'puzzlership_yearly_promo';
+            $priceLookupKey = 'puzzlership_yearly';
         }
 
         $prices = $this->stripeClient->prices->all([
@@ -60,7 +60,7 @@ readonly final class MembershipManagement
         $successUrl = str_replace('CHECKOUT_SESSION_ID', '{CHECKOUT_SESSION_ID}', $successUrl);
 
         $cancelUrl = $this->router->generate(
-            'stripe_checkout_cancel',
+            'membership',
             parameters: [
                 '_locale' => $locale,
             ],

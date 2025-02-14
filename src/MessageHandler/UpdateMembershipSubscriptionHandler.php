@@ -58,8 +58,15 @@ readonly final class UpdateMembershipSubscriptionHandler
         $billingPeriodEnd = DateTimeImmutable::createFromFormat('U', (string) $subscription->current_period_end);
         assert($billingPeriodEnd instanceof DateTimeImmutable);
 
+
         try {
-            $membership = $this->membershipRepository->getByStripeSubscriptionId($subscriptionId);
+            try {
+                // First try to search the stripe subscription membership
+                $membership = $this->membershipRepository->getByStripeSubscriptionId($subscriptionId);
+            } catch (MembershipNotFound) {
+                // Then try to find by player - there can be free membership without stripe
+                $membership = $this->membershipRepository->getByPlayerId($playerId);
+            }
 
             if ($subscription->cancel_at_period_end === true) {
                 $membership->cancel($billingPeriodEnd);

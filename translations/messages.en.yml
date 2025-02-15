@@ -520,6 +520,13 @@ membership:
             <li>Badges for various achievements</li>
             <li>&hellip; and much more, this is just a small preview of what we’re preparing for you!</li>
         </ul>
+    modal:
+        title: Exclusive Feature for Members
+        cta: Become member
+        no_thanks: No, thanks!
+        text: |
+            <p>Unlock access to this and other features designed to enhance your experience.</p>
+            <p>Become a member today, support development of the platform and enjoy exclusive features that make your speed puzzling journey even more exciting!</p>
 
 membership_payment_cancelled:
     meta:

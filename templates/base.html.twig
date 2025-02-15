@@ -399,7 +399,7 @@
         {% endif %}
 
         {% if true == false %}
-            <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="modal">
+            <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -446,6 +446,28 @@
                 </div>
             </div>
         {% endif %}
+
+        <div class="modal fade" tabindex="-1" role="dialog" id="barcodeScanModal">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ 'membership.modal.title'|trans }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ 'membership.modal.text'|trans|raw }}
+
+                        {% if logged_user.profile %}
+                            <a href="{{ path('membership') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person-circle"></i> {{ 'membership.modal.cta'|trans }}</a>
+                        {% else %}
+                            <a href="{{ path('login') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person"></i> {{ 'menu.sign_in'|trans }}</a>
+                        {% endif %}
+
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'membership.modal.no_thanks'|trans }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="global-search-overlay" data-global-search-target="overlay"></div>
     </body>

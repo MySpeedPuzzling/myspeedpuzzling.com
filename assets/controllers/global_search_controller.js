@@ -67,6 +67,10 @@ export default class extends Controller {
             return;
         }
 
+        if (event.target.closest('.modal') || event.target.closest('.modal-backdrop')) {
+            return;
+        }
+
         const clickedOverlay = event.target.classList.contains("global-search-overlay");
 
         // Close if the click is on the overlay or outside the search elements

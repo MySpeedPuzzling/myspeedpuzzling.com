@@ -462,7 +462,7 @@ global_modal:
         </p>
         <p>Nepropásni tuto šanci získat slevu a stát se součástí něčeho výjimečného!</p>
 
-    button_cta: "Předplatit nyní"
+    button_cta: "Stát se členem"
     button_dismiss: "Ne, děkuji!"
 
 added_time_recap:
@@ -521,6 +521,13 @@ membership:
             <li>Odznaky za různé úspěchy</li>
             <li>&hellip; a mnoho dalšího, toto je pouze malá ochutnávka toho, co pro vás chystáme!</li>
         </ul>
+    modal:
+        title: Exkluzivní funkce pro členy
+        cta: Stát se členem
+        no_thanks: Ne, děkuji!
+        text: |
+            <p>Odemkněte přístup k této a dalším funkcím, které vylepší váš zážitek.</p>
+            <p>Staňte se členem ještě dnes, podpořte vývoj platformy a užívejte si exkluzivní funkce, které udělají vaši speed puzzling cestu ještě zábavnější!</p>
 
 membership_payment_cancelled:
     meta:

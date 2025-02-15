@@ -16,6 +16,10 @@ export default class extends Controller {
     ];
 
     connect() {
+        if (!this.hasToggleButtonTarget) {
+            return;
+        }
+
         this.scanning = false;
         this.scanBuffer = [];
         this.lastPushTime = 0;

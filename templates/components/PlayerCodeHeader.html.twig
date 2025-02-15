@@ -1,7 +1,18 @@
 <code class="text-muted h4 ps-3">#{{ player.code|upper }}</code>
 
-{% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId and logged_user.profile.activeMembership %}
-    <a href="{{ path('edit_player_code') }}" class="h5 ps-0 text-primary">
-        <i class="ci ci-edit"></i>
-    </a>
+{% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
+    {% if logged_user.profile.activeMembership %}
+        <a href="{{ path('edit_player_code') }}" class="btn btn-sm btn-outline-primary">
+            <i class="ci ci-edit"></i>
+        </a>
+    {% else %}
+        <button
+            class="btn btn-outline-primary btn-sm position-relative pe-4"
+            data-bs-toggle="modal"
+            data-bs-target="#membersExclusiveModal"
+        >
+            <i class="ci ci-edit"></i>
+            <i class="ci-locked position-absolute fs-sm" style="right: 4px;top: 7px;"></i>
+        </button>
+    {% endif %}
 {% endif %}

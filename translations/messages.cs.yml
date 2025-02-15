@@ -521,6 +521,7 @@ membership:
             <li>Odznaky za různé úspěchy</li>
             <li>&hellip; a mnoho dalšího, toto je pouze malá ochutnávka toho, co pro vás chystáme!</li>
         </ul>
+    members_exclusive_button: "Exkluzivně pro členy"
     modal:
         title: Exkluzivní funkce pro členy
         cta: Stát se členem

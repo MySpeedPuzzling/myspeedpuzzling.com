@@ -66,6 +66,16 @@ readonly final class UpdateMembershipSubscriptionHandler
             } catch (MembershipNotFound) {
                 // Then try to find by player - there can be free membership without stripe
                 $membership = $this->membershipRepository->getByPlayerId($playerId);
+
+                if ($membership->stripeSubscriptionId !== null) {
+                    $this->logger->warning('Stripe subscription id mismatch', [
+                        'player_id' => $playerId,
+                        'membership_id' => $membership->id->toString(),
+                        'stripe_new_subscription_id' => $subscription->id,
+                    ]);
+
+                    return;
+                }
             }
 
             if ($subscription->cancel_at_period_end === true) {

@@ -1,17 +1,32 @@
 {% if computed.chart.data['labels']|length > 1 %}
     <div class="card card-body p-2 my-3 shadow">
-        <h2 class="fs-6 text-center text-md-start mb-2">{{ title }}</h2>
+        {% if title %}
+            <h2 class="fs-6 text-center text-md-start mb-2">{{ title }}</h2>
+        {% endif %}
 
-        <div style="height: 180px;" data-controller="time-chart" class="position-relative">
-            {{ render_chart(computed.chart) }}
+        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+            <div style="height: 180px;" data-controller="time-chart" class="position-relative">
+                {{ render_chart(computed.chart) }}
 
-            <button
-                class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
-                data-action="time-chart#resetZoom"
-                data-time-chart-target="zoomButton"
-            >
-                <i class="bi-zoom-out"></i>
-            </button>
-        </div>
+                <button
+                    class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
+                    data-action="time-chart#resetZoom"
+                    data-time-chart-target="zoomButton"
+                >
+                    <i class="bi-zoom-out"></i>
+                </button>
+            </div>
+        {% else %}
+            <div class="puzzle-detail-chart-placeholder text-center">
+                <button
+                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-4"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                >
+                    <i class="ci-locked me-1"></i>
+                    Members exclusive
+                </button>
+            </div>
+        {% endif %}
     </div>
 {% endif %}

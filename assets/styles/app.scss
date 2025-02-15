@@ -785,3 +785,9 @@ canvas {
 div[data-countdown-target] {
     font-variant-numeric: tabular-nums;
 }
+
+.player-chart-placeholder {
+    height: 200px;
+    background: url('../img/player-chart-placeholder.png') center center no-repeat;
+    background-size: 100% 100%;
+}

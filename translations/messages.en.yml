@@ -447,21 +447,13 @@ wjpc2024_connection:
     description: "The Speed Puzzling event of the year is here! Connect your WJPC account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest! You can find your <a href=\"%link%\" target=\"_blank\">registered name on WJPC</a>. Only for competitors in the individual category."
 
 global_modal:
-    title: "Early supporter membership price ends soon!"
+    title: "We apologize for the outage!"
     text: |
-        <p>
-            Right now, you can subscribe for just <strong>4€</strong> – our special early access price, and it will <strong>never come back</strong>.
-            On <strong>February 15th</strong>, the price will <strong>increase to 6€</strong>, and from then on,
-            <strong>some features will be exclusive to members</strong>, with <strong>new perks continuously added</strong>.
-        </p>
-        <p>
-            Subscribe now to <strong>lock in the 4€ price forever</strong>! Plus, <strong>you’ll be supporting our mission</strong>
-            to build <strong>the best speed puzzling platform</strong> in the world — helping us create new features, improve the experience,
-            and unite speed puzzlers like never before.
-        </p>
-        <p>Don’t miss this chance to secure the best deal and be part of something special!</p>
+        <p>Our platform was out of service for almost 10 hours. We’re very sorry about that.</p>
+        <p>We truly appreciate your patience and support.</p>
+        <p>Because we strive to be 100% transparent, we’ve written down what happened.</p>
 
-    button_cta: "Subscribe now"
+    button_cta: "I want to read, what happened"
     button_dismiss: "No, thanks!"
 
 added_time_recap:

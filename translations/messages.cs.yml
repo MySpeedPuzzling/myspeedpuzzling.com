@@ -448,21 +448,13 @@ wjpc2024_connection:
     description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>. Pouze pro soutěžící v kategorii jednotlivců."
 
 global_modal:
-    title: "Speciální early supporter sleva brzy skončí!"
+    title: "Omlouváme se za výpadek!"
     text: |
-        <p>
-            Právě teď si můžeš předplatit členství za pouhých <strong>100 Kč</strong> – naše speciální early access cena, která se <strong>už nikdy nevrátí</strong>.
-            Od <strong>15. února</strong> se cena <strong>zvýší na 150 Kč</strong> a od té doby budou <strong>některé funkce dostupné pouze pro členy</strong>,
-            přičemž <strong>neustále přidáváme nové exkluzivní výhody</strong>.
-        </p>
-        <p>
-            Předplať si nyní a <strong>zajisti si cenu 100 Kč napořád</strong>! Navíc <strong>podpoříš naši misi</strong>
-            vybudovat <strong>nejlepší speed puzzling platformu</strong> na světě — pomůžeš nám vytvářet nové funkce, zlepšovat zážitek
-            a spojovat speed puzzlery jako nikdy předtím.
-        </p>
-        <p>Nepropásni tuto šanci získat slevu a stát se součástí něčeho výjimečného!</p>
+        <p>Naše platforma byla mimo provoz téměř 10 hodin. Moc se za to omlouváme.</p>
+        <p>Velice si vážíme vaší trpělivosti a podpory.</p>
+        <p>Protože se snažíme být 100% transparentní, sepsali jsme, co se stalo.</p>
 
-    button_cta: "Stát se členem"
+    button_cta: "Chci si přečíst, co se stalo"
     button_dismiss: "Ne, děkuji!"
 
 added_time_recap:
@@ -656,7 +648,7 @@ blog:
         title: Největší výpadek v historii MySpeedPuzzling
         content: |
             <h2 class="h5">Dne 17.2. jsme měli nejdelší výpadek v historii MySpeedPuzzling ...</h2>
-            <h4 class="h6">Nejdříve ze všeho vám chci všem moc poděkovat za vaší trpělivost a důvěru! Věřte, že těch 7 hodin kdy jsme věděli, že MSP nefunguje, pro nás bylo velmi stresujících!<h4>
+            <h4 class="h6">Nejdříve ze všeho vám chci všem moc poděkovat za vaší trpělivost a důvěru! Věřte, že těch 7 hodin kdy jsme věděli, že MSP nefunguje, pro nás bylo velmi stresujících!</h4>
             <p>Dnes jsme měli téměř 10 hodin výpadek celé platformy. Jedná se o nejdelší výpadek v historii MySpeedPuzzlingu. Nebyla to naše chyba... nebo jo?</p>
             <p>Protože se snažíme být 100% transparentní, popíšeme vše jak se stalo, krok za krokem.</p>
             <p>Šel jsem spát zhruba v 1:30 (bohužel chvilku předtím, než se to celé stalo), kdy jsem dokončil další z novinek na MySpeedPuzzling. Kolem 5 ráno, kdy se jedno z dětí vzbudilo na toaletu, Simona automaticky zkontrolovala na elefonu notifikace, často se dívá kdo přidal nové časy a jak rychle stihl puzzle složit. Ano i v 5 ráno... Čekalo ji však nemilé překvapení - stránka, která se nenačítá. Simona do mě strčila se slovy: MySpeedPuzzling nefunguje! Taková slova mě velmi rychle probrala. Beru do ruky telefon, zkouším a opravdu, nefunguje! Jdu pro notebook, zkontrolovat blíže co se děje. V 1:59 v noci nám přišla automatická notifikace z monitoringu, to většinou nevěstí nic nového. Bohužel jsem si jí nevšiml, protože jsem šel spát chvíli předtím. Navíc úprava, kterou jsem prováděl nebyla vůbec destruktivního rázu a nemohla způsobit takovýto výpadek. Takto tedy začal náš pondělní výpadek, který trval téměř až do 12:00.</p>

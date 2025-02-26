@@ -33,9 +33,15 @@ final class PuzzleTimesChart
         $backgrounds = [];
 
         $rank = 0;
-        foreach ($this->results as $groupedResult) {
-            $rank = $rank + 1;
+        $i = 0;
+        $lastKey = null;
+        foreach ($this->results as $key => $groupedResult) {
+            $i++;
             $result = $groupedResult[0];
+
+            if ($lastKey === null || $result->time !== $this->results[$lastKey][0]->time) {
+                $rank = $i;
+            }
 
             if ($result instanceof PuzzleSolver) {
                 $labels[] = sprintf('%d. %s',
@@ -76,7 +82,7 @@ final class PuzzleTimesChart
             }
 
             $chartData[] = $result->time;
-
+            $lastKey = $key;
         }
 
         $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);

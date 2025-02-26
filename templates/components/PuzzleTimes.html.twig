@@ -133,9 +133,10 @@
                 </thead>
 
                 <tbody>
-                {% for aggregated_solver in this.times %}
+                {% set  previousTimeId = null %}
+                {% for timeId, aggregated_solver in this.times %}
                     <tr class="{{ logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) ? 'table-active-player' }}">
-                        <td class="rank">{{ loop.index }}.</td>
+                        <td class="rank">{{ previousTimeId and aggregated_solver[0].time == this.times[previousTimeId][0].time ? loop.index-1 : loop.index }}.</td>
 
                         <td class="player-name">
                             {% if aggregated_solver[0].players is defined %}
@@ -215,8 +216,9 @@
                                 </div>
                             {% endif %}
                         </td>
-
                     </tr>
+
+                    {% set previousTimeId = timeId %}
                 {% endfor %}
 
                 {% if this.times|length < 1 %}

@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ player.playerName }} statistics{% endblock %}
+
+{% block content %}
+    <h1>
+        {{ player.playerName }}
+        {% if player.countryCode is not null %}
+            <span class="h4 shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+        {% endif %}
+
+        <twig:PlayerCodeHeader player="{{ player }}" />
+    </h1>
+
+    <p class="mb-0">
+        <a href="#"><i class="ci-arrow-left"></i></a> Únor 2025 <a href="#"><i class="ci-arrow-right"></i></a>
+        <br><small class="text-muted">(možnost vybrat rok, měsíc, datum od-do)</small>
+    </p>
+
+    <div class="dropdown d-inline-block my-2">
+        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Overall
+        </button>
+        <ul class="dropdown-menu player-country-dropdown-menu">
+            <li>
+                <a href="#" class="dropdown-item active">Overall</a>
+            </li>
+            <li>
+                <a href="#" class="dropdown-item">Solo</a>
+            </li>
+            <li>
+                <a href="#" class="dropdown-item">Duo</a>
+            </li>
+            <li>
+                <a href="#" class="dropdown-item">Group</a>
+            </li>
+        </ul>
+    </div>
+
+    <br>
+    <strong>(u ročního dát graf dle měsíce)</strong>
+    <p>Složených puzzlí: 20 (porovnání s předchozím měsícem)</p>
+    <p>Umístěných dílků: 2000 (porovnání s předchozím měsícem)</p>
+    <p>Čas strávený skládáním: 20:00:00 (porovnání s předchozím měsícem)</p>
+
+    <p>
+        <strong>koláčový graf (u ročního dát graf dle měsíce)</strong><br>
+        <strong>Skládané značky</strong><br>
+        Ravensburger: 20x<br>
+        Trefl: 3x<br>
+        Dino: 2x
+    </p>
+
+    <strong>Skládané puzzle</strong><br>
+    <p>
+        <strong>koláčový graf podle dílků</strong><br>
+        500 pieces: 20x, nejrychlejší čas, průměrný čas<br>
+        300 pieces: 3x, nejrychlejší čas, průměrný čas<br>
+        200 pieces: 2x, nejrychlejší čas, průměrný čas
+    </p>
+
+
+{% endblock %}

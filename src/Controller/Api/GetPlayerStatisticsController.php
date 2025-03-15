@@ -3,13 +3,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Api;
 
-use Knp\Bundle\TimeBundle\DateTimeFormatter;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
-use SpeedPuzzling\Web\Results\SolvedPuzzle;
-use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
-use SpeedPuzzling\Web\Value\Puzzler;
-use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

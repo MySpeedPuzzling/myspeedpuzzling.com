@@ -14,50 +14,208 @@
 
     <p class="mb-0">
         <a href="#"><i class="ci-arrow-left"></i></a> Únor 2025 <a href="#"><i class="ci-arrow-right"></i></a>
-        <br><small class="text-muted">(možnost vybrat rok, měsíc, datum od-do)</small>
     </p>
 
-    <div class="dropdown d-inline-block my-2">
-        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Overall
-        </button>
-        <ul class="dropdown-menu player-country-dropdown-menu">
-            <li>
-                <a href="#" class="dropdown-item active">Overall</a>
-            </li>
-            <li>
-                <a href="#" class="dropdown-item">Solo</a>
-            </li>
-            <li>
-                <a href="#" class="dropdown-item">Duo</a>
-            </li>
-            <li>
-                <a href="#" class="dropdown-item">Group</a>
-            </li>
-        </ul>
+    <div class="row">
+        <div class="col-sm-6 col-md-4 my-2">
+            <div class="card card-body shadow">
+                <div class="d-flex justify-content-between">
+                    <h4 class="mb-0">
+                        <i class="bi-puzzle"></i>
+                        {{ overall_statistics.solvedPuzzlesCount }}
+                    </h4>
+                    <div>
+                        Složených puzzlí
+                    </div>
+                </div>
+
+                <div class="position-relative mt-2 mx-auto">
+                    {{ render_chart(manufacturers_chart) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-md-4 my-2">
+            <div class="card card-body shadow">
+                <div class="d-flex justify-content-between">
+                    <h4 class="mb-0">
+                        <i class="bi-stopwatch"></i>
+                        {{ overall_statistics.totalSeconds|puzzlingTime }}
+                    </h4>
+                    <div>
+                        Skládací čas
+                    </div>
+                </div>
+
+                <div style="height: 200px;width: 100%;" data-controller="time-chart" class="position-relative mt-2 mx-auto">
+                    {{ render_chart(puzzling_time_chart) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-md-4">
+            <div class="card card-body shadow my-2">
+                <div class="d-flex justify-content-between">
+                    <h4 class="mb-0">
+                        <i class="bi-puzzle"></i>
+                        {{ overall_statistics.totalPieces }}
+                    </h4>
+                    <div>
+                        Umístěných dílků
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-body shadow my-2">
+                <div class="d-flex justify-content-between">
+                    <h4 class="mb-0">
+                        <i class="bi-fire"></i>
+                        9
+                    </h4>
+                    <div>
+                        Longest streak
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <br>
-    <strong>(u ročního dát graf dle měsíce)</strong>
-    <p>Složených puzzlí: 20 (porovnání s předchozím měsícem)</p>
-    <p>Umístěných dílků: 2000 (porovnání s předchozím měsícem)</p>
-    <p>Čas strávený skládáním: 20:00:00 (porovnání s předchozím měsícem)</p>
+    <div class="puzzle-category-types mt-3 my-2">
+        <button class="btn active">
+            <span class="users-icons"><i class="ci-user"></i></span>
+            {{ 'ladder.solo'|trans }}
+        </button>
 
-    <p>
-        <strong>koláčový graf (u ročního dát graf dle měsíce)</strong><br>
-        <strong>Skládané značky</strong><br>
-        Ravensburger: 20x<br>
-        Trefl: 3x<br>
-        Dino: 2x
-    </p>
+        <button class="btn">
+            <span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>
+            {{ 'ladder.duo'|trans }}
+        </button>
 
-    <strong>Skládané puzzle</strong><br>
-    <p>
-        <strong>koláčový graf podle dílků</strong><br>
-        500 pieces: 20x, nejrychlejší čas, průměrný čas<br>
-        300 pieces: 3x, nejrychlejší čas, průměrný čas<br>
-        200 pieces: 2x, nejrychlejší čas, průměrný čas
-    </p>
+        <button class="btn">
+            <span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>
+            {{ 'ladder.team'|trans }}
+        </button>
+    </div>
 
+    {% if solo_statistics.solvedPuzzlesCount > 0 %}
+        <div class="row">
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0">
+                            <i class="bi-puzzle"></i>
+                            {{ solo_statistics.solvedPuzzlesCount }}
+                        </h4>
+                        <div>
+                            Složených puzzlí
+                        </div>
+                    </div>
+
+                    <div class="position-relative mt-2 mx-auto">
+                        {{ render_chart(manufacturers_chart) }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0">
+                            <i class="bi-puzzle"></i>
+                            {{ solo_statistics.totalPieces }}
+                        </h4>
+                        <div>
+                            Umístěných dílků
+                        </div>
+                    </div>
+
+                    <div class="position-relative mt-2 mx-auto">
+                        {{ render_chart(pieces_chart) }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0">
+                            <i class="bi-stopwatch"></i>
+                            {{ solo_statistics.totalSeconds|puzzlingTime }}
+                        </h4>
+                        <div>
+                            Skládací čas
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0 text-center">
+                            <i class="bi-puzzle"></i>
+                            500<br>
+                            10x
+                        </h4>
+                        <div class="text-end">
+                            Nejrychlejší: 1:00:00<br>
+                            Průměrný: 1:00:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0 text-center">
+                            <i class="bi-puzzle"></i>
+                            300<br>
+                            10x
+                        </h4>
+                        <div class="text-end">
+                            Nejrychlejší: 1:00:00<br>
+                            Průměrný: 1:00:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0 text-center">
+                            <i class="bi-puzzle"></i>
+                            200<br>
+                            10x
+                        </h4>
+                        <div class="text-end">
+                            Nejrychlejší: 1:00:00<br>
+                            Průměrný: 1:00:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4 my-2">
+                <div class="card card-body shadow">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0 text-center">
+                            <i class="bi-puzzle"></i>
+                            100<br>
+                            10x
+                        </h4>
+                        <div class="text-end">
+                            Nejrychlejší: 1:00:00<br>
+                            Průměrný: 1:00:00
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
 {% endblock %}

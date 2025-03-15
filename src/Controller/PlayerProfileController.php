@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerStatistics;
 use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
@@ -29,7 +30,7 @@ final class PlayerProfileController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private PuzzlesSorter $puzzlesSorter,
-        readonly private GetStatistics $getStatistics,
+        readonly private GetPlayerStatistics $getPlayerStatistics,
         readonly private GetRanking $getRanking,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private TranslatorInterface $translator,
@@ -59,8 +60,8 @@ final class PlayerProfileController extends AbstractController
             return $this->redirectToRoute('ladder');
         }
 
-        $soloStatistics = $this->getStatistics->soloForPlayer($player->playerId);
-        $groupStatistics = $this->getStatistics->inGroupForPlayer($player->playerId);
+        $soloStatistics = $this->getPlayerStatistics->solo($player->playerId);
+        $groupStatistics = $this->getPlayerStatistics->team($player->playerId);
         $playerStatistics = $soloStatistics->sum($groupStatistics);
 
         $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);

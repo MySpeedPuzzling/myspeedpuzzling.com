@@ -4,10 +4,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use SpeedPuzzling\Web\Controller\Api\GetPlayerStatisticsController;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerStatistics;
 use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
@@ -27,7 +29,6 @@ final class MyProfileController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetStopwatch $getStopwatch,
         readonly private PuzzlesSorter $puzzlesSorter,
-        readonly private GetStatistics $getStatistics,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetFavoritePlayers $getFavoritePlayers,
@@ -36,6 +37,7 @@ final class MyProfileController extends AbstractController
         readonly private GetBadges $getBadges,
         readonly private GetPuzzleCollection $getPuzzleCollection,
         readonly private GetWjpcParticipants $getWjpcParticipants,
+        readonly private GetPlayerStatistics $getPlayerStatistics
     ) {
     }
 
@@ -54,8 +56,8 @@ final class MyProfileController extends AbstractController
             return $this->redirectToRoute('homepage');
         }
 
-        $soloStatistics = $this->getStatistics->soloForPlayer($player->playerId);
-        $groupStatistics = $this->getStatistics->inGroupForPlayer($player->playerId);
+        $soloStatistics = $this->getPlayerStatistics->solo($player->playerId);
+        $groupStatistics = $this->getPlayerStatistics->team($player->playerId);
         $playerStatistics = $soloStatistics->sum($groupStatistics);
 
         $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($player->playerId);

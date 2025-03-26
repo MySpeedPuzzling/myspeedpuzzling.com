@@ -30,7 +30,7 @@
         {% if computed.chart.data['labels']|length < 1 %}
             <h2 class="text-muted text-center my-3">Not enough data :-(</h2>
         {% else %}
-            <div style="height: 250px;" data-controller="time-chart" class="position-relative">
+            <div style="height: 200px;" data-controller="time-chart" class="position-relative">
                 {{ render_chart(computed.chart) }}
 
                 <button

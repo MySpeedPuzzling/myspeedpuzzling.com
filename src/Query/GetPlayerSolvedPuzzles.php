@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -17,6 +18,36 @@ readonly final class GetPlayerSolvedPuzzles
         private Connection $database,
         private GetTeamPlayers $getTeamPlayers,
     ) {
+    }
+
+    /**
+     * @throws PlayerNotFound
+     */
+    public function getOldestResultDate(string $playerId): null|DateTimeImmutable
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT MIN(finished_at) AS first_date
+FROM puzzle_solving_time
+WHERE
+    player_id = :playerId
+    OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+LIMIT 1
+SQL;
+
+        /** @var false|string $result */
+        $result = $this->database->executeQuery($query, [
+            'playerId' => $playerId,
+        ])->fetchOne();
+
+        if ($result === false) {
+            return null;
+        }
+
+        return new DateTimeImmutable($result);
     }
 
     /**
@@ -99,14 +130,17 @@ SQL;
         }
 
         return SolvedPuzzleDetail::fromDatabaseRow($row);
-
     }
 
     /**
      * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
      */
-    public function soloByPlayerId(string $playerId): array
-    {
+    public function soloByPlayerId(
+        string $playerId,
+        null|DateTimeImmutable $dateFrom = null,
+        null|DateTimeImmutable $dateTo = null,
+    ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
@@ -148,12 +182,29 @@ FROM puzzle_solving_time
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.team IS NULL
-ORDER BY seconds_to_solve
+SQL;
+
+        if ($dateFrom !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at >= :dateFrom
+SQL;
+        }
+
+        if ($dateTo !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at <= :dateTo
+SQL;
+        }
+
+        $query .= <<<SQL
+    ORDER BY seconds_to_solve
 SQL;
 
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'dateFrom' => $dateFrom?->format('Y-m-d H:i:s'),
+                'dateTo' => $dateTo?->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -187,9 +238,13 @@ SQL;
 
     /**
      * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
      */
-    public function duoByPlayerId(string $playerId): array
-    {
+    public function duoByPlayerId(
+        string $playerId,
+        null|DateTimeImmutable $dateFrom = null,
+        null|DateTimeImmutable $dateTo = null,
+    ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
@@ -201,6 +256,21 @@ WITH filtered_pst_ids AS (
     WHERE
         (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
         AND json_array_length(team -> 'puzzlers') = 2
+SQL;
+
+        if ($dateFrom !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at >= :dateFrom
+SQL;
+        }
+
+        if ($dateTo !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at <= :dateTo
+SQL;
+        }
+
+        $query .= <<<SQL
 )
 SELECT
     pst.id as time_id,
@@ -229,6 +299,8 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'dateFrom' => $dateFrom?->format('Y-m-d H:i:s'),
+                'dateTo' => $dateTo?->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -271,8 +343,13 @@ SQL;
 
     /**
      * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
      */
-    public function teamByPlayerId(string $playerId): array
+    public function teamByPlayerId(
+        string $playerId,
+        null|DateTimeImmutable $dateFrom = null,
+        null|DateTimeImmutable $dateTo = null,
+    ): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -285,6 +362,21 @@ WITH filtered_pst_ids AS (
     WHERE
         (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
         AND json_array_length(team -> 'puzzlers') > 2
+SQL;
+
+        if ($dateFrom !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at >= :dateFrom
+SQL;
+        }
+
+        if ($dateTo !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at <= :dateTo
+SQL;
+        }
+
+        $query .= <<<SQL
 )
 SELECT
     pst.id as time_id,
@@ -313,6 +405,8 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'dateFrom' => $dateFrom?->format('Y-m-d H:i:s'),
+                'dateTo' => $dateTo?->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

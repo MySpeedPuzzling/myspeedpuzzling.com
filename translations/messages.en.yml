@@ -14,6 +14,12 @@ menu:
     privacy_policy: "Privacy policy"
     membership: "Membership"
     search: "Search"
+    statistics: "Statistics"
+    collection: "Collection"
+    favorite_puzzlers: "Favorite puzzlers"
+    edit_profile: "Edit profile"
+    change_player_code: "Change player code"
+    profile: "Profile"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -294,7 +300,7 @@ faq:
 profile:
     add_to_favorites: "Add to favorites"
     remove_from_favorites: "Remove from favorites"
-    compare: "Compare with player"
+    compare: "Compare times"
     no_puzzles_solved: "No puzzles solved? Give it a go and see how you do! We believe, you can do it!"
     not_filled: "Not filled"
     avatar: "Avatar"
@@ -325,7 +331,7 @@ my_profile:
     name: "Name/nickname"
     stopwatches: "My stopwatches"
     missing_name_info: "We're sorry, but if you don't fill in a name or nickname, we don't know how to present you. Therefore, all your results are non-public."
-    share_metion_myspeedpuzzling: "Tag us when sharing:"
+    share_mention_myspeedpuzzling: "Tag us: <code>@MySpeedPuzzling</code>"
     wjpc_connection: "WJPC connection"
 
 edit_player_code:
@@ -395,9 +401,32 @@ hub:
     not_logged: "You are nog logged in - to use full potential of what this platform offers to you, log in."
 
 statistics:
-    puzzle_solved: "Puzzle solved:"
-    total_pieces: "Total pieces:"
-    time_spent: "Time spent solving:"
+    puzzle_solved: "Puzzle solved"
+    total_pieces: "Total pieces"
+    time_spent: "Time spent solving"
+    longest_streak: "Longest streak"
+    longest_streak_help: "Max consecutive days puzzling"
+    no_results: |
+        We know you love solving puzzles — you’re basically a puzzle whisperer. But for the selected time period… nothing. Zero. Zilch. Nada.<br> 
+        Either you didn’t solve any, or you forgot to add them to the platform (which is even more puzzling, honestly).<br>
+        Time to grab a puzzle and fix this tragic plot twist! Your stats are crying in the corner — go show them some love.
+
+dates:
+    all_time: "All time"
+    year: "Year"
+    months:
+        1: "January"
+        2: "February"
+        3: "March"
+        4: "April"
+        5: "May"
+        6: "June"
+        7: "July"
+        8: "August"
+        9: "September"
+        10: "October"
+        11: "November"
+        12: "December"
 
 feedback:
     title: "Send feedback"
@@ -417,6 +446,7 @@ badges:
 
 collection:
     title: "Collection"
+    empty_info: "This collection is currently empty. Maybe it's time to change that? After all, everyone loves puzzles and storing them :-)."
 
 scan:
     meta:

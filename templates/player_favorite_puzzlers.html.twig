@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ player.playerName }} - {{ 'menu.favorite_puzzlers'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="row mt-4">
+        <div class="col-sm mt-3">
+            <h3>{{ 'profile.favorite_puzzlers'|trans }}</h3>
+
+            {% if favorite_players is empty %}
+                <div class="alert alert-warning">
+                    {{ 'profile.no_favorite_puzzlers'|trans }}
+                </div>
+            {% else %}
+                <ul>
+                    {% for favorite_puzzler in favorite_players %}
+                        <li>
+                            <a href="{{ path('player_profile', {playerId: favorite_puzzler.playerId}) }}">
+                                {{ favorite_puzzler.playerName }} <code class="text-muted">#{{ favorite_puzzler.playerCode|upper }}</code>
+                            </a>
+                            {% if favorite_puzzler.playerCountry is not null %}
+                                <small class="shadow-custom fi fi-{{ favorite_puzzler.playerCountry.name }}"></small>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,136 +1,76 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName }} statistics{% endblock %}
+{% block title %}{{ player.playerName }} - {{ 'menu.statistics'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>
-        {{ player.playerName }}
-        {% if player.countryCode is not null %}
-            <span class="h4 shadow-custom fi fi-{{ player.countryCode.name }}"></span>
-        {% endif %}
+    {% set currentRoute = app.request.attributes.get('_route') %}
+    {% set routeParams = app.request.attributes.get('_route_params')|default({}) %}
 
-        <twig:PlayerCodeHeader player="{{ player }}" />
-    </h1>
+    <twig:PlayerHeader player="{{ player }}" />
 
-    <p class="mb-0">
-        <a href="#"><i class="ci-arrow-left"></i></a> Únor 2025 <a href="#"><i class="ci-arrow-right"></i></a>
-    </p>
+    <div class="mb-2">
+        <div class="dropdown d-inline-block">
+            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="me-1 ci-calendar"></i>
+                {% if active_show_all %}
+                    {{ 'dates.all_time'|trans }}
+                {% elseif active_year and active_month.month <= 0 %}
+                    {{ 'dates.year'|trans }} {{ active_month.year }}
+                {% else %}
+                    {{ ('dates.months.' ~ active_month.month)|trans }} {{ active_month.year }}
+                {% endif %}
+            </button>
+            <div class="dropdown-menu">
+                <a href="{{ path(currentRoute, routeParams|merge({'month': null, 'year': null, 'show-all': true})) }}" class="dropdown-item {{ active_show_all ? 'active' }}">
+                    {{ 'dates.all_time'|trans }}
+                </a>
 
-    <div class="row">
-        <div class="col-md-6 col-lg-4 my-2">
-            <div class="card card-body shadow">
-                <div class="d-flex justify-content-between">
-                    <h4 class="mb-0">
-                        <i class="bi-puzzle"></i>
-                        {{ overall_statistics.solvedPuzzlesCount }}
-                    </h4>
-                    <div>
-                        Složených puzzlí
-                    </div>
-                </div>
+                {% for year in available_years %}
+                    <a href="{{ path(currentRoute, routeParams|merge({'month': null, 'year': year, 'show-all': null})) }}" class="dropdown-item {{ not active_show_all and active_year == year and active_month.month <= 0 ? 'active' }}">
+                        {{ 'dates.year'|trans }} {{ year }}
+                    </a>
+                {% endfor %}
 
-                <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;">
-                    {{ render_chart(manufacturers_chart) }}
-                </div>
-            </div>
-        </div>
+                <div class="dropdown-divider"></div>
 
-        <div class="col-md-6 col-lg-4 my-2">
-            <div class="card card-body shadow">
-                <div class="d-flex justify-content-between">
-                    <h4 class="mb-0">
-                        <i class="bi-stopwatch"></i>
-                        {{ overall_statistics.totalSeconds|puzzlingTime }}
-                    </h4>
-                    <div>
-                        Skládací čas
-                    </div>
-                </div>
-
-                <div style="height: 200px;width: 100%;" data-controller="time-chart" class="position-relative mt-2 mx-auto text-center">
-                    {{ render_chart(puzzling_time_chart) }}
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6 col-lg-4">
-            <div class="card card-body shadow my-2">
-                <div class="d-flex justify-content-between">
-                    <h4 class="mb-0">
-                        <i class="bi-puzzle"></i>
-                        {{ overall_statistics.totalPieces }}
-                    </h4>
-                    <div>
-                        Umístěných dílků
-                    </div>
-                </div>
-            </div>
-
-            <div class="card card-body shadow my-2">
-                <div class="d-flex justify-content-between">
-                    <h4 class="mb-0">
-                        <i class="bi-fire"></i>
-                        9
-                    </h4>
-                    <div>
-                        Longest streak
-                    </div>
-                </div>
+                {% for month in available_months %}
+                <a href="{{ path(currentRoute, routeParams|merge({'month': month.month, 'year': month.year, 'show-all': null})) }}" class="dropdown-item {{ not active_show_all and active_year == month.year and active_month.month == month.month ? 'active' }}">
+                    {{ ('dates.months.' ~ month.month)|trans }} {{ month.year }}
+                </a>
+                {% endfor %}
             </div>
         </div>
     </div>
 
-    <div class="puzzle-category-types mt-3 my-2">
-        <button class="btn active">
-            <span class="users-icons"><i class="ci-user"></i></span>
-            {{ 'ladder.solo'|trans }}
-        </button>
+    {% if overall_statistics.solvedPuzzle.count == 0 %}
+        <div class="my-3" role="alert">
+            {{ 'statistics.no_results'|trans|raw }}
+        </div>
 
-        <button class="btn">
-            <span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>
-            {{ 'ladder.duo'|trans }}
-        </button>
-
-        <button class="btn">
-            <span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>
-            {{ 'ladder.team'|trans }}
-        </button>
-    </div>
-
-    {% if solo_statistics.solvedPuzzlesCount > 0 %}
-        <div class="row">
+        <div class="text-center">
+            <img src="{{ asset('img/no-statistics.jpg') }}" alt="No statistics for this time period" class="img-fluid rounded-4 shadow mt-3">
+        </div>
+    {% else %}
+        {% if
+            overall_statistics.solvedPuzzle.count != solo_statistics.solvedPuzzle.count
+            and overall_statistics.solvedPuzzle.count != duo_statistics.solvedPuzzle.count
+            and overall_statistics.solvedPuzzle.count != team_statistics.solvedPuzzle.count
+        %}
+            <div class="row mb-4">
             <div class="col-md-6 col-lg-4 my-2">
                 <div class="card card-body shadow">
                     <div class="d-flex justify-content-between">
                         <h4 class="mb-0">
                             <i class="bi-puzzle"></i>
-                            {{ solo_statistics.solvedPuzzlesCount }}
+                            {{ overall_statistics.solvedPuzzle.count }}
                         </h4>
-                        <div>
-                            Složených puzzlí
+                        <div class="text-end">
+                            {{ 'statistics.puzzle_solved'|trans }}
                         </div>
                     </div>
 
-                    <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;">
-                        {{ render_chart(manufacturers_chart) }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4 my-2">
-                <div class="card card-body shadow">
-                    <div class="d-flex justify-content-between">
-                        <h4 class="mb-0">
-                            <i class="bi-puzzle"></i>
-                            {{ solo_statistics.totalPieces }}
-                        </h4>
-                        <div>
-                            Umístěných dílků
-                        </div>
-                    </div>
-
-                    <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;">
-                        {{ render_chart(pieces_chart) }}
+                    <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;height: 200px;">
+                        {{ render_chart(overall_manufacturers_chart) }}
                     </div>
                 </div>
             </div>
@@ -140,81 +80,104 @@
                     <div class="d-flex justify-content-between">
                         <h4 class="mb-0">
                             <i class="bi-stopwatch"></i>
-                            {{ solo_statistics.totalSeconds|puzzlingTime }}
+                            {{ overall_statistics.timeSpentSolving.total|puzzlingTime }}
                         </h4>
-                        <div>
-                            Skládací čas
+                        <div class="text-end">
+                            {{ 'statistics.time_spent'|trans }}
+                        </div>
+                    </div>
+
+                    <div style="height: 200px;width: 100%;" data-controller="time-chart" class="position-relative mt-2 mx-auto text-center">
+                        {{ render_chart(overall_puzzling_time_chart) }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-body shadow my-2">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0">
+                            <i class="bi-fire"></i>
+                            {{ overall_statistics.longestStreak }}
+                        </h4>
+                        <div class="text-end">
+                            {{ 'statistics.longest_streak'|trans }}<br>
+                            <small class="text-muted">{{ 'statistics.longest_streak_help'|trans }}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-body shadow my-2">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0">
+                            <i class="bi-puzzle"></i>
+                            {{ overall_statistics.totalPieces }}
+                        </h4>
+                        <div class="text-end">
+                            {{ 'statistics.total_pieces'|trans }}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <div class="row">
+        <div class="puzzle-category-types mt-3 my-2" id="puzzleCategoryTabs" role="tablist">
+            {% if solo_statistics.solvedPuzzle.count > 0 %}
+                <button class="btn active" id="solo-tab" data-bs-toggle="tab" data-bs-target="#solo" type="button" role="tab" aria-controls="solo" aria-selected="true">
+                    <span class="users-icons"><i class="ci-user"></i></span>
+                    {{ 'ladder.solo'|trans }}
+                </button>
+            {% endif %}
 
-            <div class="col-md-6 col-lg-4 my-2">
-                <div class="card card-body shadow">
-                    <div class="d-flex justify-content-between">
-                        <h4 class="mb-0 text-center">
-                            <i class="bi-puzzle"></i>
-                            500<br>
-                            <small>10x</small>
-                        </h4>
-                        <div class="text-end">
-                            Nejrychlejší: 1:00:00<br>
-                            Průměrný: 1:00:00
-                        </div>
-                    </div>
+            {% if duo_statistics.solvedPuzzle.count > 0 %}
+                <button class="btn {{ solo_statistics.solvedPuzzle.count == 0 ? 'active' }}" id="duo-tab" data-bs-toggle="tab" data-bs-target="#duo" type="button" role="tab" aria-controls="duo" aria-selected="false">
+                    <span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>
+                    {{ 'ladder.duo'|trans }}
+                </button>
+            {% endif %}
+
+            {% if team_statistics.solvedPuzzle.count > 0 %}
+                <button class="btn {{ solo_statistics.solvedPuzzle.count == 0 and duo_statistics.solvedPuzzle.count == 0 ? 'active' }}" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="false">
+                    <span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>
+                    {{ 'ladder.team'|trans }}
+                </button>
+            {% endif %}
+        </div>
+
+        <div class="tab-content" id="puzzleCategoryTabContent">
+            {% if solo_statistics.solvedPuzzle.count > 0 %}
+                <div class="tab-pane fade show active" id="solo" role="tabpanel" aria-labelledby="solo-tab">
+                    {{ include('_player_statistics_category.html.twig', {
+                        'statistics': solo_statistics,
+                        'manufacturers_chart': solo_manufacturers_chart,
+                        'puzzling_time_chart': solo_puzzling_time_chart,
+                        'pieces_chart': solo_pieces_chart,
+                    }) }}
                 </div>
-            </div>
+            {% endif %}
 
-            <div class="col-md-6 col-lg-4 my-2">
-                <div class="card card-body shadow">
-                    <div class="d-flex justify-content-between">
-                        <h4 class="mb-0 text-center">
-                            <i class="bi-puzzle"></i>
-                            300<br>
-                            <small>10x</small>
-                        </h4>
-                        <div class="text-end">
-                            Nejrychlejší: 1:00:00<br>
-                            Průměrný: 1:00:00
-                        </div>
-                    </div>
+            {% if duo_statistics.solvedPuzzle.count > 0 %}
+                <div class="tab-pane fade" id="duo" role="tabpanel" aria-labelledby="duo-tab">
+                    {{ include('_player_statistics_category.html.twig', {
+                        'statistics': duo_statistics,
+                        'manufacturers_chart': duo_manufacturers_chart,
+                        'puzzling_time_chart': duo_puzzling_time_chart,
+                        'pieces_chart': duo_pieces_chart,
+                    }) }}
                 </div>
-            </div>
+            {% endif %}
 
-            <div class="col-md-6 col-lg-4 my-2">
-                <div class="card card-body shadow">
-                    <div class="d-flex justify-content-between">
-                        <h4 class="mb-0 text-center">
-                            <i class="bi-puzzle"></i>
-                            200<br>
-                            <small>10x</small>
-                        </h4>
-                        <div class="text-end">
-                            Nejrychlejší: 1:00:00<br>
-                            Průměrný: 1:00:00
-                        </div>
-                    </div>
+            {% if team_statistics.solvedPuzzle.count > 0 %}
+                <div class="tab-pane fade" id="team" role="tabpanel" aria-labelledby="team-tab">
+                    {{ include('_player_statistics_category.html.twig', {
+                        'statistics': team_statistics,
+                        'manufacturers_chart': team_manufacturers_chart,
+                        'puzzling_time_chart': team_puzzling_time_chart,
+                        'pieces_chart': team_pieces_chart,
+                    }) }}
                 </div>
-            </div>
-
-            <div class="col-md-6 col-lg-4 my-2">
-                <div class="card card-body shadow">
-                    <div class="d-flex justify-content-between">
-                        <h4 class="mb-0 text-center">
-                            <i class="bi-puzzle"></i>
-                            100<br>
-                            <small>10x</small>
-                        </h4>
-                        <div class="text-end">
-                            Nejrychlejší: 1:00:00<br>
-                            Průměrný: 1:00:00
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {% endif %}
         </div>
     {% endif %}
 

@@ -32,8 +32,9 @@
         {{ encore_entry_link_tags('app') }}
 
         {% set currentRoute = app.request.attributes.get('_route') %}
-        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'en'}) %}
-        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge({'_locale': 'cs'}) %}
+        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all) %}
+        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'en'}) %}
+        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'cs'}) %}
 
         {% if currentRoute %}
             <link rel="alternate" hreflang="cs" href="{{ url(currentRoute, routeParamsCs) }}">
@@ -117,12 +118,73 @@
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.search'|trans }}</small></div>
                         </a>
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('my_profile') %}active{% endif %}" href="{{ path('my_profile') }}">
-                            <div class="navbar-tool-icon-box">
-                                <i class="navbar-tool-icon ci-user"></i>
+                        {% if logged_user.profile is null %}
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('my_profile') }}">
+                                <div class="navbar-tool-icon-box">
+                                    <i class="navbar-tool-icon ci-user"></i>
+                                </div>
+                                <div class="navbar-tool-text ms-n3"><small>{{ 'menu.sign_in'|trans }}</small></div>
+                            </a>
+                        {% else %}
+                            <div class="navbar-tool dropdown ms-1 ms-lg-0 me-n1 me-lg-2">
+                                <a class="dropdown-toggle navbar-tool" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="navbar-tool-icon-box">
+                                        <i class="navbar-tool-icon ci-user"></i>
+                                    </div>
+                                    <div class="navbar-tool-text ms-n3 no-caret"><small>{{ 'menu.my_profile'|trans }}</small></div>
+                                </a>
+
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_profile' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('my_profile') }}">
+                                            <i class="bi bi-person me-1"></i> {{ 'menu.my_profile'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_statistics' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_statistics', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-bar-chart-line me-1"></i> {{ 'menu.statistics'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_collection' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_collection', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_favorite_puzzlers' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_favorite_puzzlers', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
+                                        </a>
+                                    </li>
+
+                                    <li><hr class="dropdown-divider"></li>
+
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
+                                            <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        {% if logged_user.profile.activeMembership %}
+                                            <a href="{{ path('edit_player_code') }}" class="dropdown-item {% if currentRoute == 'edit_player_code' %}active{% endif %}">
+                                                <i class="me-1 ci-edit"></i> {{ 'menu.change_player_code'|trans }}
+                                            </a>
+                                        {% else %}
+                                            <a href="#"
+                                               class="dropdown-item"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#membersExclusiveModal">
+                                                <i class="me-1 ci-locked"></i> {{ 'menu.change_player_code'|trans }}
+                                            </a>
+                                        {% endif %}
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{{ path('logout') }}">
+                                            <i class="bi bi-box-arrow-right me-2"></i>{{ 'my_profile.logout'|trans }}
+                                        </a>
+                                    </li>
+                                </ul>
                             </div>
-                            <div class="navbar-tool-text ms-n3"><small>{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</small></div>
-                        </a>
+                        {% endif %}
 
 
                         <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" rel="nofollow" href="{{ path('add_time') }}">

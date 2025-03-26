@@ -1,0 +1,79 @@
+<div class="row">
+    <div class="col-md-6 col-lg-4 my-2">
+        <div class="card card-body shadow">
+            <div class="d-flex justify-content-between">
+                <h4 class="mb-0">
+                    <i class="bi-puzzle"></i>
+                    {{ statistics.solvedPuzzle.count }}
+                </h4>
+                <div class="text-end">
+                    {{ 'statistics.puzzle_solved'|trans }}
+                </div>
+            </div>
+
+            <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;height: 200px;">
+                {{ render_chart(manufacturers_chart) }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4 my-2">
+        <div class="card card-body shadow">
+            <div class="d-flex justify-content-between">
+                <h4 class="mb-0">
+                    <i class="bi-stopwatch"></i>
+                    {{ statistics.timeSpentSolving.total|puzzlingTime }}
+                </h4>
+                <div class="text-end">
+                    {{ 'statistics.time_spent'|trans }}
+                </div>
+            </div>
+
+            <div style="height: 200px;width: 100%;" data-controller="time-chart" class="position-relative mt-2 mx-auto text-center">
+                {{ render_chart(puzzling_time_chart) }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4 my-2">
+        <div class="card card-body shadow">
+            <div class="d-flex justify-content-between">
+                <h4 class="mb-0">
+                    <i class="bi-puzzle"></i>
+                    {{ statistics.totalPieces }}
+                </h4>
+                <div class="text-end">
+                    {{ 'statistics.total_pieces'|trans }}
+                </div>
+            </div>
+
+            <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;height: 200px;">
+                {{ render_chart(pieces_chart) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    {% for pieces_statistics in statistics.perPieces %}
+        <div class="col-md-6 col-lg-4 my-2">
+            <div class="card card-body shadow">
+                <div class="d-flex justify-content-between">
+                    <h4 class="mb-0 text-center">
+                        <i class="bi-puzzle"></i>
+                        {{ pieces_statistics.pieces }}<br>
+                        <small>{{ pieces_statistics.count }}&times;</small>
+                    </h4>
+                    <div class="text-end">
+                        {% if pieces_statistics.count > 1 %}
+                            {{ 'fastest_time'|trans }} {{ pieces_statistics.fastestTime|puzzlingTime }}<br>
+                            {{ 'average_time'|trans }} {{ pieces_statistics.averageTime|puzzlingTime }}
+                        {% else %}
+                            {{ 'time'|trans }} {{ pieces_statistics.fastestTime|puzzlingTime }}<br>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>

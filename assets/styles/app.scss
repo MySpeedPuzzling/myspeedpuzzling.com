@@ -246,8 +246,6 @@ td.rank {
 
     input {
         font-size: 12px;
-        padding-left: 7px;
-        padding-right: 7px;
     }
 }
 
@@ -344,6 +342,15 @@ td.rank {
 
     &.bg-secondary {
         background: #e2e6ea !important;
+    }
+}
+
+.dropdown-toggle.navbar-tool::after {
+    color: #4b566b !important;
+    margin-left: -7px;
+
+    @media (min-width: 992px) {
+        margin-left: 4px;
     }
 }
 
@@ -796,4 +803,19 @@ div[data-countdown-target] {
     height: 120px;
     background: url('../img/puzzle-detail-chart-placeholder.png') center center no-repeat;
     background-size: 100% 100%;
+}
+
+.no-caret::after {
+    display: none !important;
+}
+
+.player-profile-header {
+    position: sticky;
+    top: 97px;
+    background: #fff;
+    z-index: 8;
+
+    @media (min-width: 992px) {
+        top: 101px;
+    }
 }

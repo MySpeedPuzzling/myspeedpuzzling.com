@@ -14,6 +14,12 @@ menu:
     privacy_policy: "Ochrana osobních údajů"
     membership: "Členství"
     search: "Hledej"
+    statistics: "Statistiky"
+    collection: "Kolekce"
+    favorite_puzzlers: "Oblíbení puzzleři"
+    edit_profile: "Upravit profil"
+    change_player_code: "Změnit kód hráče"
+    profile: "Profil"
 
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
@@ -294,7 +300,7 @@ faq:
 profile:
     add_to_favorites: "Přidat do oblíbených"
     remove_from_favorites: "Odebrat z oblíbených"
-    compare: "Porovnat s hráčem"
+    compare: "Porovnat časy"
     no_puzzles_solved: "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
     not_filled: "Nevyplněno"
     avatar: "Avatar"
@@ -325,7 +331,7 @@ my_profile:
     name: "Jméno/přezdívka"
     stopwatches: "Moje stopky"
     missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
-    share_metion_myspeedpuzzling: "Označ nás při sdílení:"
+    share_mention_myspeedpuzzling: "Označ nás:"
     wjpc_connection: "WJPC propojení"
 
 edit_player_code:
@@ -395,9 +401,31 @@ hub:
     not_logged: "Nejste přihlášení - pro využití plného potenciálu toho, co vám platforma nabízí se přihlašte."
 
 statistics:
-    puzzle_solved: "Složených puzzlí:"
-    total_pieces: "Celkem dílků:"
-    time_spent: "Čas strávený skládáním:"
+    puzzle_solved: "Složených puzzlí"
+    total_pieces: "Celkem dílků"
+    time_spent: "Čas strávený skládáním"
+    longest_streak: "Nejdelší série"
+    longest_streak_help: "Max po sobě jdoucích dní puzzlování"
+    no_results: |
+        Víme, že miluješ skládání puzzlů — jsi v podstatě zašeptávač puzzlí. Ale za vybrané časové období… nic. Nula. Prázdno. Nicota.<br>
+        Buď jsi žádné puzzle neskládal, nebo jsi ho zapomněl přidat na platformu (což je možná ještě větší záhada).<br>
+        Je čas vzít nějaké puzzle a napravit tenhle tragický dějový zvrat! Tvoje statistiky pláčou v rohu — dopřej jim trochu lásky.
+dates:
+    all_time: "Za celou dobu"
+    year: "Rok"
+    months:
+        1: "Leden"
+        2: "Únor"
+        3: "Březen"
+        4: "Duben"
+        5: "Květen"
+        6: "Červen"
+        7: "Červenec"
+        8: "Srpen"
+        9: "Září"
+        10: "Říjen"
+        11: "Listopad"
+        12: "Prosinec"
 
 feedback:
     title: "Poslat zpětnou vazbu"
@@ -417,6 +445,7 @@ badges:
 
 collection:
     title: "Sbírka"
+    empty_info: "Tato kolekce je prozatím prázdná. Možná už je vhodný čas to změnit? Přeci každý miluje puzzle a jejich skladování :-)."
 
 scan:
     meta:

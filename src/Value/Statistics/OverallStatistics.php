@@ -40,7 +40,7 @@ readonly final class OverallStatistics
                     $countPerManufacturer[$manufacturerName] = 0;
                 }
 
-                $countPerManufacturer[$manufacturerName]++;
+                $countPerManufacturer[$manufacturerName] += $count;
             }
 
             foreach ($statistic->timeSpentSolving->perDay as $day => $time) {

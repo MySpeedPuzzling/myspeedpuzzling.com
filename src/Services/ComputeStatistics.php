@@ -8,9 +8,6 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Value\Statistics\OverallStatistics;
 use SpeedPuzzling\Web\Value\Statistics\PerCategoryStatistics;
-use SpeedPuzzling\Web\Value\Statistics\PiecesStatistics;
-use SpeedPuzzling\Web\Value\Statistics\SolvedPuzzleStatistics;
-use SpeedPuzzling\Web\Value\Statistics\TimeSpentSolvingStatistics;
 
 readonly final class ComputeStatistics
 {

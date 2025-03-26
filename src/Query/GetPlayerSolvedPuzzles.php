@@ -38,7 +38,7 @@ WHERE
 LIMIT 1
 SQL;
 
-        /** @var false|string $result */
+        /** @var false|null|string $result */
         $result = $this->database->executeQuery($query, [
             'playerId' => $playerId,
         ])->fetchOne();

@@ -195,6 +195,7 @@ final class PlayerStatisticsController extends AbstractController
             'labels' => $labels,
             'datasets' => [
                 [
+                    'borderWidth' => 0,
                     'data' => $chartData,
                 ],
             ],
@@ -203,6 +204,7 @@ final class PlayerStatisticsController extends AbstractController
         $chart->setOptions([
             'responsive' => true,
             'aspectRatio' => 2,
+            'maintainAspectRatio' => false,
         ]);
 
         return $chart;
@@ -216,14 +218,14 @@ final class PlayerStatisticsController extends AbstractController
         if ($statistics instanceof PerCategoryStatistics) {
             foreach ($statistics->perPieces as $piecesStatistics) {
                 $chartData[] = $piecesStatistics->count;
-                $labels[] = sprintf('%d pieces (%dx)', $piecesStatistics->pieces, $piecesStatistics->count);
+                $labels[] = sprintf('%d: %dx', $piecesStatistics->pieces, $piecesStatistics->count);
             }
         }
 
         if ($statistics instanceof OverallStatistics) {
             foreach ($statistics->perPiecesCount as $pieces => $count) {
                 $chartData[] = $count;
-                $labels[] = sprintf('%d pieces (%dx)', $pieces, $count);
+                $labels[] = sprintf('%d: %dx', $pieces, $count);
             }
         }
 
@@ -233,6 +235,7 @@ final class PlayerStatisticsController extends AbstractController
             'labels' => $labels,
             'datasets' => [
                 [
+                    'borderWidth' => 0,
                     'data' => $chartData,
                 ],
             ],
@@ -241,6 +244,7 @@ final class PlayerStatisticsController extends AbstractController
         $chart->setOptions([
             'responsive' => true,
             'aspectRatio' => 2,
+            'maintainAspectRatio' => false,
         ]);
 
         return $chart;

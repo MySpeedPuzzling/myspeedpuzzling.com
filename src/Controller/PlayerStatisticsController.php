@@ -203,7 +203,6 @@ final class PlayerStatisticsController extends AbstractController
 
         $chart->setOptions([
             'responsive' => true,
-            'aspectRatio' => 2,
             'maintainAspectRatio' => false,
         ]);
 
@@ -243,7 +242,6 @@ final class PlayerStatisticsController extends AbstractController
 
         $chart->setOptions([
             'responsive' => true,
-            'aspectRatio' => 2,
             'maintainAspectRatio' => false,
         ]);
 

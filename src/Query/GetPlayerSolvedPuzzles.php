@@ -43,7 +43,7 @@ SQL;
             'playerId' => $playerId,
         ])->fetchOne();
 
-        if ($result === false) {
+        if ($result === false || $result === null) {
             return null;
         }
 

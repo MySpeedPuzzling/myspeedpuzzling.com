@@ -25,11 +25,32 @@ class Competition
         #[Column]
         public string $name,
 
+        #[Column(nullable: true)]
+        public null|string $logo,
+
+        #[Column(nullable: true)]
+        public null|string $description,
+
+        #[Column(nullable: true)]
+        public null|string $link,
+
+        #[Column(nullable: true)]
+        public null|string $registrationLink,
+
+        #[Column(nullable: true)]
+        public null|string $resultsLink,
+
         #[Column]
         public string $location,
 
+        #[Column]
+        public string $locationCountryCode,
+
         #[Column(type: Types::DATETIME_IMMUTABLE)]
-        public DateTimeImmutable $date,
+        public DateTimeImmutable $dateFrom,
+
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $dateTo,
     ) {
     }
 }

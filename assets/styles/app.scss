@@ -819,3 +819,11 @@ div[data-countdown-target] {
         top: 101px;
     }
 }
+
+.event-image {
+    width: 60px;
+
+    @media (min-width: 800px) {
+        width: 90px;
+    }
+}

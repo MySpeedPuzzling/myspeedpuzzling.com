@@ -5,7 +5,7 @@
                 <h3 class="h5 mb-2">{{ event.name }}</h3>
 
                 <div class="row">
-                    <div class="col-6">
+                    <div class="col-sm-6">
                         {% if event.locationCountryCode %}
                             <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
                         {% endif %}
@@ -24,7 +24,7 @@
                     </div>
 
                     {% if event.link or event.registrationLink or event.resultsLink %}
-                        <div class="col-6">
+                        <div class="col-sm-6 mt-2 mt-sm-0">
                             {% if event.link %}
                                 <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
                                     <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}
@@ -47,11 +47,11 @@
                 </div>
             </div>
 
-            {% if event.logo %}
-                <div style="width: 90px;" class="ms-3 flex-shrink-0">
+            <div class="ms-3 flex-shrink-0 event-image">
+                {% if event.logo %}
                     <img style="max-height: 84px;" src="{{ event.logo|imagine_filter('puzzle_small') }}" alt="{{ event.name }} logo" class="img-fluid">
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
         </div>
     </div>
 </div>

@@ -6,8 +6,6 @@
     <h1>{{ 'events.title'|trans }}</h1>
 
     {% if upcoming_events|length > 0 %}
-        <h2>{{ 'events.upcoming'|trans }}</h2>
-
         <div class="row">
             {% for event in upcoming_events %}
                 {{ include('_competition_event.html.twig') }}

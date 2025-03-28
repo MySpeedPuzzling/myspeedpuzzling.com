@@ -823,7 +823,7 @@ div[data-countdown-target] {
 .event-image {
     width: 60px;
 
-    @media (min-width: 800px) {
+    @media (min-width: 500px) {
         width: 90px;
     }
 }

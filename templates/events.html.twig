@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'events.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1>{{ 'events.title'|trans }}</h1>
+
+    {% if upcoming_events|length > 0 %}
+        <h2>{{ 'events.upcoming'|trans }}</h2>
+
+        <div class="row">
+            {% for event in upcoming_events %}
+                {{ include('_competition_event.html.twig') }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if past_events|length > 0 %}
+        <h2 class="mt-4">{{ 'events.past'|trans }}</h2>
+
+        <div class="row">
+            {% for event in past_events %}
+                {{ include('_competition_event.html.twig') }}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

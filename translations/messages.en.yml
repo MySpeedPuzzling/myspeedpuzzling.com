@@ -20,6 +20,7 @@ menu:
     edit_profile: "Edit profile"
     change_player_code: "Change player code"
     profile: "Profile"
+    events: "Events"
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
@@ -249,6 +250,17 @@ error:
     500:
         title: "Unknown error"
         message: "Something went wrong - we've been notified and will fix it as soon as possible"
+
+events:
+    title: "Events"
+    meta:
+        title: "Events"
+    upcoming: "Upcoming"
+    past: "Past events"
+    website_link: "Info"
+    results_link: "Results"
+    registration_link: "Register"
+
 
 faq:
     meta:

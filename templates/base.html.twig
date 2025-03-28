@@ -110,7 +110,7 @@
                     </a>
 
                     <!-- Toolbar -->
-                    <div class="navbar-toolbar d-flex align-items-center order-lg-3">
+                    <div class="navbar-toolbar d-flex align-items-center order-lg-3 ms-lg-3">
                         <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-search"></i>
@@ -214,37 +214,43 @@
                         <hr class="d-lg-none my-2">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <a class="nav-link {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
+                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
                                     <i class="me-1 me-lg-0 bi bi-house-door"></i>
                                     {{ 'menu.hub'|trans }}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
+                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
                                     <i class="me-1 me-lg-0 bi bi-puzzle"></i>
                                     {{ 'menu.puzzles_overview'|trans }}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
+                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
                                     <i class="me-1 me-lg-0 bi bi-trophy"></i>
                                     {{ 'menu.ladder'|trans }}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
+                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
                                     <i class="me-1 me-lg-0 bi bi-people"></i>
                                     {{ 'menu.players'|trans }}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
                                     <i class="me-1 me-lg-0 ci-time"></i>
                                     {{ 'menu.stopwatch'|trans }}
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
+                                    <i class="me-1 me-lg-0 ci-calendar"></i>
+                                    {{ 'menu.events'|trans }}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
                                     <i class="me-1 me-lg-0 bi bi-patch-question"></i>
                                     {{ 'menu.faq'|trans }}
                                 </a>
@@ -306,6 +312,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a rel="nofollow" href="{{ path('events') }}" class="widget-list-link">{{ 'menu.events'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('wjpc2024') }}" class="widget-list-link">WJPC 2024</a>

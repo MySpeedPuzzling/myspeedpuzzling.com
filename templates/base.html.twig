@@ -238,15 +238,15 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
-                                    <i class="me-1 me-lg-0 ci-time"></i>
-                                    {{ 'menu.stopwatch'|trans }}
-                                </a>
-                            </li>
-                            <li class="nav-item">
                                 <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
                                     <i class="me-1 me-lg-0 ci-calendar"></i>
                                     {{ 'menu.events'|trans }}
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                                    <i class="me-1 me-lg-0 ci-time"></i>
+                                    {{ 'menu.stopwatch'|trans }}
                                 </a>
                             </li>
                             <li class="nav-item">

@@ -58,7 +58,7 @@ readonly final class CompetitionEvent
             resultsLink: $row['results_link'],
             location: $row['location'],
             locationCountryCode: $row['location_country_code'] !== null ? CountryCode::fromCode($row['location_country_code']) : null,
-            dateFrom: new DateTimeImmutable($row['date_from']),
+            dateFrom: (new DateTimeImmutable($row['date_from']))->setTime(9, 0),
             dateTo: $row['date_to'] !== null ? new DateTimeImmutable($row['date_to']) : null,
         );
     }

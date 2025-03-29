@@ -23,10 +23,11 @@ readonly final class ComputeStatistics
         string $playerId,
         DateTimeImmutable $dateFrom,
         DateTimeImmutable $dateTo,
+        bool $onlyFirstTries,
     ): array {
-        $soloResults = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId, $dateFrom, $dateTo);
-        $duoResults = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId, $dateFrom, $dateTo);
-        $teamResults = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId, $dateFrom, $dateTo);
+        $soloResults = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId, $dateFrom, $dateTo, $onlyFirstTries);
+        $duoResults = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId, $dateFrom, $dateTo, $onlyFirstTries);
+        $teamResults = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId, $dateFrom, $dateTo, $onlyFirstTries);
 
         $soloStatistics = new PerCategoryStatistics($soloResults);
         $duoStatistics = new PerCategoryStatistics($duoResults);

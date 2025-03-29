@@ -140,6 +140,7 @@ SQL;
         string $playerId,
         null|DateTimeImmutable $dateFrom = null,
         null|DateTimeImmutable $dateTo = null,
+        bool $onlyFirstTries = false,
     ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -183,6 +184,12 @@ WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.team IS NULL
 SQL;
+
+        if ($onlyFirstTries === true) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.first_attempt = true
+SQL;
+        }
 
         if ($dateFrom !== null) {
             $query .= <<<SQL
@@ -244,6 +251,7 @@ SQL;
         string $playerId,
         null|DateTimeImmutable $dateFrom = null,
         null|DateTimeImmutable $dateTo = null,
+        bool $onlyFirstTries = false,
     ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -267,6 +275,12 @@ SQL;
         if ($dateTo !== null) {
             $query .= <<<SQL
     AND puzzle_solving_time.finished_at <= :dateTo
+SQL;
+        }
+
+        if ($onlyFirstTries === true) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.first_attempt = true
 SQL;
         }
 
@@ -349,6 +363,7 @@ SQL;
         string $playerId,
         null|DateTimeImmutable $dateFrom = null,
         null|DateTimeImmutable $dateTo = null,
+        bool $onlyFirstTries = false,
     ): array
     {
         if (Uuid::isValid($playerId) === false) {
@@ -373,6 +388,12 @@ SQL;
         if ($dateTo !== null) {
             $query .= <<<SQL
     AND puzzle_solving_time.finished_at <= :dateTo
+SQL;
+        }
+
+        if ($onlyFirstTries === true) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.first_attempt = true
 SQL;
         }
 

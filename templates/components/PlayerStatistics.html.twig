@@ -1,0 +1,151 @@
+<div {{ attributes }}>
+    <div class="form-check form-switch my-3">
+        <input
+            data-model="onlyFirstTries"
+            type="checkbox"
+            class="form-check-input"
+            role="switch"
+            id="only-first-attempt"
+            {{ this.onlyFirstTries ? 'checked' }}>
+        <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
+    </div>
+
+    {% if overallStatistics.solvedPuzzle.count == 0 %}
+        <div class="my-3" role="alert">
+            {{ 'statistics.no_results'|trans|raw }}
+        </div>
+
+        <div class="text-center">
+            <img src="{{ asset('img/no-statistics.jpg') }}" alt="No statistics for this time period" class="img-fluid rounded-4 shadow mt-3">
+        </div>
+    {% else %}
+        {% if
+            overallStatistics.solvedPuzzle.count != soloStatistics.solvedPuzzle.count
+            and overallStatistics.solvedPuzzle.count != duoStatistics.solvedPuzzle.count
+            and overallStatistics.solvedPuzzle.count != teamStatistics.solvedPuzzle.count
+        %}
+            <div class="row mb-4">
+                <div class="col-md-6 col-lg-4 my-2">
+                    <div class="card card-body shadow">
+                        <div class="d-flex justify-content-between">
+                            <h4 class="mb-0">
+                                <i class="bi-puzzle"></i>
+                                {{ overallStatistics.solvedPuzzle.count }}
+                            </h4>
+                            <div class="text-end">
+                                {{ 'statistics.puzzle_solved'|trans }}
+                            </div>
+                        </div>
+
+                        <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;">
+                            {{ render_chart(overallManufacturersChart) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4 my-2">
+                    <div class="card card-body shadow">
+                        <div class="d-flex justify-content-between">
+                            <h4 class="mb-0">
+                                <i class="bi-stopwatch"></i>
+                                {{ overallStatistics.timeSpentSolving.total|puzzlingTime }}
+                            </h4>
+                            <div class="text-end">
+                                {{ 'statistics.time_spent'|trans }}
+                            </div>
+                        </div>
+
+                        <div style="width: 100%;height: 200px;" data-controller="time-chart" class="position-relative mt-2 mx-auto text-center">
+                            {{ render_chart(overallPuzzlingTimeChart) }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-body shadow my-2">
+                        <div class="d-flex justify-content-between">
+                            <h4 class="mb-0">
+                                <i class="bi-fire"></i>
+                                {{ overallStatistics.longestStreak }}
+                            </h4>
+                            <div class="text-end">
+                                {{ 'statistics.longest_streak'|trans }}<br>
+                                <small class="text-muted">{{ 'statistics.longest_streak_help'|trans }}</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-body shadow my-2">
+                        <div class="d-flex justify-content-between">
+                            <h4 class="mb-0">
+                                <i class="bi-puzzle"></i>
+                                {{ overallStatistics.totalPieces }}
+                            </h4>
+                            <div class="text-end">
+                                {{ 'statistics.total_pieces'|trans }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="puzzle-category-types mt-3 my-2" id="puzzleCategoryTabs" role="tablist">
+            {% if soloStatistics.solvedPuzzle.count > 0 %}
+                <button class="btn active" id="solo-tab" data-bs-toggle="tab" data-bs-target="#solo" type="button" role="tab" aria-controls="solo" aria-selected="true">
+                    <span class="users-icons"><i class="ci-user"></i></span>
+                    {{ 'ladder.solo'|trans }}
+                </button>
+            {% endif %}
+
+            {% if duoStatistics.solvedPuzzle.count > 0 %}
+                <button class="btn {{ soloStatistics.solvedPuzzle.count == 0 ? 'active' }}" id="duo-tab" data-bs-toggle="tab" data-bs-target="#duo" type="button" role="tab" aria-controls="duo" aria-selected="false">
+                    <span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>
+                    {{ 'ladder.duo'|trans }}
+                </button>
+            {% endif %}
+
+            {% if teamStatistics.solvedPuzzle.count > 0 %}
+                <button class="btn {{ soloStatistics.solvedPuzzle.count == 0 and duoStatistics.solvedPuzzle.count == 0 ? 'active' }}" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="false">
+                    <span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>
+                    {{ 'ladder.team'|trans }}
+                </button>
+            {% endif %}
+        </div>
+
+        <div class="tab-content" id="puzzleCategoryTabContent">
+            {% if soloStatistics.solvedPuzzle.count > 0 %}
+                <div class="tab-pane fade show active" id="solo" role="tabpanel" aria-labelledby="solo-tab">
+                    {{ include('_player_statistics_category.html.twig', {
+                        'statistics': soloStatistics,
+                        'manufacturers_chart': soloManufacturersChart,
+                        'puzzling_time_chart': soloPuzzlingTimeChart,
+                        'pieces_chart': soloPiecesChart,
+                    }) }}
+                </div>
+            {% endif %}
+
+            {% if duoStatistics.solvedPuzzle.count > 0 %}
+                <div class="tab-pane fade" id="duo" role="tabpanel" aria-labelledby="duo-tab">
+                    {{ include('_player_statistics_category.html.twig', {
+                        'statistics': duoStatistics,
+                        'manufacturers_chart': duoManufacturersChart,
+                        'puzzling_time_chart': duoPuzzlingTimeChart,
+                        'pieces_chart': duoPiecesChart,
+                    }) }}
+                </div>
+            {% endif %}
+
+            {% if teamStatistics.solvedPuzzle.count > 0 %}
+                <div class="tab-pane fade" id="team" role="tabpanel" aria-labelledby="team-tab">
+                    {{ include('_player_statistics_category.html.twig', {
+                        'statistics': teamStatistics,
+                        'manufacturers_chart': teamManufacturersChart,
+                        'puzzling_time_chart': teamPuzzlingTimeChart,
+                        'pieces_chart': teamPiecesChart,
+                    }) }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

@@ -78,7 +78,7 @@
                                             {# Display rank for solo #}
                                             {% if solved_puzzle[0].players is null %}
                                                 <br>
-                                                <small>Rank {{ ranking[solved_puzzle[0].puzzleId].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ ranking[solved_puzzle[0].puzzleId].totalPlayers }})</span></small><br>
+                                                <small>Rank {{ this.ranking[solved_puzzle[0].puzzleId].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ this.ranking[solved_puzzle[0].puzzleId].totalPlayers }})</span></small><br>
                                             {% endif %}
                                         {% endif %}
 

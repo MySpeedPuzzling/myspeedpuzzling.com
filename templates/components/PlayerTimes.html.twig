@@ -1,0 +1,56 @@
+<div {{ attributes }}>
+    {{ include('_puzzle_filter.html.twig') }}
+
+    <ul class="nav nav-fill nav-tabs nav-player-results mt-3" role="tablist" {{ stimulus_controller('tabs') }}>
+        <li class="nav-item">
+            <a class="nav-link {{ this.soloSolvedPuzzles|length > 0 ? 'active' : 'disabled' }}" href="#solo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media"><i class="ci-user"></i></div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Solo ({{ this.soloSolvedPuzzles|length }})</h6>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {{ this.soloSolvedPuzzles|length == 0 and this.duoSolvedPuzzles|length > 0 ? 'active' : this.duoSolvedPuzzles|length == 0 ? 'disabled' }}" href="#duo" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media media-tab-media-duo">
+                        <i class="ci-user"></i>
+                        <i class="ci-user"></i>
+                    </div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Duo ({{ this.duoSolvedPuzzles|length }})</h6>
+                </div>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {{ this.soloSolvedPuzzles|length == 0 and this.duoSolvedPuzzles|length == 0 and this.teamSolvedPuzzles|length > 0 ? 'active' : this.teamSolvedPuzzles|length == 0 ? 'disabled' }}" href="#team" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                <div class="text-center">
+                    <div class="media-tab-media media-tab-media-team">
+                        <i class="ci-user"></i>
+                        <i class="ci-user"></i>
+                        <div>
+                            <i class="ci-user"></i>
+                            <i class="ci-user"></i>
+                        </div>
+                    </div>
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">Team ({{ this.teamSolvedPuzzles|length }})</h6>
+                </div>
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade {{ this.soloSolvedPuzzles|length > 0 ? 'show active' }}" id="solo" role="tabpanel">
+            {{ include('_player_solvings.html.twig', {solved_puzzles: this.soloSolvedPuzzles}) }}
+        </div>
+
+        <div class="tab-pane fade {{ this.soloSolvedPuzzles|length == 0 and this.duoSolvedPuzzles|length > 0 ? 'show active' }}" id="duo" role="tabpanel">
+            {{ include('_player_solvings.html.twig', {solved_puzzles: this.duoSolvedPuzzles}) }}
+        </div>
+
+        <div class="tab-pane fade {{ this.soloSolvedPuzzles|length == 0 and this.duoSolvedPuzzles|length == 0 and this.teamSolvedPuzzles|length > 0 ? 'show active' }}" id="team" role="tabpanel">
+            {{ include('_player_solvings.html.twig', {solved_puzzles: this.teamSolvedPuzzles}) }}
+        </div>
+    </div>
+</div>

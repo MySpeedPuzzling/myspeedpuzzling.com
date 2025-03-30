@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Results\PlayerRanking;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
@@ -48,16 +49,19 @@ final class PlayerTimes
     #[LiveProp(writable: true)]
     public null|string $sortBy = null;
 
-    /** @var array<SolvedPuzzle> */
-    public array $times = [];
+    /** @var array<array<SolvedPuzzle>> */
+    public array $teamSolvedPuzzles = [];
 
-    public $teamSolvedPuzzles;
-    public $duoSolvedPuzzles;
-    public $soloSolvedPuzzles;
-    public $ranking = [];
+    /** @var array<array<SolvedPuzzle>> */
+    public array $duoSolvedPuzzles = [];
+
+    /** @var array<array<solvedPuzzle>> */
+    public array $soloSolvedPuzzles = [];
+
+    /** @var array<PlayerRanking> */
+    public array $ranking = [];
 
     public function __construct(
-        readonly private GetPuzzleSolvers $getPuzzleSolvers,
         readonly private PuzzlesSorter $puzzlesSorter,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetRanking $getRanking,
@@ -88,9 +92,22 @@ final class PlayerTimes
 
         $this->ranking = $this->getRanking->allForPlayer($this->playerId);
 
-        $this->soloSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($this->getPlayerSolvedPuzzles->soloByPlayerId($this->playerId));
-        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($this->getPlayerSolvedPuzzles->duoByPlayerId($this->playerId));
-        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($this->getPlayerSolvedPuzzles->teamByPlayerId($this->playerId));
+        $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($this->playerId);
+        $duoSolvedPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($this->playerId);
+        $teamSolvedPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($this->playerId);
+
+        if ($this->onlyFirstTries === true) {
+            $soloSolvedPuzzles = $this->puzzlesSorter->sortByFirstTry($soloSolvedPuzzles);
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles);
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloSolvedPuzzlesGrouped);
+        } else {
+            $soloSolvedPuzzles = $this->puzzlesSorter->sortByFastest($soloSolvedPuzzles);
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles);
+        }
+
+        $this->soloSolvedPuzzles = $soloSolvedPuzzlesGrouped;
+        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles);
+        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles);
     }
 
     public function getActiveFiltersCount(): int

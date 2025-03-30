@@ -43,13 +43,13 @@ readonly final class PuzzlesSorter
 
 
     /**
-     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
      * @param array<T> $solvedPuzzles
      * @return array<T>
      */
     public function sortByFirstTry(array $solvedPuzzles): array
     {
-        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
+        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $a, PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $b): int {
             if ($a->firstAttempt && $b->firstAttempt === false) {
                 return -1;
             }
@@ -82,13 +82,13 @@ readonly final class PuzzlesSorter
     }
 
     /**
-     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
      * @param array<T> $solvedPuzzles
      * @return array<T>
      */
     public function sortByFastest(array $solvedPuzzles): array
     {
-        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
+        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $a, PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $b): int {
             $timeComparison = $a->time <=> $b->time;
 
             if ($timeComparison !== 0) {
@@ -102,7 +102,7 @@ readonly final class PuzzlesSorter
     }
 
     /**
-     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
      * @param array<string, non-empty-array<T>> $groupedSolvers
      * @return array<string, non-empty-array<T>>
      */

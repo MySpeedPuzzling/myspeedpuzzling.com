@@ -96,7 +96,7 @@
             </div>
         </div>
 
-        <div class="puzzle-category-types mt-3 my-2" id="puzzleCategoryTabs" role="tablist">
+        <div class="puzzle-category-types mt-3 my-2" role="tablist">
             {% if soloStatistics.solvedPuzzle.count > 0 %}
                 <button class="btn active" id="solo-tab" data-bs-toggle="tab" data-bs-target="#solo" type="button" role="tab" aria-controls="solo" aria-selected="true">
                     <span class="users-icons"><i class="ci-user"></i></span>
@@ -119,7 +119,7 @@
             {% endif %}
         </div>
 
-        <div class="tab-content" id="puzzleCategoryTabContent">
+        <div class="tab-content">
             {% if soloStatistics.solvedPuzzle.count > 0 %}
                 <div class="tab-pane fade show active" id="solo" role="tabpanel" aria-labelledby="solo-tab">
                     {{ include('_player_statistics_category.html.twig', {

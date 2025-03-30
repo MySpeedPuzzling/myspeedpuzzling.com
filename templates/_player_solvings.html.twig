@@ -1,3 +1,48 @@
+{% if category == 'solo' and solved_puzzles|length > 1 %}
+    <div class="clearfix mb-3">
+        <div class="dropdown position-relative float-end">
+            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                <button
+                    class="btn btn-outline-primary btn-sm dropdown-toggle"
+                    type="button"
+                    id="filtersDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                >
+                    <i class="bi-filter"></i>
+                    {{ 'filters.button'|trans }}
+                    {% if this.activeFiltersCount > 0 %}<sup>{{ this.activeFiltersCount }}</sup>{% endif%}
+                </button>
+
+                <div class="dropdown-menu dropdown-menu-end filters px-3 py-0" aria-labelledby="filtersDropdown">
+                    {% if category == 'solo' and solved_puzzles|length > 1 %}
+                        <div class="form-check form-switch my-3">
+                            <input
+                                data-model="onlyFirstTries"
+                                type="checkbox"
+                                class="form-check-input"
+                                role="switch"
+                                id="only-first-attempt"
+                                {{ this.onlyFirstTries ? 'checked' }}>
+                            <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <button
+                    class="btn btn-outline-primary btn-sm position-relative pe-4"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                >
+                    <i class="bi-filter"></i>
+                    {{ 'filters.button'|trans }}
+                    <i class="ci-locked position-absolute fs-sm" style="right: 4px;top: 7px;"></i>
+                </button>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+
 <div class="table-responsive custom-table-wrapper" {{ stimulus_controller('toggle') }}>
     <table class="table table-striped table-hover mb-0">
         <tbody>

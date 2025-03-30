@@ -19,12 +19,12 @@
             <img src="{{ asset('img/no-statistics.jpg') }}" alt="No statistics for this time period" class="img-fluid rounded-4 shadow mt-3">
         </div>
     {% else %}
-        {% if
-            overallStatistics.solvedPuzzle.count != soloStatistics.solvedPuzzle.count
-            and overallStatistics.solvedPuzzle.count != duoStatistics.solvedPuzzle.count
-            and overallStatistics.solvedPuzzle.count != teamStatistics.solvedPuzzle.count
-        %}
-            <div class="row mb-4">
+        <div class="row mb-4">
+            {% if
+                overallStatistics.solvedPuzzle.count != soloStatistics.solvedPuzzle.count
+                and overallStatistics.solvedPuzzle.count != duoStatistics.solvedPuzzle.count
+                and overallStatistics.solvedPuzzle.count != teamStatistics.solvedPuzzle.count
+            %}
                 <div class="col-md-6 col-lg-4 my-2">
                     <div class="card card-body shadow">
                         <div class="d-flex justify-content-between">
@@ -60,21 +60,27 @@
                         </div>
                     </div>
                 </div>
+            {% endif %}
 
-                <div class="col-md-6 col-lg-4">
-                    <div class="card card-body shadow my-2">
-                        <div class="d-flex justify-content-between">
-                            <h4 class="mb-0">
-                                <i class="bi-fire"></i>
-                                {{ overallStatistics.longestStreak }}
-                            </h4>
-                            <div class="text-end">
-                                {{ 'statistics.longest_streak'|trans }}<br>
-                                <small class="text-muted">{{ 'statistics.longest_streak_help'|trans }}</small>
-                            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card card-body shadow my-2">
+                    <div class="d-flex justify-content-between">
+                        <h4 class="mb-0">
+                            <i class="bi-fire"></i>
+                            {{ overallStatistics.longestStreak }}
+                        </h4>
+                        <div class="text-end">
+                            {{ 'statistics.longest_streak'|trans }}<br>
+                            <small class="text-muted">{{ 'statistics.longest_streak_help'|trans }}</small>
                         </div>
                     </div>
+                </div>
 
+                {% if
+                    overallStatistics.solvedPuzzle.count != soloStatistics.solvedPuzzle.count
+                    and overallStatistics.solvedPuzzle.count != duoStatistics.solvedPuzzle.count
+                    and overallStatistics.solvedPuzzle.count != teamStatistics.solvedPuzzle.count
+                %}
                     <div class="card card-body shadow my-2">
                         <div class="d-flex justify-content-between">
                             <h4 class="mb-0">
@@ -86,9 +92,9 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
-        {% endif %}
+        </div>
 
         <div class="puzzle-category-types mt-3 my-2" id="puzzleCategoryTabs" role="tablist">
             {% if soloStatistics.solvedPuzzle.count > 0 %}

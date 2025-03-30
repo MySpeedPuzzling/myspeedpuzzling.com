@@ -57,6 +57,10 @@ readonly final class PuzzlesSorter
                 return 1;
             }
 
+            if ($a instanceof SolvedPuzzle && $b instanceof SolvedPuzzle) {
+                return $a->time <=> $b->time;
+            }
+
             // Oldest first if no first try found
             return $a->finishedAt <=> $b->finishedAt;
         });

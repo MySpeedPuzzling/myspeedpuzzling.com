@@ -98,7 +98,7 @@ final class PlayerTimes
 
         if ($this->onlyFirstTries === true) {
             $soloSolvedPuzzles = $this->puzzlesSorter->sortByFirstTry($soloSolvedPuzzles);
-            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles);
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles, withReordering: false);
             $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloSolvedPuzzlesGrouped);
         } else {
             $soloSolvedPuzzles = $this->puzzlesSorter->sortByFastest($soloSolvedPuzzles);

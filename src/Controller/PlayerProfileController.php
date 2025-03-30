@@ -8,12 +8,10 @@ use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
-use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetWjpcParticipants;
-use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,8 +24,6 @@ final class PlayerProfileController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
-        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
-        readonly private PuzzlesSorter $puzzlesSorter,
         readonly private GetRanking $getRanking,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private TranslatorInterface $translator,
@@ -57,10 +53,6 @@ final class PlayerProfileController extends AbstractController
             return $this->redirectToRoute('ladder');
         }
 
-        $soloSolvedPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
-        $duoSolvedPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId);
-        $teamSolvedPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId);
-
         $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $loggedPlayerRanking = [];
 
@@ -71,9 +63,6 @@ final class PlayerProfileController extends AbstractController
         return $this->render('player_profile.html.twig', [
             'player' => $player,
             'last_solved_puzzles' => $this->getLastSolvedPuzzle->forPlayer($player->playerId, 20),
-            'solo_results' => $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles),
-            'duo_results' => $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles),
-            'team_results' => $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles),
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'logged_player_ranking' => $loggedPlayerRanking,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),

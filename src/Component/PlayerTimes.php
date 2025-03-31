@@ -46,8 +46,8 @@ final class PlayerTimes
     #[LiveProp(writable: true)]
     public bool $onlyFirstTries = false;
 
-    #[LiveProp(writable: true)]
-    public null|string $sortBy = null;
+    #[LiveProp]
+    public string $sortBy = 'fastest';
 
     /** @var array<array<SolvedPuzzle>> */
     public array $teamSolvedPuzzles = [];
@@ -76,6 +76,14 @@ final class PlayerTimes
         }
     }
 
+    #[LiveAction]
+    public function changeSortBy(#[LiveArg] string $sort): void
+    {
+        if (in_array($sort, ['fastest', 'slowest', 'newest', 'oldest'], true)) {
+            $this->sortBy = $sort;
+        }
+    }
+
     #[PostMount]
     #[PreReRender]
     public function populate(): void
@@ -96,18 +104,35 @@ final class PlayerTimes
         $duoSolvedPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($this->playerId);
         $teamSolvedPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($this->playerId);
 
-        if ($this->onlyFirstTries === true) {
-            $soloSolvedPuzzles = $this->puzzlesSorter->sortByFirstTry($soloSolvedPuzzles);
-            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles, withReordering: false);
-            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloSolvedPuzzlesGrouped);
-        } else {
+        if ($this->sortBy === 'fastest') {
             $soloSolvedPuzzles = $this->puzzlesSorter->sortByFastest($soloSolvedPuzzles);
-            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles);
+            $duoSolvedPuzzles = $this->puzzlesSorter->sortByFastest($duoSolvedPuzzles);
+            $teamSolvedPuzzles = $this->puzzlesSorter->sortByFastest($teamSolvedPuzzles);
+        } elseif ($this->sortBy === 'slowest') {
+            $soloSolvedPuzzles = $this->puzzlesSorter->sortBySlowest($soloSolvedPuzzles);
+            $duoSolvedPuzzles = $this->puzzlesSorter->sortBySlowest($duoSolvedPuzzles);
+            $teamSolvedPuzzles = $this->puzzlesSorter->sortBySlowest($teamSolvedPuzzles);
+        } elseif ($this->sortBy === 'newest') {
+            $soloSolvedPuzzles = $this->puzzlesSorter->sortByNewest($soloSolvedPuzzles);
+            $duoSolvedPuzzles = $this->puzzlesSorter->sortByNewest($duoSolvedPuzzles);
+            $teamSolvedPuzzles = $this->puzzlesSorter->sortByNewest($teamSolvedPuzzles);
+        } elseif ($this->sortBy === 'oldest') {
+            $soloSolvedPuzzles = $this->puzzlesSorter->sortByOldest($soloSolvedPuzzles);
+            $duoSolvedPuzzles = $this->puzzlesSorter->sortByOldest($duoSolvedPuzzles);
+            $teamSolvedPuzzles = $this->puzzlesSorter->sortByOldest($teamSolvedPuzzles);
+        }
+
+        $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->groupPuzzles($soloSolvedPuzzles, withReordering: false);
+
+        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles, withReordering: false);
+        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles, withReordering: false);
+
+        if ($this->onlyFirstTries === true) {
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloSolvedPuzzlesGrouped);
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->makeFirstAttemptFirst($soloSolvedPuzzlesGrouped);
         }
 
         $this->soloSolvedPuzzles = $soloSolvedPuzzlesGrouped;
-        $this->duoSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($duoSolvedPuzzles);
-        $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzles($teamSolvedPuzzles);
     }
 
     public function getActiveFiltersCount(): int

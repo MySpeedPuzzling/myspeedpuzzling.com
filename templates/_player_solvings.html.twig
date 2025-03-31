@@ -1,44 +1,90 @@
-{% if category == 'solo' and solved_puzzles|length > 1 %}
-    <div class="clearfix mb-3">
-        <div class="dropdown position-relative float-end">
-            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                <button
-                    class="btn btn-outline-primary btn-sm dropdown-toggle"
-                    type="button"
-                    id="filtersDropdown"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                >
-                    <i class="bi-filter"></i>
-                    {{ 'filters.button'|trans }}
-                    {% if this.activeFiltersCount > 0 %}<sup>{{ this.activeFiltersCount }}</sup>{% endif%}
-                </button>
+{% if solved_puzzles|length > 1 %}
+    <div class="clearfix mb-3 text-end">
+        {% if category == 'solo' %}
+            <div class="dropdown position-relative d-inline-block">
+                {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                    <button
+                        class="btn btn-outline-primary btn-sm dropdown-toggle"
+                        type="button"
+                        id="filtersDropdown"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        <i class="bi-filter"></i>
+                        {{ 'filters.button'|trans }}
+                        {% if this.activeFiltersCount > 0 %}<sup>{{ this.activeFiltersCount }}</sup>{% endif%}
+                    </button>
 
-                <div class="dropdown-menu dropdown-menu-end filters px-3 py-0" aria-labelledby="filtersDropdown">
-                    {% if category == 'solo' and solved_puzzles|length > 1 %}
-                        <div class="form-check form-switch my-3">
-                            <input
-                                data-model="onlyFirstTries"
-                                type="checkbox"
-                                class="form-check-input"
-                                role="switch"
-                                id="only-first-attempt"
-                                {{ this.onlyFirstTries ? 'checked' }}>
-                            <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
-                        </div>
-                    {% endif %}
-                </div>
-            {% else %}
-                <button
-                    class="btn btn-outline-primary btn-sm position-relative pe-4"
-                    data-bs-toggle="modal"
-                    data-bs-target="#membersExclusiveModal"
-                >
-                    <i class="bi-filter"></i>
-                    {{ 'filters.button'|trans }}
-                    <i class="ci-locked position-absolute fs-sm" style="right: 4px;top: 7px;"></i>
+                    <div class="dropdown-menu dropdown-menu-end filters px-3 py-0" aria-labelledby="filtersDropdown">
+                        {% if category == 'solo' and solved_puzzles|length > 1 %}
+                            <div class="form-check form-switch my-3">
+                                <input
+                                    data-model="onlyFirstTries"
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    role="switch"
+                                    id="only-first-attempt"
+                                    {{ this.onlyFirstTries ? 'checked' }}>
+                                <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <button
+                        class="btn btn-outline-primary btn-sm position-relative pe-4"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <i class="bi-filter"></i>
+                        {{ 'filters.button'|trans }}
+                        <i class="ci-locked position-absolute fs-sm" style="right: 4px;top: 7px;"></i>
+                    </button>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="dropdown position-relative d-inline-block me-1">
+            <button
+                class="btn btn-outline-primary btn-sm dropdown-toggle"
+                type="button"
+                id="sortingDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                <i class="bi-sort-up"></i>
+                {{ 'sorting.sort_by'|trans }}:
+                {{ this.sortBy == 'fastest' ? 'sorting.fastest_times'|trans }}
+                {{ this.sortBy == 'slowest' ? 'sorting.slowest_times'|trans }}
+                {{ this.sortBy == 'newest' ? 'sorting.newest_times'|trans }}
+                {{ this.sortBy == 'oldest' ? 'sorting.oldest_times'|trans }}
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="sortingDropdown">
+                <button type="button" class="dropdown-item {% if this.sortBy == 'fastest' %}active{% endif %}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="fastest">
+                    {{ 'sorting.fastest_times'|trans }}
                 </button>
-            {% endif %}
+                <button type="button" class="dropdown-item {% if this.sortBy == 'slowest' %}active{% endif %}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="slowest">
+                    {{ 'sorting.slowest_times'|trans }}
+                </button>
+                <button type="button" class="dropdown-item {% if this.sortBy == 'newest' %}active{% endif %}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="newest">
+                    {{ 'sorting.newest_times'|trans }}
+                </button>
+                <button type="button" class="dropdown-item {% if this.sortBy == 'oldest' %}active{% endif %}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="oldest">
+                    {{ 'sorting.oldest_times'|trans }}
+                </button>
+            </div>
         </div>
     </div>
 {% endif %}

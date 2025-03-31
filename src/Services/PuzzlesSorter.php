@@ -71,6 +71,28 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function makeFirstAttemptFirst(array $groupedSolvedPuzzles): array
+    {
+        foreach ($groupedSolvedPuzzles as $subIndex => $subArray) {
+            foreach ($subArray as $index => $puzzle) {
+                if ($puzzle->firstAttempt) {
+                    // Remove the firstAttempt puzzle from its current position.
+                    array_splice($groupedSolvedPuzzles[$subIndex], $index, 1);
+                    // Add it to the beginning of the subarray.
+                    array_unshift($groupedSolvedPuzzles[$subIndex], $puzzle);
+                    // Assuming there's only one firstAttempt per subarray.
+                    break;
+                }
+            }
+        }
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<SolvedPuzzle>
      */
@@ -108,6 +130,45 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    function sortBySlowest(array $solvedPuzzles): array {
+        usort($solvedPuzzles, function(SolvedPuzzle $a, SolvedPuzzle $b): int {
+            // Compare in descending order: highest time first.
+            return $b->time <=> $a->time;
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    function sortByNewest(array $solvedPuzzles): array {
+        usort($solvedPuzzles, function(SolvedPuzzle $a, SolvedPuzzle $b): int {
+            // Compare DateTime objects by timestamp in descending order (newest first).
+            return $b->finishedAt->getTimestamp() <=> $a->finishedAt->getTimestamp();
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    function sortByOldest(array $solvedPuzzles): array {
+        usort($solvedPuzzles, function(SolvedPuzzle $a, SolvedPuzzle $b): int {
+            // Compare DateTime objects by timestamp in ascending order (oldest first).
+            return $a->finishedAt->getTimestamp() <=> $b->finishedAt->getTimestamp();
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
      * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
      * @param array<string, non-empty-array<T>> $groupedSolvers
      * @return array<string, non-empty-array<T>>
@@ -116,7 +177,15 @@ readonly final class PuzzlesSorter
     {
         return array_filter(
             array: $groupedSolvers,
-            callback: fn (array $grouped): bool => $grouped[0]->firstAttempt === true,
+            callback: function (array $grouped): bool {
+                foreach ($grouped as $solvedPuzzle) {
+                    if ($solvedPuzzle->firstAttempt === true) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
         );
     }
 

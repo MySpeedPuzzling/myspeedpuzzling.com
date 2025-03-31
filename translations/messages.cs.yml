@@ -132,6 +132,13 @@ filters:
     only_with_time: "Pouze se zadaným časem"
     no_puzzle_matches_filters: "Žádné puzzle neodpovídají zadaným filtrům"
 
+sorting:
+    sort_by: "Řadit podle"
+    newest_times: "Nejnovější"
+    oldest_times: "Nejstarší"
+    fastest_times: "Nejrychlejší"
+    slowest_times: "Nejpomalejší"
+
 puzzle_overview:
     meta:
         title: "Puzzle"

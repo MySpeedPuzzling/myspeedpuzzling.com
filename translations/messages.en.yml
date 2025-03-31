@@ -131,6 +131,13 @@ filters:
     only_with_time: "Only with entered time"
     no_puzzle_matches_filters: "No puzzles match the specified filters"
 
+sorting:
+    sort_by: "Sort by"
+    newest_times: "Newest"
+    oldest_times: "Oldest"
+    fastest_times: "Fastest"
+    slowest_times: "Slowest"
+
 puzzle_overview:
     meta:
         title: "Puzzle"

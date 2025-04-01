@@ -15,6 +15,8 @@ final class SearchPuzzleFormData
 
     public null|string $pieces = null;
 
+    public string $sortBy = 'most-solved';
+
     public null|string $tag = null;
 
     public static function fromRequest(Request $request): self
@@ -39,6 +41,11 @@ final class SearchPuzzleFormData
         $pieces = $request->query->get('pieces');
         if (is_string($pieces)) {
             $self->pieces = $pieces;
+        }
+
+        $sortBy = $request->query->get('sortBy');
+        if (is_string($sortBy)) {
+            $self->sortBy = $sortBy;
         }
 
         return $self;

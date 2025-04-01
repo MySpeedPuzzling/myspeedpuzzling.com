@@ -138,6 +138,10 @@ sorting:
     oldest_times: "Nejstarší"
     fastest_times: "Nejrychlejší"
     slowest_times: "Nejpomalejší"
+    most_solved: "Nejskládanější"
+    least_solved: "Nejméně skládané"
+    a_z: "Název A-Z"
+    z_a: "Název Z-A"
 
 puzzle_overview:
     meta:

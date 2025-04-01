@@ -76,6 +76,7 @@ final class PuzzlesController extends AbstractController
             $searchData->search,
             PiecesFilter::fromUserInput($searchData->pieces),
             $searchData->tag,
+            $searchData->sortBy,
             $offset,
         );
 

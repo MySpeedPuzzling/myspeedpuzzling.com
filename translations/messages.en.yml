@@ -137,7 +137,10 @@ sorting:
     oldest_times: "Oldest"
     fastest_times: "Fastest"
     slowest_times: "Slowest"
-
+    most_solved: "Most solved"
+    least_solved: "Least solved"
+    a_z: "Name A-Z"
+    z_a: "Name Z-A"
 puzzle_overview:
     meta:
         title: "Puzzle"

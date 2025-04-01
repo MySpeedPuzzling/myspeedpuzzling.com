@@ -82,12 +82,17 @@ SQL;
         null|string $search,
         PiecesFilter $pieces,
         null|string $tag,
+        null|string $sortBy = null,
         int $offset = 0,
         int $limit = 20,
     ): array
     {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
+        }
+
+        if (in_array($sortBy, ['most-solved', 'least-solved', 'a-z', 'z-a'], true) === false) {
+            $sortBy = 'most-solved';
         }
 
         $query = <<<SQL
@@ -156,8 +161,23 @@ INNER JOIN manufacturer m ON pb.manufacturer_id = m.id
 GROUP BY pb.puzzle_id, pb.puzzle_name, pb.puzzle_image, pb.puzzle_alternative_name,
          pb.pieces_count, pb.is_available, pb.puzzle_approved, pb.puzzle_ean,
          pb.puzzle_identification_number, m.name, m.id, pb.match_score
-ORDER BY pb.match_score DESC, COALESCE(pb.puzzle_alternative_name, pb.puzzle_name), m.name, pb.pieces_count
 SQL;
+
+        if ($sortBy === 'most-solved') {
+            $query .= ' ORDER BY solved_times DESC, pb.match_score DESC, COALESCE(pb.puzzle_alternative_name, pb.puzzle_name), m.name ';
+        }
+
+        if ($sortBy === 'least-solved') {
+            $query .= ' ORDER BY solved_times ASC, pb.match_score DESC, COALESCE(pb.puzzle_alternative_name, pb.puzzle_name), m.name ';
+        }
+
+        if ($sortBy === 'a-z') {
+            $query .= ' ORDER BY COALESCE(pb.puzzle_alternative_name, pb.puzzle_name), pb.match_score DESC, m.name, pb.pieces_count ';
+        }
+
+        if ($sortBy === 'z-a') {
+            $query .= ' ORDER BY COALESCE(pb.puzzle_alternative_name, pb.puzzle_name) DESC, pb.match_score DESC, m.name DESC, pb.pieces_count ';
+        }
 
         $eanSearch = trim($search ?? '', '0');
 

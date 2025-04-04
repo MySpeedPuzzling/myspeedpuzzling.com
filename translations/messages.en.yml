@@ -269,6 +269,12 @@ events:
     results_link: "Results"
     registration_link: "Register"
     competition_puzzles: "Competition puzzles"
+    no_puzzle_title: "No puzzles here… yet!"
+    no_puzzle_text: |
+        The competition was so fast, even the puzzles haven’t caught up.<br>
+        We're just waiting for someone to finish, breathe, and upload<br>
+        or for the admin to wake up from a puzzle-induced nap.<br>
+        <strong>Stay tuned — the pieces are falling into place!</strong>
 
 
 faq:

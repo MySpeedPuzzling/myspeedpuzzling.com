@@ -59,9 +59,9 @@
         </div>
     </div>
 
-    {% if puzzles|length > 0 %}
-        <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
+    <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
+    {% if puzzles|length > 0 %}
         <div class="row g-2 g-md-3">
             {% for puzzle in puzzles %}
                 {{ include('_puzzle_item.html.twig', {
@@ -69,5 +69,13 @@
                 }) }}
             {% endfor %}
         </div>
+    {% else %}
+        <div class="text-center text-muted">
+            <div class="p-4">
+                <h2 class="mb-3">🧩 {{ 'events.no_puzzle_title'|trans }}</h2>
+                <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
+            </div>
+        </div>
     {% endif %}
+
 {% endblock %}

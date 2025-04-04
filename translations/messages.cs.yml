@@ -270,6 +270,12 @@ events:
     results_link: "Výsledky"
     registration_link: "Registrace"
     competition_puzzles: "Soutěžní puzzle"
+    no_puzzle_title: "Zatím tu žádné puzzle nejsou…"
+    no_puzzle_text: |
+        Soutěž byla tak rychlá, že puzzle nestihly dorazit.<br>
+        Čekáme, až někdo dokončí, popadne dech a nahraje je<br>
+        nebo až se admin probudí z puzzlového kómatu.<br>
+        <strong>Zůstaňte naladěni — dílky do sebe brzy zapadnou!</strong>
 
 faq:
     meta:

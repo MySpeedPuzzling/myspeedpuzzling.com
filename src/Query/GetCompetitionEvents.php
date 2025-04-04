@@ -6,6 +6,9 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 
 /**
@@ -17,6 +20,28 @@ readonly final class GetCompetitionEvents
         private Connection $database,
         private ClockInterface $clock,
     ) {
+    }
+
+    public function byId(string $competitionId): CompetitionEvent
+    {
+        if (Uuid::isValid($competitionId) === false) {
+            throw new CompetitionNotFound();
+        }
+
+        $query = 'SELECT * FROM competition WHERE id = :id';
+
+        /** @var false|CompetitionEventDatabaseRow $data */
+        $data = $this->database
+            ->executeQuery($query, [
+                'id' => $competitionId,
+            ])
+            ->fetchAssociative();
+
+        if ($data === false) {
+            throw new CompetitionNotFound();
+        }
+
+        return CompetitionEvent::fromDatabaseRow($data);
     }
 
     /**

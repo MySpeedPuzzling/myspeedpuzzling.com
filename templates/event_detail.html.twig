@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ event.name }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex">
+        <div class="flex-fill">
+            <h1 class="h4 mb-2">
+                {{ event.name }}
+            </h1>
+
+            <div class="row">
+                <div class="col-sm-6">
+                    {% if event.locationCountryCode %}
+                        <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
+                    {% endif %}
+
+                    {{ event.location }}
+
+                    <div class="mt-1">
+                        <i class="ci-calendar me-2 ps-1"></i>
+                        {% if event.dateTo and event.dateFrom != event.dateTo %}
+                            {{ event.dateFrom|date('d.') }}-{{ event.dateTo|date('d.m.') }}
+                        {% else %}
+                            {{ event.dateFrom|date('d.m.') }}
+                        {% endif %}
+                        <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
+                    </div>
+                </div>
+
+                {% if event.link or event.registrationLink or event.resultsLink %}
+                    <div class="col-sm-6 mt-2 mt-sm-0">
+                        {% if event.link %}
+                            <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
+                                <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}
+                            </a>
+                        {% endif %}
+
+                        {% if event.registrationLink %}
+                            <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
+                                <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}
+                            </a>
+                        {% endif %}
+
+                        {% if event.resultsLink %}
+                            <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
+                                <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ms-3 flex-shrink-0 event-image">
+            {% if event.logo %}
+                <img style="max-height: 84px;" src="{{ event.logo|imagine_filter('puzzle_small') }}" alt="{{ event.name }} logo" class="img-fluid">
+            {% endif %}
+        </div>
+    </div>
+
+    {% if puzzles|length > 0 %}
+        <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
+
+        <div class="row g-2 g-md-3">
+            {% for puzzle in puzzles %}
+                {{ include('_puzzle_item.html.twig', {
+                    'search': '',
+                }) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

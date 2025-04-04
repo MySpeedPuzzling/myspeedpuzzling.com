@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     link: null|string,
  *     registration_link: null|string,
  *     results_link: null|string,
+ *     slug: null|string,
+ *     tag_id: null|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -38,6 +40,8 @@ readonly final class CompetitionEvent
         public null|CountryCode $locationCountryCode,
         public DateTimeImmutable $dateFrom,
         public null|DateTimeImmutable $dateTo,
+        public null|string $slug,
+        public null|string $tagId,
     ) {
         $this->link = $this->appendUtm($link);
         $this->registrationLink = $this->appendUtm($registrationLink);
@@ -60,6 +64,8 @@ readonly final class CompetitionEvent
             locationCountryCode: $row['location_country_code'] !== null ? CountryCode::fromCode($row['location_country_code']) : null,
             dateFrom: (new DateTimeImmutable($row['date_from']))->setTime(9, 0),
             dateTo: $row['date_to'] !== null ? new DateTimeImmutable($row['date_to']) : null,
+            slug: $row['slug'],
+            tagId: $row['tag_id'],
         );
     }
 

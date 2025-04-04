@@ -269,6 +269,7 @@ events:
     website_link: "Info"
     results_link: "Výsledky"
     registration_link: "Registrace"
+    competition_puzzles: "Soutěžní puzzle"
 
 faq:
     meta:

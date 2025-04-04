@@ -24,7 +24,32 @@ readonly final class GetCompetitionEvents
      */
     public function allPast(): array
     {
-        $query = 'SELECT * FROM competition WHERE date_from <= :date ORDER BY date_from DESC';
+        $query = <<<SQL
+SELECT *
+FROM competition
+WHERE COALESCE(date_to, date_from) <= :date
+ORDER BY date_from DESC;
+SQL;
+        $date = $this->clock->now()->modify('+1 day');
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'date' => $date->format('Y-m-d H:i:s'),
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function(array $row): CompetitionEvent {
+            /** @var CompetitionEventDatabaseRow $row */
+            return CompetitionEvent::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function allUpcoming(): array
+    {
+        $query = 'SELECT * FROM competition WHERE date_from >= :date ORDER BY date_from';
         $now = $this->clock->now();
 
         $data = $this->database
@@ -42,9 +67,13 @@ readonly final class GetCompetitionEvents
     /**
      * @return array<CompetitionEvent>
      */
-    public function allUpcoming(): array
+    public function allLive(): array
     {
-        $query = 'SELECT * FROM competition WHERE date_from >= :date ORDER BY date_from';
+        $query = <<<SQL
+SELECT *
+FROM competition
+WHERE :date BETWEEN COALESCE(date_from, date_to) AND date_to;
+SQL;
         $now = $this->clock->now();
 
         $data = $this->database

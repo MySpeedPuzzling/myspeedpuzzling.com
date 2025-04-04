@@ -5,8 +5,24 @@
 {% block content %}
     <h1>{{ 'events.title'|trans }}</h1>
 
+    {% if live_events|length > 0 %}
+        <div class="row">
+            <h2 class="mt-4">{{ 'events.live'|trans }}</h2>
+
+            {% for event in live_events %}
+                {{ include('_competition_event.html.twig', {
+                    'live': true,
+                }) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
     {% if upcoming_events|length > 0 %}
         <div class="row">
+            {% if live_events|length > 0 %}
+                <h2 class="mt-4">{{ 'events.upcoming'|trans }}</h2>
+            {% endif %}
+
             {% for event in upcoming_events %}
                 {{ include('_competition_event.html.twig') }}
             {% endfor %}

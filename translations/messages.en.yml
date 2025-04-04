@@ -262,6 +262,7 @@ events:
     title: "Events"
     meta:
         title: "Events"
+    live: "Happening right now"
     upcoming: "Upcoming"
     past: "Past events"
     website_link: "Info"

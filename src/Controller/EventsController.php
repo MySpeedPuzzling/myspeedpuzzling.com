@@ -25,6 +25,7 @@ final class EventsController extends AbstractController
     public function __invoke(): Response
     {
         return $this->render('events.html.twig', [
+            'live_events' => $this->getCompetitionEvents->allLive(),
             'upcoming_events' => $this->getCompetitionEvents->allUpcoming(),
             'past_events' => $this->getCompetitionEvents->allPast(),
         ]);

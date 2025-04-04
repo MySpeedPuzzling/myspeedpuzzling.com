@@ -263,6 +263,7 @@ events:
     title: "Události"
     meta:
         title: "Události"
+    live: "Právě probíhající"
     upcoming: "Nadcházející"
     past: "Proběhlé"
     website_link: "Info"

@@ -26,6 +26,9 @@ class Competition
         #[Column]
         public string $name,
 
+        #[Column(unique: true, nullable: true)]
+        public null|string $slug,
+
         #[Column(nullable: true)]
         public null|string $logo,
 

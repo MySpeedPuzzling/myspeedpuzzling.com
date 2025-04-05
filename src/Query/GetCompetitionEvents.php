@@ -52,10 +52,10 @@ readonly final class GetCompetitionEvents
         $query = <<<SQL
 SELECT *
 FROM competition
-WHERE COALESCE(date_to, date_from) <= :date
+WHERE COALESCE(date_to, date_from)::date < :date::date
 ORDER BY date_from DESC;
 SQL;
-        $date = $this->clock->now()->modify('+1 day');
+        $date = $this->clock->now();
 
         $data = $this->database
             ->executeQuery($query, [
@@ -74,7 +74,12 @@ SQL;
      */
     public function allUpcoming(): array
     {
-        $query = 'SELECT * FROM competition WHERE date_from >= :date ORDER BY date_from';
+        $query = <<<SQL
+SELECT *
+FROM competition
+WHERE COALESCE(date_from, date_to)::date > :date::date
+ORDER BY date_from;
+SQL;
         $now = $this->clock->now();
 
         $data = $this->database
@@ -97,7 +102,9 @@ SQL;
         $query = <<<SQL
 SELECT *
 FROM competition
-WHERE :date BETWEEN COALESCE(date_from, date_to) AND date_to;
+WHERE :date::date 
+      BETWEEN COALESCE(date_from, date_to)::date 
+          AND COALESCE(date_to, date_from)::date;
 SQL;
         $now = $this->clock->now();
 

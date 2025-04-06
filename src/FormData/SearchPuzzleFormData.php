@@ -43,10 +43,7 @@ final class SearchPuzzleFormData
             $self->pieces = $pieces;
         }
 
-        $sortBy = $request->query->get('sortBy');
-        if (is_string($sortBy)) {
-            $self->sortBy = $sortBy;
-        }
+        $self->sortBy = $request->query->get('sortBy', 'most-solved');
 
         return $self;
     }

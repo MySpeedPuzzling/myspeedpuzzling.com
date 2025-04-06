@@ -85,21 +85,6 @@ final class SearchPuzzleFormType extends AbstractType
                 'placeholder' => 'forms.puzzle_search_placeholder',
             ],
         ]);
-
-        $builder->add('sortBy', ChoiceType::class, [
-            'required' => false,
-            'expanded' => false,
-            'multiple' => false,
-            'placeholder' => false,
-            'empty_data' => 'most-solved',
-            'choices' => [
-                $this->translator->trans('sorting.most_solved') => 'most-solved',
-                $this->translator->trans('sorting.least_solved') => 'least-solved',
-                $this->translator->trans('sorting.a_z') => 'a-z',
-                $this->translator->trans('sorting.z_a') => 'z-a',
-            ],
-            'choice_translation_domain' => false,
-        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

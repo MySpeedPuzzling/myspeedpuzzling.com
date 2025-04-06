@@ -71,10 +71,7 @@
                 </div>
             </div>
 
-            <div class="col-6 col-md-3 col-lg-2 mb-2">
-                {{ form_errors(search_form.sortBy) }}
-                {{ form_widget(search_form.sortBy) }}
-            </div>
+            <input type="hidden" name="sortBy" value="{{ app.request.get('sortBy', 'most-solved') }}">
 
             {{ form_rest(search_form) }}
         </form>

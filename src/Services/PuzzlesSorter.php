@@ -71,25 +71,23 @@ readonly final class PuzzlesSorter
     }
 
     /**
-     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
-     * @return array<array<SolvedPuzzle>>
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
      */
-    public function makeFirstAttemptFirst(array $groupedSolvedPuzzles): array
+    public function makeFirstAttemptFirst(array $solvedPuzzles): array
     {
-        foreach ($groupedSolvedPuzzles as $subIndex => $subArray) {
-            foreach ($subArray as $index => $puzzle) {
-                if ($puzzle->firstAttempt) {
-                    // Remove the firstAttempt puzzle from its current position.
-                    array_splice($groupedSolvedPuzzles[$subIndex], $index, 1);
-                    // Add it to the beginning of the subarray.
-                    array_unshift($groupedSolvedPuzzles[$subIndex], $puzzle);
-                    // Assuming there's only one firstAttempt per subarray.
-                    break;
-                }
+        foreach ($solvedPuzzles as $index => $puzzle) {
+            if ($puzzle->firstAttempt) {
+                // Remove the firstAttempt puzzle from its current position.
+                array_splice($solvedPuzzles, $index, 1);
+                // Add it to the beginning of the subarray.
+                array_unshift($solvedPuzzles, $puzzle);
+                // Assuming there's only one firstAttempt per subarray.
+                break;
             }
         }
 
-        return $groupedSolvedPuzzles;
+        return array_values($solvedPuzzles);
     }
 
     /**
@@ -279,5 +277,133 @@ readonly final class PuzzlesSorter
         sort($players);
 
         return implode('.', $players);
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByFastest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    {
+        // 1) Sort times within groups as they are supposed to be
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortByFastest($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by first result
+        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            $timeComparison = $a->time <=> $b->time;
+
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
+
+            return $a->finishedAt <=> $b->finishedAt;
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGoupedBySlowest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    {
+        // 1) Sort times within groups as they are supposed to be
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortBySlowest($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by first result
+        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            $timeComparison = $b->time <=> $a->time;
+
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
+
+            return $a->finishedAt <=> $b->finishedAt;
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByNewest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    {
+        // 1) Sort times within groups as they are supposed to be
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortByNewest($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by first result
+        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            return $b->finishedAt->getTimestamp() <=> $a->finishedAt->getTimestamp();
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByOldest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    {
+        // 1) Sort times within groups as they are supposed to be
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortByOldest($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by first result
+        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            return $a->finishedAt->getTimestamp() <=> $b->finishedAt->getTimestamp();
+        });
+
+        return $groupedSolvedPuzzles;
     }
 }

@@ -185,7 +185,7 @@ GROUP BY pb.puzzle_id,
          pb.match_score
 SQL;
         if ($sortBy === 'most-solved') {
-            $query .= ' ORDER BY solved_times DESC, pb.match_score DESC, pb.puzzle_namegs, m.name ';
+            $query .= ' ORDER BY solved_times DESC, pb.match_score DESC, pb.puzzle_name, m.name ';
         }
 
         if ($sortBy === 'least-solved') {

@@ -38,7 +38,7 @@
                 {% endif %}
 
                 {% for player in computed.players %}
-                    <div class="pb-1 pe-3 d-inline-block">
+                    <span class="pb-1 pe-3 d-inline-block">
                         <a href="{{ path('player_profile', {playerId: player.playerId}) }}">
                             {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
                                 <i class="ci-star-filled text-warning"></i>
@@ -50,7 +50,7 @@
                                 <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
                             {% endif %}
                         </a>
-                    </div>
+                    </span>
                 {% endfor %}
 
                 <hr class="my-2">

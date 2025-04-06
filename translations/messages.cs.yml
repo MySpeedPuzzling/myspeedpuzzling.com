@@ -559,13 +559,13 @@ membership:
             <li>Filtrování podle země</li>
             <li>Grafy</li>
             <li>Čtečka čárových kódů</li>
+            <li>Detailní statistiky</li>
         </ul>
 
         <h3 class="h4">Na co se můžete brzy těšit?</h3>
         <ul>
-            <li>Detailní statistiky <small class="ms-1 text-muted">(02/2025)</small></li>
-            <li>Měsíční a roční reporty <small class="ms-1 text-muted">(02/2025)</small></li>
-            <li>Veřejný mypuzzler.com profil <small class="ms-1 text-muted">(02/2025)</small></li>
+            <li>Měsíční a roční reporty <small class="ms-1 text-muted">(brzy)</small></li>
+            <li>Veřejný mypuzzler.com profil <small class="ms-1 text-muted">(brzy)</small></li>
             <li class="mt-2">Speciální výzvy pouze pro členy</li>
             <li>Půjčování a prodej puzzlí mezi členy</li>
             <li>Gamifikace - sbírání zkušeností a úrovní</li>

@@ -559,13 +559,13 @@ membership:
             <li>Filtering by country</li>
             <li>Charts</li>
             <li>Barcode scanner</li>
+            <li>Detailed statistics</li>
         </ul>
         
         <h3 class="h4">What can you look forward to soon?</h3>
         <ul>
-            <li>Detailed statistics <small class="ms-1 text-muted">(02/2025)</small></li>
-            <li>Monthly and yearly reports <small class="ms-1 text-muted">(02/2025)</small></li>
-            <li>Public mypuzzler.com profile <small class="ms-1 text-muted">(02/2025)</small></li>
+            <li>Monthly and yearly reports <small class="ms-1 text-muted">(soon)</small></li>
+            <li>Public mypuzzler.com profile <small class="ms-1 text-muted">(soon)</small></li>
             <li class="mt-2">Special challenges exclusively for members</li>
             <li>Puzzle borrowing and selling among members</li>
             <li>Gamification - earning experience and levels</li>

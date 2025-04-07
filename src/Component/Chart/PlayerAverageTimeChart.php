@@ -27,6 +27,12 @@ final class PlayerAverageTimeChart
     #[LiveProp(writable: true)]
     public string $interval = 'month';
 
+    #[LiveProp(writable: true)]
+    public null|int $pieces = null;
+
+    /** @var array<int>|null */
+    public null|array $availablePieces = null;
+
     public function __construct(
         readonly private ChartBuilderInterface $chartBuilder,
         readonly private GetPlayerChartData $getPlayerChartData,
@@ -43,10 +49,13 @@ final class PlayerAverageTimeChart
         $playerId = $this->playerId;
         assert($playerId !== null);
 
+        $pieces = $this->getPieces();
+
         $playerData = $this->getPlayerChartData->getForPlayer(
             playerId: $playerId,
             brandId: $brand,
             periodType: $period,
+            pieces: $pieces,
         );
 
         foreach ($playerData as $data) {
@@ -105,10 +114,45 @@ final class PlayerAverageTimeChart
         $playerId = $this->playerId;
         assert($playerId !== null);
 
-        foreach ($this->getPlayerChartData->getBrandsSolvedSoloByPlayer($playerId) as $brandId => $brandName) {
+        foreach ($this->getPlayerChartData->getBrandsSolvedSoloByPlayer($playerId, $this->getPieces()) as $brandId => $brandName) {
             $brandChoices[$brandId] = $brandName;
         }
 
         return $brandChoices;
+    }
+
+    /**
+     * @return array<int>
+     */
+    public function availablePieces(): array
+    {
+        if ($this->availablePieces === null) {
+
+            $playerId = $this->playerId;
+            assert($playerId !== null);
+
+            $brand = Uuid::isValid($this->brand ?? '') ? $this->brand : null;
+
+            $this->availablePieces = $this->getPlayerChartData->getSolvedPiecesCount($playerId, $brand);
+        }
+
+        return $this->availablePieces;
+    }
+
+    public function getPieces(): int
+    {
+        if ($this->pieces !== null) {
+            return $this->pieces;
+        }
+
+        $availablePieces = $this->availablePieces();
+
+        if (count($availablePieces) > 0) {
+            $this->pieces = $availablePieces[array_key_first($availablePieces)];
+        } else {
+            $this->pieces = 500;
+        }
+
+        return $this->pieces;
     }
 }

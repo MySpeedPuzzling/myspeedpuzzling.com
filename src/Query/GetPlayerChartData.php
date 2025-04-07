@@ -23,7 +23,7 @@ readonly final class GetPlayerChartData
     /**
      * @return array<string, string>
      */
-    public function getBrandsSolvedSoloByPlayer(string $playerId): array
+    public function getBrandsSolvedSoloByPlayer(string $playerId, int $pieces): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -40,7 +40,7 @@ INNER JOIN puzzle p ON pst.puzzle_id = p.id
 INNER JOIN manufacturer m ON p.manufacturer_id = m.id
 WHERE 
     pst.player_id = :playerId
-    AND p.pieces_count = 500
+    AND p.pieces_count = :pieces
     AND pst.team IS NULL
 GROUP BY m.id
 ORDER BY solved_count DESC;
@@ -49,6 +49,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'pieces' => $pieces,
             ])
             ->fetchAllAssociative();
 
@@ -75,7 +76,8 @@ SQL;
     public function getForPlayer(
         string $playerId,
         null|string $brandId,
-        ChartTimePeriodType $periodType
+        ChartTimePeriodType $periodType,
+        int $pieces,
     ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -89,7 +91,7 @@ FROM puzzle_solving_time pst
 INNER JOIN puzzle p ON pst.puzzle_id = p.id
 WHERE 
     pst.player_id = :playerId
-    AND p.pieces_count = 500
+    AND p.pieces_count = :pieces
 SQL;
 
         if ($brandId !== null) {
@@ -108,11 +110,54 @@ SQL;
                 'playerId' => $playerId,
                 'brandId' => $brandId,
                 'period' => $periodType === ChartTimePeriodType::Week ? 'week' : 'month',
+                'pieces' => $pieces,
             ])
             ->fetchAllAssociative();
 
         return array_map(static function(array $row): PlayerChartData {
             return PlayerChartData::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * @return array<int>
+     */
+    public function getSolvedPiecesCount(
+        string $playerId,
+        null|string $brandId,
+    ): array {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT 
+    p.pieces_count,
+    COUNT(pst.id)
+FROM puzzle_solving_time pst
+INNER JOIN puzzle p ON pst.puzzle_id = p.id
+WHERE 
+    pst.player_id = :playerId
+    AND pst.team IS NULL 
+SQL;
+
+        if ($brandId !== null) {
+            $query .= ' AND p.manufacturer_id = :brandId ';
+        }
+
+        $query .= <<<SQL
+ GROUP BY p.pieces_count
+ORDER BY COUNT(pst.id) DESC
+SQL;
+
+        /** @var array<int> $data */
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'brandId' => $brandId,
+            ])
+            ->fetchFirstColumn();
+
+        return $data;
     }
 }

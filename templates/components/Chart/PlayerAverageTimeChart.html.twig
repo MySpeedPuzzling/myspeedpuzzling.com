@@ -1,6 +1,6 @@
 <div {{ attributes }} class="card card-body p-2 shadow">
     <div class="d-md-flex mb-2 mt-1 w-100 justify-content-between">
-        <h2 class="fs-6 text-center mb-2">500 pieces average time per {{ interval }}</h2>
+        <h2 class="fs-6 text-center mb-2">{{ this.pieces }} pieces average time per {{ interval }}</h2>
 
         <div class="d-flex flex-wrap flex-md-nowrap justify-content-center justify-content-md-end filters">
             <select
@@ -11,6 +11,17 @@
                 <option value="month">Per month</option>
                 <option value="week">Per week</option>
             </select>
+
+            <div style="width: 80px;" class="me-2">
+                <select
+                    data-model="pieces"
+                    class="form-select d-inline-block"
+                >
+                    {% for piecesCount in computed.availablePieces %}
+                        <option value="{{ piecesCount }}">{{ piecesCount }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
             <div style="width: 200px;">
                 <select

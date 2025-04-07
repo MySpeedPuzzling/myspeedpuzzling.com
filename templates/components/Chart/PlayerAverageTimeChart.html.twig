@@ -1,18 +1,18 @@
-<div {{ attributes }} class="card card-body p-2 shadow">
+<div {{ attributes }} class="card card-body p-2 pt-1 shadow">
     <div class="d-md-flex mb-2 mt-1 w-100 justify-content-between">
         <h2 class="fs-6 text-center mb-2">{{ this.pieces }} pieces average time per {{ interval }}</h2>
 
         <div class="d-flex flex-wrap flex-md-nowrap justify-content-center justify-content-md-end filters">
             <select
                 data-model="interval"
-                class="form-select d-inline-block me-2"
+                class="form-select d-inline-block me-2 mt-1"
                 style="max-width: 100px;"
             >
                 <option value="month">Per month</option>
                 <option value="week">Per week</option>
             </select>
 
-            <div style="width: 80px;" class="me-2">
+            <div style="width: 65px;" class="me-2 mt-1">
                 <select
                     data-model="pieces"
                     class="form-select d-inline-block"
@@ -23,7 +23,7 @@
                 </select>
             </div>
 
-            <div style="width: 200px;">
+            <div style="width: 200px;" class="me-2 mt-1">
                 <select
                     data-model="brand"
                     data-controller="symfony--ux-autocomplete--autocomplete"
@@ -33,6 +33,19 @@
                         <option value="{{ brandId }}">{{ brandName }}</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="mt-1 me-1">
+                <div class="form-check form-switch text-nowrap">
+                    <input
+                        data-model="onlyFirstTries"
+                        type="checkbox"
+                        class="form-check-input"
+                        role="switch"
+                        id="only-first-attempt"
+                        {{ this.onlyFirstTries ? 'checked' }}>
+                    <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
+                </div>
             </div>
         </div>
     </div>

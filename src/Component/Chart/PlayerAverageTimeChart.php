@@ -30,6 +30,9 @@ final class PlayerAverageTimeChart
     #[LiveProp(writable: true)]
     public null|int $pieces = null;
 
+    #[LiveProp(writable: true)]
+    public bool $onlyFirstTries = false;
+
     /** @var array<int>|null */
     public null|array $availablePieces = null;
 
@@ -56,6 +59,7 @@ final class PlayerAverageTimeChart
             brandId: $brand,
             periodType: $period,
             pieces: $pieces,
+            onlyFirstTries: $this->onlyFirstTries,
         );
 
         foreach ($playerData as $data) {
@@ -114,7 +118,9 @@ final class PlayerAverageTimeChart
         $playerId = $this->playerId;
         assert($playerId !== null);
 
-        foreach ($this->getPlayerChartData->getBrandsSolvedSoloByPlayer($playerId, $this->getPieces()) as $brandId => $brandName) {
+        $brands = $this->getPlayerChartData->getBrandsSolvedSoloByPlayer($playerId, $this->getPieces(), $this->onlyFirstTries);
+
+        foreach ($brands as $brandId => $brandName) {
             $brandChoices[$brandId] = $brandName;
         }
 
@@ -133,7 +139,7 @@ final class PlayerAverageTimeChart
 
             $brand = Uuid::isValid($this->brand ?? '') ? $this->brand : null;
 
-            $this->availablePieces = $this->getPlayerChartData->getSolvedPiecesCount($playerId, $brand);
+            $this->availablePieces = $this->getPlayerChartData->getSolvedPiecesCount($playerId, $brand, $this->onlyFirstTries);
         }
 
         return $this->availablePieces;

@@ -23,7 +23,7 @@ readonly final class GetPlayerChartData
     /**
      * @return array<string, string>
      */
-    public function getBrandsSolvedSoloByPlayer(string $playerId, int $pieces): array
+    public function getBrandsSolvedSoloByPlayer(string $playerId, int $pieces, bool $onlyFirstTries): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -41,8 +41,15 @@ INNER JOIN manufacturer m ON p.manufacturer_id = m.id
 WHERE 
     pst.player_id = :playerId
     AND p.pieces_count = :pieces
-    AND pst.team IS NULL
-GROUP BY m.id
+    AND pst.team IS NULL 
+SQL;
+
+        if ($onlyFirstTries === true) {
+            $query .= ' AND pst.first_attempt = true';
+        }
+
+        $query .= <<<SQL
+ GROUP BY m.id
 ORDER BY solved_count DESC;
 SQL;
 
@@ -78,6 +85,7 @@ SQL;
         null|string $brandId,
         ChartTimePeriodType $periodType,
         int $pieces,
+        bool $onlyFirstTries,
     ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -96,6 +104,10 @@ SQL;
 
         if ($brandId !== null) {
             $query .= ' AND p.manufacturer_id = :brandId';
+        }
+
+        if ($onlyFirstTries === true) {
+            $query .= ' AND pst.first_attempt = true';
         }
 
         $query .= <<<SQL
@@ -125,6 +137,7 @@ SQL;
     public function getSolvedPiecesCount(
         string $playerId,
         null|string $brandId,
+        bool $onlyFirstTries,
     ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -143,6 +156,10 @@ SQL;
 
         if ($brandId !== null) {
             $query .= ' AND p.manufacturer_id = :brandId ';
+        }
+
+        if ($onlyFirstTries === true) {
+            $query .= ' AND pst.first_attempt = true ';
         }
 
         $query .= <<<SQL

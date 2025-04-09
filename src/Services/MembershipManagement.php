@@ -86,7 +86,13 @@ readonly final class MembershipManagement
             $now = $this->clock->now();
             $membership = $this->getPlayerMembership->byId($userProfile->playerId);
 
-            if ($membership->stripeSubscriptionId !== null) {
+            if (
+                $membership->stripeSubscriptionId !== null
+                && (
+                    $membership->endsAt === null
+                    || $now < $membership->endsAt
+                )
+            ) {
                 throw new PlayerAlreadyHaveMembership;
             }
 

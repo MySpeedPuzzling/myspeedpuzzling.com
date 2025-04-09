@@ -15,7 +15,7 @@
 
                 <div class="card shadow my-4">
                     <div class="card-body">
-                        {% if membership %}
+                        {% if membership and (membership.endsAt is null or membership.endsAt > now) %}
                             {% if membership.billingPeriodEndsAt %}
                                 <p class="text-success fs-5">
                                     <i class="ci-check-circle me-2"></i> {{ 'membership.subscription_active'|trans }}
@@ -34,11 +34,6 @@
                                         <i class="ci-close-circle me-2"></i> {{ 'membership.free_membership_active'|trans }}
                                     </p>
                                 {% endif %}
-
-                            {% elseif membership.endsAt and membership.endsAt < now %}
-                                <p class="text-danger fs-5">
-                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
-                                </p>
                             {% else %}
                                 <p class="text-danger fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_inactive'|trans }}
@@ -59,6 +54,12 @@
                                 {{ 'membership.billing_portal_info'|trans }}
                             </p>
                         {% else %}
+                            {% if membership and membership.endsAt and membership.endsAt > now %}
+                                <p class="text-danger fs-5">
+                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
+                                </p>
+                            {% endif %}
+
                             <h4>{{ 'membership.choose_your_subscription'|trans }}</h4>
 
                             <div class="d-flex mt-2 text-center justify-content-center">

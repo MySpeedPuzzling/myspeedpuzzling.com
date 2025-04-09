@@ -54,7 +54,7 @@
                                 {{ 'membership.billing_portal_info'|trans }}
                             </p>
                         {% else %}
-                            {% if membership and membership.endsAt and membership.endsAt > now %}
+                            {% if membership and membership.endsAt and membership.endsAt < now %}
                                 <p class="text-danger fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
                                 </p>

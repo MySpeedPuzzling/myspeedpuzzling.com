@@ -1,14 +1,26 @@
 <div {{ attributes }}>
-    <div class="form-check form-switch my-3">
-        <input
-            data-model="onlyFirstTries"
-            type="checkbox"
-            class="form-check-input"
-            role="switch"
-            id="only-first-attempt"
-            {{ this.onlyFirstTries ? 'checked' }}>
-        <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
-    </div>
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <div class="form-check form-switch my-3">
+            <input
+                data-model="onlyFirstTries"
+                type="checkbox"
+                class="form-check-input"
+                role="switch"
+                id="only-first-attempt"
+                {{ this.onlyFirstTries ? 'checked' }}>
+            <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
+        </div>
+    {% else %}
+        <button
+            class="btn btn-outline-primary btn-sm position-relative pe-4"
+            data-bs-toggle="modal"
+            data-bs-target="#membersExclusiveModal"
+        >
+            <i class="bi-filter"></i>
+            {{ 'only_first_tries_filter'|trans }}
+            <i class="ci-locked position-absolute fs-sm" style="right: 4px;top: 7px;"></i>
+        </button>
+    {% endif %}
 
     {% if overallStatistics.solvedPuzzle.count == 0 %}
         <div class="my-3" role="alert">
@@ -37,10 +49,29 @@
                             </div>
                         </div>
 
-                        <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;">
-                            {{ render_chart(overallManufacturersChart) }}
-                        </div>
+                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                            <div class="position-relative mt-2 mx-auto text-center" style="width: 100%;">
+                                {{ render_chart(overallManufacturersChart) }}
+                            </div>
+                        {% endif %}
                     </div>
+
+                    {% if logged_user.profile is null or not logged_user.profile.activeMembership %}
+                        <div class="card card-body shadow mt-1">
+                            <div class="statistics-brands-chart-placeholder d-flex justify-content-between align-items-center">
+                                <div class="w-100 text-center">
+                                    <button
+                                        class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#membersExclusiveModal"
+                                    >
+                                        <i class="ci-locked me-1"></i>
+                                        {{ 'membership.members_exclusive_button'|trans }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="col-md-6 col-lg-4 my-2">
@@ -55,10 +86,48 @@
                             </div>
                         </div>
 
-                        <div style="width: 100%;height: 200px;" data-controller="time-chart" class="position-relative mt-2 mx-auto text-center">
-                            {{ render_chart(overallPuzzlingTimeChart) }}
-                        </div>
+                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                            <div style="width: 100%;height: 200px;" data-controller="time-chart" class="position-relative mt-2 mx-auto text-center">
+                                {{ render_chart(overallPuzzlingTimeChart) }}
+                            </div>
+                        {% endif %}
                     </div>
+
+                    {% if logged_user.profile is null or not logged_user.profile.activeMembership %}
+                        {% if overallStatistics.solvedPuzzle.countPerManufacturer|length > 0 %}
+                            <div class="card card-body shadow mt-2">
+                                <div class="d-flex justify-content-between">
+                                    <h4 class="mb-0">
+                                        <i class="bi-puzzle"></i>
+                                        {% for manufacturer, solvedCount in overallStatistics.solvedPuzzle.countPerManufacturer %}
+                                            {% if loop.first %}
+                                                {{ solvedCount }}&times;<br>
+                                                <small>{{ manufacturer }}</small>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </h4>
+                                    <div class="text-end">
+                                        {{ 'statistics.most_solved_brand'|trans }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div class="card card-body shadow mt-1">
+                            <div class="statistics-time-spent-chart-placeholder d-flex justify-content-between align-items-center">
+                                <div class="w-100 text-center">
+                                    <button
+                                        class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#membersExclusiveModal"
+                                    >
+                                        <i class="ci-locked me-1"></i>
+                                        {{ 'membership.members_exclusive_button'|trans }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
 
@@ -120,37 +189,58 @@
         </div>
 
         <div class="tab-content">
-            {% if soloStatistics.solvedPuzzle.count > 0 %}
-                <div class="tab-pane fade show active" id="solo" role="tabpanel" aria-labelledby="solo-tab">
-                    {{ include('_player_statistics_category.html.twig', {
-                        'statistics': soloStatistics,
-                        'manufacturers_chart': soloManufacturersChart,
-                        'puzzling_time_chart': soloPuzzlingTimeChart,
-                        'pieces_chart': soloPiecesChart,
-                    }) }}
-                </div>
-            {% endif %}
+            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                {% if soloStatistics.solvedPuzzle.count > 0 %}
+                    <div class="tab-pane fade show active" id="solo" role="tabpanel" aria-labelledby="solo-tab">
+                        {{ include('_player_statistics_category.html.twig', {
+                            'statistics': soloStatistics,
+                            'manufacturers_chart': soloManufacturersChart,
+                            'puzzling_time_chart': soloPuzzlingTimeChart,
+                            'pieces_chart': soloPiecesChart,
+                        }) }}
+                    </div>
+                {% endif %}
 
-            {% if duoStatistics.solvedPuzzle.count > 0 %}
-                <div class="tab-pane fade" id="duo" role="tabpanel" aria-labelledby="duo-tab">
-                    {{ include('_player_statistics_category.html.twig', {
-                        'statistics': duoStatistics,
-                        'manufacturers_chart': duoManufacturersChart,
-                        'puzzling_time_chart': duoPuzzlingTimeChart,
-                        'pieces_chart': duoPiecesChart,
-                    }) }}
-                </div>
-            {% endif %}
+                {% if duoStatistics.solvedPuzzle.count > 0 %}
+                    <div class="tab-pane fade" id="duo" role="tabpanel" aria-labelledby="duo-tab">
+                        {{ include('_player_statistics_category.html.twig', {
+                            'statistics': duoStatistics,
+                            'manufacturers_chart': duoManufacturersChart,
+                            'puzzling_time_chart': duoPuzzlingTimeChart,
+                            'pieces_chart': duoPiecesChart,
+                        }) }}
+                    </div>
+                {% endif %}
 
-            {% if teamStatistics.solvedPuzzle.count > 0 %}
-                <div class="tab-pane fade" id="team" role="tabpanel" aria-labelledby="team-tab">
-                    {{ include('_player_statistics_category.html.twig', {
-                        'statistics': teamStatistics,
-                        'manufacturers_chart': teamManufacturersChart,
-                        'puzzling_time_chart': teamPuzzlingTimeChart,
-                        'pieces_chart': teamPiecesChart,
-                    }) }}
-                </div>
+                {% if teamStatistics.solvedPuzzle.count > 0 %}
+                    <div class="tab-pane fade" id="team" role="tabpanel" aria-labelledby="team-tab">
+                        {{ include('_player_statistics_category.html.twig', {
+                            'statistics': teamStatistics,
+                            'manufacturers_chart': teamManufacturersChart,
+                            'puzzling_time_chart': teamPuzzlingTimeChart,
+                            'pieces_chart': teamPiecesChart,
+                        }) }}
+                    </div>
+                {% endif %}
+
+            {% else %}
+                {% if soloStatistics.solvedPuzzle.count > 0 %}
+                    <div class="tab-pane fade show active" id="solo" role="tabpanel" aria-labelledby="solo-tab">
+                        {{ include('_player_statistics_category_placeholder.html.twig') }}
+                    </div>
+                {% endif %}
+
+                {% if duoStatistics.solvedPuzzle.count > 0 %}
+                    <div class="tab-pane fade" id="duo" role="tabpanel" aria-labelledby="duo-tab">
+                        {{ include('_player_statistics_category_placeholder.html.twig') }}
+                    </div>
+                {% endif %}
+
+                {% if teamStatistics.solvedPuzzle.count > 0 %}
+                    <div class="tab-pane fade" id="team" role="tabpanel" aria-labelledby="team-tab">
+                        {{ include('_player_statistics_category_placeholder.html.twig') }}
+                    </div>
+                {% endif %}
             {% endif %}
         </div>
     {% endif %}

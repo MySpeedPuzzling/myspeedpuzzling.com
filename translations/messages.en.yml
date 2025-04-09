@@ -436,6 +436,7 @@ statistics:
     time_spent: "Time spent solving"
     longest_streak: "Longest streak"
     longest_streak_help: "Max consecutive days puzzling"
+    most_solved_brand: "Most solved brand"
     no_results: |
         We know you love solving puzzles — you’re basically a puzzle whisperer. But for the selected time period… nothing. Zero. Zilch. Nada.<br> 
         Either you didn’t solve any, or you forgot to add them to the platform (which is even more puzzling, honestly).<br>

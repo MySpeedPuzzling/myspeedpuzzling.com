@@ -436,6 +436,7 @@ statistics:
     time_spent: "Čas strávený skládáním"
     longest_streak: "Nejdelší série"
     longest_streak_help: "Max po sobě jdoucích dní puzzlování"
+    most_solved_brand: "Nejskládanější značka"
     no_results: |
         Víme, že miluješ skládání puzzlí — jsi v podstatě zašeptávač puzzlí. Ale za vybrané časové období… nic. Nula. Prázdno. Nicota.<br>
         Buď jsi žádné puzzle neskládal, nebo jsi ho zapomněl přidat na platformu (což je možná ještě větší záhada).<br>

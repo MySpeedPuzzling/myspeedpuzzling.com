@@ -805,6 +805,60 @@ div[data-countdown-target] {
     background-size: 100% 100%;
 }
 
+.statistics-brands-chart-placeholder {
+    height: 300px;
+    background: url('../img/statistics-brands-chart-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-time-spent-chart-placeholder {
+    height: 200px;
+    background: url('../img/statistics-time-spent-chart-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-puzzle-solved-placeholder {
+    height: 370px;
+    background: url('../img/statistics-puzzle-solved-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-time-spent-placeholder {
+    height: 270px;
+    background: url('../img/statistics-time-spent-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-total-pieces-placeholder {
+    height: 370px;
+    background: url('../img/statistics-total-pieces-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-pieces-1-placeholder {
+    height: 85px;
+    background: url('../img/statistics-pieces-1-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-pieces-2-placeholder {
+    height: 85px;
+    background: url('../img/statistics-pieces-2-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-pieces-3-placeholder {
+    height: 85px;
+    background: url('../img/statistics-pieces-3-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
+.statistics-pieces-4-placeholder {
+    height: 85px;
+    background: url('../img/statistics-pieces-4-placeholder.png') center center no-repeat;
+    background-size: contain;
+}
+
 .no-caret::after {
     display: none !important;
 }

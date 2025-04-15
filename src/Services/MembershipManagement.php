@@ -35,7 +35,7 @@ readonly final class MembershipManagement
      */
     public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period, null|string $priceLookupKey = null): string
     {
-        if ($priceLookupKey !== null) {
+        if ($priceLookupKey === null) {
             $priceLookupKey = 'puzzlership_monthly';
 
             if ($period === BillingPeriod::Yearly) {

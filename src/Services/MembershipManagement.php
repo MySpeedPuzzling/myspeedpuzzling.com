@@ -33,12 +33,14 @@ readonly final class MembershipManagement
     /**
      * @throws PlayerAlreadyHaveMembership
      */
-    public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period): string
+    public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period, null|string $priceLookupKey = null): string
     {
-        $priceLookupKey = 'puzzlership_monthly';
+        if ($priceLookupKey !== null) {
+            $priceLookupKey = 'puzzlership_monthly';
 
-        if ($period === BillingPeriod::Yearly) {
-            $priceLookupKey = 'puzzlership_yearly';
+            if ($period === BillingPeriod::Yearly) {
+                $priceLookupKey = 'puzzlership_yearly';
+            }
         }
 
         $prices = $this->stripeClient->prices->all([

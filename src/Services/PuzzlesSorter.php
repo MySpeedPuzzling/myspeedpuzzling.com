@@ -386,7 +386,7 @@ readonly final class PuzzlesSorter
     {
         // 1) Sort times within groups as they are supposed to be
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
-            $groupedSolvedPuzzles[$index] = $this->sortByOldest($solvedPuzzle);
+            $groupedSolvedPuzzles[$index] = $this->sortByNewest($solvedPuzzle);
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);

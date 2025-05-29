@@ -99,14 +99,18 @@ readonly final class MembershipManagement
             }
 
             if ($membership->endsAt !== null && $now < $membership->endsAt) {
-                $checkoutData['subscription_data'] = [
-                    'trial_settings' => [
-                        'end_behavior' => [
-                            'missing_payment_method' => 'pause',
-                        ]
-                    ],
-                    'trial_end' => $membership->endsAt->getTimestamp(),
-                ];
+                $daysBetweenTrialEnds = $now->diff($membership->endsAt)->days;
+
+                if ($daysBetweenTrialEnds > 0) {
+                    $checkoutData['subscription_data'] = [
+                        'trial_settings' => [
+                            'end_behavior' => [
+                                'missing_payment_method' => 'pause',
+                            ]
+                        ],
+                        'trial_period_days' => $daysBetweenTrialEnds,
+                    ];
+                }
             }
         } catch (MembershipNotFound) {
             // Do nothing, the membership does not exist, do not activate trial

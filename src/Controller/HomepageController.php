@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
-use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetStatistics;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,7 +19,6 @@ final class HomepageController extends AbstractController
         readonly private GetLastSolvedPuzzle $getLastSolvedPuzzle,
         readonly private GetStatistics $getStatistics,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private GetRanking $getRanking,
     ) {
     }
 
@@ -36,10 +34,8 @@ final class HomepageController extends AbstractController
     {
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $locale = $request->getPreferredLanguage(['en', 'cs']) ?? 'en';
-        $userRanking = [];
 
         if ($playerProfile !== null) {
-            $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
             $locale = $playerProfile->locale ?? $locale;
         }
 
@@ -55,7 +51,6 @@ final class HomepageController extends AbstractController
         return $this->render('homepage.html.twig', [
             'last_solved_puzzles' => $this->getLastSolvedPuzzle->limit(5),
             'global_statistics' => $this->getStatistics->globally(),
-            'ranking' => $userRanking,
         ]);
     }
 }

@@ -235,6 +235,8 @@ forms:
     player_code: "Kód hráče"
     player_code_help: "Unikátní kód hráče - minimálně 3 znaky, maximálně 8 znaků. Může obsahovat pouze písmena a číslice, bez speciálních znaků nebo mezer."
     global_search_placeholder: "Hledat puzzle nebo hráče..."
+    private_profile: "Skrytý profil"
+    private_profile_help: "Vaše jméno nebude nikde uvedeno a časy budou prezentovány jako anonymní."
 
 puzzlers_comparison:
     meta:
@@ -364,15 +366,12 @@ my_profile:
     share_mention_myspeedpuzzling: "Označ nás:"
     wjpc_connection: "WJPC propojení"
 
-edit_player_code:
-    meta:
-        title: "Změna kódu hráče"
-    title: "Změna kódu hráče"
-
 edit_profile:
     meta:
         title: "Úprava profilu"
     title: "Úprava profilu"
+    player_code_change: "Změna kódu hráče"
+    profile_visibility: "Viditelnost profilu"
 
 puzzle_detail:
     meta:

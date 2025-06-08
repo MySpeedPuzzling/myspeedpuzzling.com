@@ -22,8 +22,6 @@
                 {{ 'menu.favorite_puzzlers'|trans }}
             {% elseif route == 'edit_profile' %}
                 {{ 'menu.edit_profile'|trans }}
-            {% elseif route == 'edit_player_code' %}
-                {{ 'menu.change_player_code'|trans }}
             {% else %}
                 {{ 'menu.profile'|trans }}
             {% endif %}
@@ -67,19 +65,6 @@
                 <a href="{{ path('edit_profile', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'edit_profile' %}active{% endif %}">
                     <i class="me-1 ci-edit"></i> {{ 'menu.edit_profile'|trans }}
                 </a>
-
-                {% if logged_user.profile.activeMembership %}
-                    <a href="{{ path('edit_player_code') }}" class="dropdown-item">
-                        <i class="me-1 ci-edit"></i> {{ 'menu.change_player_code'|trans }}
-                    </a>
-                {% else %}
-                    <a href="#"
-                       class="dropdown-item"
-                       data-bs-toggle="modal"
-                       data-bs-target="#membersExclusiveModal">
-                        <i class="me-1 ci-locked"></i> {{ 'menu.change_player_code'|trans }}
-                    </a>
-                {% endif %}
             {% endif %}
         </div>
     </div>

@@ -233,6 +233,8 @@ forms:
     player_code: "Player Code"
     player_code_help: "A unique player code - at least 3 characters, up to 8 characters. It can only contain letters and numbers, no special characters or spaces."
     global_search_placeholder: "Search puzzle or player..."
+    private_profile: "Private profile"
+    private_profile_help: "Your name will not be displayed anywhere and times will be presented anonymously."
 
 puzzlers_comparison:
     meta:
@@ -364,15 +366,12 @@ my_profile:
     share_mention_myspeedpuzzling: "Tag us: <code>@MySpeedPuzzling</code>"
     wjpc_connection: "WJPC connection"
 
-edit_player_code:
-    meta:
-        title: "Change Player Code"
-    title: "Change Player Code"
-
 edit_profile:
     meta:
         title: "Edit profile"
     title: "Edit profile"
+    player_code_change: "Change player code"
+    profile_visibility: "Profile visibility"
 
 puzzle_detail:
     meta:

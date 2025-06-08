@@ -164,20 +164,6 @@
                                         </a>
                                     </li>
                                     <li>
-                                        {% if logged_user.profile.activeMembership %}
-                                            <a href="{{ path('edit_player_code') }}" class="dropdown-item {% if currentRoute == 'edit_player_code' %}active{% endif %}">
-                                                <i class="me-1 ci-edit"></i> {{ 'menu.change_player_code'|trans }}
-                                            </a>
-                                        {% else %}
-                                            <a href="#"
-                                               class="dropdown-item"
-                                               data-bs-toggle="modal"
-                                               data-bs-target="#membersExclusiveModal">
-                                                <i class="me-1 ci-locked"></i> {{ 'menu.change_player_code'|trans }}
-                                            </a>
-                                        {% endif %}
-                                    </li>
-                                    <li>
                                         <a class="dropdown-item text-danger" href="{{ path('logout') }}">
                                             <i class="bi bi-box-arrow-right me-2"></i>{{ 'my_profile.logout'|trans }}
                                         </a>

@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     locale: null|string,
  *     membership_ends_at: null|string,
  *     is_admin: bool,
+ *     is_private: bool,
  *  }
  */
 readonly final class PlayerProfile
@@ -52,6 +53,7 @@ readonly final class PlayerProfile
         public null|DateTimeImmutable $membershipEndsAt,
         public bool $activeMembership,
         public bool $isAdmin = false,
+        public bool $isPrivate = false,
         public null|CountryCode $countryCode = null,
     ) {
     }
@@ -100,6 +102,7 @@ readonly final class PlayerProfile
             membershipEndsAt: $membershipEndsAt,
             activeMembership: $hasMembership,
             isAdmin: $row['is_admin'],
+            isPrivate: $row['is_private'],
             countryCode: $countryCode,
         );
     }

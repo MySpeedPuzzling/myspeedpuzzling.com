@@ -58,6 +58,10 @@ class Player
     public bool $isAdmin = false;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => '0'])]
+    public bool $isPrivate = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|string $stripeCustomerId = null;
 
@@ -165,5 +169,10 @@ class Player
     public function changeCode(string $code): void
     {
         $this->code = strtolower($code);
+    }
+
+    public function changeProfileVisibility(bool $isPrivate): void
+    {
+        $this->isPrivate = $isPrivate;
     }
 }

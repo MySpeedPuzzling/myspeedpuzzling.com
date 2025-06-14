@@ -41,11 +41,13 @@ WITH player_data AS (
         puzzle_solving_time.id AS time_id,
         puzzle_solving_time.team ->> 'team_id' AS team_id,
         first_attempt,
+        player.is_private,
         JSON_AGG(
             JSON_BUILD_OBJECT(
                 'player_id', player_elem.player ->> 'player_id',
                 'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-                'player_country', p.country
+                'player_country', p.country,
+                'is_private', p.is_private
             ) ORDER BY player_elem.ordinality
         ) AS players
     FROM puzzle_solving_time
@@ -107,6 +109,7 @@ SQL;
              *     players: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     is_private: bool,
              * } $row
              */
 

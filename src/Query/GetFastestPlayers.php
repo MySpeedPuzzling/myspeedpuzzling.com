@@ -66,7 +66,8 @@ SELECT
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.id AS time_id,
     puzzle.identification_number AS puzzle_identification_number,
-    puzzle_solving_time.first_attempt
+    puzzle_solving_time.first_attempt,
+    is_private
 FROM FastestTimes
 INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = puzzle_solving_time_id
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -105,6 +106,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     is_private: bool,
              * } $row
              */
 

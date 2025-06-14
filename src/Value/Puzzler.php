@@ -34,7 +34,7 @@ readonly final class Puzzler
             playerName: $row['player_name'] ?? '',
             playerCode: $row['player_code'],
             playerCountry: CountryCode::fromCode($row['player_country']),
-            isPrivate: $row['is_private'] ?? false,
+            isPrivate: $row['is_private'] === null ? false : $row['is_private'],
         );
     }
 
@@ -48,7 +48,7 @@ readonly final class Puzzler
          *     player_id: null|string,
          *     player_name: null|string,
          *     player_country: null|string,
-         *     is_private: bool,
+         *     is_private: null|bool,
          *     player_code?: null|string,
          *  }> $playersData */
         $playersData = Json::decode($json, true);
@@ -59,7 +59,7 @@ readonly final class Puzzler
                 playerName: $data['player_name'],
                 playerCode: $data['player_code'] ?? null,
                 playerCountry: CountryCode::fromCode($data['player_country']),
-                isPrivate: $data['is_private'],
+                isPrivate: $data['is_private'] === null ? false : $data['is_private'],
             );
         }, $playersData);
 

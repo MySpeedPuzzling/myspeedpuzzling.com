@@ -33,15 +33,20 @@ final class ComparePlayersController extends AbstractController
     )]
     public function __invoke(#[CurrentUser] User $user, string $opponentPlayerId): Response
     {
-        $player = $this->retrieveLoggedUserProfile->getProfile();
+        $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($player === null) {
+        if ($loggedPlayerProfile === null) {
             return $this->redirectToRoute('my_profile');
         }
 
         try {
             $opponent = $this->getPlayerProfile->byId($opponentPlayerId);
-            $playerRanking = $this->getRanking->allForPlayer($player->playerId);
+
+            if ($opponent->isPrivate && $loggedPlayerProfile->playerId !== $opponent->playerId) {
+                return $this->redirectToRoute('player_profile', ['playerId' => $opponent->playerId]);
+            }
+
+            $playerRanking = $this->getRanking->allForPlayer($loggedPlayerProfile->playerId);
             $opponentRanking = $this->getRanking->allForPlayer($opponent->playerId);
         } catch (PlayerNotFound) {
             throw $this->createNotFoundException();
@@ -50,7 +55,7 @@ final class ComparePlayersController extends AbstractController
         $comparisons = $this->playersComparison->compare($playerRanking, $opponentRanking);
 
         return $this->render('compare_players.html.twig', [
-            'player' => $player,
+            'player' => $loggedPlayerProfile,
             'opponent' => $opponent,
             'comparisons' => $comparisons,
         ]);

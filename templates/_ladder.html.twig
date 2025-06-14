@@ -29,20 +29,28 @@
                 <td class="player-name">
                     <p class="low-line-height mb-0">
                         {% if solving_time.players is null %}
-                            <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
-                                {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
-                                    <i class="ci-star-filled text-warning"></i>
+                            {% if solving_time.isPrivate %}
+                                <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                <i class="bi bi-incognito text-muted"></i>
+                            {% else %}
+                                <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
+                                    {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
+                                        <i class="ci-star-filled text-warning"></i>
+                                    {% endif %}
+                                    <small>{{ solving_time.playerName }}</small></a>
+                                {% if solving_time.playerCountry is not null %}
+                                    <small class="shadow-custom fi fi-{{ solving_time.playerCountry.name }}"></small>
                                 {% endif %}
-                                <small>{{ solving_time.playerName }}</small></a>
-                            {% if solving_time.playerCountry is not null %}
-                                <small class="shadow-custom fi fi-{{ solving_time.playerCountry.name }}"></small>
                             {% endif %}
                         {% else %}
                             {% for puzzle_solver in solving_time.players %}
                                 {% if not loop.first %}
                                     <br>
                                 {% endif %}
-                                {% if puzzle_solver.playerId is not null %}
+                                {% if puzzle_solver.isPrivate %}
+                                    <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                    <i class="bi bi-incognito text-muted"></i>
+                                {% elseif puzzle_solver.playerId is not null %}
                                     <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                         {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                             <i class="ci-star-filled text-warning"></i>

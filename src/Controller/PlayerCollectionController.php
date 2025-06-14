@@ -7,6 +7,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetTags;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,6 +22,7 @@ final class PlayerCollectionController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
         readonly private GetPuzzleCollection $getPuzzleCollection,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -39,6 +41,12 @@ final class PlayerCollectionController extends AbstractController
             $this->addFlash('primary', $this->translator->trans('flashes.player_not_found'));
 
             return $this->redirectToRoute('ladder');
+        }
+
+        $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player->isPrivate && $loggedPlayerProfile?->playerId !== $player->playerId) {
+            return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
         }
 
         return $this->render('player_collection.html.twig', [

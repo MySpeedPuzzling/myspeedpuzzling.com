@@ -64,7 +64,8 @@ SELECT
             JSON_BUILD_OBJECT(
                 'player_id', player_elem.player ->> 'player_id',
                 'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-                'player_country', p.country
+                'player_country', p.country,
+                'is_private', p.is_private
             ) ORDER BY player_elem.ordinality
         )
     END AS players

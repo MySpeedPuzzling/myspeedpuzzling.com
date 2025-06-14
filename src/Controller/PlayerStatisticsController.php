@@ -7,6 +7,7 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\Month;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,6 +23,7 @@ final class PlayerStatisticsController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private TranslatorInterface $translator,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -44,6 +46,12 @@ final class PlayerStatisticsController extends AbstractController
             $this->addFlash('primary', $this->translator->trans('flashes.player_not_found'));
 
             return $this->redirectToRoute('players');
+        }
+
+        $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player->isPrivate && $loggedPlayerProfile?->playerId !== $player->playerId) {
+            return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
         }
 
         $year = $request->query->getInt('year');

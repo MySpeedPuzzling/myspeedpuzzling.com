@@ -30,6 +30,11 @@ readonly final class NotifyWhenPuzzleSolved
         $solvingTime = $this->puzzleSolvingTimeRepository->get($event->puzzleSolvingTimeId->toString());
 
         if ($solvingTime->team === null) {
+            // Skip notifying if the player has private profile
+            if ($solvingTime->player->isPrivate === true) {
+                return;
+            }
+
             $subscribedPlayers = $this->playerRepository->findPlayersByFavoriteUuid($solvingTime->player->id->toString());
         } else {
             $subscribedPlayers = [];
@@ -37,6 +42,13 @@ readonly final class NotifyWhenPuzzleSolved
             // Collect all favorites from all puzzlers from team
             foreach ($solvingTime->team->puzzlers as $puzzler) {
                 if ($puzzler->playerId !== null) {
+                    $teamPuzzler = $this->playerRepository->get($puzzler->playerId);
+
+                    // Skip notifying if the player has private profile
+                    if ($teamPuzzler->isPrivate === true) {
+                        continue;
+                    }
+
                     foreach ($this->playerRepository->findPlayersByFavoriteUuid($puzzler->playerId) as $subscribedPlayer) {
                         $subscribedPlayers[] = $subscribedPlayer;
                     }

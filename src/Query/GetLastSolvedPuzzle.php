@@ -92,6 +92,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     is_private: bool,
              * } $row
              */
 

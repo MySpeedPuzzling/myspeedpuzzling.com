@@ -31,19 +31,21 @@
                 <i class="bi bi-person me-1"></i> {{ 'menu.profile'|trans }}
             </a>
 
-            <a href="{{ path('player_statistics', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_statistics' %}active{% endif %}">
-                <i class="bi bi-bar-chart-line me-1"></i> {{ 'menu.statistics'|trans }}
-            </a>
+            {% if not player.isPrivate or (logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId) %}
+                <a href="{{ path('player_statistics', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_statistics' %}active{% endif %}">
+                    <i class="bi bi-bar-chart-line me-1"></i> {{ 'menu.statistics'|trans }}
+                </a>
 
-            <a href="{{ path('player_collection', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_collection' %}active{% endif %}">
-                <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
-            </a>
+                <a href="{{ path('player_collection', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_collection' %}active{% endif %}">
+                    <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
+                </a>
 
-            <a href="{{ path('player_favorite_puzzlers', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_favorite_puzzlers' %}active{% endif %}">
-                <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
-            </a>
+                <a href="{{ path('player_favorite_puzzlers', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_favorite_puzzlers' %}active{% endif %}">
+                    <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
+                </a>
+            {% endif %}
 
-            {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId%}
+            {% if logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId %}
                 {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
                     <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId}) }}" class="dropdown-item">
                         <i class="me-1 ci-star-filled"></i> {{ 'profile.remove_from_favorites'|trans }}
@@ -54,9 +56,11 @@
                     </a>
                 {% endif %}
 
-                <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('compare_players', {'opponentPlayerId': player.playerId}) }}" class="dropdown-item">
-                    <i class="me-1 ci-compare"></i> {{ 'profile.compare'|trans }}
-                </a>
+                {% if not player.isPrivate %}
+                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('compare_players', {'opponentPlayerId': player.playerId}) }}" class="dropdown-item">
+                        <i class="me-1 ci-compare"></i> {{ 'profile.compare'|trans }}
+                    </a>
+                {% endif %}
             {% endif %}
 
             {% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}

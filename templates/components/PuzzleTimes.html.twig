@@ -143,8 +143,12 @@
                                 {% for puzzle_solver in aggregated_solver[0].players %}
                                     {% if not loop.first %}
                                         <br>
+
                                     {% endif %}
-                                    {% if puzzle_solver.playerId is not null %}
+                                    {% if puzzle_solver.isPrivate %}
+                                        <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                        <i class="bi bi-incognito text-muted"></i>
+                                    {% elseif puzzle_solver.playerId is not null %}
                                         <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                             {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                                 <i class="ci-star-filled text-warning"></i>
@@ -159,13 +163,18 @@
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
-                                <a href="{{ path('player_profile', {playerId: aggregated_solver[0].playerId}) }}">
-                                    {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
-                                        <i class="ci-star-filled text-warning"></i>
+                                {% if aggregated_solver[0].isPrivate %}
+                                    <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                    <i class="bi bi-incognito text-muted"></i>
+                                {% else %}
+                                    <a href="{{ path('player_profile', {playerId: aggregated_solver[0].playerId}) }}">
+                                        {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
+                                            <i class="ci-star-filled text-warning"></i>
+                                        {% endif %}
+                                        {{ aggregated_solver[0].playerName }}</a>
+                                    {% if aggregated_solver[0].playerCountry is not null %}
+                                        <small class="shadow-custom fi fi-{{ aggregated_solver[0].playerCountry.name }}"></small>
                                     {% endif %}
-                                    {{ aggregated_solver[0].playerName }}</a>
-                                {% if aggregated_solver[0].playerCountry is not null %}
-                                    <small class="shadow-custom fi fi-{{ aggregated_solver[0].playerCountry.name }}"></small>
                                 {% endif %}
                             {% endif %}
                         </td>

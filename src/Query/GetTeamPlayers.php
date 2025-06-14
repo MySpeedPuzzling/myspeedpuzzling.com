@@ -27,7 +27,8 @@ SELECT
     (player_elem.player ->> 'player_id') AS player_id,
     COALESCE(p.name, player_elem.player ->> 'player_name') AS player_name,
     p.country AS player_country,
-    p.code AS player_code
+    p.code AS player_code,
+    p.is_private AS is_private
 FROM puzzle_solving_time
 LEFT JOIN LATERAL
     json_array_elements(puzzle_solving_time.team -> 'puzzlers')
@@ -55,6 +56,7 @@ SQL;
              *     player_name: null|string,
              *     player_country: null|string,
              *     player_code: null|string,
+             *     is_private: null|bool,
              * } $row
              */
 

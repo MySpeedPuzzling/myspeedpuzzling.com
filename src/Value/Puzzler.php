@@ -13,6 +13,7 @@ readonly final class Puzzler
         public null|string $playerName,
         public null|string $playerCode,
         public null|CountryCode $playerCountry,
+        public bool $isPrivate,
     ) {
     }
 
@@ -23,6 +24,7 @@ readonly final class Puzzler
      *     player_name: null|string,
      *     player_code: null|string,
      *     player_country: null|string,
+     *     is_private: null|bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -32,6 +34,7 @@ readonly final class Puzzler
             playerName: $row['player_name'] ?? '',
             playerCode: $row['player_code'],
             playerCountry: CountryCode::fromCode($row['player_country']),
+            isPrivate: $row['is_private'] ?? false,
         );
     }
 
@@ -40,7 +43,14 @@ readonly final class Puzzler
      */
     public static function createPuzzlersFromJson(string $json, null|string $excludePlayerId = null): array
     {
-        /** @var array<array{player_id: null|string, player_name: null|string, player_country: null|string, player_code?: null|string}> $playersData */
+        /**
+         * @var array<array{
+         *     player_id: null|string,
+         *     player_name: null|string,
+         *     player_country: null|string,
+         *     is_private: bool,
+         *     player_code?: null|string,
+         *  }> $playersData */
         $playersData = Json::decode($json, true);
 
         $players = array_map(static function(array $data): Puzzler {
@@ -48,7 +58,8 @@ readonly final class Puzzler
                 playerId: $data['player_id'],
                 playerName: $data['player_name'],
                 playerCode: $data['player_code'] ?? null,
-                playerCountry: CountryCode::fromCode($data['player_country'])
+                playerCountry: CountryCode::fromCode($data['player_country']),
+                isPrivate: $data['is_private'],
             );
         }, $playersData);
 

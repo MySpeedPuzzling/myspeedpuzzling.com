@@ -35,6 +35,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
                 playerName: $puzzler['player_name'],
                 playerCode: null, // Not supported in domain
                 playerCountry: null,  // Not supported in domain
+                isPrivate: false, // Not supported in domain
             );
         }
 

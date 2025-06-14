@@ -17,6 +17,7 @@ readonly final class PuzzleSolver
         public int $time,
         public DateTimeImmutable $finishedAt,
         public bool $firstAttempt,
+        public bool $isPrivate,
     ) {
     }
 
@@ -29,6 +30,7 @@ readonly final class PuzzleSolver
      *     time: int,
      *     finished_at: string,
      *     first_attempt: bool,
+     *     is_private: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -41,6 +43,7 @@ readonly final class PuzzleSolver
             time: $row['time'],
             finishedAt: new DateTimeImmutable($row['finished_at']),
             firstAttempt: $row['first_attempt'],
+            isPrivate: $row['is_private'],
         );
     }
 }

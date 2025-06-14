@@ -179,7 +179,10 @@
                                                     {% if not loop.first %}
                                                         <br>
                                                     {% endif %}
-                                                    {% if puzzle_solver.playerId is not null %}
+                                                    {% if puzzle_solver.isPrivate %}
+                                                        <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                                        <i class="bi bi-incognito text-muted"></i>
+                                                    {% elseif puzzle_solver.playerId is not null %}
                                                         <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                                             <small>{{ puzzle_solver.playerName }}</small>
                                                         </a>

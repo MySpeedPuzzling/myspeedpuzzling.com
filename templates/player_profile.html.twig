@@ -37,123 +37,136 @@
         {% endif %}
     </div>
 
+    {% if player.isPrivate and logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId %}
+        <div class="alert alert-secondary d-flex align-items-start gap-3 p-3 rounded-3 shadow-sm">
+            <i class="bi bi-incognito fs-2 text-muted flex-shrink-0"></i>
+            <div class="small lh-sm">
+                <p class="mb-1">
+                    <strong>{{ 'secret_puzzler_name'|trans }}!</strong> {{ 'profile.private_profile_info_1'|trans }}
+                </p>
+                <p class="mb-0">
+                    {{ 'profile.private_profile_info_2'|trans }}
+                </p>
+            </div>
 
-    <div class="my-4">
-        <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
-    </div>
-
-    <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
-        <li class="nav-item">
-            <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
-                </div>
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link" href="#info" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.personal_info'|trans|raw }}</h6>
-                </div>
-            </a>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
-            {{ include('_recent_activity.html.twig', {
-                solved_puzzles: last_solved_puzzles,
-                is_on_profile: true,
-                ranking: logged_player_ranking,
-                show_limit: 3,
-            }) }}
+        </div>
+    {% else %}
+        <div class="my-4">
+            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
         </div>
 
-        <div class="tab-pane fade" id="info" role="tabpanel">
-            <div class="shadow-lg p-3 mt-3">
-                <div class="row">
-                    <div class="col-sm">
-                        <p>
-                            <b>{{ 'profile.avatar'|trans }}:</b><br>
-                            {% if player.avatar is null %}
-                                {{ 'profile.not_filled'|trans }}
-                            {% else %}
-                                <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
-                            {% endif %}
-                        </p>
-
-                        <p class="mb-0">
-                            <b>{{ 'profile.about_me'|trans }}:</b><br>
-                            {% if player.bio is null %}
-                                {{ 'profile.not_filled'|trans }}
-                            {% else %}
-                                {{ player.bio|nl2br }}
-                            {% endif %}<br>
-                        </p>
+        <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
+            <li class="nav-item">
+                <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                    <div class="text-center">
+                        <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
                     </div>
+                </a>
+            </li>
 
-                    <div class="col-sm">
-                        <p>
-                            <b>{{ 'profile.location'|trans }}:</b><br>
-                            {% if player.city is null %}
-                                {{ 'profile.not_filled'|trans }}
-                            {% else %}
-                                {{ player.city }}
-                            {% endif %}
-                        </p>
+            <li class="nav-item">
+                <a class="nav-link" href="#info" data-bs-toggle="tab" role="tab" {{ stimulus_action('tabs', 'showTab') }}>
+                    <div class="text-center">
+                        <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.personal_info'|trans|raw }}</h6>
+                    </div>
+                </a>
+            </li>
+        </ul>
 
-                        <p>
-                            <b>{{ 'profile.nationality'|trans }}:</b><br>
-                            {% if player.countryCode is null %}
-                                {{ 'profile.not_filled'|trans }}
-                            {% else %}
-                                {{ player.countryCode.value }}
-                                <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
-                            {% endif %}
-                        </p>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
+                {{ include('_recent_activity.html.twig', {
+                    solved_puzzles: last_solved_puzzles,
+                    is_on_profile: true,
+                    ranking: logged_player_ranking,
+                    show_limit: 3,
+                }) }}
+            </div>
 
-                        <p>
-                            <b>Facebook:</b><br>
-                            {% if player.facebook is null %}
-                                {{ 'profile.not_filled'|trans }}
-                            {% else %}
-                                {{ player.facebook|facebook }}
-                            {% endif %}<br>
-                        </p>
+            <div class="tab-pane fade" id="info" role="tabpanel">
+                <div class="shadow-lg p-3 mt-3">
+                    <div class="row">
+                        <div class="col-sm">
+                            <p>
+                                <b>{{ 'profile.avatar'|trans }}:</b><br>
+                                {% if player.avatar is null %}
+                                    {{ 'profile.not_filled'|trans }}
+                                {% else %}
+                                    <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+                                {% endif %}
+                            </p>
 
-                        <p class="mb-0">
-                            <b>Instagram:</b><br>
-                            {% if player.instagram is null %}
-                                {{ 'profile.not_filled'|trans }}
-                            {% else %}
-                                {{ player.instagram|instagram }}
-                            {% endif %}<br>
-                        </p>
+                            <p class="mb-0">
+                                <b>{{ 'profile.about_me'|trans }}:</b><br>
+                                {% if player.bio is null %}
+                                    {{ 'profile.not_filled'|trans }}
+                                {% else %}
+                                    {{ player.bio|nl2br }}
+                                {% endif %}<br>
+                            </p>
+                        </div>
+
+                        <div class="col-sm">
+                            <p>
+                                <b>{{ 'profile.location'|trans }}:</b><br>
+                                {% if player.city is null %}
+                                    {{ 'profile.not_filled'|trans }}
+                                {% else %}
+                                    {{ player.city }}
+                                {% endif %}
+                            </p>
+
+                            <p>
+                                <b>{{ 'profile.nationality'|trans }}:</b><br>
+                                {% if player.countryCode is null %}
+                                    {{ 'profile.not_filled'|trans }}
+                                {% else %}
+                                    {{ player.countryCode.value }}
+                                    <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+                                {% endif %}
+                            </p>
+
+                            <p>
+                                <b>Facebook:</b><br>
+                                {% if player.facebook is null %}
+                                    {{ 'profile.not_filled'|trans }}
+                                {% else %}
+                                    {{ player.facebook|facebook }}
+                                {% endif %}<br>
+                            </p>
+
+                            <p class="mb-0">
+                                <b>Instagram:</b><br>
+                                {% if player.instagram is null %}
+                                    {{ 'profile.not_filled'|trans }}
+                                {% else %}
+                                    {{ player.instagram|instagram }}
+                                {% endif %}<br>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {% if badges is not empty %}
-        <div class="mt-4">
-            <h3>{{ 'badges.title'|trans }}</h3>
+        {% if badges is not empty %}
+            <div class="mt-4">
+                <h3>{{ 'badges.title'|trans }}</h3>
 
-            {% for badge in badges %}
-                <span class="d-inline-block text-center small">
+                {% for badge in badges %}
+                    <span class="d-inline-block text-center small">
                     <img alt="{{ ('badges.badge.' ~ badge.value)|trans }}" src="{{ asset('img/badges/' ~ badge.value ~ '.png') }}" style="width: 80px;"><br>
                     {{ ('badges.badge.' ~ badge.value)|trans }}
                 </span>
-            {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+
+        <div {{ stimulus_controller('puzzle_filter') }}>
+            <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
+
+            <twig:PlayerTimes playerId="{{ player.playerId }}" />
         </div>
     {% endif %}
-
-
-    <div {{ stimulus_controller('puzzle_filter') }}>
-        <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
-
-        <twig:PlayerTimes playerId="{{ player.playerId }}" />
-    </div>
-
 {% endblock %}

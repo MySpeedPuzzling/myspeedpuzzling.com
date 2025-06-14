@@ -78,6 +78,7 @@ edit: "Edit"
 delete: "Delete"
 active_membership: "Active membership"
 new_badge: "New"
+secret_puzzler_name: "Hidden Puzzler"
 
 homepage:
     meta:
@@ -350,6 +351,8 @@ profile:
     solved_puzzles_group: "Group assembly"
     recent_activity: "Recent<br>activity"
     personal_info: "Personal<br>info"
+    private_profile_info_1: "This puzzler has decided not to share their times. But we insist there are no slow or fast times—only pieces waiting to click together."
+    private_profile_info_2: "Want to know more? Meet them in person and try to convince them to reveal their times. That's all we can tell you here."
 
 my_profile:
     meta:

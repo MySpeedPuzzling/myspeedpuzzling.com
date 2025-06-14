@@ -72,14 +72,19 @@
                             <p class="mb-0 low-line-height">
                                 {% if solved_puzzle.players is null %}
                                     {% if is_on_profile is same as false %}
-                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
-                                            <small>{{ solved_puzzle.playerName }}</small>
-                                            {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
-                                                <i class="ci-star-filled text-warning"></i>
+                                        {% if solved_puzzle.isPrivate %}
+                                            <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                            <i class="bi bi-incognito text-muted"></i>
+                                        {% else %}
+                                            <a class="player-name-item" href="{{ path('player_profile', {playerId: solved_puzzle.playerId}) }}">
+                                                <small>{{ solved_puzzle.playerName }}</small>
+                                                {% if logged_user.profile is not null and solved_puzzle.playerId in logged_user.profile.favoritePlayers %}
+                                                    <i class="ci-star-filled text-warning"></i>
+                                                {% endif %}
+                                            </a>
+                                            {% if solved_puzzle.playerCountry is not null %}
+                                                <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
                                             {% endif %}
-                                        </a>
-                                        {% if solved_puzzle.playerCountry is not null %}
-                                            <small class="shadow-custom fi fi-{{ solved_puzzle.playerCountry.name }}"></small>
                                         {% endif %}
                                     {% endif %}
                                 {% else %}
@@ -87,7 +92,11 @@
                                         {% if not loop.first %}
                                             <br>
                                         {% endif %}
-                                        {% if puzzle_solver.playerId is not null %}
+
+                                        {% if puzzle_solver.isPrivate %}
+                                            <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                            <i class="bi bi-incognito text-muted"></i>
+                                        {% elseif puzzle_solver.playerId is not null %}
                                             <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                                 <small>{{ puzzle_solver.playerName }}</small>
                                                 {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}

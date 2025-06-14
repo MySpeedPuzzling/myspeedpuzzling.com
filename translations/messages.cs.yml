@@ -78,6 +78,7 @@ edit: "Upravit"
 delete: "Smazat"
 active_membership: "Aktivní členství"
 new_badge: "Nové"
+secret_puzzler_name: "Utajený Puzzler"
 
 homepage:
     meta:
@@ -350,6 +351,8 @@ profile:
     solved_puzzles_group: "Skupinové skládání"
     recent_activity: "Poslední<br>aktivita"
     personal_info: "Osobní<br>info"
+    private_profile_info_1: "Rozhodl se nesdílet své časy. My však tvrdíme, že neexistují pomalé ani rychlé časy - jen dílky, které je třeba složit."
+    private_profile_info_2: "Chceš vědět víc? Potkej ho osobně a zkus ho přesvědčit, aby se podělil. Tady ti nic dalšího prozradit nemůžeme."
 
 my_profile:
     meta:

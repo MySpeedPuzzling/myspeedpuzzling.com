@@ -36,7 +36,8 @@ SELECT
     puzzle_solving_time.puzzle_id AS puzzle_id,
     puzzle_solving_time.seconds_to_solve AS time,
     finished_at,
-    first_attempt
+    first_attempt,
+    is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
@@ -61,6 +62,7 @@ SQL;
              *     time: int,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     is_private: bool,
              * } $row
              */
 
@@ -91,7 +93,8 @@ SELECT
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-            'player_country', p.country
+            'player_country', p.country,
+            'is_private', p.is_private
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -154,7 +157,8 @@ SELECT
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
-            'player_country', p.country
+            'player_country', p.country,
+            'is_private', p.is_private
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM

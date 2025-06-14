@@ -52,6 +52,7 @@ readonly final class PuzzlersGrouping
             playerName: null,
             playerCode: null,
             playerCountry: null,
+            isPrivate: $player->isPrivate,
         ));
 
         return new PuzzlersGroup(null, $puzzlers);
@@ -77,6 +78,7 @@ readonly final class PuzzlersGrouping
                 playerName: null,
                 playerCode: $player->code,
                 playerCountry: CountryCode::fromCode($player->country),
+                isPrivate: $player->isPrivate,
             );
         } catch (PlayerNotFound) {
             return new Puzzler(
@@ -84,6 +86,7 @@ readonly final class PuzzlersGrouping
                 playerName: $playerCodeOrName,
                 playerCode: null,
                 playerCountry: null,
+                isPrivate: false,
             );
         }
     }

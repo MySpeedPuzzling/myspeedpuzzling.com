@@ -22,6 +22,7 @@ SELECT
     p.name AS player_name,
     p.country AS player_country,
     p.code AS player_code,
+    is_private,
     COUNT(DISTINCT subquery.puzzle_id || '-' || subquery.player_id) as solved_puzzles_count
 FROM (
     SELECT
@@ -61,7 +62,8 @@ SELECT
     player.code AS player_code,
     COUNT(puzzle_solving_time.id) as solved_puzzles_count,
     SUM(puzzle.pieces_count) as total_pieces_count,
-    SUM(puzzle_solving_time.seconds_to_solve) as total_seconds
+    SUM(puzzle_solving_time.seconds_to_solve) as total_seconds,
+    is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
@@ -87,6 +89,7 @@ SQL;
              *     solved_puzzles_count: int,
              *     total_pieces_count: int,
              *     total_seconds: int,
+             *     is_private: bool,
              * } $row
              */
 
@@ -107,7 +110,8 @@ SELECT
     player.code AS player_code,
     COUNT(puzzle_solving_time.id) as solved_puzzles_count,
     SUM(puzzle.pieces_count) as total_pieces_count,
-    SUM(puzzle_solving_time.seconds_to_solve) as total_seconds
+    SUM(puzzle_solving_time.seconds_to_solve) as total_seconds,
+    is_private
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
@@ -137,6 +141,7 @@ SQL;
              *     solved_puzzles_count: int,
              *     total_pieces_count: int,
              *     total_seconds: int,
+             *     is_private: bool,
              * } $row
              */
 

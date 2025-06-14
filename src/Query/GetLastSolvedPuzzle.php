@@ -46,7 +46,8 @@ SELECT
     finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
-    first_attempt
+    first_attempt,
+    is_private
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -124,7 +125,8 @@ SELECT
     finished_at,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
-    first_attempt
+    first_attempt,
+    is_private
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -168,6 +170,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     is_private: bool,
              * } $row
              */
 
@@ -225,7 +228,8 @@ SELECT
     pst.finished_at,
     pst.finished_puzzle_photo AS finished_puzzle_photo,
     pst.team ->> 'team_id' AS team_id,
-    first_attempt
+    first_attempt,
+    is_private
 FROM
     filtered_puzzle_solving_time fpt
 INNER JOIN puzzle_solving_time pst ON pst.id = fpt.id
@@ -269,6 +273,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     is_private: bool,
              * } $row
              */
 

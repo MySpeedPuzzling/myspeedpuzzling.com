@@ -41,7 +41,10 @@
                                 {% else %}
                                     {% for puzzle_solver in notification.players %}
                                         <span class="{{ not loop.first ? 'ms-1' }}">
-                                            {% if puzzle_solver.playerId is not null %}
+                                            {% if puzzle_solver.isPrivate %}
+                                                <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                                <i class="bi bi-incognito text-muted"></i>
+                                            {% elseif puzzle_solver.playerId is not null %}
                                                 <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                                     {{ puzzle_solver.playerName }}
                                                 </a>

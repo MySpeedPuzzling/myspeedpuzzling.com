@@ -37,7 +37,7 @@
         {% endif %}
     </div>
 
-    {% if player.isPrivate and logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId %}
+    {% if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}
         <div class="alert alert-secondary d-flex align-items-start gap-3 p-3 rounded-3 shadow-sm">
             <i class="bi bi-incognito fs-2 text-muted flex-shrink-0"></i>
             <div class="small lh-sm">

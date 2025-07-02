@@ -46,6 +46,7 @@ final class EventDetailController extends AbstractController
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
             'puzzles_solved_by_user' => $userSolvedPuzzles,
+            'participants' => [],
         ]);
     }
 }

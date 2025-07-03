@@ -128,7 +128,16 @@
                     {% for participant in not_connected_participants %}
                         <tr>
                             <td class="fs-sm">
-                                {{ participant.name }}{# <small class="shadow-custom fi fi-cz"></small>#}
+                                {{ participant.name }}
+                                {% if participant.countryCode %}
+                                    <small class="shadow-custom fi fi-{{ participant.countryCode.name }}"></small>
+                                {% endif %}
+                            </td>
+
+                            <td style="width: 1px;">
+                                {% for participant_round in participants_rounds[participant.id] ?? [] %}
+                                    <span class="badge text-light" style="background: {{ competition_rounds[participant_round].color }} !important;color: {{ competition_rounds[participant_round].textColor }} !important;">{{ competition_rounds[participant_round].name }}</span>
+                                {% endfor %}
                             </td>
                         </tr>
                     {% endfor %}

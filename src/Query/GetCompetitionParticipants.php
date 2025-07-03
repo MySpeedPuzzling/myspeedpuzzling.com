@@ -216,7 +216,7 @@ SQL;
     public function getNotConnectedParticipants(string $competitionId): array
     {
         $query = <<<SQL
-SELECT id, name
+SELECT id, name, country
 FROM competition_participant
 WHERE player_id IS NULL AND competition_id = :competitionId
 ORDER BY name
@@ -233,6 +233,7 @@ SQL;
              * @var array{
              *     id: string,
              *     name: string,
+             *     country: null|string,
              * } $row
              */
 

@@ -15,7 +15,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 readonly final class GetCompetitionRounds
 {
     private const array COLORS = ['#E6194B', '#3CB44B', '#FFE119', '#0082C8', '#F58231', '#911EB4', '#46F0F0', '#D2F53C', '#FABEBE', '#008080', '#E6BEFF', '#AA6E28', '#800000', '#000075', '#808000', '#000000', '#9A6324', '#469990', '#FFFAC8', '#DCBEFF'];
-    private const array TEXT_COLORS = ['#FFFFFF', '#000000', '#000000', '#000000', '#000000', '#FFFFFF', '#000000', '#000000', '#000000', '#FFFFFF', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#000000', '#FFFFFF', '#FFFFFF', '#000000', '#000000', '#000000'];
+    private const array TEXT_COLORS = ['#FFFFFF', '#FFFFFF', '#000000', '#000000', '#000000', '#FFFFFF', '#000000', '#000000', '#000000', '#FFFFFF', '#000000', '#000000', '#FFFFFF', '#FFFFFF', '#000000', '#FFFFFF', '#FFFFFF', '#000000', '#000000', '#000000'];
 
     public function __construct(
         private Connection $database,

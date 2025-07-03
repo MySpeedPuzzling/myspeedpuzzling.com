@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +22,7 @@ final class EventDetailController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
+        readonly private GetCompetitionRounds $getCompetitionRounds,
     ) {
     }
 
@@ -46,6 +48,8 @@ final class EventDetailController extends AbstractController
 
         $connectedParticipants = $this->getCompetitionParticipants->getConnectedParticipants($competition->id->toString());
         $notConnectedParticipants = $this->getCompetitionParticipants->getNotConnectedParticipants($competition->id->toString());
+        $competitionRounds = $this->getCompetitionRounds->ofCompetition($competition->id->toString());
+        $participantsRounds = $this->getCompetitionRounds->forAllCompetitionParticipants($competition->id->toString());
 
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
@@ -53,6 +57,8 @@ final class EventDetailController extends AbstractController
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'connected_participants' => $connectedParticipants,
             'not_connected_participants' => $notConnectedParticipants,
+            'competition_rounds' => $competitionRounds,
+            'participants_rounds' => $participantsRounds,
         ]);
     }
 }

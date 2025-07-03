@@ -100,6 +100,12 @@
                                 {{ participant.participantName }}<br>
                             </td>
 
+                            <td style="width: 1px;">
+                                {% for participant_round in participants_rounds[participant.participantId] ?? [] %}
+                                    <span class="badge text-light" style="background: {{ competition_rounds[participant_round].color }} !important;color: {{ competition_rounds[participant_round].textColor }} !important;">{{ competition_rounds[participant_round].name }}</span>
+                                {% endfor %}
+                            </td>
+
                             <td class="text-end text-nowrap" style="line-height: 120%;">
                                 <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
                                 <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>

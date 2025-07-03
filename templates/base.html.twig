@@ -452,7 +452,7 @@
             </script>
         {% endif %}
 
-        {% if false %}
+        {% if logged_user.profile and not logged_user.profile.modalDisplayed %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
@@ -463,7 +463,7 @@
                         <div class="modal-body">
                             <div class="fs-sm">{{ 'global_modal.text'|trans|raw }}</div>
 
-                            <a href="{{ path('blog') }}" class="btn btn-sm btn-primary d-inline-block me-2 btn-shadow" type="submit">{{ 'global_modal.button_cta'|trans }}</a>
+                            <a href="{{ path('competition_connection', {'slug': 'european-jigsaw-puzzle-championship-2025'}) }}" class="btn btn-sm btn-primary d-inline-block me-2 btn-shadow" type="submit">{{ 'global_modal.button_cta'|trans }}</a>
                             <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">{{ 'global_modal.button_dismiss'|trans }}</button>
                         </div>
                     </div>

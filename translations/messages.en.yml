@@ -506,14 +506,14 @@ competition_connection:
     description: "Connect your competition account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest!"
 
 global_modal:
-    title: "We apologize for the outage!"
+    title: "European Jigsaw Puzzle Championship 2025"
     text: |
-        <p>Our platform was out of service for almost 10 hours. We’re very sorry about that.</p>
-        <p>We truly appreciate your patience and support.</p>
-        <p>Because we strive to be 100% transparent, we’ve written down what happened.</p>
+        <p>Are you competing in the 1st European Jigsaw Puzzle Championship 2025?</p>
+        <p>Link your MySpeedPuzzling.com account with your name from <a href="https://mopepuzzle.hu/event_competition.php?id=3&competition=6&language=en" target="_blank">mopepuzzle.hu</a>, check out your competition… and scare them off with your times!</p>
+        <p><small>(Works for the Solo category only!)</small></p>
 
-    button_cta: "I want to read, what happened"
-    button_dismiss: "No, thanks!"
+    button_cta: "Connect my account"
+    button_dismiss: "I am not attending!"
 
 added_time_recap:
     title: "Great time, keep it up!"

@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use SpeedPuzzling\Web\FormData\WjpcConnectionFormData;
-use SpeedPuzzling\Web\Query\GetWjpcParticipants;
+use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\FormData\CompetitionConnectionFormData;
+use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * @extends AbstractType<WjpcConnectionFormData>
+ * @extends AbstractType<CompetitionConnectionFormData>
  */
-final class WjpcConnectionFormType extends AbstractType
+final class CompetitionConnectionFormType extends AbstractType
 {
     public function __construct(
-        readonly private GetWjpcParticipants $getParticipants,
+        readonly private GetCompetitionParticipants $getCompetitionParticipants,
     ) {
     }
 
@@ -26,16 +27,22 @@ final class WjpcConnectionFormType extends AbstractType
      */
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var null|Competition $competition */
+        $competition = $options['competition'];
+
         $participantChoices = [];
-        foreach ($this->getParticipants->mappingForPairing() as $name => $id) {
-            $participantChoices[] = [
-                'value' => $id,
-                'text' => $name,
-            ];
+
+        if ($competition !== null) {
+            foreach ($this->getCompetitionParticipants->mappingForPairing($competition->id->toString()) as $name => $id) {
+                $participantChoices[] = [
+                    'value' => $id,
+                    'text' => $name,
+                ];
+            }
         }
 
         $builder->add('participant', TextType::class, [
-            'label' => 'forms.wjpc_participant',
+            'label' => 'forms.competition_participant',
             'required' => false,
             'autocomplete' => true,
             'tom_select_options' => [
@@ -51,7 +58,8 @@ final class WjpcConnectionFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => WjpcConnectionFormData::class,
+            'data_class' => CompetitionConnectionFormData::class,
+            'competition' => null,
         ]);
     }
 }

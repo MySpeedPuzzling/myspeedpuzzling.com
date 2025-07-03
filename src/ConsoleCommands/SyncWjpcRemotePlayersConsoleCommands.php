@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
-use SpeedPuzzling\Web\Query\GetWjpcParticipants;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,7 +17,6 @@ final class SyncWjpcRemotePlayersConsoleCommands extends Command
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
-        readonly private GetWjpcParticipants $getWjpcParticipants,
     ) {
         parent::__construct();
     }
@@ -42,9 +40,9 @@ final class SyncWjpcRemotePlayersConsoleCommands extends Command
         }
 
         if ($participantId === null) {
-            $notSyncedParticipants = $this->getWjpcParticipants->getConnectedParticipantsWithoutRemoteId();
+            // $notSyncedParticipants = $this->getCompetitionParticipants->getConnectedParticipantsWithoutRemoteId();
 
-            foreach ($notSyncedParticipants as $participantId) {
+            foreach (['1', '2'] as $participantId) {
                 $this->messageBus->dispatch(
                     new UpdateWjpcPlayerId($participantId),
                 );

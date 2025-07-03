@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
-use SpeedPuzzling\Web\Exceptions\WjpcParticipantNotFound;
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
-use SpeedPuzzling\Web\Repository\WjpcParticipantRepository;
+use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -15,14 +15,14 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 readonly final class UpdateWjpcPlayerIdHandler
 {
     public function __construct(
-        private WjpcParticipantRepository $wjpcParticipantRepository,
+        private CompetitionParticipantRepository $wjpcParticipantRepository,
         private HttpClientInterface $client,
         private LoggerInterface $logger,
     ) {
     }
 
     /**
-     * @throws WjpcParticipantNotFound
+     * @throws CompetitionParticipantNotFound
      */
     public function __invoke(UpdateWjpcPlayerId $message): void
     {

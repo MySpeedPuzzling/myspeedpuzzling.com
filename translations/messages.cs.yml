@@ -72,7 +72,7 @@ add_to_collection: "Přidat do mé sbírky"
 in_collection: "V mé sbírce"
 remove_from_collection: "Odebrat z mé sbírky"
 ranking_out_of: "z"
-wjpc_participant: "WJPC 2024 účastník (%name%)"
+wjpc_participant: "Účastník (%name%)"
 share: "Sdílet"
 edit: "Upravit"
 delete: "Smazat"
@@ -232,7 +232,7 @@ forms:
     send_feedback: "Odeslat"
     first_attempt: "Tvé první skládání těchto puzzlí v životě"
     first_attempt_help: "Pokud jste skládali ve skupině, pak pouze pokud tyto puzzle nikdo předtím neskládal, ani sám"
-    wjpc_participant: "Vaše celé jméno na WJPC"
+    competition_participant: "Vaše jméno na soutěži"
     player_code: "Kód hráče"
     player_code_help: "Unikátní kód hráče - minimálně 3 znaky, maximálně 8 znaků. Může obsahovat pouze písmena a číslice, bez speciálních znaků nebo mezer."
     global_search_placeholder: "Hledat puzzle nebo hráče..."
@@ -367,7 +367,7 @@ my_profile:
     stopwatches: "Moje stopky"
     missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
     share_mention_myspeedpuzzling: "Označ nás:"
-    wjpc_connection: "WJPC propojení"
+    wjpc_connection: "Propojení soutěžního účtu"
 
 edit_profile:
     meta:
@@ -411,8 +411,8 @@ flashes:
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
     puzzle_added_to_collection: "Ahoj,.. puzzle. Vítejte v mé sbírce!"
     puzzle_removed_from_collection: "Sbohem puzzle..."
-    wjpc2024_duplicate_connection: "Něco je špatně :-( vybrali jste WJPC účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
-    wjpc2024_connection_saved: "Super! WJPC účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
+    competition_duplicate_connection: "Něco je špatně :-( vybrali jste soutěžní účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
+    competition_connection_saved: "Super! Soutěžní účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
     membership_subscribed_successfully: "členství je nyní aktivní!"
     non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
@@ -502,12 +502,12 @@ wjpc2024:
     no_participant_matches_filters: "Žádný účastník neodpovídá zadanému vyhledávání"
     filter_by_name: "Vyhledávej podle jména"
 
-wjpc2024_connection:
+competition_connection:
     meta:
-        title: "WJPC 2024 propojení"
-    title: "WJPC 2024 propojení"
-    back_to_profile: "Zpět na můj profil"
-    description: "Speed Puzzling událost roku je tady! Propojte váš WJPC účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Vaše zaregistrované jméno můžete najít <a href=\"%link%\" target=\"_blank\">na stránkách WJPC</a>. Pouze pro soutěžící v kategorii jednotlivců."
+        title: "%competitionName% - propojení účtu"
+    title: "%competitionName% - propojení účtu"
+    back_to_competition: "Zpět na soutěž"
+    description: "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
 
 global_modal:
     title: "Omlouváme se za výpadek!"

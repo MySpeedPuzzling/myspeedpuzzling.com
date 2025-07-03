@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
-readonly final class NotConnectedWjpcParticipant
+readonly final class NotConnectedCompetitionParticipant
 {
     public function __construct(
-        public string $wjpcName,
+        public string $id,
+        public string $name,
         public null|int $rank2023,
         /** @var array<string> */
         public array $rounds,
@@ -16,22 +17,24 @@ readonly final class NotConnectedWjpcParticipant
 
     /**
      * @param array{
-     *     wjpc_name: string,
-     *     rank_2023: null|int,
-     *     rounds: string,
+     *     id: string,
+     *     name: string,
+     *     rank_2023?: null|int,
+     *     rounds?: string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
         $rounds = [];
-        if (json_validate($row['rounds'])) {
+        if (isset($row['rounds']) && json_validate($row['rounds'])) {
             /** @var array<string> $rounds */
             $rounds = json_decode($row['rounds'], true);
         }
 
         return new self(
-            wjpcName: $row['wjpc_name'],
-            rank2023: $row['rank_2023'],
+            id: $row['id'],
+            name: $row['name'],
+            rank2023: $row['rank_2023'] ?? null,
             rounds: $rounds,
         );
     }

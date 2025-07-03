@@ -60,4 +60,9 @@ class CompetitionParticipant
         $this->player = null;
         $this->connectedAt = null;
     }
+
+    public function updateRemoteId(string $remoteId): void
+    {
+        $this->remoteId = $remoteId;
+    }
 }

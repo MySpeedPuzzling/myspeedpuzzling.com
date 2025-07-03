@@ -303,9 +303,6 @@
                                     <a rel="nofollow" href="{{ path('events') }}" class="widget-list-link">{{ 'menu.events'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a href="{{ path('wjpc2024') }}" class="widget-list-link">WJPC 2024</a>
-                                </li>
-                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">

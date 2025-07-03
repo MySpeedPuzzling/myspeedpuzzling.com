@@ -6,28 +6,32 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\WjpcParticipant;
+use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Message\SyncWjpcIndividualParticipants;
-use SpeedPuzzling\Web\Query\GetWjpcParticipants;
-use SpeedPuzzling\Web\Repository\WjpcParticipantRepository;
+use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
 readonly final class SyncWjpcIndividualParticipantsHandler
 {
     public function __construct(
-        private WjpcParticipantRepository $participantRepository,
-        private GetWjpcParticipants $getWjpcParticipants,
+        private CompetitionParticipantRepository $participantRepository,
+        private GetCompetitionParticipants $getCompetitionParticipants,
         private LoggerInterface $logger,
+        private CompetitionRepository $competitionRepository,
     ) {
     }
 
     public function __invoke(SyncWjpcIndividualParticipants $message): void
     {
-        $existingParticipants = $this->getWjpcParticipants->mappingForPairing();
+        $existingParticipants = $this->getCompetitionParticipants->mappingForPairing('');
 
         /** @var array<string, bool> $participantNamesFromSync */
         $participantNamesFromSync = [];
+
+        $competition = $this->competitionRepository->get('');
 
         foreach ($message->individuals as $participant) {
             $name = $participant['name'];
@@ -42,20 +46,15 @@ readonly final class SyncWjpcIndividualParticipantsHandler
 
                 $rounds = $group !== null ? [$group] : [];
                 $this->participantRepository->save(
-                    new WjpcParticipant(
+                    new CompetitionParticipant(
                         Uuid::uuid7(),
                         name: $name,
                         country: $country,
-                        rounds: $rounds,
-                        year2023Rank: $rank,
+                        competition: $competition,
                     ),
                 );
             } else {
                 $existingParticipant = $this->participantRepository->get($existingParticipantId);
-                $existingParticipant->update(
-                    $country,
-                    $group,
-                );
             }
         }
 

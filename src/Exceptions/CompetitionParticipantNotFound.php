@@ -6,6 +6,6 @@ namespace SpeedPuzzling\Web\Exceptions;
 
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-final class WjpcParticipantNotFound extends NotFoundHttpException
+final class CompetitionParticipantNotFound extends NotFoundHttpException
 {
 }

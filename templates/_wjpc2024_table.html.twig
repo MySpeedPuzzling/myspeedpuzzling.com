@@ -7,7 +7,7 @@
             <tr
                 class="{{ logged_user.profile is not null and participant.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}"
                 data-wjpc-filter-target="participantItem"
-                data-name="{{ participant.wjpcName }} {{ participant.playerName }}"
+                data-name="{{ participant.participantName }} {{ participant.playerName }}"
             >
                 <td class="text-center" style="width: 35px;">
                     {{ loop.index }}
@@ -15,7 +15,7 @@
 
                 <td class="fs-sm">
                     {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name">{{ participant.playerName }}</a><br>
-                    {{ participant.wjpcName }}<br>
+                    {{ participant.participantName }}<br>
                     {% if participant.rank2023 %}
                         <small class="text-muted">2023:</small> #{{ participant.rank2023 }}
                     {% endif %}
@@ -63,10 +63,10 @@
         {% for participant in not_connected_participants %}
             <tr
                 data-wjpc-filter-target="participantItem"
-                data-name="{{ participant.wjpcName }}"
+                data-name="{{ participant.name }}"
             >
                 <td class="fs-sm">
-                    {{ participant.wjpcName }}{# <small class="shadow-custom fi fi-cz"></small>#}
+                    {{ participant.name }}{# <small class="shadow-custom fi fi-cz"></small>#}
                 </td>
                 <td style="width: 1px;">
                     {% if 'A' in participant.rounds %}

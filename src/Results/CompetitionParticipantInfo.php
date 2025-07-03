@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
-use SpeedPuzzling\Web\Value\CountryCode;
-
-readonly final class WjpcParticipantInfo
+readonly final class CompetitionParticipantInfo
 {
     public function __construct(
         public string $participantId,
-        public string $wjpcName,
-        public null|int $rank2023,
+        public string $participantName,
         /** @var array<string> */
-        public array $rounds,
+        public array $rounds = [],
     ) {
     }
 }

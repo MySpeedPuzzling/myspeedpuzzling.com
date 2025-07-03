@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Query\GetWjpcParticipants;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +31,6 @@ final class PlayerProfileController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetBadges $getBadges,
         readonly private GetPuzzleCollection $getPuzzleCollection,
-        readonly private GetWjpcParticipants $getWjpcParticipants,
     ) {
     }
 
@@ -69,7 +67,6 @@ final class PlayerProfileController extends AbstractController
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
             'puzzle_collections' => $this->getPuzzleCollection->forPlayer($player->playerId),
-            'wjpc_participant' => $this->getWjpcParticipants->forPlayer($player->playerId),
         ]);
     }
 }

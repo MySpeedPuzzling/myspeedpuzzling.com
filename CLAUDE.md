@@ -82,3 +82,4 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - **Multi-language**: Czech and English translations
 - When generating migrations for example  or running any other commands that needs to run in the PHP environment, run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.
 - When running commands for Javascript environment, run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.
+- For database structure, analyse Doctrine ORM entities - it represents the database structure

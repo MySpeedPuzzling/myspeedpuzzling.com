@@ -80,3 +80,5 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - **Social Features**: Player favorites, collections, and activity feeds
 - **Premium Membership**: Stripe-powered subscription management
 - **Multi-language**: Czech and English translations
+- When generating migrations for example  or running any other commands that needs to run in the PHP environment, run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.
+- When running commands for Javascript environment, run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.

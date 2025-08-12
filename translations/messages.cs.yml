@@ -474,6 +474,15 @@ badges:
 collection:
     title: "Sbírka"
     empty_info: "Tato kolekce je prozatím prázdná. Možná už je vhodný čas to změnit? Přeci každý miluje puzzle a jejich skladování :-)."
+    folder_empty_info: 'Tato složka je prázdná.'
+    folders: 'Složky'
+    all_puzzles: 'Všechny puzzle'
+    create_folder: 'Vytvořit složku'
+    folder_name: 'Název složky'
+    folder_name_required: 'Název složky je povinný.'
+    folder_color: 'Barva'
+    folder_description: 'Popis'
+    folder_created: 'Složka byla úspěšně vytvořena.'
 
 scan:
     meta:

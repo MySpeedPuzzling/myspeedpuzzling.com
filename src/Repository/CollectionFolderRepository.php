@@ -44,7 +44,7 @@ readonly final class CollectionFolderRepository
     {
         return $this->repository->findOneBy([
             'player' => $player,
-            'name' => $this->getSystemFolderName($systemKey),
+            'systemKey' => $systemKey,
             'isSystem' => true,
         ]);
     }

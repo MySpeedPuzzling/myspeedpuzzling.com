@@ -39,6 +39,9 @@ class CollectionFolder
 
         #[Column(nullable: true)]
         public null|string $description = null,
+
+        #[Column(nullable: true)]
+        public null|string $systemKey = null,
     ) {
     }
 

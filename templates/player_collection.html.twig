@@ -5,18 +5,108 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
-    {% if puzzle_collections is not empty %}
-        <div class="row g-2 g-md-3">
-            {% for puzzle_collection in puzzle_collections %}
-                {{ include('_puzzle_item.html.twig', {
-                    'puzzle': puzzle_collection,
-                    'puzzles_solved_by_user': [],
-                    'search': null,
-                }) }}
-            {% endfor %}
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{{ 'collection.folders'|trans }}</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ path('player_collection', {'playerId': player.playerId}) }}" 
+                       class="list-group-item list-group-item-action {{ current_folder_id is null ? 'active' : '' }}">
+                        <i class="bi bi-folder me-2"></i>
+                        {{ 'collection.all_puzzles'|trans }}
+                        <span class="badge bg-secondary float-end">{{ collection_folders | map(f => f.puzzleCount) | reduce((a, b) => a + b) }}</span>
+                    </a>
+                    
+                    {% for folder in collection_folders %}
+                        <a href="{{ path('player_collection_folder', {'playerId': player.playerId, 'folderId': folder.id}) }}" 
+                           class="list-group-item list-group-item-action {{ current_folder_id == folder.id ? 'active' : '' }}">
+                            {% if folder.isSystem %}
+                                {% if folder.name == 'Solved Puzzles' %}
+                                    <i class="bi bi-check-circle me-2" style="color: {{ folder.color }}"></i>
+                                {% elseif folder.name == 'Lended Out' %}
+                                    <i class="bi bi-arrow-right-circle me-2" style="color: {{ folder.color }}"></i>
+                                {% elseif folder.name == 'Borrowed' %}
+                                    <i class="bi bi-arrow-left-circle me-2" style="color: {{ folder.color }}"></i>
+                                {% else %}
+                                    <i class="bi bi-gear me-2" style="color: {{ folder.color }}"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="bi bi-folder me-2" style="color: {{ folder.color ?? '#6c757d' }}"></i>
+                            {% endif %}
+                            {{ folder.name }}
+                            <span class="badge bg-secondary float-end">{{ folder.puzzleCount }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            {% if app.user and player.playerId == app.user.userIdentifier %}
+                <div class="mt-3">
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        {{ 'collection.create_folder'|trans }}
+                    </button>
+                </div>
+            {% endif %}
         </div>
-    {% else %}
-        <div class="alert alert-info" role="alert">{{ 'collection.empty_info'|trans }}</div>
+        
+        <div class="col-md-9">
+            {% if puzzle_collections is not empty %}
+                <div class="row g-2 g-md-3">
+                    {% for puzzle_collection in puzzle_collections %}
+                        {{ include('_puzzle_item.html.twig', {
+                            'puzzle': puzzle_collection,
+                            'puzzles_solved_by_user': [],
+                            'search': null,
+                        }) }}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info" role="alert">
+                    {% if current_folder_id %}
+                        {{ 'collection.folder_empty_info'|trans }}
+                    {% else %}
+                        {{ 'collection.empty_info'|trans }}
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if app.user and player.playerId == app.user.userIdentifier %}
+        <!-- Create Folder Modal -->
+        <div class="modal fade" id="createFolderModal" tabindex="-1" aria-labelledby="createFolderModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="createFolderModalLabel">{{ 'collection.create_folder'|trans }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="post" action="{{ path('create_collection_folder') }}">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="folderName" class="form-label">{{ 'collection.folder_name'|trans }}</label>
+                                <input type="text" class="form-control" id="folderName" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="folderColor" class="form-label">{{ 'collection.folder_color'|trans }}</label>
+                                <input type="color" class="form-control form-control-color" id="folderColor" name="color" value="#6c757d">
+                            </div>
+                            <div class="mb-3">
+                                <label for="folderDescription" class="form-label">{{ 'collection.folder_description'|trans }}</label>
+                                <textarea class="form-control" id="folderDescription" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'actions.cancel'|trans }}</button>
+                            <button type="submit" class="btn btn-primary">{{ 'actions.create'|trans }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     {% endif %}
 
 {% endblock %}

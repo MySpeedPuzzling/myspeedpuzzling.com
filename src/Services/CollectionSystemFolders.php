@@ -72,6 +72,9 @@ readonly final class CollectionSystemFolders
                 $description
             );
 
+            // Set the system key as part of the name for identification
+            $folder->systemKey = $systemKey;
+
             $this->collectionFolderRepository->save($folder);
         }
 

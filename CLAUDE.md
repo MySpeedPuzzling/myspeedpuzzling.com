@@ -80,8 +80,10 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - **Social Features**: Player favorites, collections, and activity feeds
 - **Premium Membership**: Stripe-powered subscription management
 - **Multi-language**: Czech and English translations
+
 - When generating migrations for example  or running any other commands that needs to run in the PHP environment, run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.
 - When running commands for Javascript environment, run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.
 - For database structure, analyse Doctrine ORM entities - it represents the database structure
 - After changing PHP code always run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web vendor/bin/phpunit`, `docker compose exec web doctrine:schema:validate`.
 - When renaming database tables (in doctrine migrations), always make sure to go through the read-only Queries (in directory `src/Query/`) and if the table was renamed, update the queries.
+- Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely

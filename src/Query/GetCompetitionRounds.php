@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
-use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
-use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
-use SpeedPuzzling\Web\Results\CompetitionParticipantInfo;
-use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class GetCompetitionRounds
 {

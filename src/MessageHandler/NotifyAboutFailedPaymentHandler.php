@@ -33,7 +33,8 @@ readonly final class NotifyAboutFailedPaymentHandler
             }
 
             $playerLocale = $player->locale;
-            $subject = $this->translator->trans('subscription_payment_failed.subject',
+            $subject = $this->translator->trans(
+                'subscription_payment_failed.subject',
                 domain: 'emails',
                 locale: $playerLocale,
             );

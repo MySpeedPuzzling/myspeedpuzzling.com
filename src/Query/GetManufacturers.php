@@ -39,7 +39,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): ManufacturerOverview {
+        return array_map(static function (array $row): ManufacturerOverview {
             /**
              * @var array{
              *      manufacturer_id: string,

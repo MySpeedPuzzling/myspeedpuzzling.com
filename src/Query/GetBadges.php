@@ -31,7 +31,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): BadgeType {
+        return array_map(static function (array $row): BadgeType {
             /** @var array{
              *     type: string,
              * } $row

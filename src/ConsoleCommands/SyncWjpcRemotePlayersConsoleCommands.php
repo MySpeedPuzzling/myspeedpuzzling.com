@@ -33,7 +33,7 @@ final class SyncWjpcRemotePlayersConsoleCommands extends Command
         /** @var null|string $participantId */
         $participantId = $input->getArgument('participantId');
 
-        if (is_string($participantId)){
+        if (is_string($participantId)) {
             $this->messageBus->dispatch(
                 new UpdateWjpcPlayerId($participantId),
             );

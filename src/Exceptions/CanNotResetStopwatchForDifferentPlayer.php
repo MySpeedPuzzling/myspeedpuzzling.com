@@ -6,5 +6,4 @@ namespace SpeedPuzzling\Web\Exceptions;
 
 final class CanNotResetStopwatchForDifferentPlayer extends \Exception
 {
-
 }

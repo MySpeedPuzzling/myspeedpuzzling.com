@@ -133,7 +133,6 @@ final class PlayerAverageTimeChart
     public function availablePieces(): array
     {
         if ($this->availablePieces === null) {
-
             $playerId = $this->playerId;
             assert($playerId !== null);
 

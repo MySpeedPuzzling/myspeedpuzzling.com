@@ -24,16 +24,13 @@ class Badge
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         #[Immutable]
         public Player $player,
-
         #[Column]
         #[Immutable]
         public BadgeType $type,
-
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $earnedAt,
     ) {

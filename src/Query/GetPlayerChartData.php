@@ -126,7 +126,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayerChartData {
+        return array_map(static function (array $row): PlayerChartData {
             return PlayerChartData::fromDatabaseRow($row);
         }, $data);
     }

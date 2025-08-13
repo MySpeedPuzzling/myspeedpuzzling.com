@@ -9,8 +9,6 @@ use League\Flysystem\Filesystem;
 use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
-use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
-use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\PlayerRepository;

@@ -23,7 +23,7 @@ readonly final class GetStopwatch
     public function byId(string $stopwatchId): StopwatchDetail
     {
         if (Uuid::isValid($stopwatchId) === false) {
-            throw new StopwatchNotFound;
+            throw new StopwatchNotFound();
         }
 
         $query = <<<SQL
@@ -101,7 +101,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): StopwatchDetail {
+        return array_map(static function (array $row): StopwatchDetail {
             /**
              * @var array{
              *     stopwatch_id: string,

@@ -13,7 +13,8 @@ readonly final class OverallStatistics
     public int $totalPieces;
     public int $longestStreak;
 
-    public function __construct(PerCategoryStatistics ...$statistics) {
+    public function __construct(PerCategoryStatistics ...$statistics)
+    {
         /** @var non-empty-array<int, int> $piecesGroups */
         $piecesGroups = [];
         /** @var array<string, int> $countPerManufacturer */

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -13,12 +14,12 @@ use Symfony\Component\Security\Http\Attribute\CurrentUser;
 final class EditPlayerCodeController extends AbstractController
 {
      #[Route(
-        path: [
+         path: [
             'cs' => '/upravit-kod-hrace',
             'en' => '/en/edit-player-code',
-        ],
-        name: 'edit_player_code',
-    )]
+         ],
+         name: 'edit_player_code',
+     )]
     public function __invoke(Request $request, #[CurrentUser] User $user): Response
     {
         return $this->redirectToRoute('edit_profile');

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -11,7 +12,6 @@ use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -91,14 +91,14 @@ final class EditTimeController extends AbstractController
                 EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
             );
 
-            $this->addFlash('success',$this->translator->trans('flashes.time_edited'));
+            $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
 
             return $this->redirectToRoute('my_profile');
         }
 
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */
         $puzzlesPerManufacturer = [];
-        foreach($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($player->playerId) as $puzzle) {
+        foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer($player->playerId) as $puzzle) {
             $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
         }
 

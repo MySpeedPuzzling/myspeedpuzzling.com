@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PlayerPuzzleCollection;
-use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 
 readonly final class PlayerPuzzleCollectionRepository

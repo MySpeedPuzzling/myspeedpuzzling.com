@@ -5,16 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
-use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Query\GetRanking;
-use SpeedPuzzling\Web\Results\PlayerRanking;
-use SpeedPuzzling\Web\Results\PlayersPerCountry;
-use SpeedPuzzling\Web\Results\PuzzleSolver;
-use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
-use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;

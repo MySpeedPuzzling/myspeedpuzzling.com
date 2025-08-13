@@ -1,17 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
-use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
-use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
-use SpeedPuzzling\Web\Message\AddPlayerToFavorites;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
-use SpeedPuzzling\Web\Message\RemovePlayerFromFavorites;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;

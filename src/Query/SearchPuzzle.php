@@ -85,8 +85,7 @@ SQL;
         null|string $sortBy = null,
         int $offset = 0,
         int $limit = 20,
-    ): array
-    {
+    ): array {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
         }
@@ -226,7 +225,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleOverview {
+        return array_map(static function (array $row): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -283,7 +282,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): AutocompletePuzzle {
+        return array_map(static function (array $row): AutocompletePuzzle {
             /**
              * @var array{
              *     puzzle_id: string,

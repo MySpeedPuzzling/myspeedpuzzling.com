@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Api;
@@ -29,7 +30,7 @@ final class GetPlayerStatisticsController extends AbstractController
                     'unique_puzzles_completed' => 120,
                     'time' => '1:23:45',
                     'time_seconds' => 3600,
-                    'pieces_placed' => 750000
+                    'pieces_placed' => 750000,
                 ],
                 'solo' => [
                     '500_pieces' => [
@@ -41,12 +42,12 @@ final class GetPlayerStatisticsController extends AbstractController
                         'average' => [
                             'time' => '1:10:00',
                             'time_seconds' => 4200,
-                            'ppm' => 125
+                            'ppm' => 125,
                         ],
                         'average_first_attempt' => [
                             'time' => '1:10:00',
                             'time_seconds' => 4200,
-                            'ppm' => 125
+                            'ppm' => 125,
                         ],
                         'top' => [
                             'time' => '1:10:00',
@@ -54,7 +55,7 @@ final class GetPlayerStatisticsController extends AbstractController
                             'ppm' => 125,
                             'puzzle_name' => 'Some puzzle name',
                             'puzzle_image' => 'image.jpg',
-                            'puzzle_brand' => 'Ravensburger'
+                            'puzzle_brand' => 'Ravensburger',
                         ],
                         'top_first_attempt' => [
                             'time' => '1:10:00',
@@ -62,8 +63,8 @@ final class GetPlayerStatisticsController extends AbstractController
                             'ppm' => 125,
                             'puzzle_name' => 'Some puzzle name',
                             'puzzle_image' => 'image.jpg',
-                            'puzzle_brand' => 'Ravensburger'
-                        ]
+                            'puzzle_brand' => 'Ravensburger',
+                        ],
                     ],
                     '1000_pieces' => [
                         'puzzles_completed' => 500,
@@ -74,12 +75,12 @@ final class GetPlayerStatisticsController extends AbstractController
                         'average' => [
                             'time' => '1:10:00',
                             'time_seconds' => 4200,
-                            'ppm' => 125
+                            'ppm' => 125,
                         ],
                         'average_first_attempt' => [
                             'time' => '1:10:00',
                             'time_seconds' => 4200,
-                            'ppm' => 125
+                            'ppm' => 125,
                         ],
                         'top' => [
                             'time' => '1:10:00',
@@ -87,7 +88,7 @@ final class GetPlayerStatisticsController extends AbstractController
                             'ppm' => 125,
                             'puzzle_name' => 'Some puzzle name',
                             'puzzle_image' => 'image.jpg',
-                            'puzzle_brand' => 'Ravensburger'
+                            'puzzle_brand' => 'Ravensburger',
                         ],
                         'top_first_attempt' => [
                             'time' => '1:10:00',
@@ -95,9 +96,9 @@ final class GetPlayerStatisticsController extends AbstractController
                             'ppm' => 125,
                             'puzzle_name' => 'Some puzzle name',
                             'puzzle_image' => 'image.jpg',
-                            'puzzle_brand' => 'Ravensburger'
-                        ]
-                    ]
+                            'puzzle_brand' => 'Ravensburger',
+                        ],
+                    ],
                 ],
                 'duo' => (object) [],
                 'team' => (object) [],
@@ -106,5 +107,4 @@ final class GetPlayerStatisticsController extends AbstractController
             return $this->json(['error' => 'Player not found.'], Response::HTTP_NOT_FOUND);
         }
     }
-
 }

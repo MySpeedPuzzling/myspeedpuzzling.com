@@ -131,8 +131,9 @@ readonly final class PuzzlesSorter
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<SolvedPuzzle>
      */
-    function sortBySlowest(array $solvedPuzzles): array {
-        usort($solvedPuzzles, function(SolvedPuzzle $a, SolvedPuzzle $b): int {
+    function sortBySlowest(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             // Compare in descending order: highest time first.
             return $b->time <=> $a->time;
         });
@@ -144,8 +145,9 @@ readonly final class PuzzlesSorter
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<SolvedPuzzle>
      */
-    function sortByNewest(array $solvedPuzzles): array {
-        usort($solvedPuzzles, function(SolvedPuzzle $a, SolvedPuzzle $b): int {
+    function sortByNewest(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             // Compare DateTime objects by timestamp in descending order (newest first).
             return $b->finishedAt->getTimestamp() <=> $a->finishedAt->getTimestamp();
         });
@@ -157,8 +159,9 @@ readonly final class PuzzlesSorter
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<SolvedPuzzle>
      */
-    function sortByOldest(array $solvedPuzzles): array {
-        usort($solvedPuzzles, function(SolvedPuzzle $a, SolvedPuzzle $b): int {
+    function sortByOldest(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             // Compare DateTime objects by timestamp in ascending order (oldest first).
             return $a->finishedAt->getTimestamp() <=> $b->finishedAt->getTimestamp();
         });

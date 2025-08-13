@@ -9,7 +9,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
-use SpeedPuzzling\Web\Value\Puzzler;
 
 readonly final class GetPuzzleSolvers
 {
@@ -52,7 +51,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleSolver {
+        return array_map(static function (array $row): PuzzleSolver {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -116,7 +115,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleSolversGroup {
+        return array_map(static function (array $row): PuzzleSolversGroup {
             /**
              * @var array{
              *     player_id: string,
@@ -180,7 +179,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleSolversGroup {
+        return array_map(static function (array $row): PuzzleSolversGroup {
             /**
              * @var array{
              *     player_id: string,

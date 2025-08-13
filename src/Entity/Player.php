@@ -74,23 +74,18 @@ class Player
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(unique: true)]
         public string $code,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(unique: true, nullable: true)]
         public null|string $userId,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $email,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $name,
-
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public \DateTimeImmutable $registeredAt,
@@ -106,8 +101,7 @@ class Player
         null|string $bio,
         null|string $facebook,
         null|string $instagram,
-    ): void
-    {
+    ): void {
         $this->name = $name;
         $this->email = $email;
         $this->city = $city;

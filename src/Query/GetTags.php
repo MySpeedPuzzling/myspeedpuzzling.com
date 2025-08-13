@@ -23,7 +23,7 @@ readonly final class GetTags
     public function forPuzzle(string $puzzleId): array
     {
         if (Uuid::isValid($puzzleId) === false) {
-            throw new PuzzleNotFound;
+            throw new PuzzleNotFound();
         }
 
         $query = <<<SQL
@@ -42,7 +42,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleTag {
+        return array_map(static function (array $row): PuzzleTag {
             /**
              * @var array{
              *     tag_id: string,
@@ -69,7 +69,7 @@ SQL;
             ->executeQuery($query)
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleTag {
+        return array_map(static function (array $row): PuzzleTag {
             /**
              * @var array{
              *     tag_id: string,

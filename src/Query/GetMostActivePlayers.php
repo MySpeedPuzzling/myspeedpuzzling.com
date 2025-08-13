@@ -80,7 +80,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): MostActivePlayer {
+        return array_map(static function (array $row): MostActivePlayer {
             /**
              * @var array{
              *     player_id: string,
@@ -132,7 +132,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): MostActivePlayer {
+        return array_map(static function (array $row): MostActivePlayer {
             /**
              * @var array{
              *     player_id: string,

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\MostSolvedPuzzle;
 use SpeedPuzzling\Web\Results\PlayerNotification;
 
 readonly final class GetNotifications
@@ -90,7 +89,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayerNotification {
+        return array_map(static function (array $row): PlayerNotification {
             /**
              * @var array{
              *     notified_at: string,

@@ -11,9 +11,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 readonly final class ImportCompetitionDataHandler
 {
-    public function __construct(
-
-    ) {
+    public function __construct()
+    {
     }
 
     public function __invoke(ImportCompetitionData $message): void

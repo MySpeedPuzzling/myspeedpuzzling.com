@@ -48,7 +48,7 @@ function bootstrapDatabase(string $cacheFilePath): void
 
     $application->run(new ArrayInput([
         'command' => 'doctrine:database:create',
-        '--if-not-exists' => 1
+        '--if-not-exists' => 1,
     ]));
 
     // Faster than running migrations

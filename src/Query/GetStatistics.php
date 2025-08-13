@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\GlobalStatistics;
-use SpeedPuzzling\Web\Results\MostActivePlayer;
-use SpeedPuzzling\Web\Results\PlayerProfile;
-use SpeedPuzzling\Web\Results\PlayerStatistics;
 
 readonly final class GetStatistics
 {

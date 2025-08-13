@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -9,8 +10,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class BlogController extends AbstractController
 {
-    public function __construct(
-    ) {
+    public function __construct()
+    {
     }
 
     #[Route(

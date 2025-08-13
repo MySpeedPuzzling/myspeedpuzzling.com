@@ -26,8 +26,7 @@ readonly final class AddPuzzle
         UuidInterface $newPuzzleId,
         string $userId,
         PuzzleSolvingTimeFormData $data,
-    ): self
-    {
+    ): self {
         assert($data->puzzle !== null);
         assert($data->puzzlePiecesCount !== null);
         assert($data->brand !== null);

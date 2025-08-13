@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -40,7 +41,6 @@ final class HomepageController extends AbstractController
         }
 
         if ($request->getPathInfo() === '/') {
-
             if ($user !== null) {
                 return $this->redirectToRoute('hub', ['_locale' => $locale]);
             }

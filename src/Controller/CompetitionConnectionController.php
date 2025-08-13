@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -41,8 +42,7 @@ final class CompetitionConnectionController extends AbstractController
         #[CurrentUser] UserInterface $user,
         Competition $competition,
         Request $request,
-    ): Response
-    {
+    ): Response {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($player === null) {

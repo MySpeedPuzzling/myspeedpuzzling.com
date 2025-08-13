@@ -21,12 +21,10 @@ class PlayerPuzzleCollection
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         #[Immutable]
         public Player $player,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         #[Immutable]

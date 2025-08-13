@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\FormData\SearchPlayerFormData;
 use SpeedPuzzling\Web\FormType\SearchPlayerFormType;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
@@ -16,7 +15,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class PlayersController extends AbstractController
 {

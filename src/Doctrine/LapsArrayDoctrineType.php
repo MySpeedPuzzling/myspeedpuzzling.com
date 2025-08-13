@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Doctrine;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
-use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Exception\InvalidType;
 use Doctrine\DBAL\Types\JsonType;
 use SpeedPuzzling\Web\Value\Lap;

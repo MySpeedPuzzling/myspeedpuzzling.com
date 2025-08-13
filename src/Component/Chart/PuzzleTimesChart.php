@@ -44,7 +44,8 @@ final class PuzzleTimesChart
             }
 
             if ($result instanceof PuzzleSolver) {
-                $labels[] = sprintf('%d. %s',
+                $labels[] = sprintf(
+                    '%d. %s',
                     $rank,
                     Strings::truncate($result->playerName, 15),
                 );

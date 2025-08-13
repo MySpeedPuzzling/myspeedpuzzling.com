@@ -21,11 +21,9 @@ class CompetitionParticipantRound
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public CompetitionParticipant $participant,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public CompetitionRound $round,

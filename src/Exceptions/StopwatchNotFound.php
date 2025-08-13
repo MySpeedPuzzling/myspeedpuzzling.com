@@ -8,5 +8,4 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class StopwatchNotFound extends NotFoundHttpException
 {
-
 }

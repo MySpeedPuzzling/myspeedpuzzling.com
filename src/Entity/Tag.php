@@ -22,10 +22,8 @@ class Tag
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Column]
         public string $name,
-
         /**
          * @var Collection<int, Puzzle>
          */

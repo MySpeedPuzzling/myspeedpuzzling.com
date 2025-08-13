@@ -162,7 +162,7 @@ SQL;
         }
 
         /** @var array<ConnectedCompetitionParticipant> $results */
-        $results = array_map(static function(array $participant) use ($timesByPlayerId): ConnectedCompetitionParticipant {
+        $results = array_map(static function (array $participant) use ($timesByPlayerId): ConnectedCompetitionParticipant {
             /**
              * @var array{
              *     participant_id: string,
@@ -182,7 +182,7 @@ SQL;
             $timeData = $timesByPlayerId[$playerId] ?? [
                 'average_time' => null,
                 'fastest_time' => null,
-                'solved_puzzle_count' => 0
+                'solved_puzzle_count' => 0,
             ];
 
             $rounds = [];
@@ -200,9 +200,13 @@ SQL;
             );
         }, $participants);
 
-        usort($results, function(ConnectedCompetitionParticipant $a, ConnectedCompetitionParticipant $b): int {
-            if ($a->averageTime === null) return 1;
-            if ($b->averageTime === null) return -1;
+        usort($results, function (ConnectedCompetitionParticipant $a, ConnectedCompetitionParticipant $b): int {
+            if ($a->averageTime === null) {
+                return 1;
+            }
+            if ($b->averageTime === null) {
+                return -1;
+            }
 
             return $a->averageTime <=> $b->averageTime;
         });
@@ -228,7 +232,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): NotConnectedCompetitionParticipant {
+        return array_map(static function (array $row): NotConnectedCompetitionParticipant {
             /**
              * @var array{
              *     id: string,

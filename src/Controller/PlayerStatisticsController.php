@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -38,8 +39,7 @@ final class PlayerStatisticsController extends AbstractController
         Request $request,
         string $playerId,
         #[CurrentUser] UserInterface|null $user,
-    ): Response
-    {
+    ): Response {
         try {
             $player = $this->getPlayerProfile->byId($playerId);
         } catch (PlayerNotFound) {

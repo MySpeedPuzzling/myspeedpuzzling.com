@@ -66,7 +66,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayerIdentification {
+        return array_map(static function (array $row): PlayerIdentification {
             /**
              * @var array{
              *     player_id: string,

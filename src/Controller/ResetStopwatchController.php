@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -32,8 +33,7 @@ final class ResetStopwatchController extends AbstractController
         #[CurrentUser]
         UserInterface $user,
         string $stopwatchId,
-    ): Response
-    {
+    ): Response {
         $stopwatch = $this->getStopwatch->byId($stopwatchId);
 
         $this->messageBus->dispatch(

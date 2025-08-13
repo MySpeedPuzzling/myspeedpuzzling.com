@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use League\Flysystem\Filesystem;
 use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

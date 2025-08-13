@@ -29,21 +29,16 @@ class Membership implements EntityWithEvents
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[OneToOne]
         #[JoinColumn(nullable: false)]
         #[Immutable]
         public Player $player,
-
         #[Column]
         public DateTimeImmutable $createdAt,
-
         #[Column(nullable: true)]
         public null|string $stripeSubscriptionId = null,
-
         #[Column(nullable: true)]
         public null|DateTimeImmutable $billingPeriodEndsAt = null,
-
         #[Column(nullable: true)]
         public null|DateTimeImmutable $endsAt = null,
     ) {
@@ -55,8 +50,7 @@ class Membership implements EntityWithEvents
         DateTimeImmutable $billingPeriodEndsAt,
         string $status,
         DateTimeImmutable $now,
-    ): void
-    {
+    ): void {
         if ($status === Subscription::STATUS_CANCELED) {
             $this->cancel($billingPeriodEndsAt);
         }

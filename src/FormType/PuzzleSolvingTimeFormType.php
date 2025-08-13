@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\FormType;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetManufacturers;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -77,8 +76,8 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 'createOnBlur' => true,
             ],
             'attr' => [
-                'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete')
-            ]
+                'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),
+            ],
         ]);
 
         $builder->add('firstAttempt', CheckboxType::class, [

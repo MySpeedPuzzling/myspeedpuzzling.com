@@ -31,7 +31,8 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
         }
 
         $playerLocale = $player->locale;
-        $subject = $this->translator->trans('membership_cancelled.subject',
+        $subject = $this->translator->trans(
+            'membership_cancelled.subject',
             domain: 'emails',
             locale: $playerLocale,
         );

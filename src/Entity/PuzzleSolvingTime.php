@@ -30,45 +30,32 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Column(type: Types::INTEGER, nullable: true)]
         public null|int $secondsToSolve,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Player $player,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public Puzzle $puzzle,
-
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $trackedAt,
-
         #[Column(type: Types::BOOLEAN)]
         public bool $verified,
-
         #[Column(type: PuzzlersGroupDoctrineType::NAME, nullable: true)]
         public null|PuzzlersGroup $team,
-
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $finishedAt,
-
         #[Column(type: Types::TEXT, nullable: true)]
         public null|string $comment,
-
         #[Column(nullable: true)]
         public null|string $finishedPuzzlePhoto,
-
         #[Column(options: ['default' => 0])]
         public bool $firstAttempt,
-
         #[ManyToOne]
         public null|CompetitionRound $competitionRound = null,
-
         #[Column(nullable: true)]
         public null|int $missingPieces = null,
-
         #[Column(nullable: true)]
         public null|bool $qualified = null,
     ) {
@@ -84,8 +71,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         DateTimeImmutable $finishedAt,
         null|string $finishedPuzzlePhoto,
         bool $firstAttempt,
-    ): void
-    {
+    ): void {
         $this->secondsToSolve = $seconds;
         $this->comment = $comment;
         $this->team = $puzzlersGroup;

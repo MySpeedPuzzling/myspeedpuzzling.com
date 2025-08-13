@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -21,14 +22,14 @@ final class MembershipController extends AbstractController
         readonly private ClockInterface $clock,
     ) {
     }
-    
+
      #[Route(
-        path: [
+         path: [
             'cs' => '/clenstvi/',
             'en' => '/en/membership',
-        ],
-        name: 'membership',
-    )]
+         ],
+         name: 'membership',
+     )]
     public function __invoke(#[CurrentUser] User $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();

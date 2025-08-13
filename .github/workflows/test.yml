@@ -66,7 +66,7 @@ jobs:
                 restore-keys: |
                     ${{ runner.os }}-composer-
         -   run: composer install --no-scripts --no-progress
-        -   run: vendor/bin/ecs check --no-progress-bar
+        -   run: composer run cs
 
 
   migrations-up-to-date:

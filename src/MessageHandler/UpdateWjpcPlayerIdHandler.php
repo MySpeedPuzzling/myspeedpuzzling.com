@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
-use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -36,7 +35,8 @@ readonly final class UpdateWjpcPlayerIdHandler
             return;
         }
 
-        $url = sprintf('https://www.worldjigsawpuzzle.org/users/form_pr.php?accion=update_player_id&name=%s&player_id=%s',
+        $url = sprintf(
+            'https://www.worldjigsawpuzzle.org/users/form_pr.php?accion=update_player_id&name=%s&player_id=%s',
             $participant->name,
             $participant->player->id,
         );

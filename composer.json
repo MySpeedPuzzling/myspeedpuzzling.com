@@ -106,11 +106,12 @@
         "phpstan/phpstan-symfony": "^2.0",
         "phpunit/phpunit": "^11.0",
         "roave/security-advisories": "dev-latest",
+        "slevomat/coding-standard": "^8.20",
+        "squizlabs/php_codesniffer": "^3.13",
         "symfony/browser-kit": "^7.0",
         "symfony/css-selector": "^7.0",
         "symfony/debug-bundle": "^7.0",
-        "symfony/web-profiler-bundle": "^7.0",
-        "symplify/easy-coding-standard": "^12.5"
+        "symfony/web-profiler-bundle": "^7.0"
     },
     "autoload": {
         "psr-4": {
@@ -124,8 +125,8 @@
     },
     "scripts": {
         "phpstan": "vendor/bin/phpstan --memory-limit=-1 analyse",
-        "cs": "vendor/bin/ecs check",
-        "cs-fix": "vendor/bin/ecs check --fix",
+        "cs": "vendor/bin/phpcs",
+        "cs-fix": "vendor/bin/phpcbf",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
@@ -171,7 +172,8 @@
             "composer/package-versions-deprecated": true,
             "symfony/flex": true,
             "symfony/runtime": true,
-            "php-http/discovery": false
+            "php-http/discovery": false,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }

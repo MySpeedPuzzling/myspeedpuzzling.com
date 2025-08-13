@@ -55,7 +55,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PuzzleOverview {
+        return array_map(static function (array $row): PuzzleOverview {
             /**
              * @var array{
              *     puzzle_id: string,

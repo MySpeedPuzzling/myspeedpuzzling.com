@@ -31,7 +31,8 @@ readonly final class NotifyWhenMembershipSubscriptionRenewed
         }
 
         $playerLocale = $player->locale;
-        $subject = $this->translator->trans('subscription_renewed.subject',
+        $subject = $this->translator->trans(
+            'subscription_renewed.subject',
             domain: 'emails',
             locale: $playerLocale,
         );

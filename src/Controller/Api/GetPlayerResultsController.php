@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Api;
@@ -89,7 +90,7 @@ final class GetPlayerResultsController extends AbstractController
         if ($result->players === null) {
             $data['player_name'] = $result->playerName;
         } else {
-            $data['players'] = array_map(function(Puzzler $player): array {
+            $data['players'] = array_map(function (Puzzler $player): array {
                 return [
                     'id' => $player->playerId,
                     'name' => $player->playerName,

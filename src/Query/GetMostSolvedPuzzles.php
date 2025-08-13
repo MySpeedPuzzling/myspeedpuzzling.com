@@ -44,7 +44,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): MostSolvedPuzzle {
+        return array_map(static function (array $row): MostSolvedPuzzle {
             /**
              * @var array{
              *     puzzle_id: string,
@@ -97,7 +97,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): MostSolvedPuzzle {
+        return array_map(static function (array $row): MostSolvedPuzzle {
             /**
              * @var array{
              *     puzzle_id: string,

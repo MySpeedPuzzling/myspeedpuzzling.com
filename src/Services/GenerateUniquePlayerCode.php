@@ -33,7 +33,7 @@ readonly final class GenerateUniquePlayerCode
             }
 
             $attempts++;
-        } while($attempts <= 5);
+        } while ($attempts <= 5);
 
         throw new CouldNotGenerateUniqueCode('Could not generate unique code, max attempts reached');
     }

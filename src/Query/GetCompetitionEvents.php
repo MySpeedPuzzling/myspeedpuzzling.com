@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
 
 /**
@@ -63,7 +62,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): CompetitionEvent {
+        return array_map(static function (array $row): CompetitionEvent {
             /** @var CompetitionEventDatabaseRow $row */
             return CompetitionEvent::fromDatabaseRow($row);
         }, $data);
@@ -88,7 +87,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): CompetitionEvent {
+        return array_map(static function (array $row): CompetitionEvent {
             /** @var CompetitionEventDatabaseRow $row */
             return CompetitionEvent::fromDatabaseRow($row);
         }, $data);
@@ -114,7 +113,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): CompetitionEvent {
+        return array_map(static function (array $row): CompetitionEvent {
             /** @var CompetitionEventDatabaseRow $row */
             return CompetitionEvent::fromDatabaseRow($row);
         }, $data);

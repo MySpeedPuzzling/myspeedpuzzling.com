@@ -22,40 +22,28 @@ class Competition
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Column]
         public string $name,
-
         #[Column(unique: true, nullable: true)]
         public null|string $slug,
-
         #[Column(nullable: true)]
         public null|string $logo,
-
         #[Column(nullable: true)]
         public null|string $description,
-
         #[Column(nullable: true)]
         public null|string $link,
-
         #[Column(nullable: true)]
         public null|string $registrationLink,
-
         #[Column(nullable: true)]
         public null|string $resultsLink,
-
         #[Column]
         public string $location,
-
         #[Column]
         public string $locationCountryCode,
-
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $dateFrom,
-
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $dateTo,
-
         #[ManyToOne]
         public null|Tag $tag,
     ) {

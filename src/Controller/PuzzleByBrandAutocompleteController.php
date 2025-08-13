@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -53,7 +54,6 @@ HTML;
     src="{$this->cacheManager->getBrowserPath($puzzle->puzzleImage, 'puzzle_small')}"
 />
 HTML;
-
             }
 
             $html = <<<HTML

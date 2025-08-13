@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
@@ -15,7 +16,6 @@ use SpeedPuzzling\Web\FormType\PlayerVisibilityFormType;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;

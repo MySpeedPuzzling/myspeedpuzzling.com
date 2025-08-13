@@ -71,7 +71,7 @@ SQL;
 
         $players = $this->getTeamPlayers->byIds($timeIds);
 
-        return array_map(static function(array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -150,7 +150,7 @@ SQL;
 
         $players = $this->getTeamPlayers->byIds($timeIds);
 
-        return array_map(static function(array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -243,7 +243,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'limit' => $limit,
-                'playerId' => $playerId
+                'playerId' => $playerId,
             ])
             ->fetchAllAssociative();
 
@@ -253,7 +253,7 @@ SQL;
 
         $players = $this->getTeamPlayers->byIds($timeIds);
 
-        return array_map(static function(array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,

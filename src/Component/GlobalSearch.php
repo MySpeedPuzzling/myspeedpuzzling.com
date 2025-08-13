@@ -7,8 +7,6 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\SearchPlayers;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PiecesFilter;
-use SpeedPuzzling\Web\Results\PlayerIdentification;
-use SpeedPuzzling\Web\Results\PuzzleOverview;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;

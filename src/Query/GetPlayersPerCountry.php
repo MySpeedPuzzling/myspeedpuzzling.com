@@ -33,7 +33,7 @@ SQL;
             ->executeQuery($query)
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayersPerCountry {
+        return array_map(static function (array $row): PlayersPerCountry {
             /**
              * @var array{
              *     country: string,
@@ -67,7 +67,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayerIdentification {
+        return array_map(static function (array $row): PlayerIdentification {
             /**
              * @var array{
              *     player_id: string,
@@ -98,7 +98,7 @@ SQL;
             ->executeQuery($query)
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): PlayersPerCountry {
+        return array_map(static function (array $row): PlayersPerCountry {
             /**
              * @var array{
              *     country: string,

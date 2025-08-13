@@ -6,9 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
-use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Repository\PlayerRepository;

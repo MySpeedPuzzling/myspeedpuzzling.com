@@ -35,14 +35,11 @@ class CompetitionParticipant
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Column]
         readonly public string $name,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public string $country,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Competition $competition,

@@ -26,19 +26,15 @@ class Notification
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         #[Immutable]
         public Player $player,
-
         #[Column]
         #[Immutable]
         public NotificationType $type,
-
         #[Column]
         public DateTimeImmutable $notifiedAt,
-
         #[ManyToOne]
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]

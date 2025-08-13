@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Events\MembershipStarted;
-use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
@@ -37,7 +36,8 @@ readonly final class NotifyWhenMembershipStarted
         $playerLocale = $player->locale;
 
         if ($membership->billingPeriodEndsAt === null) {
-            $subject = $this->translator->trans('membership_granted.subject',
+            $subject = $this->translator->trans(
+                'membership_granted.subject',
                 domain: 'emails',
                 locale: $playerLocale,
             );
@@ -55,7 +55,8 @@ readonly final class NotifyWhenMembershipStarted
         }
 
         if ($membership->billingPeriodEndsAt !== null) {
-            $subject = $this->translator->trans('membership_subscribed.subject',
+            $subject = $this->translator->trans(
+                'membership_subscribed.subject',
                 domain: 'emails',
                 locale: $playerLocale,
             );

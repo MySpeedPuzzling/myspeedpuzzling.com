@@ -216,7 +216,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function(array $row): SolvedPuzzle {
+        return array_map(static function (array $row): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -324,7 +324,7 @@ SQL;
 
         $players = $this->getTeamPlayers->byIds($timeIds);
 
-        return array_map(static function(array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -365,8 +365,7 @@ SQL;
         null|DateTimeImmutable $dateFrom = null,
         null|DateTimeImmutable $dateTo = null,
         bool $onlyFirstTries = false,
-    ): array
-    {
+    ): array {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
@@ -437,7 +436,7 @@ SQL;
 
         $players = $this->getTeamPlayers->byIds($timeIds);
 
-        return array_map(static function(array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,

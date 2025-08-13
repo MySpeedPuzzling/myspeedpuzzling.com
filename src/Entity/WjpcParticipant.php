@@ -34,21 +34,16 @@ class WjpcParticipant
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Column]
         readonly public string $name,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public string $country,
-
         /** @var array<string> */
         #[Column(type: Types::JSON, options: ['default' => '[]'])]
         public array $rounds = [],
-
         #[Column(nullable: true)]
         readonly public null|int $year2023Rank = null,
-
         #[Column(nullable: true)]
         readonly public null|int $year2022Rank = null,
     ) {

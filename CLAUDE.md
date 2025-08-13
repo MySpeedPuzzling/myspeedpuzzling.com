@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing & Quality
 - `vendor/bin/phpunit` - Run PHP unit tests
 - `composer run phpstan` - Run PHPStan static analysis (max level)
-- `composer run cs` - Check coding standards with ECS
-- `composer run cs-fix` - Fix coding standards with ECS
+- `composer run cs` - Check coding standards with PHPCS
+- `composer run cs-fix` - Fix coding standards with PHPCBF
 - `php bin/console doctrine:migrations:migrate` - Run database migrations
 
 ### Database

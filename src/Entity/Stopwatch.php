@@ -41,12 +41,10 @@ class Stopwatch
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         public Player $player,
-
         #[ManyToOne]
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]

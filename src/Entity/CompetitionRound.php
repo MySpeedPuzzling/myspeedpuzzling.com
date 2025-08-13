@@ -26,20 +26,15 @@ class CompetitionRound
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Competition $competition,
-
         #[Column]
         public string $name,
-
         #[Column]
         public int $minutesLimit,
-
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $startsAt,
-
         /**
          * @var Collection<int, Puzzle>
          */

@@ -53,7 +53,7 @@ readonly final class Puzzler
          *  }> $playersData */
         $playersData = Json::decode($json, true);
 
-        $players = array_map(static function(array $data): Puzzler {
+        $players = array_map(static function (array $data): Puzzler {
             return new Puzzler(
                 playerId: $data['player_id'],
                 playerName: $data['player_name'],
@@ -63,7 +63,7 @@ readonly final class Puzzler
             );
         }, $playersData);
 
-        return array_filter($players, static function(Puzzler $puzzler) use ($excludePlayerId): bool {
+        return array_filter($players, static function (Puzzler $puzzler) use ($excludePlayerId): bool {
             return ($puzzler->playerId === null || $puzzler->playerId !== $excludePlayerId);
         });
     }

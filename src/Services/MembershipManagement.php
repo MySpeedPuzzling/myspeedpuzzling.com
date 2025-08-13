@@ -45,7 +45,7 @@ readonly final class MembershipManagement
 
         $prices = $this->stripeClient->prices->all([
             'lookup_keys' => [$priceLookupKey],
-            'expand' => ['data.product']
+            'expand' => ['data.product'],
         ]);
 
         $price = $prices->data[0] ?? null;
@@ -95,7 +95,7 @@ readonly final class MembershipManagement
                     || $now < $membership->endsAt
                 )
             ) {
-                throw new PlayerAlreadyHaveMembership;
+                throw new PlayerAlreadyHaveMembership();
             }
 
             if ($membership->endsAt !== null && $now < $membership->endsAt) {
@@ -106,7 +106,7 @@ readonly final class MembershipManagement
                         'trial_settings' => [
                             'end_behavior' => [
                                 'missing_payment_method' => 'pause',
-                            ]
+                            ],
                         ],
                         'trial_period_days' => $daysBetweenTrialEnds,
                     ];

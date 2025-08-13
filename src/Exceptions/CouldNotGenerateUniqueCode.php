@@ -6,5 +6,4 @@ namespace SpeedPuzzling\Web\Exceptions;
 
 final class CouldNotGenerateUniqueCode extends \Exception
 {
-
 }

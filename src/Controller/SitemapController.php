@@ -1,25 +1,15 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
-use SpeedPuzzling\Web\Query\GetPuzzleOverview;
-use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
-use SpeedPuzzling\Web\Query\GetRanking;
-use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
-use SpeedPuzzling\Web\Results\PuzzleSolver;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SitemapController extends AbstractController
 {
@@ -63,7 +53,7 @@ final class SitemapController extends AbstractController
         }
 
         $response = new Response(headers: [
-            'Content-Type', 'text/xml'
+            'Content-Type', 'text/xml',
         ]);
 
         return $this->render('sitemap.xml.twig', [

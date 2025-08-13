@@ -39,11 +39,11 @@ SELECT
     MIN(CASE WHEN json_array_length(team->'puzzlers') = 2 THEN seconds_to_solve END) AS fastest_time_duo,
     AVG(CASE WHEN json_array_length(team->'puzzlers') > 2 THEN seconds_to_solve END) AS average_time_team,
     MIN(CASE WHEN json_array_length(team->'puzzlers') > 2 THEN seconds_to_solve END) AS fastest_time_team
-FROM player_puzzle_collection
-INNER JOIN puzzle ON player_puzzle_collection.puzzle_id = puzzle.id
+FROM player_puzzle_collection_old
+INNER JOIN puzzle ON player_puzzle_collection_old.puzzle_id = puzzle.id
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
-WHERE player_puzzle_collection.player_id = :playerId
+WHERE player_puzzle_collection_old.player_id = :playerId
 GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;

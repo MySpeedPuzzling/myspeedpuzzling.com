@@ -33,7 +33,7 @@ final class HubController extends AbstractController
         ],
         name: 'hub',
     )]
-    public function __invoke(#[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(#[CurrentUser] null|UserInterface $user): Response
     {
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $favoritesSolvedPuzzle = [];

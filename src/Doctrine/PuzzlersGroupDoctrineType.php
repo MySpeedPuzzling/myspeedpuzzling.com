@@ -48,7 +48,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
      * @param null|PuzzlersGroup $value
      * @throws ConversionException
      */
-    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
+    public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): null|string
     {
         if ($value === null) {
             return null;

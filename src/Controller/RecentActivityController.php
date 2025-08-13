@@ -30,7 +30,7 @@ final class RecentActivityController extends AbstractController
         ],
         name: 'recent_activity',
     )]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(Request $request, #[CurrentUser] null|UserInterface $user): Response
     {
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $userRanking = [];

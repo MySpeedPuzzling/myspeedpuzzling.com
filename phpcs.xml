@@ -22,7 +22,14 @@
     <rule ref="SlevomatCodingStandard.PHP.UselessSemicolon"/>
     <rule ref="SlevomatCodingStandard.Arrays.TrailingArrayComma"/>
     <rule ref="SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue"/>
-    
+
+    <rule ref="SlevomatCodingStandard.TypeHints.DNFTypeHintFormat">
+        <properties>
+            <property name="shortNullable" value="no" />
+            <property name="nullPosition" value="first" />
+        </properties>
+    </rule>
+
     <!-- Show progress -->
     <arg name="colors"/>
     <arg value="sp"/>

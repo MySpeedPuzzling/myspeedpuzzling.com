@@ -44,7 +44,7 @@ final class PuzzleDetailController extends AbstractController
         ],
         name: 'puzzle_detail_qr',
     )]
-    public function __invoke(string $puzzleId, #[CurrentUser] UserInterface|null $user, Request $request): Response
+    public function __invoke(string $puzzleId, #[CurrentUser] null|UserInterface $user, Request $request): Response
     {
         try {
             $puzzle = $this->getPuzzleOverview->byId($puzzleId);

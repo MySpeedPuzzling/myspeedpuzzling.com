@@ -26,7 +26,7 @@ final class PlayersPerCountryController extends AbstractController
         ],
         name: 'players_per_country',
     )]
-    public function __invoke(string $countryCode, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(string $countryCode, #[CurrentUser] null|UserInterface $user): Response
     {
         $code = CountryCode::fromCode($countryCode);
 

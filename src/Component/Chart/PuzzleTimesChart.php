@@ -14,7 +14,7 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 #[AsTwigComponent]
 final class PuzzleTimesChart
 {
-    public string|null $playerId = null;
+    public null|string $playerId = null;
 
     /**
      * @var array<array<PuzzleSolver|PuzzleSolversGroup>>

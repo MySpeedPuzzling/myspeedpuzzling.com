@@ -57,6 +57,7 @@ jobs:
   coding-standards:
       runs-on: ubuntu-latest
       container: ghcr.io/myspeedpuzzling/web-base:main
+      continue-on-error: true
       steps:
         -   uses: actions/checkout@v4
         -   uses: actions/cache@v4

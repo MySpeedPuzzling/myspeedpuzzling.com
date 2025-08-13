@@ -31,7 +31,7 @@ final class HomepageController extends AbstractController
         ],
         name: 'homepage',
     )]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(Request $request, #[CurrentUser] null|UserInterface $user): Response
     {
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $locale = $request->getPreferredLanguage(['en', 'cs']) ?? 'en';

@@ -38,7 +38,7 @@ final class PlayerStatisticsController extends AbstractController
     public function __invoke(
         Request $request,
         string $playerId,
-        #[CurrentUser] UserInterface|null $user,
+        #[CurrentUser] null|UserInterface $user,
     ): Response {
         try {
             $player = $this->getPlayerProfile->byId($playerId);

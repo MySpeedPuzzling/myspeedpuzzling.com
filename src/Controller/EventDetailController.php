@@ -34,7 +34,7 @@ final class EventDetailController extends AbstractController
         ],
         name: 'event_detail',
     )]
-    public function __invoke(Competition $competition, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(Competition $competition, #[CurrentUser] null|UserInterface $user): Response
     {
         $competitionEvent = $this->getCompetitionEvents->byId($competition->id->toString());
         $puzzles = [];

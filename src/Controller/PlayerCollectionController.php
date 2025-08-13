@@ -34,7 +34,7 @@ final class PlayerCollectionController extends AbstractController
         ],
         name: 'player_collection',
     )]
-    public function __invoke(string $playerId, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
     {
         try {
             $player = $this->getPlayerProfile->byId($playerId);

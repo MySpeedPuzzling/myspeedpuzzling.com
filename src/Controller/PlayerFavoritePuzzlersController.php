@@ -32,7 +32,7 @@ final class PlayerFavoritePuzzlersController extends AbstractController
         ],
         name: 'player_favorite_puzzlers',
     )]
-    public function __invoke(string $playerId, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
     {
         try {
             $player = $this->getPlayerProfile->byId($playerId);

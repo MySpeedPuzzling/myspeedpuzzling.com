@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 readonly final class SearchHighlighter
 {
-    public function highlight(string|int|null $text, null|string $query): string
+    public function highlight(null|string|int $text, null|string $query): string
     {
         $text  = trim((string) $text);
         $query = trim((string) $query);

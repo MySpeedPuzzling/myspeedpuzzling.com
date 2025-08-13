@@ -38,7 +38,7 @@ final class PuzzlesController extends AbstractController
         ],
         name: 'puzzles',
     )]
-    public function __invoke(Request $request, #[CurrentUser] UserInterface|null $user): Response
+    public function __invoke(Request $request, #[CurrentUser] null|UserInterface $user): Response
     {
         $searchData = SearchPuzzleFormData::fromRequest($request);
 

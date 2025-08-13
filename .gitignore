@@ -42,3 +42,6 @@ yarn-error.log
 myspeedpuzzling.xml
 wjpc_individuals.csv
 competitions_data.csv
+
+CLAUDE.local.md
+.claude/settings.local.json

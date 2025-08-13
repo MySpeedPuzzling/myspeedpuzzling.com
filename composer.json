@@ -109,7 +109,8 @@
         "symfony/browser-kit": "^7.0",
         "symfony/css-selector": "^7.0",
         "symfony/debug-bundle": "^7.0",
-        "symfony/web-profiler-bundle": "^7.0"
+        "symfony/web-profiler-bundle": "^7.0",
+        "symplify/easy-coding-standard": "^12.5"
     },
     "autoload": {
         "psr-4": {
@@ -123,6 +124,8 @@
     },
     "scripts": {
         "phpstan": "vendor/bin/phpstan --memory-limit=-1 analyse",
+        "cs": "vendor/bin/ecs check",
+        "cs-fix": "vendor/bin/ecs check --fix",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"

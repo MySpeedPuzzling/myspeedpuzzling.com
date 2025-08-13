@@ -54,6 +54,20 @@ jobs:
         -   run: bin/console cache:warmup --env=dev
         -   run: composer run-script phpstan
 
+  coding-standards:
+      runs-on: ubuntu-latest
+      container: ghcr.io/myspeedpuzzling/web-base:main
+      steps:
+        -   uses: actions/checkout@v4
+        -   uses: actions/cache@v4
+            with:
+                path: vendor
+                key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+                restore-keys: |
+                    ${{ runner.os }}-composer-
+        -   run: composer install --no-scripts --no-progress
+        -   run: vendor/bin/ecs check --no-progress-bar
+
 
   migrations-up-to-date:
       runs-on: ubuntu-latest

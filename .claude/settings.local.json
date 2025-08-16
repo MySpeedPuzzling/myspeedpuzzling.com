@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php bin/console doctrine:migrations:diff:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

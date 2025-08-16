@@ -476,6 +476,15 @@ badges:
 collection:
     title: "Collection"
     empty_info: "This collection is currently empty. Maybe it's time to change that? After all, everyone loves puzzles and storing them :-)."
+    folder_empty_info: 'This folder is empty.'
+    folders: 'Folders'
+    all_puzzles: 'All Puzzles'
+    create_folder: 'Create Folder'
+    folder_name: 'Folder Name'
+    folder_name_required: 'Folder name is required.'
+    folder_color: 'Color'
+    folder_description: 'Description'
+    folder_created: 'Folder created successfully.'
 
 scan:
     meta:

@@ -19,6 +19,18 @@ readonly final class GetPuzzleCollection
      */
     public function forPlayer(string $playerId): array
     {
+        return $this->forPlayerInFolder($playerId, null);
+    }
+
+    /**
+     * @return array<string, PuzzleOverview>
+     */
+    public function forPlayerInFolder(string $playerId, null|string $folderId): array
+    {
+        $folderCondition = $folderId === null 
+            ? 'player_puzzle_collection.folder_id IS NULL'
+            : 'player_puzzle_collection.folder_id = :folderId';
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -32,6 +44,11 @@ SELECT
     manufacturer.id AS manufacturer_id,
     ean AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number,
+    player_puzzle_collection.notes,
+    player_puzzle_collection.added_at,
+    player_puzzle_collection.lent_to_id,
+    player_puzzle_collection.lent_at,
+    lent_to_player.name AS lent_to_player_name,
     COUNT(puzzle_solving_time.id) AS solved_times,
     AVG(CASE WHEN team IS NULL THEN seconds_to_solve END) AS average_time_solo,
     MIN(CASE WHEN team IS NULL THEN seconds_to_solve END) AS fastest_time_solo,
@@ -43,15 +60,22 @@ FROM player_puzzle_collection
 INNER JOIN puzzle ON player_puzzle_collection.puzzle_id = puzzle.id
 LEFT JOIN puzzle_solving_time ON puzzle_solving_time.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+LEFT JOIN player lent_to_player ON player_puzzle_collection.lent_to_id = lent_to_player.id
 WHERE player_puzzle_collection.player_id = :playerId
-GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id
+AND {$folderCondition}
+GROUP BY puzzle.name, puzzle.pieces_count, manufacturer.name, manufacturer.id, puzzle.alternative_name, puzzle.id, 
+         player_puzzle_collection.notes, player_puzzle_collection.added_at, player_puzzle_collection.lent_to_id, 
+         player_puzzle_collection.lent_at, lent_to_player.name
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 
+        $parameters = ['playerId' => $playerId];
+        if ($folderId !== null) {
+            $parameters['folderId'] = $folderId;
+        }
+
         $data = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-            ])
+            ->executeQuery($query, $parameters)
             ->fetchAllAssociative();
 
         /** @var array<string, PuzzleOverview> $results */

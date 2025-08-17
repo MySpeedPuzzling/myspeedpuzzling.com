@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
 use SpeedPuzzling\Web\Repository\PlayerPuzzleCollectionRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

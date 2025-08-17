@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NoResultException;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetSubscribedPlayers;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;

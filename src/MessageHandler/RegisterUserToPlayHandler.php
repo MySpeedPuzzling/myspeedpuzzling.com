@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Message\RegisterUserToPlay;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

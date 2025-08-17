@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Exceptions\StopwatchAlreadyFinished;
+use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBeFinished;
 use SpeedPuzzling\Web\Message\FinishStopwatch;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;

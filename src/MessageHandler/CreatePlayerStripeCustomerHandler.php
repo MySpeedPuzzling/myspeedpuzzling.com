@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Stripe\StripeClient;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

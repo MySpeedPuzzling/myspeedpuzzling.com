@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Doctrine;
 
+use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Metadata\Storage\TableMetadataStorageConfiguration;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
@@ -26,7 +27,6 @@ readonly final class FixDoctrineMigrationTableSchema
 
     /**
      * @throws SchemaException
-     * @throws Exception
      */
     public function postGenerateSchema(GenerateSchemaEventArgs $args): void
     {

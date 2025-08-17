@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\HideModal;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

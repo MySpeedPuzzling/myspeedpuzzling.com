@@ -10,6 +10,7 @@ use Intervention\Image\MediaType;
 use Intervention\Image\Typography\FontFactory;
 use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;

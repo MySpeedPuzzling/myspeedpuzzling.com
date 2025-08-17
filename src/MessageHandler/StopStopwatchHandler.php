@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBePaused;
+use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Message\StopStopwatch;
 use SpeedPuzzling\Web\Repository\StopwatchRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

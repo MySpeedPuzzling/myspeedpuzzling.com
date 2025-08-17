@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Message\UpdateWjpcPlayerId;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

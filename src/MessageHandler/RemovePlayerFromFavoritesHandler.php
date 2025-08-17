@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
+use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RemovePlayerFromFavorites;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;

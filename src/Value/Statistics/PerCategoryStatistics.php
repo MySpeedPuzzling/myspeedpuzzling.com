@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value\Statistics;
 
+use SpeedPuzzling\Web\Results\SolvedPuzzle;
+
 readonly final class PerCategoryStatistics
 {
     public SolvedPuzzleStatistics $solvedPuzzle;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use SpeedPuzzling\Web\Results\PlayerRanking;
+
 readonly final class FilterPuzzlerRanking
 {
     /**

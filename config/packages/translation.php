@@ -4,4 +4,7 @@ use Symfony\Config\FrameworkConfig;
 
 return static function (FrameworkConfig $framework): void {
     $framework->defaultLocale('en');
+    $framework->translator()
+        ->enabled(true)
+        ->fallbacks(['en']);
 };

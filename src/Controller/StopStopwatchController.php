@@ -26,6 +26,7 @@ final class StopStopwatchController extends AbstractController
         path: [
             'cs' => '/stopky/{stopwatchId}/zastavit',
             'en' => '/en/stopwatch/{stopwatchId}/stop',
+            'es' => '/es/cronometro/{stopwatchId}/parar',
         ],
         name: 'stop_stopwatch',
     )]

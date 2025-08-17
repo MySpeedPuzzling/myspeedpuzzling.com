@@ -30,6 +30,7 @@ final class PlayersController extends AbstractController
         path: [
             'cs' => '/puzzleri',
             'en' => '/en/puzzlers',
+            'es' => '/es/jugadores',
         ],
         name: 'players',
     )]

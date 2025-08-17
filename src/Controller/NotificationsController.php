@@ -27,6 +27,7 @@ final class NotificationsController extends AbstractController
         path: [
             'cs' => '/notifikace',
             'en' => '/en/notifications',
+            'es' => '/es/notificaciones',
         ],
         name: 'notifications',
     )]

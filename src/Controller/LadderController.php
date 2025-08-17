@@ -34,6 +34,7 @@ final class LadderController extends AbstractController
         path: [
             'cs' => '/zebricek',
             'en' => '/en/ladder',
+            'es' => '/es/escalera',
         ],
         name: 'ladder',
     )]
@@ -41,6 +42,7 @@ final class LadderController extends AbstractController
         path: [
             'cs' => '/zebricek/zeme/{countryCode}',
             'en' => '/en/ladder/country/{countryCode}',
+            'es' => '/es/escalera/pais/{countryCode}',
         ],
         name: 'ladder_country',
     )]

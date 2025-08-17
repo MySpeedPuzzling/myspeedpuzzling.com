@@ -30,6 +30,7 @@ final class HubController extends AbstractController
         path: [
             'cs' => '/hub',
             'en' => '/en/hub',
+            'es' => '/es/centro',
         ],
         name: 'hub',
     )]

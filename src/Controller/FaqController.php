@@ -18,6 +18,7 @@ final class FaqController extends AbstractController
         path: [
             'cs' => '/caste-dotazy',
             'en' => '/en/faq',
+            'es' => '/es/preguntas-frecuentes',
         ],
         name: 'faq',
     )]

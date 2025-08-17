@@ -15,6 +15,7 @@ final class PrivacyPolicyController extends AbstractController
         path: [
             'cs' => '/zasady-ochrany-osobnich-udaju',
             'en' => '/en/privacy-policy',
+            'es' => '/es/politica-privacidad',
         ],
         name: 'privacy_policy',
     )]

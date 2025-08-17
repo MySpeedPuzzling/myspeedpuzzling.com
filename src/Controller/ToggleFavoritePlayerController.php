@@ -32,6 +32,7 @@ final class ToggleFavoritePlayerController extends AbstractController
         path: [
             'cs' => '/pridat-hrace-k-oblibenym/{playerId}',
             'en' => '/en/add-player-to-favorites/{playerId}',
+            'es' => '/es/anadir-jugador-a-favoritos/{playerId}',
         ],
         name: 'add_player_to_favorite',
     )]
@@ -39,6 +40,7 @@ final class ToggleFavoritePlayerController extends AbstractController
         path: [
             'cs' => '/odebrat-hrace-z-oblibenych/{playerId}',
             'en' => '/en/remove-player-from-favorites/{playerId}',
+            'es' => '/es/eliminar-jugador-de-favoritos/{playerId}',
         ],
         name: 'remove_player_from_favorite',
     )]

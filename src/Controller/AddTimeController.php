@@ -48,6 +48,7 @@ final class AddTimeController extends AbstractController
         path: [
             'cs' => '/pridat-cas/{puzzleId}',
             'en' => '/en/add-time/{puzzleId}',
+            'es' => '/es/anadir-tiempo/{puzzleId}',
         ],
         name: 'add_time',
     )]
@@ -55,6 +56,7 @@ final class AddTimeController extends AbstractController
         path: [
             'cs' => '/ulozit-stopky/{stopwatchId}',
             'en' => '/en/save-stopwatch/{stopwatchId}',
+            'es' => '/es/guardar-cronometro/{stopwatchId}',
         ],
         name: 'finish_stopwatch',
     )]

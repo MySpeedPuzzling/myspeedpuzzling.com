@@ -35,6 +35,7 @@ final class PuzzlesController extends AbstractController
         path: [
             'cs' => '/puzzle',
             'en' => '/en/puzzle',
+            'es' => '/es/rompecabezas',
         ],
         name: 'puzzles',
     )]

@@ -25,6 +25,7 @@ final class AddedTimeRecapController extends AbstractController
         path: [
             'cs' => '/cas-pridan/{timeId}',
             'en' => '/en/time-added/{timeId}',
+            'es' => '/es/tiempo-anadido/{timeId}',
         ],
         name: 'added_time_recap',
     )]

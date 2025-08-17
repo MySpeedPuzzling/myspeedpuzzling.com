@@ -20,6 +20,7 @@ final class EventsController extends AbstractController
         path: [
             'cs' => '/eventy',
             'en' => '/en/events',
+            'es' => '/es/eventos',
         ],
         name: 'events',
     )]

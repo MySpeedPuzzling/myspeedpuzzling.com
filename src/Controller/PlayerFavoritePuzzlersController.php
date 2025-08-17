@@ -29,6 +29,7 @@ final class PlayerFavoritePuzzlersController extends AbstractController
         path: [
             'cs' => '/oblibeni-hraci/{playerId}',
             'en' => '/en/player-favorites/{playerId}',
+            'es' => '/es/favoritos-jugador/{playerId}',
         ],
         name: 'player_favorite_puzzlers',
     )]

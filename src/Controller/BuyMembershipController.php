@@ -27,6 +27,7 @@ final class BuyMembershipController extends AbstractController
         path: [
             'cs' => '/koupit-clenstvi/{period}',
             'en' => '/en/buy-membership/{period}',
+            'es' => '/es/comprar-membresia/{period}',
         ],
         name: 'buy_membership',
         defaults: ['period' => null],

@@ -35,7 +35,7 @@ final class StopwatchController extends AbstractController
         path: [
             'cs' => '/puzzle-stopky/{puzzleId}',
             'en' => '/en/puzzle-stopwatch/{puzzleId}',
-            'es' => '/es/cronometro-rompecabezas/{puzzleId}',
+            'es' => '/es/cronometro-puzzle/{puzzleId}',
         ],
         name: 'stopwatch_puzzle',
     )]

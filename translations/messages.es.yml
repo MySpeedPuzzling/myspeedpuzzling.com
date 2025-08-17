@@ -2,7 +2,7 @@ menu:
     my_profile: "Mi perfil"
     add_time: "Añadir tiempo"
     stopwatch: "Cronómetro"
-    puzzles_overview: "Rompecabezas"
+    puzzles_overview: "Puzzle"
     ladder: "Clasificación"
     players: "Jugadores"
     faq: "Preguntas frecuentes"
@@ -23,13 +23,13 @@ menu:
     events: "Eventos"
 
 footer:
-    created_with_love: "Creado con amor por los rompecabezas y el código por %simona% y %jan%"
-    about: "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los rompecabezas y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
+    created_with_love: "Creado con amor por los puzzles y el código por %simona% y %jan%"
+    about: "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los puzzles y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
     popular_search: "Búsquedas populares"
 
 puzzler_name: "Nombre"
 puzzler: "Puzzlista"
-puzzle: "Rompecabezas"
+puzzle: "Puzzle"
 time: "Tiempo"
 pieces_count: "%count%&nbsp;piezas"
 show_more: "Mostrar más"
@@ -48,16 +48,16 @@ filtered_out_puzzlers_count_info: "Ocultos <strong>%count% puzzlistas</strong> s
 my_time: "Mi tiempo:"
 puzzle_solved_count: "Número de completados:"
 puzzle_solved_times: "completado %count%x"
-never_solved_puzzles: "Nadie ha resuelto estos rompecabezas aún, ¡sé el primero!"
+never_solved_puzzles: "Nadie ha resuelto estos puzzles aún, ¡sé el primero!"
 show_more_solving_times: "Más (%count%x)"
-be_first_to_solve: "Nadie ha resuelto estos rompecabezas aún. ¡Sé el primero!"
-be_first_to_group_solve: "Estos rompecabezas aún no han sido resueltos en grupo. ¡Sé el primero!"
+be_first_to_solve: "Nadie ha resuelto estos puzzles aún. ¡Sé el primero!"
+be_first_to_group_solve: "Estos puzzles aún no han sido resueltos en grupo. ¡Sé el primero!"
 email: "Email"
 facebook: "Facebook"
 instagram: "Instagram"
 search: "Buscar"
-puzzle_waiting_for_approval: "Rompecabezas añadidos recientemente esperando aprobación del administrador - usualmente dentro de 24 horas después de añadir. Gracias por tu paciencia."
-puzzle_img_alt: "%puzzle% - imagen del rompecabezas"
+puzzle_waiting_for_approval: "Puzzles añadidos recientemente esperando aprobación del administrador - usualmente dentro de 24 horas después de añadir. Gracias por tu paciencia."
+puzzle_img_alt: "%puzzle% - imagen del puzzle"
 searching: "Buscando..."
 load_more: "Cargar más..."
 back_to_top: "Volver arriba"
@@ -127,10 +127,10 @@ filters:
     manufacturer_placeholder: "- Fabricante -"
     less_than: "Menos de %count%"
     more_than: "Más de %count%"
-    text_search_placeholder: "Nombre del rompecabezas o código..."
+    text_search_placeholder: "Nombre del puzzle o código..."
     only_available: "Solo disponibles para préstamo"
     only_with_time: "Solo con tiempo ingresado"
-    no_puzzle_matches_filters: "Ningún rompecabezas coincide con los filtros especificados"
+    no_puzzle_matches_filters: "Ningún puzzle coincide con los filtros especificados"
 
 sorting:
     sort_by: "Ordenar por"
@@ -170,8 +170,8 @@ add_time:
         title: "Añadir Tiempo"
     title: "Añadir Tiempo"
     chosen_puzzle: "Rompecabezas seleccionado:"
-    choose_puzzle: "Elegir un rompecabezas"
-    puzzle_needed: "Debes seleccionar un rompecabezas de la lista o añadir uno nuevo"
+    choose_puzzle: "Elegir un puzzle"
+    puzzle_needed: "Debes seleccionar un puzzle de la lista o añadir uno nuevo"
     change_puzzle: "Cambiar selección"
     add_when_not_found_info: "Si no puedes encontrar el rompecabezas en la lista, por favor añade uno nuevo."
     need_approve_info: "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
@@ -234,7 +234,7 @@ forms:
     competition_participant: "Tu nombre en la competencia"
     player_code: "Código de Jugador"
     player_code_help: "Un código de jugador único - al menos 3 caracteres, hasta 8 caracteres. Solo puede contener letras y números, sin caracteres especiales o espacios."
-    global_search_placeholder: "Buscar rompecabezas o jugador..."
+    global_search_placeholder: "Buscar puzzle o jugador..."
     private_profile: "Perfil privado"
     private_profile_help: "Tu nombre no se mostrará en ningún lugar y los tiempos se presentarán anónimamente."
 
@@ -522,9 +522,9 @@ added_time_recap:
     puzzle_detail: "Resultados"
 
 global_search:
-    info: "¡Bienvenida nueva búsqueda! Busca por nombre del rompecabezas, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
+    info: "¡Bienvenida nueva búsqueda! Busca por nombre del puzzle, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
     no_player_found: "No se encontró jugador :-("
-    no_puzzle_found: "No se encontró rompecabezas :-("
+    no_puzzle_found: "No se encontró puzzle :-("
 
 membership:
     meta:

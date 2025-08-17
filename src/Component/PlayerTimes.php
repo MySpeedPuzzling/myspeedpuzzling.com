@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Results\PlayerRanking;
+use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -47,7 +49,7 @@ final class PlayerTimes
     /** @var array<array<SolvedPuzzle>> */
     public array $duoSolvedPuzzles = [];
 
-    /** @var array<array<solvedPuzzle>> */
+    /** @var array<array<SolvedPuzzle>> */
     public array $soloSolvedPuzzles = [];
 
     /** @var array<PlayerRanking> */

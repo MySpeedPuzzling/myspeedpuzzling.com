@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\FormData\CompetitionConnectionFormData;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use Symfony\Component\Form\AbstractType;

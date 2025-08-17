@@ -17,7 +17,7 @@ final class LapsArrayDoctrineType extends JsonType
     /**
      * @return null|array<Lap>
      *
-     * @throws ConversionException
+     * @throws InvalidType
      */
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): null|array
     {
@@ -47,7 +47,7 @@ final class LapsArrayDoctrineType extends JsonType
 
     /**
      * @param null|array<Lap> $value
-     * @throws ConversionException
+     * @throws InvalidType
      */
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): null|string
     {

@@ -14,7 +14,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
     public const string NAME = 'puzzlers_group';
 
     /**
-     * @throws ConversionException
+     * @throws InvalidType
      */
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): null|PuzzlersGroup
     {
@@ -46,7 +46,7 @@ final class PuzzlersGroupDoctrineType extends JsonType
 
     /**
      * @param null|PuzzlersGroup $value
-     * @throws ConversionException
+     * @throws InvalidType
      */
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): null|string
     {

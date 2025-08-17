@@ -40,6 +40,7 @@ final class EditProfileController extends AbstractController
         path: [
             'cs' => '/upravit-profil',
             'en' => '/en/edit-profile',
+            'es' => '/es/editar-perfil',
         ],
         name: 'edit_profile',
     )]

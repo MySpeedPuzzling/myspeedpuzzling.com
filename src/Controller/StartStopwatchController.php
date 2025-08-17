@@ -24,6 +24,7 @@ final class StartStopwatchController extends AbstractController
         path: [
             'cs' => '/zapnout-stopky/{puzzleId}',
             'en' => '/en/start-stopwatch/{puzzleId}',
+            'es' => '/es/iniciar-cronometro/{puzzleId}',
         ],
         name: 'start_stopwatch',
     )]

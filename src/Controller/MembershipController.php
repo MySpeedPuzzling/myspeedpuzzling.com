@@ -27,6 +27,7 @@ final class MembershipController extends AbstractController
          path: [
             'cs' => '/clenstvi/',
             'en' => '/en/membership',
+            'es' => '/es/membresia',
          ],
          name: 'membership',
      )]

@@ -15,6 +15,7 @@ final class TermsOfServiceController extends AbstractController
         path: [
             'cs' => '/obchodni-podminky',
             'en' => '/en/terms-of-service',
+            'es' => '/es/terminos-servicio',
         ],
         name: 'terms_of_service',
     )]

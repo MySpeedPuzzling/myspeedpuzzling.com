@@ -29,6 +29,7 @@ final class ComparePlayersController extends AbstractController
         path: [
             'cs' => '/porovnat-s-puzzlerem/{opponentPlayerId}/',
             'en' => '/compare-with-puzzler/{opponentPlayerId}/',
+            'es' => '/es/comparar-con-puzzlista/{opponentPlayerId}/',
         ],
         name: 'compare_players',
     )]

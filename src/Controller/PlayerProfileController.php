@@ -39,6 +39,7 @@ final class PlayerProfileController extends AbstractController
         path: [
             'cs' => '/profil-hrace/{playerId}',
             'en' => '/en/player-profile/{playerId}',
+            'es' => '/es/perfil-jugador/{playerId}',
         ],
         name: 'player_profile',
     )]

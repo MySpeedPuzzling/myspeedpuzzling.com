@@ -27,6 +27,7 @@ final class RecentActivityController extends AbstractController
         path: [
             'cs' => '/nedavna-aktivita',
             'en' => '/en/recent-activity',
+            'es' => '/es/actividad-reciente',
         ],
         name: 'recent_activity',
     )]

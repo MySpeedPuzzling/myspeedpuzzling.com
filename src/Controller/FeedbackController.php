@@ -26,6 +26,7 @@ final class FeedbackController extends AbstractController
         path: [
             'cs' => '/feedback',
             'en' => '/en/feedback',
+            'es' => '/es/comentarios',
         ],
         name: 'feedback',
     )]

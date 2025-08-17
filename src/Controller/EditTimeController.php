@@ -41,6 +41,7 @@ final class EditTimeController extends AbstractController
         path: [
             'cs' => '/upravit-cas/{timeId}',
             'en' => '/en/edit-time/{timeId}',
+            'es' => '/es/editar-tiempo/{timeId}',
         ],
         name: 'edit_time',
     )]

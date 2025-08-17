@@ -24,18 +24,18 @@ final class LadderPerPiecesController extends AbstractController
     ) {
     }
 
-    #[Route(path: ['cs' => '/zebricek/jednotlivci/500-dilku', 'en' => '/en/ladder/solo/500-pieces'], name: 'ladder_solo_500_pieces')]
-    #[Route(path: ['cs' => '/zebricek/jednotlivci/1000-dilku', 'en' => '/en/ladder/solo/1000-pieces'], name: 'ladder_solo_1000_pieces')]
-    #[Route(path: ['cs' => '/zebricek/pary/500-dilku', 'en' => '/en/ladder/pairs/500-pieces'], name: 'ladder_pairs_500_pieces')]
-    #[Route(path: ['cs' => '/zebricek/pary/1000-dilku', 'en' => '/en/ladder/pairs/1000-pieces'], name: 'ladder_pairs_1000_pieces')]
-    #[Route(path: ['cs' => '/zebricek/skupiny/500-dilku', 'en' => '/en/ladder/groups/500-pieces'], name: 'ladder_groups_500_pieces')]
-    #[Route(path: ['cs' => '/zebricek/skupiny/1000-dilku', 'en' => '/en/ladder/groups/1000-pieces'], name: 'ladder_groups_1000_pieces')]
-    #[Route(path: ['cs' => '/zebricek/jednotlivci/500-dilku/zeme/{countryCode}', 'en' => '/en/ladder/solo/500-pieces/country/{countryCode}'], name: 'ladder_solo_500_pieces_country')]
-    #[Route(path: ['cs' => '/zebricek/jednotlivci/1000-dilku/zeme/{countryCode}', 'en' => '/en/ladder/solo/1000-pieces/country/{countryCode}'], name: 'ladder_solo_1000_pieces_country')]
-    #[Route(path: ['cs' => '/zebricek/pary/500-dilku/zeme/{countryCode}', 'en' => '/en/ladder/pairs/500-pieces/country/{countryCode}'], name: 'ladder_pairs_500_pieces_country')]
-    #[Route(path: ['cs' => '/zebricek/pary/1000-dilku/zeme/{countryCode}', 'en' => '/en/ladder/pairs/1000-pieces/country/{countryCode}'], name: 'ladder_pairs_1000_pieces_country')]
-    #[Route(path: ['cs' => '/zebricek/skupiny/500-dilku/zeme/{countryCode}', 'en' => '/en/ladder/groups/500-pieces/country/{countryCode}'], name: 'ladder_groups_500_pieces_country')]
-    #[Route(path: ['cs' => '/zebricek/skupiny/1000-dilku/zeme/{countryCode}', 'en' => '/en/ladder/groups/1000-pieces/country/{countryCode}'], name: 'ladder_groups_1000_pieces_country')]
+    #[Route(path: ['cs' => '/zebricek/jednotlivci/500-dilku', 'en' => '/en/ladder/solo/500-pieces', 'es' => '/es/escalera/individual/500-piezas'], name: 'ladder_solo_500_pieces')]
+    #[Route(path: ['cs' => '/zebricek/jednotlivci/1000-dilku', 'en' => '/en/ladder/solo/1000-pieces', 'es' => '/es/escalera/individual/1000-piezas'], name: 'ladder_solo_1000_pieces')]
+    #[Route(path: ['cs' => '/zebricek/pary/500-dilku', 'en' => '/en/ladder/pairs/500-pieces', 'es' => '/es/escalera/parejas/500-piezas'], name: 'ladder_pairs_500_pieces')]
+    #[Route(path: ['cs' => '/zebricek/pary/1000-dilku', 'en' => '/en/ladder/pairs/1000-pieces', 'es' => '/es/escalera/parejas/1000-piezas'], name: 'ladder_pairs_1000_pieces')]
+    #[Route(path: ['cs' => '/zebricek/skupiny/500-dilku', 'en' => '/en/ladder/groups/500-pieces', 'es' => '/es/escalera/grupos/500-piezas'], name: 'ladder_groups_500_pieces')]
+    #[Route(path: ['cs' => '/zebricek/skupiny/1000-dilku', 'en' => '/en/ladder/groups/1000-pieces', 'es' => '/es/escalera/grupos/1000-piezas'], name: 'ladder_groups_1000_pieces')]
+    #[Route(path: ['cs' => '/zebricek/jednotlivci/500-dilku/zeme/{countryCode}', 'en' => '/en/ladder/solo/500-pieces/country/{countryCode}', 'es' => '/es/escalera/individual/500-piezas/pais/{countryCode}'], name: 'ladder_solo_500_pieces_country')]
+    #[Route(path: ['cs' => '/zebricek/jednotlivci/1000-dilku/zeme/{countryCode}', 'en' => '/en/ladder/solo/1000-pieces/country/{countryCode}', 'es' => '/es/escalera/individual/1000-piezas/pais/{countryCode}'], name: 'ladder_solo_1000_pieces_country')]
+    #[Route(path: ['cs' => '/zebricek/pary/500-dilku/zeme/{countryCode}', 'en' => '/en/ladder/pairs/500-pieces/country/{countryCode}', 'es' => '/es/escalera/parejas/500-piezas/pais/{countryCode}'], name: 'ladder_pairs_500_pieces_country')]
+    #[Route(path: ['cs' => '/zebricek/pary/1000-dilku/zeme/{countryCode}', 'en' => '/en/ladder/pairs/1000-pieces/country/{countryCode}', 'es' => '/es/escalera/parejas/1000-piezas/pais/{countryCode}'], name: 'ladder_pairs_1000_pieces_country')]
+    #[Route(path: ['cs' => '/zebricek/skupiny/500-dilku/zeme/{countryCode}', 'en' => '/en/ladder/groups/500-pieces/country/{countryCode}', 'es' => '/es/escalera/grupos/500-piezas/pais/{countryCode}'], name: 'ladder_groups_500_pieces_country')]
+    #[Route(path: ['cs' => '/zebricek/skupiny/1000-dilku/zeme/{countryCode}', 'en' => '/en/ladder/groups/1000-pieces/country/{countryCode}', 'es' => '/es/escalera/grupos/1000-piezas/pais/{countryCode}'], name: 'ladder_groups_1000_pieces_country')]
     public function __invoke(Request $request, null|string $countryCode): Response
     {
         /** @var string $routeName */

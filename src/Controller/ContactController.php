@@ -15,6 +15,7 @@ final class ContactController extends AbstractController
         path: [
             'cs' => '/kontakt',
             'en' => '/en/contact',
+            'es' => '/es/contacto',
         ],
         name: 'contact',
     )]

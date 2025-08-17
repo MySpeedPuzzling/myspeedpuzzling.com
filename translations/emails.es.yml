@@ -1,0 +1,48 @@
+footer: 'Gracias por ser parte de <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>Si tienes alguna pregunta, no dudes en contactarnos en cualquier momento en <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
+
+membership_cancelled:
+    subject: "La suscripción de membresía en MySpeedPuzzling.com ha sido cancelada"
+    title: "¡La suscripción de membresía ha sido cancelada!"
+    content: |
+        <p>Lamentamos verte partir, pero apreciamos el tiempo que pasaste con MySpeedPuzzling.com.</p>
+        <p>No te preocupes, no se te cobrará más. Sin embargo, tu membresía permanecerá activa hasta el final del período de facturación actual, que termina el <b>%membershipExpiresAt%</b>.</p>
+        <p>Si cambias de opinión, puedes gestionar tu membresía en cualquier momento en la <a href="%membershipUrl%">página de membresía</a>.</p>
+        <p>Estamos trabajando constantemente para mejorar MySpeedPuzzling.com y apreciaríamos mucho cualquier comentario o idea que tengas.</p>
+        <p>¡Gracias por ser parte de MySpeedPuzzling.com, y esperamos darte la bienvenida de vuelta algún día! :)</p>
+
+membership_granted:
+    subject: "Felicitaciones por tu membresía en MySpeedPuzzling.com"
+    title: "¡Tu membresía ahora está activa!"
+    content: |
+        <p>¡Estamos emocionados de reconocer tu contribución y esfuerzos en la comunidad de Speed Puzzling!</p>
+        <p>Como muestra de nuestro aprecio, te hemos otorgado una membresía en MySpeedPuzzling.com. Tu membresía permanecerá activa hasta: <b>%membershipExpiresAt%</b>.</p>
+        <p>Puedes verificar y gestionar tu membresía en cualquier momento en la <a href="%membershipUrl%">página de membresía</a>.</p>
+        <p>Gracias por ser una parte tan valiosa de la comunidad de Speed Puzzling. ¡Sigue resolviendo rompecabezas e inspirando a otros puzzlistas!</p>
+
+membership_subscribed:
+    subject: "Felicitaciones por tu membresía en MySpeedPuzzling.com"
+    title: "¡Gracias por unirte a nosotros!"
+    content: |
+        <h4>Tu membresía ahora está activa.</h4>
+        <p>¡Valoramos profundamente tu apoyo y estamos emocionados de darte la bienvenida como miembro de MySpeedPuzzling.com!</p>
+        <p>Tu próximo período de facturación comienza el: <b>%nextBillingPeriod%</b>.</p>
+        <p>Puedes gestionar tu suscripción, cancelar la membresía o descargar facturas en cualquier momento en la <a href="%membershipUrl%">página de membresía</a>.</p>
+        <p>Gracias por ser parte de MySpeedPuzzling.com y por tu apoyo. ¡Te deseamos mucho speed puzzling rápido y resultados increíbles!</p>
+
+subscription_payment_failed:
+    subject: "El pago de membresía en MySpeedPuzzling.com falló"
+    title: "¡El pago de membresía falló!"
+    content: |
+        <p>Notamos que tu pago de membresía reciente no fue exitoso. Puede haber habido un problema con tu método de pago.</p>
+        <p>Si deseas mantener tu membresía activa, por favor verifica y actualiza tu método de pago en la <a href="%billingPortalUrl%">página del portal de facturación</a>.</p>
+        <p>Si el pago continúa fallando, tu membresía será desactivada después de algunos intentos más. ¡Esperamos que te quedes con MySpeedPuzzling.com!</p>
+
+subscription_renewed:
+    subject: "El pago de membresía en MySpeedPuzzling.com fue exitoso"
+    title: "¡Pago exitoso, gracias!"
+    content: |
+        <p>¡Muchas gracias por quedarte con nosotros y ser parte de MySpeedPuzzling.com!</p>
+        <p>Estamos emocionados de informarte que tu membresía ha sido renovada exitosamente. Tu próximo período de facturación comienza el: <b>%nextBillingPeriod%</b>.</p>
+        <p>Si deseas actualizar o revisar los detalles de tu suscripción, puedes hacerlo en la <a href="%membershipUrl%">página de membresía</a>.</p>
+        <p>Estamos trabajando constantemente en mejorar y añadir nuevas características para nuestros miembros. Si hay algo que podemos hacer mejor, háznos saber.</p>
+        <p>Una vez más, gracias por tu apoyo. ¡Te deseamos mucho speed puzzling rápido y resultados increíbles!</p>

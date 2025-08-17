@@ -31,6 +31,7 @@ final class EventDetailController extends AbstractController
         path: [
             'cs' => '/eventy/{slug}',
             'en' => '/en/events/{slug}',
+            'es' => '/es/eventos/{slug}',
         ],
         name: 'event_detail',
     )]

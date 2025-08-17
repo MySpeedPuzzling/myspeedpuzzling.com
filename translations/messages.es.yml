@@ -1,0 +1,725 @@
+menu:
+    my_profile: "Mi perfil"
+    add_time: "Añadir tiempo"
+    stopwatch: "Cronómetro"
+    puzzles_overview: "Rompecabezas"
+    ladder: "Clasificación"
+    players: "Jugadores"
+    faq: "Preguntas frecuentes"
+    sign_in: "Iniciar sesión"
+    hub: "Centro"
+    feedback: "Enviar comentarios"
+    support_us: "Apóyanos"
+    terms_of_service: "Términos de servicio"
+    privacy_policy: "Política de privacidad"
+    membership: "Membresía"
+    search: "Buscar"
+    statistics: "Estadísticas"
+    collection: "Colección"
+    favorite_puzzlers: "Puzzlistas favoritos"
+    edit_profile: "Editar perfil"
+    change_player_code: "Cambiar código de jugador"
+    profile: "Perfil"
+    events: "Eventos"
+
+footer:
+    created_with_love: "Creado con amor por los rompecabezas y el código por %simona% y %jan%"
+    about: "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los rompecabezas y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
+    popular_search: "Búsquedas populares"
+
+puzzler_name: "Nombre"
+puzzler: "Puzzlista"
+puzzle: "Rompecabezas"
+time: "Tiempo"
+pieces_count: "%count%&nbsp;piezas"
+show_more: "Mostrar más"
+puzzle_solved: "completado"
+puzzle_available: "disponible para préstamo"
+puzzle_not_available: "no disponible"
+add_my_time: "Añadir mi tiempo"
+start_solving: "Comenzar a resolver"
+show_times: "Mostrar tiempos"
+fastest_time_short: "Mejor: %time%"
+average_time_short: "Prom: %time%"
+fastest_time: "Más rápido:"
+average_time: "Promedio:"
+only_first_tries_filter: "Solo primeros intentos"
+filtered_out_puzzlers_count_info: "Ocultos <strong>%count% puzzlistas</strong> sin información del primer intento."
+my_time: "Mi tiempo:"
+puzzle_solved_count: "Número de completados:"
+puzzle_solved_times: "completado %count%x"
+never_solved_puzzles: "Nadie ha resuelto estos rompecabezas aún, ¡sé el primero!"
+show_more_solving_times: "Más (%count%x)"
+be_first_to_solve: "Nadie ha resuelto estos rompecabezas aún. ¡Sé el primero!"
+be_first_to_group_solve: "Estos rompecabezas aún no han sido resueltos en grupo. ¡Sé el primero!"
+email: "Email"
+facebook: "Facebook"
+instagram: "Instagram"
+search: "Buscar"
+puzzle_waiting_for_approval: "Rompecabezas añadidos recientemente esperando aprobación del administrador - usualmente dentro de 24 horas después de añadir. Gracias por tu paciencia."
+puzzle_img_alt: "%puzzle% - imagen del rompecabezas"
+searching: "Buscando..."
+load_more: "Cargar más..."
+back_to_top: "Volver arriba"
+total_found: "Total encontrado: %count%"
+remaining: "Restante: %puzzle%"
+loading: "Cargando"
+any: "Cualquiera"
+all_pieces: "Todas"
+solo_solved: "Resuelto SOLO:"
+first_attempt: "1er intento"
+add_to_collection: "Añadir a mi colección"
+in_collection: "En mi colección"
+remove_from_collection: "Eliminar de la colección"
+ranking_out_of: "de"
+wjpc_participant: "Participante WJPC 2024 (%name%)"
+share: "Compartir"
+edit: "Editar"
+delete: "Eliminar"
+active_membership: "Membresía activa"
+new_badge: "Nuevo"
+secret_puzzler_name: "Puzzlista Oculto"
+
+homepage:
+    meta:
+        title: "My Speed Puzzling - Hogar de todos los puzzlistas"
+        description: "¡Sumérgete en el mundo de My Speed Puzzling, el centro definitivo para entusiastas de los rompecabezas! Rastrea el progreso, desafía a compañeros y únete a una comunidad apasionada por el speed puzzling. ¡Comienza tu viaje hacia la maestría de los rompecabezas hoy!"
+    global_statistics: "Nos tomó a todos este tiempo resolver <strong>%puzzles%</strong> rompecabezas.<br>Eso es un increíble total de <strong>%pieces%</strong> piezas."
+
+    title: "¡Bienvenido Puzzlista, al Mundo del Speed Puzzling!"
+    intro_text: "El Speed Puzzling es un deporte emocionante donde el objetivo es armar rompecabezas lo más rápido posible. Cada pieza cuenta, cada segundo importa. ¡Imagina resolver rompecabezas tradicionales pero con la adrenalina de una pista de carreras! Nuestra plataforma es la primera de su tipo: un lugar donde puedes probar tus habilidades de resolución de rompecabezas no solo contra el tiempo, sino también contra otros entusiastas de los rompecabezas."
+    why_block: |
+        <h3>¿Por qué debería unirme?</h3>
+        <ul>
+            <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzlistas</li>
+            <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzlistas más rápidos, los rompecabezas más armados y los usuarios más activos</li>
+            <li><strong>Cronómetro:</strong> Usa nuestro cronómetro integrado para cronometrar fácilmente el armado de tu rompecabezas</li>
+            <li><strong>Añade tus rompecabezas:</strong> ¿Tienes un rompecabezas que falta en nuestro sitio? Añádelo y comparte tus tiempos con la comunidad.</li>
+            <li><strong>Construye tu comunidad de rompecabezas:</strong> Únete a nuestra creciente comunidad y comparte consejos, trucos y rivalidad amistosa</li>
+            <li><strong>Expande tus horizontes:</strong> Planeamos organizar competencias, tanto en línea como en el futuro fuera de línea, para que puedas mostrar tus habilidades en vivo</li>
+        </ul>
+    help_us_grow_block: |
+        <h3>Ayúdanos a Crecer</h3>
+        <p>Nuestra aplicación está comenzando, y tus ideas, comentarios y ayuda para encontrar errores son invaluables. Únete a nosotros en esta etapa temprana y ten un impacto directo en el futuro del speed puzzling.</p>
+    start_today_block: |
+        <h3>Comienza Hoy</h3>
+        <p>Ya seas principiante o un puzzlista experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>
+    cta_sign_in: "Iniciar sesión"
+    cta_my_profile: "Mi perfil"
+    cta_recent: "Tiempos recientes"
+
+ladder:
+    title: "Clasificación"
+    overview: "Resumen"
+    recent_activity: "Tiempos Añadidos Recientemente"
+    solo: "Solo"
+    duo: "Dúo"
+    team: "Equipo"
+    most_solved_puzzle: "Rompecabezas Más Armado"
+    most_active_puzzlers: "Puzzlistas Más Entusiastas"
+    puzzle_solved_count: "Rompecabezas Resueltos"
+    link_to_hub: "¿Buscas el rompecabezas más resuelto o los jugadores más activos? ¡Lo movimos al&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">nuevo Centro</a>!"
+
+filters:
+    button: "Filtros"
+    filter_by: "Filtrar por"
+    pieces_placeholder: "- Piezas -"
+    manufacturer_placeholder: "- Fabricante -"
+    less_than: "Menos de %count%"
+    more_than: "Más de %count%"
+    text_search_placeholder: "Nombre del rompecabezas o código..."
+    only_available: "Solo disponibles para préstamo"
+    only_with_time: "Solo con tiempo ingresado"
+    no_puzzle_matches_filters: "Ningún rompecabezas coincide con los filtros especificados"
+
+sorting:
+    sort_by: "Ordenar por"
+    newest_times: "Más nuevos"
+    oldest_times: "Más antiguos"
+    fastest_times: "Más rápidos"
+    slowest_times: "Más lentos"
+    most_solved: "Más resueltos"
+    least_solved: "Menos resueltos"
+    a_z: "Nombre A-Z"
+    z_a: "Nombre Z-A"
+
+puzzle_overview:
+    meta:
+        title: "Rompecabezas"
+    title: "Rompecabezas"
+    missing_puzzle_info: "Si no puedes encontrar un rompecabezas aquí, significa que nadie lo ha resuelto aún y no está en nuestra base de datos. Se pueden ingresar nuevos rompecabezas al añadir tiempo."
+
+stopwatch:
+    meta:
+        title: "Cronómetro"
+    title: "Cronómetro"
+    start: "Iniciar"
+    stop: "Parar"
+    continue: "Continuar"
+    reset: "Reiniciar"
+    finish: "¡Completado! Añadir tiempo"
+    more_my_stopwatches: "Más de mis cronómetros"
+    status:
+        not_started: "Listo para comenzar"
+        running: "En marcha"
+        paused: "Pausado"
+        finished: "Rompecabezas completado"
+
+add_time:
+    meta:
+        title: "Añadir Tiempo"
+    title: "Añadir Tiempo"
+    chosen_puzzle: "Rompecabezas seleccionado:"
+    choose_puzzle: "Elegir un rompecabezas"
+    puzzle_needed: "Debes seleccionar un rompecabezas de la lista o añadir uno nuevo"
+    change_puzzle: "Cambiar selección"
+    add_when_not_found_info: "Si no puedes encontrar el rompecabezas en la lista, por favor añade uno nuevo."
+    need_approve_info: "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
+    add_manufacturer: "Añadir un nuevo fabricante"
+    not_in_list: "(no en la lista)"
+    choose_manufacturer: "Elegir un fabricante de la lista"
+    time_from_stopwatch: "Tiempo del cronómetro"
+    add_puzzler: "Añadir co-puzzlista del grupo"
+    teamplayer: "Co-puzzlista"
+    player_code_info: "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlista no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
+    choose_from_favorites: "- Elegir de favoritos -"
+
+forms:
+    drop_file: "Arrastra y suelta un archivo aquí para subirlo"
+    choose_file: "O selecciona un archivo"
+    save: "Guardar"
+    required_field: "¡Este campo es obligatorio!"
+    empty_group_error: "No puedes crear un grupo solo contigo, eso no es armado en grupo :-)"
+    too_high_ppm: "Por favor verifica el tiempo que ingresaste, ¡no hay manera de que puedas resolver el rompecabezas tan rápido! :-) El tiempo debe ingresarse en formato HH:MM:SS. ¡El tiempo que ingresaste sería un nuevo récord mundial! :-)"
+    unknown_error: "Ocurrió un error inesperado :(. Hemos sido notificados. Por favor intenta de nuevo más tarde."
+    name_help: "Bajo este nombre armarás rompecabezas y será visible para todos los miembros de la comunidad."
+    email_help: "Tu email es privado, no se muestra en ningún lugar y solo se usa en caso de que el administrador necesite contactarte."
+    location_help: "El lugar donde vives actualmente (opcional)."
+    location: "Ubicación"
+    nationality: "Nacionalidad"
+    country_most_common: "Los más comunes"
+    country_all: "Todos los países"
+    about_me: "Acerca de mí (biografía)"
+    avatar: "Avatar/foto"
+    search_puzzler: "Nombre, código de jugador, o parte de..."
+    time_format_placeholder: "HH:MM:SS"
+    comment: "Información adicional"
+    finished_puzzle_photo: "Foto de rompecabezas completados"
+    add_new_puzzle: "Añadir nuevo rompecabezas - no en la lista"
+    puzzle: "Rompecabezas"
+    puzzle_help: "Elige un rompecabezas existente (busca por nombre, código de marca, piezas) o añade el nombre del nuevo rompecabezas cuando no se encuentre."
+    brand: "Marca"
+    brand_help: "Elige una marca existente o ingresa el nombre de la nueva marca cuando no se encuentre."
+    pieces_count: "Número de piezas"
+    puzzle_box_photo: "Foto de la imagen o caja del rompecabezas"
+    date_finished: "Fecha completada"
+    ean: "Código EAN"
+    puzzle_identification_number: "Código del fabricante"
+    puzzle_photo_is_required: "Se requiere foto del rompecabezas resuelto, motivo o caja"
+    puzzle_photo_help: "Por favor adjunta foto del rompecabezas resuelto, motivo o caja para que podamos identificar y asignar correctamente el rompecabezas."
+    puzzle_choose_placeholder: "Buscar o ingresar el nombre del nuevo rompecabezas"
+    puzzle_choose_brand_placeholder: "Elegir marca primero"
+    only_with_results: "Solo rompecabezas con tiempo ingresado"
+    only_solved_by_me: "Solo rompecabezas que he resuelto"
+    only_available: "Solo disponibles para préstamo"
+    puzzle_search_placeholder: "Nombre, código, EAN..."
+    tag: "Etiqueta"
+    competition: "Competencia"
+    tags: "Etiquetas"
+    feedback: "Mensaje"
+    feedback_help: "Envíanos sugerencias de nuevas características o mejoras, reportes de errores, lo que te gusta o disgusta, puede ser cualquier cosa que se te ocurra..."
+    send_feedback: "Enviar"
+    first_attempt: "Tu primer armado de este rompecabezas"
+    first_attempt_help: "Si armas en grupo, entonces solo si nadie armó este rompecabezas antes, ni siquiera solo"
+    competition_participant: "Tu nombre en la competencia"
+    player_code: "Código de Jugador"
+    player_code_help: "Un código de jugador único - al menos 3 caracteres, hasta 8 caracteres. Solo puede contener letras y números, sin caracteres especiales o espacios."
+    global_search_placeholder: "Buscar rompecabezas o jugador..."
+    private_profile: "Perfil privado"
+    private_profile_help: "Tu nombre no se mostrará en ningún lugar y los tiempos se presentarán anónimamente."
+
+puzzlers_comparison:
+    meta:
+        title: "Comparación de Puzzlistas"
+    title: "Comparación de Puzzlistas"
+    nothing_to_compare: "Desafortunadamente, no tienes rompecabezas para comparar que hayan sido armados por ambos puzzlistas."
+
+edit_time:
+    meta:
+        title: "Editando Datos de Tiempo del Rompecabezas"
+    title: "Editando Datos de Tiempo del Rompecabezas"
+    delete_button: "¡Eliminar permanentemente este registro de armado y pretender que nunca pasó!"
+    delete_modal_message: "Solo para estar seguro..."
+    delete_modal_confirm: "¿Realmente eliminar?"
+    delete_modal_discard_button: "No, mantenerlo"
+    delete_modal_confirm_button: "Sí, eliminar"
+
+error:
+    generic:
+        title: "Algo se rompió"
+        message: "Algo salió mal... si crees que el error no es de tu lado, por favor escríbenos."
+    404:
+        title: "Página no encontrada"
+        message: "Desafortunadamente, no pudimos encontrar la página que solicitaste. Por favor verifica la URL.."
+    500:
+        title: "Error desconocido"
+        message: "Algo salió mal - hemos sido notificados y lo arreglaremos tan pronto como sea posible"
+
+events:
+    title: "Eventos"
+    meta:
+        title: "Eventos"
+    live: "Sucediendo ahora mismo"
+    upcoming: "Próximos"
+    past: "Eventos pasados"
+    website_link: "Información"
+    results_link: "Resultados"
+    registration_link: "Registrarse"
+    competition_puzzles: "Rompecabezas de competencia"
+    no_puzzle_title: ""
+    no_puzzle_text: "¡No hay rompecabezas aquí... aún! Mantente atento"
+
+faq:
+    meta:
+        title: "Preguntas Frecuentes"
+    title: "Preguntas Frecuentes"
+    intro_block: |
+        <p>¡Tus comentarios son muy importantes para nosotros y los apreciamos mucho! Si tienes algo que te gustaría decirnos, por favor escríbenos a <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (o a <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> para asuntos técnicos) o en <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
+        <p>Todos nuestros códigos fuente son de código abierto y públicos en <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. Adherimos a la filosofía de "compartir es cuidar" y nos esforzamos por compartir todo sobre myspeedpuzzling.com abiertamente.</p>
+
+    question_fair_play: |
+    answer_fair_play: |
+        <h4 class="mb-3">¿Cómo sabes que no estoy haciendo trampa al ingresar tiempos?</h4>
+        <p>Honestamente - probablemente no lo sabremos. En la clasificación pública, donde los puzzlistas ingresan los tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlista individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>
+        <p>Asumimos que, como nosotros, otros puzzlistas arman principalmente por el disfrute, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomara 3 horas durante una competencia?</p>
+        <p>En el futuro, también planeamos ligas calificadas, donde la verificación de tiempo podría ser requerida, por ejemplo, a través de grabación de video.</p>
+        <p class="text-danger mb-0"><small>Dado que nuestra comunidad incluye finalistas del Campeonato Mundial de Rompecabezas, que se han ubicado en la cima, podemos tomar sus tiempos como referencia. Los tiempos sospechosos serán monitoreados y si se prueba fraude, serán eliminados sin piedad. En caso de trampa repetida, el acceso del jugador a la plataforma será restringido.</small></p>
+
+    question_qr: "Recibí rompecabezas con un código QR y el logo de myspeedpuzzling.com, ¿qué debo hacer?"
+    answer_qr: |
+        <p>Para hacer que armar e ingresar tiempos sea lo más placentero posible para ti, añadimos un código QR a todos los rompecabezas que pasan por nuestras manos - escanearlo te lleva a la página con los rompecabezas dados, donde puedes comenzar directamente a cronometrar o ingresar tu tiempo.</p>
+        <p class="mb-0">Si te gustaría ayudar a difundir la palabra sobre speedpuzzling y añadir un folleto con un código QR a tus rompecabezas, por favor escríbenos - te enviaremos un PDF que puedes imprimir, o podemos enviarte folletos impresos directamente por correo.</p>
+
+    question_add_time_for_missing_puzzle: "¿Puedo añadir tiempo para rompecabezas que no están en la plataforma?"
+    answer_add_time_for_missing_puzzle: |
+        <p>¡Definitivamente! Si has armado un rompecabezas que aún no está en nuestra plataforma, al añadir tiempo, cambia a la opción:</p>
+        <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
+            <label class="form-check-label" for="switch-add-puzzle">Ingresar rompecabezas manualmente - fabricante desconocido o no en la lista</label>
+        </div>
+        <p class="mb-0">Luego tienes la opción de seleccionar de una lista de fabricantes. Si el fabricante tampoco está en la base de datos, puedes ingresarlo tú mismo.</p>
+
+    question_edit_or_delete_time: "¿Cómo edito o elimino un tiempo ingresado?"
+    answer_edit_or_delete_time: |
+        <p>En la sección <a href="%link%">Mi Perfil</a>, junto a cada tiempo ingresado, encontrarás un enlace para editar (el enlace parece un icono de lápiz <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
+        <p class="mb-0">En la página de edición, en la parte inferior, hay un <a class="btn btn-sm btn-outline-danger mx-2">botón mágico</a> que elimina de una vez y para siempre el registro de todo el internet.</p>
+
+    question_button_start_solving: "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-time\"></i> Comenzar a Resolver</a>?"
+    answer_button_start_solving: |
+        <p class="mb-0">Abre el cronómetro con rompecabezas seleccionados - puedes comenzar a armar y cronometrar de inmediato.</p>
+
+    question_button_add_my_time: "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Añadir Mi Tiempo</a>?"
+    answer_button_add_my_time: |
+        <p class="mb-0">Abre añadir tu tiempo a rompecabezas seleccionados - adecuado si usas tu propio cronómetro y acabas de terminar de armar. Si armaste en el pasado y quieres registrar el tiempo, tienes la opción de también especificar la fecha en que armaste.</p>
+
+    question_helping: "¿Quieren una mano amiga?"
+    answer_helping: |
+        <p class="mb-0">¡Por supuesto! Conéctate con nosotros, idealmente con una idea de cómo te gustaría involucrarte en construir la comunidad de speed puzzling, pondremos nuestras cabezas juntas y seguramente se nos ocurrirá algo.</p>
+
+profile:
+    add_to_favorites: "Añadir a favoritos"
+    remove_from_favorites: "Eliminar de favoritos"
+    compare: "Comparar tiempos"
+    no_puzzles_solved: "¿No hay rompecabezas resueltos? ¡Inténtalo y ve cómo lo haces! ¡Creemos que puedes hacerlo!"
+    not_filled: "No completado"
+    avatar: "Avatar"
+    about_me: "Acerca de mí"
+    location: "Ubicación"
+    nationality: "Nacionalidad"
+    statistics: "Estadísticas"
+    statistics_time: "Tiempo gastado armando"
+    statistics_puzzles_solved: "Número de rompecabezas resueltos"
+    statistics_pieces_count: "Número de piezas armadas"
+    favorite_puzzlers: "Puzzlistas favoritos"
+    no_favorite_puzzlers: "No hay puzzlistas favoritos"
+    solved_puzzles: "Rompecabezas resueltos"
+    solved_puzzles_solo: "Individual"
+    solved_puzzles_group: "Armado en grupo"
+    recent_activity: "Actividad<br>reciente"
+    personal_info: "Información<br>personal"
+    private_profile_info_1: "Este puzzlista ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
+    private_profile_info_2: "¿Quieres saber más? Encuéntralos en persona e intenta convencerlos de revelar sus tiempos. Eso es todo lo que podemos decirte aquí."
+
+my_profile:
+    meta:
+        title: "Mi Perfil"
+    title: "Mi Perfil"
+    edit: "Editar información"
+    logout: "Cerrar sesión"
+    myssing_name_info: "Lo sentimos, pero si no completas un nombre o apodo, no sabemos cómo presentarte. Por lo tanto, todos tus resultados son no públicos."
+    public_info: "público"
+    not_public_info: "no público"
+    name: "Nombre/apodo"
+    stopwatches: "Mis cronómetros"
+    missing_name_info: "Lo sentimos, pero si no completas un nombre o apodo, no sabemos cómo presentarte. Por lo tanto, todos tus resultados son no públicos."
+    share_mention_myspeedpuzzling: "Etiquétanos: <code>@MySpeedPuzzling</code>"
+    wjpc_connection: "Conexión de cuenta de competencia"
+
+edit_profile:
+    meta:
+        title: "Editar perfil"
+    title: "Editar perfil"
+    player_code_change: "Cambiar código de jugador"
+    profile_visibility: "Visibilidad del perfil"
+
+puzzle_detail:
+    meta:
+        description: "Explora el rompecabezas %brand% %puzzle% (%pieces% piezas) en My Speed Puzzling. Rastrea el progreso, compara tiempos y conquista rompecabezas con nuestra comunidad. ¡Comienza tu frenesí de resolución de speed puzzling hoy!"
+
+puzzlers:
+    meta:
+        title: "Puzzlistas"
+    title: "Puzzlistas"
+    results_for: "Resultados de búsqueda para"
+    no_matches_found: "No se encontraron coincidencias"
+    my_favorites: "Mis Favoritos"
+    most_popular: "Más Populares"
+
+players_per_country:
+    meta:
+        title: "Jugadores del país - %country%"
+    title:  "Jugadores del país - %country%"
+    link: "Jugadores por país"
+
+flashes:
+    stopwatch_already_saved: "Estos cronómetros ya han sido guardados."
+    puzzle_needs_approve: "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
+    time_added: "Hemos guardado tu tiempo de rompecabezas."
+    time_deleted: "¡Hemos eliminado toda evidencia. ¡Nadie sabrá jamás lo que acaba de pasar!"
+    profile_saved: "¡Cambios del perfil guardados!"
+    time_edited: "La información editada ha sido guardada."
+    player_not_found: "¡El jugador que trataste de encontrar no está registrado con nosotros!"
+    puzzle_not_found: "¡El rompecabezas que trataste de encontrar no existe en nuestra plataforma!"
+    puzzler_added_to_favorites: "Hemos añadido al puzzlista a tu lista de favoritos."
+    puzzler_removed_from_favorites: "Hemos eliminado al puzzlista de tu lista de favoritos."
+    can_not_favorite_yourself: "No puedes añadirte a tu lista de favoritos. ¡Está claro que eres tu propio puzzlista favorito!"
+    player_already_in_favorites: "Este puzzlista ya está en tu lista de favoritos, así que no lo añadiremos de nuevo ;-)."
+    player_not_in_favorites: "Hmm, no pudimos encontrar a este puzzlista en tus favoritos, así que no podemos eliminarlo ;-)."
+    puzzle_added_to_collection: "¡Hola,.. rompecabezas. ¡Bienvenido a mi colección!"
+    puzzle_removed_from_collection: "Adiós rompecabezas..."
+    competition_duplicate_connection: "Algo está mal :-( has elegido una cuenta de competencia, que ya está conectada a algún perfil de MySpeedPuzzling. No te preocupes, fuimos automáticamente notificados y verificaremos qué está mal."
+    competition_connection_saved: "¡Genial! ¡Cuenta de competencia conectada exitosamente a tu perfil de MySpeedPuzzling!"
+    membership_subscribed_successfully: "¡Tu membresía ahora está activa!"
+    non_unique_player_code: "Lo sentimos, pero parece que este código ya está tomado. Por favor elige otro."
+    unknown_error: "Lo sentimos, pero algo salió mal - hemos sido notificados e intentaremos arreglarlo tan pronto como sea posible. Por favor intenta de nuevo más tarde."
+    exclusive_membership_feature: "Esta característica es exclusiva solo para miembros. Si quieres usarla, por favor compra una membresía."
+
+hub:
+    title: "Centro de Speed Puzzling"
+    welcome: "¡Bienvenido puzzlista!"
+    welcome_back: "Bienvenido de vuelta"
+    recent_favorites_activity: "Actividad de<br>favoritos"
+    this_month: "Este<br>mes"
+    last_month: "Mes<br>pasado"
+    all_time: "Todo el<br>tiempo"
+    most_active_solo_players: "Jugadores SOLO más activos"
+    most_solved_puzzle: "Rompecabezas más resuelto"
+    statistics: "Estadísticas"
+    no_favorites: "No tienes jugadores favoritos. Añade algunos y sigue su actividad aquí."
+    not_logged: "No has iniciado sesión - para usar el potencial completo de lo que esta plataforma te ofrece, inicia sesión."
+
+statistics:
+    puzzle_solved: "Rompecabezas resueltos"
+    total_pieces: "Total de piezas"
+    time_spent: "Tiempo gastado resolviendo"
+    longest_streak: "Racha más larga"
+    longest_streak_help: "Máx días consecutivos resolviendo rompecabezas"
+    most_solved_brand: "Marca más resuelta"
+    no_results: |
+        Sabemos que amas resolver rompecabezas — básicamente eres un susurrador de rompecabezas. Pero para el período de tiempo seleccionado… nada. Cero. Zilch. Nada.<br> 
+        O no resolviste ninguno, o te olvidaste de añadirlos a la plataforma (lo cual es aún más desconcertante, honestamente).<br>
+        ¡Es hora de tomar un rompecabezas y arreglar este giro trágico de la trama! Tus estadísticas están llorando en la esquina — ve a mostrarles algo de amor.
+
+dates:
+    all_time: "Todo el tiempo"
+    year: "Año"
+    months:
+        1: "Enero"
+        2: "Febrero"
+        3: "Marzo"
+        4: "Abril"
+        5: "Mayo"
+        6: "Junio"
+        7: "Julio"
+        8: "Agosto"
+        9: "Septiembre"
+        10: "Octubre"
+        11: "Noviembre"
+        12: "Diciembre"
+
+feedback:
+    title: "Enviar comentarios"
+    success_msg: "¡Hemos recibido tus comentarios y los apreciamos mucho! Te avisaremos pronto."
+
+notifications:
+    title: "Notificaciones"
+    solved_puzzle_with_time: "en"
+    solved_puzzle: "resolvió rompecabezas"
+    no_notifications: "No tienes notificaciones hasta ahora. Suscríbete a algunos jugadores añadiéndolos a favoritos."
+
+badges:
+    title: "Insignias"
+    my_title: "Mis insignias"
+    badge:
+        supporter: "Partidario"
+
+collection:
+    title: "Colección"
+    empty_info: "Esta colección está actualmente vacía. ¿Tal vez es hora de cambiar eso? Después de todo, todos aman los rompecabezas y almacenarlos :-)."
+
+scan:
+    meta:
+        title: "Lector de código de barras"
+    title: "Lector de código de barras"
+    beta_info: "Esta es una característica completamente nueva, todavía la estamos probando y trabajando en mejoras. ¡Estaremos muy agradecidos por cualquier comentario!"
+    instructions: "Apunta tu cámara al EAN (código de barras) en la caja e intenta tu suerte - si el rompecabezas está en la base de datos, lo encontraremos ;-)."
+    not_found: "Desafortunadamente el rompecabezas con EAN %code% no está en nuestra base de datos. Siéntete libre de rastrear el tiempo y añadirlos, estaremos agradecidos por eso."
+
+wjpc2024:
+    meta:
+        title: "WJPC 2024"
+    title: "WJPC 2024"
+    intro: "¡El evento de Speed Puzzling del año está aquí! Te estamos trayendo algunas estadísticas para que puedas conocer contra quién estarás compitiendo. Todas las estadísticas presentadas son rompecabezas de 500 piezas de los últimos 3 meses solamente, para asegurar que sean lo más relevantes posible. Si has resuelto el mismo rompecabezas múltiples veces, ¡tomamos solo el más rápido! Conecta tu perfil con tu cuenta WJPC en <a href=\"%link%\">la configuración de tu perfil</a>. Solo para competidores en la categoría individual."
+    connected_participants: "Participantes conectados"
+    not_connected_participants: "Participantes"
+    puzzle_solved: "Rompecabezas resueltos"
+    average: "Prom"
+    fastest: "Mejor"
+    no_participant_matches_filters: "Ningún participante coincide con la consulta de búsqueda"
+    filter_by_name: "Buscar por nombre"
+
+competition_connection:
+    meta:
+        title: "Conexión de cuenta %competitionName%"
+    title: "Conexión de cuenta %competitionName%"
+    back_to_competition: "Volver a la competencia"
+    description: "Conecta tu cuenta de competencia con el perfil de MySpeedPuzzling y descubre cómo te encuentras contra otros participantes. Para hacer las estadísticas relevantes, solo tomamos rompecabezas de 500 piezas de los últimos 3 meses en las estadísticas. ¡Si has resuelto el mismo rompecabezas múltiples veces, tomamos solo el más rápido!"
+
+global_modal:
+    title: "Campeonato Europeo de Rompecabezas 2025"
+    text: |
+        <p>¿Estás compitiendo en el 1er Campeonato Europeo de Rompecabezas 2025?</p>
+        <p>Vincula tu cuenta de MySpeedPuzzling.com con tu nombre de <a href="https://mopepuzzle.hu/event_competition.php?id=3&competition=6&language=en" target="_blank">mopepuzzle.hu</a>, echa un vistazo a tu competencia… ¡y asústalos con tus tiempos!</p>
+        <p><small>(¡Funciona solo para la categoría Solo!)</small></p>
+
+    button_cta: "Conectar mi cuenta"
+    button_dismiss: "¡No estoy asistiendo!"
+
+added_time_recap:
+    title: "¡Excelente tiempo, sigue así!"
+    add_time: "Añadir nuevo tiempo"
+    the_same_puzzle: "Para el mismo rompecabezas"
+    puzzle_detail: "Resultados"
+
+global_search:
+    info: "¡Bienvenida nueva búsqueda! Busca por nombre del rompecabezas, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
+    no_player_found: "No se encontró jugador :-("
+    no_puzzle_found: "No se encontró rompecabezas :-("
+
+membership:
+    meta:
+        title: "Membresía"
+        description: ""
+    title: "Membresía"
+    intro_text: "¡La membresía es una forma de obtener acceso a características exclusivas para verdaderos entusiastas de los rompecabezas! Al suscribirte a una membresía, también apoyas el desarrollo de la plataforma y nos ayudas a lograr nuestra visión de crear la mejor plataforma comunitaria de rompecabezas del mundo."
+    redirect_to_stripe: "Serás redirigido a la pasarela de pago de Stripe."
+    subscription_active: "Suscripción activa, ¡gracias por ser parte de la comunidad!"
+    membership_active: "Membresía activa, ¡gracias por ser parte de la comunidad!"
+    membership_inactive: "La membresía no está activa"
+    membership_cancelling: "La suscripción ha sido cancelada, la membresía está activa hasta el final del período"
+    free_membership_active: "Membresía gratuita activa (sin suscripción)"
+    membership_expired: "Tu membresía expiró"
+    next_payment: "Próximo pago"
+    membership_active_until: "Membresía activa hasta"
+    payment_portal_button: "Gestionar suscripción (portal de pago)"
+    description_title: "¿Cuáles son los beneficios de la membresía?"
+    choose_your_subscription: "Elige tu suscripción"
+    subscribe_for_monthly: "Mensual por"
+    subscribe_for_yearly: "Anual por"
+    price_per_month: "€6 / mes"
+    price_per_year: "€60 / año"
+    billing_portal_info: "En el portal de pago, puedes actualizar tus detalles de pago, cancelar tu membresía o descargar facturas o recibos."
+    full_description: |
+        <ul>
+            <li>Un gran agradecimiento por apoyar el desarrollo de la plataforma</li>
+            <li>Tu propio código de jugador personalizado (puedes cambiarlo en tu perfil)</li>
+            <li>Insignia de membresía</li>
+            <li>Filtrado por primeros intentos</li>
+            <li>Filtrado por país</li>
+            <li>Gráficos</li>
+            <li>Escáner de código de barras</li>
+            <li>Estadísticas detalladas</li>
+        </ul>
+        
+        <h3 class="h4">¿Qué puedes esperar pronto?</h3>
+        <ul>
+            <li>Reportes mensuales y anuales <small class="ms-1 text-muted">(pronto)</small></li>
+            <li>Perfil público mypuzzler.com <small class="ms-1 text-muted">(pronto)</small></li>
+            <li class="mt-2">Desafíos especiales exclusivamente para miembros</li>
+            <li>Préstamo y venta de rompecabezas entre miembros</li>
+            <li>Gamificación - ganar experiencia y niveles</li>
+            <li>Insignias por varios logros</li>
+            <li>&hellip; y mucho más, ¡esto es solo una pequeña vista previa de lo que estamos preparando para ti!</li>
+        </ul>
+    members_exclusive_button: "Exclusivo para miembros"
+    modal:
+        title: "Característica Exclusiva para Miembros"
+        cta: "Convertirse en miembro"
+        no_thanks: "¡No, gracias!"
+        text: |
+            <p>Desbloquea el acceso a esta y otras características diseñadas para mejorar tu experiencia.</p>
+            <p>¡Conviértete en miembro hoy, apoya el desarrollo de la plataforma y disfruta de características exclusivas que hacen tu viaje de speed puzzling aún más emocionante!</p>
+
+membership_payment_cancelled:
+    meta:
+        title: "Pago Cancelado"
+        description: ""
+    title: "Pago Cancelado"
+    text: "El proceso de pago fue interrumpido, muy probablemente por ti :-)."
+    membership_link: "Volver al resumen de membresía"
+    payment_link: "Reintentar pago"
+
+terms_of_service:
+    meta:
+        title: "Términos de Servicio"
+        description: "Términos de Servicio para la plataforma MySpeedPuzzling.com"
+    content: |
+        <h1>Términos de Servicio</h1>
+        <p>Estos Términos de Servicio rigen la provisión de suscripción (membresía) en la plataforma MySpeedPuzzling.com. Queremos que tengas toda la información importante en un lugar para que puedas revisarla fácilmente.</p>
+        <h2>1. Quiénes Somos</h2>
+        <ul>
+            <li><strong>Proveedor:</strong> Simona Mikešová (Propietario Único)</li>
+            <li><strong>Dirección:</strong> Františka Formana 237/31, 700 30 Ostrava, República Checa</li>
+            <li><strong>No. de ID:</strong> 06868878</li>
+            <li><strong>Email de Contacto:</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
+        </ul>
+        <p>Como operador de la plataforma MySpeedPuzzling.com, somos tu socio contractual para comprar y usar la membresía paga.</p>
+        <h2>2. Cómo Funciona el Servicio</h2>
+        <p>MySpeedPuzzling.com es una plataforma en línea para entusiastas de los rompecabezas. Ofrecemos varias características, mientras que las partes premium de la aplicación son accesibles solo para usuarios con una membresía activa.</p>
+        <ul>
+            <li>La membresía es un producto virtual (digital) – una vez que pagas, inmediatamente obtienes acceso a características exclusivas.</li>
+            <li>Dado que es un servicio electrónico, no se aplican condiciones de entrega física o envío.</li>
+            <li>El contenido y las características disponibles como parte de la membresía pueden cambiar con el tiempo – las estamos mejorando continuamente.</li>
+        </ul>
+        <h2>3. Pedido y Conclusión del Contrato</h2>
+        <p>Si decides comprar una membresía paga, simplemente elige la suscripción mensual en la sección "Membresía". Luego serás redirigido a la pasarela de pago de Stripe.</p>
+        <ul>
+            <li><strong>Detalles de Pago:</strong> Todos los detalles de pago son procesados vía Stripe usando comunicación encriptada – no tenemos acceso a esta información.</li>
+            <li><strong>Confirmación de Pedido:</strong> El contrato entre tú y nosotros se concluye en el momento del pago exitoso. Tu membresía se activa inmediatamente después.</li>
+            <li><strong>Factura:</strong> Puedes descargar la factura de tu suscripción paga directamente desde el portal de pago de Stripe.</li>
+            <li><strong>Gestión Adicional de Membresía:</strong> Los cambios al método de pago, cancelación o extensión también se gestionan a través del portal de pago de Stripe, accesible vía la sección "Membresía" en tu cuenta.</li>
+        </ul>
+        <h2>4. Precios y Términos de Pago</h2>
+        <ul>
+            <li><strong>Precio de Membresía:</strong> Todos los precios están indicados incluyendo IVA. Dependiendo de la moneda que uses para el pago, los precios pueden variar ligeramente.</li>
+            <li><strong>Métodos de Pago:</strong> Stripe soporta pagos con tarjeta, Apple Pay y Link (otros métodos pueden añadirse con el tiempo).</li>
+            <li><strong>Pago Recurrente:</strong> Esta es una suscripción mensual, lo que significa que el pago se repite cada mes hasta que canceles tu membresía.</li>
+        </ul>
+        <h2>5. Cancelación y Reembolsos</h2>
+        <ul>
+            <li><strong>Puedes cancelar tu membresía en cualquier momento:</strong> Después de la cancelación, mantendrás el acceso hasta el final del período prepagado. No se tomarán más pagos una vez que termine ese período.</li>
+            <li><strong>Reembolsos:</strong> Si solicitas un reembolso para el período de facturación actual, reembolsaremos el pago usando el mismo método que usaste para pagar, y tu membresía terminará inmediatamente.</li>
+            <li><strong>Velocidad de Procesamiento:</strong> Procesamos reembolsos y reclamos prontamente (usualmente dentro del siguiente día hábil), no más tarde de 30 días como lo requiere la ley.</li>
+            <li><strong>Costos de Reembolso:</strong> Cubrimos cualquier tarifa por reembolsos – queremos que estés satisfecho.</li>
+        </ul>
+        <h2>6. Reclamos</h2>
+        <p>Si sientes que el servicio no ha sido proporcionado con la calidad apropiada o experimentas problemas técnicos, por favor contáctanos en
+            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.
+        </p>
+        <ul>
+            <li>Manejamos reclamos tan rápido como sea posible, típicamente dentro de 1–2 días hábiles.</li>
+            <li>El tiempo máximo de resolución para reclamos es de 30 días.</li>
+        </ul>
+        <h2>7. Protección de Datos Personales</h2>
+        <p>Proporcionamos información sobre el procesamiento de datos personales en <a href="%privacyPolicyLink%">una página separada</a> dedicada a la protección de privacidad. Ahí encontrarás todos los detalles sobre qué datos recolectamos, por qué los procesamos y cómo los manejamos.</p>
+        <h2>8. Disposiciones Finales</h2>
+        <ul>
+            <li>Estos términos se rigen por la ley checa, y cualquier disputa será resuelta por los tribunales competentes de la República Checa.</li>
+            <li>Creemos que no surgirán disputas, pero si surgen, puedes contactar a la Autoridad de Inspección Comercial Checa (ČOI) o usar la plataforma europea de Resolución de Disputas en Línea (ODR).</li>
+            <li>La versión actual de los términos siempre está disponible en MySpeedPuzzling.com. Nos reservamos el derecho de hacer cambios razonables para mantenerlos en línea con la legislación o necesidades operacionales.</li>
+        </ul>
+        <p><em><small>Última actualización: Enero 2025</small></em></p>
+
+privacy_policy:
+    meta:
+        title: "Política de Privacidad"
+        description: "Política de Privacidad de la plataforma MySpeedPuzzling.com"
+    content: |
+        <h1>Política de Privacidad</h1>
+        <p>El propósito de este documento es informarte sobre cómo manejamos tus datos personales en MySpeedPuzzling.com. Valoramos mucho tu confianza y privacidad.</p>
+        <h2>1. Nombre Público</h2>
+        <p>Al registrarte en MySpeedPuzzling.com, puedes elegir un <strong>nombre público</strong> – puede ser un apodo, abreviación o iniciales. Este nombre se muestra a todos los visitantes del sitio web. Por favor ten cuidado al elegir un nombre si deseas mantenerte más anónimo.</p>
+        <h2>2. Email</h2>
+        <ul>
+            <li>Proporcionas tu dirección de email para iniciar sesión y comunicarte con los administradores de la plataforma.</li>
+            <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y no es accesible para terceros.</li>
+            <li>Tu email se almacena en una base de datos encriptada, y solo los autores de la aplicación tienen acceso a él.</li>
+            <li>No compartimos tu dirección de email con ninguna otra entidad.</li>
+        </ul>
+        <h2>3. Contraseña</h2>
+        <ul>
+            <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – esta es una encriptación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>
+            <li>Cuando inicias sesión, la información que ingresas se compara contra el hash almacenado en la base de datos.</li>
+            <li>Por razones de seguridad, nunca enviamos por email la contraseña original; si es necesario, puedes restablecerla usando el proceso "Olvidé mi Contraseña".</li>
+        </ul>
+        <h2>4. Información Pública Opcional</h2>
+        <p>Los usuarios tienen la opción de proporcionar <strong>información pública</strong> adicional en su perfil (ej., ciudad, país, enlaces de redes sociales, descripción, avatar) para una mejor interacción comunitaria.</p>
+        <ul>
+            <li>Esta información es visible para todos los visitantes y <strong>no se considera</strong> datos personales sensibles.</li>
+            <li>Serás notificado de que esta información es pública al completarla.</li>
+            <li>Sin embargo, estos datos también se almacenan en nuestra base de datos encriptada.</li>
+        </ul>
+        <h2>5. Información de Pago</h2>
+        <ul>
+            <li>La plataforma MySpeedPuzzling.com <strong>no recolecta ningún dato sobre métodos de pago</strong> – todos los pagos son procesados exclusivamente a través de la compañía asociada Stripe.</li>
+            <li>Nunca tenemos acceso a los detalles de tu tarjeta de pago, información de cuenta bancaria o cualquier otro dato financiero.</li>
+        </ul>
+        <h2>6. Seguridad y Privacidad</h2>
+        <ul>
+            <li>La seguridad de nuestros usuarios es nuestra prioridad – los servidores y bases de datos están protegidos contra acceso no autorizado, filtraciones de datos y otras amenazas cibernéticas.</li>
+            <li>Tus datos personales (ej., email o información de perfil opcional) siempre están encriptados, y solo los autores de la aplicación pueden acceder a ellos.</li>
+            <li>Mantenemos todas las medidas de seguridad estándar y trabajamos continuamente para mejorar nuestra seguridad.</li>
+        </ul>
+        <p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+        <p><em><small>Última actualización: Enero 2025</small></em></p>
+
+countdown:
+    days: "días"
+    hours: "horas"
+    minutes: "mins"
+    seconds: "segs"
+
+blog:
+    outage-2025-02-17:
+        title: "La Mayor Interrupción en la Historia de MySpeedPuzzling"
+        content: |
+            <h2 class="h5">El 17 de febrero, experimentamos la interrupción más larga en la historia de MySpeedPuzzling ...</h2>
+            <h4 class="h6">¡Antes que nada, quiero agradecerles mucho a todos por su paciencia y confianza! ¡Créanme, esas 7 horas cuando sabíamos que MSP no estaba funcionando fueron extremadamente estresantes para nosotros!</h4>
+            <p>Hoy, tuvimos una interrupción de casi 10 horas de toda la plataforma. Es la interrupción más larga en la historia de MySpeedPuzzling. No fue nuestra culpa... ¿o sí lo fue?</p>
+            <p>Porque nos esforzamos por ser 100% transparentes, aquí tienes un relato paso a paso de lo que pasó.</p>
+            <p>Me fui a la cama alrededor de la 1:30 AM (desafortunadamente, justo antes de que todo se viniera abajo), habiendo acabado de terminar otra nueva característica para MySpeedPuzzling. Alrededor de las 5 AM, cuando uno de nuestros hijos se levantó para ir al baño, Simona automáticamente revisó las notificaciones en su teléfono—a menudo mira quién publicó nuevos tiempos y qué tan rápido lograron resolver el rompecabezas. Sí, incluso a las 5 de la mañana... Pero fue recibida por una sorpresa desagradable: ¡la página no cargaba! Me empujó, diciendo: "¡MySpeedPuzzling no está funcionando!" Escuchar eso me despertó inmediatamente. Tomé mi teléfono, lo intenté, ¡y realmente no estaba funcionando! Tomé mi laptop para examinar las cosas más de cerca. A la 1:59 AM, habíamos recibido una notificación de monitoreo automatizada, lo cual usualmente no son buenas noticias. Desafortunadamente, me la perdí porque me había ido a la cama justo antes. Además, el cambio que había hecho no era de ninguna manera destructivo y no podría haber causado tal interrupción. Y así comenzó nuestra interrupción del lunes, que duró casi hasta el mediodía.</p>
+            <h5>Detalles técnicos para geeks:</h5>
+            <p><em>(esto te dará un vistazo a nuestra infraestructura de servidor)</em></p>
+            <p>Hace una semana, instalé un servidor de correo en nuestro servidor físico de MySpeedPuzzling—esto era preparación para migrar de Auth0 a nuestro propio servicio de autenticación, además de un boletín y otras características—enviar decenas de miles de emails al mes no es solo un paseo por el parque, y necesitamos estar listos para ello. Como resultó, ese servidor de correo fue efectivamente el culpable, pero no nos adelantemos.</p>
+            <p>Lo primero que descubrí fue que los puertos 443 y 80 estaban agotando el tiempo. El servidor aloja múltiples aplicaciones, y esto afectó a todas ellas, no solo MSP—lo cual fue desagradable. Otro hallazgo más preocupante fue que no podía acceder al servidor vía SSH—el puerto también agotaba el tiempo.</p>
+            <p>¿Qué ahora? El pánico se instaló, y le dije a Simona que esto era un gran problema.</p>
+            <p>Inmediatamente notifiqué al proveedor del servidor que este servidor en particular no estaba respondiendo—en ese momento, parecía un problema claro de su parte porque el servidor no respondía para nada, mientras que otros servidores en el mismo centro de datos todavía eran alcanzables. Sospeché un problema de hardware, tal vez una tarjeta de red mala o un cable suelto (esto me ha pasado antes…), o una prohibición del proveedor debido a actividad sospechosa.</p>
+            <p>El proveedor respondió en unos minutos diciendo que no veían nada de su lado. Revisaron el centro de datos; el servidor estaba funcionando y respondiendo—desde su perspectiva, todo estaba bien. Genial, así que no veían ningún problema, pero el servidor MSP todavía era inalcanzable y no podía iniciar sesión…</p>
+            <p>Rápidamente arranqué un sistema de rescate junto al servidor, desde el cual monté exitosamente el sistema de archivos del servidor MSP, y comencé la búsqueda de aguja en un pajar. Sabía que la interrupción pasó alrededor de 1:58–1:59 AM. Busqué cualquier archivo cambiado en ese momento, en caso de que hubiéramos sido hackeados. No encontré nada. Nada de eso tenía sentido, y no pude detectar nada. Alrededor de las 8:00 AM, un colega del trabajo se unió a mí para ayudar. Juntos, descubrimos que SMTP en el puerto 25 (usado para enviar emails) estaba funcionando y no agotando el tiempo—incluso pude enviarme un email a mí mismo, y fue realmente entregado.</p>
+            <p>Eso solo nos confundió más—el servidor estaba funcionando y operacional, era "solo" inalcanzable, y los puertos 80 y 443 también estaban bloqueados. Para entonces, estábamos casi seguros de que había algún problema con la configuración de red—todo todavía se veía "normal," ¡pero nuestro principal sospechoso era el servidor de correo!</p>
+            <p>Y efectivamente, ese era el caso. Todo en el servidor funciona en contenedores Docker. Cualquiera que haya usado Docker sabe que su red puede ser complicada. El servidor de correo que elegí también incluye fail2ban, que está diseñado para bloquear el acceso desde direcciones IP sospechosas—por ejemplo, si hay demasiados intentos de inicio de sesión fallidos u otras amenazas. Saltaré unas dos horas más de diagnóstico—pero esencialmente, fail2ban no estaba configurado apropiadamente (se dejó en su configuración predeterminada), y combinado con UFW, de alguna manera misteriosamente bloqueó todo el tráfico en los puertos 22, 80 y 443—aunque todavía no entendemos completamente por qué pasó de esa manera.</p>
+            <p>Una vez que supe la causa, la solución final no tomó mucho tiempo—rápidamente desinstalar el servidor de correo (incluyendo UFW), limpiar iptables, re-añadir las reglas de red de Docker, "rebotar" todo unas pocas veces, desconectar el sistema de rescate, reiniciar todo, y… finalmente, después de cinco horas agonizantes maldiciendo al monitor, MSP estaba de vuelta a la normalidad…</p>
+            <p>Salté algunos detalles innecesarios—como cómo cambié DNS a un proxy de CloudFlare en cinco minutos mientras tanto y configuré un worker de Node.js para mostrar un mensaje sobre la interrupción—solo para que no hubiera una página en blanco…</p>
+            <p>Por ahora, estoy dejando el trabajo del servidor de correo a un lado, y sé que estará "a un lado," en un servidor separado, lejos de MSP. Por un lado, fue interesante probar nuestro proceso de "recuperación de desastres"—en un punto estaba tan desesperado que estaba listo para dejar que este servidor se quemara en el infierno, girar todo en uno nuevo, y solo actualizar los registros DNS… Afortunadamente, eso resultó innecesario al final.</p>
+            <p>PS. Realmente se rompió "por sí solo", gracias al servidor de correo, después de una semana sin ninguna intervención humana… Eso es bastante algo…</p>
+            <p>PS2. Eres valiente si has leído hasta el final :-).</p>

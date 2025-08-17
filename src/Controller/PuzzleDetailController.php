@@ -34,6 +34,7 @@ final class PuzzleDetailController extends AbstractController
         path: [
             'cs' => '/puzzle/{puzzleId}',
             'en' => '/en/puzzle/{puzzleId}',
+            'es' => '/es/rompecabezas/{puzzleId}',
         ],
         name: 'puzzle_detail',
     )]
@@ -41,6 +42,7 @@ final class PuzzleDetailController extends AbstractController
         path: [
             'cs' => '/skladam-puzzle/{puzzleId}',
             'en' => '/solving-puzzle/{puzzleId}',
+            'es' => '/es/resolviendo-rompecabezas/{puzzleId}',
         ],
         name: 'puzzle_detail_qr',
     )]

@@ -23,6 +23,7 @@ final class PlayersPerCountryController extends AbstractController
         path: [
             'cs' => '/hraci-dle-zeme/{countryCode}',
             'en' => '/en/players-from-country/{countryCode}',
+            'es' => '/es/jugadores-del-pais/{countryCode}',
         ],
         name: 'players_per_country',
     )]

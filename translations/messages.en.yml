@@ -26,6 +26,10 @@ footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
     about: "My Speed Puzzling is community platform for all puzzle lovers and especially for speed puzzling enthusiast.<br>This is the ultimate place to share your times, compare with others and have fun together."
     popular_search: "Popular searches"
+    speed_puzzling_leaderboard: "Speed Puzzling Leaderboard"
+    speed_puzzling_players: "Speed Puzzling Players"
+    latest_puzzle_times: "Latest Puzzle Times"
+    750_piece_puzzles: "750 Piece Puzzles"
 
 puzzler_name: "Name"
 puzzler: "Puzzler"
@@ -82,8 +86,9 @@ secret_puzzler_name: "Hidden Puzzler"
 
 homepage:
     meta:
-        title: "My Speed Puzzling - Home of all speed puzzlers"
-        description: "Dive into the world of My Speed Puzzling, the ultimate hub for puzzle enthusiasts! Track progress, challenge peers, and join a community passionate about speed puzzling. Start your journey to puzzle mastery today!"
+        title: "Speed Puzzling Community | Track & Compete Online"
+        description: "Join the ultimate speed puzzling community! Track puzzle times, compete with players worldwide, and climb the leaderboards. Start today!"
+        keywords: "speed puzzling, speedpuzzling, puzzle times, jigsaw puzzle community, puzzle solving competition, puzzle leaderboard"
     global_statistics: "It took all of us this much time to solve <strong>%puzzles%</strong> puzzles.<br>That is an incredible <strong>%pieces%</strong> pieces."
 
     title: "Welcome Puzzler, to the World of Speed Puzzling!"
@@ -109,7 +114,11 @@ homepage:
     cta_recent: "Recent times"
 
 ladder:
-    title: "Leaderboard"
+    title: "Speed Puzzling Leaderboard | Fast Times"
+    meta:
+        title: "Speed Puzzling Leaderboard | Fast Times"
+        description: "Speed puzzling leaderboard showing fastest puzzle times and player rankings. See who holds records and compete for top positions."
+        keywords: "speed puzzling leaderboard, fastest times, puzzle records, player rankings, competition results, puzzle champions"
     overview: "Overview"
     recent_activity: "Recently Added Times"
     solo: "Solo"
@@ -144,8 +153,10 @@ sorting:
     z_a: "Name Z-A"
 puzzle_overview:
     meta:
-        title: "Puzzle"
-    title: "Puzzle"
+        title: "Speed Puzzling Database | 500-1000 Pieces"
+        description: "Browse speed puzzling database with 500-1000+ piece puzzles. Compare solving times, find new challenges, and track your progress."
+        keywords: "puzzle database, jigsaw puzzle times, 500 piece puzzle, 1000 piece puzzle, puzzle brands, speed solving"
+    title: "Speed Puzzling Database - Browse Puzzle Times"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
 
 stopwatch:
@@ -265,9 +276,11 @@ error:
         message: "Something went wrong - we've been notified and will fix it as soon as possible"
 
 events:
-    title: "Events"
+    title: "Speed Puzzling Events | Competitions"
     meta:
-        title: "Events"
+        title: "Speed Puzzling Events | Competitions"
+        description: "Join speed puzzling events, competitions and tournaments. Compete with the best puzzlers worldwide and test your skills."
+        keywords: "speed puzzling events, puzzle competitions, puzzle tournaments, WJPC, jigsaw puzzle championship, competitive puzzling"
     live: "Happening right now"
     upcoming: "Upcoming"
     past: "Past events"
@@ -281,7 +294,9 @@ events:
 
 faq:
     meta:
-        title: "Frequently Asked Questions"
+        title: "Speed Puzzling FAQ | Track Times & Compete"
+        description: "Speed puzzling FAQ covering how to track puzzle times, compete with others, and improve your solving skills. Get started today!"
+        keywords: "speed puzzling FAQ, how to speed puzzle, track puzzle times, puzzle timing, speed solving tips, puzzle competition guide"
     title: "Frequently Asked Questions"
     intro_block: |
         <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> for technical matters) or on <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
@@ -378,7 +393,9 @@ puzzle_detail:
 
 puzzlers:
     meta:
-        title: "Puzzlers"
+        title: "Speed Puzzling Players | Results"
+        description: "Discover speed puzzling players, compare results and rankings. Follow your favorite puzzlers and see their latest solving times."
+        keywords: "speed puzzling players, puzzlers, puzzle solvers, player results, puzzle community, speed puzzling times"
     title: "Puzzlers"
     results_for: "Search results for"
     no_matches_found: "No matches found"
@@ -415,7 +432,11 @@ flashes:
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."
 
 hub:
-    title: "Speed Puzzling Hub"
+    title: "Speed Puzzling Hub | Latest Results"
+    meta:
+        title: "Speed Puzzling Hub | Latest Results"
+        description: "Speed puzzling hub with latest results, player rankings, and puzzle statistics. See who's solving fastest and track community progress."
+        keywords: "speed puzzling hub, latest results, puzzle rankings, active players, puzzle statistics, recent activity"
     welcome: "Welcome puzzler!"
     welcome_back: "Welcome back"
     recent_favorites_activity: "Favorites<br>activity"
@@ -427,6 +448,7 @@ hub:
     statistics: "Statistics"
     no_favorites: "You have no favorite players. Add some and follow their activity here."
     not_logged: "You are nog logged in - to use full potential of what this platform offers to you, log in."
+    seo_suffix: "- Speed Puzzling Community"
 
 statistics:
     puzzle_solved: "Puzzle solved"

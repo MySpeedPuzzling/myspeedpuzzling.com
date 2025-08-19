@@ -5,7 +5,7 @@
 {% block content %}
     <h1 class="h3 mb-0">
         {% if logged_user.profile is null %}
-            {{ 'hub.welcome'|trans }}
+            {{ 'hub.welcome'|trans }} {{ 'hub.seo_suffix'|trans }}
         {% else %}
             {{ 'hub.welcome_back'|trans }}{% if logged_user.profile.playerName is not null%}, {{ logged_user.profile.playerName }}
             {% if logged_user.profile.countryCode is not null %}

@@ -17,6 +17,29 @@
 
 {% block title %}{{ 'puzzle_overview.meta.title'|trans }}{% endblock %}
 
+{% block json_ld %}
+{{ parent() }}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "Speed Puzzling Database",
+    "description": "{{ 'puzzle_overview.meta.description'|trans }}",
+    "url": "{{ url('puzzles', {'_locale': app.request.locale}) }}",
+    "keywords": "{{ 'puzzle_overview.meta.keywords'|trans }}",
+    "creator": {
+        "@type": "Organization",
+        "name": "MySpeedPuzzling"
+    },
+    "distribution": {
+        "@type": "DataDownload",
+        "encodingFormat": "text/html",
+        "contentUrl": "{{ url('puzzles', {'_locale': app.request.locale}) }}"
+    }
+}
+</script>
+{% endblock %}
+
 {% block content %}
     <h1 class="mb-2">{{ 'puzzle_overview.title'|trans }}</h1>
 

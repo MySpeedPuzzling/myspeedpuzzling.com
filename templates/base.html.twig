@@ -2,12 +2,12 @@
 <html lang="{{ app.request.locale }}" data-turbo="false">
     <head>
         <meta charset="UTF-8">
-        <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %}{% if app.request.pathInfo != path('homepage') %} | My Speed Puzzling{% endif %}</title>
+        <title>{% apply spaceless %}{% block title %}{% endblock %}{% endapply %}{% if app.request.pathInfo != path('homepage') %} | MySpeedPuzzling{% endif %}</title>
 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
         <meta name="description" content="{% apply spaceless %}{% block meta_description %}{% endblock %}{% endapply %}{% if block('meta_description') is empty %}{{ 'homepage.meta.description'|trans }}{% endif %}">
-        <meta name="keywords" content="Puzzle, Puzzling, Speed Puzzling, SpeedPuzzling, Community, Leaderboard{% apply spaceless %}{% block meta_keywords %}{% endblock %}{% endapply %}">
+        <meta name="keywords" content="{% apply spaceless %}{% block meta_keywords %}{% endblock %}{% endapply %}{% if block('meta_keywords') is empty %}{% set currentPageKey = app.request.attributes.get('_route') %}{% if currentPageKey == 'homepage' %}{{ 'homepage.meta.keywords'|trans }}{% elseif currentPageKey == 'hub' %}{{ 'hub.meta.keywords'|trans }}{% elseif currentPageKey == 'puzzles' %}{{ 'puzzle_overview.meta.keywords'|trans }}{% elseif currentPageKey == 'ladder' %}{{ 'ladder.meta.keywords'|trans }}{% elseif currentPageKey == 'players' %}{{ 'puzzlers.meta.keywords'|trans }}{% elseif currentPageKey == 'events' %}{{ 'events.meta.keywords'|trans }}{% elseif currentPageKey == 'faq' %}{{ 'faq.meta.keywords'|trans }}{% else %}speed puzzling, puzzle times, jigsaw puzzles, speedpuzzling{% endif %}{% endif %}">
         <meta name="format-detection" content="telephone=no">
         <meta name="turbo-prefetch" content="false">
         <meta name="turbo-refresh-method" content="morph">
@@ -27,7 +27,9 @@
 
         <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}">
 
-        {% block canonical %}{% endblock %}
+        {% block canonical %}
+        <link rel="canonical" href="{{ url(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|default({})|merge({'_locale': app.request.locale})) }}">
+        {% endblock %}
 
         {{ encore_entry_link_tags('app') }}
 
@@ -38,7 +40,7 @@
         {% set routeParamsEs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'es'}) %}
 
         {% if currentRoute %}
-            <link rel="alternate" hreflang="cs" href="{{ url(currentRoute, routeParamsCs) }}">
+            <link rel="alternate" hreflang="cs-CZ" href="{{ url(currentRoute, routeParamsCs) }}">
             <link rel="alternate" hreflang="en" href="{{ url(currentRoute, routeParamsEn) }}">
             <link rel="alternate" hreflang="es" href="{{ url(currentRoute, routeParamsEs) }}">
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
@@ -57,6 +59,40 @@
         </script>
 
         {{ encore_entry_script_tags('app') }}
+
+        <!-- JSON-LD Structured Data -->
+        {% block json_ld %}
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "MySpeedPuzzling",
+            "url": "{{ url('homepage', {'_locale': 'en'}) }}",
+            "logo": "{{ absolute_url(asset('img/speedpuzzling-logo.png')) }}",
+            "description": "{{ 'homepage.meta.description'|trans({'_locale': 'en'}) }}",
+            "sameAs": [
+                "https://www.instagram.com/myspeedpuzzling/",
+                "https://github.com/MySpeedPuzzling/myspeedpuzzling.com"
+            ],
+            "contactPoint": {
+                "@type": "ContactPoint",
+                "email": "simona@speedpuzzling.cz",
+                "contactType": "customer service"
+            },
+            "founder": [
+                {
+                    "@type": "Person",
+                    "name": "Simona Mikešová"
+                },
+                {
+                    "@type": "Person", 
+                    "name": "Jan Mikeš",
+                    "url": "https://janmikes.cz"
+                }
+            ]
+        }
+        </script>
+        {% endblock %}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search">
         <header class="fixed-top shadow-sm" data-fixed-element>
@@ -423,6 +459,26 @@
                             <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                 <a href="{{ path('puzzles', {'tag': '205ba266-52f1-4bb1-8150-0387e348a5fa'}) }}" class="widget-list-link">
                                     BOTYP 3
+                                </a>
+                            </li>
+                            <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                <a href="{{ path('ladder') }}" class="widget-list-link">
+                                    {{ 'footer.speed_puzzling_leaderboard'|trans }}
+                                </a>
+                            </li>
+                            <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                <a href="{{ path('players') }}" class="widget-list-link">
+                                    {{ 'footer.speed_puzzling_players'|trans }}
+                                </a>
+                            </li>
+                            <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                <a href="{{ path('recent_activity') }}" class="widget-list-link">
+                                    {{ 'footer.latest_puzzle_times'|trans }}
+                                </a>
+                            </li>
+                            <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                <a href="{{ path('puzzles', {'pieces': 750}) }}" class="widget-list-link">
+                                    {{ 'footer.750_piece_puzzles'|trans }}
                                 </a>
                             </li>
                         </ul>

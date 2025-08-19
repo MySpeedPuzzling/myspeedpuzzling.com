@@ -2,6 +2,50 @@
 
 {% block title %}{{ 'faq.meta.title'|trans }}{% endblock %}
 
+{% block json_ld %}
+{{ parent() }}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "{{ 'faq.question_fair_play'|trans|striptags }}",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{ 'faq.answer_fair_play'|trans|striptags }}"
+            }
+        },
+        {
+            "@type": "Question", 
+            "name": "{{ 'faq.question_qr'|trans|striptags }}",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{ 'faq.answer_qr'|trans|striptags }}"
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "{{ 'faq.question_add_time_for_missing_puzzle'|trans|striptags }}",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{ 'faq.answer_add_time_for_missing_puzzle'|trans|striptags }}"
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "{{ 'faq.question_edit_or_delete_time'|trans|striptags }}",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "{{ 'faq.answer_edit_or_delete_time'|trans|striptags }}"
+            }
+        }
+    ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
     <h1>{{ 'faq.title'|trans }}</h1>
 

@@ -86,7 +86,7 @@ secret_puzzler_name: "Hidden Puzzler"
 
 homepage:
     meta:
-        title: "Speed Puzzling Community | Track & Compete Online"
+        title: "Speed Puzzling Community | Track"
         description: "Join the ultimate speed puzzling community! Track puzzle times, compete with players worldwide, and climb the leaderboards. Start today!"
         keywords: "speed puzzling, speedpuzzling, puzzle times, jigsaw puzzle community, puzzle solving competition, puzzle leaderboard"
     global_statistics: "It took all of us this much time to solve <strong>%puzzles%</strong> puzzles.<br>That is an incredible <strong>%pieces%</strong> pieces."
@@ -116,7 +116,7 @@ homepage:
 ladder:
     title: "Speed Puzzling Leaderboard | Fast Times"
     meta:
-        title: "Speed Puzzling Leaderboard | Fast Times"
+        title: "Speed Puzzling Leaderboard | Times"
         description: "Speed puzzling leaderboard showing fastest puzzle times and player rankings. See who holds records and compete for top positions."
         keywords: "speed puzzling leaderboard, fastest times, puzzle records, player rankings, competition results, puzzle champions"
     overview: "Overview"
@@ -153,7 +153,7 @@ sorting:
     z_a: "Name Z-A"
 puzzle_overview:
     meta:
-        title: "Speed Puzzling Database | 500-1000 Pieces"
+        title: "Speed Puzzling Database | 500-1000pc"
         description: "Browse speed puzzling database with 500-1000+ piece puzzles. Compare solving times, find new challenges, and track your progress."
         keywords: "puzzle database, jigsaw puzzle times, 500 piece puzzle, 1000 piece puzzle, puzzle brands, speed solving"
     title: "Speed Puzzling Database - Browse Puzzle Times"
@@ -294,7 +294,7 @@ events:
 
 faq:
     meta:
-        title: "Speed Puzzling FAQ | Track Times & Compete"
+        title: "Speed Puzzling FAQ | Track & Compete"
         description: "Speed puzzling FAQ covering how to track puzzle times, compete with others, and improve your solving skills. Get started today!"
         keywords: "speed puzzling FAQ, how to speed puzzle, track puzzle times, puzzle timing, speed solving tips, puzzle competition guide"
     title: "Frequently Asked Questions"

@@ -12,9 +12,11 @@
     <exclude-pattern>var/</exclude-pattern>
     <exclude-pattern>public/</exclude-pattern>
     <exclude-pattern>node_modules/</exclude-pattern>
-    
-    <!-- Use PSR-12 as base standard -->
-    <rule ref="PSR12"/>
+    <exclude-pattern>tests/bootstrap.php</exclude-pattern>
+
+    <rule ref="PSR12">
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
     
     <!-- Auto-fixable Slevomat rules only -->
     <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses">

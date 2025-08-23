@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `composer run cs` - Check coding standards with PHPCS
 - `composer run cs-fix` - Fix coding standards with PHPCBF
 - `php bin/console doctrine:migrations:migrate` - Run database migrations
+- `php bin/console cache:warmup` - Warmup cache, compile container
 
 ### Database
 - Database runs in Docker on port 5432 (postgres/postgres)
@@ -85,6 +86,6 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - When generating migrations for example  or running any other commands that needs to run in the PHP environment, run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.
 - When running commands for Javascript environment, run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.
 - For database structure, analyse Doctrine ORM entities - it represents the database structure
-- After changing PHP code always run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/phpunit`, `docker compose exec web doctrine:schema:validate`.
+- After changing PHP code always run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/phpunit`, `docker compose exec web doctrine:schema:validate`, `docker compose exec web cache:warmup`.
 - When renaming database tables (in doctrine migrations), always make sure to go through the read-only Queries (in directory `src/Query/`) and if the table was renamed, update the queries.
 - Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely

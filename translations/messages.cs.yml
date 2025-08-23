@@ -86,7 +86,7 @@ secret_puzzler_name: "Utajený Puzzler"
 
 homepage:
     meta:
-        title: "Speed Puzzling Komunita | Sleduj & Soutěž Online"
+        title: "Speed Puzzling Komunita | Sleduj Časy"
         description: "Připoj se k největší speed puzzling komunitě! Sleduj časy skládání, soutěž s hráči z celého světa a šplhej po žebříčku. Začni dnes!"
         keywords: "speed puzzling, speedpuzzling, časy puzzlí, puzzle komunita, soutěž ve skládání puzzlí, puzzle žebříček"
     global_statistics: "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
@@ -117,7 +117,7 @@ homepage:
 ladder:
     title: "Speed Puzzling Žebříček | Rychlé Časy"
     meta:
-        title: "Speed Puzzling Žebříček | Rychlé Časy"
+        title: "Speed Puzzling Žebříček | Časy"
         description: "Speed puzzling žebříček ukazující nejrychlejší časy skládání a pořadí hráčů. Zjisti kdo drží rekordy a soutěž o špičkové pozice."
         keywords: "speed puzzling žebříček, nejrychlejší časy, puzzle rekordy, pořadí hráčů, výsledky soutěží, puzzle šampióni"
     overview: "Přehled"
@@ -155,7 +155,7 @@ sorting:
 
 puzzle_overview:
     meta:
-        title: "Speed Puzzling Databáze | 500-1000 Dílků"
+        title: "Speed Puzzling Databáze | 500-1000ks"
         description: "Procházej databázi speed puzzling s puzzle 500-1000+ dílků. Porovnávej časy skládání, najdi nové výzvy a sleduj svůj pokrok."
         keywords: "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
     title: "Speed Puzzling Databáze - Procházej Časy Puzzlí"
@@ -294,7 +294,7 @@ events:
 
 faq:
     meta:
-        title: "Speed Puzzling FAQ | Sledovat Časy"
+        title: "Speed Puzzling FAQ | Sledovat"
         description: "Speed puzzling FAQ pokrývající jak sledovat časy skládání, soutěžit s ostatními a zlepšovat své dovednosti. Začni dnes!"
         keywords: "speed puzzling FAQ, jak rychle skládat puzzle, sledování časů, měření puzzlí, tipy na rychlé skládání, průvodce soutěží"
     title: "Časté dotazy"
@@ -433,7 +433,7 @@ flashes:
 hub:
     title: "Speed Puzzling Hub | Nejnovější Výsledky"
     meta:
-        title: "Speed Puzzling Hub | Nejnovější Výsledky"
+        title: "Speed Puzzling Hub | Výsledky"
         description: "Speed puzzling hub s nejnovějšími výsledky, žebříčky hráčů a statistikami puzzlí. Zjisti kdo skládá nejrychleji a sleduj pokrok komunity."
         keywords: "speed puzzling hub, nejnovější výsledky, puzzle žebříčky, aktivní hráči, statistiky puzzlí, aktivita"
     welcome: "Vítej puzzlere!"

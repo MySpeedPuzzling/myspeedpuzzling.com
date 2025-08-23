@@ -28,6 +28,13 @@
         <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}">
 
         {% block canonical %}
+            {% if app.request is defined %}
+                {% set route = app.request.attributes.get('_route') %}
+                {% if route %}
+                    {% set params = app.request.attributes.get('_route_params')|default({}) %}
+                    <link rel="canonical" href="{{ url(route, params) }}">
+                {% endif %}
+            {% endif %}
         {% endblock %}
 
         {{ encore_entry_link_tags('app') }}

@@ -30,6 +30,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
         path: [
             'cs' => '/odebrat-puzzle-z-kolekce/{puzzleId}',
             'en' => '/en/remove-puzzle-from-collection/{puzzleId}',
+            'es' => '/es/eliminar-puzzle-de-coleccion/{puzzleId}',
         ],
         name: 'remove_puzzle_from_collection',
     )]

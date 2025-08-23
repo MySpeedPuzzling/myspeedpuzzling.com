@@ -15,6 +15,7 @@ final class PuzzleServiceController extends AbstractController
         path: [
             'cs' => '/pujcit-puzzle',
             'en' => '/en/borrow-puzzle',
+            'es' => '/es/prestar-puzzle',
         ],
         name: 'puzzle_service',
     )]

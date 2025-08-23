@@ -26,6 +26,7 @@ final class ResetStopwatchController extends AbstractController
         path: [
             'cs' => '/stopky/{stopwatchId}/reset',
             'en' => '/en/stopwatch/{stopwatchId}/reset',
+            'es' => '/es/cronometro/{stopwatchId}/reiniciar',
         ],
         name: 'reset_stopwatch',
     )]

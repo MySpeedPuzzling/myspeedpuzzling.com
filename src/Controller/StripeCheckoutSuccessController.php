@@ -29,6 +29,7 @@ final class StripeCheckoutSuccessController extends AbstractController
         path: [
             'cs' => '/uspesny-nakup-clenstvi/{sessionId}',
             'en' => '/en/membership-checkout-success/{sessionId}',
+            'es' => '/es/compra-membresia-exitosa/{sessionId}',
         ],
         name: 'stripe_checkout_success',
     )]

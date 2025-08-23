@@ -24,6 +24,7 @@ final class BillingPortalController extends AbstractController
         path: [
             'cs' => '/clenstvi/platebni-portal',
             'en' => '/en/memberstip/billing-portal',
+            'es' => '/es/membresia/portal-facturacion',
         ],
         name: 'billing_portal',
     )]

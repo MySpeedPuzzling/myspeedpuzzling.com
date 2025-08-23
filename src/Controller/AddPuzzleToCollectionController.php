@@ -28,8 +28,9 @@ final class AddPuzzleToCollectionController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/pridat-puzzle-do-kolecke/{puzzleId}',
+            'cs' => '/pridat-puzzle-do-kolecce/{puzzleId}',
             'en' => '/en/add-puzzle-to-collection/{puzzleId}',
+            'es' => '/es/anadir-puzzle-a-coleccion/{puzzleId}',
         ],
         name: 'add_puzzle_to_collection',
     )]

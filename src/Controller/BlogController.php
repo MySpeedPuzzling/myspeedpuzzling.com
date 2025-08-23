@@ -18,6 +18,7 @@ final class BlogController extends AbstractController
         path: [
             'cs' => '/blog/2025-02-17/nejvetsi-msp-vypadek',
             'en' => '/en/blog/2025-02-17/the-biggest-msp-outage',
+            'es' => '/es/blog/2025-02-17/la-mayor-interrupcion-msp',
         ],
         name: 'blog',
     )]

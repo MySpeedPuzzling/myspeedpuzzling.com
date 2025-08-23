@@ -35,6 +35,7 @@ final class CompetitionConnectionController extends AbstractController
         path: [
             'cs' => '/competition-connect/{slug}',
             'en' => '/en/competition-connect/{slug}',
+            'es' => '/es/conexion-competicion/{slug}',
         ],
         name: 'competition_connection',
     )]

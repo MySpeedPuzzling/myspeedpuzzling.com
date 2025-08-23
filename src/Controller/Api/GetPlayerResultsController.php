@@ -63,7 +63,7 @@ final class GetPlayerResultsController extends AbstractController
     /**
      * @return array<mixed>
      */
-    function resultToApiShape(SolvedPuzzle $result): array
+    private function resultToApiShape(SolvedPuzzle $result): array
     {
         $ppm = (new SolvingTime($result->time))->calculatePpm(
             $result->piecesCount,

@@ -114,7 +114,7 @@ homepage:
     cta_recent: "Recent times"
 
 ladder:
-    title: "Speed Puzzling Leaderboard | Fast Times"
+    title: "Leaderboard"
     meta:
         title: "Speed Puzzling Leaderboard | Times"
         description: "Speed puzzling leaderboard showing fastest puzzle times and player rankings. See who holds records and compete for top positions."
@@ -156,7 +156,7 @@ puzzle_overview:
         title: "Speed Puzzling Database | 500-1000pc"
         description: "Browse speed puzzling database with 500-1000+ piece puzzles. Compare solving times, find new challenges, and track your progress."
         keywords: "puzzle database, jigsaw puzzle times, 500 piece puzzle, 1000 piece puzzle, puzzle brands, speed solving"
-    title: "Speed Puzzling Database - Browse Puzzle Times"
+    title: "Puzzles"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
 
 stopwatch:
@@ -276,7 +276,7 @@ error:
         message: "Something went wrong - we've been notified and will fix it as soon as possible"
 
 events:
-    title: "Speed Puzzling Events | Competitions"
+    title: "Events"
     meta:
         title: "Speed Puzzling Events | Competitions"
         description: "Join speed puzzling events, competitions and tournaments. Compete with the best puzzlers worldwide and test your skills."
@@ -431,7 +431,7 @@ flashes:
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."
 
 hub:
-    title: "Speed Puzzling Hub | Latest Results"
+    title: "Hub"
     meta:
         title: "Speed Puzzling Hub | Latest Results"
         description: "Speed puzzling hub with latest results, player rankings, and puzzle statistics. See who's solving fastest and track community progress."

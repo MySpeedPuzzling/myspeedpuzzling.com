@@ -114,7 +114,7 @@ homepage:
     cta_recent: "Tiempos recientes"
 
 ladder:
-    title: "Ranking Speed Puzzling | Tiempos Rápidos"
+    title: "Ranking"
     meta:
         title: "Ranking Speed Puzzling | Tiempos"
         description: "Ranking speed puzzling mostrando tiempos más rápidos y clasificación jugadores. Ve quién tiene récords y compite por mejores posiciones."
@@ -157,7 +157,7 @@ puzzle_overview:
         title: "Base Speed Puzzling | 500-1000pc"
         description: "Explora base datos speed puzzling con puzzles 500-1000+ piezas. Compara tiempos, encuentra nuevos desafíos y rastrea progreso."
         keywords: "base datos puzzle, tiempos puzzle, puzzle 500 piezas, puzzle 1000 piezas, marcas puzzle, resolver rápido"
-    title: "Base Datos Speed Puzzling - Explora Tiempos"
+    title: "Puzzles"
     missing_puzzle_info: "Si no puedes encontrar un rompecabezas aquí, significa que nadie lo ha resuelto aún y no está en nuestra base de datos. Se pueden ingresar nuevos rompecabezas al añadir tiempo."
 
 stopwatch:
@@ -327,7 +327,7 @@ puzzle_detail:
         description: "Explora el rompecabezas %brand% %puzzle% (%pieces% piezas) en My Speed Puzzling. Rastrea el progreso, compara tiempos y conquista rompecabezas con nuestra comunidad. ¡Comienza tu frenesí de resolución de speed puzzling hoy!"
 
 events:
-    title: "Eventos Speed Puzzling | Competiciones"
+    title: "Eventos"
     meta:
         title: "Eventos Speed Puzzling | Compite"
         description: "Únete a eventos speed puzzling, competiciones y torneos. Compite con mejores puzzlistas mundiales y prueba tus habilidades."
@@ -431,7 +431,7 @@ flashes:
     exclusive_membership_feature: "Esta característica es exclusiva solo para miembros. Si quieres usarla, por favor compra una membresía."
 
 hub:
-    title: "Hub Speed Puzzling | Últimos Resultados"
+    title: "Hub"
     meta:
         title: "Hub Speed Puzzling | Resultados"
         description: "Hub speed puzzling con últimos resultados, rankings jugadores y estadísticas puzzle. Ve quién resuelve más rápido y rastrea progreso comunidad."

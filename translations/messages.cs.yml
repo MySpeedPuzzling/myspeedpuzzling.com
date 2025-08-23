@@ -115,7 +115,7 @@ homepage:
     cta_recent: "Nejnovější časy"
 
 ladder:
-    title: "Speed Puzzling Žebříček | Rychlé Časy"
+    title: "Žebříček"
     meta:
         title: "Speed Puzzling Žebříček | Časy"
         description: "Speed puzzling žebříček ukazující nejrychlejší časy skládání a pořadí hráčů. Zjisti kdo drží rekordy a soutěž o špičkové pozice."
@@ -158,7 +158,7 @@ puzzle_overview:
         title: "Speed Puzzling Databáze | 500-1000ks"
         description: "Procházej databázi speed puzzling s puzzle 500-1000+ dílků. Porovnávej časy skládání, najdi nové výzvy a sleduj svůj pokrok."
         keywords: "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
-    title: "Speed Puzzling Databáze - Procházej Časy Puzzlí"
+    title: "Puzzle"
     missing_puzzle_info: "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
 
 stopwatch:
@@ -278,7 +278,7 @@ error:
         message: "Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji"
 
 events:
-    title: "Speed Puzzling Události | Soutěže"
+    title: "Události"
     meta:
         title: "Speed Puzzling Události | Soutěže"
         description: "Připoj se k speed puzzling událostem, soutěžím a turnajům. Soutěž s nejlepšími puzzlery světa a testuj své dovednosti."
@@ -431,7 +431,7 @@ flashes:
     exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
 
 hub:
-    title: "Speed Puzzling Hub | Nejnovější Výsledky"
+    title: "Hub"
     meta:
         title: "Speed Puzzling Hub | Výsledky"
         description: "Speed puzzling hub s nejnovějšími výsledky, žebříčky hráčů a statistikami puzzlí. Zjisti kdo skládá nejrychleji a sleduj pokrok komunity."

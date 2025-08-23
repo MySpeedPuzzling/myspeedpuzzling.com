@@ -26,6 +26,10 @@ footer:
     created_with_love: "Creado con amor por los puzzles y el código por %simona% y %jan%"
     about: "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los puzzles y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
     popular_search: "Búsquedas populares"
+    speed_puzzling_leaderboard: "Ranking Speed Puzzling"
+    speed_puzzling_players: "Jugadores Speed Puzzling"
+    latest_puzzle_times: "Últimos Tiempos Puzzle"
+    750_piece_puzzles: "Puzzles 750 Piezas"
 
 puzzler_name: "Nombre"
 puzzler: "Puzzlista"
@@ -272,67 +276,6 @@ error:
         title: "Error desconocido"
         message: "Algo salió mal - hemos sido notificados y lo arreglaremos tan pronto como sea posible"
 
-events:
-    title: "Eventos"
-    meta:
-        title: "Eventos"
-    live: "Sucediendo ahora mismo"
-    upcoming: "Próximos"
-    past: "Eventos pasados"
-    website_link: "Información"
-    results_link: "Resultados"
-    registration_link: "Registrarse"
-    competition_puzzles: "Rompecabezas de competencia"
-    no_puzzle_title: ""
-    no_puzzle_text: "¡No hay rompecabezas aquí... aún! Mantente atento"
-
-faq:
-    meta:
-        title: "Preguntas Frecuentes"
-    title: "Preguntas Frecuentes"
-    intro_block: |
-        <p>¡Tus comentarios son muy importantes para nosotros y los apreciamos mucho! Si tienes algo que te gustaría decirnos, por favor escríbenos a <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (o a <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> para asuntos técnicos) o en <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
-        <p>Todos nuestros códigos fuente son de código abierto y públicos en <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. Adherimos a la filosofía de "compartir es cuidar" y nos esforzamos por compartir todo sobre myspeedpuzzling.com abiertamente.</p>
-
-    question_fair_play: |
-    answer_fair_play: |
-        <h4 class="mb-3">¿Cómo sabes que no estoy haciendo trampa al ingresar tiempos?</h4>
-        <p>Honestamente - probablemente no lo sabremos. En la clasificación pública, donde los puzzlistas ingresan los tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlista individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>
-        <p>Asumimos que, como nosotros, otros puzzlistas arman principalmente por el disfrute, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomara 3 horas durante una competencia?</p>
-        <p>En el futuro, también planeamos ligas calificadas, donde la verificación de tiempo podría ser requerida, por ejemplo, a través de grabación de video.</p>
-        <p class="text-danger mb-0"><small>Dado que nuestra comunidad incluye finalistas del Campeonato Mundial de Rompecabezas, que se han ubicado en la cima, podemos tomar sus tiempos como referencia. Los tiempos sospechosos serán monitoreados y si se prueba fraude, serán eliminados sin piedad. En caso de trampa repetida, el acceso del jugador a la plataforma será restringido.</small></p>
-
-    question_qr: "Recibí rompecabezas con un código QR y el logo de myspeedpuzzling.com, ¿qué debo hacer?"
-    answer_qr: |
-        <p>Para hacer que armar e ingresar tiempos sea lo más placentero posible para ti, añadimos un código QR a todos los rompecabezas que pasan por nuestras manos - escanearlo te lleva a la página con los rompecabezas dados, donde puedes comenzar directamente a cronometrar o ingresar tu tiempo.</p>
-        <p class="mb-0">Si te gustaría ayudar a difundir la palabra sobre speedpuzzling y añadir un folleto con un código QR a tus rompecabezas, por favor escríbenos - te enviaremos un PDF que puedes imprimir, o podemos enviarte folletos impresos directamente por correo.</p>
-
-    question_add_time_for_missing_puzzle: "¿Puedo añadir tiempo para rompecabezas que no están en la plataforma?"
-    answer_add_time_for_missing_puzzle: |
-        <p>¡Definitivamente! Si has armado un rompecabezas que aún no está en nuestra plataforma, al añadir tiempo, cambia a la opción:</p>
-        <div class="form-check form-switch mb-3">
-            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
-            <label class="form-check-label" for="switch-add-puzzle">Ingresar rompecabezas manualmente - fabricante desconocido o no en la lista</label>
-        </div>
-        <p class="mb-0">Luego tienes la opción de seleccionar de una lista de fabricantes. Si el fabricante tampoco está en la base de datos, puedes ingresarlo tú mismo.</p>
-
-    question_edit_or_delete_time: "¿Cómo edito o elimino un tiempo ingresado?"
-    answer_edit_or_delete_time: |
-        <p>En la sección <a href="%link%">Mi Perfil</a>, junto a cada tiempo ingresado, encontrarás un enlace para editar (el enlace parece un icono de lápiz <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
-        <p class="mb-0">En la página de edición, en la parte inferior, hay un <a class="btn btn-sm btn-outline-danger mx-2">botón mágico</a> que elimina de una vez y para siempre el registro de todo el internet.</p>
-
-    question_button_start_solving: "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-time\"></i> Comenzar a Resolver</a>?"
-    answer_button_start_solving: |
-        <p class="mb-0">Abre el cronómetro con rompecabezas seleccionados - puedes comenzar a armar y cronometrar de inmediato.</p>
-
-    question_button_add_my_time: "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Añadir Mi Tiempo</a>?"
-    answer_button_add_my_time: |
-        <p class="mb-0">Abre añadir tu tiempo a rompecabezas seleccionados - adecuado si usas tu propio cronómetro y acabas de terminar de armar. Si armaste en el pasado y quieres registrar el tiempo, tienes la opción de también especificar la fecha en que armaste.</p>
-
-    question_helping: "¿Quieren una mano amiga?"
-    answer_helping: |
-        <p class="mb-0">¡Por supuesto! Conéctate con nosotros, idealmente con una idea de cómo te gustaría involucrarte en construir la comunidad de speed puzzling, pondremos nuestras cabezas juntas y seguramente se nos ocurrirá algo.</p>
-
 profile:
     add_to_favorites: "Añadir a favoritos"
     remove_from_favorites: "Eliminar de favoritos"
@@ -396,7 +339,6 @@ events:
     results_link: "Resultados"
     registration_link: "Registrarse"
     competition_puzzles: "Rompecabezas de competencia"
-    no_puzzle_title: ""
     no_puzzle_text: No hay rompecabezas aquí… ¡todavía! Mantente atento
 
 faq:

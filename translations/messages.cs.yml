@@ -403,9 +403,9 @@ puzzlers:
 
 players_per_country:
     meta:
-        title: "Hráči ze země - %country%"
-    title:  "Hráči ze země - %country%"
-    link: "Hráči dle země"
+        title: "Puzzleři ze země - %country%"
+    title:  "Puzzleři ze země - %country%"
+    link: "Puzzleři dle země"
 
 flashes:
     stopwatch_already_saved: "Tyto stopky byly již uloženy."

@@ -387,9 +387,9 @@ puzzlers:
 
 players_per_country:
     meta:
-        title: "Jugadores del país - %country%"
-    title:  "Jugadores del país - %country%"
-    link: "Jugadores por país"
+        title: "Puzzlistas del país - %country%"
+    title:  "Puzzlistas del país - %country%"
+    link: "Puzzlistas por país"
 
 flashes:
     stopwatch_already_saved: "Estos cronómetros ya han sido guardados."

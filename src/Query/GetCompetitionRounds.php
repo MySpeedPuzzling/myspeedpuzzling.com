@@ -48,8 +48,8 @@ SQL;
             $results[$row['id']] = new CompetitionRoundInfo(
                 id: $row['id'],
                 name: $row['name'],
-                color: self::COLORS[$i],
                 textColor: self::TEXT_COLORS[$i],
+                color: self::COLORS[$i],
             );
         }
 

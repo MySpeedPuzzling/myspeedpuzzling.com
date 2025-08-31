@@ -39,7 +39,11 @@ class CompetitionRound
          * @var Collection<int, Puzzle>
          */
         #[ManyToMany(targetEntity: Puzzle::class)]
-        public Collection $puzzles = new ArrayCollection()
+        public Collection $puzzles = new ArrayCollection(),
+        #[Column(nullable: true)]
+        public null|string $badgeBackgroundColor = null,
+        #[Column(nullable: true)]
+        public null|string $badgeTextColor = null,
     ) {
     }
 }

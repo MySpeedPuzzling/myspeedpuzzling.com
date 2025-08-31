@@ -24,18 +24,18 @@ WHERE LOWER(name) = LOWER(:name)
 LIMIT 1
 SQL;
 
-        /** @var false|array{id: string} $data */
-        $data = $this->database
+        /** @var false|string $id */
+        $id = $this->database
             ->executeQuery($query, [
                 'name' => $name,
                 'country' => $country->name,
             ])
-            ->fetchAssociative();
+            ->fetchOne();
 
-        if ($data === false) {
+        if ($id === false) {
             return null;
         }
 
-        return $data['id'];
+        return $id;
     }
 }

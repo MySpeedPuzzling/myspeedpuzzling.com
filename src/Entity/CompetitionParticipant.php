@@ -38,8 +38,8 @@ class CompetitionParticipant
         #[Column]
         readonly public string $name,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column]
-        public string $country,
+        #[Column(nullable: true)]
+        public null|string $country,
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Competition $competition,

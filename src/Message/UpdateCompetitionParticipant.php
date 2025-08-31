@@ -13,7 +13,7 @@ readonly final class UpdateCompetitionParticipant
         public UuidInterface $competitionId,
         public UuidInterface $groupId,
         public string $name,
-        public CountryCode $country,
+        public null|CountryCode $country,
     ) {
     }
 }

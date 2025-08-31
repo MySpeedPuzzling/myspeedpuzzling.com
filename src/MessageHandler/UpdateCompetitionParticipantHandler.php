@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
@@ -34,25 +36,22 @@ readonly final class UpdateCompetitionParticipantHandler
     {
         $competition = $this->competitionRepository->get($message->competitionId->toString());
 
-        // Find existing participant by name + competition, or create new
         $participant = $this->findOrCreateParticipant($message, $competition);
 
         // If participant has no connected player, try to find and connect one
         if ($participant->player === null) {
             $playerId = $this->findPlayerByNameAndCountry->find($message->name, $message->country);
+
             if ($playerId !== null) {
                 $player = $this->playerRepository->get($playerId);
                 $participant->connect($player, $this->clock->now());
             }
         }
 
-        // Handle CompetitionParticipantRound
         $this->handleCompetitionParticipantRound($participant, $message->groupId);
-
-        $this->entityManager->flush();
     }
 
-    private function findOrCreateParticipant(UpdateCompetitionParticipant $message, \SpeedPuzzling\Web\Entity\Competition $competition): CompetitionParticipant
+    private function findOrCreateParticipant(UpdateCompetitionParticipant $message, Competition $competition): CompetitionParticipant
     {
         // Try to find existing participant by name and competition
         $queryBuilder = $this->entityManager->createQueryBuilder();
@@ -83,9 +82,8 @@ readonly final class UpdateCompetitionParticipantHandler
         return $participant;
     }
 
-    private function handleCompetitionParticipantRound(CompetitionParticipant $participant, \Ramsey\Uuid\UuidInterface $groupId): void
+    private function handleCompetitionParticipantRound(CompetitionParticipant $participant, UuidInterface $groupId): void
     {
-        // Find CompetitionRound by groupId (assuming groupId is the CompetitionRound ID)
         $competitionRound = $this->entityManager->find(CompetitionRound::class, $groupId->toString());
 
         if ($competitionRound === null) {
@@ -105,7 +103,6 @@ readonly final class UpdateCompetitionParticipantHandler
         if ($existingParticipantRound instanceof CompetitionParticipantRound) {
             $existingParticipantRound->changeRound($competitionRound);
         } else {
-            // Create new CompetitionParticipantRound
             $participantRound = new CompetitionParticipantRound(
                 Uuid::uuid7(),
                 $participant,

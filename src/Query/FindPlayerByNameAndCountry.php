@@ -18,29 +18,61 @@ readonly final class FindPlayerByNameAndCountry
     {
         $countryValue = $country?->name;
 
+        // First approach: search in competition_participant
         if ($countryValue === null) {
-            $query = <<<SQL
+            $competitionParticipantQuery = <<<SQL
+SELECT player_id
+FROM competition_participant
+WHERE LOWER(name) = LOWER(:name) 
+  AND country IS NULL
+  AND player_id IS NOT NULL
+LIMIT 1
+SQL;
+            $parameters = ['name' => $name];
+        } else {
+            $competitionParticipantQuery = <<<SQL
+SELECT player_id
+FROM competition_participant
+WHERE LOWER(name) = LOWER(:name) 
+  AND LOWER(country) = LOWER(:country)
+  AND player_id IS NOT NULL
+LIMIT 1
+SQL;
+            $parameters = ['name' => $name, 'country' => $countryValue];
+        }
+
+        /** @var false|string $playerId */
+        $playerId = $this->database
+            ->executeQuery($competitionParticipantQuery, $parameters)
+            ->fetchOne();
+
+        // Early return if found in competition_participant
+        if ($playerId !== false) {
+            return $playerId;
+        }
+
+        // Second approach: search in player table
+        if ($countryValue === null) {
+            $playerQuery = <<<SQL
 SELECT id
 FROM player
 WHERE LOWER(name) = LOWER(:name) 
   AND country IS NULL
 LIMIT 1
 SQL;
-            $parameters = ['name' => $name];
         } else {
-            $query = <<<SQL
+            $playerQuery = <<<SQL
 SELECT id
 FROM player
 WHERE LOWER(name) = LOWER(:name) 
   AND LOWER(country) = LOWER(:country)
 LIMIT 1
 SQL;
-            $parameters = ['name' => $name, 'country' => $countryValue];
         }
 
         /** @var false|string $id */
         $id = $this->database
-            ->executeQuery($query, $parameters)
+            ->executeQuery($playerQuery, $parameters)
             ->fetchOne();
 
         if ($id === false) {

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Admin;
 use Auth0\Symfony\Models\User;
 use Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\ExcelParsingFailed;
@@ -30,6 +31,7 @@ final class ImportCompetitionPuzzlersUploadController extends AbstractController
     public function __construct(
         private readonly CompetitionRepository $competitionRepository,
         private readonly MessageBusInterface $messageBus,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -63,7 +65,11 @@ final class ImportCompetitionPuzzlersUploadController extends AbstractController
 
                 return $this->redirectToRoute('admin_import_competition_puzzlers');
             } catch (ExcelParsingFailed $e) {
-                $this->addFlash('error', 'Excel parsing failed: ' . $e->getMessage());
+                $this->addFlash('danger', 'Excel parsing failed: ' . $e->getMessage());
+
+                $this->logger->error('Failed to import participants excel', [
+                    'exception' => $e,
+                ]);
             }
         }
 
@@ -158,6 +164,7 @@ final class ImportCompetitionPuzzlersUploadController extends AbstractController
             if ($e instanceof ExcelParsingFailed) {
                 throw $e;
             }
+
             throw new ExcelParsingFailed('Failed to process Excel file: ' . $e->getMessage());
         }
     }

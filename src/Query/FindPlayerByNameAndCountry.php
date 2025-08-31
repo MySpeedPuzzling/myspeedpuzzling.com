@@ -16,24 +16,31 @@ readonly final class FindPlayerByNameAndCountry
 
     public function find(string $name, null|CountryCode $country): null|string
     {
-        $query = <<<SQL
+        $countryValue = $country?->name;
+
+        if ($countryValue === null) {
+            $query = <<<SQL
 SELECT id
 FROM player
 WHERE LOWER(name) = LOWER(:name) 
-  AND (
-    (:country IS NULL AND country IS NULL)
-    OR
-    (:country IS NOT NULL AND LOWER(country) = LOWER(:country))
-  )
+  AND country IS NULL
 LIMIT 1
 SQL;
+            $parameters = ['name' => $name];
+        } else {
+            $query = <<<SQL
+SELECT id
+FROM player
+WHERE LOWER(name) = LOWER(:name) 
+  AND country = :country
+LIMIT 1
+SQL;
+            $parameters = ['name' => $name, 'country' => $countryValue];
+        }
 
         /** @var false|string $id */
         $id = $this->database
-            ->executeQuery($query, [
-                'name' => $name,
-                'country' => $country?->name,
-            ])
+            ->executeQuery($query, $parameters)
             ->fetchOne();
 
         if ($id === false) {

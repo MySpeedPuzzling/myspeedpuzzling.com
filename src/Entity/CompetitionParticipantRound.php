@@ -29,4 +29,9 @@ class CompetitionParticipantRound
         public CompetitionRound $round,
     ) {
     }
+
+    public function changeRound(CompetitionRound $newRound): void
+    {
+        $this->round = $newRound;
+    }
 }

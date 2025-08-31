@@ -145,7 +145,7 @@
                             </small>
                         </a>
 
-                        {% if logged_user.profile and logged_user.profile.isAdmin %}
+                        {% if is_granted('ADMIN_ACCESS') %}
                             {% if  solved_puzzle|length > 1 %}
                                 <div class="hidden" data-toggle-target="{{ solved_puzzle[0].puzzleId }}">
                                     <twig:Chart:PlayerPuzzleTimesChart results="{{ solved_puzzle }}" />

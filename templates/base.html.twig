@@ -105,7 +105,7 @@
             <div class="topbar topbar-light bg-secondary">
                 <div class="container">
                     <div class="topbar-text text-nowrap">
-                        {% if logged_user.profile and logged_user.profile.isAdmin %}
+                        {% if is_granted('ADMIN_ACCESS') %}
                             <div class="topbar-text dropdown disable-autohide me-2 me-sm-3">
                                 <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                     <i class="ci-key"></i>

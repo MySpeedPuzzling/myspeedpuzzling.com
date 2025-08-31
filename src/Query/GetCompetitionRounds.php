@@ -23,7 +23,7 @@ readonly final class GetCompetitionRounds
     public function ofCompetition(string $competitionId): array
     {
         $query = <<<SQL
-SELECT id, name
+SELECT id, name, badge_background_color, badge_text_color
 FROM competition_round
 WHERE competition_id = :competitionId
 ORDER BY name
@@ -42,14 +42,16 @@ SQL;
              * @var array{
              *     id: string,
              *     name: string,
+             *     badge_background_color: null|string,
+             *     badge_text_color: null|string,
              * } $row
              */
 
             $results[$row['id']] = new CompetitionRoundInfo(
                 id: $row['id'],
                 name: $row['name'],
-                textColor: self::TEXT_COLORS[$i],
-                color: self::COLORS[$i],
+                textColor: $row['badge_text_color'] ?? self::TEXT_COLORS[$i],
+                color: $row['badge_background_color'] ?? self::COLORS[$i],
             );
         }
 

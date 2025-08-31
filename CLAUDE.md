@@ -89,3 +89,4 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - After changing PHP code always run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/phpunit`, `docker compose exec web doctrine:schema:validate`, `docker compose exec web cache:warmup`.
 - When renaming database tables (in doctrine migrations), always make sure to go through the read-only Queries (in directory `src/Query/`) and if the table was renamed, update the queries.
 - Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely
+- **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.

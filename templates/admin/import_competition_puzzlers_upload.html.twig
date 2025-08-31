@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import participants for {{ competition.name }}{% endblock %}
+
+{% block content %}
+    <h1>Import participants</h1>
+    <h2 class="h4 text-muted mb-4">{{ competition.name }}</h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Upload Excel File</h5>
+                </div>
+                <div class="card-body">
+                    {{ form_start(form, {attr: {enctype: 'multipart/form-data'}}) }}
+                        <div class="mb-3">
+                            {{ form_label(form.file) }}
+                            {{ form_widget(form.file, {attr: {class: 'form-control'}}) }}
+                            {{ form_errors(form.file) }}
+                            <div class="form-text">
+                                Upload an Excel file (.xlsx) with participant data. Maximum file size: 20MB.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ path('admin_import_competition_puzzlers') }}" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                Import Participants
+                            </button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Excel File Format</h5>
+                </div>
+                <div class="card-body">
+                    <p>Your Excel file should contain the following columns:</p>
+                    <ul class="list-unstyled">
+                        <li><strong>Name:</strong> Participant's full name</li>
+                        <li><strong>Country:</strong> Two-letter country code (e.g., CZ, US, GB)</li>
+                        <li><strong>Round_id:</strong> UUID of the competition round/group</li>
+                    </ul>
+
+                    <div class="alert alert-info" role="alert">
+                        <small>
+                            <strong>Note:</strong> Rows with empty Round_id will be skipped.
+                            The system will try to match participants with existing players based on name and country.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

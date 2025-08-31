@@ -105,6 +105,22 @@
             <div class="topbar topbar-light bg-secondary">
                 <div class="container">
                     <div class="topbar-text text-nowrap">
+                        {% if logged_user.profile and logged_user.profile.isAdmin %}
+                            <div class="topbar-text dropdown disable-autohide me-2 me-sm-3">
+                                <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                    <i class="ci-key"></i>
+                                </a>
+
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item pb-1" href="{{ path('admin_import_competition_puzzlers') }}">
+                                            Import competition puzzlers
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        {% endif %}
+
                         <a data-turbo="true" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>
                             <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
                         </a>

@@ -73,7 +73,7 @@ readonly final class UpdateCompetitionParticipantHandler
         $participant = new CompetitionParticipant(
             Uuid::uuid7(),
             $message->name,
-            $message->country->name,
+            $message->country?->name,
             $competition
         );
 

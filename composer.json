@@ -44,6 +44,7 @@
         "nelmio/cors-bundle": "^2.4",
         "nette/utils": "^4.0",
         "oneup/flysystem-bundle": "^4.9",
+        "phpoffice/phpspreadsheet": "^5.0",
         "psr-discovery/cache-implementations": "^1.1",
         "psr-discovery/container-implementations": "^1.1",
         "psr-discovery/event-dispatcher-implementations": "^1.1",

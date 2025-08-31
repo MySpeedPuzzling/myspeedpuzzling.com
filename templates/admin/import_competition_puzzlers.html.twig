@@ -3,6 +3,72 @@
 {% block title %}Competition data import{% endblock %}
 
 {% block content %}
-    <h1>Competition data import</h1>
+    <div class="container mt-4">
+        <h1>Competition data import</h1>
+        <p class="text-muted">Choose a competition to import participant data from Excel file.</p>
 
+        {% if live_events is not empty %}
+            <div class="mb-5">
+                <h3 class="h4">Live Events</h3>
+                <div class="list-group">
+                    {% for event in live_events %}
+                        <a href="{{ path('admin_import_competition_puzzlers_upload', {competitionId: event.id}) }}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ event.name }}</h5>
+                                <small class="text-success">LIVE</small>
+                            </div>
+                            <p class="mb-1">{{ event.city }}, {{ event.country }}</p>
+                            <small>{{ event.dateFrom|date('d.m.Y') }}{% if event.dateTo %} - {{ event.dateTo|date('d.m.Y') }}{% endif %}</small>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if upcoming_events is not empty %}
+            <div class="mb-5">
+                <h3 class="h4">Upcoming Events</h3>
+                <div class="list-group">
+                    {% for event in upcoming_events %}
+                        <a href="{{ path('admin_import_competition_puzzlers_upload', {competitionId: event.id}) }}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ event.name }}</h5>
+                                <small class="text-primary">UPCOMING</small>
+                            </div>
+                            <p class="mb-1">{{ event.city }}, {{ event.country }}</p>
+                            <small>{{ event.dateFrom|date('d.m.Y') }}{% if event.dateTo %} - {{ event.dateTo|date('d.m.Y') }}{% endif %}</small>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if past_events is not empty %}
+            <div class="mb-5">
+                <h3 class="h4">Past Events</h3>
+                <div class="list-group">
+                    {% for event in past_events %}
+                        <a href="{{ path('admin_import_competition_puzzlers_upload', {competitionId: event.id}) }}" 
+                           class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ event.name }}</h5>
+                                <small class="text-muted">PAST</small>
+                            </div>
+                            <p class="mb-1">{{ event.city }}, {{ event.country }}</p>
+                            <small>{{ event.dateFrom|date('d.m.Y') }}{% if event.dateTo %} - {{ event.dateTo|date('d.m.Y') }}{% endif %}</small>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if live_events is empty and upcoming_events is empty and past_events is empty %}
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">No competitions found</h4>
+                <p>There are no competitions available for import at this time.</p>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

@@ -32,7 +32,7 @@ SQL;
 SELECT id
 FROM player
 WHERE LOWER(name) = LOWER(:name) 
-  AND country = :country
+  AND LOWER(country) = LOWER(:country)
 LIMIT 1
 SQL;
             $parameters = ['name' => $name, 'country' => $countryValue];

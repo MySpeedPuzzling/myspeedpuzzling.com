@@ -10,6 +10,10 @@ use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
+use Symfony\UX\LiveComponent\Attribute\LiveArg;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
@@ -18,8 +22,15 @@ final class CompetitionParticipants
 {
     use DefaultActionTrait;
 
+    #[LiveProp]
     public string $competitionId = '';
+
+    #[LiveProp]
     public string $eventSlug = '';
+
+    /** @var array<string> */
+    #[LiveProp(writable: true)]
+    public array $roundsFilter = [];
 
     /** @var array<ConnectedCompetitionParticipant> */
     public array $connectedParticipants = [];
@@ -40,11 +51,27 @@ final class CompetitionParticipants
     }
 
     #[PostMount]
+    #[PreReRender]
     public function populate(): void
     {
-        $this->connectedParticipants = $this->getCompetitionParticipants->getConnectedParticipants($this->competitionId);
-        $this->notConnectedParticipants = $this->getCompetitionParticipants->getNotConnectedParticipants($this->competitionId);
         $this->competitionRounds = $this->getCompetitionRounds->ofCompetition($this->competitionId);
-        $this->participantsRounds = $this->getCompetitionRounds->forAllCompetitionParticipants($this->competitionId);
+        $this->participantsRounds = $this->getCompetitionRounds->forAllCompetitionParticipants($this->competitionId, $this->roundsFilter);
+        $this->connectedParticipants = $this->getCompetitionParticipants->getConnectedParticipants($this->competitionId, $this->roundsFilter);
+        $this->notConnectedParticipants = $this->getCompetitionParticipants->getNotConnectedParticipants($this->competitionId, $this->roundsFilter);
+    }
+
+    #[LiveAction]
+    public function filterRound(#[LiveArg] string $roundId): void
+    {
+        $key = array_search($roundId, $this->roundsFilter, true);
+
+        if ($key !== false) {
+            // Remove from filter if already present
+            unset($this->roundsFilter[$key]);
+            $this->roundsFilter = array_values($this->roundsFilter); // Re-index array
+        } else {
+            // Add to filter if not present
+            $this->roundsFilter[] = $roundId;
+        }
     }
 }

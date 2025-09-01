@@ -78,11 +78,12 @@ SQL;
 
     /**
      * @return array<ConnectedCompetitionParticipant>
+     * @param array<string> $roundsFilter
      */
-    public function getConnectedParticipants(string $competitionId): array
+    public function getConnectedParticipants(string $competitionId, array $roundsFilter = []): array
     {
         $query1 = <<<SQL
-SELECT 
+SELECT DISTINCT
     competition_participant.id AS participant_id,
     competition_participant.name AS participant_name,  
     player.id AS player_id,
@@ -93,15 +94,37 @@ FROM
     competition_participant
 INNER JOIN 
     player ON player.id = competition_participant.player_id
+SQL;
+
+        if (count($roundsFilter) > 0) {
+            $query1 .= <<<SQL
+
+INNER JOIN 
+    competition_participant_round ON competition_participant_round.participant_id = competition_participant.id
+SQL;
+        }
+
+        $query1 .= <<<SQL
+
 WHERE 
     competition_participant.player_id IS NOT NULL
     AND competition_participant.competition_id = :competitionId
 SQL;
 
+        if (count($roundsFilter) > 0) {
+            $query1 .= ' AND competition_participant_round.round_id IN (:rounds)';
+        }
+
+        $queryParams = ['competitionId' => $competitionId];
+        $paramTypes = [];
+
+        if (count($roundsFilter) > 0) {
+            $queryParams['rounds'] = $roundsFilter;
+            $paramTypes['rounds'] = ArrayParameterType::STRING;
+        }
+
         $participants = $this->database
-            ->executeQuery($query1, [
-                'competitionId' => $competitionId,
-            ])
+            ->executeQuery($query1, $queryParams, $paramTypes)
             ->fetchAllAssociative();
 
         /** @var array<string> $playerIds */
@@ -216,20 +239,44 @@ SQL;
 
     /**
      * @return array<NotConnectedCompetitionParticipant>
+     * @param array<string> $roundsFilter
      */
-    public function getNotConnectedParticipants(string $competitionId): array
+    public function getNotConnectedParticipants(string $competitionId, array $roundsFilter = []): array
     {
         $query = <<<SQL
-SELECT id, name, country
+SELECT DISTINCT competition_participant.id, competition_participant.name, competition_participant.country
 FROM competition_participant
-WHERE player_id IS NULL AND competition_id = :competitionId
-ORDER BY name
 SQL;
 
+        if (count($roundsFilter) > 0) {
+            $query .= <<<SQL
+
+INNER JOIN 
+    competition_participant_round ON competition_participant_round.participant_id = competition_participant.id
+SQL;
+        }
+
+        $query .= <<<SQL
+
+WHERE competition_participant.player_id IS NULL AND competition_participant.competition_id = :competitionId
+SQL;
+
+        if (count($roundsFilter) > 0) {
+            $query .= ' AND competition_participant_round.round_id IN (:rounds)';
+        }
+
+        $query .= ' ORDER BY competition_participant.name';
+
+        $queryParams = ['competitionId' => $competitionId];
+        $paramTypes = [];
+
+        if (count($roundsFilter) > 0) {
+            $queryParams['rounds'] = $roundsFilter;
+            $paramTypes['rounds'] = ArrayParameterType::STRING;
+        }
+
         $data = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $competitionId,
-            ])
+            ->executeQuery($query, $queryParams, $paramTypes)
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): NotConnectedCompetitionParticipant {

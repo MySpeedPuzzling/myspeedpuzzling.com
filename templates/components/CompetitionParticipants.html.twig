@@ -1,76 +1,96 @@
 <div {{ attributes }}>
-    {% if this.connectedParticipants or this.notConnectedParticipants %}
-        <p class="mt-5">
-            <a href="{{ path('competition_connection', {'slug': eventSlug}) }}" class="btn btn-sm btn-primary">
-                <i class="bi-people"></i>
-                {{ 'my_profile.wjpc_connection'|trans }}
-            </a>
-        </p>
+    <p class="mt-5">
+        <a href="{{ path('competition_connection', {'slug': eventSlug}) }}" class="btn btn-sm btn-primary">
+            <i class="bi-people"></i>
+            {{ 'my_profile.wjpc_connection'|trans }}
+        </a>
+    </p>
 
-        {% if this.connectedParticipants %}
-            <h2 class="h3 d-inline-block position-relative zindex-1 zindex-sm-5">{{ 'wjpc2024.connected_participants'|trans }} ({{ this.connectedParticipants|length }})</h2>
+    {% if this.competitionRounds|length > 0 %}
+        <div class="mb-3">
+            <small class="text-muted">{{ 'Filter by rounds:'|trans }}</small><br>
+            {% for roundId, round in this.competitionRounds %}
+                {% set isActive = roundId in this.roundsFilter %}
+                {% set hasFilters = this.roundsFilter|length > 0 %}
+                <button
+                    class="btn btn-sm me-1 mb-1 border-0 {{ isActive ? 'text-light' : 'btn-outline-secondary' }}"
+                    style="opacity: {{ (not hasFilters or isActive) ? '1' : '0.5' }}; background: {{ round.color }} !important; color: {{ round.textColor }} !important;"
+                    data-action="live#action"
+                    data-live-action-param="filterRound"
+                    data-live-round-id-param="{{ roundId }}"
+                >
+                    {{ round.name }}
+                </button>
+            {% endfor %}
 
-            <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-                <table class="table custom-table table-striped table-hover mb-0">
-                    <tbody>
-                    {% for participant in this.connectedParticipants %}
-                        <tr
-                            class="{{ logged_user.profile is not null and participant.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}"
-                        >
-                            <td class="text-center" style="width: 35px;">
-                                {{ loop.index }}
-                            </td>
+            {% if this.roundsFilter|length > 0 %}
+                <small class="text-muted ms-2">{{ this.roundsFilter|length }} {{ 'selected'|trans }}</small>
+            {% endif %}
+        </div>
+    {% endif %}
 
-                            <td class="fs-sm">
-                                {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name">{{ participant.playerName }}</a><br>
-                                {{ participant.participantName }}<br>
-                            </td>
+    {% if this.connectedParticipants %}
+        <h2 class="h3 d-inline-block position-relative zindex-1 zindex-sm-5">{{ 'wjpc2024.connected_participants'|trans }} ({{ this.connectedParticipants|length }})</h2>
 
-                            <td style="width: 1px;">
-                                {% for participant_round in this.participantsRounds[participant.participantId] ?? [] %}
-                                    <span class="badge text-light" style="background: {{ this.competitionRounds[participant_round].color }} !important;color: {{ this.competitionRounds[participant_round].textColor }} !important;">{{ this.competitionRounds[participant_round].name }}</span>
-                                {% endfor %}
-                            </td>
+        <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <tbody>
+                {% for participant in this.connectedParticipants %}
+                    <tr
+                        class="{{ logged_user.profile is not null and participant.playerId is same as logged_user.profile.playerId ? 'table-active-player' }}"
+                    >
+                        <td class="text-center" style="width: 35px;">
+                            {{ loop.index }}
+                        </td>
 
-                            <td class="text-end text-nowrap" style="line-height: 120%;">
-                                <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
-                                <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>
-                                <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
+                        <td class="fs-sm">
+                            {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name">{{ participant.playerName }}</a><br>
+                            {{ participant.participantName }}<br>
+                        </td>
+
+                        <td style="width: 1px;">
+                            {% for participant_round in this.participantsRounds[participant.participantId] ?? [] %}
+                                <span class="badge text-light" style="background: {{ this.competitionRounds[participant_round].color }} !important;color: {{ this.competitionRounds[participant_round].textColor }} !important;">{{ this.competitionRounds[participant_round].name }}</span>
+                            {% endfor %}
+                        </td>
+
+                        <td class="text-end text-nowrap" style="line-height: 120%;">
+                            <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
+                            <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>
+                            <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
 
 
-        {% if this.notConnectedParticipants %}
-            <h2 class="h3 mt-4">{{ 'wjpc2024.not_connected_participants'|trans }} ({{ this.notConnectedParticipants|length }})</h2>
+    {% if this.notConnectedParticipants %}
+        <h2 class="h3 mt-4">{{ 'wjpc2024.not_connected_participants'|trans }} ({{ this.notConnectedParticipants|length }})</h2>
 
-            <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-                <table class="table custom-table table-striped table-hover mb-0">
-                    <tbody>
-                    {% for participant in this.notConnectedParticipants %}
-                        <tr>
-                            <td class="fs-sm">
-                                {{ participant.name }}
-                                {% if participant.countryCode %}
-                                    <small class="shadow-custom fi fi-{{ participant.countryCode.name }}"></small>
-                                {% endif %}
-                            </td>
+        <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <tbody>
+                {% for participant in this.notConnectedParticipants %}
+                    <tr>
+                        <td class="fs-sm">
+                            {{ participant.name }}
+                            {% if participant.countryCode %}
+                                <small class="shadow-custom fi fi-{{ participant.countryCode.name }}"></small>
+                            {% endif %}
+                        </td>
 
-                            <td style="width: 1px;">
-                                {% for participant_round in this.participantsRounds[participant.id] ?? [] %}
-                                    <span class="badge text-light" style="background: {{ this.competitionRounds[participant_round].color }} !important;color: {{ this.competitionRounds[participant_round].textColor }} !important;">{{ this.competitionRounds[participant_round].name }}</span>
-                                {% endfor %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
-
+                        <td style="width: 1px;">
+                            {% for participant_round in this.participantsRounds[participant.id] ?? [] %}
+                                <span class="badge text-light" style="background: {{ this.competitionRounds[participant_round].color }} !important;color: {{ this.competitionRounds[participant_round].textColor }} !important;">{{ this.competitionRounds[participant_round].name }}</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% endif %}
 </div>

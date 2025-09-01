@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
 
@@ -60,21 +61,31 @@ SQL;
 
     /**
      * @return array<string, array<string>>
+     * @param array<string> $roundsFilter
      */
-    public function forAllCompetitionParticipants(string $competitionId): array
+    public function forAllCompetitionParticipants(string $competitionId, array $roundsFilter = []): array
     {
+        $queryParams = ['competitionId' => $competitionId];
+        $paramTypes = [];
+
         $query = <<<SQL
 SELECT participant_id, round_id
 FROM competition_participant_round
 INNER JOIN competition_round ON competition_participant_round.round_id = competition_round.id
 WHERE competition_round.competition_id = :competitionId
 SQL;
+
+        if (count($roundsFilter) > 0) {
+            $query .= ' AND competition_participant_round.round_id IN (:rounds)';
+
+            $queryParams['rounds'] = $roundsFilter;
+            $paramTypes['rounds'] = ArrayParameterType::STRING;
+        }
+
         $results = [];
 
         $rows = $this->database
-            ->executeQuery($query, [
-                'competitionId' => $competitionId,
-            ])
+            ->executeQuery($query, $queryParams, $paramTypes)
             ->fetchAllAssociative();
 
         foreach ($rows as $row) {

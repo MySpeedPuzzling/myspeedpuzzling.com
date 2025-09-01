@@ -80,7 +80,7 @@ SQL;
      * @return array<ConnectedCompetitionParticipant>
      * @param array<string> $roundsFilter
      */
-    public function getConnectedParticipants(string $competitionId, array $roundsFilter = []): array
+    public function getConnectedParticipants(string $competitionId, array $roundsFilter = [], bool $firstTryOnly = false): array
     {
         $query1 = <<<SQL
 SELECT DISTINCT
@@ -157,6 +157,14 @@ WHERE
     puzzle_solving_time.player_id IN (:playerIds)
     AND puzzle_solving_time.team IS NULL
     AND puzzle.pieces_count = 500
+SQL;
+
+        if ($firstTryOnly) {
+            $query2 .= ' AND puzzle_solving_time.first_attempt = true';
+        }
+
+        $query2 .= <<<SQL
+
 GROUP BY
     puzzle_solving_time.player_id
 SQL;

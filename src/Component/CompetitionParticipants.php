@@ -32,6 +32,9 @@ final class CompetitionParticipants
     #[LiveProp(writable: true)]
     public array $roundsFilter = [];
 
+    #[LiveProp(writable: true)]
+    public bool $firstTryOnly = false;
+
     /** @var array<ConnectedCompetitionParticipant> */
     public array $connectedParticipants = [];
 
@@ -56,7 +59,7 @@ final class CompetitionParticipants
     {
         $this->competitionRounds = $this->getCompetitionRounds->ofCompetition($this->competitionId);
         $this->participantsRounds = $this->getCompetitionRounds->forAllCompetitionParticipants($this->competitionId, $this->roundsFilter);
-        $this->connectedParticipants = $this->getCompetitionParticipants->getConnectedParticipants($this->competitionId, $this->roundsFilter);
+        $this->connectedParticipants = $this->getCompetitionParticipants->getConnectedParticipants($this->competitionId, $this->roundsFilter, $this->firstTryOnly);
         $this->notConnectedParticipants = $this->getCompetitionParticipants->getNotConnectedParticipants($this->competitionId, $this->roundsFilter);
     }
 
@@ -68,10 +71,21 @@ final class CompetitionParticipants
         if ($key !== false) {
             // Remove from filter if already present
             unset($this->roundsFilter[$key]);
-            $this->roundsFilter = array_values($this->roundsFilter); // Re-index array
+            $this->roundsFilter = [];
         } else {
             // Add to filter if not present
-            $this->roundsFilter[] = $roundId;
+            $this->roundsFilter = [$roundId];
         }
+    }
+
+    public function getActiveFiltersCount(): int
+    {
+        $count = 0;
+
+        if ($this->firstTryOnly !== false) {
+            $count++;
+        }
+
+        return $count;
     }
 }

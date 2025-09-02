@@ -27,6 +27,8 @@ final class AddedTimeRecapController extends AbstractController
             'en' => '/en/time-added/{timeId}',
             'es' => '/es/tiempo-anadido/{timeId}',
             'ja' => '/ja/時間追加済み/{timeId}',
+            'fr' => '/fr/temps-ajoute/{timeId}',
+            'de' => '/de/zeit-hinzugefuegt/{timeId}',
         ],
         name: 'added_time_recap',
     )]

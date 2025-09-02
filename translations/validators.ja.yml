@@ -1,0 +1,3 @@
+image_invalid_mime_type: "有効な画像形式のファイルを入力してください。サポートされているのは: jpg, jpeg, gif, png, webp, heic, heif, avif"
+puzzling_time_format: "HH:MM:SSまたはMM:SS形式でタイムを入力してください"
+player_code: "プレイヤーコードは文字と数字のみで、特殊文字やスペースは含められません。"

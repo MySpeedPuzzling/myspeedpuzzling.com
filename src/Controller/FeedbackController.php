@@ -27,6 +27,7 @@ final class FeedbackController extends AbstractController
             'cs' => '/feedback',
             'en' => '/en/feedback',
             'es' => '/es/comentarios',
+            'ja' => '/ja/フィードバック',
         ],
         name: 'feedback',
     )]

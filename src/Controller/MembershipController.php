@@ -28,6 +28,7 @@ final class MembershipController extends AbstractController
             'cs' => '/clenstvi/',
             'en' => '/en/membership',
             'es' => '/es/membresia',
+            'ja' => '/ja/メンバーシップ',
          ],
          name: 'membership',
      )]

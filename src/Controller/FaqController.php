@@ -19,6 +19,7 @@ final class FaqController extends AbstractController
             'cs' => '/caste-dotazy',
             'en' => '/en/faq',
             'es' => '/es/preguntas-frecuentes',
+            'ja' => '/ja/よくある質問',
         ],
         name: 'faq',
     )]

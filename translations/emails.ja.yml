@@ -1,0 +1,48 @@
+footer: '<a href="%homepageLink%">MySpeedPuzzling.com</a>の一員でいてくださりありがとうございます。<br>ご質問がございましたら、いつでも<a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>までお気軽にお問い合わせください。'
+
+membership_cancelled:
+    subject: "MySpeedPuzzling.comのメンバーシップ登録がキャンセルされました"
+    title: "メンバーシップ登録がキャンセルされました！"
+    content: |
+        <p>お別れは残念ですが、MySpeedPuzzling.comで過ごしていただいた時間に感謝いたします。</p>
+        <p>ご心配なく、今後請求されることはありません。ただし、メンバーシップは現在の請求期間の終了まで有効で、<b>%membershipExpiresAt%</b>まで続きます。</p>
+        <p>お気が変わりましたら、<a href="%membershipUrl%">メンバーシップページ</a>でいつでもメンバーシップを管理できます。</p>
+        <p>私たちはMySpeedPuzzling.comの改善に常に取り組んでおり、フィードバックやアイデアがあればとても嬉しく思います。</p>
+        <p>MySpeedPuzzling.comの一員でいてくださりありがとうございました。いつかまたお迎えできることを願っています！ :)</p>
+
+membership_granted:
+    subject: "MySpeedPuzzling.comでのメンバーシップおめでとうございます"
+    title: "メンバーシップがアクティブになりました！"
+    content: |
+        <p>スピードパズリングコミュニティでのあなたの貢献と努力を認識できて嬉しく思います！</p>
+        <p>感謝の気持ちとして、MySpeedPuzzling.comでメンバーシップを付与いたします。メンバーシップは<b>%membershipExpiresAt%</b>まで有効です。</p>
+        <p><a href="%membershipUrl%">メンバーシップページ</a>でいつでもメンバーシップを確認・管理できます。</p>
+        <p>スピードパズリングコミュニティの貴重な一員でいてくださりありがとうございます。パズルを続けて、他のパズラーにインスピレーションを与えてください！</p>
+
+membership_subscribed:
+    subject: "MySpeedPuzzling.comでのメンバーシップおめでとうございます"
+    title: "ご参加いただきありがとうございます！"
+    content: |
+        <h4>メンバーシップがアクティブになりました。</h4>
+        <p>あなたのサポートを深く感謝し、MySpeedPuzzling.comのメンバーとしてお迎えできることを嬉しく思います！</p>
+        <p>次回請求期間の開始日: <b>%nextBillingPeriod%</b></p>
+        <p><a href="%membershipUrl%">メンバーシップページ</a>で登録管理、メンバーシップキャンセル、請求書ダウンロードがいつでもできます。</p>
+        <p>MySpeedPuzzling.comの一員でいてくださり、サポートしてくださりありがとうございます。高速スピードパズリングと素晴らしい結果をお祈りしています！</p>
+
+subscription_payment_failed:
+    subject: "MySpeedPuzzling.comのメンバーシップ支払いが失敗しました"
+    title: "メンバーシップ支払いが失敗しました！"
+    content: |
+        <p>最近のメンバーシップ支払いが失敗したことを確認いたしました。支払い方法に問題があった可能性があります。</p>
+        <p>メンバーシップをアクティブに保ちたい場合は、<a href="%billingPortalUrl%">請求ポータルページ</a>で支払い方法を確認・更新してください。</p>
+        <p>支払いが引き続き失敗する場合、数回の試行後にメンバーシップが無効化されます。MySpeedPuzzling.comに引き続きお付き合いいただけることを願っています！</p>
+
+subscription_renewed:
+    subject: "MySpeedPuzzling.comのメンバーシップ支払いが成功しました"
+    title: "支払い成功、ありがとうございます！"
+    content: |
+        <p>引き続きご利用いただき、MySpeedPuzzling.comの一員でいてくださり本当にありがとうございます！</p>
+        <p>メンバーシップが正常に更新されたことをお知らせします。次回請求期間の開始日: <b>%nextBillingPeriod%</b></p>
+        <p>登録の詳細を更新または確認したい場合は、<a href="%membershipUrl%">メンバーシップページ</a>で行えます。</p>
+        <p>私たちはメンバーの皆様のために改善と新機能追加に常に取り組んでいます。改善できることがあればお知らせください。</p>
+        <p>再度、サポートしてくださりありがとうございます。高速スピードパズリングと素晴らしい結果をお祈りしています！</p>

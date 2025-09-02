@@ -23,6 +23,7 @@ final class MyProfileController extends AbstractController
             'cs' => '/muj-profil',
             'en' => '/en/my-profile',
             'es' => '/es/mi-perfil',
+            'ja' => '/ja/プロフィール',
         ],
         name: 'my_profile',
     )]

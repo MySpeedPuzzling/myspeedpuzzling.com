@@ -49,6 +49,7 @@ final class AddTimeController extends AbstractController
             'cs' => '/pridat-cas/{puzzleId}',
             'en' => '/en/add-time/{puzzleId}',
             'es' => '/es/anadir-tiempo/{puzzleId}',
+            'ja' => '/ja/時間追加/{puzzleId}',
         ],
         name: 'add_time',
     )]
@@ -57,6 +58,7 @@ final class AddTimeController extends AbstractController
             'cs' => '/ulozit-stopky/{stopwatchId}',
             'en' => '/en/save-stopwatch/{stopwatchId}',
             'es' => '/es/guardar-cronometro/{stopwatchId}',
+            'ja' => '/ja/ストップウォッチ保存/{stopwatchId}',
         ],
         name: 'finish_stopwatch',
     )]

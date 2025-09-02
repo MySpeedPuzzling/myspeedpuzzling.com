@@ -33,6 +33,7 @@ final class ToggleFavoritePlayerController extends AbstractController
             'cs' => '/pridat-hrace-k-oblibenym/{playerId}',
             'en' => '/en/add-player-to-favorites/{playerId}',
             'es' => '/es/anadir-jugador-a-favoritos/{playerId}',
+            'ja' => '/ja/お気に入りに追加/{playerId}',
         ],
         name: 'add_player_to_favorite',
     )]
@@ -41,6 +42,7 @@ final class ToggleFavoritePlayerController extends AbstractController
             'cs' => '/odebrat-hrace-z-oblibenych/{playerId}',
             'en' => '/en/remove-player-from-favorites/{playerId}',
             'es' => '/es/eliminar-jugador-de-favoritos/{playerId}',
+            'ja' => '/ja/お気に入りから削除/{playerId}',
         ],
         name: 'remove_player_from_favorite',
     )]

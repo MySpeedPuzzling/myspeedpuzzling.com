@@ -1,0 +1,324 @@
+menu:
+    my_profile: "マイプロフィール"
+    add_time: "タイム追加"
+    stopwatch: "ストップウォッチ"
+    puzzles_overview: "パズル"
+    ladder: "リーダーボード"
+    players: "プレイヤー"
+    faq: "よくある質問"
+    sign_in: "サインイン"
+    hub: "ハブ"
+    feedback: "フィードバック送信"
+    support_us: "サポート"
+    terms_of_service: "利用規約"
+    privacy_policy: "プライバシーポリシー"
+    membership: "メンバーシップ"
+    search: "検索"
+    statistics: "統計"
+    collection: "コレクション"
+    favorite_puzzlers: "お気に入りプレイヤー"
+    edit_profile: "プロフィール編集"
+    change_player_code: "プレイヤーコード変更"
+    profile: "プロフィール"
+    events: "イベント"
+
+footer:
+    created_with_love: "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
+    about: "マイスピードパズリングは、すべてのパズル愛好家、特にスピードパズル愛好家のためのコミュニティプラットフォームです。<br>タイムを共有し、他の人と比較し、一緒に楽しむための究極の場所です。"
+    popular_search: "人気検索"
+    speed_puzzling_leaderboard: "スピードパズリングリーダーボード"
+    speed_puzzling_players: "スピードパズリングプレイヤー"
+    latest_puzzle_times: "最新のパズルタイム"
+    750_piece_puzzles: "750ピースパズル"
+
+puzzler_name: "名前"
+puzzler: "パズラー"
+puzzle: "パズル"
+time: "タイム"
+pieces_count: "%count%&nbsp;ピース"
+show_more: "もっと見る"
+puzzle_solved: "完了"
+puzzle_available: "貸出可能"
+puzzle_not_available: "貸出不可"
+add_my_time: "マイタイム追加"
+start_solving: "解き始める"
+show_times: "タイム表示"
+fastest_time_short: "最速: %time%"
+average_time_short: "平均: %time%"
+fastest_time: "最速:"
+average_time: "平均:"
+only_first_tries_filter: "初回のみ"
+filtered_out_puzzlers_count_info: "初回情報のない<strong>%count%人のパズラー</strong>を非表示にしています。"
+my_time: "マイタイム:"
+puzzle_solved_count: "完了回数:"
+puzzle_solved_times: "%count%回完了"
+never_solved_puzzles: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
+show_more_solving_times: "もっと見る (%count%回)"
+be_first_to_solve: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
+be_first_to_group_solve: "これらのパズルはまだグループで解かれていません。最初のグループになりましょう！"
+email: "メール"
+facebook: "Facebook"
+instagram: "Instagram"
+search: "検索"
+puzzle_waiting_for_approval: "最近追加されたパズルは管理者の承認を待っています - 通常追加から24時間以内です。ご辛抱をお願いします。"
+puzzle_img_alt: "%puzzle% - パズル画像"
+searching: "検索中..."
+load_more: "さらに読み込む..."
+back_to_top: "トップに戻る"
+total_found: "合計発見数: %count%"
+remaining: "残り: %puzzle%"
+loading: "読み込み中"
+any: "すべて"
+all_pieces: "すべて"
+solo_solved: "ソロ完了:"
+first_attempt: "初回"
+add_to_collection: "マイコレクションに追加"
+in_collection: "マイコレクション内"
+remove_from_collection: "コレクションから削除"
+ranking_out_of: "の"
+wjpc_participant: "WJPC 2024参加者 (%name%)"
+share: "シェア"
+edit: "編集"
+delete: "削除"
+active_membership: "アクティブメンバーシップ"
+new_badge: "新着"
+secret_puzzler_name: "秘密のパズラー"
+
+homepage:
+    meta:
+        title: "スピードパズリング - タイム記録＆競争"
+        description: "究極のスピードパズリングコミュニティに参加しましょう！パズルタイムを記録し、世界中のプレイヤーと競争し、リーダーボードを登りましょう。今すぐ始めましょう！"
+        keywords: "スピードパズリング, パズルタイム, ジグソーパズルコミュニティ, パズル解決競争, パズルリーダーボード"
+    global_statistics: "私たち全員で<strong>%puzzles%</strong>個のパズルを解くのにこれだけの時間がかかりました。<br>それは驚くべき<strong>%pieces%</strong>ピースです。"
+    title: "ようこそパズラー、スピードパズリングの世界へ！"
+    intro_text: "スピードパズリングは、できるだけ早くパズルを組み立てることを目標とするエキサイティングなスポーツです。すべてのピースが重要で、毎秒が重要です。従来のパズル解決にレーストラックのアドレナリンを想像してみてください！私たちのプラットフォームは、時間だけでなく他のパズル愛好家とも対戦できる初のプラットフォームです。"
+    why_block: |
+        <h3>なぜ参加するのですか？</h3>
+        <ul>
+            <li><strong>他の人と競争:</strong> あなたのタイムを共有し、他のパズラーと比較しましょう</li>
+            <li><strong>リーダーボードと統計:</strong> 最速パズラー、最多組立パズル、最もアクティブなユーザーのランキングを発見しましょう</li>
+            <li><strong>ストップウォッチ:</strong> パズル組立の簡単なタイミングのための統合ストップウォッチを使用しましょう</li>
+            <li><strong>パズルを追加:</strong> 当サイトにないパズルをお持ちですか？追加してコミュニティとタイムを共有しましょう。</li>
+            <li><strong>パズリングコミュニティを構築:</strong> 成長するコミュニティに参加し、ヒント、コツ、友好的な競争を共有しましょう</li>
+            <li><strong>視野を広げる:</strong> オンライン、そして将来的にはオフラインでの競技会の開催を計画していますので、ライブでスキルを披露できます</li>
+        </ul>
+    help_us_grow_block: |
+        <h3>成長にご協力ください</h3>
+        <p>私たちのアプリは始まったばかりで、あなたのアイデア、フィードバック、バグ発見の手助けは貴重です。この初期段階で私たちに参加し、スピードパズリングの未来に直接影響を与えてください。</p>
+    start_today_block: |
+        <h3>今日から始めましょう</h3>
+        <p>初心者でも経験豊富なパズラーでも、私たちのプラットフォームはスキルを伸ばし、他の人と競い合う完璧な場所を提供します。私たちに参加し、スピードパズリングの未来の一部になりましょう！</p>
+    cta_sign_in: "サインイン"
+    cta_my_profile: "マイプロフィール"
+    cta_recent: "最近のタイム"
+
+ladder:
+    title: "リーダーボード"
+    meta:
+        title: "タイムリーダーボード"
+        description: "最速パズルタイムとプレイヤーランキングを表示するスピードパズリングリーダーボード。記録保持者を確認し、トップポジションを目指して競争しましょう。"
+        keywords: "スピードパズリングリーダーボード, 最速タイム, パズル記録, プレイヤーランキング, 競技結果, パズルチャンピオン"
+    overview: "概要"
+    recent_activity: "最近追加されたタイム"
+    solo: "ソロ"
+    duo: "デュオ"
+    team: "チーム"
+    most_solved_puzzle: "最多組立パズル"
+    most_active_puzzlers: "最も熱心なパズラー"
+    puzzle_solved_count: "解いたパズル数"
+    link_to_hub: "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
+
+filters:
+    button: "フィルター"
+    filter_by: "フィルター条件"
+    pieces_placeholder: "- ピース数 -"
+    manufacturer_placeholder: "- メーカー -"
+    less_than: "%count%未満"
+    more_than: "%count%以上"
+    text_search_placeholder: "パズル名またはコード..."
+    only_available: "貸出可能のみ"
+    only_with_time: "タイム入力済みのみ"
+    no_puzzle_matches_filters: "指定されたフィルターに一致するパズルがありません"
+
+sorting:
+    sort_by: "並び順"
+    newest_times: "最新"
+    oldest_times: "最古"
+    fastest_times: "最速"
+    slowest_times: "最遅"
+    most_solved: "最多解決"
+    least_solved: "最少解決"
+    a_z: "名前 A-Z"
+    z_a: "名前 Z-A"
+
+puzzle_overview:
+    meta:
+        title: "スピードパズリングデータベース"
+        description: "500-1000+ピースパズルのスピードパズリングデータベースを閲覧。解決タイムを比較し、新しい挑戦を見つけ、進捗を追跡しましょう。"
+        keywords: "パズルデータベース, ジグソーパズルタイム, 500ピースパズル, 1000ピースパズル, パズルブランド, スピード解決"
+    title: "パズル"
+    missing_puzzle_info: "ここにパズルが見つからない場合、まだ誰も解いておらず、データベースにありません。新しいパズルはタイム追加時に入力できます。"
+
+stopwatch:
+    meta:
+        title: "ストップウォッチ"
+    title: "ストップウォッチ"
+    start: "開始"
+    stop: "停止"
+    continue: "続行"
+    reset: "リセット"
+    finish: "完了！タイム追加"
+    more_my_stopwatches: "他のマイストップウォッチ"
+    status:
+        not_started: "開始準備完了"
+        running: "実行中"
+        paused: "一時停止"
+        finished: "パズル完了"
+
+add_time:
+    meta:
+        title: "タイム追加"
+    title: "タイム追加"
+    chosen_puzzle: "選択されたパズル:"
+    choose_puzzle: "パズルを選択"
+    puzzle_needed: "リストからパズルを選択するか、新しいものを追加する必要があります"
+    change_puzzle: "選択変更"
+    add_when_not_found_info: "リストにパズルが見つからない場合は、新しいものを追加してください。"
+    need_approve_info: "新しく追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
+    add_manufacturer: "新しいメーカーを追加"
+    not_in_list: "(リストにありません)"
+    choose_manufacturer: "リストからメーカーを選択"
+    time_from_stopwatch: "ストップウォッチからのタイム"
+    add_puzzler: "グループ協力者を追加"
+    teamplayer: "協力者"
+    player_code_info: "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
+    choose_from_favorites: "- お気に入りから選択 -"
+
+forms:
+    drop_file: "ファイルをここにドラッグ＆ドロップしてアップロード"
+    choose_file: "またはファイルを選択"
+    save: "保存"
+    cancel: "キャンセル"
+    submit: "送信"
+    reset: "リセット"
+    search: "検索"
+    clear: "クリア"
+    confirm: "確認"
+    delete: "削除"
+    edit: "編集"
+    update: "更新"
+    create: "作成"
+    remove: "削除"
+    add: "追加"
+    close: "閉じる"
+    back: "戻る"
+    continue: "続行"
+    next: "次へ"
+    previous: "前へ"
+    yes: "はい"
+    no: "いいえ"
+    ok: "OK"
+
+my_profile:
+    logout: "ログアウト"
+    profile_info: "プロフィール情報"
+    account_settings: "アカウント設定"
+    privacy_settings: "プライバシー設定"
+    statistics: "統計"
+    recent_activity: "最近のアクティビティ"
+    achievements: "実績"
+    competitions: "競技会"
+
+notifications:
+    title: "通知"
+    mark_as_read: "既読にする"
+    mark_all_as_read: "すべて既読にする"
+    no_notifications: "通知がありません"
+    new_notification: "新しい通知"
+
+membership:
+    title: "メンバーシップ"
+    features: "機能"
+    pricing: "価格"
+    benefits: "特典"
+    subscribe: "登録"
+    cancel_subscription: "登録キャンセル"
+    active_until: "有効期限"
+    modal:
+        title: "メンバー限定機能"
+        text: "この機能はアクティブなメンバーシップが必要です。"
+        cta: "メンバーシップ詳細"
+        no_thanks: "結構です"
+
+feedback:
+    title: "フィードバック"
+    message: "メッセージ"
+    send: "送信"
+    thank_you: "フィードバックありがとうございます！"
+
+events:
+    title: "イベント"
+    upcoming: "今後のイベント"
+    past: "過去のイベント"
+    register: "登録"
+    details: "詳細"
+    location: "場所"
+    date: "日付"
+    time: "時間"
+    participants: "参加者"
+
+puzzlers:
+    meta:
+        title: "パズラー"
+        description: "スピードパズリングコミュニティのプレイヤーを閲覧。プロフィール、統計、実績を表示し、新しい競争相手を見つけましょう。"
+        keywords: "パズラー, プレイヤープロフィール, スピードパズリングコミュニティ, 競争相手, プレイヤー統計"
+    title: "パズラー"
+    search_placeholder: "プレイヤー名またはコードで検索..."
+    most_favorite: "最も人気のパズラー"
+    by_country: "国別"
+    total_players: "合計プレイヤー"
+
+contact:
+    title: "お問い合わせ"
+    email: "メール"
+    message: "メッセージ"
+    send: "送信"
+    thank_you: "お問い合わせありがとうございます！"
+
+faq:
+    meta:
+        title: "よくある質問"
+        description: "スピードパズリングについてのよくある質問と回答。ルール、参加方法、プラットフォームの使い方について学びましょう。"
+        keywords: "よくある質問, スピードパズリングルール, ヘルプ, サポート"
+    title: "よくある質問"
+
+recent_activity:
+    title: "最近のアクティビティ"
+    latest_times: "最新のタイム"
+    no_activity: "最近のアクティビティがありません"
+
+compare_players:
+    title: "プレイヤー比較"
+    select_players: "比較するプレイヤーを選択"
+    comparison: "比較"
+    statistics: "統計"
+    head_to_head: "対戦成績"
+
+privacy_policy:
+    title: "プライバシーポリシー"
+
+terms_of_service:
+    title: "利用規約"
+
+global_modal:
+    title: "お知らせ"
+    text: "新しい機能や重要な情報をお知らせします。"
+    button_cta: "詳細を見る"
+    button_dismiss: "閉じる"
+
+flashes:
+    exclusive_membership_feature: "この機能はメンバーシップが必要です。"
+    success: "正常に完了しました。"
+    error: "エラーが発生しました。"
+    warning: "注意が必要です。"
+    info: "情報をお知らせします。"

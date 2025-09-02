@@ -137,15 +137,12 @@ final class CompetitionParticipants
         ]);
 
         $chart->setOptions([
-            'indexAxis' => 'y', // Horizontal bar chart
             'scales' => [
                 'x' => [
                     'grid' => [
-                        'display' => true,
+                        'display' => false,
                     ],
-                ],
-                'y' => [
-                    'grid' => [
+                    'ticks' => [
                         'display' => false,
                     ],
                 ],

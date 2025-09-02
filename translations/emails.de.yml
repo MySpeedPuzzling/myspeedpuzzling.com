@@ -1,48 +1,48 @@
-footer: 'Vielen Dank, dass Sie Teil von <a href="%homepageLink%">MySpeedPuzzling.com</a> sind.<br>Wenn Sie Fragen haben, zögern Sie nicht, uns jederzeit unter <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> zu kontaktieren.'
+footer: 'Vielen Dank, dass du Teil von <a href="%homepageLink%">MySpeedPuzzling.com</a> bist.<br>Wenn du Fragen hast, zögere nicht, uns jederzeit unter <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> zu kontaktieren.'
 
 membership_cancelled:
     subject: "Mitgliedschafts-Abonnement auf MySpeedPuzzling.com wurde gekündigt"
     title: "Mitgliedschafts-Abonnement wurde gekündigt!"
     content: |
-        <p>Es tut uns leid, Sie gehen zu sehen, aber wir schätzen die Zeit, die Sie mit MySpeedPuzzling.com verbracht haben.</p>
-        <p>Keine Sorge, Ihnen werden keine weiteren Kosten berechnet. Ihre Mitgliedschaft bleibt jedoch aktiv bis zum Ende der aktuellen Abrechnungsperiode, die am <b>%membershipExpiresAt%</b> endet.</p>
-        <p>Wenn Sie Ihre Meinung ändern, können Sie Ihre Mitgliedschaft jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> verwalten.</p>
-        <p>Wir arbeiten ständig daran, MySpeedPuzzling.com zu verbessern, und würden uns sehr über Feedback oder Ideen von Ihnen freuen.</p>
-        <p>Vielen Dank, dass Sie Teil von MySpeedPuzzling.com waren, und wir hoffen, Sie eines Tages wieder begrüßen zu können! :)</p>
+        <p>Es tut uns leid, dich gehen zu sehen, aber wir schätzen die Zeit, die du mit MySpeedPuzzling.com verbracht hast.</p>
+        <p>Keine Sorge, dir werden keine weiteren Kosten berechnet. Deine Mitgliedschaft bleibt jedoch aktiv bis zum Ende der aktuellen Abrechnungsperiode, die am <b>%membershipExpiresAt%</b> endet.</p>
+        <p>Wenn du deine Meinung änderst, kannst du deine Mitgliedschaft jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> verwalten.</p>
+        <p>Wir arbeiten ständig daran, MySpeedPuzzling.com zu verbessern, und würden uns sehr über Feedback oder Ideen von dir freuen.</p>
+        <p>Vielen Dank, dass du Teil von MySpeedPuzzling.com warst, und wir hoffen, dich eines Tages wieder begrüßen zu können! :)</p>
 
 membership_granted:
-    subject: "Herzlichen Glückwunsch zu Ihrer Mitgliedschaft bei MySpeedPuzzling.com"
-    title: "Ihre Mitgliedschaft ist jetzt aktiv!"
+    subject: "Herzlichen Glückwunsch zu deiner Mitgliedschaft bei MySpeedPuzzling.com"
+    title: "Deine Mitgliedschaft ist jetzt aktiv!"
     content: |
-        <p>Wir sind begeistert, Ihren Beitrag und Ihre Bemühungen in der Speed Puzzling Community zu würdigen!</p>
-        <p>Als Zeichen unserer Anerkennung haben wir Ihnen eine Mitgliedschaft auf MySpeedPuzzling.com gewährt. Ihre Mitgliedschaft bleibt aktiv bis: <b>%membershipExpiresAt%</b>.</p>
-        <p>Sie können Ihre Mitgliedschaft jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> überprüfen und verwalten.</p>
-        <p>Vielen Dank, dass Sie ein so wertvoller Teil der Speed Puzzling Community sind. Puzzeln Sie weiter und inspirieren Sie andere Puzzler!</p>
+        <p>Wir sind begeistert, deinen Beitrag und deine Bemühungen in der Speed Puzzling Community zu würdigen!</p>
+        <p>Als Zeichen unserer Anerkennung haben wir dir eine Mitgliedschaft auf MySpeedPuzzling.com gewährt. Deine Mitgliedschaft bleibt aktiv bis: <b>%membershipExpiresAt%</b>.</p>
+        <p>Du kannst deine Mitgliedschaft jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> überprüfen und verwalten.</p>
+        <p>Vielen Dank, dass du ein so wertvoller Teil der Speed Puzzling Community bist. Puzzle weiter und inspiriere andere Puzzler!</p>
 
 membership_subscribed:
-    subject: "Herzlichen Glückwunsch zu Ihrer Mitgliedschaft bei MySpeedPuzzling.com"
-    title: "Vielen Dank, dass Sie zu uns gestoßen sind!"
+    subject: "Herzlichen Glückwunsch zu deiner Mitgliedschaft bei MySpeedPuzzling.com"
+    title: "Vielen Dank, dass du zu uns gestoßen bist!"
     content: |
-        <h4>Ihre Mitgliedschaft ist jetzt aktiv.</h4>
-        <p>Wir schätzen Ihre Unterstützung sehr und freuen uns, Sie als Mitglied von MySpeedPuzzling.com willkommen zu heißen!</p>
-        <p>Ihre nächste Abrechnungsperiode beginnt am: <b>%nextBillingPeriod%</b>.</p>
-        <p>Sie können Ihr Abonnement verwalten, die Mitgliedschaft kündigen oder Rechnungen jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> herunterladen.</p>
-        <p>Vielen Dank, dass Sie Teil von MySpeedPuzzling.com sind und für Ihre Unterstützung. Wir wünschen Ihnen viel schnelles Speed Puzzling und fantastische Ergebnisse!</p>
+        <h4>Deine Mitgliedschaft ist jetzt aktiv.</h4>
+        <p>Wir schätzen deine Unterstützung sehr und freuen uns, dich als Mitglied von MySpeedPuzzling.com willkommen zu heißen!</p>
+        <p>Deine nächste Abrechnungsperiode beginnt am: <b>%nextBillingPeriod%</b>.</p>
+        <p>Du kannst dein Abonnement verwalten, die Mitgliedschaft kündigen oder Rechnungen jederzeit auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> herunterladen.</p>
+        <p>Vielen Dank, dass du Teil von MySpeedPuzzling.com bist und für deine Unterstützung. Wir wünschen dir viel schnelles Speed Puzzling und fantastische Ergebnisse!</p>
 
 subscription_payment_failed:
     subject: "Mitgliedschafts-Zahlung auf MySpeedPuzzling.com fehlgeschlagen"
     title: "Mitgliedschafts-Zahlung fehlgeschlagen!"
     content: |
-        <p>Wir haben bemerkt, dass Ihre letzte Mitgliedschafts-Zahlung nicht erfolgreich war. Es könnte ein Problem mit Ihrer Zahlungsmethode gegeben haben.</p>
-        <p>Wenn Sie Ihre Mitgliedschaft aktiv halten möchten, überprüfen und aktualisieren Sie bitte Ihre Zahlungsmethode auf der <a href="%billingPortalUrl%">Abrechnungsportal-Seite</a>.</p>
-        <p>Wenn die Zahlung weiterhin fehlschlägt, wird Ihre Mitgliedschaft nach einigen weiteren Versuchen deaktiviert. Wir hoffen, dass Sie bei MySpeedPuzzling.com bleiben!</p>
+        <p>Wir haben bemerkt, dass deine letzte Mitgliedschafts-Zahlung nicht erfolgreich war. Es könnte ein Problem mit deiner Zahlungsmethode gegeben haben.</p>
+        <p>Wenn du deine Mitgliedschaft aktiv halten möchtest, überprüfe und aktualisiere bitte deine Zahlungsmethode auf der <a href="%billingPortalUrl%">Abrechnungsportal-Seite</a>.</p>
+        <p>Wenn die Zahlung weiterhin fehlschlägt, wird deine Mitgliedschaft nach einigen weiteren Versuchen deaktiviert. Wir hoffen, dass du bei MySpeedPuzzling.com bleibst!</p>
 
 subscription_renewed:
     subject: "Mitgliedschafts-Zahlung auf MySpeedPuzzling.com war erfolgreich"
     title: "Zahlung erfolgreich, vielen Dank!"
     content: |
-        <p>Vielen Dank, dass Sie bei uns bleiben und Teil von MySpeedPuzzling.com sind!</p>
-        <p>Wir freuen uns, Ihnen mitteilen zu können, dass Ihre Mitgliedschaft erfolgreich erneuert wurde. Ihre nächste Abrechnungsperiode beginnt am: <b>%nextBillingPeriod%</b>.</p>
-        <p>Wenn Sie die Details Ihres Abonnements aktualisieren oder überprüfen möchten, können Sie dies auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> tun.</p>
-        <p>Wir arbeiten ständig daran, neue Funktionen für unsere Mitglieder zu verbessern und hinzuzufügen. Wenn es etwas gibt, was wir besser machen können, lassen Sie es uns wissen.</p>
-        <p>Nochmals vielen Dank für Ihre Unterstützung. Wir wünschen Ihnen viel schnelles Speed Puzzling und fantastische Ergebnisse!</p>
+        <p>Vielen Dank, dass du bei uns bleibst und Teil von MySpeedPuzzling.com bist!</p>
+        <p>Wir freuen uns, dir mitteilen zu können, dass deine Mitgliedschaft erfolgreich erneuert wurde. Deine nächste Abrechnungsperiode beginnt am: <b>%nextBillingPeriod%</b>.</p>
+        <p>Wenn du die Details deines Abonnements aktualisieren oder überprüfen möchtest, kannst du dies auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> tun.</p>
+        <p>Wir arbeiten ständig daran, neue Funktionen für unsere Mitglieder zu verbessern und hinzuzufügen. Wenn es etwas gibt, was wir besser machen können, lass es uns wissen.</p>
+        <p>Nochmals vielen Dank für deine Unterstützung. Wir wünschen dir viel schnelles Speed Puzzling und fantastische Ergebnisse!</p>

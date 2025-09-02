@@ -9,7 +9,7 @@ menu:
     sign_in: "Anmelden"
     hub: "Hub"
     feedback: "Feedback senden"
-    support_us: "Unterstützen Sie uns"
+    support_us: "Unterstütze uns"
     terms_of_service: "Nutzungsbedingungen"
     privacy_policy: "Datenschutzerklärung"
     membership: "Mitgliedschaft"
@@ -52,10 +52,10 @@ filtered_out_puzzlers_count_info: "Versteckt <strong>%count% Puzzler</strong> oh
 my_time: "Meine Zeit:"
 puzzle_solved_count: "Anzahl der Lösungen:"
 puzzle_solved_times: "%count%x gelöst"
-never_solved_puzzles: "Diese Puzzles hat noch niemand gelöst - seien Sie der Erste!"
+never_solved_puzzles: "Diese Puzzles hat noch niemand gelöst - sei der Erste!"
 show_more_solving_times: "Mehr (%count%x)"
-be_first_to_solve: "Diese Puzzles wurden noch nicht gelöst. Seien Sie der Erste!"
-be_first_to_group_solve: "Diese Puzzles wurden noch nicht in einer Gruppe gelöst. Seien Sie der Erste!"
+be_first_to_solve: "Diese Puzzles wurden noch nicht gelöst. Sei der Erste!"
+be_first_to_group_solve: "Diese Puzzles wurden noch nicht in einer Gruppe gelöst. Sei der Erste!"
 email: "E-Mail"
 facebook: "Facebook"
 instagram: "Instagram"
@@ -87,28 +87,28 @@ secret_puzzler_name: "Versteckter Puzzler"
 homepage:
     meta:
         title: "Speed Puzzling - Zeiten verfolgen & Konkurrieren"
-        description: "Treten Sie der ultimativen Speed Puzzling Community bei! Verfolgen Sie Puzzle-Zeiten, konkurrieren Sie mit Spielern weltweit und erklimmen Sie die Bestenlisten. Starten Sie heute!"
+        description: "Tritt der ultimativen Speed Puzzling Community bei! Verfolge Puzzle-Zeiten, konkurriere mit Spielern weltweit und erklimme die Bestenlisten. Starte heute!"
         keywords: "Speed Puzzling, Speedpuzzling, Puzzle-Zeiten, Puzzle-Community, Puzzle-Wettbewerb, Puzzle-Bestenliste"
     global_statistics: "Es hat uns alle zusammen so viel Zeit gekostet, <strong>%puzzles%</strong> Puzzles zu lösen.<br>Das sind unglaubliche <strong>%pieces%</strong> Teile."
 
     title: "Willkommen Puzzler in der Welt des Speed Puzzling!"
-    intro_text: "Speed Puzzling ist ein aufregender Sport, bei dem das Ziel darin besteht, Puzzles so schnell wie möglich zusammenzusetzen. Jedes Teil zählt, jede Sekunde ist wichtig. Stellen Sie sich traditionelle Puzzle-Lösung vor, aber mit dem Adrenalin einer Rennstrecke! Unsere Plattform ist die erste ihrer Art - ein Ort, wo Sie Ihre Puzzle-Lösungsfähigkeiten nicht nur gegen die Zeit, sondern auch gegen andere Puzzle-Enthusiasten testen können."
+    intro_text: "Speed Puzzling ist ein aufregender Sport, bei dem das Ziel darin besteht, Puzzles so schnell wie möglich zusammenzusetzen. Jedes Teil zählt, jede Sekunde ist wichtig. Stell dir traditionelle Puzzle-Lösung vor, aber mit dem Adrenalin einer Rennstrecke! Unsere Plattform ist die erste ihrer Art - ein Ort, wo du deine Puzzle-Lösungsfähigkeiten nicht nur gegen die Zeit, sondern auch gegen andere Puzzle-Enthusiasten testen kannst."
     why_block: |
         <h3>Warum sollte ich beitreten?</h3>
         <ul>
-            <li><strong>Mit anderen konkurrieren:</strong> Teilen Sie Ihre Zeiten und vergleichen Sie sie mit anderen Puzzlern</li>
-            <li><strong>Bestenlisten und Statistiken:</strong> Entdecken Sie die Ranglisten der schnellsten Puzzler, meisten zusammengesetzten Puzzles und aktivsten Nutzer</li>
-            <li><strong>Stoppuhr:</strong> Nutzen Sie unsere integrierte Stoppuhr für einfaches Zeitmessen beim Puzzle-Zusammensetzen</li>
-            <li><strong>Ihre Puzzles hinzufügen:</strong> Haben Sie ein Puzzle, das auf unserer Seite fehlt? Fügen Sie es hinzu und teilen Sie Ihre Zeiten mit der Community.</li>
-            <li><strong>Bauen Sie Ihre Puzzle-Community auf:</strong> Treten Sie unserer wachsenden Community bei und teilen Sie Tipps, Tricks und freundschaftliche Rivalität</li>
-            <li><strong>Erweitern Sie Ihren Horizont:</strong> Wir planen Wettbewerbe zu organisieren, sowohl online als auch in Zukunft offline, damit Sie Ihre Fähigkeiten live zeigen können</li>
+            <li><strong>Mit anderen konkurrieren:</strong> Teile deine Zeiten und vergleiche sie mit anderen Puzzlern</li>
+            <li><strong>Bestenlisten und Statistiken:</strong> Entdecke die Ranglisten der schnellsten Puzzler, meisten zusammengesetzten Puzzles und aktivsten Nutzer</li>
+            <li><strong>Stoppuhr:</strong> Nutze unsere integrierte Stoppuhr für einfaches Zeitmessen beim Puzzle-Zusammensetzen</li>
+            <li><strong>Deine Puzzles hinzufügen:</strong> Hast du ein Puzzle, das auf unserer Seite fehlt? Füge es hinzu und teile deine Zeiten mit der Community.</li>
+            <li><strong>Baue deine Puzzle-Community auf:</strong> Tritt unserer wachsenden Community bei und teile Tipps, Tricks und freundschaftliche Rivalität</li>
+            <li><strong>Erweitere deinen Horizont:</strong> Wir planen Wettbewerbe zu organisieren, sowohl online als auch in Zukunft offline, damit du deine Fähigkeiten live zeigen kannst</li>
         </ul>
     help_us_grow_block: |
-        <h3>Helfen Sie uns zu wachsen</h3>
-        <p>Unsere App steht erst am Anfang, und Ihre Ideen, Ihr Feedback und Ihre Hilfe beim Finden von Fehlern sind von unschätzbarem Wert. Begleiten Sie uns in dieser frühen Phase und haben Sie direkten Einfluss auf die Zukunft des Speed Puzzling.</p>
+        <h3>Hilf uns zu wachsen</h3>
+        <p>Unsere App steht erst am Anfang, und deine Ideen, dein Feedback und deine Hilfe beim Finden von Fehlern sind von unschätzbarem Wert. Begleite uns in dieser frühen Phase und hab direkten Einfluss auf die Zukunft des Speed Puzzling.</p>
     start_today_block: |
         <h3>Heute beginnen</h3>
-        <p>Ob Sie ein Anfänger oder ein erfahrener Puzzler sind, unsere Plattform bietet den perfekten Ort, um Ihre Fähigkeiten zu entwickeln und sich mit anderen zu messen. Treten Sie uns bei und werden Sie Teil der Zukunft des Speed Puzzling!</p>
+        <p>Ob du ein Anfänger oder ein erfahrener Puzzler bist, unsere Plattform bietet den perfekten Ort, um deine Fähigkeiten zu entwickeln und dich mit anderen zu messen. Tritt uns bei und werde Teil der Zukunft des Speed Puzzling!</p>
     cta_sign_in: "Anmelden"
     cta_my_profile: "Mein Profil"
     cta_recent: "Neueste Zeiten"
@@ -182,7 +182,7 @@ add_time:
     title: "Zeit hinzufügen"
     chosen_puzzle: "Ausgewähltes Puzzle:"
     choose_puzzle: "Wählen Sie ein Puzzle"
-    puzzle_needed: "Sie müssen ein Puzzle aus der Liste auswählen oder ein neues hinzufügen"
+    puzzle_needed: "Du musst ein Puzzle aus der Liste auswählen oder ein neues hinzufügen"
     change_puzzle: "Auswahl ändern"
     add_when_not_found_info: "Wenn Sie das Puzzle in der Liste nicht finden können, fügen Sie bitte ein neues hinzu."
     need_approve_info: "Neu hinzugefügte Puzzles werden nach der Genehmigung durch einen Administrator öffentlich angezeigt - normalerweise innerhalb von 24 Stunden nach dem Hinzufügen."

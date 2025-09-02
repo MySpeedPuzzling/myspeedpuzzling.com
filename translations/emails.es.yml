@@ -17,7 +17,7 @@ membership_granted:
         <p>¡Estamos emocionados de reconocer tu contribución y esfuerzos en la comunidad de Speed Puzzling!</p>
         <p>Como muestra de nuestro aprecio, te hemos otorgado una membresía en MySpeedPuzzling.com. Tu membresía permanecerá activa hasta: <b>%membershipExpiresAt%</b>.</p>
         <p>Puedes verificar y gestionar tu membresía en cualquier momento en la <a href="%membershipUrl%">página de membresía</a>.</p>
-        <p>Gracias por ser una parte tan valiosa de la comunidad de Speed Puzzling. ¡Sigue resolviendo rompecabezas e inspirando a otros puzzlistas!</p>
+        <p>Gracias por ser una parte tan valiosa de la comunidad de Speed Puzzling. ¡Sigue resolviendo rompecabezas e inspirando a otros puzzleros!</p>
 
 membership_subscribed:
     subject: "Felicitaciones por tu membresía en MySpeedPuzzling.com"

@@ -16,7 +16,7 @@ menu:
     search: "Buscar"
     statistics: "Estadísticas"
     collection: "Colección"
-    favorite_puzzlers: "Puzzlistas favoritos"
+    favorite_puzzlers: "Puzzleros favoritos"
     edit_profile: "Editar perfil"
     change_player_code: "Cambiar código de jugador"
     profile: "Perfil"
@@ -32,7 +32,7 @@ footer:
     750_piece_puzzles: "Puzzles 750 Piezas"
 
 puzzler_name: "Nombre"
-puzzler: "Puzzlista"
+puzzler: "Puzzlero"
 puzzle: "Puzzle"
 time: "Tiempo"
 pieces_count: "%count%&nbsp;piezas"
@@ -48,7 +48,7 @@ average_time_short: "Prom: %time%"
 fastest_time: "Más rápido:"
 average_time: "Promedio:"
 only_first_tries_filter: "Solo primeros intentos"
-filtered_out_puzzlers_count_info: "Ocultos <strong>%count% puzzlistas</strong> sin información del primer intento."
+filtered_out_puzzlers_count_info: "Ocultos <strong>%count% puzzleros</strong> sin información del primer intento."
 my_time: "Mi tiempo:"
 puzzle_solved_count: "Número de completados:"
 puzzle_solved_times: "completado %count%x"
@@ -82,7 +82,7 @@ edit: "Editar"
 delete: "Eliminar"
 active_membership: "Membresía activa"
 new_badge: "Nuevo"
-secret_puzzler_name: "Puzzlista Oculto"
+secret_puzzler_name: "Puzzlero Oculto"
 
 homepage:
     meta:
@@ -91,13 +91,13 @@ homepage:
         keywords: "speed puzzling, speedpuzzling, tiempos puzzle, comunidad puzzle, competición resolver puzzles, ranking puzzle"
     global_statistics: "Nos tomó a todos este tiempo resolver <strong>%puzzles%</strong> rompecabezas.<br>Eso es un increíble total de <strong>%pieces%</strong> piezas."
 
-    title: "¡Bienvenido Puzzlista, al Mundo del Speed Puzzling!"
+    title: "¡Bienvenido Puzzlero, al Mundo del Speed Puzzling!"
     intro_text: "El Speed Puzzling es un deporte emocionante donde el objetivo es armar rompecabezas lo más rápido posible. Cada pieza cuenta, cada segundo importa. ¡Imagina resolver rompecabezas tradicionales pero con la adrenalina de una pista de carreras! Nuestra plataforma es la primera de su tipo: un lugar donde puedes probar tus habilidades de resolución de rompecabezas no solo contra el tiempo, sino también contra otros entusiastas de los rompecabezas."
     why_block: |
         <h3>¿Por qué debería unirme?</h3>
         <ul>
-            <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzlistas</li>
-            <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzlistas más rápidos, los rompecabezas más armados y los usuarios más activos</li>
+            <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzleros</li>
+            <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzleros más rápidos, los rompecabezas más armados y los usuarios más activos</li>
             <li><strong>Cronómetro:</strong> Usa nuestro cronómetro integrado para cronometrar fácilmente el armado de tu rompecabezas</li>
             <li><strong>Añade tus rompecabezas:</strong> ¿Tienes un rompecabezas que falta en nuestro sitio? Añádelo y comparte tus tiempos con la comunidad.</li>
             <li><strong>Construye tu comunidad de rompecabezas:</strong> Únete a nuestra creciente comunidad y comparte consejos, trucos y rivalidad amistosa</li>
@@ -108,7 +108,7 @@ homepage:
         <p>Nuestra aplicación está comenzando, y tus ideas, comentarios y ayuda para encontrar errores son invaluables. Únete a nosotros en esta etapa temprana y ten un impacto directo en el futuro del speed puzzling.</p>
     start_today_block: |
         <h3>Comienza Hoy</h3>
-        <p>Ya seas principiante o un puzzlista experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>
+        <p>Ya seas principiante o un puzzlero experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>
     cta_sign_in: "Iniciar sesión"
     cta_my_profile: "Mi perfil"
     cta_recent: "Tiempos recientes"
@@ -125,7 +125,7 @@ ladder:
     duo: "Dúo"
     team: "Equipo"
     most_solved_puzzle: "Rompecabezas Más Armado"
-    most_active_puzzlers: "Puzzlistas Más Entusiastas"
+    most_active_puzzlers: "Puzzleros Más Entusiastas"
     puzzle_solved_count: "Rompecabezas Resueltos"
     link_to_hub: "¿Buscas el rompecabezas más resuelto o los jugadores más activos? ¡Lo movimos al&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">nuevo Centro</a>!"
 
@@ -190,9 +190,9 @@ add_time:
     not_in_list: "(no en la lista)"
     choose_manufacturer: "Elegir un fabricante de la lista"
     time_from_stopwatch: "Tiempo del cronómetro"
-    add_puzzler: "Añadir co-puzzlista del grupo"
-    teamplayer: "Co-puzzlista"
-    player_code_info: "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlista no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
+    add_puzzler: "Añadir co-puzzlero del grupo"
+    teamplayer: "Co-puzzlero"
+    player_code_info: "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlero no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
     choose_from_favorites: "- Elegir de favoritos -"
 
 forms:
@@ -251,9 +251,9 @@ forms:
 
 puzzlers_comparison:
     meta:
-        title: "Comparación de Puzzlistas"
-    title: "Comparación de Puzzlistas"
-    nothing_to_compare: "Desafortunadamente, no tienes rompecabezas para comparar que hayan sido armados por ambos puzzlistas."
+        title: "Comparación de Puzzleros"
+    title: "Comparación de Puzzleros"
+    nothing_to_compare: "Desafortunadamente, no tienes rompecabezas para comparar que hayan sido armados por ambos puzzleros."
 
 edit_time:
     meta:
@@ -290,14 +290,14 @@ profile:
     statistics_time: "Tiempo gastado armando"
     statistics_puzzles_solved: "Número de rompecabezas resueltos"
     statistics_pieces_count: "Número de piezas armadas"
-    favorite_puzzlers: "Puzzlistas favoritos"
-    no_favorite_puzzlers: "No hay puzzlistas favoritos"
+    favorite_puzzlers: "Puzzleros favoritos"
+    no_favorite_puzzlers: "No hay puzzleros favoritos"
     solved_puzzles: "Rompecabezas resueltos"
     solved_puzzles_solo: "Individual"
     solved_puzzles_group: "Armado en grupo"
     recent_activity: "Actividad<br>reciente"
     personal_info: "Información<br>personal"
-    private_profile_info_1: "Este puzzlista ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
+    private_profile_info_1: "Este puzzlero ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
     private_profile_info_2: "¿Quieres saber más? Encuéntralos en persona e intenta convencerlos de revelar sus tiempos. Eso es todo lo que podemos decirte aquí."
 
 my_profile:
@@ -330,7 +330,7 @@ events:
     title: "Eventos"
     meta:
         title: "Eventos Speed Puzzling | Compite"
-        description: "Únete a eventos speed puzzling, competiciones y torneos. Compite con mejores puzzlistas mundiales y prueba tus habilidades."
+        description: "Únete a eventos speed puzzling, competiciones y torneos. Compite con mejores puzzleros mundiales y prueba tus habilidades."
         keywords: "eventos speed puzzling, competiciones puzzle, torneos puzzle, WJPC, campeonato puzzle, puzzling competitivo"
     live: "Ocurriendo ahora mismo"
     upcoming: "Próximos"
@@ -354,8 +354,8 @@ faq:
     question_fair_play: |
     answer_fair_play: |
         <h4 class="mb-3">¿Cómo sabes que no estoy haciendo trampa al ingresar tiempos?</h4>
-        <p>Honestamente - probablemente no lo sabremos. En la tabla de clasificación pública, donde los puzzlistas ingresan tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlista individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>
-        <p>Asumimos que, como nosotros, otros puzzlistas arman principalmente por el placer de hacerlo, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomé 3 horas durante una competencia?</p>
+        <p>Honestamente - probablemente no lo sabremos. En la tabla de clasificación pública, donde los puzzleros ingresan tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlero individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>
+        <p>Asumimos que, como nosotros, otros puzzleros arman principalmente por el placer de hacerlo, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomé 3 horas durante una competencia?</p>
         <p>En el futuro, también planeamos ligas clasificadas, donde la verificación de tiempo podría ser requerida, por ejemplo, a través de grabación de video.</p>
         <p class="text-danger mb-0"><small>Dado que nuestra comunidad incluye finalistas del Campeonato Mundial de Rompecabezas, que han quedado en la cima, podemos tomar sus tiempos como referencia. Los tiempos sospechosos serán monitoreados y si se prueba fraude, serán despiadadamente eliminados. En caso de trampas repetidas, el acceso del jugador a la plataforma será restringido.</small></p>
 
@@ -393,9 +393,9 @@ faq:
 puzzlers:
     meta:
         title: "Jugadores Speed Puzzling | Resultados"
-        description: "Descubre jugadores speed puzzling, compara resultados y rankings. Sigue puzzlistas favoritos y ve sus últimos tiempos."
-        keywords: "jugadores speed puzzling, puzzlistas, resolventes puzzle, resultados jugadores, comunidad puzzle, tiempos speed puzzling"
-    title: "Puzzlistas"
+        description: "Descubre jugadores speed puzzling, compara resultados y rankings. Sigue puzzleros favoritos y ve sus últimos tiempos."
+        keywords: "jugadores speed puzzling, puzzleros, resolventes puzzle, resultados jugadores, comunidad puzzle, tiempos speed puzzling"
+    title: "Puzzleros"
     results_for: "Resultados de búsqueda para"
     no_matches_found: "No se encontraron coincidencias"
     my_favorites: "Mis Favoritos"
@@ -403,9 +403,9 @@ puzzlers:
 
 players_per_country:
     meta:
-        title: "Puzzlistas del país - %country%"
-    title:  "Puzzlistas del país - %country%"
-    link: "Puzzlistas por país"
+        title: "Puzzleros del país - %country%"
+    title:  "Puzzleros del país - %country%"
+    link: "Puzzleros por país"
 
 flashes:
     stopwatch_already_saved: "Estos cronómetros ya han sido guardados."
@@ -416,11 +416,11 @@ flashes:
     time_edited: "La información editada ha sido guardada."
     player_not_found: "¡El jugador que trataste de encontrar no está registrado con nosotros!"
     puzzle_not_found: "¡El rompecabezas que trataste de encontrar no existe en nuestra plataforma!"
-    puzzler_added_to_favorites: "Hemos añadido al puzzlista a tu lista de favoritos."
-    puzzler_removed_from_favorites: "Hemos eliminado al puzzlista de tu lista de favoritos."
-    can_not_favorite_yourself: "No puedes añadirte a tu lista de favoritos. ¡Está claro que eres tu propio puzzlista favorito!"
-    player_already_in_favorites: "Este puzzlista ya está en tu lista de favoritos, así que no lo añadiremos de nuevo ;-)."
-    player_not_in_favorites: "Hmm, no pudimos encontrar a este puzzlista en tus favoritos, así que no podemos eliminarlo ;-)."
+    puzzler_added_to_favorites: "Hemos añadido al puzzlero a tu lista de favoritos."
+    puzzler_removed_from_favorites: "Hemos eliminado al puzzlero de tu lista de favoritos."
+    can_not_favorite_yourself: "No puedes añadirte a tu lista de favoritos. ¡Está claro que eres tu propio puzzlero favorito!"
+    player_already_in_favorites: "Este puzzlero ya está en tu lista de favoritos, así que no lo añadiremos de nuevo ;-)."
+    player_not_in_favorites: "Hmm, no pudimos encontrar a este puzzlero en tus favoritos, así que no podemos eliminarlo ;-)."
     puzzle_added_to_collection: "¡Hola,.. rompecabezas. ¡Bienvenido a mi colección!"
     puzzle_removed_from_collection: "Adiós rompecabezas..."
     competition_duplicate_connection: "Algo está mal :-( has elegido una cuenta de competencia, que ya está conectada a algún perfil de MySpeedPuzzling. No te preocupes, fuimos automáticamente notificados y verificaremos qué está mal."
@@ -436,7 +436,7 @@ hub:
         title: "Hub Speed Puzzling | Resultados"
         description: "Hub speed puzzling con últimos resultados, rankings jugadores y estadísticas puzzle. Ve quién resuelve más rápido y rastrea progreso comunidad."
         keywords: "hub speed puzzling, últimos resultados, rankings puzzle, jugadores activos, estadísticas puzzle, actividad reciente"
-    welcome: "¡Bienvenido puzzlista!"
+    welcome: "¡Bienvenido puzzlero!"
     seo_suffix: "- Comunidad Speed Puzzling"
     welcome_back: "Bienvenido de vuelta"
     recent_favorites_activity: "Actividad de<br>favoritos"

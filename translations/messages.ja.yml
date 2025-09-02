@@ -352,14 +352,18 @@ feedback:
 
 events:
     title: "イベント"
+    meta:
+        title: "スピードパズリングイベント｜競技会"
+        description: "スピードパズリングイベント、競技会、トーナメントに参加しましょう。世界最高のパズラーと競争し、スキルをテストしてください。"
+        keywords: "スピードパズリングイベント, パズル競技会, パズルトーナメント, WJPC, ジグソーパズル選手権, 競技パズリング"
+    live: "現在開催中"
     upcoming: "今後のイベント"
     past: "過去のイベント"
-    register: "登録"
-    details: "詳細"
-    location: "場所"
-    date: "日付"
-    time: "時間"
-    participants: "参加者"
+    website_link: "情報"
+    results_link: "結果"
+    registration_link: "登録"
+    competition_puzzles: "競技パズル"
+    no_puzzle_text: "パズルはまだありません...お楽しみに"
 
 puzzlers:
     meta:
@@ -385,6 +389,48 @@ faq:
         description: "スピードパズリングについてのよくある質問と回答。ルール、参加方法、プラットフォームの使い方について学びましょう。"
         keywords: "よくある質問, スピードパズリングルール, ヘルプ, サポート"
     title: "よくある質問"
+    intro_block: |
+        <p>あなたのフィードバックは私たちにとって非常に重要で、とても感謝しています！何かお伝えしたいことがございましたら、<a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>（技術的な問題については<a href="mailto:j.mikes@me.com">j.mikes@me.com</a>）または<a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>でご連絡ください。</p>
+        <p>私たちのソースコードはすべてオープンソースで、<a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>で公開されています。私たちは「シェアリングはケアリング」の哲学に従い、myspeedpuzzling.comに関するすべてをオープンに共有するよう努めています。</p>
+
+    question_fair_play: |
+    answer_fair_play: |
+        <h4 class="mb-3">タイムを入力する際に不正をしていないことをどのように知るのですか？</h4>
+        <p>正直に言うと - おそらくわからないでしょう。パズラーが自分でタイムを入力する公開リーダーボードでは、各パズラーの正直さと誠実さに依存しています。不正に入力された結果を本当に楽しめるでしょうか？</p>
+        <p>私たちと同じように、他のパズラーも主に楽しみのために組み立てており、このタイプの組み立てからのタイムは、他の人と比較し、競技会での成績を測るための大まかな目安として示されると想定しています。プラットフォームでは20分のタイムがあるのに、競技会では3時間かかったとしたら、疑わしく見えませんか？</p>
+        <p>将来的には、ビデオ録画などによるタイム検証が必要なレーティングリーグも計画しています。</p>
+        <p class="text-danger mb-0"><small>私たちのコミュニティには世界ジグソーパズル選手権のファイナリストで上位に入った方々が含まれているため、彼らのタイムを参考にできます。疑わしいタイムは監視され、不正が証明されれば容赦なく削除されます。不正行為を繰り返した場合、プレイヤーのプラットフォームへのアクセスが制限されます。</small></p>
+
+    question_qr: QRコードとmyspeedpuzzling.comのロゴが付いたパズルを受け取りました。どうすればよいですか？
+    answer_qr: |
+        <p>組み立てとタイム入力をできるだけ快適にするために、私たちの手を通ったすべてのパズルにQRコードを追加しています - スキャンすると、そのパズルのページに移動し、直接タイミングを開始したり、タイムを入力したりできます。</p>
+        <p class="mb-0">スピードパズリングの普及を手伝いたく、パズルにQRコード付きのチラシを追加したい場合は、ご連絡ください - 印刷できるPDFを送信するか、印刷したチラシを直接郵送します。</p>
+
+    question_add_time_for_missing_puzzle: プラットフォームにないパズルのタイムを追加できますか？
+    answer_add_time_for_missing_puzzle: |
+        <p>もちろんです！まだプラットフォームにないパズルを組み立てた場合、タイムを追加する際にオプションを切り替えてください：</p>
+        <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
+            <label class="form-check-label" for="switch-add-puzzle">パズルを手動で入力 - 不明なメーカーまたはリストにありません</label>
+        </div>
+        <p class="mb-0">その後、メーカーのリストから選択するオプションがあります。メーカーもデータベースにない場合は、自分で入力できます。</p>
+
+    question_edit_or_delete_time: 入力したタイムを編集または削除するにはどうすればよいですか？
+    answer_edit_or_delete_time: |
+        <p><a href="%link%">マイプロフィール</a>セクションで、入力された各タイムの横に編集リンクがあります（リンクは鉛筆アイコンのようになっています <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>）。</p>
+        <p class="mb-0">編集ページの一番下に、インターネット全体からその記録を永久に削除する<a class="btn btn-sm btn-outline-danger mx-2">マジックボタン</a>があります。</p>
+
+    question_button_start_solving: <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> 解き始める</a>ボタンは何をしますか？
+    answer_button_start_solving: |
+        <p class="mb-0">選択したパズルでストップウォッチを開きます - すぐに組み立てとタイミングを開始できます。</p>
+
+    question_button_add_my_time: <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> マイタイム追加</a>ボタンは何をしますか？
+    answer_button_add_my_time: |
+        <p class="mb-0">選択したパズルにタイムを追加する画面を開きます - 独自のストップウォッチを使用し、組み立てを終えたばかりの場合に適しています。過去に組み立てて、タイムを記録したい場合は、組み立てた日付も指定するオプションがあります。</p>
+
+    question_helping: お手伝いが必要ですか？
+    answer_helping: |
+        <p class="mb-0">もちろんです！スピードパズリングコミュニティの構築にどのように参加したいかのアイデアを持って私たちと連絡を取ってください。一緒に考えて、きっと何かを思いつくでしょう。</p>
 
 recent_activity:
     title: "最近のアクティビティ"
@@ -397,12 +443,6 @@ compare_players:
     comparison: "比較"
     statistics: "統計"
     head_to_head: "対戦成績"
-
-privacy_policy:
-    title: "プライバシーポリシー"
-
-terms_of_service:
-    title: "利用規約"
 
 global_modal:
     title: "お知らせ"

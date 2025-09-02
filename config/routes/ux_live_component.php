@@ -8,6 +8,6 @@ return static function (RoutingConfigurator $routingConfigurator): void {
     $routingConfigurator->import('@LiveComponentBundle/config/routes.php')
         ->prefix('/{_locale}/_components')
         ->requirements([
-            '_locale' => 'en|cs|es|ja|fr',
+            '_locale' => 'en|cs|es|ja|fr|de',
         ]);
 };

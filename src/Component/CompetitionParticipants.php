@@ -114,7 +114,6 @@ final class CompetitionParticipants
             );
 
             $chartData[] = $participant->averageTime;
-            $backgrounds[] = 'rgba(105, 179, 254, 0.6)';
 
             if ($this->retrieveLoggedUserProfile->getProfile()?->playerId === $participant->playerId) {
                 $backgrounds[] = 'rgba(254, 64, 66, 1)';

@@ -45,12 +45,14 @@
         {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'cs'}) %}
         {% set routeParamsEs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'es'}) %}
         {% set routeParamsJa = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'ja'}) %}
+        {% set routeParamsFr = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'fr'}) %}
 
         {% if currentRoute %}
             <link rel="alternate" hreflang="cs-CZ" href="{{ url(currentRoute, routeParamsCs) }}">
             <link rel="alternate" hreflang="en" href="{{ url(currentRoute, routeParamsEn) }}">
             <link rel="alternate" hreflang="es" href="{{ url(currentRoute, routeParamsEs) }}">
             <link rel="alternate" hreflang="ja" href="{{ url(currentRoute, routeParamsJa) }}">
+            <link rel="alternate" hreflang="fr" href="{{ url(currentRoute, routeParamsFr) }}">
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
 
@@ -135,7 +137,7 @@
                     <div class="text-nowrap">
                         <div class="topbar-text dropdown disable-autohide">
                             <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' : app.request.locale == 'es' ? 'es' : app.request.locale == 'ja' ? 'jp' : 'us' }} shadow-custom me-1"></span>
+                                <span class="fi fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' : app.request.locale == 'es' ? 'es' : app.request.locale == 'ja' ? 'jp' : app.request.locale == 'fr' ? 'fr' : 'us' }} shadow-custom me-1"></span>
                                 {{ app.request.locale|upper }}
                             </a>
 
@@ -168,6 +170,14 @@
                                     <li>
                                         <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsJa) : path('homepage', {'_locale': 'ja'}) }}">
                                             <span class="fi fi-jp me-1"></span> 日本語
+                                        </a>
+                                    </li>
+                                {% endif %}
+
+                                {% if app.request.locale is not same as 'fr' %}
+                                    <li>
+                                        <a class="dropdown-item pb-1" href="{{ currentRoute ? path(currentRoute, routeParamsFr) : path('homepage', {'_locale': 'fr'}) }}">
+                                            <span class="fi fi-fr me-1"></span> Français
                                         </a>
                                     </li>
                                 {% endif %}

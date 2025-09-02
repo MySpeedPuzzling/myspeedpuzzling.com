@@ -25,6 +25,7 @@ final class PlayersPerCountryController extends AbstractController
             'en' => '/en/players-from-country/{countryCode}',
             'es' => '/es/jugadores-del-pais/{countryCode}',
             'ja' => '/ja/国別プレイヤー/{countryCode}',
+            'fr' => '/fr/joueurs-par-pays/{countryCode}',
         ],
         name: 'players_per_country',
     )]

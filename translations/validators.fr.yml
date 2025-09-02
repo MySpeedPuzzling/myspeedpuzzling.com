@@ -1,0 +1,3 @@
+image_invalid_mime_type: "Veuillez saisir un fichier dans un format d'image valide. Les formats supportés sont : jpg, jpeg, gif, png, webp, heic, heif, avif"
+puzzling_time_format: "Veuillez saisir le temps au format HH:MM:SS ou MM:SS"
+player_code: "Le code joueur ne peut contenir que des lettres et des chiffres, sans caractères spéciaux ou espaces."

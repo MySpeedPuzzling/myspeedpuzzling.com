@@ -17,6 +17,7 @@ final class PuzzleServiceController extends AbstractController
             'en' => '/en/borrow-puzzle',
             'es' => '/es/prestar-puzzle',
             'ja' => '/ja/パズル貿与',
+            'fr' => '/fr/emprunter-puzzle',
         ],
         name: 'puzzle_service',
     )]

@@ -31,6 +31,7 @@ final class ComparePlayersController extends AbstractController
             'en' => '/compare-with-puzzler/{opponentPlayerId}/',
             'es' => '/es/comparar-con-puzzlista/{opponentPlayerId}/',
             'ja' => '/ja/比較/{opponentPlayerId}/',
+            'fr' => '/fr/comparer-avec-puzzleur/{opponentPlayerId}/',
         ],
         name: 'compare_players',
     )]

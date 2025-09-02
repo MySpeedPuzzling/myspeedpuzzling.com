@@ -31,6 +31,7 @@ final class PlayerFavoritePuzzlersController extends AbstractController
             'en' => '/en/player-favorites/{playerId}',
             'es' => '/es/favoritos-jugador/{playerId}',
             'ja' => '/ja/プレイヤーお気に入り/{playerId}',
+            'fr' => '/fr/favoris-joueur/{playerId}',
         ],
         name: 'player_favorite_puzzlers',
     )]

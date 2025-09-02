@@ -22,6 +22,7 @@ final class EventsController extends AbstractController
             'en' => '/en/events',
             'es' => '/es/eventos',
             'ja' => '/ja/イベント',
+            'fr' => '/fr/evenements',
         ],
         name: 'events',
     )]

@@ -32,6 +32,7 @@ final class PlayersController extends AbstractController
             'en' => '/en/puzzlers',
             'es' => '/es/jugadores',
             'ja' => '/ja/プレイヤー',
+            'fr' => '/fr/joueurs',
         ],
         name: 'players',
     )]

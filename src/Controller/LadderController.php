@@ -36,6 +36,7 @@ final class LadderController extends AbstractController
             'en' => '/en/ladder',
             'es' => '/es/escalera',
             'ja' => '/ja/リーダーボード',
+            'fr' => '/fr/classement',
         ],
         name: 'ladder',
     )]
@@ -45,6 +46,7 @@ final class LadderController extends AbstractController
             'en' => '/en/ladder/country/{countryCode}',
             'es' => '/es/escalera/pais/{countryCode}',
             'ja' => '/ja/リーダーボード/国/{countryCode}',
+            'fr' => '/fr/classement/pays/{countryCode}',
         ],
         name: 'ladder_country',
     )]

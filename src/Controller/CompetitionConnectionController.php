@@ -37,6 +37,7 @@ final class CompetitionConnectionController extends AbstractController
             'en' => '/en/competition-connect/{slug}',
             'es' => '/es/conexion-competicion/{slug}',
             'ja' => '/ja/競技接続/{slug}',
+            'fr' => '/fr/connexion-competition/{slug}',
         ],
         name: 'competition_connection',
     )]

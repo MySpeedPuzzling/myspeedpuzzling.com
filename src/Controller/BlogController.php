@@ -20,6 +20,7 @@ final class BlogController extends AbstractController
             'en' => '/en/blog/2025-02-17/the-biggest-msp-outage',
             'es' => '/es/blog/2025-02-17/la-mayor-interrupcion-msp',
             'ja' => '/ja/ブログ/2025-02-17/最大のmsp障害',
+            'fr' => '/fr/blog/2025-02-17/la-plus-grande-panne-msp',
         ],
         name: 'blog',
     )]

@@ -17,6 +17,7 @@ final class ContactController extends AbstractController
             'en' => '/en/contact',
             'es' => '/es/contacto',
             'ja' => '/ja/お問い合わせ',
+            'fr' => '/fr/contact',
         ],
         name: 'contact',
     )]

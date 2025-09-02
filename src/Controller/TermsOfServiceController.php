@@ -17,6 +17,7 @@ final class TermsOfServiceController extends AbstractController
             'en' => '/en/terms-of-service',
             'es' => '/es/terminos-servicio',
             'ja' => '/ja/利用規約',
+            'fr' => '/fr/conditions-service',
         ],
         name: 'terms_of_service',
     )]

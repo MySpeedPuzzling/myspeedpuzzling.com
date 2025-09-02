@@ -28,6 +28,7 @@ final class StopStopwatchController extends AbstractController
             'en' => '/en/stopwatch/{stopwatchId}/stop',
             'es' => '/es/cronometro/{stopwatchId}/parar',
             'ja' => '/ja/ストップウォッチ/{stopwatchId}/停止',
+            'fr' => '/fr/chronometre/{stopwatchId}/arreter',
         ],
         name: 'stop_stopwatch',
     )]

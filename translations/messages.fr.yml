@@ -1,0 +1,746 @@
+menu:
+    my_profile: "Mon profil"
+    add_time: "Ajouter un temps"
+    stopwatch: "Chronomètre"
+    puzzles_overview: "Puzzle"
+    ladder: "Classement"
+    players: "Joueurs"
+    faq: "FAQ"
+    sign_in: "Se connecter"
+    hub: "Centre"
+    feedback: "Envoyer un commentaire"
+    support_us: "Nous soutenir"
+    terms_of_service: "Conditions d'utilisation"
+    privacy_policy: "Politique de confidentialité"
+    membership: "Adhésion"
+    search: "Rechercher"
+    statistics: "Statistiques"
+    collection: "Collection"
+    favorite_puzzlers: "Puzzleurs favoris"
+    edit_profile: "Modifier le profil"
+    change_player_code: "Changer le code joueur"
+    profile: "Profil"
+    events: "Événements"
+
+footer:
+    created_with_love: "Créé avec amour pour les puzzles et le code par %simona% et %jan%"
+    about: "My Speed Puzzling est une plateforme communautaire pour tous les amateurs de puzzles et en particulier pour les passionnés de speed puzzling.<br>C'est l'endroit ultime pour partager vos temps, vous comparer aux autres et vous amuser ensemble."
+    popular_search: "Recherches populaires"
+    speed_puzzling_leaderboard: "Classement Speed Puzzling"
+    speed_puzzling_players: "Joueurs Speed Puzzling"
+    latest_puzzle_times: "Derniers temps de puzzle"
+    750_piece_puzzles: "Puzzles 750 pièces"
+
+puzzler_name: "Nom"
+puzzler: "Puzzleur"
+puzzle: "Puzzle"
+time: "Temps"
+pieces_count: "%count%&nbsp;pièces"
+show_more: "Afficher plus"
+puzzle_solved: "terminé"
+puzzle_available: "disponible à l'emprunt"
+puzzle_not_available: "non disponible"
+add_my_time: "Ajouter mon temps"
+start_solving: "Commencer l'assemblage"
+show_times: "Afficher les temps"
+fastest_time_short: "Record : %time%"
+average_time_short: "Moy : %time%"
+fastest_time: "Le plus rapide :"
+average_time: "Moyenne :"
+only_first_tries_filter: "1ères tentatives seulement"
+filtered_out_puzzlers_count_info: "Masqué <strong>%count% puzzleurs</strong> sans info de 1ère tentative."
+my_time: "Mon temps :"
+puzzle_solved_count: "Nombre de complétions :"
+puzzle_solved_times: "terminé %count%x"
+never_solved_puzzles: "Personne n'a encore résolu ces puzzles, soyez le premier !"
+show_more_solving_times: "Plus (%count%x)"
+be_first_to_solve: "Personne n'a encore résolu ces puzzles. Soyez le premier !"
+be_first_to_group_solve: "Ces puzzles n'ont pas encore été résolus en groupe. Soyez les premiers !"
+email: "Email"
+facebook: "Facebook"
+instagram: "Instagram"
+search: "Rechercher"
+puzzle_waiting_for_approval: "Puzzles récemment ajoutés en attente d'approbation par l'administrateur - généralement dans les 24 heures suivant l'ajout. Merci pour votre patience."
+puzzle_img_alt: "%puzzle% - image du puzzle"
+searching: "Recherche en cours..."
+load_more: "Charger plus..."
+back_to_top: "Retour en haut"
+total_found: "Total trouvé : %count%"
+remaining: "Restant : %puzzle%"
+loading: "Chargement"
+any: "Tous"
+all_pieces: "Toutes"
+solo_solved: "Résolu SOLO :"
+first_attempt: "1ère tentative"
+add_to_collection: "Ajouter à ma collection"
+in_collection: "Dans ma collection"
+remove_from_collection: "Retirer de la collection"
+ranking_out_of: "sur"
+wjpc_participant: "Participant WJPC 2024 (%name%)"
+share: "Partager"
+edit: "Modifier"
+delete: "Supprimer"
+active_membership: "Adhésion active"
+new_badge: "Nouveau"
+secret_puzzler_name: "Puzzleur masqué"
+
+homepage:
+    meta:
+        title: "Speed Puzzling - Suivez les temps et Concourez"
+        description: "Rejoignez la communauté ultime du speed puzzling ! Suivez vos temps de puzzle, concourez avec des joueurs du monde entier et grimpez dans les classements. Commencez aujourd'hui !"
+        keywords: "speed puzzling, speedpuzzling, temps de puzzle, communauté de puzzle, compétition de puzzle, classement puzzle"
+    global_statistics: "Il nous a fallu à tous ce temps pour résoudre <strong>%puzzles%</strong> puzzles.<br>Cela représente un incroyable <strong>%pieces%</strong> pièces."
+
+    title: "Bienvenue Puzzleur, dans le Monde du Speed Puzzling !"
+    intro_text: "Le Speed Puzzling est un sport passionnant où l'objectif est d'assembler des puzzles le plus rapidement possible. Chaque pièce compte, chaque seconde importe. Imaginez l'assemblage traditionnel de puzzles mais avec l'adrénaline d'un circuit de course ! Notre plateforme est la première de son genre - un endroit où vous pouvez tester vos compétences d'assemblage de puzzles non seulement contre le temps, mais aussi contre d'autres passionnés de puzzles."
+    why_block: |
+        <h3>Pourquoi rejoindre ?</h3>
+        <ul>
+            <li><strong>Concourir avec d'autres :</strong> Partagez vos temps et comparez-les avec d'autres puzzleurs</li>
+            <li><strong>Classements et statistiques :</strong> Découvrez les classements des puzzleurs les plus rapides, des puzzles les plus assemblés et des utilisateurs les plus actifs</li>
+            <li><strong>Chronomètre :</strong> Utilisez notre chronomètre intégré pour chronométrer facilement votre assemblage de puzzle</li>
+            <li><strong>Ajoutez vos puzzles :</strong> Vous avez un puzzle qui manque sur notre site ? Ajoutez-le et partagez vos temps avec la communauté.</li>
+            <li><strong>Construisez votre communauté de puzzles :</strong> Rejoignez notre communauté grandissante et partagez conseils, astuces et rivalité amicale</li>
+            <li><strong>Élargissez vos horizons :</strong> Nous prévoyons d'organiser des compétitions, à la fois en ligne et dans le futur hors ligne, pour que vous puissiez montrer vos compétences en direct</li>
+        </ul>
+    help_us_grow_block: |
+        <h3>Aidez-nous à grandir</h3>
+        <p>Notre application ne fait que commencer, et vos idées, commentaires et aide pour trouver des bugs sont inestimables. Rejoignez-nous dans cette phase précoce et ayez un impact direct sur l'avenir du speed puzzling.</p>
+    start_today_block: |
+        <h3>Commencez aujourd'hui</h3>
+        <p>Que vous soyez débutant ou puzzleur expérimenté, notre plateforme offre l'endroit parfait pour développer vos compétences et vous mesurer aux autres. Rejoignez-nous et devenez partie de l'avenir du speed puzzling !</p>
+    cta_sign_in: "Se connecter"
+    cta_my_profile: "Mon profil"
+    cta_recent: "Temps récents"
+
+ladder:
+    title: "Classement"
+    meta:
+        title: "Classement des temps"
+        description: "Classement du speed puzzling montrant les temps de puzzle les plus rapides et les classements des joueurs. Voyez qui détient les records et concourez pour les meilleures positions."
+        keywords: "classement speed puzzling, temps les plus rapides, records de puzzle, classements joueurs, résultats de compétition, champions de puzzle"
+    overview: "Vue d'ensemble"
+    recent_activity: "Temps récemment ajoutés"
+    solo: "Solo"
+    duo: "Duo"
+    team: "Équipe"
+    most_solved_puzzle: "Puzzle le plus assemblé"
+    most_active_puzzlers: "Puzzleurs les plus enthousiastes"
+    puzzle_solved_count: "Puzzles résolus"
+    link_to_hub: "Vous cherchez le puzzle le plus résolu ou les joueurs les plus actifs ? Nous l'avons déplacé vers&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">le nouveau Centre</a> !"
+
+filters:
+    button: "Filtres"
+    filter_by: "Filtrer par"
+    pieces_placeholder: "- Pièces -"
+    manufacturer_placeholder: "- Fabricant -"
+    less_than: "Moins de %count%"
+    more_than: "Plus de %count%"
+    text_search_placeholder: "Nom ou code du puzzle..."
+    only_available: "Seulement disponibles à l'emprunt"
+    only_with_time: "Seulement avec temps saisi"
+    no_puzzle_matches_filters: "Aucun puzzle ne correspond aux filtres spécifiés"
+
+sorting:
+    sort_by: "Trier par"
+    newest_times: "Plus récents"
+    oldest_times: "Plus anciens"
+    fastest_times: "Plus rapides"
+    slowest_times: "Plus lents"
+    most_solved: "Plus résolus"
+    least_solved: "Moins résolus"
+    a_z: "Nom A-Z"
+    z_a: "Nom Z-A"
+
+puzzle_overview:
+    meta:
+        title: "Base de données Speed Puzzling"
+        description: "Parcourez la base de données de speed puzzling avec des puzzles de 500-1000+ pièces. Comparez les temps de résolution, trouvez de nouveaux défis et suivez vos progrès."
+        keywords: "base de données puzzle, temps de puzzle, puzzle 500 pièces, puzzle 1000 pièces, marques de puzzle, résolution rapide"
+    title: "Puzzles"
+    missing_puzzle_info: "Si vous ne trouvez pas un puzzle ici, cela signifie que personne ne l'a encore résolu et qu'il n'est pas dans notre base de données. De nouveaux puzzles peuvent être saisis lors de l'ajout de temps."
+
+stopwatch:
+    meta:
+        title: "Chronomètre"
+    title: "Chronomètre"
+    start: "Démarrer"
+    stop: "Arrêter"
+    continue: "Continuer"
+    reset: "Remettre à zéro"
+    finish: "Terminé ! Ajouter le temps"
+    more_my_stopwatches: "Plus de mes chronomètres"
+    status:
+        not_started: "Prêt à démarrer"
+        running: "En cours"
+        paused: "En pause"
+        finished: "Puzzle terminé"
+
+add_time:
+    meta:
+        title: "Ajouter un temps"
+    title: "Ajouter un temps"
+    chosen_puzzle: "Puzzle sélectionné :"
+    choose_puzzle: "Choisir un puzzle"
+    puzzle_needed: "Vous devez sélectionner un puzzle dans la liste ou en ajouter un nouveau"
+    change_puzzle: "Changer la sélection"
+    add_when_not_found_info: "Si vous ne trouvez pas le puzzle dans la liste, veuillez en ajouter un nouveau."
+    need_approve_info: "Les puzzles nouvellement ajoutés seront affichés publiquement après approbation par un administrateur - généralement dans les 24 heures suivant l'ajout."
+    add_manufacturer: "Ajouter un nouveau fabricant"
+    not_in_list: "(pas dans la liste)"
+    choose_manufacturer: "Choisir un fabricant dans la liste"
+    time_from_stopwatch: "Temps du chronomètre"
+    add_puzzler: "Ajouter un co-puzzleur du groupe"
+    teamplayer: "Co-puzzleur"
+    player_code_info: "Choisissez parmi les favoris ou saisissez le code du joueur (commence par #). Si le puzzleur n'a pas de compte sur myspeedpuzzling.com, veuillez saisir son nom."
+    choose_from_favorites: "- Choisir parmi les favoris -"
+
+forms:
+    drop_file: "Glissez-déposez un fichier ici pour l'uploader"
+    choose_file: "Ou sélectionnez un fichier"
+    save: "Sauvegarder"
+    required_field: "Ce champ est obligatoire !"
+    empty_group_error: "Vous ne pouvez pas créer un groupe avec vous seulement, ce n'est pas de l'assemblage en groupe :-)"
+    too_high_ppm: "Veuillez vérifier le temps que vous avez saisi, il n'est pas possible de résoudre le puzzle si rapidement ! :-) Le temps doit être saisi au format HH:MM:SS. Le temps que vous avez saisi serait un nouveau record du monde ! :-)"
+    unknown_error: "Une erreur inattendue s'est produite :(. Nous avons été notifiés. Veuillez réessayer plus tard."
+    name_help: "Sous ce nom vous assemblerez des puzzles et il sera visible par tous les membres de la communauté."
+    email_help: "Votre email est privé, n'est affiché nulle part et n'est utilisé que si l'administrateur a besoin de vous contacter."
+    location_help: "L'endroit où vous habitez actuellement (optionnel)."
+    location: "Lieu"
+    nationality: "Nationalité"
+    country_most_common: "Les plus courants"
+    country_all: "Tous les pays"
+    about_me: "À propos de moi (bio)"
+    avatar: "Avatar/photo"
+    search_puzzler: "Nom, code joueur, ou partie de..."
+    time_format_placeholder: "HH:MM:SS"
+    comment: "Info additionnelle"
+    finished_puzzle_photo: "Photo des puzzles terminés"
+    add_new_puzzle: "Ajouter un nouveau puzzle - pas dans la liste"
+    puzzle: "Puzzle"
+    puzzle_help: "Choisissez un puzzle existant (recherche par nom, code de marque, pièces) ou ajoutez le nom du nouveau puzzle si non trouvé."
+    brand: "Marque"
+    brand_help: "Choisissez une marque existante ou saisissez le nom de la nouvelle marque si non trouvée."
+    pieces_count: "Nombre de pièces"
+    puzzle_box_photo: "Photo de l'image ou de la boîte du puzzle"
+    date_finished: "Date de terminaison"
+    ean: "Code EAN"
+    puzzle_identification_number: "Code du fabricant"
+    puzzle_photo_is_required: "Une photo du puzzle résolu, du motif ou de la boîte est obligatoire"
+    puzzle_photo_help: "Veuillez joindre une photo du puzzle résolu, du motif ou de la boîte pour que nous puissions correctement identifier et attribuer le puzzle."
+    puzzle_choose_placeholder: "Rechercher ou saisir le nom du nouveau puzzle"
+    puzzle_choose_brand_placeholder: "Choisir d'abord la marque"
+    only_with_results: "Seulement les puzzles avec temps saisi"
+    only_solved_by_me: "Seulement les puzzles que j'ai résolus"
+    only_available: "Seulement disponibles à emprunter"
+    puzzle_search_placeholder: "Nom, code, EAN..."
+    tag: "Tag"
+    competition: "Compétition"
+    tags: "Tags"
+    feedback: "Message"
+    feedback_help: "Envoyez-nous une suggestion de nouvelle fonctionnalité ou amélioration, rapport de bug, ce que vous aimez (ou non), cela peut être tout ce qui vous vient à l'esprit..."
+    send_feedback: "Envoyer"
+    first_attempt: "Votre premier assemblage de ce puzzle"
+    first_attempt_help: "Si assemblage en groupe, seulement si personne n'a assemblé ce puzzle auparavant, même pas en solo"
+    competition_participant: "Votre nom sur la compétition"
+    player_code: "Code joueur"
+    player_code_help: "Un code joueur unique - au moins 3 caractères, jusqu'à 8 caractères. Il ne peut contenir que des lettres et des chiffres, pas de caractères spéciaux ou d'espaces."
+    global_search_placeholder: "Rechercher puzzle ou joueur..."
+    private_profile: "Profil privé"
+    private_profile_help: "Votre nom ne sera affiché nulle part et les temps seront présentés anonymement."
+
+puzzlers_comparison:
+    meta:
+        title: "Comparaison de puzzleurs"
+    title: "Comparaison de puzzleurs"
+    nothing_to_compare: "Malheureusement, vous n'avez aucun puzzle à comparer qui ait été assemblé par les deux puzzleurs."
+
+edit_time:
+    meta:
+        title: "Modification des données de temps de puzzle"
+    title: "Modification des données de temps de puzzle"
+    delete_button: "Supprimer définitivement cet enregistrement d'assemblage et faire comme si ça n'était jamais arrivé !"
+    delete_modal_message: "Juste pour être sûr..."
+    delete_modal_confirm: "Vraiment supprimer ?"
+    delete_modal_discard_button: "Non, garder"
+    delete_modal_confirm_button: "Oui, supprimer"
+
+error:
+    generic:
+        title: "Quelque chose s'est cassé"
+        message: "Quelque chose a mal tourné... si vous pensez que l'erreur ne vient pas de vous, veuillez nous écrire."
+    404:
+        title: "Page non trouvée"
+        message: "Malheureusement, nous n'avons pas pu trouver la page que vous avez demandée. Veuillez vérifier l'URL."
+    500:
+        title: "Erreur inconnue"
+        message: "Quelque chose a mal tourné - nous avons été notifiés et corrigerons cela dès que possible"
+
+events:
+    title: "Événements"
+    meta:
+        title: "Événements Speed Puzzling | Compétitions"
+        description: "Rejoignez les événements de speed puzzling, compétitions et tournois. Concourez avec les meilleurs puzzleurs du monde et testez vos compétences."
+        keywords: "événements speed puzzling, compétitions puzzle, tournois puzzle, WJPC, championnat puzzle, puzzle compétitif"
+    live: "En cours maintenant"
+    upcoming: "À venir"
+    past: "Événements passés"
+    website_link: "Info"
+    results_link: "Résultats"
+    registration_link: "S'inscrire"
+    competition_puzzles: "Puzzles de compétition"
+    no_puzzle_text: Aucun puzzle ici… pour l'instant ! Restez à l'écoute
+
+faq:
+    meta:
+        title: "FAQ Speed Puzzling | Suivre et Concourir"
+        description: "FAQ du speed puzzling couvrant comment suivre les temps de puzzle, concourir avec d'autres et améliorer vos compétences de résolution. Commencez aujourd'hui !"
+        keywords: "FAQ speed puzzling, comment faire du speed puzzle, suivre temps puzzle, chronométrage puzzle, conseils résolution rapide, guide compétition puzzle"
+    title: "Questions fréquemment posées"
+    intro_block: |
+        <p>Vos commentaires sont très importants pour nous et nous les apprécions grandement ! Si vous avez quelque chose à nous dire, veuillez nous écrire à <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (ou à <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> pour les questions techniques) ou sur <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
+        <p>Tous nos codes sources sont open-source et publics sur <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. Nous adhérons à la philosophie du "partage c'est prendre soin" et nous efforçons de partager tout sur myspeedpuzzling.com ouvertement.</p>
+
+    question_fair_play: |
+    answer_fair_play: |
+        <h4 class="mb-3">Comment savez-vous que je ne triche pas en saisissant les temps ?</h4>
+        <p>Honnêtement - nous ne le saurons probablement pas. Dans le classement public, où les puzzleurs saisissent les temps eux-mêmes, nous comptons sur l'honnêteté et l'intégrité de chaque puzzleur individuel. Apprécieriez-vous vraiment un résultat saisi malhonnêtement ?</p>
+        <p>Nous supposons que, comme nous, les autres puzzleurs assemblent principalement pour le plaisir, et les temps de ce type d'assemblage sont indicatifs pour une idée approximative de comment nous nous comparons aux autres et nous mesurerons lors d'une compétition. Dites-moi, ne serait-ce pas suspect si j'avais un temps de 20 minutes sur la plateforme mais que je prenais 3 heures lors d'une compétition ?</p>
+        <p>À l'avenir, nous prévoyons également des ligues classées, où la vérification du temps pourrait être requise, par exemple, par enregistrement vidéo.</p>
+        <p class="text-danger mb-0"><small>Puisque notre communauté inclut des finalistes du Championnat mondial de puzzle, qui se sont classés en haut, nous pouvons prendre leurs temps comme référence. Les temps suspects seront surveillés et si la fraude est prouvée, ils seront impitoyablement supprimés. En cas de triche répétée, l'accès du joueur à la plateforme sera restreint.</small></p>
+
+    question_qr: J'ai reçu des puzzles avec un code QR et le logo myspeedpuzzling.com, que dois-je faire ?
+    answer_qr: |
+        <p>Pour rendre l'assemblage et la saisie des temps aussi agréables que possible pour vous, nous ajoutons un code QR à tous les puzzles qui passent entre nos mains - le scanner vous emmène à la page avec les puzzles donnés, où vous pouvez directement commencer le chronométrage ou saisir votre temps.</p>
+        <p class="mb-0">Si vous aimeriez aider à faire connaître le speedpuzzling et ajouter un flyer avec un code QR à vos puzzles, veuillez nous écrire - nous vous enverrons un PDF que vous pouvez imprimer, ou nous pouvons vous envoyer des flyers imprimés directement.</p>
+
+    question_add_time_for_missing_puzzle: Puis-je ajouter un temps pour des puzzles non présents sur la plateforme ?
+    answer_add_time_for_missing_puzzle: |
+        <p>Absolument ! Si vous avez assemblé un puzzle qui n'est pas encore sur notre plateforme, lors de l'ajout de temps, basculez vers l'option :</p>
+        <div class="form-check form-switch mb-3">
+            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
+            <label class="form-check-label" for="switch-add-puzzle">Saisir le puzzle manuellement - fabricant inconnu ou pas dans la liste</label>
+        </div>
+        <p class="mb-0">Vous avez alors la possibilité de sélectionner dans une liste de fabricants. Si le fabricant n'est pas non plus dans la base de données, vous pouvez le saisir vous-même.</p>
+
+    question_edit_or_delete_time: Comment modifier ou supprimer un temps saisi ?
+    answer_edit_or_delete_time: |
+        <p>Dans la section <a href="%link%">Mon profil</a>, à côté de chaque temps saisi, vous trouverez un lien pour modifier (le lien ressemble à une icône crayon <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
+        <p class="mb-0">Sur la page de modification, tout en bas, il y a un <a class="btn btn-sm btn-outline-danger mx-2">bouton magique</a> qui supprime une fois pour toutes l'enregistrement de tout l'internet.</p>
+
+    question_button_start_solving: Que fait le bouton <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> Commencer l'assemblage</a> ?
+    answer_button_start_solving: |
+        <p class="mb-0">Ouvre le chronomètre avec les puzzles sélectionnés - vous pouvez commencer l'assemblage et le chronométrage immédiatement.</p>
+
+    question_button_add_my_time: Que fait le bouton <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> Ajouter mon temps</a> ?
+    answer_button_add_my_time: |
+        <p class="mb-0">Ouvre l'ajout de votre temps aux puzzles sélectionnés - adapté si vous utilisez votre propre chronomètre et venez de terminer l'assemblage. Si vous avez assemblé dans le passé et voulez enregistrer le temps, vous avez la possibilité de spécifier également la date d'assemblage.</p>
+
+    question_helping: Voulez-vous un coup de main ?
+    answer_helping: |
+        <p class="mb-0">Bien sûr ! Connectez-vous avec nous, idéalement avec une idée de comment vous aimeriez vous impliquer dans la construction de la communauté speed puzzling, nous mettrons nos têtes ensemble et trouverons sûrement quelque chose.</p>
+
+profile:
+    add_to_favorites: "Ajouter aux favoris"
+    remove_from_favorites: "Retirer des favoris"
+    compare: "Comparer les temps"
+    no_puzzles_solved: "Aucun puzzle résolu ? Lancez-vous et voyez comment vous vous débrouillez ! Nous croyons en vous !"
+    not_filled: "Non renseigné"
+    avatar: "Avatar"
+    about_me: "À propos de moi"
+    location: "Lieu"
+    nationality: "Nationalité"
+    statistics: "Statistiques"
+    statistics_time: "Temps passé à assembler"
+    statistics_puzzles_solved: "Nombre de puzzles résolus"
+    statistics_pieces_count: "Nombre de pièces assemblées"
+    favorite_puzzlers: "Puzzleurs favoris"
+    no_favorite_puzzlers: "Aucun puzzleur favori"
+    solved_puzzles: "Puzzles résolus"
+    solved_puzzles_solo: "Individuel"
+    solved_puzzles_group: "Assemblage en groupe"
+    recent_activity: "Activité<br>récente"
+    personal_info: "Info<br>personnelles"
+    private_profile_info_1: "Ce puzzleur a décidé de ne pas partager ses temps. Mais nous insistons qu'il n'y a pas de temps lents ou rapides—seulement des pièces qui attendent de s'emboîter."
+    private_profile_info_2: "Vous voulez en savoir plus ? Rencontrez-le en personne et essayez de le convaincre de révéler ses temps. C'est tout ce que nous pouvons vous dire ici."
+
+my_profile:
+    meta:
+        title: "Mon profil"
+    title: "Mon profil"
+    edit: "Modifier les informations"
+    logout: "Se déconnecter"
+    myssing_name_info: "Nous sommes désolés, mais si vous ne renseignez pas un nom ou surnom, nous ne savons pas comment vous présenter. Par conséquent, tous vos résultats sont non-publics."
+    public_info: "public"
+    not_public_info: "non-public"
+    name: "Nom/surnom"
+    stopwatches: "Mes chronomètres"
+    missing_name_info: "Nous sommes désolés, mais si vous ne renseignez pas un nom ou surnom, nous ne savons pas comment vous présenter. Par conséquent, tous vos résultats sont non-publics."
+    share_mention_myspeedpuzzling: "Taggez-nous : <code>@MySpeedPuzzling</code>"
+    wjpc_connection: "Connexion compte de compétition"
+
+edit_profile:
+    meta:
+        title: "Modifier le profil"
+    title: "Modifier le profil"
+    player_code_change: "Changer le code joueur"
+    profile_visibility: "Visibilité du profil"
+
+puzzle_detail:
+    meta:
+        description: "Explorez le puzzle %brand% %puzzle% (%pieces% pièces) sur My Speed Puzzling. Suivez les progrès, comparez les temps et conquérez les puzzles avec notre communauté. Commencez votre série de résolution speed puzzling aujourd'hui !"
+
+puzzlers:
+    meta:
+        title: "Joueurs Speed Puzzling | Résultats"
+        description: "Découvrez les joueurs de speed puzzling, comparez les résultats et classements. Suivez vos puzzleurs favoris et voyez leurs derniers temps de résolution."
+        keywords: "joueurs speed puzzling, puzzleurs, résolveurs de puzzle, résultats joueurs, communauté puzzle, temps speed puzzling"
+    title: "Puzzleurs"
+    results_for: "Résultats de recherche pour"
+    no_matches_found: "Aucune correspondance trouvée"
+    my_favorites: "Mes favoris"
+    most_popular: "Les plus populaires"
+
+players_per_country:
+    meta:
+        title: "Puzzleurs du pays - %country%"
+    title:  "Puzzleurs du pays - %country%"
+    link: "Puzzleurs par pays"
+
+flashes:
+    stopwatch_already_saved: "Ces chronomètres ont déjà été sauvegardés."
+    puzzle_needs_approve: "Les puzzles récemment ajoutés seront affichés publiquement après approbation par un administrateur - généralement dans les 24 heures suivant l'ajout."
+    time_added: "Nous avons sauvegardé votre temps de puzzle."
+    time_deleted: "Nous avons supprimé toutes les preuves. Personne ne saura jamais ce qui vient de se passer !"
+    profile_saved: "Modifications du profil sauvegardées !"
+    time_edited: "Les informations modifiées ont été sauvegardées."
+    player_not_found: "Le joueur que vous avez essayé de trouver n'est pas enregistré chez nous !"
+    puzzle_not_found: "Le puzzle que vous avez essayé de trouver n'existe pas sur notre plateforme !"
+    puzzler_added_to_favorites: "Nous avons ajouté le puzzleur à votre liste de favoris."
+    puzzler_removed_from_favorites: "Nous avons retiré le puzzleur de votre liste de favoris."
+    can_not_favorite_yourself: "Vous ne pouvez pas vous ajouter à votre liste de favoris. Il est clair que vous êtes votre propre puzzleur favori !"
+    player_already_in_favorites: "Ce puzzleur est déjà dans votre liste de favoris, nous ne l'ajouterons donc pas à nouveau ;-)."
+    player_not_in_favorites: "Hmm, nous n'avons pas pu trouver ce puzzleur dans vos favoris, nous ne pouvons donc pas le retirer ;-)."
+    puzzle_added_to_collection: "Salut,.. puzzle. Bienvenue dans ma collection !"
+    puzzle_removed_from_collection: "Au revoir puzzle..."
+    competition_duplicate_connection: "Quelque chose ne va pas :-( vous avez choisi un compte de compétition qui est déjà connecté à un profil MySpeedPuzzling. Ne vous inquiétez pas, nous avons été automatiquement notifiés et nous vérifierons ce qui ne va pas."
+    competition_connection_saved: "Super ! Compte de compétition connecté avec succès à votre profil MySpeedPuzzling !"
+    membership_subscribed_successfully: "Votre adhésion est maintenant active !"
+    non_unique_player_code: "Nous sommes désolés, mais il semble que ce code soit déjà pris. Veuillez en choisir un autre."
+    unknown_error: "Nous sommes désolés, mais quelque chose a mal tourné - nous avons été notifiés et essaierons de corriger cela dès que possible. Veuillez réessayer plus tard."
+    exclusive_membership_feature: "Cette fonctionnalité est exclusive aux membres seulement. Si vous voulez l'utiliser, veuillez souscrire une adhésion."
+
+hub:
+    title: "Centre"
+    meta:
+        title: "Centre Speed Puzzling | Derniers résultats"
+        description: "Centre du speed puzzling avec les derniers résultats, classements des joueurs et statistiques des puzzles. Voyez qui résout le plus rapidement et suivez les progrès de la communauté."
+        keywords: "centre speed puzzling, derniers résultats, classements puzzle, joueurs actifs, statistiques puzzle, activité récente"
+    welcome: "Bienvenue puzzleur !"
+    welcome_back: "Bon retour"
+    recent_favorites_activity: "Activité<br>favoris"
+    this_month: "Ce<br>mois-ci"
+    last_month: "Mois<br>dernier"
+    all_time: "Depuis<br>toujours"
+    most_active_solo_players: "Joueurs SOLO les plus actifs"
+    most_solved_puzzle: "Puzzle le plus résolu"
+    statistics: "Statistiques"
+    no_favorites: "Vous n'avez aucun joueur favori. Ajoutez-en quelques-uns et suivez leur activité ici."
+    not_logged: "Vous n'êtes pas connecté - pour utiliser le plein potentiel de ce que cette plateforme vous offre, connectez-vous."
+    seo_suffix: "- Communauté Speed Puzzling"
+
+statistics:
+    puzzle_solved: "Puzzle résolu"
+    total_pieces: "Total des pièces"
+    time_spent: "Temps passé à résoudre"
+    longest_streak: "Plus longue série"
+    longest_streak_help: "Max jours consécutifs de puzzle"
+    most_solved_brand: "Marque la plus résolue"
+    no_results: |
+        Nous savons que vous adorez résoudre des puzzles — vous êtes pratiquement un chuchotteur de puzzles. Mais pour la période sélectionnée… rien. Zéro. Zilch. Nada.<br> 
+        Soit vous n'en avez résolu aucun, soit vous avez oublié de les ajouter à la plateforme (ce qui est encore plus déconcertant, honnêtement).<br>
+        Il est temps de prendre un puzzle et de corriger ce retournement de situation tragique ! Vos statistiques pleurent dans le coin — allez leur montrer un peu d'amour.
+
+dates:
+    all_time: "Depuis toujours"
+    year: "Année"
+    months:
+        1: "Janvier"
+        2: "Février"
+        3: "Mars"
+        4: "Avril"
+        5: "Mai"
+        6: "Juin"
+        7: "Juillet"
+        8: "Août"
+        9: "Septembre"
+        10: "Octobre"
+        11: "Novembre"
+        12: "Décembre"
+
+feedback:
+    title: "Envoyer un commentaire"
+    success_msg: "Nous avons reçu vos commentaires et les apprécions grandement ! Nous vous ferons savoir bientôt."
+
+notifications:
+    title: "Notifications"
+    solved_puzzle_with_time: "en"
+    solved_puzzle: "a résolu le puzzle"
+    no_notifications: "Vous n'avez aucune notification pour l'instant. Abonnez-vous à quelques joueurs en les ajoutant aux favoris."
+
+badges:
+    title: "Badges"
+    my_title: "Mes badges"
+    badge:
+        supporter: "Supporteur"
+
+collection:
+    title: "Collection"
+    empty_info: "Cette collection est actuellement vide. Il est peut-être temps de changer ça ? Après tout, tout le monde aime les puzzles et les stocker :-)."
+
+scan:
+    meta:
+        title: "Lecteur de code-barres"
+    title: "Lecteur de code-barres"
+    beta_info: "C'est une nouvelle fonctionnalité fraîche, nous la testons encore et travaillons sur des améliorations. Nous serions très reconnaissants pour tous les commentaires !"
+    instructions: "Pointez votre caméra vers l'EAN (code-barres) sur la boîte et tentez votre chance - si le puzzle est dans la base de données, nous le trouverons ;-)."
+    not_found: "Malheureusement, le puzzle avec EAN %code% n'est pas dans notre base de données. N'hésitez pas à suivre le temps et à les ajouter, nous en serions reconnaissants."
+
+wjpc2024:
+    meta:
+        title: "WJPC 2024"
+    title: "WJPC 2024"
+    intro: "L'événement Speed Puzzling de l'année est là ! Nous vous apportons quelques statistiques pour que vous puissiez apprendre à connaître contre qui vous allez concourir. Toutes les statistiques présentées sont des puzzles de 500 pièces des 3 derniers mois seulement, pour s'assurer qu'elles sont aussi pertinentes que possible. Si vous avez résolu le même puzzle plusieurs fois, nous ne prenons que le plus rapide ! Connectez votre profil avec votre compte WJPC dans <a href=\"%link%\">les paramètres de votre profil</a>. Seulement pour les concurrents dans la catégorie individuelle."
+    connected_participants: "Participants connectés"
+    not_connected_participants: "Participants"
+    puzzle_solved: "Puzzle résolu"
+    average: "Moy"
+    fastest: "Record"
+    no_participant_matches_filters: "Aucun participant ne correspond à la requête de recherche"
+    filter_by_name: "Rechercher par nom"
+
+competition_connection:
+    meta:
+        title: "Connexion de compte %competitionName%"
+    title: "Connexion de compte %competitionName%"
+    back_to_competition: "Retour à la compétition"
+    description: "Connectez votre compte de compétition avec le profil MySpeedPuzzling et découvrez votre position contre les autres participants. Pour rendre les statistiques pertinentes, nous ne prenons que les puzzles de 500 pièces des 3 derniers mois dans les statistiques. Si vous avez résolu le même puzzle plusieurs fois, nous ne prenons que le plus rapide !"
+
+global_modal:
+    title: "Championnat européen de puzzle 2025"
+    text: |
+        <p>Concourez-vous dans le 1er Championnat européen de puzzle 2025 ?</p>
+        <p>Liez votre compte MySpeedPuzzling.com avec votre nom de <a href="https://mopepuzzle.hu/event_competition.php?id=3&competition=6&language=en" target="_blank">mopepuzzle.hu</a>, vérifiez votre compétition… et effrayez-les avec vos temps !</p>
+        <p><small>(Fonctionne pour la catégorie Solo seulement !)</small></p>
+
+    button_cta: "Connecter mon compte"
+    button_dismiss: "Je ne participe pas !"
+
+added_time_recap:
+    title: "Excellent temps, continuez !"
+    add_time: "Ajouter nouveau temps"
+    the_same_puzzle: "Pour le même puzzle"
+    puzzle_detail: "Résultats"
+
+global_search:
+    info: "Bienvenue nouvelle recherche ! Recherchez par nom de puzzle, ean ou code. Recherchez un joueur par nom ou code. Veuillez nous faire part de vos commentaires."
+    no_player_found: "Aucun joueur trouvé :-("
+    no_puzzle_found: "Aucun puzzle trouvé :-("
+
+membership:
+    meta:
+        title: "Adhésion"
+        description: ""
+    title: "Adhésion"
+    intro_text: "L'adhésion est un moyen d'accéder aux fonctionnalités exclusives pour les vrais passionnés de puzzles ! En souscrivant une adhésion, vous soutenez également le développement de la plateforme et nous aidez à réaliser notre vision de créer la meilleure plateforme communautaire de puzzles au monde."
+    redirect_to_stripe: "Vous serez redirigé vers la passerelle de paiement Stripe."
+    subscription_active: "Abonnement actif, merci de faire partie de la communauté !"
+    membership_active: "Adhésion active, merci de faire partie de la communauté !"
+    membership_inactive: "L'adhésion n'est pas active"
+    membership_cancelling: "L'abonnement a été annulé, l'adhésion est active jusqu'à la fin de la période"
+    free_membership_active: "Adhésion gratuite active (sans abonnement)"
+    membership_expired: "Votre adhésion a expiré"
+    next_payment: "Prochain paiement"
+    membership_active_until: "Adhésion active jusqu'au"
+    payment_portal_button: "Gérer l'abonnement (portail de paiement)"
+    description_title: "Quels sont les avantages de l'adhésion ?"
+    choose_your_subscription: "Choisissez votre abonnement"
+    subscribe_for_monthly: "Mensuel pour"
+    subscribe_for_yearly: "Annuel pour"
+    price_per_month: "6€ / mois"
+    price_per_year: "60€ / an"
+    billing_portal_info: "Dans le portail de paiement, vous pouvez mettre à jour vos détails de paiement, annuler votre adhésion, ou télécharger des factures ou reçus."
+    full_description: |
+        <ul>
+            <li>Un grand merci pour soutenir le développement de la plateforme</li>
+            <li>Votre propre code joueur personnalisé (vous pouvez le changer dans votre profil)</li>
+            <li>Badge d'adhésion</li>
+            <li>Filtrage par premières tentatives</li>
+            <li>Filtrage par pays</li>
+            <li>Graphiques</li>
+            <li>Scanner de code-barres</li>
+            <li>Statistiques détaillées</li>
+        </ul>
+        
+        <h3 class="h4">Qu'est-ce qui vous attend bientôt ?</h3>
+        <ul>
+            <li>Rapports mensuels et annuels <small class="ms-1 text-muted">(bientôt)</small></li>
+            <li>Profil public mypuzzler.com <small class="ms-1 text-muted">(bientôt)</small></li>
+            <li class="mt-2">Défis spéciaux exclusivement pour les membres</li>
+            <li>Emprunt et vente de puzzles entre membres</li>
+            <li>Gamification - gagner de l'expérience et des niveaux</li>
+            <li>Badges pour diverses réalisations</li>
+            <li>&hellip; et bien plus encore, ce n'est qu'un petit aperçu de ce que nous préparons pour vous !</li>
+        </ul>
+    members_exclusive_button: "Exclusif aux membres"
+    modal:
+        title: Fonctionnalité exclusive pour les membres
+        cta: Devenir membre
+        no_thanks: Non, merci !
+        text: |
+            <p>Débloquez l'accès à cette fonctionnalité et à d'autres conçues pour améliorer votre expérience.</p>
+            <p>Devenez membre aujourd'hui, soutenez le développement de la plateforme et profitez de fonctionnalités exclusives qui rendent votre parcours speed puzzling encore plus excitant !</p>
+
+membership_payment_cancelled:
+    meta:
+        title: "Paiement annulé"
+        description: ""
+    title: "Paiement annulé"
+    text: "Le processus de paiement a été interrompu, très probablement par vous :-)."
+    membership_link: "Retour à l'aperçu de l'adhésion"
+    payment_link: "Réessayer le paiement"
+
+terms_of_service:
+    meta:
+        title: "Conditions d'utilisation"
+        description: "Conditions d'utilisation de la plateforme MySpeedPuzzling.com"
+    content: |
+        <h1>Conditions d'utilisation</h1>
+        <p>Ces conditions d'utilisation régissent la fourniture d'abonnement (adhésion) sur la plateforme MySpeedPuzzling.com. Nous voulons que vous ayez toutes les informations importantes en un seul endroit afin que vous puissiez facilement les consulter.</p>
+        <h2>1. Qui nous sommes</h2>
+        <ul>
+            <li><strong>Fournisseur :</strong> Simona Mikešová (Entrepreneur individuel)</li>
+            <li><strong>Adresse :</strong> Františka Formana 237/31, 700 30 Ostrava, République Tchèque</li>
+            <li><strong>N° ID :</strong> 06868878</li>
+            <li><strong>Email de contact :</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
+        </ul>
+        <p>En tant qu'opérateur de la plateforme MySpeedPuzzling.com, nous sommes votre partenaire contractuel pour l'achat et l'utilisation d'une adhésion payante.</p>
+        <h2>2. Comment fonctionne le service</h2>
+        <p>MySpeedPuzzling.com est une plateforme en ligne pour les passionnés de puzzles. Nous offrons diverses fonctionnalités, tandis que les parties premium de l'application sont accessibles uniquement aux utilisateurs avec une adhésion active.</p>
+        <ul>
+            <li>L'adhésion est un produit virtuel (numérique) – une fois que vous payez, vous obtenez immédiatement l'accès aux fonctionnalités exclusives.</li>
+            <li>Puisque c'est un service électronique, aucune livraison physique ou conditions d'expédition ne s'appliquent.</li>
+            <li>Le contenu et les fonctionnalités disponibles dans le cadre de l'adhésion peuvent changer avec le temps – nous les améliorons continuellement.</li>
+        </ul>
+        <h2>3. Commande et conclusion du contrat</h2>
+        <p>Si vous décidez d'acheter une adhésion payante, choisissez simplement l'abonnement mensuel dans la section "Adhésion". Vous serez ensuite redirigé vers la passerelle de paiement Stripe.</p>
+        <ul>
+            <li><strong>Détails de paiement :</strong> Tous les détails de paiement sont traités via Stripe en utilisant une communication chiffrée – nous n'avons pas accès à ces informations.</li>
+            <li><strong>Confirmation de commande :</strong> Le contrat entre vous et nous est conclu au moment du paiement réussi. Votre adhésion est immédiatement activée par la suite.</li>
+            <li><strong>Facture :</strong> Vous pouvez télécharger la facture pour votre abonnement payant directement depuis le portail de paiement Stripe.</li>
+            <li><strong>Gestion d'adhésion ultérieure :</strong> Les modifications de la méthode de paiement, l'annulation ou l'extension sont également gérées via le portail de paiement Stripe, accessible via la section "Adhésion" de votre compte.</li>
+        </ul>
+        <h2>4. Prix et conditions de paiement</h2>
+        <ul>
+            <li><strong>Prix de l'adhésion :</strong> Tous les prix sont indiqués TTC. Selon la devise que vous utilisez pour le paiement, les prix peuvent varier légèrement.</li>
+            <li><strong>Méthodes de paiement :</strong> Stripe supporte les paiements par carte, Apple Pay et Link (d'autres méthodes peuvent être ajoutées avec le temps).</li>
+            <li><strong>Paiement récurrent :</strong> C'est un abonnement mensuel, ce qui signifie que le paiement se répète chaque mois jusqu'à ce que vous annuliez votre adhésion.</li>
+        </ul>
+        <h2>5. Annulation et remboursements</h2>
+        <ul>
+            <li><strong>Vous pouvez annuler votre adhésion à tout moment :</strong> Après l'annulation, vous conserverez l'accès jusqu'à la fin de la période prépayée. Aucun autre paiement ne sera prélevé une fois cette période terminée.</li>
+            <li><strong>Remboursements :</strong> Si vous demandez un remboursement pour la période de facturation actuelle, nous rembourserons le paiement en utilisant la même méthode que celle utilisée pour payer, et votre adhésion se terminera immédiatement.</li>
+            <li><strong>Rapidité de traitement :</strong> Nous traitons les remboursements et réclamations rapidement (généralement dans le jour ouvrable suivant), au plus tard dans les 30 jours comme requis par la loi.</li>
+            <li><strong>Coûts de remboursement :</strong> Nous couvrons tous les frais pour les remboursements – nous voulons que vous soyez satisfait.</li>
+        </ul>
+        <h2>6. Réclamations</h2>
+        <p>Si vous sentez que le service n'a pas été fourni avec la qualité appropriée ou si vous rencontrez des problèmes techniques, veuillez nous contacter à
+            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.
+        </p>
+        <ul>
+            <li>Nous traitons les réclamations aussi rapidement que possible, généralement dans les 1–2 jours ouvrables.</li>
+            <li>Le temps de résolution maximum pour les réclamations est de 30 jours.</li>
+        </ul>
+        <h2>7. Protection des données personnelles</h2>
+        <p>Nous fournissons des informations sur le traitement des données personnelles sur <a href="%privacyPolicyLink%">une page séparée</a> dédiée à la protection de la vie privée. Vous y trouverez tous les détails sur les données que nous collectons, pourquoi nous les traitons et comment nous les gérons.</p>
+        <h2>8. Dispositions finales</h2>
+        <ul>
+            <li>Ces conditions sont régies par le droit tchèque, et tout litige sera résolu par les tribunaux compétents de la République Tchèque.</li>
+            <li>Nous croyons qu'aucun litige ne surviendra, mais s'ils surviennent, vous pouvez contacter l'Autorité tchèque d'inspection du commerce (ČOI) ou utiliser la plateforme européenne de résolution des litiges en ligne (ODR).</li>
+            <li>La version actuelle des conditions est toujours disponible sur MySpeedPuzzling.com. Nous nous réservons le droit d'apporter des modifications raisonnables pour les maintenir en ligne avec la législation ou les besoins opérationnels.</li>
+        </ul>
+        <p><em><small>Dernière mise à jour : Janvier 2025</small></em></p>
+
+privacy_policy:
+    meta:
+        title: "Politique de confidentialité"
+        description: "Politique de confidentialité de la plateforme MySpeedPuzzling.com"
+    content: |
+        <h1>Politique de confidentialité</h1>
+        <p>Le but de ce document est de vous informer sur la façon dont nous gérons vos données personnelles sur MySpeedPuzzling.com. Nous apprécions grandement votre confiance et votre vie privée.</p>
+        <h2>1. Nom public</h2>
+        <p>Lors de l'inscription sur MySpeedPuzzling.com, vous pouvez choisir un <strong>nom public</strong> – cela peut être un surnom, une abréviation, ou des initiales. Ce nom est affiché à tous les visiteurs du site web. Veuillez être prudent lors du choix d'un nom si vous souhaitez rester plus anonyme.</p>
+        <h2>2. Email</h2>
+        <ul>
+            <li>Vous fournissez votre adresse email pour vous connecter et communiquer avec les administrateurs de la plateforme.</li>
+            <li><strong>L'adresse email n'est pas publique</strong> – elle n'apparaît nulle part dans votre profil et n'est pas accessible aux tiers.</li>
+            <li>Votre email est stocké dans une base de données chiffrée, et seuls les auteurs de l'application y ont accès.</li>
+            <li>Nous ne partageons votre adresse email avec aucune autre entité.</li>
+        </ul>
+        <h2>3. Mot de passe</h2>
+        <ul>
+            <li>Votre mot de passe est stocké dans notre base de données uniquement sous forme de <strong>hash</strong> – c'est un chiffrement irréversible, donc aucun administrateur ou développeur ne peut découvrir sa forme originale.</li>
+            <li>Quand vous vous connectez, l'information que vous saisissez est comparée au hash stocké dans la base de données.</li>
+            <li>Pour des raisons de sécurité, nous n'envoyons jamais le mot de passe original par email ; si nécessaire, vous pouvez le réinitialiser en utilisant le processus "Mot de passe oublié".</li>
+        </ul>
+        <h2>4. Informations publiques optionnelles</h2>
+        <p>Les utilisateurs ont la possibilité de fournir des <strong>informations publiques</strong> supplémentaires sur leur profil (par ex., ville, pays, liens de réseaux sociaux, description, avatar) pour une meilleure interaction communautaire.</p>
+        <ul>
+            <li>Cette information est visible par tous les visiteurs et n'est <strong>pas considérée comme sensible</strong> en tant que données personnelles.</li>
+            <li>Vous serez notifié que cette information est publique lors du remplissage.</li>
+            <li>Néanmoins, ces données sont également stockées dans notre base de données chiffrée.</li>
+        </ul>
+        <h2>5. Informations de paiement</h2>
+        <ul>
+            <li>La plateforme MySpeedPuzzling.com <strong>ne collecte aucune donnée sur les méthodes de paiement</strong> – tous les paiements sont traités exclusivement par la société partenaire Stripe.</li>
+            <li>Nous n'avons jamais accès aux détails de votre carte de paiement, informations de compte bancaire, ou toute autre donnée financière.</li>
+        </ul>
+        <h2>6. Sécurité et vie privée</h2>
+        <ul>
+            <li>La sécurité de nos utilisateurs est notre priorité – serveurs et bases de données sont protégés contre l'accès non autorisé, les fuites de données et autres cybermenaces.</li>
+            <li>Vos données personnelles (par ex., email ou informations de profil optionnelles) sont toujours chiffrées, et seuls les auteurs de l'application peuvent y accéder.</li>
+            <li>Nous respectons toutes les mesures de sécurité standard et travaillons continuellement à améliorer notre sécurité.</li>
+        </ul>
+        <p>Si vous avez des questions sur la protection des données personnelles ou si vous n'êtes pas sûr que quelque chose soit suffisamment clair, veuillez nous contacter à <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
+        <p><em><small>Dernière mise à jour : Janvier 2025</small></em></p>
+
+countdown:
+    days: jours
+    hours: heures
+    minutes: mins
+    seconds: secs
+
+blog:
+    outage-2025-02-17:
+        title: La plus grande panne de l'histoire de MySpeedPuzzling
+        content: |
+            <h2 class="h5">Le 17 février, nous avons connu la plus longue panne de l'histoire de MySpeedPuzzling ...</h2>
+            <h4 class="h6">Tout d'abord, je veux vous remercier tous énormément pour votre patience et votre confiance ! Croyez-moi, ces 7 heures où nous savions que MSP ne fonctionnait pas ont été extrêmement stressantes pour nous !</h4>
+            <p>Aujourd'hui, nous avons eu une panne de presque 10 heures de toute la plateforme. C'est la plus longue panne de l'histoire de MySpeedPuzzling. Ce n'était pas de notre faute... ou l'était-ce ?</p>
+            <p>Parce que nous nous efforçons d'être 100% transparents, voici un compte-rendu étape par étape de ce qui s'est passé.</p>
+            <p>Je suis allé me coucher vers 1h30 (malheureusement, juste avant que tout tombe en panne), ayant juste terminé une autre nouvelle fonctionnalité pour MySpeedPuzzling. Vers 5h, quand un de nos enfants s'est levé pour aller aux toilettes, Simona a automatiquement vérifié les notifications sur son téléphone—elle regarde souvent qui a publié de nouveaux temps et à quelle vitesse ils ont réussi à résoudre le puzzle. Oui, même à 5h du matin... Mais elle a été accueillie par une surprise désagréable : la page ne se chargeait pas. Elle m'a poussé en disant : "MySpeedPuzzling ne fonctionne pas !" Entendre ça m'a réveillé immédiatement. J'ai pris mon téléphone, j'ai essayé, et ça ne fonctionnait vraiment pas ! J'ai pris mon portable pour examiner les choses de plus près. À 1h59, nous avions reçu une notification de surveillance automatisée, ce qui n'est généralement pas de bonnes nouvelles. Malheureusement, je l'ai ratée parce que j'étais allé me coucher juste avant. De plus, le changement que j'avais fait n'était en aucun cas destructeur et n'aurait pas pu causer une telle panne. Et c'est ainsi qu'a commencé notre panne de lundi, qui a duré presque jusqu'à midi.</p>
+            <h5>Détails techniques pour les geeks :</h5>
+            <p><em>(ceci vous donnera un aperçu de notre infrastructure serveur)</em></p>
+            <p>Il y a une semaine, j'ai installé un serveur de messagerie sur notre serveur physique MySpeedPuzzling—c'était une préparation pour migrer d'Auth0 vers notre propre service d'authentification, plus une newsletter et d'autres fonctionnalités—envoyer des dizaines de milliers d'emails par mois n'est pas juste une promenade de santé, et nous devons être prêts pour ça. Comme il s'est avéré, ce serveur de messagerie était effectivement le coupable, mais n'anticipons pas.</p>
+            <p>La première chose que j'ai découverte était que les ports 443 et 80 avaient un timeout. Le serveur héberge plusieurs applications, et cela a affecté toutes, pas seulement MSP—ce qui était désagréable. Une autre découverte plus troublante était que je ne pouvais pas accéder au serveur via SSH—le port avait aussi un timeout.</p>
+            <p>Et maintenant ? La panique s'est installée, et j'ai dit à Simona que c'était un gros problème.</p>
+            <p>J'ai immédiatement notifié le fournisseur de serveur que ce serveur particulier ne répondait pas—à ce moment, cela semblait être un problème clair de leur côté parce que le serveur ne répondait pas du tout, tandis que d'autres serveurs dans le même centre de données étaient encore accessibles. Je soupçonnais un problème matériel, peut-être une mauvaise carte réseau ou un câble desserré (cela m'est déjà arrivé…), ou une interdiction du fournisseur due à une activité suspecte.</p>
+            <p>Le fournisseur a répondu dans les quelques minutes en disant qu'ils ne voyaient rien de leur côté. Ils ont vérifié le centre de données ; le serveur fonctionnait et répondait—de leur perspective, tout allait bien. Super, donc ils ne voyaient aucun problème, mais le serveur MSP était toujours inaccessible et je ne pouvais pas me connecter…</p>
+            <p>J'ai rapidement démarré un système de secours à côté du serveur, à partir duquel j'ai monté avec succès le système de fichiers du serveur MSP, et j'ai commencé la recherche d'aiguille dans la botte de foin. Je savais que la panne était arrivée vers 1h58–1h59. J'ai cherché tous les fichiers modifiés à ce moment, au cas où nous aurions été hackés. Je n'ai rien trouvé. Rien de tout cela n'avait de sens, et je ne pouvais rien repérer. Vers 8h00, un collègue du travail m'a rejoint pour m'aider. Ensemble, nous avons découvert que SMTP sur le port 25 (utilisé pour envoyer des emails) fonctionnait et n'avait pas de timeout—je pouvais même m'envoyer un email, et il était effectivement livré.</p>
+            <p>Cela ne faisait que nous confondre davantage—le serveur fonctionnait et était opérationnel, il était "seulement" inaccessible, et les ports 80 et 443 étaient également bloqués. À ce moment, nous étions presque certains qu'il y avait un problème avec la configuration réseau—tout avait toujours l'air "normal", mais notre suspect principal était le serveur de messagerie !</p>
+            <p>Et effectivement, c'était le cas. Tout sur le serveur fonctionne dans des conteneurs Docker. Quiconque a utilisé Docker sait que son réseau peut être délicat. Le serveur de messagerie que j'ai choisi inclut également fail2ban, qui est conçu pour bloquer l'accès depuis des adresses IP suspectes—par exemple, s'il y a trop de tentatives de connexion échouées ou d'autres menaces. Je vais passer environ deux heures de plus de diagnostic—mais essentiellement, fail2ban n'était pas configuré correctement (il était laissé dans ses paramètres par défaut), et combiné avec UFW, il a d'une manière ou d'une autre mystérieusement bloqué tout le trafic sur les ports 22, 80 et 443—même si nous ne comprenons toujours pas entièrement pourquoi c'est arrivé de cette façon.</p>
+            <p>Une fois que j'ai connu la cause, la correction finale n'a pas pris trop de temps—désinstaller rapidement le serveur de messagerie (y compris UFW), vider iptables, rajouter les règles de réseau Docker, "rebondir" tout quelques fois, déconnecter le système de secours, redémarrer tout, et… finalement, après cinq heures atroces à jurer devant l'écran, MSP était de retour à la normale…</p>
+            <p>J'ai sauté quelques détails inutiles—comme comment j'ai basculé DNS vers un proxy CloudFlare en cinq minutes entre temps et mis en place un worker Node.js pour afficher un message sur la panne—juste pour qu'il n'y ait pas une page blanche…</p>
+            <p>Pour l'instant, je mets le travail du serveur de messagerie de côté, et je sais qu'il sera "sur le côté", sur un serveur séparé, loin de MSP. D'un côté, c'était intéressant de tester notre processus de "récupération après sinistre"—à un moment j'étais si désespéré que j'étais prêt à laisser ce serveur brûler en enfer, tout faire tourner sur un nouveau, et juste mettre à jour les enregistrements DNS… Heureusement, cela s'est avéré inutile à la fin.</p>
+            <p>PS. Ça s'est vraiment cassé "tout seul", grâce au serveur de messagerie, après une semaine sans aucune intervention humaine… C'est quelque chose…</p>
+            <p>PS2. Vous êtes courageux si vous avez lu jusqu'au bout :-).</p>

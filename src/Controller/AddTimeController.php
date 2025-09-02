@@ -50,6 +50,7 @@ final class AddTimeController extends AbstractController
             'en' => '/en/add-time/{puzzleId}',
             'es' => '/es/anadir-tiempo/{puzzleId}',
             'ja' => '/ja/時間追加/{puzzleId}',
+            'fr' => '/fr/ajouter-temps/{puzzleId}',
         ],
         name: 'add_time',
     )]
@@ -59,6 +60,7 @@ final class AddTimeController extends AbstractController
             'en' => '/en/save-stopwatch/{stopwatchId}',
             'es' => '/es/guardar-cronometro/{stopwatchId}',
             'ja' => '/ja/ストップウォッチ保存/{stopwatchId}',
+            'fr' => '/fr/sauvegarder-chronometre/{stopwatchId}',
         ],
         name: 'finish_stopwatch',
     )]

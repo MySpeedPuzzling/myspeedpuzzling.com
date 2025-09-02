@@ -28,6 +28,7 @@ final class DeleteTimeController extends AbstractController
             'en' => '/en/delete-time/{timeId}',
             'es' => '/es/eliminar-tiempo/{timeId}',
             'ja' => '/ja/時間削除/{timeId}',
+            'fr' => '/fr/supprimer-temps/{timeId}',
         ],
         name: 'delete_time',
     )]

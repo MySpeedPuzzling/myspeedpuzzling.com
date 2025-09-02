@@ -1,0 +1,48 @@
+footer: 'Merci de faire partie de <a href="%homepageLink%">MySpeedPuzzling.com</a>.<br>Si vous avez des questions, n''hésitez pas à nous contacter à tout moment à <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.'
+
+membership_cancelled:
+    subject: "L'abonnement adhésion sur MySpeedPuzzling.com a été annulé"
+    title: "L'abonnement adhésion a été annulé !"
+    content: |
+        <p>Nous sommes désolés de vous voir partir, mais nous apprécions le temps que vous avez passé avec MySpeedPuzzling.com.</p>
+        <p>Ne vous inquiétez pas, vous ne serez plus facturé. Cependant, votre adhésion restera active jusqu'à la fin de la période de facturation actuelle, qui se termine le <b>%membershipExpiresAt%</b>.</p>
+        <p>Si vous changez d'avis, vous pouvez gérer votre adhésion à tout moment sur la <a href="%membershipUrl%">page adhésion</a>.</p>
+        <p>Nous travaillons constamment pour améliorer MySpeedPuzzling.com et apprécierions grandement tous commentaires ou idées que vous pourriez avoir.</p>
+        <p>Merci de faire partie de MySpeedPuzzling.com, et nous espérons vous accueillir de nouveau un jour ! :)</p>
+
+membership_granted:
+    subject: "Félicitations pour votre adhésion à MySpeedPuzzling.com"
+    title: "Votre adhésion est maintenant active !"
+    content: |
+        <p>Nous sommes ravis de reconnaître votre contribution et vos efforts dans la communauté Speed Puzzling !</p>
+        <p>En signe de notre appréciation, nous vous avons accordé une adhésion sur MySpeedPuzzling.com. Votre adhésion restera active jusqu'au : <b>%membershipExpiresAt%</b>.</p>
+        <p>Vous pouvez vérifier et gérer votre adhésion à tout moment sur la <a href="%membershipUrl%">page adhésion</a>.</p>
+        <p>Merci d'être un membre si précieux de la communauté Speed Puzzling. Continuez à résoudre des puzzles et à inspirer d'autres puzzleurs !</p>
+
+membership_subscribed:
+    subject: "Félicitations pour votre adhésion à MySpeedPuzzling.com"
+    title: "Merci de nous avoir rejoint !"
+    content: |
+        <h4>Votre adhésion est maintenant active.</h4>
+        <p>Nous apprécions profondément votre soutien et sommes ravis de vous accueillir en tant que membre de MySpeedPuzzling.com !</p>
+        <p>Votre prochaine période de facturation commence le : <b>%nextBillingPeriod%</b>.</p>
+        <p>Vous pouvez gérer votre abonnement, annuler l'adhésion ou télécharger les factures à tout moment sur la <a href="%membershipUrl%">page adhésion</a>.</p>
+        <p>Merci de faire partie de MySpeedPuzzling.com et pour votre soutien. Nous vous souhaitons beaucoup de speed puzzling rapide et d'excellents résultats !</p>
+
+subscription_payment_failed:
+    subject: "Le paiement de l'adhésion sur MySpeedPuzzling.com a échoué"
+    title: "Le paiement de l'adhésion a échoué !"
+    content: |
+        <p>Nous avons remarqué que votre paiement récent d'adhésion n'a pas réussi. Il pourrait y avoir eu un problème avec votre méthode de paiement.</p>
+        <p>Si vous souhaitez maintenir votre adhésion active, veuillez vérifier et mettre à jour votre méthode de paiement sur la <a href="%billingPortalUrl%">page du portail de facturation</a>.</p>
+        <p>Si le paiement continue d'échouer, votre adhésion sera désactivée après quelques tentatives supplémentaires. Nous espérons que vous resterez avec MySpeedPuzzling.com !</p>
+
+subscription_renewed:
+    subject: "Le paiement de l'adhésion sur MySpeedPuzzling.com a réussi"
+    title: "Paiement réussi, merci !"
+    content: |
+        <p>Merci beaucoup de rester avec nous et de faire partie de MySpeedPuzzling.com !</p>
+        <p>Nous sommes ravis de vous informer que votre adhésion a été renouvelée avec succès. Votre prochaine période de facturation commence le : <b>%nextBillingPeriod%</b>.</p>
+        <p>Si vous souhaitez mettre à jour ou réviser les détails de votre abonnement, vous pouvez le faire sur la <a href="%membershipUrl%">page adhésion</a>.</p>
+        <p>Nous travaillons constamment à l'amélioration et à l'ajout de nouvelles fonctionnalités pour nos membres. S'il y a quelque chose que nous pouvons faire mieux, faites-le nous savoir.</p>
+        <p>Encore une fois, merci pour votre soutien. Nous vous souhaitons beaucoup de speed puzzling rapide et d'excellents résultats !</p>

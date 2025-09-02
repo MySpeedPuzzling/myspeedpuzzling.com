@@ -29,6 +29,8 @@ final class NotificationsController extends AbstractController
             'en' => '/en/notifications',
             'es' => '/es/notificaciones',
             'ja' => '/ja/通知',
+            'fr' => '/fr/notifications',
+            'de' => '/de/benachrichtigungen',
         ],
         name: 'notifications',
     )]

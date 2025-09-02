@@ -34,6 +34,7 @@ final class PlayerCollectionController extends AbstractController
             'es' => '/es/coleccion-jugador/{playerId}',
             'ja' => '/ja/プレイヤーコレクション/{playerId}',
             'fr' => '/fr/collection-joueur/{playerId}',
+            'de' => '/de/spieler-sammlung/{playerId}',
         ],
         name: 'player_collection',
     )]

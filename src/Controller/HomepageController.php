@@ -31,13 +31,14 @@ final class HomepageController extends AbstractController
             'es' => '/es/inicio',
             'ja' => '/ja/ホーム',
             'fr' => '/fr/accueil',
+            'de' => '/de/start',
         ],
         name: 'homepage',
     )]
     public function __invoke(Request $request, #[CurrentUser] null|UserInterface $user): Response
     {
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
-        $locale = $request->getPreferredLanguage(['en', 'cs', 'es', 'ja', 'fr']) ?? 'en';
+        $locale = $request->getPreferredLanguage(['en', 'cs', 'es', 'ja', 'fr', 'de']) ?? 'en';
 
         if ($playerProfile !== null) {
             $locale = $playerProfile->locale ?? $locale;

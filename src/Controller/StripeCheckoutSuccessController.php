@@ -32,6 +32,7 @@ final class StripeCheckoutSuccessController extends AbstractController
             'es' => '/es/compra-membresia-exitosa/{sessionId}',
             'ja' => '/ja/メンバーシップ購入成功/{sessionId}',
             'fr' => '/fr/adhesion-paiement-reussi/{sessionId}',
+            'de' => '/de/mitgliedschaft-kauf-erfolgreich/{sessionId}',
         ],
         name: 'stripe_checkout_success',
     )]

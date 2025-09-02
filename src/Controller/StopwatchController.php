@@ -30,6 +30,7 @@ final class StopwatchController extends AbstractController
             'es' => '/es/cronometro/{stopwatchId}',
             'ja' => '/ja/ストップウォッチ/{stopwatchId}',
             'fr' => '/fr/chronometre/{stopwatchId}',
+            'de' => '/de/stoppuhr/{stopwatchId}',
         ],
         name: 'stopwatch',
     )]
@@ -40,6 +41,7 @@ final class StopwatchController extends AbstractController
             'es' => '/es/cronometro-puzzle/{puzzleId}',
             'ja' => '/ja/パズル-ストップウォッチ/{puzzleId}',
             'fr' => '/fr/puzzle-chronometre/{puzzleId}',
+            'de' => '/de/puzzle-stoppuhr/{puzzleId}',
         ],
         name: 'stopwatch_puzzle',
     )]

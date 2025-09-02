@@ -19,6 +19,8 @@ final class EditPlayerCodeController extends AbstractController
             'en' => '/en/edit-player-code',
             'es' => '/es/editar-codigo-jugador',
             'ja' => '/ja/プレイヤーコード編集',
+            'fr' => '/fr/editer-code-joueur',
+            'de' => '/de/spieler-code-bearbeiten',
          ],
          name: 'edit_player_code',
      )]

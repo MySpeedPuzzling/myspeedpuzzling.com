@@ -27,6 +27,7 @@ final class StartStopwatchController extends AbstractController
             'es' => '/es/iniciar-cronometro/{puzzleId}',
             'ja' => '/ja/ストップウォッチ開始/{puzzleId}',
             'fr' => '/fr/demarrer-chronometre/{puzzleId}',
+            'de' => '/de/stoppuhr-starten/{puzzleId}',
         ],
         name: 'start_stopwatch',
     )]

@@ -30,6 +30,7 @@ final class BuyMembershipController extends AbstractController
             'es' => '/es/comprar-membresia/{period}',
             'ja' => '/ja/メンバーシップ購入/{period}',
             'fr' => '/fr/acheter-adhesion/{period}',
+            'de' => '/de/mitgliedschaft-kaufen/{period}',
         ],
         name: 'buy_membership',
         defaults: ['period' => null],

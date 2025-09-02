@@ -32,6 +32,8 @@ final class AddPuzzleToCollectionController extends AbstractController
             'en' => '/en/add-puzzle-to-collection/{puzzleId}',
             'es' => '/es/anadir-puzzle-a-coleccion/{puzzleId}',
             'ja' => '/ja/コレクションに追加/{puzzleId}',
+            'fr' => '/fr/ajouter-puzzle-a-collection/{puzzleId}',
+            'de' => '/de/puzzle-zu-sammlung-hinzufuegen/{puzzleId}',
         ],
         name: 'add_puzzle_to_collection',
     )]

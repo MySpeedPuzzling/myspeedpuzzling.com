@@ -42,6 +42,7 @@ final class PlayerProfileController extends AbstractController
             'es' => '/es/perfil-jugador/{playerId}',
             'ja' => '/ja/プレイヤー-プロフィール/{playerId}',
             'fr' => '/fr/profil-joueur/{playerId}',
+            'de' => '/de/spieler-profil/{playerId}',
         ],
         name: 'player_profile',
     )]

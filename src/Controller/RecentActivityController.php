@@ -30,6 +30,7 @@ final class RecentActivityController extends AbstractController
             'es' => '/es/actividad-reciente',
             'ja' => '/ja/最近のアクティビティ',
             'fr' => '/fr/activite-recente',
+            'de' => '/de/aktuelle-aktivitaet',
         ],
         name: 'recent_activity',
     )]

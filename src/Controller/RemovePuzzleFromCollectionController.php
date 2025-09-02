@@ -32,6 +32,8 @@ final class RemovePuzzleFromCollectionController extends AbstractController
             'en' => '/en/remove-puzzle-from-collection/{puzzleId}',
             'es' => '/es/eliminar-puzzle-de-coleccion/{puzzleId}',
             'ja' => '/ja/コレクションから削除/{puzzleId}',
+            'fr' => '/fr/retirer-puzzle-de-collection/{puzzleId}',
+            'de' => '/de/puzzle-aus-sammlung-entfernen/{puzzleId}',
         ],
         name: 'remove_puzzle_from_collection',
     )]

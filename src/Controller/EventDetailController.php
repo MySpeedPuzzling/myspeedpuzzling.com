@@ -30,6 +30,7 @@ final class EventDetailController extends AbstractController
             'es' => '/es/eventos/{slug}',
             'ja' => '/ja/イベント/{slug}',
             'fr' => '/fr/evenements/{slug}',
+            'de' => '/de/veranstaltungen/{slug}',
         ],
         name: 'event_detail',
     )]

@@ -43,6 +43,7 @@ final class EditProfileController extends AbstractController
             'es' => '/es/editar-perfil',
             'ja' => '/ja/プロフィール編集',
             'fr' => '/fr/modifier-profil',
+            'de' => '/de/profil-bearbeiten',
         ],
         name: 'edit_profile',
     )]

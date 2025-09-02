@@ -35,6 +35,7 @@ final class PlayerStatisticsController extends AbstractController
             'es' => '/es/estadisticas-jugador/{playerId}',
             'ja' => '/ja/プレイヤー統計/{playerId}',
             'fr' => '/fr/statistiques-joueur/{playerId}',
+            'de' => '/de/spieler-statistiken/{playerId}',
         ],
         name: 'player_statistics',
     )]

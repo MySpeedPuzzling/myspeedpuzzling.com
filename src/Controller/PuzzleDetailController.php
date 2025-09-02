@@ -37,6 +37,7 @@ final class PuzzleDetailController extends AbstractController
             'es' => '/es/puzzle/{puzzleId}',
             'ja' => '/ja/パズル/{puzzleId}',
             'fr' => '/fr/puzzle/{puzzleId}',
+            'de' => '/de/puzzle/{puzzleId}',
         ],
         name: 'puzzle_detail',
     )]
@@ -47,6 +48,7 @@ final class PuzzleDetailController extends AbstractController
             'es' => '/es/resolviendo-puzzle/{puzzleId}',
             'ja' => '/ja/パズル解決中/{puzzleId}',
             'fr' => '/fr/resoudre-puzzle/{puzzleId}',
+            'de' => '/de/puzzle-loesen/{puzzleId}',
         ],
         name: 'puzzle_detail_qr',
     )]

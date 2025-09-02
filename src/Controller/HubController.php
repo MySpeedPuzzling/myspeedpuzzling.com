@@ -33,6 +33,7 @@ final class HubController extends AbstractController
             'es' => '/es/centro',
             'ja' => '/ja/ハブ',
             'fr' => '/fr/hub',
+            'de' => '/de/zentrale',
         ],
         name: 'hub',
     )]

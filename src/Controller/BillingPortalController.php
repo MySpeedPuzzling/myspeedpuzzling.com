@@ -27,6 +27,7 @@ final class BillingPortalController extends AbstractController
             'es' => '/es/membresia/portal-facturacion',
             'ja' => '/ja/メンバーシップ/支払いポータル',
             'fr' => '/fr/adhesion/portail-facturation',
+            'de' => '/de/mitgliedschaft/abrechnungs-portal',
         ],
         name: 'billing_portal',
     )]

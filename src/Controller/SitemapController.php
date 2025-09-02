@@ -31,12 +31,12 @@ final class SitemapController extends AbstractController
         $staticRoutes = ['homepage', 'contact', 'faq', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events'];
 
         foreach ($staticRoutes as $route) {
-            foreach (['cs', 'en', 'es', 'ja', 'fr'] as $locale) {
+            foreach (['cs', 'en', 'es', 'ja', 'fr', 'de'] as $locale) {
                 $urls[$route][$locale] = $this->generateUrl($route, ['_locale' => $locale], UrlGeneratorInterface::ABSOLUTE_URL);
             }
         }
 
-        foreach (['cs', 'en', 'es', 'ja', 'fr'] as $locale) {
+        foreach (['cs', 'en', 'es', 'ja', 'fr', 'de'] as $locale) {
             foreach ($this->getPuzzlesOverview->allApprovedOrAddedByPlayer(null) as $puzzles) {
                 $urls[$puzzles->puzzleId][$locale] = $this->generateUrl('puzzle_detail', [
                     '_locale' => $locale,

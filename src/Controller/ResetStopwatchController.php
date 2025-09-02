@@ -28,6 +28,8 @@ final class ResetStopwatchController extends AbstractController
             'en' => '/en/stopwatch/{stopwatchId}/reset',
             'es' => '/es/cronometro/{stopwatchId}/reiniciar',
             'ja' => '/ja/ストップウォッチ/{stopwatchId}/リセット',
+            'fr' => '/fr/chronometre/{stopwatchId}/reinitialiser',
+            'de' => '/de/stoppuhr/{stopwatchId}/zuruecksetzen',
         ],
         name: 'reset_stopwatch',
     )]

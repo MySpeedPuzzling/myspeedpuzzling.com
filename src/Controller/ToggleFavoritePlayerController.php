@@ -35,6 +35,7 @@ final class ToggleFavoritePlayerController extends AbstractController
             'es' => '/es/anadir-jugador-a-favoritos/{playerId}',
             'ja' => '/ja/お気に入りに追加/{playerId}',
             'fr' => '/fr/ajouter-joueur-favoris/{playerId}',
+            'de' => '/de/spieler-zu-favoriten-hinzufuegen/{playerId}',
         ],
         name: 'add_player_to_favorite',
     )]
@@ -45,6 +46,7 @@ final class ToggleFavoritePlayerController extends AbstractController
             'es' => '/es/eliminar-jugador-de-favoritos/{playerId}',
             'ja' => '/ja/お気に入りから削除/{playerId}',
             'fr' => '/fr/retirer-joueur-favoris/{playerId}',
+            'de' => '/de/spieler-aus-favoriten-entfernen/{playerId}',
         ],
         name: 'remove_player_from_favorite',
     )]

@@ -18,6 +18,7 @@ final class PrivacyPolicyController extends AbstractController
             'es' => '/es/politica-privacidad',
             'ja' => '/ja/プライバシー',
             'fr' => '/fr/politique-confidentialite',
+            'de' => '/de/datenschutz',
         ],
         name: 'privacy_policy',
     )]

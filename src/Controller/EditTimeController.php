@@ -44,6 +44,7 @@ final class EditTimeController extends AbstractController
             'es' => '/es/editar-tiempo/{timeId}',
             'ja' => '/ja/時間編集/{timeId}',
             'fr' => '/fr/modifier-temps/{timeId}',
+            'de' => '/de/zeit-bearbeiten/{timeId}',
         ],
         name: 'edit_time',
     )]

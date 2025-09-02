@@ -20,6 +20,8 @@ final class FaqController extends AbstractController
             'en' => '/en/faq',
             'es' => '/es/preguntas-frecuentes',
             'ja' => '/ja/よくある質問',
+            'fr' => '/fr/faq',
+            'de' => '/de/haeufige-fragen',
         ],
         name: 'faq',
     )]

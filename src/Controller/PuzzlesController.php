@@ -38,6 +38,7 @@ final class PuzzlesController extends AbstractController
             'es' => '/es/puzzles',
             'ja' => '/ja/パズル',
             'fr' => '/fr/puzzle',
+            'de' => '/de/puzzle',
         ],
         name: 'puzzles',
     )]

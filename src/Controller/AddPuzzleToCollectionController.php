@@ -31,6 +31,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             'cs' => '/pridat-puzzle-do-kolecce/{puzzleId}',
             'en' => '/en/add-puzzle-to-collection/{puzzleId}',
             'es' => '/es/anadir-puzzle-a-coleccion/{puzzleId}',
+            'ja' => '/ja/コレクションに追加/{puzzleId}',
         ],
         name: 'add_puzzle_to_collection',
     )]

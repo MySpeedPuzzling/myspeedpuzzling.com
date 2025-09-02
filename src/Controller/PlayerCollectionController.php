@@ -32,6 +32,7 @@ final class PlayerCollectionController extends AbstractController
             'cs' => '/kolekce-hrace/{playerId}',
             'en' => '/en/player-collection/{playerId}',
             'es' => '/es/coleccion-jugador/{playerId}',
+            'ja' => '/ja/プレイヤーコレクション/{playerId}',
         ],
         name: 'player_collection',
     )]

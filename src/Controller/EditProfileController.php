@@ -41,6 +41,7 @@ final class EditProfileController extends AbstractController
             'cs' => '/upravit-profil',
             'en' => '/en/edit-profile',
             'es' => '/es/editar-perfil',
+            'ja' => '/ja/プロフィール編集',
         ],
         name: 'edit_profile',
     )]

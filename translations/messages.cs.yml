@@ -86,7 +86,7 @@ secret_puzzler_name: "Utajený Puzzler"
 
 homepage:
     meta:
-        title: "Speed Puzzling Komunita | Sleduj Časy"
+        title: "Speed Puzzling - Sdílej a porovnávej časy"
         description: "Připoj se k největší speed puzzling komunitě! Sleduj časy skládání, soutěž s hráči z celého světa a šplhej po žebříčku. Začni dnes!"
         keywords: "speed puzzling, speedpuzzling, časy puzzlí, puzzle komunita, soutěž ve skládání puzzlí, puzzle žebříček"
     global_statistics: "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
@@ -117,7 +117,7 @@ homepage:
 ladder:
     title: "Žebříček"
     meta:
-        title: "Speed Puzzling Žebříček | Časy"
+        title: "Žebříček časů"
         description: "Speed puzzling žebříček ukazující nejrychlejší časy skládání a pořadí hráčů. Zjisti kdo drží rekordy a soutěž o špičkové pozice."
         keywords: "speed puzzling žebříček, nejrychlejší časy, puzzle rekordy, pořadí hráčů, výsledky soutěží, puzzle šampióni"
     overview: "Přehled"
@@ -155,7 +155,7 @@ sorting:
 
 puzzle_overview:
     meta:
-        title: "Speed Puzzling Databáze | 500-1000ks"
+        title: "Speed Puzzling Databáze"
         description: "Procházej databázi speed puzzling s puzzle 500-1000+ dílků. Porovnávej časy skládání, najdi nové výzvy a sleduj svůj pokrok."
         keywords: "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
     title: "Puzzle"

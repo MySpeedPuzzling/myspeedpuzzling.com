@@ -26,6 +26,7 @@ final class AddedTimeRecapController extends AbstractController
             'cs' => '/cas-pridan/{timeId}',
             'en' => '/en/time-added/{timeId}',
             'es' => '/es/tiempo-anadido/{timeId}',
+            'ja' => '/ja/時間追加済み/{timeId}',
         ],
         name: 'added_time_recap',
     )]

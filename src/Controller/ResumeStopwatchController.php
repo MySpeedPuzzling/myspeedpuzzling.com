@@ -27,6 +27,7 @@ final class ResumeStopwatchController extends AbstractController
             'cs' => '/stopky/{stopwatchId}/pokracovat',
             'en' => '/en/stopwatch/{stopwatchId}/resume',
             'es' => '/es/cronometro/{stopwatchId}/continuar',
+            'ja' => '/ja/ストップウォッチ/{stopwatchId}/再開',
         ],
         name: 'resume_stopwatch',
     )]

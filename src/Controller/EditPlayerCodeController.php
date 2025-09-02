@@ -18,6 +18,7 @@ final class EditPlayerCodeController extends AbstractController
             'cs' => '/upravit-kod-hrace',
             'en' => '/en/edit-player-code',
             'es' => '/es/editar-codigo-jugador',
+            'ja' => '/ja/プレイヤーコード編集',
          ],
          name: 'edit_player_code',
      )]

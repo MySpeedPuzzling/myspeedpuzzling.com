@@ -27,6 +27,7 @@ final class DeleteTimeController extends AbstractController
             'cs' => '/smazat-cas/{timeId}',
             'en' => '/en/delete-time/{timeId}',
             'es' => '/es/eliminar-tiempo/{timeId}',
+            'ja' => '/ja/時間削除/{timeId}',
         ],
         name: 'delete_time',
     )]

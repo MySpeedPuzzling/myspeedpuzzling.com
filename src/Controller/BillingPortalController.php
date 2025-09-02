@@ -25,6 +25,7 @@ final class BillingPortalController extends AbstractController
             'cs' => '/clenstvi/platebni-portal',
             'en' => '/en/memberstip/billing-portal',
             'es' => '/es/membresia/portal-facturacion',
+            'ja' => '/ja/メンバーシップ/支払いポータル',
         ],
         name: 'billing_portal',
     )]

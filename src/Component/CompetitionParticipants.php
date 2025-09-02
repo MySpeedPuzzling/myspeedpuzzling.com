@@ -9,6 +9,9 @@ use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\CompetitionRoundInfo;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
+use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
@@ -50,6 +53,8 @@ final class CompetitionParticipants
     public function __construct(
         readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetCompetitionRounds $getCompetitionRounds,
+        readonly private ChartBuilderInterface $chartBuilder,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -87,5 +92,71 @@ final class CompetitionParticipants
         }
 
         return $count;
+    }
+
+    public function getChart(): Chart
+    {
+        $labels = [];
+        $chartData = [];
+        $backgrounds = [];
+
+        // Filter participants with valid average time
+        $participantsWithAverageTime = array_filter(
+            array: $this->connectedParticipants,
+            callback: fn (ConnectedCompetitionParticipant $participant): bool => $participant->averageTime !== null
+        );
+
+        foreach ($participantsWithAverageTime as $index => $participant) {
+            $labels[] = sprintf(
+                '%d. %s',
+                $index + 1,
+                $participant->participantName
+            );
+
+            $chartData[] = $participant->averageTime;
+            $backgrounds[] = 'rgba(105, 179, 254, 0.6)';
+
+            if ($this->retrieveLoggedUserProfile->getProfile()?->playerId === $participant->playerId) {
+                $backgrounds[] = 'rgba(254, 64, 66, 1)';
+            } elseif ($this->firstTryOnly === true) {
+                $backgrounds[] = 'rgba(105, 179, 254, 0.6)';
+            } else {
+                $backgrounds[] = 'rgba(254, 105, 106, 0.6)';
+            }
+        }
+
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
+        $chart->setData([
+            'labels' => $labels,
+            'datasets' => [
+                [
+                    'backgroundColor' => $backgrounds,
+                    'data' => $chartData,
+                ],
+            ],
+        ]);
+
+        $chart->setOptions([
+            'indexAxis' => 'y', // Horizontal bar chart
+            'scales' => [
+                'x' => [
+                    'grid' => [
+                        'display' => true,
+                    ],
+                ],
+                'y' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
+            'plugins' => [
+                'legend' => [
+                    'display' => false,
+                ],
+            ],
+        ]);
+
+        return $chart;
     }
 }

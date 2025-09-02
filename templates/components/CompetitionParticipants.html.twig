@@ -70,6 +70,35 @@
 
     {% endif %}
 
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <div class="card card-body p-2 pt-1 shadow mb-3">
+            <div style="height: 200px;" data-controller="time-chart" class="position-relative">
+                {{ render_chart(this.chart) }}
+
+                <button
+                    class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
+                    data-action="time-chart#resetZoom"
+                    data-time-chart-target="zoomButton"
+                >
+                    <i class="bi-zoom-out"></i>
+                </button>
+            </div>
+        </div>
+    {% else %}
+        <div class="card card-body p-2 pt-1 shadow mb-3">
+            <div class="puzzle-detail-chart-placeholder text-center">
+                <button
+                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                >
+                    <i class="ci-locked me-1"></i>
+                    {{ 'membership.members_exclusive_button'|trans }}
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
     <div class="table-responsive custom-table-wrapper mt-3 mb-3">
         <table class="table custom-table table-striped table-hover mb-0">
             <tbody>

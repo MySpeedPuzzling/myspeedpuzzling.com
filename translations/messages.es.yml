@@ -527,14 +527,12 @@ competition_connection:
     description: "Conecta tu cuenta de competencia con el perfil de MySpeedPuzzling y descubre cómo te encuentras contra otros participantes. Para hacer las estadísticas relevantes, solo tomamos rompecabezas de 500 piezas de los últimos 3 meses en las estadísticas. ¡Si has resuelto el mismo rompecabezas múltiples veces, tomamos solo el más rápido!"
 
 global_modal:
-    title: "Campeonato Europeo de Rompecabezas 2025"
+    title: "World Jigsaw Puzzle Championship 2025"
     text: |
-        <p>¿Estás compitiendo en el 1er Campeonato Europeo de Rompecabezas 2025?</p>
-        <p>Vincula tu cuenta de MySpeedPuzzling.com con tu nombre de <a href="https://mopepuzzle.hu/event_competition.php?id=3&competition=6&language=en" target="_blank">mopepuzzle.hu</a>, echa un vistazo a tu competencia… ¡y asústalos con tus tiempos!</p>
-        <p><small>(¡Funciona solo para la categoría Solo!)</small></p>
-
+        <p>¿Estás compitiendo en el Campeonato Mundial de Rompecabezas 2025 en Valladolid?</p>
+        <p>Vincula tu cuenta de MySpeedPuzzling con tu nombre de WJPC, echa un vistazo a tu competencia… ¡y asústalos con tus tiempos!</p>
     button_cta: "Conectar mi cuenta"
-    button_dismiss: "¡No estoy asistiendo!"
+    button_dismiss: "¡No voy a competir!"
 
 added_time_recap:
     title: "¡Excelente tiempo, sigue así!"

@@ -527,12 +527,10 @@ competition_connection:
     description: "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
 
 global_modal:
-    title: "European Jigsaw Puzzle Championship 2025"
+    title: "World Jigsaw Puzzle Championship 2025"
     text: |
-        <p>Účastníš se 1. evropského mistrovství ve skládání puzzlí 2025?</p>
-        <p>Propoj si svůj MySpeedPuzzling.com účet se jménem z <a href="https://mopepuzzle.hu/event_competition.php?id=3&competition=6&language=en" target="_blank">mopepuzzle.hu</a>, omrkni svou konkurenci… a rovnou ji svými časy pořádně vystraš!</p>
-        <p><small>(Funguje pouze pro Solo kategorii!)</small></p>
-
+        <p>Účastníš se mistrovství světa ve skládání puzzlí 2025 ve Valladolidu?</p>
+        <p>Propoj si svůj MySpeedPuzzling účet se jménem z WJPC, omrkni svou konkurenci… a rovnou ji svými časy pořádně vystraš!</p>
     button_cta: "Propojit můj účet"
     button_dismiss: "Nebudu tam soutěžit!"
 

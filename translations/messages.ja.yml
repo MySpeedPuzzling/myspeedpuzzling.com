@@ -445,10 +445,12 @@ compare_players:
     head_to_head: "対戦成績"
 
 global_modal:
-    title: "お知らせ"
-    text: "新しい機能や重要な情報をお知らせします。"
-    button_cta: "詳細を見る"
-    button_dismiss: "閉じる"
+    title: "World Jigsaw Puzzle Championship 2025"
+    text: |
+        <p>バリャドリッドで開催される世界ジグソーパズル選手権2025に参加されますか？</p>
+        <p>MySpeedPuzzlingアカウントをWJPCの名前とリンクして、競争相手をチェックし…あなたのタイムで彼らを驚かせましょう！</p>
+    button_cta: "アカウントを接続"
+    button_dismiss: "参加しません！"
 
 puzzlers_comparison:
     meta:

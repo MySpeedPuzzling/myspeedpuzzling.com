@@ -15,7 +15,6 @@ menu:
     membership: "Členství"
     search: "Hledej"
     statistics: "Statistiky"
-    collection: "Kolekce"
     favorite_puzzlers: "Oblíbení puzzleři"
     edit_profile: "Upravit profil"
     change_player_code: "Změnit kód hráče"
@@ -72,9 +71,6 @@ any: "Libovolný"
 all_pieces: "Vše"
 solo_solved: "Skládáno SOLO:"
 first_attempt: "1. pokus"
-add_to_collection: "Přidat do mé sbírky"
-in_collection: "V mé sbírce"
-remove_from_collection: "Odebrat z mé sbírky"
 ranking_out_of: "z"
 wjpc_participant: "Účastník (%name%)"
 share: "Sdílet"
@@ -421,8 +417,6 @@ flashes:
     can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
     player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
-    puzzle_added_to_collection: "Ahoj,.. puzzle. Vítejte v mé sbírce!"
-    puzzle_removed_from_collection: "Sbohem puzzle..."
     competition_duplicate_connection: "Něco je špatně :-( vybrali jste soutěžní účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
     competition_connection_saved: "Super! Soutěžní účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
     membership_subscribed_successfully: "členství je nyní aktivní!"
@@ -493,9 +487,6 @@ badges:
     badge:
         supporter: "Podporovatel"
 
-collection:
-    title: "Sbírka"
-    empty_info: "Tato kolekce je prozatím prázdná. Možná už je vhodný čas to změnit? Přeci každý miluje puzzle a jejich skladování :-)."
 
 scan:
     meta:

@@ -15,7 +15,6 @@ menu:
     membership: "Membership"
     search: "Search"
     statistics: "Statistics"
-    collection: "Collection"
     favorite_puzzlers: "Favorite puzzlers"
     edit_profile: "Edit profile"
     change_player_code: "Change player code"
@@ -72,9 +71,6 @@ any: "Any"
 all_pieces: "All"
 solo_solved: "Solved SOLO:"
 first_attempt: "1st try"
-add_to_collection: "Add to my collection"
-in_collection: "In my collection"
-remove_from_collection: "Remove from collection"
 ranking_out_of: "of"
 wjpc_participant: "WJPC 2024 participant (%name%)"
 share: "Share"
@@ -421,8 +417,6 @@ flashes:
     can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
     player_already_in_favorites: "This puzzler is already in your list of favorites, so we won't add them again ;-)."
     player_not_in_favorites: "Hmm, we couldn't find this puzzler in your favorites, so we can't remove them ;-)."
-    puzzle_added_to_collection: "Hi,.. puzzle. Welcome to my collection!"
-    puzzle_removed_from_collection: "Good bye puzzle..."
     competition_duplicate_connection: "Something is wrong :-( you have chosen competition account, that is already connected to some MySpeedPuzzling profile. Worry not, we were automatically notified and we will check out what is wrong."
     competition_connection_saved: "Nice! Competition account successfully connected to your MySpeedPuzzling profile!"
     membership_subscribed_successfully: "Your membership is now active!"
@@ -494,9 +488,6 @@ badges:
     badge:
         supporter: "Supporter"
 
-collection:
-    title: "Collection"
-    empty_info: "This collection is currently empty. Maybe it's time to change that? After all, everyone loves puzzles and storing them :-)."
 
 scan:
     meta:

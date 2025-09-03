@@ -17,7 +17,7 @@ readonly final class PuzzleCollectionItemRepository
     ) {
     }
 
-    public function findByPlayerAndPuzzle(Player $player, Puzzle $puzzle): ?PuzzleCollectionItem
+    public function findByPlayerAndPuzzle(Player $player, Puzzle $puzzle): null|PuzzleCollectionItem
     {
         return $this->entityManager->getRepository(PuzzleCollectionItem::class)->findOneBy([
             'player' => $player,
@@ -40,7 +40,7 @@ readonly final class PuzzleCollectionItemRepository
         return (int) $qb->getQuery()->getSingleScalarResult() > 0;
     }
 
-    public function findByCollectionAndPuzzle(PuzzleCollection $collection, Puzzle $puzzle): ?PuzzleCollectionItem
+    public function findByCollectionAndPuzzle(PuzzleCollection $collection, Puzzle $puzzle): null|PuzzleCollectionItem
     {
         return $this->entityManager->getRepository(PuzzleCollectionItem::class)->findOneBy([
             'collection' => $collection,

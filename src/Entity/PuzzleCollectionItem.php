@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
@@ -43,9 +44,11 @@ class PuzzleCollectionItem implements EntityWithEvents
         public null|PuzzleCollection $collection,
         #[Immutable]
         #[ManyToOne]
+        #[JoinColumn(nullable: false)]
         public Puzzle $puzzle,
         #[Immutable]
         #[ManyToOne]
+        #[JoinColumn(nullable: false)]
         public Player $player,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]

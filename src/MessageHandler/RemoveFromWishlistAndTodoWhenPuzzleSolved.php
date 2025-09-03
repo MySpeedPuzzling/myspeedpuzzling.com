@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\PuzzleCollection;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Repository\PuzzleCollectionItemRepository;
@@ -27,22 +28,24 @@ readonly final class RemoveFromWishlistAndTodoWhenPuzzleSolved
     {
         $solvingTime = $this->puzzleSolvingTimeRepository->get($event->puzzleSolvingTimeId->toString());
         $puzzle = $solvingTime->puzzle;
-        
+
         // Get all players who solved this puzzle (including team members)
         $playersToProcess = [];
-        
-        if ($solvingTime->player !== null) {
-            $playersToProcess[] = $solvingTime->player;
-        }
-        
+
+        // Player is always set (non-nullable in entity)
+        $playersToProcess[] = $solvingTime->player;
+
         if ($solvingTime->team !== null) {
             foreach ($solvingTime->team->puzzlers as $puzzler) {
-                if ($puzzler->player !== null) {
-                    $playersToProcess[] = $puzzler->player;
+                if ($puzzler->playerId !== null) {
+                    $player = $this->entityManager->find(Player::class, $puzzler->playerId);
+                    if ($player !== null) {
+                        $playersToProcess[] = $player;
+                    }
                 }
             }
         }
-        
+
         // Remove puzzle from wishlist and todolist for each player
         foreach ($playersToProcess as $player) {
             // Remove from wishlist
@@ -53,7 +56,7 @@ readonly final class RemoveFromWishlistAndTodoWhenPuzzleSolved
                     $this->entityManager->remove($item);
                 }
             }
-            
+
             // Remove from todolist
             $todolistCollection = $this->collectionRepository->findSystemCollection($player, PuzzleCollection::SYSTEM_TODO);
             if ($todolistCollection !== null) {
@@ -63,7 +66,7 @@ readonly final class RemoveFromWishlistAndTodoWhenPuzzleSolved
                 }
             }
         }
-        
+
         $this->entityManager->flush();
     }
 }

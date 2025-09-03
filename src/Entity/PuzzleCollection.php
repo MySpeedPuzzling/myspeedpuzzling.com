@@ -9,6 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
@@ -16,7 +17,6 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\PuzzleCollectionCreated;
 use SpeedPuzzling\Web\Events\PuzzleCollectionDeleted;
 use SpeedPuzzling\Web\Events\PuzzleCollectionUpdated;
-use SpeedPuzzling\Web\Value\CollectionType;
 
 #[Entity]
 class PuzzleCollection implements EntityWithEvents
@@ -54,6 +54,7 @@ class PuzzleCollection implements EntityWithEvents
         public UuidInterface $id,
         #[Immutable]
         #[ManyToOne]
+        #[JoinColumn(nullable: false)]
         public Player $player,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]

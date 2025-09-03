@@ -16,7 +16,7 @@ readonly final class PuzzleBorrowingRepository
     ) {
     }
 
-    public function findActiveBorrowing(Player $player, Puzzle $puzzle): ?PuzzleBorrowing
+    public function findActiveBorrowing(Player $player, Puzzle $puzzle): null|PuzzleBorrowing
     {
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('b')
@@ -28,6 +28,7 @@ readonly final class PuzzleBorrowingRepository
             ->setParameter('player', $player)
             ->setMaxResults(1);
 
+        /** @var PuzzleBorrowing|null */
         return $qb->getQuery()->getOneOrNullResult();
     }
 

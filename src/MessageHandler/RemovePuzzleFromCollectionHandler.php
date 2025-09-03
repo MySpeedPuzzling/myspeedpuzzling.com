@@ -31,7 +31,7 @@ readonly final class RemovePuzzleFromCollectionHandler
 
         if ($item !== null) {
             $item->remove();
-            
+
             $this->entityManager->remove($item);
             $this->entityManager->flush();
         }

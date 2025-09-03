@@ -31,7 +31,7 @@ readonly final class PuzzleCollectionRepository
         return $collection ?? throw new PuzzleCollectionNotFound();
     }
 
-    public function findSystemCollection(Player $player, string $systemType): ?PuzzleCollection
+    public function findSystemCollection(Player $player, string $systemType): null|PuzzleCollection
     {
         return $this->entityManager->getRepository(PuzzleCollection::class)->findOneBy([
             'player' => $player,
@@ -39,7 +39,7 @@ readonly final class PuzzleCollectionRepository
         ]);
     }
 
-    public function findRootCollection(Player $player): ?PuzzleCollection
+    public function findRootCollection(Player $player): null|PuzzleCollection
     {
         return $this->entityManager->getRepository(PuzzleCollection::class)->findOneBy([
             'player' => $player,

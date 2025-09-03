@@ -36,8 +36,8 @@ readonly final class NotifyWhenPuzzleBorrowed
         $toPlayer = $this->playerRepository->get($event->toPlayerId->toString());
         $puzzle = $this->puzzleRepository->get($event->puzzleId->toString());
 
-        $notificationType = $event->borrowedFrom 
-            ? NotificationType::PuzzleBorrowedFrom 
+        $notificationType = $event->borrowedFrom
+            ? NotificationType::PuzzleBorrowedFrom
             : NotificationType::PuzzleBorrowedTo;
 
         // Notify the other party about the borrowing

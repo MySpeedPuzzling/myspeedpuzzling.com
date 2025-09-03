@@ -37,7 +37,11 @@ final class DeleteCollectionController extends AbstractController
     )]
     public function __invoke(string $collectionId, Request $request, #[CurrentUser] UserInterface $user): Response
     {
-        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($loggedUserProfile === null) {
+            throw $this->createAccessDeniedException();
+        }
 
         try {
             $collection = $this->collectionRepository->get($collectionId);
@@ -56,7 +60,7 @@ final class DeleteCollectionController extends AbstractController
         }
 
         // Check CSRF token
-        $submittedToken = $request->request->get('_token');
+        $submittedToken = $request->request->getString('_token');
         if (!$this->isCsrfTokenValid('delete-collection', $submittedToken)) {
             throw $this->createAccessDeniedException();
         }

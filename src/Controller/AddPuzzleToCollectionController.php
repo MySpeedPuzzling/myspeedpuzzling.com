@@ -45,7 +45,7 @@ final class AddPuzzleToCollectionController extends AbstractController
     )]
     public function __invoke(string $puzzleId, Request $request, #[CurrentUser] UserInterface $user): Response
     {
-        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
 
         try {
             $puzzle = $this->puzzleRepository->get($puzzleId);
@@ -53,24 +53,28 @@ final class AddPuzzleToCollectionController extends AbstractController
             throw $this->createNotFoundException();
         }
 
+        if ($loggedUserProfile === null) {
+            throw $this->createAccessDeniedException();
+        }
+
         // Get collections where user can add puzzles
         $collections = $this->getPlayerCollections->forCollectionSelection($loggedUserProfile->playerId);
 
         if ($request->isMethod('POST')) {
-            $collectionId = $request->request->get('collection_id');
-            $comment = $request->request->get('comment');
-            $price = $request->request->get('price');
-            $condition = $request->request->get('condition');
+            $collectionId = $request->request->getString('collection_id', '');
+            $comment = $request->request->getString('comment', '');
+            $price = $request->request->getString('price', '');
+            $condition = $request->request->getString('condition', '');
 
             // Check CSRF token
-            $submittedToken = $request->request->get('_token');
+            $submittedToken = $request->request->getString('_token');
             if (!$this->isCsrfTokenValid('add-to-collection', $submittedToken)) {
                 throw $this->createAccessDeniedException();
             }
 
             try {
                 $collection = null;
-                if ($collectionId !== null && $collectionId !== '') {
+                if ($collectionId !== '') {
                     $collection = $this->collectionRepository->get($collectionId);
 
                     // Check ownership
@@ -82,11 +86,11 @@ final class AddPuzzleToCollectionController extends AbstractController
                 $this->messageBus->dispatch(new AddPuzzleToCollection(
                     itemId: Uuid::uuid7(),
                     puzzleId: $puzzleId,
-                    collectionId: $collectionId,
+                    collectionId: $collectionId !== '' ? $collectionId : null,
                     playerId: $loggedUserProfile->playerId,
-                    comment: $comment ?: null,
-                    price: $price ?: null,
-                    condition: $condition ?: null,
+                    comment: $comment !== '' ? $comment : null,
+                    price: $price !== '' ? $price : null,
+                    condition: $condition !== '' ? $condition : null,
                 ));
 
                 $this->addFlash('success', 'Puzzle added to collection');

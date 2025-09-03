@@ -40,7 +40,7 @@ final class PlayerCollectionsController extends AbstractController
 
         $loggedUserProfile = null;
         if ($user !== null) {
-            $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+            $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
         }
 
         $isOwnProfile = $loggedUserProfile !== null && $loggedUserProfile->playerId === $playerId;

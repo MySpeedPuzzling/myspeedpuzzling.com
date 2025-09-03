@@ -36,7 +36,11 @@ final class CreateCollectionController extends AbstractController
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response
     {
-        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($loggedUserProfile === null) {
+            throw $this->createAccessDeniedException();
+        }
 
         $formData = new PuzzleCollectionFormData();
         $form = $this->createForm(PuzzleCollectionFormType::class, $formData);

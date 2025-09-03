@@ -48,7 +48,7 @@ final class CollectionDetailController extends AbstractController
 
         $loggedUserProfile = null;
         if ($user !== null) {
-            $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+            $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
         }
 
         $isOwner = $loggedUserProfile !== null && $loggedUserProfile->playerId === $collection->playerId;

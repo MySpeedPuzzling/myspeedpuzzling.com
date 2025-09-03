@@ -42,12 +42,14 @@ final class PuzzleCollectionActionsController extends AbstractController
         $userCollections = [];
 
         if ($user !== null) {
-            $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
-            // Get which collections this puzzle is already in for this user
-            $userCollections = $this->getCollectionPuzzles->getPuzzleCollections(
-                $loggedUserProfile->playerId,
-                $puzzleId
-            );
+            $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
+            if ($loggedUserProfile !== null) {
+                // Get which collections this puzzle is already in for this user
+                $userCollections = $this->getCollectionPuzzles->getPuzzleCollections(
+                    $loggedUserProfile->playerId,
+                    $puzzleId
+                );
+            }
         }
 
         return $this->render('components/_puzzle_collection_actions.html.twig', [

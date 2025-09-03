@@ -37,15 +37,19 @@ final class RemovePuzzleFromCollectionController extends AbstractController
     )]
     public function __invoke(string $collectionId, Request $request, #[CurrentUser] UserInterface $user): Response
     {
-        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
-        $puzzleId = $request->request->get('puzzle_id');
+        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
+        $puzzleId = $request->request->getString('puzzle_id', '');
 
-        if ($puzzleId === null) {
+        if ($loggedUserProfile === null) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if ($puzzleId === '') {
             throw $this->createNotFoundException();
         }
 
         // Check CSRF token
-        $submittedToken = $request->request->get('_token');
+        $submittedToken = $request->request->getString('_token');
         if (!$this->isCsrfTokenValid('remove-from-collection', $submittedToken)) {
             throw $this->createAccessDeniedException();
         }

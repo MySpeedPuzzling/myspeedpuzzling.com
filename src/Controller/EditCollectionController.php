@@ -38,7 +38,11 @@ final class EditCollectionController extends AbstractController
     )]
     public function __invoke(string $collectionId, Request $request, #[CurrentUser] UserInterface $user): Response
     {
-        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($loggedUserProfile === null) {
+            throw $this->createAccessDeniedException();
+        }
 
         try {
             $collection = $this->collectionRepository->get($collectionId);

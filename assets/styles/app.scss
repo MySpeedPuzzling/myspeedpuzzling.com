@@ -303,7 +303,7 @@ td.rank {
 }
 
 .navbar {
-    background: #fff;
+    background: rgba(255, 255, 255, .66);
 
     .active.nav-link > i {
         color: $primary !important;
@@ -438,6 +438,10 @@ button[data-submit-prevention-target] {
     input {
         max-width: 200px;
     }
+}
+
+.topbar {
+    background: rgba(240, 244, 246, 0.7);
 }
 
 .topbar-link .badge {
@@ -857,6 +861,11 @@ div[data-countdown-target] {
     height: 85px;
     background: url('../img/statistics-pieces-4-placeholder.png') center center no-repeat;
     background-size: contain;
+}
+
+header {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
 }
 
 .no-caret::after {

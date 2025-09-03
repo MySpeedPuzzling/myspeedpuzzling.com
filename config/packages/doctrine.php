@@ -16,6 +16,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
                 LapsArrayDoctrineType::NAME => LapsArrayDoctrineType::class,
                 PuzzlersGroupDoctrineType::NAME => PuzzlersGroupDoctrineType::class,
             ],
+            'schema_filter' => '~^(?!tmp_)~',
         ],
         'orm' => [
             'report_fields_where_declared' => true,

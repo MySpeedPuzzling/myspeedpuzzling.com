@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
-use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -31,7 +30,6 @@ final class PlayerProfileController extends AbstractController
         readonly private GetLastSolvedPuzzle $getLastSolvedPuzzle,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetBadges $getBadges,
-        readonly private GetPuzzleCollection $getPuzzleCollection,
     ) {
     }
 
@@ -71,7 +69,6 @@ final class PlayerProfileController extends AbstractController
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
-            'puzzle_collections' => $this->getPuzzleCollection->forPlayer($player->playerId),
         ]);
     }
 }

@@ -15,7 +15,6 @@ menu:
     membership: "Membresía"
     search: "Buscar"
     statistics: "Estadísticas"
-    collection: "Colección"
     favorite_puzzlers: "Puzzleros favoritos"
     edit_profile: "Editar perfil"
     change_player_code: "Cambiar código de jugador"
@@ -72,9 +71,6 @@ any: "Cualquiera"
 all_pieces: "Todas"
 solo_solved: "Resuelto SOLO:"
 first_attempt: "1er intento"
-add_to_collection: "Añadir a mi colección"
-in_collection: "En mi colección"
-remove_from_collection: "Eliminar de la colección"
 ranking_out_of: "de"
 wjpc_participant: "Participante WJPC 2024 (%name%)"
 share: "Compartir"
@@ -423,8 +419,6 @@ flashes:
     can_not_favorite_yourself: "No puedes añadirte a tu lista de favoritos. ¡Está claro que eres tu propio puzzlero favorito!"
     player_already_in_favorites: "Este puzzlero ya está en tu lista de favoritos, así que no lo añadiremos de nuevo ;-)."
     player_not_in_favorites: "Hmm, no pudimos encontrar a este puzzlero en tus favoritos, así que no podemos eliminarlo ;-)."
-    puzzle_added_to_collection: "¡Hola,.. rompecabezas. ¡Bienvenido a mi colección!"
-    puzzle_removed_from_collection: "Adiós rompecabezas..."
     competition_duplicate_connection: "Algo está mal :-( has elegido una cuenta de competencia, que ya está conectada a algún perfil de MySpeedPuzzling. No te preocupes, fuimos automáticamente notificados y verificaremos qué está mal."
     competition_connection_saved: "¡Genial! ¡Cuenta de competencia conectada exitosamente a tu perfil de MySpeedPuzzling!"
     membership_subscribed_successfully: "¡Tu membresía ahora está activa!"
@@ -496,9 +490,6 @@ badges:
     badge:
         supporter: "Partidario"
 
-collection:
-    title: "Colección"
-    empty_info: "Esta colección está actualmente vacía. ¿Tal vez es hora de cambiar eso? Después de todo, todos aman los rompecabezas y almacenarlos :-)."
 
 scan:
     meta:

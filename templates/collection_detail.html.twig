@@ -1,0 +1,139 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ collection.getDisplayName() }} - Collection{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ path('player_profile', {playerId: collection.playerId}) }}">{{ collection.playerName }}</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ path('player_collections', {playerId: collection.playerId}) }}">Collections</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">{{ collection.getDisplayName() }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1>
+                {% if collection.isSystemCollection() %}
+                    <i class="ci ci-lock text-muted"></i>
+                {% elseif not collection.isPublic %}
+                    <i class="ci ci-lock-open text-muted"></i>
+                {% endif %}
+                {{ collection.getDisplayName() }}
+            </h1>
+            {% if collection.description %}
+                <p class="text-muted">{{ collection.description|nl2br }}</p>
+            {% endif %}
+            <p class="text-muted">
+                <small>{{ collection.puzzlesCount }} puzzles</small>
+            </p>
+        </div>
+        
+        {% if isOwner %}
+            <div class="btn-group" role="group">
+                {% if collection.canBeRenamed() %}
+                    <a href="{{ path('edit_collection', {collectionId: collection.id}) }}" class="btn btn-outline-secondary">
+                        <i class="ci ci-pencil"></i> Edit
+                    </a>
+                {% endif %}
+                {% if collection.canBeDeleted() %}
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCollectionModal">
+                        <i class="ci ci-trash"></i> Delete
+                    </button>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if puzzles|length == 0 %}
+        <div class="alert alert-info">
+            <i class="ci ci-info"></i> No puzzles in this collection yet.
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Puzzle</th>
+                        <th>Pieces</th>
+                        <th>Manufacturer</th>
+                        {% if collection.systemType == 'for_sale' %}
+                            <th>Price</th>
+                            <th>Condition</th>
+                        {% endif %}
+                        <th>Added</th>
+                        {% if isOwner %}
+                            <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for puzzle in puzzles %}
+                        <tr>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                    {{ puzzle.getFullName() }}
+                                </a>
+                                {% if puzzle.comment %}
+                                    <br>
+                                    <small class="text-muted">{{ puzzle.comment }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ puzzle.piecesCount }}</td>
+                            <td>{{ puzzle.manufacturerName ?? '-' }}</td>
+                            {% if collection.systemType == 'for_sale' %}
+                                <td>{{ puzzle.price ? puzzle.getPriceFormatted() : '-' }}</td>
+                                <td>{{ puzzle.condition ?? '-' }}</td>
+                            {% endif %}
+                            <td>
+                                <small>{{ puzzle.addedAt|date('Y-m-d') }}</small>
+                            </td>
+                            {% if isOwner and puzzle.itemId %}
+                                <td>
+                                    <form method="post" action="{{ path('remove_puzzle_from_collection', {collectionId: collection.id}) }}" style="display: inline;">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('remove-from-collection') }}">
+                                        <input type="hidden" name="puzzle_id" value="{{ puzzle.puzzleId }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this puzzle from collection?')">
+                                            <i class="ci ci-x"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if isOwner and collection.canBeDeleted() %}
+        <!-- Delete Collection Modal -->
+        <div class="modal fade" id="deleteCollectionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Collection</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this collection?</p>
+                        <p class="text-danger">This will remove all puzzles from this collection. This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form method="post" action="{{ path('delete_collection', {collectionId: collection.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete-collection') }}">
+                            <button type="submit" class="btn btn-danger">Delete Collection</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

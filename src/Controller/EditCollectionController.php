@@ -1,0 +1,87 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Controller;
+
+use SpeedPuzzling\Web\Exceptions\PuzzleCollectionNotFound;
+use SpeedPuzzling\Web\FormData\PuzzleCollectionFormData;
+use SpeedPuzzling\Web\FormType\PuzzleCollectionFormType;
+use SpeedPuzzling\Web\Message\UpdatePuzzleCollection;
+use SpeedPuzzling\Web\Repository\PuzzleCollectionRepository;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+
+#[IsGranted('IS_AUTHENTICATED')]
+final class EditCollectionController extends AbstractController
+{
+    public function __construct(
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PuzzleCollectionRepository $collectionRepository,
+        readonly private MessageBusInterface $messageBus,
+    ) {
+    }
+
+    #[Route(
+        path: [
+            'cs' => '/kolekce/{collectionId}/upravit',
+            'en' => '/en/collection/{collectionId}/edit',
+        ],
+        name: 'edit_collection',
+    )]
+    public function __invoke(string $collectionId, Request $request, #[CurrentUser] UserInterface $user): Response
+    {
+        $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile($user);
+
+        try {
+            $collection = $this->collectionRepository->get($collectionId);
+        } catch (PuzzleCollectionNotFound) {
+            throw $this->createNotFoundException();
+        }
+
+        // Check ownership
+        if ($collection->player->id->toString() !== $loggedUserProfile->playerId) {
+            throw $this->createAccessDeniedException();
+        }
+
+        // Cannot edit system collections
+        if (!$collection->canBeRenamed()) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $formData = new PuzzleCollectionFormData();
+        $formData->name = $collection->name;
+        $formData->description = $collection->description;
+        $formData->isPublic = $collection->isPublic;
+
+        $form = $this->createForm(PuzzleCollectionFormType::class, $formData);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->messageBus->dispatch(new UpdatePuzzleCollection(
+                collectionId: $collectionId,
+                name: $formData->name ?? '',
+                description: $formData->description,
+                isPublic: $formData->isPublic,
+            ));
+
+            $this->addFlash('success', 'Collection updated successfully');
+
+            return $this->redirectToRoute('collection_detail', [
+                'collectionId' => $collectionId,
+            ]);
+        }
+
+        return $this->render('edit_collection.html.twig', [
+            'form' => $form,
+            'collection' => $collection,
+        ]);
+    }
+}

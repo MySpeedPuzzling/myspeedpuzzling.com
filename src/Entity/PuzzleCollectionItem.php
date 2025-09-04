@@ -31,6 +31,10 @@ class PuzzleCollectionItem implements EntityWithEvents
     public null|string $price = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 3, nullable: true)]
+    public null|string $currency = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|string $condition = null;
 
@@ -67,9 +71,10 @@ class PuzzleCollectionItem implements EntityWithEvents
         $this->comment = $comment;
     }
 
-    public function updateForSale(null|string $price, null|string $condition): void
+    public function updateForSale(null|string $price, null|string $currency, null|string $condition): void
     {
         $this->price = $price;
+        $this->currency = $currency;
         $this->condition = $condition;
     }
 

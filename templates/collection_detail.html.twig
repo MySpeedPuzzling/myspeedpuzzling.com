@@ -60,6 +60,7 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
+                        <th style="width: 100px;">Image</th>
                         <th>Puzzle</th>
                         <th>Pieces</th>
                         <th>Manufacturer</th>
@@ -76,6 +77,17 @@
                 <tbody>
                     {% for puzzle in puzzles %}
                         <tr>
+                            <td>
+                                {% if puzzle.puzzleImage %}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 80px; max-height: 80px;" alt="{{ puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% else %}
+                                    <div class="bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="ci ci-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
                             <td>
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                                     {{ puzzle.getFullName() }}

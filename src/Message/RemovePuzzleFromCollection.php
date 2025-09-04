@@ -8,7 +8,7 @@ readonly final class RemovePuzzleFromCollection
 {
     public function __construct(
         public string $puzzleId,
-        public string $collectionId,
+        public null|string $collectionId,
         public string $playerId,
     ) {
     }

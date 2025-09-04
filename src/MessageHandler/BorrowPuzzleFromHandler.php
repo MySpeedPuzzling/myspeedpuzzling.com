@@ -6,9 +6,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleBorrowing;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFrom;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleBorrowingRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -19,6 +22,7 @@ readonly final class BorrowPuzzleFromHandler
         private EntityManagerInterface $entityManager,
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
+        private PuzzleBorrowingRepository $borrowingRepository,
     ) {
     }
 
@@ -27,9 +31,33 @@ readonly final class BorrowPuzzleFromHandler
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
         $borrower = $this->playerRepository->get($message->borrowerId);
 
+        // Check if puzzle already has active borrowing where current player borrowed it
+        $existingBorrowing = $this->borrowingRepository->findActiveByBorrowerAndPuzzle($borrower, $puzzle);
+        if ($existingBorrowing !== null) {
+            // Return the existing borrowing first
+            $existingBorrowing->returnPuzzle($borrower);
+            $this->entityManager->flush();
+        }
+
+        // Try to resolve owner - check if it's a valid UUID and player exists
         $owner = null;
+        $nonRegisteredName = null;
+
         if ($message->ownerId !== null) {
-            $owner = $this->playerRepository->get($message->ownerId);
+            // Check if it's a valid UUID
+            if (Uuid::isValid($message->ownerId)) {
+                try {
+                    $owner = $this->playerRepository->get($message->ownerId);
+                } catch (PlayerNotFound) {
+                    // UUID is valid but player not found, treat as non-registered name
+                    $nonRegisteredName = $message->ownerId;
+                }
+            } else {
+                // Not a UUID, treat as non-registered person name
+                $nonRegisteredName = $message->ownerId;
+            }
+        } elseif ($message->nonRegisteredPersonName !== null) {
+            $nonRegisteredName = $message->nonRegisteredPersonName;
         }
 
         $borrowing = new PuzzleBorrowing(
@@ -41,8 +69,8 @@ readonly final class BorrowPuzzleFromHandler
             true, // borrowed from someone
         );
 
-        if ($message->nonRegisteredPersonName !== null) {
-            $borrowing->setNonRegisteredPersonName($message->nonRegisteredPersonName);
+        if ($nonRegisteredName !== null) {
+            $borrowing->setNonRegisteredPersonName($nonRegisteredName);
         }
 
         $this->entityManager->persist($borrowing);

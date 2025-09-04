@@ -196,7 +196,7 @@ WHERE ci.player_id = :playerId AND ci.puzzle_id = :puzzleId
 
 UNION
 
-SELECT 'completed' AS collection_key
+SELECT DISTINCT 'completed' AS collection_key
 FROM puzzle_solving_time pst
 WHERE 
     pst.puzzle_id = :puzzleId
@@ -204,7 +204,6 @@ WHERE
         pst.player_id = :playerId
         OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS text)))
     )
-LIMIT 1
 SQL;
 
         /** @var array<string> */

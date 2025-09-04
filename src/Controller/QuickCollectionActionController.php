@@ -74,9 +74,7 @@ final class QuickCollectionActionController extends AbstractController
         $collectionTypeMap = [
             'wishlist' => PuzzleCollection::SYSTEM_WISHLIST,
             'todolist' => PuzzleCollection::SYSTEM_TODO,
-            'for_sale' => PuzzleCollection::SYSTEM_FOR_SALE,
-            'borrowed_to' => PuzzleCollection::SYSTEM_BORROWED_TO,
-            'borrowed_from' => PuzzleCollection::SYSTEM_BORROWED_FROM,
+            // 'for_sale' is now handled by MarkPuzzleForSaleController
         ];
 
         if (!isset($collectionTypeMap[$systemType])) {
@@ -95,9 +93,6 @@ final class QuickCollectionActionController extends AbstractController
                 $collectionName = match ($collectionType) {
                     PuzzleCollection::SYSTEM_WISHLIST => 'Wishlist',
                     PuzzleCollection::SYSTEM_TODO => 'To Do List',
-                    PuzzleCollection::SYSTEM_FOR_SALE => 'For Sale',
-                    PuzzleCollection::SYSTEM_BORROWED_TO => 'Borrowed To Others',
-                    PuzzleCollection::SYSTEM_BORROWED_FROM => 'Borrowed From Others',
                 };
 
                 $this->messageBus->dispatch(new CreatePuzzleCollection(
@@ -105,19 +100,19 @@ final class QuickCollectionActionController extends AbstractController
                     playerId: $loggedUserProfile->playerId,
                     name: $collectionName,
                     description: null,
-                    isPublic: in_array($collectionType, [PuzzleCollection::SYSTEM_FOR_SALE], true),
+                    isPublic: false,
                     systemType: $collectionType,
                 ));
 
                 $collection = $this->collectionRepository->get($collectionId->toString());
             }
 
-            // Check if puzzle is already in this collection
-            $existingItem = $this->collectionItemRepository->findByPlayerAndPuzzle($player, $puzzle);
-            if ($existingItem !== null && $existingItem->collection === $collection) {
+            // Check if puzzle is already in THIS specific collection
+            $existingInThisCollection = $this->collectionItemRepository->findByCollectionAndPuzzle($collection, $puzzle);
+            if ($existingInThisCollection !== null) {
                 $this->addFlash('info', 'Puzzle is already in ' . $collection->getDisplayName());
             } else {
-                // Add puzzle to collection
+                // Add puzzle to collection (this will create a new entry, not move)
                 $this->messageBus->dispatch(new AddPuzzleToCollection(
                     itemId: Uuid::uuid7(),
                     puzzleId: $puzzleId,
@@ -125,38 +120,21 @@ final class QuickCollectionActionController extends AbstractController
                     playerId: $loggedUserProfile->playerId,
                     comment: null,
                     price: null,
+                    currency: null,
                     condition: null,
                 ));
 
-                if ($existingItem !== null) {
-                    // Only show "moved" warning if moving between custom collections
-                    $isMovingBetweenCustomCollections = 
-                        ($existingItem->collection === null || !$existingItem->collection->isSystemCollection()) &&
-                        !$collection->isSystemCollection();
-                    
-                    if ($isMovingBetweenCustomCollections) {
-                        $oldCollectionName = $existingItem->collection?->getDisplayName() ?? 'My Collection';
-                        $this->addFlash('warning', sprintf(
-                            'Puzzle moved from "%s" to "%s"',
-                            $oldCollectionName,
-                            $collection->getDisplayName()
-                        ));
-                    } else {
-                        $this->addFlash('success', 'Added to ' . $collection->getDisplayName());
-                    }
-                } else {
-                    $this->addFlash('success', 'Added to ' . $collection->getDisplayName());
-                }
+                $this->addFlash('success', 'Added to ' . $collection->getDisplayName());
             }
         } elseif ($action === 'remove') {
             // Find the system collection
             $collection = $this->collectionRepository->findSystemCollection($player, $collectionType);
 
             if ($collection !== null) {
-                // Find and remove the item
-                $existingItem = $this->collectionItemRepository->findByPlayerAndPuzzle($player, $puzzle);
+                // Find the item specifically in this collection
+                $existingItem = $this->collectionItemRepository->findByCollectionAndPuzzle($collection, $puzzle);
 
-                if ($existingItem !== null && $existingItem->collection === $collection) {
+                if ($existingItem !== null) {
                     $this->messageBus->dispatch(new RemovePuzzleFromCollection(
                         puzzleId: $puzzleId,
                         collectionId: $collection->id->toString(),

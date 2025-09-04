@@ -77,6 +77,18 @@
 
     {{ render(controller('SpeedPuzzling\\Web\\Controller\\PuzzleCollectionActionsController::__invoke', {puzzleId: puzzle.puzzleId})) }}
 
+    {% if offersCount > 0 %}
+        <div class="alert alert-info d-flex justify-content-between align-items-center mt-3">
+            <div>
+                <i class="ci ci-tag"></i>
+                <strong>{{ offersCount }} {{ offersCount == 1 ? 'offer' : 'offers' }}</strong> available for this puzzle
+            </div>
+            <a href="{{ path('puzzle_offers', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">
+                View Offers <i class="ci ci-arrow-right"></i>
+            </a>
+        </div>
+    {% endif %}
+
     <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" />
 
 {% endblock %}

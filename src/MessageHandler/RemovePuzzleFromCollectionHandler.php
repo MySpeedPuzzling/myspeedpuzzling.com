@@ -25,9 +25,19 @@ readonly final class RemovePuzzleFromCollectionHandler
     public function __invoke(RemovePuzzleFromCollection $message): void
     {
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
-        $collection = $this->collectionRepository->get($message->collectionId);
 
-        $item = $this->collectionItemRepository->findByCollectionAndPuzzle($collection, $puzzle);
+        $collection = null;
+        if ($message->collectionId !== null) {
+            $collection = $this->collectionRepository->get($message->collectionId);
+            $item = $this->collectionItemRepository->findByCollectionAndPuzzle($collection, $puzzle);
+        } else {
+            // For root collection (null collection_id)
+            $item = $this->entityManager->getRepository(\SpeedPuzzling\Web\Entity\PuzzleCollectionItem::class)->findOneBy([
+                'puzzle' => $puzzle,
+                'collection' => null,
+                'player' => $this->entityManager->getRepository(\SpeedPuzzling\Web\Entity\Player::class)->find($message->playerId),
+            ]);
+        }
 
         if ($item !== null) {
             $item->remove();

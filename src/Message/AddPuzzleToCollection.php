@@ -15,6 +15,7 @@ readonly final class AddPuzzleToCollection
         public string $playerId,
         public null|string $comment = null,
         public null|string $price = null,
+        public null|string $currency = null,
         public null|string $condition = null,
     ) {
     }

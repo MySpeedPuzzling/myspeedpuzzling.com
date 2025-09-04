@@ -1,0 +1,87 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mark for Sale - {{ puzzle.name }}{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h1 class="mb-4">
+                    {% if isAlreadyForSale %}
+                        Update Sale Details
+                    {% else %}
+                        Mark for Sale
+                    {% endif %}
+                </h1>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex gap-3">
+                            {% if puzzle.image %}
+                                <div class="flex-shrink-0">
+                                    <img class="rounded-2" style="max-width: 100px; max-height: 100px;" alt="{{ puzzle.manufacturer.name ~ ' ' ~ puzzle.name }}" src="{{ puzzle.image|imagine_filter('puzzle_small') }}">
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <h5 class="card-title">{{ puzzle.name }}</h5>
+                                <p class="card-text text-muted">
+                                    {{ puzzle.piecesCount }} pieces
+                                    {% if puzzle.manufacturer %}
+                                        • {{ puzzle.manufacturer.name }}
+                                    {% endif %}
+                                </p>
+                                {% if puzzle.alternativeName %}
+                                    <p class="card-text small text-muted">{{ puzzle.alternativeName }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if isAlreadyForSale %}
+                    <div class="alert alert-info">
+                        <i class="ci ci-info"></i> This puzzle is already marked for sale. You can update the details below.
+                    </div>
+                {% endif %}
+
+                {{ form_start(form) }}
+                    {{ form_row(form.saleType) }}
+                    <div class="row">
+                        <div class="col-md-8">
+                            {{ form_row(form.price) }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form_row(form.currency) }}
+                        </div>
+                    </div>
+                    {{ form_row(form.condition) }}
+                    {{ form_row(form.comment) }}
+                    
+                    <div class="d-grid gap-2 d-md-block mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ci ci-check"></i>
+                            {% if isAlreadyForSale %}
+                                Update Sale Details
+                            {% else %}
+                                Mark for Sale
+                            {% endif %}
+                        </button>
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="btn btn-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                {{ form_end(form) }}
+                
+                {% if isAlreadyForSale %}
+                    <form method="post" class="mt-3">
+                        <input type="hidden" name="_token" value="{{ csrf_token('form') }}">
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="ci ci-trash"></i> Remove from Sale
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}
+    {% if borrowingType == 'to' %}
+        Borrow Puzzle To Someone
+    {% else %}
+        Borrow Puzzle From Someone
+    {% endif %}
+    - {{ puzzle.name }}
+{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h1 class="mb-4">
+                    {% if borrowingType == 'to' %}
+                        Lend Puzzle
+                    {% else %}
+                        Borrow Puzzle
+                    {% endif %}
+                </h1>
+                
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex gap-3">
+                            {% if puzzle.image %}
+                                <div class="flex-shrink-0">
+                                    <img class="rounded-2" style="max-width: 100px; max-height: 100px;" alt="{{ puzzle.manufacturer.name ~ ' ' ~ puzzle.name }}" src="{{ puzzle.image|imagine_filter('puzzle_small') }}">
+                                </div>
+                            {% endif %}
+                            <div class="flex-grow-1">
+                                <h5 class="card-title">{{ puzzle.name }}</h5>
+                                <p class="card-text text-muted">
+                                    {{ puzzle.piecesCount }} pieces
+                                    {% if puzzle.manufacturer %}
+                                        • {{ puzzle.manufacturer.name }}
+                                    {% endif %}
+                                </p>
+                                {% if puzzle.alternativeName %}
+                                    <p class="card-text small text-muted">{{ puzzle.alternativeName }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if activeBorrowing %}
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">Active Borrowing</h5>
+                        <p>
+                            This puzzle is currently
+                            {% if borrowingType == 'to' %}
+                                borrowed to
+                                {% if activeBorrowing.borrower %}
+                                    <strong>{{ activeBorrowing.borrower.name }}</strong>
+                                {% elseif activeBorrowing.nonRegisteredPersonName %}
+                                    <strong>{{ activeBorrowing.nonRegisteredPersonName }}</strong>
+                                {% else %}
+                                    someone
+                                {% endif %}
+                            {% else %}
+                                borrowed from
+                                {% if activeBorrowing.owner %}
+                                    <strong>{{ activeBorrowing.owner.name }}</strong>
+                                {% elseif activeBorrowing.nonRegisteredPersonName %}
+                                    <strong>{{ activeBorrowing.nonRegisteredPersonName }}</strong>
+                                {% else %}
+                                    someone
+                                {% endif %}
+                            {% endif %}
+                            since {{ activeBorrowing.borrowedAt|date('Y-m-d') }}.
+                        </p>
+                        <p class="mb-0">
+                            <strong>Creating a new borrowing will automatically return the existing one.</strong>
+                        </p>
+                    </div>
+                {% endif %}
+
+                {{ form_start(form) }}
+                    {{ form_row(form.person) }}
+                    {{ form_rest(form) }}
+                    
+                    <div class="d-grid gap-2 d-md-block mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ci ci-check"></i>
+                            {% if borrowingType == 'to' %}
+                                Lend Puzzle
+                            {% else %}
+                                Borrow Puzzle
+                            {% endif %}
+                        </button>
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="btn btn-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

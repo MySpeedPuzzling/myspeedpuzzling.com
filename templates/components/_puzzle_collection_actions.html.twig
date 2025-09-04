@@ -9,8 +9,6 @@
         {% set inWishlist = 'wishlist' in userCollections %}
         {% set inTodolist = 'todolist' in userCollections %}
         {% set inForSale = 'for_sale' in userCollections %}
-        {% set inBorrowedTo = 'borrowed_to' in userCollections %}
-        {% set inBorrowedFrom = 'borrowed_from' in userCollections %}
         {% set inCompleted = 'completed' in userCollections %}
         
         {% if userCollections|length > 0 %}
@@ -33,6 +31,8 @@
                                 For Sale/Exchange
                             {% elseif collectionKey == 'my_collection' %}
                                 My Collection
+                            {% elseif userCollectionDetails[collectionKey] is defined %}
+                                {{ userCollectionDetails[collectionKey] }}
                             {% else %}
                                 Custom Collection
                             {% endif %}
@@ -65,7 +65,7 @@
             {% endif %}
             
             {# Todo list actions #}
-            {% if not inTodolist and not inCompleted %}
+            {% if not inTodolist %}
                 <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
                     <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
                     <input type="hidden" name="action" value="add">
@@ -74,7 +74,7 @@
                         <i class="ci ci-list"></i> Add to Todo List
                     </button>
                 </form>
-            {% elseif inTodolist %}
+            {% else %}
                 <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
                     <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
                     <input type="hidden" name="action" value="remove">
@@ -87,72 +87,72 @@
             
             {# For Sale actions #}
             {% if not inForSale %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="system_type" value="for_sale">
-                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                        <i class="ci ci-tag"></i> Mark for Sale
-                    </button>
-                </form>
+                <a href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="ci ci-tag"></i> Mark for Sale
+                </a>
             {% else %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="system_type" value="for_sale">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="ci ci-tag"></i> Remove from Sale
-                    </button>
-                </form>
+                <a href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}" class="btn btn-sm btn-outline-warning">
+                    <i class="ci ci-tag"></i> Edit Sale Details
+                </a>
             {% endif %}
             
             {# Borrowing actions #}
-            {% if not inBorrowedTo and not inBorrowedFrom %}
+            {% if activeBorrowing is null %}
                 <div class="dropdown d-inline">
                     <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                         <i class="ci ci-arrows-horizontal"></i> Borrowing
                     </button>
                     <ul class="dropdown-menu">
                         <li>
-                            <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                                <input type="hidden" name="action" value="add">
-                                <input type="hidden" name="system_type" value="borrowed_to">
-                                <button type="submit" class="dropdown-item">
-                                    <i class="ci ci-arrow-right"></i> Borrowed to Someone
-                                </button>
-                            </form>
+                            <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}">
+                                <i class="ci ci-arrow-right"></i> Lend to Someone
+                            </a>
                         </li>
                         <li>
-                            <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}">
-                                <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                                <input type="hidden" name="action" value="add">
-                                <input type="hidden" name="system_type" value="borrowed_from">
-                                <button type="submit" class="dropdown-item">
-                                    <i class="ci ci-arrow-left"></i> Borrowed from Someone
-                                </button>
-                            </form>
+                            <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'from'}) }}">
+                                <i class="ci ci-arrow-left"></i> Borrow from Someone
+                            </a>
                         </li>
                     </ul>
                 </div>
-            {% elseif inBorrowedTo %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="system_type" value="borrowed_to">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="ci ci-arrow-right"></i> Returned from Borrower
-                    </button>
-                </form>
-            {% elseif inBorrowedFrom %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="system_type" value="borrowed_from">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="ci ci-arrow-left"></i> Returned to Owner
-                    </button>
-                </form>
+            {% else %}
+                {% if borrowingType == 'owner' %}
+                    <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="ci ci-arrow-right"></i> 
+                            Returned from 
+                            {% if activeBorrowing.borrower %}
+                                {{ activeBorrowing.borrower.name }}
+                            {% elseif activeBorrowing.nonRegisteredPersonName %}
+                                {{ activeBorrowing.nonRegisteredPersonName }}
+                            {% else %}
+                                Borrower
+                            {% endif %}
+                        </button>
+                    </form>
+                    <a href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}" class="btn btn-sm btn-outline-warning">
+                        <i class="ci ci-arrow-right"></i> Lend to Someone Else
+                    </a>
+                {% elseif borrowingType == 'borrower' %}
+                    <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                            <i class="ci ci-arrow-left"></i> 
+                            Return to 
+                            {% if activeBorrowing.owner %}
+                                {{ activeBorrowing.owner.name }}
+                            {% elseif activeBorrowing.nonRegisteredPersonName %}
+                                {{ activeBorrowing.nonRegisteredPersonName }}
+                            {% else %}
+                                Owner
+                            {% endif %}
+                        </button>
+                    </form>
+                    <a href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'from'}) }}" class="btn btn-sm btn-outline-warning">
+                        <i class="ci ci-arrow-left"></i> Borrow from Someone Else
+                    </a>
+                {% endif %}
             {% endif %}
             
             {# General collection management #}

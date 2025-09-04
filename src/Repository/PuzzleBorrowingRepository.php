@@ -46,4 +46,36 @@ readonly final class PuzzleBorrowingRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    public function findActiveByOwnerAndPuzzle(Player $owner, Puzzle $puzzle): null|PuzzleBorrowing
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('b')
+            ->from(PuzzleBorrowing::class, 'b')
+            ->where('b.owner = :owner')
+            ->andWhere('b.puzzle = :puzzle')
+            ->andWhere('b.returnedAt IS NULL')
+            ->setParameter('owner', $owner)
+            ->setParameter('puzzle', $puzzle)
+            ->setMaxResults(1);
+
+        /** @var PuzzleBorrowing|null */
+        return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    public function findActiveByBorrowerAndPuzzle(Player $borrower, Puzzle $puzzle): null|PuzzleBorrowing
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('b')
+            ->from(PuzzleBorrowing::class, 'b')
+            ->where('b.borrower = :borrower')
+            ->andWhere('b.puzzle = :puzzle')
+            ->andWhere('b.returnedAt IS NULL')
+            ->setParameter('borrower', $borrower)
+            ->setParameter('puzzle', $puzzle)
+            ->setMaxResults(1);
+
+        /** @var PuzzleBorrowing|null */
+        return $qb->getQuery()->getOneOrNullResult();
+    }
 }

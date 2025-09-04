@@ -36,57 +36,49 @@ readonly final class AddPuzzleToCollectionHandler
             $collection = $this->collectionRepository->get($message->collectionId);
         }
 
-        // Check if puzzle already exists in any collection
-        $existingItem = $this->collectionItemRepository->findByPlayerAndPuzzle($player, $puzzle);
-
-        if ($existingItem !== null) {
-            // If puzzle is in same collection, just update it
-            if (
-                $existingItem->collection === $collection ||
-                ($existingItem->collection === null && $collection === null)
-            ) {
-                // Update existing item
+        // For system collections, check if already in THIS specific collection
+        if ($collection !== null && $collection->isSystemCollection()) {
+            $existingInThisCollection = $this->collectionItemRepository->findByCollectionAndPuzzle($collection, $puzzle);
+            if ($existingInThisCollection !== null) {
+                // Update existing item in same system collection
                 if ($message->comment !== null) {
-                    $existingItem->updateComment($message->comment);
+                    $existingInThisCollection->updateComment($message->comment);
                 }
-                if ($message->price !== null || $message->condition !== null) {
-                    $existingItem->updateForSale($message->price, $message->condition);
+                if ($message->price !== null || $message->currency !== null || $message->condition !== null) {
+                    $existingInThisCollection->updateForSale($message->price, $message->currency, $message->condition);
                 }
                 $this->entityManager->flush();
                 return;
             }
+            // If not in this system collection, create new entry (puzzle can be in multiple system collections)
+        } else {
+            // For custom collections, check if puzzle exists anywhere and move it
+            $existingItem = $this->collectionItemRepository->findByPlayerAndPuzzle($player, $puzzle);
 
-            // For custom collections, move the puzzle instead of throwing error
-            if ($collection === null || !$collection->isSystemCollection()) {
-                // Store the old collection name for the warning message
-                $oldCollectionName = $existingItem->collection?->getDisplayName() ?? 'My Collection';
+            if ($existingItem !== null) {
+                // Check if it's already in a non-system collection
+                if ($existingItem->collection === null || !$existingItem->collection->isSystemCollection()) {
+                    // If puzzle is in same collection, just update it
+                    if (
+                        $existingItem->collection === $collection ||
+                        ($existingItem->collection === null && $collection === null)
+                    ) {
+                        // Update existing item
+                        if ($message->comment !== null) {
+                            $existingItem->updateComment($message->comment);
+                        }
+                        if ($message->price !== null || $message->currency !== null || $message->condition !== null) {
+                            $existingItem->updateForSale($message->price, $message->currency, $message->condition);
+                        }
+                        $this->entityManager->flush();
+                        return;
+                    }
 
-                // Remove from old collection
-                $this->entityManager->remove($existingItem);
-                $this->entityManager->flush();
-
-                // Create new item in new collection
-                $item = new PuzzleCollectionItem(
-                    $message->itemId,
-                    $collection,
-                    $puzzle,
-                    $player,
-                    new DateTimeImmutable(),
-                );
-
-                if ($message->comment !== null) {
-                    $item->updateComment($message->comment);
+                    // Move between custom collections
+                    $this->entityManager->remove($existingItem);
+                    $this->entityManager->flush();
                 }
-
-                if ($message->price !== null || $message->condition !== null) {
-                    $item->updateForSale($message->price, $message->condition);
-                }
-
-                $this->entityManager->persist($item);
-                $this->entityManager->flush();
-
-                // The controller will handle showing the warning message
-                return;
+                // If it was in a system collection, we don't remove it, just create new entry
             }
         }
 
@@ -103,8 +95,8 @@ readonly final class AddPuzzleToCollectionHandler
             $item->updateComment($message->comment);
         }
 
-        if ($message->price !== null || $message->condition !== null) {
-            $item->updateForSale($message->price, $message->condition);
+        if ($message->price !== null || $message->currency !== null || $message->condition !== null) {
+            $item->updateForSale($message->price, $message->currency, $message->condition);
         }
 
         $this->entityManager->persist($item);

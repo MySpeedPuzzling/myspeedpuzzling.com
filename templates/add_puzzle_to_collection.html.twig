@@ -10,15 +10,35 @@
                 
                 <div class="card mb-4">
                     <div class="card-body">
-                        <h5 class="card-title">{{ puzzle.name }}</h5>
-                        <p class="card-text text-muted">
-                            {{ puzzle.piecesCount }} pieces
-                            {% if puzzle.manufacturer %}
-                                • {{ puzzle.manufacturer.name }}
+                        <div class="d-flex gap-3">
+                            {% if puzzle.image %}
+                                <div class="flex-shrink-0">
+                                    <img class="rounded-2" style="max-width: 100px; max-height: 100px;" alt="{{ puzzle.manufacturer.name ~ ' ' ~ puzzle.name }}" src="{{ puzzle.image|imagine_filter('puzzle_small') }}">
+                                </div>
                             {% endif %}
-                        </p>
+                            <div class="flex-grow-1">
+                                <h5 class="card-title">{{ puzzle.name }}</h5>
+                                <p class="card-text text-muted">
+                                    {{ puzzle.piecesCount }} pieces
+                                    {% if puzzle.manufacturer %}
+                                        • {{ puzzle.manufacturer.name }}
+                                    {% endif %}
+                                </p>
+                                {% if puzzle.alternativeName %}
+                                    <p class="card-text small text-muted">{{ puzzle.alternativeName }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                {% if isInNonSystemCollection and existingCollectionName %}
+                    <div class="alert alert-warning">
+                        <i class="ci ci-info"></i> 
+                        This puzzle is currently in <strong>"{{ existingCollectionName }}"</strong>. 
+                        Saving this form will move it to the selected collection.
+                    </div>
+                {% endif %}
 
                 <form method="post">
                     <input type="hidden" name="_token" value="{{ csrf_token('add-to-collection') }}">
@@ -26,13 +46,10 @@
                     <div class="mb-3">
                         <label for="collection_id" class="form-label">Collection</label>
                         <select name="collection_id" id="collection_id" class="form-select">
-                            <option value="">My Collection (root)</option>
+                            <option value="" {% if prefilledCollectionId is null %}selected{% endif %}>My Collection (root)</option>
                             {% for collection in collections %}
-                                <option value="{{ collection.id }}">
+                                <option value="{{ collection.id }}" {% if prefilledCollectionId == collection.id %}selected{% endif %}>
                                     {{ collection.getDisplayName() }}
-                                    {% if collection.isSystemCollection() %}
-                                        (system)
-                                    {% endif %}
                                 </option>
                             {% endfor %}
                         </select>
@@ -40,37 +57,52 @@
 
                     <div class="mb-3">
                         <label for="comment" class="form-label">Comment (optional)</label>
-                        <textarea name="comment" id="comment" class="form-control" rows="3" maxlength="500"></textarea>
+                        <textarea name="comment" id="comment" class="form-control" rows="3" maxlength="500">{{ prefilledComment }}</textarea>
                         <small class="text-muted">Add a personal note about this puzzle</small>
                     </div>
 
                     <div id="forSaleFields" style="display: none;">
                         <div class="mb-3">
                             <label for="price" class="form-label">Price (optional)</label>
-                            <input type="number" name="price" id="price" class="form-control" step="0.01" min="0">
+                            <input type="number" name="price" id="price" class="form-control" step="0.01" min="0" value="{{ prefilledPrice }}">
                         </div>
 
                         <div class="mb-3">
                             <label for="condition" class="form-label">Condition (optional)</label>
                             <select name="condition" id="condition" class="form-select">
-                                <option value="">Select condition</option>
-                                <option value="new_sealed">New (sealed)</option>
-                                <option value="like_new">Like new</option>
-                                <option value="used_complete">Used (complete)</option>
-                                <option value="used_missing">Used (missing pieces)</option>
+                                <option value="" {% if prefilledCondition == '' %}selected{% endif %}>Select condition</option>
+                                <option value="new_sealed" {% if prefilledCondition == 'new_sealed' %}selected{% endif %}>New (sealed)</option>
+                                <option value="like_new" {% if prefilledCondition == 'like_new' %}selected{% endif %}>Like new</option>
+                                <option value="used_complete" {% if prefilledCondition == 'used_complete' %}selected{% endif %}>Used (complete)</option>
+                                <option value="used_missing" {% if prefilledCondition == 'used_missing' %}selected{% endif %}>Used (missing pieces)</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-block">
                         <button type="submit" class="btn btn-primary">
-                            <i class="ci ci-plus"></i> Add to Collection
+                            <i class="ci ci-plus"></i> 
+                            {% if isInNonSystemCollection %}
+                                Update Collection
+                            {% else %}
+                                Add to Collection
+                            {% endif %}
                         </button>
                         <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="btn btn-secondary">
                             Cancel
                         </a>
                     </div>
                 </form>
+                
+                {% if isInNonSystemCollection %}
+                    <form method="post" class="mt-3">
+                        <input type="hidden" name="_token" value="{{ csrf_token('remove-from-collection') }}">
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="ci ci-trash"></i> Remove from Collection
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </div>

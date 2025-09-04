@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sale/Lend Offers - {{ puzzle.name }}{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}">{{ puzzle.name }}</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Sale/Lend Offers</li>
+            </ol>
+        </nav>
+
+        <h1 class="mb-4">Sale/Lend Offers</h1>
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex gap-3">
+                    {% if puzzle.image %}
+                        <div class="flex-shrink-0">
+                            <img class="rounded-2" style="max-width: 100px; max-height: 100px;" alt="{{ puzzle.manufacturer.name ~ ' ' ~ puzzle.name }}" src="{{ puzzle.image|imagine_filter('puzzle_small') }}">
+                        </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">{{ puzzle.name }}</h5>
+                        <p class="card-text text-muted">
+                            {{ puzzle.piecesCount }} pieces
+                            {% if puzzle.manufacturer %}
+                                • {{ puzzle.manufacturer.name }}
+                            {% endif %}
+                        </p>
+                        {% if puzzle.alternativeName %}
+                            <p class="card-text small text-muted">{{ puzzle.alternativeName }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if offers|length == 0 %}
+            <div class="alert alert-info">
+                <i class="ci ci-info"></i> No offers available for this puzzle.
+            </div>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Country</th>
+                            <th>Type</th>
+                            <th>Price</th>
+                            <th>Condition</th>
+                            <th>Comment</th>
+                            <th>Listed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for offer in offers %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('player_profile', {playerId: offer.playerId}) }}">
+                                        {{ offer.playerName ?? offer.playerCode }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if offer.playerCountry %}
+                                        <small class="shadow-custom fi fi-{{ offer.playerCountry|lower }}"></small>
+                                        {{ offer.playerCountry }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if offer.saleType == 'lend' %}
+                                        <span class="badge bg-info">Lend</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Sell</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if offer.price %}
+                                        {{ offer.getPriceFormatted() }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ offer.condition ?? '-' }}</td>
+                                <td>
+                                    {% if offer.comment %}
+                                        <small>{{ offer.comment|nl2br }}</small>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>{{ offer.addedAt|ago }}</small>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="alert alert-info mt-3">
+                <i class="ci ci-info"></i> 
+                <strong>Friendly notice:</strong> Feature to contact puzzler directly on the platform will be added in nearby future. To contact them now, please use Instagram or other social media from their user profile.
+            </div>
+        {% endif %}
+
+        <div class="mt-3">
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="btn btn-secondary">
+                <i class="ci ci-arrow-left"></i> Back to Puzzle
+            </a>
+        </div>
+    </div>
+{% endblock %}

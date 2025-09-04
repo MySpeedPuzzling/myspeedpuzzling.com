@@ -32,11 +32,13 @@ readonly final class BorrowPuzzleToHandler
         $owner = $this->playerRepository->get($message->ownerId);
 
         // Check if puzzle already has active borrowing for this owner
-        $existingBorrowing = $this->borrowingRepository->findActiveByOwnerAndPuzzle($owner, $puzzle);
-        if ($existingBorrowing !== null) {
-            // Return the existing borrowing first
-            $existingBorrowing->returnPuzzle($owner);
-            $this->entityManager->flush();
+        if ($message->returnExistingBorrowing) {
+            $existingBorrowing = $this->borrowingRepository->findActiveByOwnerAndPuzzle($owner, $puzzle);
+            if ($existingBorrowing !== null) {
+                // Return the existing borrowing first
+                $existingBorrowing->returnPuzzle($owner);
+                $this->entityManager->flush();
+            }
         }
 
         // Try to resolve borrower - check if it's a valid UUID and player exists

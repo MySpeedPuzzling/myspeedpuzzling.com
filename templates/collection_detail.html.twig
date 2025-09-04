@@ -31,7 +31,7 @@
                 <p class="text-muted">{{ collection.description|nl2br }}</p>
             {% endif %}
             <p class="text-muted">
-                <small>{{ collection.puzzlesCount }} puzzles</small>
+                <small>{{ puzzles|length }} puzzles</small>
             </p>
         </div>
         
@@ -39,7 +39,7 @@
             <div class="btn-group" role="group">
                 {% if collection.canBeRenamed() %}
                     <a href="{{ path('edit_collection', {collectionId: collection.id}) }}" class="btn btn-outline-secondary">
-                        <i class="ci ci-pencil"></i> Edit
+                        <i class="ci ci-edit"></i> Edit
                     </a>
                 {% endif %}
                 {% if collection.canBeDeleted() %}
@@ -68,6 +68,12 @@
                             <th>Price</th>
                             <th>Condition</th>
                         {% endif %}
+                        {% if collection.systemType == 'borrowed_to' %}
+                            <th>Borrowed To</th>
+                        {% endif %}
+                        {% if collection.systemType == 'borrowed_from' %}
+                            <th>Borrowed From</th>
+                        {% endif %}
                         <th>Added</th>
                         {% if isOwner %}
                             <th>Actions</th>
@@ -92,7 +98,7 @@
                                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                                     {{ puzzle.getFullName() }}
                                 </a>
-                                {% if puzzle.comment %}
+                                {% if puzzle.comment and collection.systemType not in ['borrowed_to', 'borrowed_from'] %}
                                     <br>
                                     <small class="text-muted">{{ puzzle.comment }}</small>
                                 {% endif %}
@@ -103,18 +109,100 @@
                                 <td>{{ puzzle.price ? puzzle.getPriceFormatted() : '-' }}</td>
                                 <td>{{ puzzle.condition ?? '-' }}</td>
                             {% endif %}
-                            <td>
-                                <small>{{ puzzle.addedAt|date('Y-m-d') }}</small>
-                            </td>
-                            {% if isOwner and puzzle.itemId %}
+                            {% if collection.systemType == 'borrowed_to' %}
                                 <td>
-                                    <form method="post" action="{{ path('remove_puzzle_from_collection', {collectionId: collection.id}) }}" style="display: inline;">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('remove-from-collection') }}">
-                                        <input type="hidden" name="puzzle_id" value="{{ puzzle.puzzleId }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this puzzle from collection?')">
-                                            <i class="ci ci-trash"></i>
-                                        </button>
-                                    </form>
+                                    {% set displayName = null %}
+                                    {# Check if we have borrowing information for this puzzle #}
+                                    {% if puzzleBorrowings[puzzle.puzzleId] is defined %}
+                                        {% for borrowing in puzzleBorrowings[puzzle.puzzleId] %}
+                                            {% if borrowing.borrower %}
+                                                {% set displayName = borrowing.borrower.name %}
+                                            {% elseif borrowing.nonRegisteredPersonName %}
+                                                {% set displayName = borrowing.nonRegisteredPersonName %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    
+                                    {% if displayName %}
+                                        {{ displayName }}
+                                    {% elseif puzzle.comment %}
+                                        {# Fallback to comment field if no borrowing data #}
+                                        {{ puzzle.comment }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            {% if collection.systemType == 'borrowed_from' %}
+                                <td>
+                                    {% if puzzle.comment %}
+                                        {{ puzzle.comment }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            <td>
+                                <small>{{ puzzle.addedAt|ago }}</small>
+                            </td>
+                            {% if isOwner %}
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {# Collection management button - always show #}
+                                        <a href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-outline-secondary" title="Manage Collections">
+                                            <i class="ci ci-folder"></i>
+                                        </a>
+                                        
+                                        {# Show return buttons for borrowed puzzles #}
+                                        {% if puzzleBorrowings[puzzle.puzzleId] is defined %}
+                                            {% for borrowing in puzzleBorrowings[puzzle.puzzleId] %}
+                                                <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.puzzleId}) }}" style="display: inline;">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
+                                                    <input type="hidden" name="borrowing_id" value="{{ borrowing.id }}">
+                                                    <button type="submit" class="btn btn-outline-warning" title="Return">
+                                                        <i class="ci ci-arrow-back"></i>
+                                                        {% if borrowing.borrower %}
+                                                            {{ borrowing.borrower.name|slice(0, 10) }}
+                                                        {% elseif borrowing.nonRegisteredPersonName %}
+                                                            {{ borrowing.nonRegisteredPersonName|slice(0, 10) }}
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
+                                            {% endfor %}
+                                        {% endif %}
+                                        
+                                        {# Show borrow/lend for root or custom collections #}
+                                        {% if collection.isRootCollection() or collection.isCustomCollection() %}
+                                            <div class="dropdown d-inline">
+                                                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Borrowing">
+                                                    <i class="ci ci-arrows-horizontal"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.puzzleId, type: 'to'}) }}">
+                                                            <i class="ci ci-arrow-right"></i> Lend to Someone
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.puzzleId, type: 'from'}) }}">
+                                                            <i class="ci ci-arrow-left"></i> Borrow from Someone
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {# Remove from collection button if itemId exists #}
+                                        {% if puzzle.itemId %}
+                                            <form method="post" action="{{ path('remove_puzzle_from_collection', {collectionId: collection.id}) }}" style="display: inline;">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('remove-from-collection') }}">
+                                                <input type="hidden" name="puzzle_id" value="{{ puzzle.puzzleId }}">
+                                                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Remove this puzzle from collection?')" title="Remove from Collection">
+                                                    <i class="ci ci-trash"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
                                 </td>
                             {% endif %}
                         </tr>

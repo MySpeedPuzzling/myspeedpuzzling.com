@@ -78,20 +78,30 @@ final class MarkPuzzleForSaleController extends AbstractController
             $formData->price = $existingItem->price;
             $formData->currency = $existingItem->currency ?? 'USD';
             $formData->condition = $existingItem->condition;
-            $formData->comment = $existingItem->comment;
-            // Try to determine sale type from comment or default to sell
-            if ($existingItem->comment !== null && stripos($existingItem->comment, 'lend') !== false) {
-                $formData->saleType = 'lend';
+
+            // Parse and remove the Type: prefix from comment
+            $comment = $existingItem->comment;
+            if ($comment !== null) {
+                // Check for sale type and remove the Type: prefix
+                if (stripos($comment, 'Type: lend') !== false) {
+                    $formData->saleType = 'lend';
+                    $comment = preg_replace('/^Type: lend\n?/i', '', $comment);
+                } elseif (stripos($comment, 'Type: sell') !== false) {
+                    $formData->saleType = 'sell';
+                    $comment = preg_replace('/^Type: sell\n?/i', '', $comment);
+                } else {
+                    $formData->saleType = 'sell';
+                }
+                $formData->comment = $comment !== null && $comment !== '' ? trim($comment) : null;
+            } else {
+                $formData->saleType = 'sell';
             }
         }
 
-        $form = $this->createForm(MarkForSaleFormType::class, $formData);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $action = $request->request->getString('action', 'add');
-
-            if ($action === 'remove' && $forSaleCollection !== null) {
+        // Handle remove action first (separate form)
+        if ($request->isMethod('POST') && $request->request->getString('action') === 'remove') {
+            $submittedToken = $request->request->getString('_token');
+            if ($this->isCsrfTokenValid('remove-from-sale', $submittedToken) && $forSaleCollection !== null && $existingItem !== null) {
                 // Remove from for sale collection
                 $this->messageBus->dispatch(new RemovePuzzleFromCollection(
                     puzzleId: $puzzleId,
@@ -102,7 +112,12 @@ final class MarkPuzzleForSaleController extends AbstractController
                 $this->addFlash('success', 'Removed from For Sale');
                 return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
             }
+        }
 
+        $form = $this->createForm(MarkForSaleFormType::class, $formData);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
             // Create for sale collection if it doesn't exist
             if ($forSaleCollection === null) {
                 $collectionId = Uuid::uuid7();

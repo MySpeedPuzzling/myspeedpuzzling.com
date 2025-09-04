@@ -22,13 +22,27 @@
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             {% for collection in collections %}
                 <div class="col">
-                    <div class="card h-100">
+                    <div class="card h-100 shadow-lg {% if collection.isSystemCollection() %}border-primary{% endif %}">
                         <div class="card-body">
                             <h5 class="card-title">
-                                {% if collection.isSystemCollection() %}
-                                    <i class="ci ci-lock text-muted"></i>
-                                {% elseif not collection.isPublic %}
-                                    <i class="ci ci-lock-open text-muted"></i>
+                                {% if collection.systemType == 'completed' %}
+                                    <i class="ci ci-check-circle text-success"></i>
+                                {% elseif collection.systemType == 'wishlist' %}
+                                    <i class="ci ci-heart text-danger"></i>
+                                {% elseif collection.systemType == 'todolist' %}
+                                    <i class="ci ci-list text-primary"></i>
+                                {% elseif collection.systemType == 'for_sale' %}
+                                    <i class="ci ci-tag text-warning"></i>
+                                {% elseif collection.systemType == 'borrowed_to' %}
+                                    <i class="ci ci-arrow-right text-info"></i>
+                                {% elseif collection.systemType == 'borrowed_from' %}
+                                    <i class="ci ci-arrow-left text-info"></i>
+                                {% elseif collection.systemType == 'my_collection' %}
+                                    <i class="ci ci-folder text-secondary"></i>
+                                {% elseif collection.isCustomCollection() %}
+                                    {% if not collection.isPublic %}
+                                        <i class="ci ci-lock-open text-muted"></i>
+                                    {% endif %}
                                 {% endif %}
                                 {{ collection.getDisplayName() }}
                             </h5>
@@ -43,7 +57,7 @@
                                     </a>
                                     {% if isOwnProfile and collection.canBeRenamed() %}
                                         <a href="{{ path('edit_collection', {collectionId: collection.id}) }}" class="btn btn-outline-secondary">
-                                            <i class="ci ci-pencil"></i>
+                                            <i class="ci ci-edit"></i>
                                         </a>
                                     {% endif %}
                                 </div>

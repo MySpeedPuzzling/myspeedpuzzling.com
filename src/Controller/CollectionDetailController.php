@@ -8,6 +8,9 @@ use SpeedPuzzling\Web\Entity\PuzzleCollection;
 use SpeedPuzzling\Web\Exceptions\PuzzleCollectionNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionOverview;
 use SpeedPuzzling\Web\Query\GetCollectionPuzzles;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleBorrowingRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,13 +24,15 @@ final class CollectionDetailController extends AbstractController
         readonly private GetCollectionOverview $getCollectionOverview,
         readonly private GetCollectionPuzzles $getCollectionPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PuzzleBorrowingRepository $borrowingRepository,
+        readonly private PlayerRepository $playerRepository,
+        readonly private PuzzleRepository $puzzleRepository,
     ) {
     }
 
     #[Route(
         path: '/en/collection/{collectionId}',
         name: 'collection_detail',
-        requirements: ['collectionId' => '.+'],
     )]
     public function __invoke(string $collectionId, #[CurrentUser] null|UserInterface $user): Response
     {
@@ -64,10 +69,33 @@ final class CollectionDetailController extends AbstractController
             $puzzles = $this->getCollectionPuzzles->byCollection($collectionId);
         }
 
+        // Get active borrowings for each puzzle if user is owner
+        $puzzleBorrowings = [];
+        if ($isOwner) {
+            try {
+                $player = $this->playerRepository->get($loggedUserProfile->playerId);
+
+                foreach ($puzzles as $puzzleData) {
+                    try {
+                        $puzzle = $this->puzzleRepository->get($puzzleData->puzzleId);
+                        $borrowings = $this->borrowingRepository->findAllActiveBorrowingsForPuzzle($player, $puzzle);
+                        if (count($borrowings) > 0) {
+                            $puzzleBorrowings[$puzzleData->puzzleId] = $borrowings;
+                        }
+                    } catch (\Exception) {
+                        // Skip if puzzle not found
+                    }
+                }
+            } catch (\Exception) {
+                // Skip if player not found
+            }
+        }
+
         return $this->render('collection_detail.html.twig', [
             'collection' => $collection,
             'puzzles' => $puzzles,
             'isOwner' => $isOwner,
+            'puzzleBorrowings' => $puzzleBorrowings,
         ]);
     }
 }

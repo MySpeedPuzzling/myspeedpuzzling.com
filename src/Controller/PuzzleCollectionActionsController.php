@@ -44,8 +44,7 @@ final class PuzzleCollectionActionsController extends AbstractController
         $loggedUserProfile = null;
         $userCollections = [];
         $userCollectionDetails = [];
-        $activeBorrowing = null;
-        $borrowingType = null;
+        $activeBorrowings = [];
 
         if ($user !== null) {
             $loggedUserProfile = $this->retrieveLoggedUserProfile->getProfile();
@@ -73,14 +72,25 @@ final class PuzzleCollectionActionsController extends AbstractController
                 // Check for active borrowings
                 try {
                     $player = $this->playerRepository->get($loggedUserProfile->playerId);
-                    $activeBorrowing = $this->borrowingRepository->findActiveBorrowing($player, $puzzle);
+                    $allBorrowings = $this->borrowingRepository->findAllActiveBorrowingsForPuzzle($player, $puzzle);
 
-                    if ($activeBorrowing !== null) {
-                        // Determine if user is the owner or borrower
-                        if ($activeBorrowing->owner->id->equals($player->id)) {
+                    // Separate borrowings by type
+                    foreach ($allBorrowings as $borrowing) {
+                        $borrowingType = null;
+                        if ($borrowing->owner->id->equals($player->id) && !$borrowing->borrowedFrom) {
                             $borrowingType = 'owner';
-                        } elseif ($activeBorrowing->borrower !== null && $activeBorrowing->borrower->id->equals($player->id)) {
+                        } elseif ($borrowing->borrower !== null && $borrowing->borrower->id->equals($player->id) && $borrowing->borrowedFrom) {
                             $borrowingType = 'borrower';
+                        } elseif ($borrowing->owner->id->equals($player->id) && $borrowing->borrowedFrom) {
+                            // Player borrowed from someone
+                            $borrowingType = 'borrower';
+                        }
+
+                        if ($borrowingType !== null) {
+                            $activeBorrowings[] = [
+                                'borrowing' => $borrowing,
+                                'type' => $borrowingType,
+                            ];
                         }
                     }
                 } catch (\Exception) {
@@ -89,13 +99,22 @@ final class PuzzleCollectionActionsController extends AbstractController
             }
         }
 
+        // Check if puzzle is in root collection or any custom collection
+        $isInCollection = false;
+        foreach ($userCollections as $collectionKey) {
+            if ($collectionKey === 'my_collection' || preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $collectionKey)) {
+                $isInCollection = true;
+                break;
+            }
+        }
+        
         return $this->render('components/_puzzle_collection_actions.html.twig', [
             'puzzle' => $puzzle,
             'userCollections' => $userCollections,
             'userCollectionDetails' => $userCollectionDetails,
             'isAuthenticated' => $user !== null,
-            'activeBorrowing' => $activeBorrowing,
-            'borrowingType' => $borrowingType,
+            'activeBorrowings' => $activeBorrowings,
+            'isInCollection' => $isInCollection,
         ]);
     }
 }

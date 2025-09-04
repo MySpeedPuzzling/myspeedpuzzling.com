@@ -1,164 +1,191 @@
-<div class="puzzle-collection-actions mt-3 p-3 bg-light rounded">
-    <h6 class="mb-3">Collection Actions</h6>
+{% if isAuthenticated %}
+    {% set inWishlist = 'wishlist' in userCollections %}
+    {% set inTodolist = 'todolist' in userCollections %}
+    {% set inForSale = 'for_sale' in userCollections %}
+    {% set inCompleted = 'completed' in userCollections %}
     
-    {% if not isAuthenticated %}
-        <p class="text-muted small">
-            <a href="{{ path('app_login') }}">Login</a> to add this puzzle to your collections
-        </p>
-    {% else %}
-        {% set inWishlist = 'wishlist' in userCollections %}
-        {% set inTodolist = 'todolist' in userCollections %}
-        {% set inForSale = 'for_sale' in userCollections %}
-        {% set inCompleted = 'completed' in userCollections %}
+    <div class="dropdown">
+        <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="ci-folder"></i>
+            {% if isInCollection %}
+                Manage in Collections
+            {% else %}
+                Add to Collection
+            {% endif %}
+        </button>
         
-        {% if userCollections|length > 0 %}
-            <div class="mb-3">
-                <small class="text-muted">This puzzle is in your collections:</small>
-                <div class="mt-2">
-                    {% for collectionKey in userCollections %}
-                        <span class="badge bg-secondary me-1">
-                            {% if collectionKey == 'completed' %}
-                                Completed
-                            {% elseif collectionKey == 'wishlist' %}
-                                Wishlist
-                            {% elseif collectionKey == 'todolist' %}
-                                Todo List
-                            {% elseif collectionKey == 'borrowed_to' %}
-                                Borrowed to Someone
-                            {% elseif collectionKey == 'borrowed_from' %}
-                                Borrowed from Someone
-                            {% elseif collectionKey == 'for_sale' %}
-                                For Sale/Exchange
-                            {% elseif collectionKey == 'my_collection' %}
-                                My Collection
-                            {% elseif userCollectionDetails[collectionKey] is defined %}
-                                {{ userCollectionDetails[collectionKey] }}
-                            {% else %}
-                                Custom Collection
-                            {% endif %}
-                        </span>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-        
-        <div class="d-flex flex-wrap gap-2">
-            {# Wishlist actions #}
-            {% if not inWishlist %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="system_type" value="wishlist">
-                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                        <i class="ci ci-heart"></i> Add to Wishlist
-                    </button>
-                </form>
-            {% else %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="system_type" value="wishlist">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="ci ci-heart"></i> Remove from Wishlist
-                    </button>
-                </form>
-            {% endif %}
+        <ul class="dropdown-menu dropdown-menu-end">
+            {# Quick Collections Section #}
+            <li><h6 class="dropdown-header">Quick Collections</h6></li>
             
-            {# Todo list actions #}
-            {% if not inTodolist %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="add">
-                    <input type="hidden" name="system_type" value="todolist">
-                    <button type="submit" class="btn btn-sm btn-outline-primary">
-                        <i class="ci ci-list"></i> Add to Todo List
-                    </button>
-                </form>
-            {% else %}
-                <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
-                    <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
-                    <input type="hidden" name="action" value="remove">
-                    <input type="hidden" name="system_type" value="todolist">
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="ci ci-list"></i> Remove from Todo
-                    </button>
-                </form>
-            {% endif %}
-            
-            {# For Sale actions #}
-            {% if not inForSale %}
-                <a href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}" class="btn btn-sm btn-outline-primary">
-                    <i class="ci ci-tag"></i> Mark for Sale
-                </a>
-            {% else %}
-                <a href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}" class="btn btn-sm btn-outline-warning">
-                    <i class="ci ci-tag"></i> Edit Sale Details
-                </a>
-            {% endif %}
-            
-            {# Borrowing actions #}
-            {% if activeBorrowing is null %}
-                <div class="dropdown d-inline">
-                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="ci ci-arrows-horizontal"></i> Borrowing
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}">
-                                <i class="ci ci-arrow-right"></i> Lend to Someone
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'from'}) }}">
-                                <i class="ci ci-arrow-left"></i> Borrow from Someone
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            {% else %}
-                {% if borrowingType == 'owner' %}
-                    <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.id}) }}" class="d-inline">
-                        <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="ci ci-arrow-right"></i> 
-                            Returned from 
-                            {% if activeBorrowing.borrower %}
-                                {{ activeBorrowing.borrower.name }}
-                            {% elseif activeBorrowing.nonRegisteredPersonName %}
-                                {{ activeBorrowing.nonRegisteredPersonName }}
-                            {% else %}
-                                Borrower
-                            {% endif %}
+            {# Wishlist #}
+            <li>
+                {% if not inWishlist %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="system_type" value="wishlist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-heart text-danger"></i> Add to Wishlist
                         </button>
                     </form>
-                    <a href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}" class="btn btn-sm btn-outline-warning">
-                        <i class="ci ci-arrow-right"></i> Lend to Someone Else
+                {% else %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="system_type" value="wishlist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-heart-fill text-danger"></i> Remove from Wishlist
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
+            
+            {# Todo List #}
+            <li>
+                {% if not inTodolist %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="system_type" value="todolist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-list text-primary"></i> Add to Todo List
+                        </button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="system_type" value="todolist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-check-circle text-success"></i> Remove from Todo List
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
+            
+            {# For Sale/Exchange #}
+            <li>
+                {% if not inForSale %}
+                    <a class="dropdown-item" href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}">
+                        <i class="ci ci-tag text-warning"></i> Mark for Sale/Exchange
                     </a>
-                {% elseif borrowingType == 'borrower' %}
-                    <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.id}) }}" class="d-inline">
-                        <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="ci ci-arrow-left"></i> 
-                            Return to 
-                            {% if activeBorrowing.owner %}
-                                {{ activeBorrowing.owner.name }}
-                            {% elseif activeBorrowing.nonRegisteredPersonName %}
-                                {{ activeBorrowing.nonRegisteredPersonName }}
-                            {% else %}
-                                Owner
-                            {% endif %}
-                        </button>
-                    </form>
-                    <a href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'from'}) }}" class="btn btn-sm btn-outline-warning">
-                        <i class="ci ci-arrow-left"></i> Borrow from Someone Else
+                {% else %}
+                    <a class="dropdown-item" href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}">
+                        <i class="ci ci-tag text-warning"></i> Edit Sale Details
                     </a>
                 {% endif %}
+            </li>
+            
+            <li><hr class="dropdown-divider"></li>
+            
+            {# Borrowing Section #}
+            <li><h6 class="dropdown-header">Borrowing</h6></li>
+            
+            {% if activeBorrowings|length == 0 %}
+                <li>
+                    <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}">
+                        <i class="ci ci-arrow-right text-info"></i> Lend to Someone
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'from'}) }}">
+                        <i class="ci ci-arrow-left text-info"></i> Borrow from Someone
+                    </a>
+                </li>
+            {% else %}
+                {# Show active borrowings with return options #}
+                {% for item in activeBorrowings %}
+                    {% set borrowing = item.borrowing %}
+                    {% set borrowingType = item.type %}
+                    
+                    <li>
+                        <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.id}) }}" class="d-inline">
+                            <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
+                            <input type="hidden" name="borrowing_id" value="{{ borrowing.id }}">
+                            {% if borrowingType == 'owner' %}
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="ci ci-arrow-back"></i> 
+                                    Return from 
+                                    {% if borrowing.borrower %}
+                                        {{ borrowing.borrower.name|slice(0, 20) }}
+                                    {% elseif borrowing.nonRegisteredPersonName %}
+                                        {{ borrowing.nonRegisteredPersonName|slice(0, 20) }}
+                                    {% else %}
+                                        Borrower
+                                    {% endif %}
+                                </button>
+                            {% elseif borrowingType == 'borrower' %}
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="ci ci-arrow-back"></i> 
+                                    Return to 
+                                    {% if borrowing.owner %}
+                                        {{ borrowing.owner.name|slice(0, 20) }}
+                                    {% elseif borrowing.nonRegisteredPersonName %}
+                                        {{ borrowing.nonRegisteredPersonName|slice(0, 20) }}
+                                    {% else %}
+                                        Owner
+                                    {% endif %}
+                                </button>
+                            {% endif %}
+                        </form>
+                    </li>
+                {% endfor %}
+                
+                {# Option to create new borrowing #}
+                <li>
+                    <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}">
+                        <i class="ci ci-arrow-right text-info"></i> Lend to Someone Else
+                    </a>
+                </li>
             {% endif %}
             
-            {# General collection management #}
-            <a href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.id}) }}" class="btn btn-sm btn-outline-secondary">
-                <i class="ci ci-folder"></i> Manage Collections
-            </a>
-        </div>
-    {% endif %}
-</div>
+            <li><hr class="dropdown-divider"></li>
+            
+            {# All Collections Management #}
+            <li>
+                <a class="dropdown-item" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.id}) }}">
+                    <i class="ci ci-folder-open"></i> 
+                    <strong>Manage All Collections</strong>
+                </a>
+            </li>
+            
+            {# Show current collections at bottom #}
+            {% if userCollections|length > 0 %}
+                <li><hr class="dropdown-divider"></li>
+                <li class="px-3 py-1">
+                    <small class="text-muted">Currently in:</small>
+                    <div class="mt-1">
+                        {% for collectionKey in userCollections %}
+                            <span class="badge bg-secondary me-1 mb-1" style="font-size: 0.7rem;">
+                                {% if collectionKey == 'completed' %}
+                                    Completed
+                                {% elseif collectionKey == 'wishlist' %}
+                                    Wishlist
+                                {% elseif collectionKey == 'todolist' %}
+                                    Todo
+                                {% elseif collectionKey == 'borrowed_to' %}
+                                    Lent Out
+                                {% elseif collectionKey == 'borrowed_from' %}
+                                    Borrowed
+                                {% elseif collectionKey == 'for_sale' %}
+                                    For Sale
+                                {% elseif collectionKey == 'my_collection' %}
+                                    My Collection
+                                {% elseif userCollectionDetails[collectionKey] is defined %}
+                                    {{ userCollectionDetails[collectionKey]|slice(0, 15) }}
+                                {% else %}
+                                    Custom
+                                {% endif %}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+{% else %}
+    <a href="{{ path('app_login') }}" class="btn btn-outline-primary shadow btn-xs">
+        <i class="ci-folder"></i> Login to Add
+    </a>
+{% endif %}

@@ -15,4 +15,11 @@ final class BorrowPuzzleFormData
     #[Assert\NotBlank]
     #[Assert\Choice(choices: ['to', 'from'])]
     public string $borrowingType = 'to';
+
+    public bool $returnExistingBorrowing = true;
+
+    /**
+     * @var array<string, bool>
+     */
+    public array $returnBorrowingIds = [];
 }

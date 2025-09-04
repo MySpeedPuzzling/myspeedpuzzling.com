@@ -23,6 +23,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Doctrine\ORM\EntityManagerInterface;
 
 #[IsGranted('IS_AUTHENTICATED')]
 final class BorrowPuzzleController extends AbstractController
@@ -33,6 +34,7 @@ final class BorrowPuzzleController extends AbstractController
         readonly private PlayerRepository $playerRepository,
         readonly private PuzzleBorrowingRepository $borrowingRepository,
         readonly private MessageBusInterface $messageBus,
+        readonly private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -70,25 +72,49 @@ final class BorrowPuzzleController extends AbstractController
             $borrowingType = 'to';
         }
 
-        // Check if there's an active borrowing
-        $activeBorrowing = null;
+        // Check for all active borrowings
+        $activeBorrowings = [];
         if ($borrowingType === 'to') {
-            $activeBorrowing = $this->borrowingRepository->findActiveByOwnerAndPuzzle($player, $puzzle);
+            $activeBorrowings = $this->borrowingRepository->findAllActiveByOwnerAndPuzzle($player, $puzzle);
         } else {
-            $activeBorrowing = $this->borrowingRepository->findActiveByBorrowerAndPuzzle($player, $puzzle);
+            $activeBorrowings = $this->borrowingRepository->findAllActiveByBorrowerAndPuzzle($player, $puzzle);
         }
 
         $formData = new BorrowPuzzleFormData();
         $formData->borrowingType = $borrowingType;
 
+        // Initialize return flags for each existing borrowing
+        $returnBorrowingIds = [];
+        foreach ($activeBorrowings as $borrowing) {
+            $returnBorrowingIds[$borrowing->id->toString()] = true; // Default to checked
+        }
+        $formData->returnBorrowingIds = $returnBorrowingIds;
+
         $form = $this->createForm(BorrowPuzzleFormType::class, $formData, [
             'borrowing_type' => $borrowingType,
+            'has_active_borrowing' => count($activeBorrowings) > 0,
+            'active_borrowings' => $activeBorrowings,
         ]);
 
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $borrowingId = Uuid::uuid7();
+
+            // Return selected borrowings based on form checkboxes
+            $returnedBorrowings = [];
+            foreach ($activeBorrowings as $borrowing) {
+                $borrowingIdStr = $borrowing->id->toString();
+                $fieldName = 'return_' . str_replace('-', '_', $borrowingIdStr);
+
+                if ($form->has($fieldName) && $form->get($fieldName)->getData() === true) {
+                    $borrowing->returnPuzzle($player);
+                    $returnedBorrowings[] = $borrowingIdStr;
+                }
+            }
+            if (count($returnedBorrowings) > 0) {
+                $this->entityManager->flush();
+            }
 
             if ($formData->borrowingType === 'to') {
                 // Borrowing TO someone
@@ -98,10 +124,11 @@ final class BorrowPuzzleController extends AbstractController
                     ownerId: $loggedUserProfile->playerId,
                     borrowerId: $formData->person, // Will be validated in handler
                     nonRegisteredPersonName: null, // Handler will determine this
+                    returnExistingBorrowing: false, // We already handled returns above
                 ));
 
-                if ($activeBorrowing !== null) {
-                    $this->addFlash('warning', 'Previous borrowing was returned before creating new one');
+                if (count($returnedBorrowings) > 0) {
+                    $this->addFlash('info', sprintf('%d previous borrowing(s) marked as returned', count($returnedBorrowings)));
                 }
                 $this->addFlash('success', 'Puzzle marked as borrowed');
             } else {
@@ -112,10 +139,11 @@ final class BorrowPuzzleController extends AbstractController
                     borrowerId: $loggedUserProfile->playerId,
                     ownerId: $formData->person, // Will be validated in handler
                     nonRegisteredPersonName: null, // Handler will determine this
+                    returnExistingBorrowing: false, // We already handled returns above
                 ));
 
-                if ($activeBorrowing !== null) {
-                    $this->addFlash('warning', 'Previous borrowing was returned before creating new one');
+                if (count($returnedBorrowings) > 0) {
+                    $this->addFlash('info', sprintf('%d previous borrowing(s) marked as returned', count($returnedBorrowings)));
                 }
                 $this->addFlash('success', 'Puzzle marked as borrowed');
             }
@@ -127,7 +155,7 @@ final class BorrowPuzzleController extends AbstractController
             'puzzle' => $puzzle,
             'form' => $form,
             'borrowingType' => $borrowingType,
-            'activeBorrowing' => $activeBorrowing,
+            'activeBorrowings' => $activeBorrowings,
         ]);
     }
 }

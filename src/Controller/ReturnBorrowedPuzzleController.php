@@ -65,12 +65,34 @@ final class ReturnBorrowedPuzzleController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        // Find active borrowing for this puzzle and player (as owner or borrower)
-        $activeBorrowing = $this->borrowingRepository->findActiveBorrowing($player, $puzzle);
+        // Check if a specific borrowing ID was provided
+        $borrowingId = $request->request->getString('borrowing_id');
 
-        if ($activeBorrowing === null) {
-            $this->addFlash('error', 'No active borrowing found for this puzzle');
-            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+        if ($borrowingId !== '') {
+            // Find specific borrowing by ID
+            $activeBorrowing = $this->entityManager->find(\SpeedPuzzling\Web\Entity\PuzzleBorrowing::class, $borrowingId);
+
+            if ($activeBorrowing === null || $activeBorrowing->returnedAt !== null) {
+                $this->addFlash('error', 'No active borrowing found with this ID');
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            }
+
+            // Verify the player is involved in this borrowing
+            if (
+                !($activeBorrowing->owner->id->equals($player->id) ||
+                  ($activeBorrowing->borrower !== null && $activeBorrowing->borrower->id->equals($player->id)))
+            ) {
+                $this->addFlash('error', 'You are not authorized to return this borrowing');
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            }
+        } else {
+            // Find active borrowing for this puzzle and player (as owner or borrower) - backward compatibility
+            $activeBorrowing = $this->borrowingRepository->findActiveBorrowing($player, $puzzle);
+
+            if ($activeBorrowing === null) {
+                $this->addFlash('error', 'No active borrowing found for this puzzle');
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            }
         }
 
         // Return the puzzle

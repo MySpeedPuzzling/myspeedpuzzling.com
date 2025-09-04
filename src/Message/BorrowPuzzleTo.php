@@ -14,6 +14,7 @@ readonly final class BorrowPuzzleTo
         public string $ownerId,
         public null|string $borrowerId, // null if non-registered person
         public null|string $nonRegisteredPersonName, // name if not registered
+        public bool $returnExistingBorrowing = true,
     ) {
     }
 }

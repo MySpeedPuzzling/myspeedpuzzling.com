@@ -63,6 +63,25 @@ readonly final class PuzzleBorrowingRepository
         return $qb->getQuery()->getOneOrNullResult();
     }
 
+    /**
+     * @return PuzzleBorrowing[]
+     */
+    public function findAllActiveByOwnerAndPuzzle(Player $owner, Puzzle $puzzle): array
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('b')
+            ->from(PuzzleBorrowing::class, 'b')
+            ->where('b.owner = :owner')
+            ->andWhere('b.puzzle = :puzzle')
+            ->andWhere('b.returnedAt IS NULL')
+            ->andWhere('b.borrowedFrom = false')  // Only "borrowed to" records
+            ->setParameter('owner', $owner)
+            ->setParameter('puzzle', $puzzle)
+            ->orderBy('b.borrowedAt', 'DESC');
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findActiveByBorrowerAndPuzzle(Player $borrower, Puzzle $puzzle): null|PuzzleBorrowing
     {
         $qb = $this->entityManager->createQueryBuilder();
@@ -77,5 +96,42 @@ readonly final class PuzzleBorrowingRepository
 
         /** @var PuzzleBorrowing|null */
         return $qb->getQuery()->getOneOrNullResult();
+    }
+
+    /**
+     * @return PuzzleBorrowing[]
+     */
+    public function findAllActiveByBorrowerAndPuzzle(Player $borrower, Puzzle $puzzle): array
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('b')
+            ->from(PuzzleBorrowing::class, 'b')
+            ->where('b.borrower = :borrower')
+            ->andWhere('b.puzzle = :puzzle')
+            ->andWhere('b.returnedAt IS NULL')
+            ->andWhere('b.borrowedFrom = true')  // Only "borrowed from" records
+            ->setParameter('borrower', $borrower)
+            ->setParameter('puzzle', $puzzle)
+            ->orderBy('b.borrowedAt', 'DESC');
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @return PuzzleBorrowing[]
+     */
+    public function findAllActiveBorrowingsForPuzzle(Player $player, Puzzle $puzzle): array
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('b')
+            ->from(PuzzleBorrowing::class, 'b')
+            ->where('b.puzzle = :puzzle')
+            ->andWhere('(b.owner = :player OR b.borrower = :player)')
+            ->andWhere('b.returnedAt IS NULL')
+            ->setParameter('puzzle', $puzzle)
+            ->setParameter('player', $player)
+            ->orderBy('b.borrowedAt', 'DESC');
+
+        return $qb->getQuery()->getResult();
     }
 }

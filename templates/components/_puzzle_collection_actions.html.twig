@@ -1,0 +1,191 @@
+{% if isAuthenticated %}
+    {% set inWishlist = 'wishlist' in userCollections %}
+    {% set inTodolist = 'todolist' in userCollections %}
+    {% set inForSale = 'for_sale' in userCollections %}
+    {% set inCompleted = 'completed' in userCollections %}
+    
+    <div class="dropdown">
+        <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="ci-folder"></i>
+            {% if isInCollection %}
+                Manage in Collections
+            {% else %}
+                Add to Collection
+            {% endif %}
+        </button>
+        
+        <ul class="dropdown-menu dropdown-menu-end">
+            {# Quick Collections Section #}
+            <li><h6 class="dropdown-header">Quick Collections</h6></li>
+            
+            {# Wishlist #}
+            <li>
+                {% if not inWishlist %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="system_type" value="wishlist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-heart text-danger"></i> Add to Wishlist
+                        </button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="system_type" value="wishlist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-heart-fill text-danger"></i> Remove from Wishlist
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
+            
+            {# Todo List #}
+            <li>
+                {% if not inTodolist %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="system_type" value="todolist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-list text-primary"></i> Add to Todo List
+                        </button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{{ path('quick_collection_action', {puzzleId: puzzle.id}) }}" class="d-inline">
+                        <input type="hidden" name="_token" value="{{ csrf_token('quick-collection-action') }}">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="system_type" value="todolist">
+                        <button type="submit" class="dropdown-item">
+                            <i class="ci ci-check-circle text-success"></i> Remove from Todo List
+                        </button>
+                    </form>
+                {% endif %}
+            </li>
+            
+            {# For Sale/Exchange #}
+            <li>
+                {% if not inForSale %}
+                    <a class="dropdown-item" href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}">
+                        <i class="ci ci-tag text-warning"></i> Mark for Sale/Exchange
+                    </a>
+                {% else %}
+                    <a class="dropdown-item" href="{{ path('mark_puzzle_for_sale', {puzzleId: puzzle.id}) }}">
+                        <i class="ci ci-tag text-warning"></i> Edit Sale Details
+                    </a>
+                {% endif %}
+            </li>
+            
+            <li><hr class="dropdown-divider"></li>
+            
+            {# Borrowing Section #}
+            <li><h6 class="dropdown-header">Borrowing</h6></li>
+            
+            {% if activeBorrowings|length == 0 %}
+                <li>
+                    <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}">
+                        <i class="ci ci-arrow-right text-info"></i> Lend to Someone
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'from'}) }}">
+                        <i class="ci ci-arrow-left text-info"></i> Borrow from Someone
+                    </a>
+                </li>
+            {% else %}
+                {# Show active borrowings with return options #}
+                {% for item in activeBorrowings %}
+                    {% set borrowing = item.borrowing %}
+                    {% set borrowingType = item.type %}
+                    
+                    <li>
+                        <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.id}) }}" class="d-inline">
+                            <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
+                            <input type="hidden" name="borrowing_id" value="{{ borrowing.id }}">
+                            {% if borrowingType == 'owner' %}
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="ci ci-arrow-back"></i> 
+                                    Return from 
+                                    {% if borrowing.borrower %}
+                                        {{ borrowing.borrower.name|slice(0, 20) }}
+                                    {% elseif borrowing.nonRegisteredPersonName %}
+                                        {{ borrowing.nonRegisteredPersonName|slice(0, 20) }}
+                                    {% else %}
+                                        Borrower
+                                    {% endif %}
+                                </button>
+                            {% elseif borrowingType == 'borrower' %}
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="ci ci-arrow-back"></i> 
+                                    Return to 
+                                    {% if borrowing.owner %}
+                                        {{ borrowing.owner.name|slice(0, 20) }}
+                                    {% elseif borrowing.nonRegisteredPersonName %}
+                                        {{ borrowing.nonRegisteredPersonName|slice(0, 20) }}
+                                    {% else %}
+                                        Owner
+                                    {% endif %}
+                                </button>
+                            {% endif %}
+                        </form>
+                    </li>
+                {% endfor %}
+                
+                {# Option to create new borrowing #}
+                <li>
+                    <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.id, type: 'to'}) }}">
+                        <i class="ci ci-arrow-right text-info"></i> Lend to Someone Else
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li><hr class="dropdown-divider"></li>
+            
+            {# All Collections Management #}
+            <li>
+                <a class="dropdown-item" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.id}) }}">
+                    <i class="ci ci-folder-open"></i> 
+                    <strong>Manage All Collections</strong>
+                </a>
+            </li>
+            
+            {# Show current collections at bottom #}
+            {% if userCollections|length > 0 %}
+                <li><hr class="dropdown-divider"></li>
+                <li class="px-3 py-1">
+                    <small class="text-muted">Currently in:</small>
+                    <div class="mt-1">
+                        {% for collectionKey in userCollections %}
+                            <span class="badge bg-secondary me-1 mb-1" style="font-size: 0.7rem;">
+                                {% if collectionKey == 'completed' %}
+                                    Completed
+                                {% elseif collectionKey == 'wishlist' %}
+                                    Wishlist
+                                {% elseif collectionKey == 'todolist' %}
+                                    Todo
+                                {% elseif collectionKey == 'borrowed_to' %}
+                                    Lent Out
+                                {% elseif collectionKey == 'borrowed_from' %}
+                                    Borrowed
+                                {% elseif collectionKey == 'for_sale' %}
+                                    For Sale
+                                {% elseif collectionKey == 'my_collection' %}
+                                    My Collection
+                                {% elseif userCollectionDetails[collectionKey] is defined %}
+                                    {{ userCollectionDetails[collectionKey]|slice(0, 15) }}
+                                {% else %}
+                                    Custom
+                                {% endif %}
+                            </span>
+                        {% endfor %}
+                    </div>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+{% else %}
+    <a href="{{ path('app_login') }}" class="btn btn-outline-primary shadow btn-xs">
+        <i class="ci-folder"></i> Login to Add
+    </a>
+{% endif %}

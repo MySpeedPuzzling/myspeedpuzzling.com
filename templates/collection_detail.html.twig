@@ -1,0 +1,239 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ collection.getDisplayName() }} - Collection{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ path('player_profile', {playerId: collection.playerId}) }}">{{ collection.playerName }}</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{{ path('player_collections', {playerId: collection.playerId}) }}">Collections</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">{{ collection.getDisplayName() }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1>
+                {% if collection.isSystemCollection() %}
+                    <i class="ci ci-lock text-muted"></i>
+                {% elseif not collection.isPublic %}
+                    <i class="ci ci-lock-open text-muted"></i>
+                {% endif %}
+                {{ collection.getDisplayName() }}
+            </h1>
+            {% if collection.description %}
+                <p class="text-muted">{{ collection.description|nl2br }}</p>
+            {% endif %}
+            <p class="text-muted">
+                <small>{{ puzzles|length }} puzzles</small>
+            </p>
+        </div>
+        
+        {% if isOwner %}
+            <div class="btn-group" role="group">
+                {% if collection.canBeRenamed() %}
+                    <a href="{{ path('edit_collection', {collectionId: collection.id}) }}" class="btn btn-outline-secondary">
+                        <i class="ci ci-edit"></i> Edit
+                    </a>
+                {% endif %}
+                {% if collection.canBeDeleted() %}
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCollectionModal">
+                        <i class="ci ci-trash"></i> Delete
+                    </button>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if puzzles|length == 0 %}
+        <div class="alert alert-info">
+            <i class="ci ci-info"></i> No puzzles in this collection yet.
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Image</th>
+                        <th>Puzzle</th>
+                        <th>Pieces</th>
+                        <th>Manufacturer</th>
+                        {% if collection.systemType == 'for_sale' %}
+                            <th>Price</th>
+                            <th>Condition</th>
+                        {% endif %}
+                        {% if collection.systemType == 'borrowed_to' %}
+                            <th>Borrowed To</th>
+                        {% endif %}
+                        {% if collection.systemType == 'borrowed_from' %}
+                            <th>Borrowed From</th>
+                        {% endif %}
+                        <th>Added</th>
+                        {% if isOwner %}
+                            <th>Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for puzzle in puzzles %}
+                        <tr>
+                            <td>
+                                {% if puzzle.puzzleImage %}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                        <img class="rounded-2" style="max-width: 80px; max-height: 80px;" alt="{{ puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                    </a>
+                                {% else %}
+                                    <div class="bg-light rounded-2 d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                        <i class="ci ci-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                    {{ puzzle.getFullName() }}
+                                </a>
+                                {% if puzzle.comment and collection.systemType not in ['borrowed_to', 'borrowed_from'] %}
+                                    <br>
+                                    <small class="text-muted">{{ puzzle.comment }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ puzzle.piecesCount }}</td>
+                            <td>{{ puzzle.manufacturerName ?? '-' }}</td>
+                            {% if collection.systemType == 'for_sale' %}
+                                <td>{{ puzzle.price ? puzzle.getPriceFormatted() : '-' }}</td>
+                                <td>{{ puzzle.condition ?? '-' }}</td>
+                            {% endif %}
+                            {% if collection.systemType == 'borrowed_to' %}
+                                <td>
+                                    {% set displayName = null %}
+                                    {# Check if we have borrowing information for this puzzle #}
+                                    {% if puzzleBorrowings[puzzle.puzzleId] is defined %}
+                                        {% for borrowing in puzzleBorrowings[puzzle.puzzleId] %}
+                                            {% if borrowing.borrower %}
+                                                {% set displayName = borrowing.borrower.name %}
+                                            {% elseif borrowing.nonRegisteredPersonName %}
+                                                {% set displayName = borrowing.nonRegisteredPersonName %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    
+                                    {% if displayName %}
+                                        {{ displayName }}
+                                    {% elseif puzzle.comment %}
+                                        {# Fallback to comment field if no borrowing data #}
+                                        {{ puzzle.comment }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            {% if collection.systemType == 'borrowed_from' %}
+                                <td>
+                                    {% if puzzle.comment %}
+                                        {{ puzzle.comment }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            <td>
+                                <small>{{ puzzle.addedAt|ago }}</small>
+                            </td>
+                            {% if isOwner %}
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {# Collection management button - always show #}
+                                        <a href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-outline-secondary" title="Manage Collections">
+                                            <i class="ci ci-folder"></i>
+                                        </a>
+                                        
+                                        {# Show return buttons for borrowed puzzles #}
+                                        {% if puzzleBorrowings[puzzle.puzzleId] is defined %}
+                                            {% for borrowing in puzzleBorrowings[puzzle.puzzleId] %}
+                                                <form method="post" action="{{ path('return_borrowed_puzzle', {puzzleId: puzzle.puzzleId}) }}" style="display: inline;">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('return-borrowing') }}">
+                                                    <input type="hidden" name="borrowing_id" value="{{ borrowing.id }}">
+                                                    <button type="submit" class="btn btn-outline-warning" title="Return">
+                                                        <i class="ci ci-arrow-back"></i>
+                                                        {% if borrowing.borrower %}
+                                                            {{ borrowing.borrower.name|slice(0, 10) }}
+                                                        {% elseif borrowing.nonRegisteredPersonName %}
+                                                            {{ borrowing.nonRegisteredPersonName|slice(0, 10) }}
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
+                                            {% endfor %}
+                                        {% endif %}
+                                        
+                                        {# Show borrow/lend for root or custom collections #}
+                                        {% if collection.isRootCollection() or collection.isCustomCollection() %}
+                                            <div class="dropdown d-inline">
+                                                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Borrowing">
+                                                    <i class="ci ci-arrows-horizontal"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.puzzleId, type: 'to'}) }}">
+                                                            <i class="ci ci-arrow-right"></i> Lend to Someone
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ path('borrow_puzzle', {puzzleId: puzzle.puzzleId, type: 'from'}) }}">
+                                                            <i class="ci ci-arrow-left"></i> Borrow from Someone
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {# Remove from collection button if itemId exists #}
+                                        {% if puzzle.itemId %}
+                                            <form method="post" action="{{ path('remove_puzzle_from_collection', {collectionId: collection.id}) }}" style="display: inline;">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('remove-from-collection') }}">
+                                                <input type="hidden" name="puzzle_id" value="{{ puzzle.puzzleId }}">
+                                                <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Remove this puzzle from collection?')" title="Remove from Collection">
+                                                    <i class="ci ci-trash"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    {% if isOwner and collection.canBeDeleted() %}
+        <!-- Delete Collection Modal -->
+        <div class="modal fade" id="deleteCollectionModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Delete Collection</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete this collection?</p>
+                        <p class="text-danger">This will remove all puzzles from this collection. This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form method="post" action="{{ path('delete_collection', {collectionId: collection.id}) }}" style="display: inline;">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete-collection') }}">
+                            <button type="submit" class="btn btn-danger">Delete Collection</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

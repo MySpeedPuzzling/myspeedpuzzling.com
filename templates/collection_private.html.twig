@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Private Collection{% endblock %}
+
+{% block content %}
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="ci ci-lock fs-1 text-muted mb-3 d-block"></i>
+                        <h3>Private Collection</h3>
+                        <p class="text-muted">
+                            This collection is private and can only be viewed by its owner.
+                        </p>
+                        <a href="{{ path('player_collections', {playerId: collection.playerId}) }}" class="btn btn-primary">
+                            View Public Collections
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

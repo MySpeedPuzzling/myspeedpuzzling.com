@@ -16,10 +16,10 @@
         <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             {% if route == 'player_statistics' %}
                 {{ 'menu.statistics'|trans }}
-            {% elseif route == 'player_collection' %}
-                {{ 'menu.collection'|trans }}
             {% elseif route == 'player_favorite_puzzlers' %}
                 {{ 'menu.favorite_puzzlers'|trans }}
+            {% elseif route == 'player_collections' or route == 'collection_detail' %}
+                Collections
             {% elseif route == 'edit_profile' %}
                 {{ 'menu.edit_profile'|trans }}
             {% else %}
@@ -36,12 +36,12 @@
                     <i class="bi bi-bar-chart-line me-1"></i> {{ 'menu.statistics'|trans }}
                 </a>
 
-                <a href="{{ path('player_collection', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_collection' %}active{% endif %}">
-                    <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
-                </a>
-
                 <a href="{{ path('player_favorite_puzzlers', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_favorite_puzzlers' %}active{% endif %}">
                     <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
+                </a>
+
+                <a href="{{ path('player_collections', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_collections' %}active{% endif %}">
+                    <i class="bi bi-collection me-1"></i> Collections
                 </a>
             {% endif %}
 

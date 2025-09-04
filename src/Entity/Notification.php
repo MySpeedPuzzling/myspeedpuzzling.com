@@ -39,6 +39,14 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|PuzzleSolvingTime $targetSolvingTime = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|Puzzle $targetPuzzle = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|Player $otherPlayer = null,
     ) {
     }
 }

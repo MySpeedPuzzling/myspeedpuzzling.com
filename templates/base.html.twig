@@ -244,8 +244,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_collection' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_collection', {'playerId': logged_user.profile.playerId}) }}">
-                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
+                                        <a class="dropdown-item {% if currentRoute == 'player_collections' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_collections', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-folder me-1"></i> {{ 'menu.collections'|trans }}
                                         </a>
                                     </li>
                                     <li>

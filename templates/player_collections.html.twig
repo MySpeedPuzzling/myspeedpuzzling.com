@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ player.playerName }} - Collections{% endblock %}
+
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Collections</h2>
+        {% if isOwnProfile %}
+            <a href="{{ path('create_collection') }}" class="btn btn-primary">
+                <i class="ci ci-plus"></i> New Collection
+            </a>
+        {% endif %}
+    </div>
+
+    {% if collections|length == 0 %}
+        <div class="alert alert-info">
+            <i class="ci ci-info"></i> No collections yet.
+        </div>
+    {% else %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for collection in collections %}
+                <div class="col">
+                    <div class="card h-100 shadow-lg {% if collection.isSystemCollection() %}border-primary{% endif %}">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {% if collection.systemType == 'completed' %}
+                                    <i class="ci ci-check-circle text-success"></i>
+                                {% elseif collection.systemType == 'wishlist' %}
+                                    <i class="ci ci-heart text-danger"></i>
+                                {% elseif collection.systemType == 'todolist' %}
+                                    <i class="ci ci-list text-primary"></i>
+                                {% elseif collection.systemType == 'for_sale' %}
+                                    <i class="ci ci-tag text-warning"></i>
+                                {% elseif collection.systemType == 'borrowed_to' %}
+                                    <i class="ci ci-arrow-right text-info"></i>
+                                {% elseif collection.systemType == 'borrowed_from' %}
+                                    <i class="ci ci-arrow-left text-info"></i>
+                                {% elseif collection.systemType == 'my_collection' %}
+                                    <i class="ci ci-folder text-secondary"></i>
+                                {% elseif collection.isCustomCollection() %}
+                                    {% if not collection.isPublic %}
+                                        <i class="ci ci-lock-open text-muted"></i>
+                                    {% endif %}
+                                {% endif %}
+                                {{ collection.getDisplayName() }}
+                            </h5>
+                            {% if collection.description %}
+                                <p class="card-text small text-muted">{{ collection.description|nl2br }}</p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-secondary">{{ collection.puzzlesCount }} puzzles</span>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ path('collection_detail', {collectionId: collection.id}) }}" class="btn btn-outline-primary">
+                                        <i class="ci ci-eye"></i> View
+                                    </a>
+                                    {% if isOwnProfile and collection.canBeRenamed() %}
+                                        <a href="{{ path('edit_collection', {collectionId: collection.id}) }}" class="btn btn-outline-secondary">
+                                            <i class="ci ci-edit"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

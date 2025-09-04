@@ -28,10 +28,7 @@ final class DeleteCollectionController extends AbstractController
     }
 
     #[Route(
-        path: [
-            'cs' => '/kolekce/{collectionId}/smazat',
-            'en' => '/en/collection/{collectionId}/delete',
-        ],
+        path: '/en/collection/{collectionId}/delete',
         name: 'delete_collection',
         methods: ['POST'],
     )]

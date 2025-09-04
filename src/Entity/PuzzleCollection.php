@@ -113,4 +113,22 @@ class PuzzleCollection implements EntityWithEvents
     {
         return $this->isCustomCollection();
     }
+
+    public function getDisplayName(): string
+    {
+        if ($this->systemType !== null) {
+            return match ($this->systemType) {
+                self::SYSTEM_COMPLETED => 'Completed',
+                self::SYSTEM_WISHLIST => 'Wishlist',
+                self::SYSTEM_TODO => 'To Do List',
+                self::SYSTEM_BORROWED_TO => 'Borrowed To Others',
+                self::SYSTEM_BORROWED_FROM => 'Borrowed From Others',
+                self::SYSTEM_FOR_SALE => 'For Sale',
+                self::SYSTEM_MY_COLLECTION => 'My Collection',
+                default => $this->name ?? 'Unknown',
+            };
+        }
+
+        return $this->name ?? 'My Collection';
+    }
 }

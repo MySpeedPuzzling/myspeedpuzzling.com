@@ -30,10 +30,7 @@ final class EditCollectionController extends AbstractController
     }
 
     #[Route(
-        path: [
-            'cs' => '/kolekce/{collectionId}/upravit',
-            'en' => '/en/collection/{collectionId}/edit',
-        ],
+        path: '/en/collection/{collectionId}/edit',
         name: 'edit_collection',
     )]
     public function __invoke(string $collectionId, Request $request, #[CurrentUser] UserInterface $user): Response

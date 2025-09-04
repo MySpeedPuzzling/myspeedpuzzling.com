@@ -28,10 +28,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
     }
 
     #[Route(
-        path: [
-            'cs' => '/kolekce/{collectionId}/odebrat-puzzle',
-            'en' => '/en/collection/{collectionId}/remove-puzzle',
-        ],
+        path: '/en/collection/{collectionId}/remove-puzzle',
         name: 'remove_puzzle_from_collection',
         methods: ['POST'],
     )]

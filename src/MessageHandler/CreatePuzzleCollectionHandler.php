@@ -34,6 +34,10 @@ readonly final class CreatePuzzleCollectionHandler
         $collection->description = $message->description;
         $collection->isPublic = $message->isPublic;
 
+        if ($message->systemType !== null) {
+            $collection->systemType = $message->systemType;
+        }
+
         $this->entityManager->persist($collection);
         $this->entityManager->flush();
     }

@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleCollectionNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleCollectionItemRepository;
 use SpeedPuzzling\Web\Repository\PuzzleCollectionRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -28,18 +30,17 @@ final class AddPuzzleToCollectionController extends AbstractController
 {
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PlayerRepository $playerRepository,
         readonly private PuzzleRepository $puzzleRepository,
         readonly private PuzzleCollectionRepository $collectionRepository,
+        readonly private PuzzleCollectionItemRepository $collectionItemRepository,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private MessageBusInterface $messageBus,
     ) {
     }
 
     #[Route(
-        path: [
-            'cs' => '/puzzle/{puzzleId}/pridat-do-kolekce',
-            'en' => '/en/puzzle/{puzzleId}/add-to-collection',
-        ],
+        path: '/en/puzzle/{puzzleId}/add-to-collection',
         name: 'add_puzzle_to_collection',
         methods: ['GET', 'POST'],
     )]
@@ -83,6 +84,29 @@ final class AddPuzzleToCollectionController extends AbstractController
                     }
                 }
 
+                // Check if puzzle already exists in a collection
+                $player = $this->playerRepository->get($loggedUserProfile->playerId);
+                $puzzleEntity = $this->puzzleRepository->get($puzzleId);
+                $existingItem = $this->collectionItemRepository->findByPlayerAndPuzzle($player, $puzzleEntity);
+
+                $wasMoved = false;
+                $oldCollectionName = null;
+
+                if ($existingItem !== null) {
+                    // Only show "moved" warning if moving between custom collections
+                    // (not when moving to/from system collections)
+                    $isMovingBetweenCustomCollections = 
+                        ($existingItem->collection === null || !$existingItem->collection->isSystemCollection()) &&
+                        ($collection === null || !$collection->isSystemCollection()) &&
+                        $existingItem->collection !== $collection &&
+                        !($existingItem->collection === null && $collection === null);
+                    
+                    if ($isMovingBetweenCustomCollections) {
+                        $wasMoved = true;
+                        $oldCollectionName = $existingItem->collection?->getDisplayName() ?? 'My Collection';
+                    }
+                }
+
                 $this->messageBus->dispatch(new AddPuzzleToCollection(
                     itemId: Uuid::uuid7(),
                     puzzleId: $puzzleId,
@@ -93,7 +117,16 @@ final class AddPuzzleToCollectionController extends AbstractController
                     condition: $condition !== '' ? $condition : null,
                 ));
 
-                $this->addFlash('success', 'Puzzle added to collection');
+                if ($wasMoved) {
+                    $newCollectionName = $collection?->getDisplayName() ?? 'My Collection';
+                    $this->addFlash('warning', sprintf(
+                        'Puzzle was moved from "%s" to "%s"',
+                        $oldCollectionName,
+                        $newCollectionName
+                    ));
+                } else {
+                    $this->addFlash('success', 'Puzzle added to collection');
+                }
 
                 return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
             } catch (HandlerFailedException $e) {

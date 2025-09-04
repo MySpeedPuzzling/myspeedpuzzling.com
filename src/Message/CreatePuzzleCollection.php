@@ -14,6 +14,7 @@ readonly final class CreatePuzzleCollection
         public string $name,
         public null|string $description,
         public bool $isPublic,
+        public null|string $systemType = null,
     ) {
     }
 }

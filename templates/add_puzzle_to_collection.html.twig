@@ -25,7 +25,7 @@
                     
                     <div class="mb-3">
                         <label for="collection_id" class="form-label">Collection</label>
-                        <select name="collection_id" id="collection_id" class="form-select" required>
+                        <select name="collection_id" id="collection_id" class="form-select">
                             <option value="">My Collection (root)</option>
                             {% for collection in collections %}
                                 <option value="{{ collection.id }}">

@@ -15,6 +15,7 @@ menu:
     membership: "Membership"
     search: "Search"
     statistics: "Statistics"
+    collections: "My Collections"
     favorite_puzzlers: "Favorite puzzlers"
     edit_profile: "Edit profile"
     change_player_code: "Change player code"

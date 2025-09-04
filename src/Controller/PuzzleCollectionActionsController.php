@@ -24,10 +24,7 @@ final class PuzzleCollectionActionsController extends AbstractController
     }
 
     #[Route(
-        path: [
-            'cs' => '/puzzle/{puzzleId}/akce-kolekce',
-            'en' => '/en/puzzle/{puzzleId}/collection-actions',
-        ],
+        path: '/en/puzzle/{puzzleId}/collection-actions',
         name: 'puzzle_collection_actions',
     )]
     public function __invoke(string $puzzleId, #[CurrentUser] null|UserInterface $user): Response

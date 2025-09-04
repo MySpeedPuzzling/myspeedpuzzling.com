@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\EnsurePlayerSystemCollections;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,14 +22,13 @@ final class PlayerCollectionsController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private EnsurePlayerSystemCollections $ensurePlayerSystemCollections,
+        readonly private PlayerRepository $playerRepository,
     ) {
     }
 
     #[Route(
-        path: [
-            'cs' => '/profil-hrace/{playerId}/kolekce',
-            'en' => '/en/player-profile/{playerId}/collections',
-        ],
+        path: '/en/player-profile/{playerId}/collections',
         name: 'player_collections',
     )]
     public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
@@ -46,6 +47,14 @@ final class PlayerCollectionsController extends AbstractController
         $isOwnProfile = $loggedUserProfile !== null && $loggedUserProfile->playerId === $playerId;
 
         if ($isOwnProfile) {
+            // Ensure system collections exist for the player
+            try {
+                $playerEntity = $this->playerRepository->get($playerId);
+                $this->ensurePlayerSystemCollections->ensureForPlayer($playerEntity);
+            } catch (PlayerNotFound) {
+                // Player not found, skip system collection creation
+            }
+
             // Show all collections for own profile
             $collections = $this->getPlayerCollections->allByPlayer($playerId);
         } else {

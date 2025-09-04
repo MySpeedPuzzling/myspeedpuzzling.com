@@ -25,10 +25,7 @@ final class CollectionDetailController extends AbstractController
     }
 
     #[Route(
-        path: [
-            'cs' => '/kolekce/{collectionId}',
-            'en' => '/en/collection/{collectionId}',
-        ],
+        path: '/en/collection/{collectionId}',
         name: 'collection_detail',
         requirements: ['collectionId' => '.+'],
     )]

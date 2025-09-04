@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\PuzzleCollectionItem;
-use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCollection;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleCollectionItemRepository;
@@ -37,14 +36,61 @@ readonly final class AddPuzzleToCollectionHandler
             $collection = $this->collectionRepository->get($message->collectionId);
         }
 
-        // Check if puzzle already exists in a custom collection
-        if ($collection === null || !$collection->isSystemCollection()) {
-            $existsInCustomCollection = $this->collectionItemRepository->existsInCustomCollection($player, $puzzle);
-            if ($existsInCustomCollection) {
-                throw new PuzzleAlreadyInCollection('Puzzle is already in another collection');
+        // Check if puzzle already exists in any collection
+        $existingItem = $this->collectionItemRepository->findByPlayerAndPuzzle($player, $puzzle);
+
+        if ($existingItem !== null) {
+            // If puzzle is in same collection, just update it
+            if (
+                $existingItem->collection === $collection ||
+                ($existingItem->collection === null && $collection === null)
+            ) {
+                // Update existing item
+                if ($message->comment !== null) {
+                    $existingItem->updateComment($message->comment);
+                }
+                if ($message->price !== null || $message->condition !== null) {
+                    $existingItem->updateForSale($message->price, $message->condition);
+                }
+                $this->entityManager->flush();
+                return;
+            }
+
+            // For custom collections, move the puzzle instead of throwing error
+            if ($collection === null || !$collection->isSystemCollection()) {
+                // Store the old collection name for the warning message
+                $oldCollectionName = $existingItem->collection?->getDisplayName() ?? 'My Collection';
+
+                // Remove from old collection
+                $this->entityManager->remove($existingItem);
+                $this->entityManager->flush();
+
+                // Create new item in new collection
+                $item = new PuzzleCollectionItem(
+                    $message->itemId,
+                    $collection,
+                    $puzzle,
+                    $player,
+                    new DateTimeImmutable(),
+                );
+
+                if ($message->comment !== null) {
+                    $item->updateComment($message->comment);
+                }
+
+                if ($message->price !== null || $message->condition !== null) {
+                    $item->updateForSale($message->price, $message->condition);
+                }
+
+                $this->entityManager->persist($item);
+                $this->entityManager->flush();
+
+                // The controller will handle showing the warning message
+                return;
             }
         }
 
+        // Create new item
         $item = new PuzzleCollectionItem(
             $message->itemId,
             $collection,

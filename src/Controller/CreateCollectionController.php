@@ -28,10 +28,7 @@ final class CreateCollectionController extends AbstractController
     }
 
     #[Route(
-        path: [
-            'cs' => '/nova-kolekce',
-            'en' => '/en/new-collection',
-        ],
+        path: '/en/new-collection',
         name: 'create_collection',
     )]
     public function __invoke(Request $request, #[CurrentUser] UserInterface $user): Response

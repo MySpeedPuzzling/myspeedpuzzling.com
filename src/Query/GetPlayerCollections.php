@@ -35,7 +35,20 @@ SELECT
     c.system_type,
     c.created_at,
     c.updated_at,
-    COUNT(DISTINCT ci.id) AS puzzles_count
+    CASE 
+        WHEN c.system_type = 'completed' THEN 
+            (SELECT COUNT(DISTINCT pst.puzzle_id) 
+             FROM puzzle_solving_time pst 
+             WHERE pst.player_id = :playerIdForCount
+                OR (pst.team IS NOT NULL 
+                    AND EXISTS (
+                        SELECT 1
+                        FROM json_array_elements(pst.team::json -> 'puzzlers') AS player_elem(player)
+                        WHERE player_elem.player ->> 'player_id' = :playerIdForTeam
+                    ))
+            )
+        ELSE COUNT(DISTINCT ci.id)
+    END AS puzzles_count
 FROM puzzle_collection c
 LEFT JOIN puzzle_collection_item ci ON ci.collection_id = c.id
 WHERE c.player_id = :playerId
@@ -65,7 +78,11 @@ SQL;
          *     updated_at: null|string,
          *     puzzles_count: int,
          * }> $rows */
-        $rows = $this->database->fetchAllAssociative($query, ['playerId' => $playerId]);
+        $rows = $this->database->fetchAllAssociative($query, [
+            'playerId' => $playerId,
+            'playerIdForCount' => $playerId,
+            'playerIdForTeam' => $playerId,
+        ]);
 
         return array_map(static fn(array $row): CollectionOverview => CollectionOverview::fromDatabaseRow($row), $rows);
     }
@@ -88,7 +105,20 @@ SELECT
     c.system_type,
     c.created_at,
     c.updated_at,
-    COUNT(DISTINCT ci.id) AS puzzles_count
+    CASE 
+        WHEN c.system_type = 'completed' THEN 
+            (SELECT COUNT(DISTINCT pst.puzzle_id) 
+             FROM puzzle_solving_time pst 
+             WHERE pst.player_id = :playerIdForCount
+                OR (pst.team IS NOT NULL 
+                    AND EXISTS (
+                        SELECT 1
+                        FROM json_array_elements(pst.team::json -> 'puzzlers') AS player_elem(player)
+                        WHERE player_elem.player ->> 'player_id' = :playerIdForTeam
+                    ))
+            )
+        ELSE COUNT(DISTINCT ci.id)
+    END AS puzzles_count
 FROM puzzle_collection c
 LEFT JOIN puzzle_collection_item ci ON ci.collection_id = c.id
 WHERE c.player_id = :playerId AND c.is_public = true
@@ -116,7 +146,11 @@ SQL;
          *     updated_at: null|string,
          *     puzzles_count: int,
          * }> $rows */
-        $rows = $this->database->fetchAllAssociative($query, ['playerId' => $playerId]);
+        $rows = $this->database->fetchAllAssociative($query, [
+            'playerId' => $playerId,
+            'playerIdForCount' => $playerId,
+            'playerIdForTeam' => $playerId,
+        ]);
 
         return array_map(static fn(array $row): CollectionOverview => CollectionOverview::fromDatabaseRow($row), $rows);
     }

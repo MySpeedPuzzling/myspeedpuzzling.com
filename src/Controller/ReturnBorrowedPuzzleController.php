@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Entity\PuzzleCollection;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleBorrowingRepository;
+use SpeedPuzzling\Web\Repository\PuzzleCollectionItemRepository;
+use SpeedPuzzling\Web\Repository\PuzzleCollectionRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -28,6 +33,9 @@ final class ReturnBorrowedPuzzleController extends AbstractController
         readonly private PlayerRepository $playerRepository,
         readonly private PuzzleBorrowingRepository $borrowingRepository,
         readonly private EntityManagerInterface $entityManager,
+        readonly private PuzzleCollectionRepository $collectionRepository,
+        readonly private PuzzleCollectionItemRepository $collectionItemRepository,
+        readonly private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -95,12 +103,59 @@ final class ReturnBorrowedPuzzleController extends AbstractController
             }
         }
 
+        // Store borrowing info before returning (needed for collection cleanup)
+        $wasOwner = $activeBorrowing->owner->id->equals($player->id);
+        $wasBorrower = $activeBorrowing->borrower !== null && $activeBorrowing->borrower->id->equals($player->id);
+        $ownerPlayerId = $activeBorrowing->owner->id->toString();
+        $borrowerPlayerId = $activeBorrowing->borrower?->id->toString();
+
         // Return the puzzle
         $activeBorrowing->returnPuzzle($player);
         $this->entityManager->flush();
 
+        // Remove puzzle from borrowed collections
+        if ($wasOwner && $borrowerPlayerId !== null) {
+            // Remove from owner's borrowed_to collection
+            $this->removePuzzleFromBorrowedCollection(
+                $ownerPlayerId,
+                $puzzleId,
+                PuzzleCollection::SYSTEM_BORROWED_TO
+            );
+        }
+
+        if ($wasBorrower && $borrowerPlayerId !== null) {
+            // Remove from borrower's borrowed_from collection
+            $this->removePuzzleFromBorrowedCollection(
+                $borrowerPlayerId,
+                $puzzleId,
+                PuzzleCollection::SYSTEM_BORROWED_FROM
+            );
+        }
+
         $this->addFlash('success', 'Puzzle borrowing has been returned');
 
         return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+    }
+
+    private function removePuzzleFromBorrowedCollection(string $playerId, string $puzzleId, string $systemType): void
+    {
+        try {
+            $player = $this->playerRepository->get($playerId);
+            $puzzle = $this->puzzleRepository->get($puzzleId);
+            $collection = $this->collectionRepository->findSystemCollection($player, $systemType);
+
+            if ($collection !== null) {
+                $collectionItem = $this->collectionItemRepository->findByCollectionAndPuzzle($collection, $puzzle);
+                if ($collectionItem !== null) {
+                    $this->messageBus->dispatch(new RemovePuzzleFromCollection(
+                        collectionId: $collection->id->toString(),
+                        puzzleId: $puzzleId,
+                        playerId: $playerId,
+                    ));
+                }
+            }
+        } catch (\Exception) {
+            // Ignore errors during collection cleanup - the main borrowing return still succeeded
+        }
     }
 }

@@ -189,7 +189,7 @@ SQL;
     {
         $query = <<<SQL
 SELECT DISTINCT
-    COALESCE(c.system_type, CAST(c.id AS text)) AS collection_key
+    COALESCE(c.system_type, CAST(c.id AS text), 'my_collection') AS collection_key
 FROM puzzle_collection_item ci
 LEFT JOIN puzzle_collection c ON c.id = ci.collection_id
 WHERE ci.player_id = :playerId AND ci.puzzle_id = :puzzleId

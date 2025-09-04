@@ -69,9 +69,7 @@
                     </ul>
                 </div>
                 
-                <div id="collection-dropdown-container">
-                    <!-- Collection dropdown will be loaded here -->
-                </div>
+                {{ render(controller('SpeedPuzzling\\Web\\Controller\\PuzzleCollectionActionsController::__invoke', {puzzleId: puzzle.puzzleId})) }}
             </div>
         </div>
 
@@ -80,8 +78,6 @@
     {% if not puzzle.puzzleApproved %}
         <div class="alert-warning alert small my-1">{{ 'puzzle_waiting_for_approval'|trans }}</div>
     {% endif %}
-
-    {{ render(controller('SpeedPuzzling\\Web\\Controller\\PuzzleCollectionActionsController::__invoke', {puzzleId: puzzle.puzzleId})) }}
 
     {% if offersCount > 0 %}
         <div class="alert alert-info d-flex justify-content-between align-items-center mt-3">

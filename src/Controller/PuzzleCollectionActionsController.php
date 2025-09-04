@@ -107,7 +107,7 @@ final class PuzzleCollectionActionsController extends AbstractController
                 break;
             }
         }
-        
+
         return $this->render('components/_puzzle_collection_actions.html.twig', [
             'puzzle' => $puzzle,
             'userCollections' => $userCollections,

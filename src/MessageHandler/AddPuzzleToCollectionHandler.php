@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use SpeedPuzzling\Web\Entity\PuzzleCollection;
 use SpeedPuzzling\Web\Entity\PuzzleCollectionItem;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -34,6 +35,9 @@ readonly final class AddPuzzleToCollectionHandler
         $collection = null;
         if ($message->collectionId !== null) {
             $collection = $this->collectionRepository->get($message->collectionId);
+        } else {
+            // When no collection ID is provided, use the player's "My Collection" system collection
+            $collection = $this->collectionRepository->findSystemCollection($player, PuzzleCollection::SYSTEM_MY_COLLECTION);
         }
 
         // For system collections, check if already in THIS specific collection

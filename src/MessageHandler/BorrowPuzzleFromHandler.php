@@ -8,12 +8,16 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleBorrowing;
+use SpeedPuzzling\Web\Entity\PuzzleCollection;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFrom;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleBorrowingRepository;
+use SpeedPuzzling\Web\Repository\PuzzleCollectionRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class BorrowPuzzleFromHandler
@@ -23,6 +27,8 @@ readonly final class BorrowPuzzleFromHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private PuzzleBorrowingRepository $borrowingRepository,
+        private PuzzleCollectionRepository $collectionRepository,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -77,5 +83,27 @@ readonly final class BorrowPuzzleFromHandler
 
         $this->entityManager->persist($borrowing);
         $this->entityManager->flush();
+
+        // Add puzzle to borrower's borrowed_from system collection
+        $borrowedFromCollection = $this->collectionRepository->findSystemCollection($borrower, PuzzleCollection::SYSTEM_BORROWED_FROM);
+        if ($borrowedFromCollection !== null) {
+            // Create comment with owner information
+            $ownerInfo = '';
+            if ($owner !== null) {
+                $ownerInfo = sprintf('Borrowed from: %s', $owner->name);
+            } elseif ($nonRegisteredName !== null) {
+                $ownerInfo = sprintf('Borrowed from: %s', $nonRegisteredName);
+            } else {
+                $ownerInfo = 'Borrowed from: Unknown';
+            }
+
+            $this->messageBus->dispatch(new AddPuzzleToCollection(
+                itemId: Uuid::uuid7(),
+                puzzleId: $message->puzzleId,
+                collectionId: $borrowedFromCollection->id->toString(),
+                playerId: $message->borrowerId,
+                comment: $ownerInfo,
+            ));
+        }
     }
 }

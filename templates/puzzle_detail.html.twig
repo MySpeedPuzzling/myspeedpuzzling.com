@@ -65,17 +65,6 @@
                             <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
                         </a>
                     </li>
-                    <li>
-                        {% if puzzle_collections[puzzle.puzzleId] ?? null %}
-                            <a class="dropdown-item text-danger" rel="nofollow" data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}">
-                                <i class="bi-list-check me-1"></i> {{ 'remove_from_collection'|trans }}
-                            </a>
-                        {% else %}
-                            <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}">
-                                <i class="bi-list me-1"></i> {{ 'add_to_collection'|trans }}
-                            </a>
-                        {% endif %}
-                    </li>
                 </ul>
             </div>
         </div>

@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
-use SpeedPuzzling\Web\Query\GetPuzzleCollection;
-use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,27 +15,29 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-final class PlayerCollectionController extends AbstractController
+final class PlayerCollectionsController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
-        readonly private TranslatorInterface $translator,
-        readonly private GetTags $getTags,
-        readonly private GetPuzzleCollection $getPuzzleCollection,
+        readonly private GetPlayerCollections $getPlayerCollections,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
+    /**
+     * @throws PlayerNotFound
+     */
     #[Route(
         path: [
             'cs' => '/kolekce-hrace/{playerId}',
-            'en' => '/en/player-collection/{playerId}',
-            'es' => '/es/coleccion-jugador/{playerId}',
-            'ja' => '/ja/プレイヤーコレクション/{playerId}',
-            'fr' => '/fr/collection-joueur/{playerId}',
-            'de' => '/de/spieler-sammlung/{playerId}',
+            'en' => '/en/player-collections/{playerId}',
+            'es' => '/es/colecciones-jugador/{playerId}',
+            'ja' => '/ja/プレイヤーのコレクション/{playerId}',
+            'fr' => '/fr/collections-joueur/{playerId}',
+            'de' => '/de/spieler-sammlungen/{playerId}',
         ],
-        name: 'player_collection',
+        name: 'player_collections',
     )]
     public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
     {
@@ -49,15 +50,14 @@ final class PlayerCollectionController extends AbstractController
         }
 
         $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
+        $isOwnProfile = $loggedPlayerProfile !== null && $loggedPlayerProfile->playerId === $player->playerId;
 
-        if ($player->isPrivate && $loggedPlayerProfile?->playerId !== $player->playerId) {
-            return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
-        }
+        $collections = $this->getPlayerCollections->byPlayerId($player->playerId, $isOwnProfile);
 
-        return $this->render('player_collection.html.twig', [
+        return $this->render('collections/list.html.twig', [
+            'collections' => $collections,
             'player' => $player,
-            'tags' => $this->getTags->allGroupedPerPuzzle(),
-            'puzzle_collections' => $this->getPuzzleCollection->forPlayer($player->playerId),
+            'isOwnProfile' => $isOwnProfile,
         ]);
     }
 }

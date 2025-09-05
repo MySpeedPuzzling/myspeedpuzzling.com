@@ -1,0 +1,103 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'collections.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h2>
+        {% if isOwnProfile %}
+            <a href="{{ path('create_collection') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}
+            </a>
+        {% endif %}
+    </div>
+
+    {% if collections|length > 0 %}
+        <div class="row">
+            {% for collection in collections %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="card-title mb-0">{{ collection.name }}</h5>
+                                {% if isOwnProfile %}
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_collection', {'collectionId': collection.collectionId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ collection.collectionId }}">
+                                                    <i class="bi bi-trash me-1"></i>{{ 'collections.delete.button'|trans }}
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if collection.description %}
+                                <p class="card-text text-muted mb-2">{{ collection.description }}</p>
+                            {% endif %}
+                            
+                            <div class="d-flex justify-content-between align-items-center text-muted small">
+                                <span>
+                                    <i class="bi bi-{{ collection.visibility == constant('SpeedPuzzling\\Web\\Value\\CollectionVisibility::Public') ? 'globe' : 'lock' }} me-1"></i>
+                                    {{ ('collections.visibility.' ~ collection.visibility.value)|trans }}
+                                </span>
+                                <span>{{ collection.createdAt|date('j.n.Y') }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-collection display-1 text-muted"></i>
+            </div>
+            {% if isOwnProfile %}
+                <h3 class="text-muted">{{ 'collections.empty.title'|trans }}</h3>
+                <p class="text-muted">{{ 'collections.empty.message'|trans }}</p>
+                <a href="{{ path('create_collection') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}
+                </a>
+            {% else %}
+                <h3 class="text-muted">{{ 'collections.empty.title_other'|trans }}</h3>
+                <p class="text-muted">{{ 'collections.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if isOwnProfile %}
+        {% for collection in collections %}
+            <!-- Delete Confirmation Modal for {{ collection.name }} -->
+            <div class="modal fade" tabindex="-1" role="dialog" id="deleteModal{{ collection.collectionId }}">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ 'collections.delete.confirm.title'|trans }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="fs-sm">{{ 'collections.delete.confirm.message'|trans({'%name%': collection.name}) }}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                            <a data-turbo-prefetch="false" href="{{ path('delete_collection', {'collectionId': collection.collectionId}) }}" class="btn btn-danger btn-sm">{{ 'collections.delete.confirm.button'|trans }}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

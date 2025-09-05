@@ -252,6 +252,11 @@
                                     <li><hr class="dropdown-divider"></li>
 
                                     <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_collections' %}active{% endif %}" href="{{ path('player_collections', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collections'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
                                             <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
                                         </a>

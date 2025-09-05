@@ -19,6 +19,7 @@ menu:
     edit_profile: "Edit profile"
     change_player_code: "Change player code"
     profile: "Profile"
+    collections: "Collections"
     events: "Events"
 
 footer:
@@ -734,4 +735,47 @@ blog:
             <p>I skipped some unnecessary details—like how I switched DNS to a CloudFlare proxy within five minutes in the meantime and set up a Node.js worker to display a message about the outage—just so there wouldn’t be a blank page…</p>
             <p>For now, I’m putting the mail server work aside, and I know it will be “off to the side,” on a separate server, away from MSP. On the one hand, it was interesting to test our “disaster recovery” process—at one point I was so desperate that I was ready to let this server burn in hell, spin everything up on a new one, and just update the DNS records… Luckily, that proved unnecessary in the end.</p>
             <p>PS. It really did break "on its own", thanks to the mail server, after a week without any human intervention… That’s quite something…</p>
-            <p>PS2. You’re brave if you’ve read all the way through :-).</p>
+            <p>PS2. You're brave if you've read all the way through :-).</p>
+
+collections:
+    meta:
+        title: "My Collections"
+    title: "Collections"
+    title_other: "Collections of %name%"
+    create:
+        button: "Create Collection"
+        title: "Create New Collection"
+        meta:
+            title: "Create Collection"
+        submit: "Create"
+    edit:
+        button: "Edit"
+        title: "Edit Collection %name%"
+        meta:
+            title: "Edit Collection %name%"
+        submit: "Save Changes"
+    delete:
+        button: "Delete"
+        confirm:
+            title: "Delete Collection"
+            message: "Do you really want to delete the collection %name%? This action is irreversible and will also delete all puzzles in this collection."
+            button: "Delete Collection"
+    form:
+        name: "Name"
+        description: "Description"
+        visibility: "Visibility"
+        visibility_public: "Public"
+        visibility_private: "Private"
+        visibility_help: "Public collections are visible to all users, private collections only to you."
+    flash:
+        created: "Collection was successfully created."
+        updated: "Collection was successfully updated."
+        deleted: "Collection was successfully deleted."
+    empty:
+        title: "You don't have any collections"
+        message: "Create your first collection and start organizing your favorite puzzles."
+        title_other: "No public collections"
+        message_other: "%name% doesn't have any public collections."
+    visibility:
+        public: "Public"
+        private: "Private"

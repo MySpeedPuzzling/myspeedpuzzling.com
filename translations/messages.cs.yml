@@ -19,6 +19,7 @@ menu:
     edit_profile: "Upravit profil"
     change_player_code: "Změnit kód hráče"
     profile: "Profil"
+    collections: "Kolekce"
     events: "Eventy"
 
 footer:
@@ -737,3 +738,46 @@ blog:
             <p>Práci na Mail serveru zatím odkládám a navíc už vím, že bude "bokem", na samostatném serveru mimo MSP. Na jednu stranu bylo zábavné, vyzkoušet si "disaster recovery" proces - kdy v jedné chvíli jsem byl natolik zoufalý, že sem byl připraven na to, že tento server shoří v pekle, rozjedu to během chvilky na novém a jen změním DNS záznamy... naštěstí to nakonec nebylo potřeba.</p>
             <p>PS. ono se to opravdu rozbilo "samo" vlivem mail serveru, po týdnu, bez lidského zásahu... to je teda něco...</p>
             <p>PS2. jste stateční, pokud jste to dočetli až sem :-).</p>
+
+collections:
+    meta:
+        title: "Moje kolekce"
+    title: "Kolekce"
+    title_other: "Kolekce hráče %name%"
+    create:
+        button: "Vytvořit kolekci"
+        title: "Vytvořit novou kolekci"
+        meta:
+            title: "Vytvořit kolekci"
+        submit: "Vytvořit"
+    edit:
+        button: "Upravit"
+        title: "Upravit kolekci %name%"
+        meta:
+            title: "Upravit kolekci %name%"
+        submit: "Uložit změny"
+    delete:
+        button: "Smazat"
+        confirm:
+            title: "Smazat kolekci"
+            message: "Opravdu chcete smazat kolekci %name%? Tato akce je nevratná a smaže se také všechny puzzle v této kolekci."
+            button: "Smazat kolekci"
+    form:
+        name: "Název"
+        description: "Popis"
+        visibility: "Viditelnost"
+        visibility_public: "Veřejná"
+        visibility_private: "Soukromá"
+        visibility_help: "Veřejné kolekce jsou viditelné pro všechny uživatele, soukromé pouze pro vás."
+    flash:
+        created: "Kolekce byla úspěšně vytvořena."
+        updated: "Kolekce byla úspěšně upravena."
+        deleted: "Kolekce byla úspěšně smazána."
+    empty:
+        title: "Nemáte žádné kolekce"
+        message: "Vytvořte svoji první kolekci a začněte organizovat vaše oblíbené puzzle."
+        title_other: "Žádné veřejné kolekce"
+        message_other: "%name% nemá žádné veřejné kolekce."
+    visibility:
+        public: "Veřejná"
+        private: "Soukromá"

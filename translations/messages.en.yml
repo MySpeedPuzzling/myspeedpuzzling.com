@@ -196,6 +196,7 @@ forms:
     drop_file: "Drag and drop a file here to upload"
     choose_file: "Or select a file"
     save: "Save"
+    cancel: "Cancel"
     required_field: "This field is required!"
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
     too_high_ppm: "Please check the time you entered, there is no way you can solve the puzzle that fast! :-) The time should be entered in HH:MM:SS format. The time you entered would be a new world record! :-)"
@@ -246,6 +247,13 @@ forms:
     global_search_placeholder: "Search puzzle or player..."
     private_profile: "Private profile"
     private_profile_help: "Your name will not be displayed anywhere and times will be presented anonymously."
+    add_puzzle_to_collection:
+        collection: "Collection"
+        comment: "Comment"
+        comment_placeholder: "Optional comment about this puzzle..."
+        submit: "Add to Collection"
+        puzzle_collection: "Puzzle Collection (Default)"
+        choose_collection: "- Choose collection -"
 
 puzzlers_comparison:
     meta:
@@ -426,6 +434,8 @@ flashes:
     non_unique_player_code: "We're sorry, but it seems this code is already taken. Please choose another one."
     unknown_error: "We're sorry, but something went wrong - we've been notified and will try to fix it as soon as possible. Please try again later."
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."
+    puzzle_added_to_collection: "Puzzle has been added to your collection."
+    puzzle_removed_from_collection: "Puzzle has been removed from the collection."
 
 hub:
     title: "Hub"
@@ -737,6 +747,9 @@ blog:
             <p>PS. It really did break "on its own", thanks to the mail server, after a week without any human intervention… That’s quite something…</p>
             <p>PS2. You're brave if you've read all the way through :-).</p>
 
+navigation:
+    home: "Home"
+
 collections:
     meta:
         title: "My Collections"
@@ -771,6 +784,7 @@ collections:
         created: "Collection was successfully created."
         updated: "Collection was successfully updated."
         deleted: "Collection was successfully deleted."
+        system_updated: "Puzzle collection visibility was successfully updated."
     empty:
         title: "You don't have any collections"
         message: "Create your first collection and start organizing your favorite puzzles."
@@ -779,3 +793,27 @@ collections:
     visibility:
         public: "Public"
         private: "Private"
+    public: "Public"
+    private: "Private"
+    system_name: "Puzzle Collection"
+    add_to_collection: "Add to Collection"
+    add_puzzle: "Add Puzzle to Collection"
+    remove_from: "Remove from %collection%"
+    remove: "Remove"
+    confirm_remove: "Are you sure you want to remove this puzzle from the collection?"
+    items_count: "%count% puzzles"
+    no_puzzles: "No puzzles in this collection"
+    no_puzzles_description: "This collection is empty. Add some puzzles to get started!"
+    added_on: "Added on %date%"
+    back_to_collections: "Back to Collections"
+    select_collection_help: "Choose a collection or leave empty to add to your default Puzzle Collection"
+    comment_help: "Optional comment about this puzzle (max 500 characters)"
+    private_collection: "Private Collection"
+    private_collection_message: "The collection \"%collection%\" by %player% is private and cannot be viewed."
+    collection_not_found: "Collection not found"
+    edit_system:
+        title: "Edit Puzzle Collection"
+        meta:
+            title: "Edit Puzzle Collection"
+        submit: "Save Changes"
+        info: "You can only change the visibility of your Puzzle Collection. Name and description cannot be modified."

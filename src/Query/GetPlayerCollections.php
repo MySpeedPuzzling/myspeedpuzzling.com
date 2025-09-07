@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -24,7 +23,7 @@ readonly final class GetPlayerCollections
         $visibilityCondition = $includePrivate ? '' : "AND visibility = 'public'";
 
         $query = <<<SQL
-SELECT id, name, description, visibility, created_at
+SELECT id, name, description, visibility, created_at, player_id
 FROM collection
 WHERE player_id = :playerId {$visibilityCondition}
 ORDER BY created_at DESC
@@ -43,15 +42,16 @@ SQL;
              *     description: string|null,
              *     visibility: string,
              *     created_at: string,
+             *     player_id: string,
              * } $row
              */
 
             return new CollectionOverview(
+                playerId: $row['player_id'],
                 collectionId: $row['id'],
                 name: $row['name'],
                 description: $row['description'],
                 visibility: CollectionVisibility::from($row['visibility']),
-                createdAt: new DateTimeImmutable($row['created_at']),
             );
         }, $data);
     }

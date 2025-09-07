@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'collections.add_puzzle'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h4 class="card-title mb-0">{{ 'collections.add_puzzle'|trans }}</h4>
+                </div>
+                
+                <div class="card-body">
+                    {{ form_start(form) }}
+                    
+                    <div class="mb-3">
+                        {{ form_label(form.collectionId) }}
+                        {{ form_widget(form.collectionId) }}
+                        {{ form_errors(form.collectionId) }}
+                        <div class="form-text">{{ 'collections.select_collection_help'|trans }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form_label(form.comment) }}
+                        {{ form_widget(form.comment) }}
+                        {{ form_errors(form.comment) }}
+                        <div class="form-text">{{ 'collections.comment_help'|trans }}</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzleId}) }}" class="btn btn-secondary">
+                            {{ 'forms.cancel'|trans }}
+                        </a>
+                        
+                        {{ form_widget(form.submit) }}
+                    </div>
+                    
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

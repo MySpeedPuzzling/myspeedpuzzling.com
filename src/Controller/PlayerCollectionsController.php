@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Query\GetPlayerCollections;
+use SpeedPuzzling\Web\Query\GetPlayerCollectionsWithCounts;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Results\CollectionOverviewWithCount;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,7 +22,7 @@ final class PlayerCollectionsController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
-        readonly private GetPlayerCollections $getPlayerCollections,
+        readonly private GetPlayerCollectionsWithCounts $getPlayerCollectionsWithCounts,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
     ) {
@@ -52,7 +55,20 @@ final class PlayerCollectionsController extends AbstractController
         $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $isOwnProfile = $loggedPlayerProfile !== null && $loggedPlayerProfile->playerId === $player->playerId;
 
-        $collections = $this->getPlayerCollections->byPlayerId($player->playerId, $isOwnProfile);
+        $collections = $this->getPlayerCollectionsWithCounts->byPlayerId($player->playerId, $isOwnProfile);
+        $systemCollectionPuzzleCount = $this->getPlayerCollectionsWithCounts->countSystemCollection($player->playerId);
+
+        if ($player->puzzleCollectionVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
+            array_unshift($collections, new CollectionOverviewWithCount(
+                collectionId: null,
+                name: $this->translator->trans('collections.system_name'),
+                description: null,
+                visibility: $player->puzzleCollectionVisibility,
+                createdAt: new DateTimeImmutable(),
+                itemCount: $systemCollectionPuzzleCount,
+                isSystemCollection: true,
+            ));
+        }
 
         return $this->render('collections/list.html.twig', [
             'collections' => $collections,

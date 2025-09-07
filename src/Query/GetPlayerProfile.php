@@ -49,6 +49,7 @@ SELECT
     locale,
     is_admin,
     is_private,
+    puzzle_collection_visibility,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id
@@ -95,6 +96,7 @@ SELECT
     locale,
     is_admin,
     is_private,
+    puzzle_collection_visibility,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id

@@ -198,6 +198,7 @@ forms:
     drop_file: "Přetáhněte sem soubor pro nahrání"
     choose_file: "Nebo vyberte soubor"
     save: "Uložit"
+    cancel: "Zrušit"
     required_field: "Toto pole je povinné!"
     empty_group_error: "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
     too_high_ppm: "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
@@ -248,6 +249,13 @@ forms:
     global_search_placeholder: "Hledat puzzle nebo hráče..."
     private_profile: "Skrytý profil"
     private_profile_help: "Vaše jméno nebude nikde uvedeno a časy budou prezentovány jako anonymní."
+    add_puzzle_to_collection:
+        collection: "Kolekce"
+        comment: "Komentář"
+        comment_placeholder: "Volitelný komentář k tomuto puzzle..."
+        submit: "Přidat do kolekce"
+        puzzle_collection: "Puzzle kolekce (Výchozí)"
+        choose_collection: "- Vyberte kolekci -"
 
 puzzlers_comparison:
     meta:
@@ -426,6 +434,8 @@ flashes:
     non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
     exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
+    puzzle_added_to_collection: "Puzzle bylo přidáno do vaší kolekce."
+    puzzle_removed_from_collection: "Puzzle bylo odebráno z kolekce."
 
 hub:
     title: "Hub"
@@ -739,6 +749,9 @@ blog:
             <p>PS. ono se to opravdu rozbilo "samo" vlivem mail serveru, po týdnu, bez lidského zásahu... to je teda něco...</p>
             <p>PS2. jste stateční, pokud jste to dočetli až sem :-).</p>
 
+navigation:
+    home: "Domů"
+
 collections:
     meta:
         title: "Moje kolekce"
@@ -773,6 +786,7 @@ collections:
         created: "Kolekce byla úspěšně vytvořena."
         updated: "Kolekce byla úspěšně upravena."
         deleted: "Kolekce byla úspěšně smazána."
+        system_updated: "Viditelnost puzzle kolekce byla úspěšně upravena."
     empty:
         title: "Nemáte žádné kolekce"
         message: "Vytvořte svoji první kolekci a začněte organizovat vaše oblíbené puzzle."
@@ -781,3 +795,26 @@ collections:
     visibility:
         public: "Veřejná"
         private: "Soukromá"
+    public: "Veřejná"
+    private: "Soukromá"
+    system_name: "Puzzle kolekce"
+    add_to_collection: "Přidat do kolekce"
+    add_puzzle: "Přidat puzzle do kolekce"
+    remove_from: "Odebrat z %collection%"
+    remove: "Odebrat"
+    confirm_remove: "Opravdu chcete odebrat toto puzzle z kolekce?"
+    items_count: "%count% puzzlí"
+    no_puzzles: "V této kolekci nejsou žádná puzzle"
+    no_puzzles_description: "Tato kolekce je prázdná. Přidejte nějaká puzzle pro začátek!"
+    added_on: "Přidáno %date%"
+    back_to_collections: "Zpět na kolekce"
+    select_collection_help: "Vyberte kolekci nebo nechte prázdné pro přidání do výchozí Puzzle kolekce"
+    comment_help: "Volitelný komentář k tomuto puzzle (maximálně 500 znaků)"
+    private_collection: "Soukromá kolekce"
+    private_collection_message: "Kolekce \"%collection%\" hráče %player% je soukromá a nelze ji zobrazit."
+    collection_not_found: "Kolekce nenalezena"
+    edit_system:
+        title: "Upravit puzzle kolekci"
+        meta:
+            title: "Upravit puzzle kolekci"
+        submit: "Uložit změny"

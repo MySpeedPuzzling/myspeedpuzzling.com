@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +25,8 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
+        readonly private GetPuzzleCollections $getPuzzleCollections,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -62,11 +66,18 @@ final class PuzzleDetailController extends AbstractController
             $user?->getUserIdentifier()
         );
 
+        $puzzleCollections = [];
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        if ($loggedPlayer !== null) {
+            $puzzleCollections = $this->getPuzzleCollections->byPlayerAndPuzzle($loggedPlayer->playerId, $puzzleId);
+        }
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'tags' => $this->getTags->forPuzzle($puzzleId),
+            'puzzle_collections' => $puzzleCollections,
+            'logged_player' => $loggedPlayer,
         ]);
     }
 }

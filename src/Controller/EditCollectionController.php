@@ -63,11 +63,11 @@ final class EditCollectionController extends AbstractController
         }
 
         $collectionOverview = new CollectionOverview(
+            playerId: $collection->player->id->toString(),
             collectionId: $collection->id->toString(),
             name: $collection->name,
             description: $collection->description,
             visibility: $collection->visibility,
-            createdAt: $collection->createdAt,
         );
 
         $formData = CollectionFormData::fromCollectionOverview($collectionOverview);

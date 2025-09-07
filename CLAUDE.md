@@ -91,3 +91,4 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - When renaming database tables (in doctrine migrations), always make sure to go through the raw SQL Queries (in directory `src/Query/`) and if the table was renamed, update the queries.
 - Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely
 - **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.
+- Always use Uuid::uuid7() to create new id.

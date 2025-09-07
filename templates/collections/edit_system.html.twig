@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'collections.create.meta.title'|trans }}{% endblock %}
+{% block title %}{{ 'collections.edit_system.meta.title'|trans }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
@@ -9,19 +9,11 @@
         <div class="col-md-8 col-lg-6">
             <div class="card shadow-lg">
                 <div class="card-header">
-                    <h3 class="mb-0">{{ 'collections.create.title'|trans }}</h3>
+                    <h3 class="mb-0">{{ 'collections.edit_system.title'|trans }}</h3>
                 </div>
                 <div class="card-body">
                     {{ form_start(form) }}
-                    
-                    <div class="mb-3">
-                        {{ form_row(form.name) }}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form_row(form.description) }}
-                    </div>
-                    
+
                     <div class="mb-4">
                         {{ form_row(form.visibility) }}
                         <small class="form-text text-muted">
@@ -34,7 +26,7 @@
                             {{ 'forms.cancel'|trans }}
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-lg me-1"></i>{{ 'collections.create.submit'|trans }}
+                            <i class="bi bi-check-lg me-1"></i>{{ 'collections.edit_system.submit'|trans }}
                         </button>
                     </div>
                     

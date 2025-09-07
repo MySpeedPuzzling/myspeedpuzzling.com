@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\MessageHandler;
+
+use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
+use SpeedPuzzling\Web\Repository\CollectionItemRepository;
+use SpeedPuzzling\Web\Repository\CollectionRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+readonly final class RemovePuzzleFromCollectionHandler
+{
+    public function __construct(
+        private CollectionItemRepository $collectionItemRepository,
+        private CollectionRepository $collectionRepository,
+        private PlayerRepository $playerRepository,
+        private PuzzleRepository $puzzleRepository,
+    ) {
+    }
+
+    /**
+     * @throws CollectionNotFound
+     * @throws PlayerNotFound
+     * @throws PuzzleNotFound
+     */
+    public function __invoke(RemovePuzzleFromCollection $message): void
+    {
+        $player = $this->playerRepository->get($message->playerId);
+        $puzzle = $this->puzzleRepository->get($message->puzzleId);
+
+        $collection = null;
+        if ($message->collectionId !== null) {
+            $collection = $this->collectionRepository->get($message->collectionId);
+        }
+
+        $existingItem = $this->collectionItemRepository->findByCollectionPlayerAndPuzzle($collection, $player, $puzzle);
+
+        if ($existingItem !== null) {
+            $this->collectionItemRepository->delete($existingItem);
+        }
+    }
+}

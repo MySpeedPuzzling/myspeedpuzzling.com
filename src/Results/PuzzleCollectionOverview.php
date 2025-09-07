@@ -6,13 +6,12 @@ namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 
-readonly final class CollectionOverview
+readonly final class PuzzleCollectionOverview
 {
     public function __construct(
-        public string $playerId,
+        public string $collectionItemId,
         public null|string $collectionId,
-        public string $name,
-        public null|string $description,
+        public string $collectionName,
         public CollectionVisibility $visibility,
     ) {
     }

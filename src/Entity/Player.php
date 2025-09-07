@@ -14,6 +14,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
 use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
+use SpeedPuzzling\Web\Value\CollectionVisibility;
 
 #[Entity]
 class Player
@@ -68,6 +69,10 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|string $locale = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: CollectionVisibility::class, options: ['default' => 'private'])]
+    public CollectionVisibility $puzzleCollectionVisibility = CollectionVisibility::Private;
 
     public function __construct(
         #[Id]
@@ -168,5 +173,10 @@ class Player
     public function changeProfileVisibility(bool $isPrivate): void
     {
         $this->isPrivate = $isPrivate;
+    }
+
+    public function changePuzzleCollectionVisibility(CollectionVisibility $visibility): void
+    {
+        $this->puzzleCollectionVisibility = $visibility;
     }
 }

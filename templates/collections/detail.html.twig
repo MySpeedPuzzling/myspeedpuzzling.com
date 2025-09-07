@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ collection.name }} - {{ player.playerName }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-1">{{ collection.name }}</h1>
+            <p class="text-muted mb-0">
+                {{ player.playerName ?? player.code }}
+                • {{ 'collections.items_count'|trans({'%count%': items|length}) }}
+            </p>
+        </div>
+        
+        <div class="d-flex align-items-center">
+            {% if collection.visibility.value == 'private' %}
+                <span class="badge bg-secondary me-2">
+                    <i class="ci-locked me-1"></i> {{ 'collections.private'|trans }}
+                </span>
+            {% else %}
+                <span class="badge bg-success me-2">
+                    <i class="ci-eye me-1"></i> {{ 'collections.public'|trans }}
+                </span>
+            {% endif %}
+
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                {% if collection.collectionId %}
+                    <a href="{{ path('edit_collection', {collectionId: collection.collectionId}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
+                    </a>
+                {% else %}
+                    <a href="{{ path('edit_system_collection', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
+                    </a>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    {% if collection and collection.description %}
+        <p class="small">
+            {{ collection.description|nl2br }}
+        </p>
+    {% endif %}
+
+    {% if items is empty %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="ci-package fs-1 text-muted"></i>
+            </div>
+            <h4 class="text-muted">{{ 'collections.no_puzzles'|trans }}</h4>
+            <p class="text-muted">{{ 'collections.no_puzzles_description'|trans }}</p>
+        </div>
+    {% else %}
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
+            {% for item in items %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        {% if item.image %}
+                            <div class="card-img-top position-relative overflow-hidden" style="height: 200px;">
+                                <img src="{{ item.image|imagine_filter('puzzle_small') }}"
+                                     alt="{{ item.puzzleName }}" 
+                                     class="position-absolute top-50 start-50 translate-middle"
+                                     style="max-width: 100%; max-height: 100%; object-fit: cover;">
+                            </div>
+                        {% endif %}
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title fs-6 mb-2">
+                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}" class="text-decoration-none">
+                                    {{ item.puzzleName }}
+                                </a>
+                            </h5>
+                            
+                            <div class="text-muted small mb-2">
+                                {{ 'pieces_count'|trans({ '%count%': item.piecesCount })|raw }}
+                                {% if item.manufacturerName %}
+                                    <br>{{ item.manufacturerName }}
+                                {% endif %}
+                            </div>
+                            
+                            {% if item.comment %}
+                                <div class="small text-muted mb-2">
+                                    <em>{{ item.comment }}</em>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mt-auto">
+                                <small class="text-muted">
+                                    {{ 'collections.added_on'|trans({'%date%': item.addedAt|format_datetime('medium', 'none')}) }}
+                                </small>
+                                
+                                {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                                    <div class="mt-2">
+                                        <form method="post" action="{{ path('remove_puzzle_from_collection', {puzzleId: item.puzzleId}) }}" class="d-inline">
+                                            <input type="hidden" name="collectionId" value="{{ collection.collectionId ?: '' }}">
+                                            <input type="hidden" name="returnUrl" value="{{ app.request.requestUri }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('{{ 'collections.confirm_remove'|trans }}')">
+                                                <i class="ci-trash me-1"></i> {{ 'collections.remove'|trans }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
+        </a>
+    </div>
+{% endblock %}

@@ -24,24 +24,19 @@ class Collection
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Player $player,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 100)]
         public string $name,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::TEXT, nullable: true)]
         public null|string $description,
-
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::STRING, enumType: CollectionVisibility::class)]
         public CollectionVisibility $visibility,
-
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,

@@ -1,0 +1,26 @@
+<div {{ attributes }}>
+    {{ form_start(form, {
+        'attr': {
+            'data-action': 'live#action:prevent',
+            'data-live-action-param': 'save'
+        }
+    }) }}
+        
+        <div class="mb-3">
+            {{ form_row(form.name) }}
+        </div>
+        
+        <div class="mb-3">
+            {{ form_row(form.description) }}
+        </div>
+        
+        <div class="mb-3">
+            {{ form_row(form.visibility) }}
+        </div>
+        
+        <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+            {{ 'collections.form.create'|trans }}
+        </button>
+
+    {{ form_end(form, {'render_rest': false}) }}
+</div>

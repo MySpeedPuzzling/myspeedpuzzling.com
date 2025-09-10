@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\AddPuzzleToCollectionFormData;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -21,17 +20,16 @@ final class AddPuzzleToCollectionFormType extends AbstractType
     {
         $collections = $options['collections'] ?? [];
 
-        $builder
-            ->add('collectionId', ChoiceType::class, [
+        $builder->add('collectionId', ChoiceType::class, [
                 'label' => 'forms.add_puzzle_to_collection.collection',
                 'choices' => $collections,
-                'placeholder' => 'forms.add_puzzle_to_collection.choose_collection',
-                'required' => false,
+                'required' => true,
                 'attr' => [
                     'class' => 'form-select',
                 ],
-            ])
-            ->add('comment', TextareaType::class, [
+            ]);
+
+        $builder->add('comment', TextareaType::class, [
                 'label' => 'forms.add_puzzle_to_collection.comment',
                 'required' => false,
                 'attr' => [
@@ -39,12 +37,6 @@ final class AddPuzzleToCollectionFormType extends AbstractType
                     'rows' => 3,
                     'maxlength' => 500,
                     'placeholder' => 'forms.add_puzzle_to_collection.comment_placeholder',
-                ],
-            ])
-            ->add('submit', SubmitType::class, [
-                'label' => 'forms.add_puzzle_to_collection.submit',
-                'attr' => [
-                    'class' => 'btn btn-primary',
                 ],
             ]);
     }

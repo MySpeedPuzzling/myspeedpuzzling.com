@@ -1,0 +1,48 @@
+<div {{ attributes }}>
+    <div class="mb-3">
+        <twig:CreateCollectionForm />
+    </div>
+
+    {{ form_start(form, {
+        'attr': {
+            'data-action': 'live#action:prevent',
+            'data-live-action-param': 'save'
+        }
+    }) }}
+        
+        <div class="mb-3">
+            {{ form_label(form.collectionId) }}
+            {{ form_widget(form.collectionId, {
+                'attr': {
+                    'class': 'form-select',
+                }
+            }) }}
+            {{ form_errors(form.collectionId) }}
+        </div>
+        
+        <div class="mb-3">
+            {{ form_label(form.comment) }}
+            {{ form_widget(form.comment, {
+                'attr': {
+                    'class': 'form-control',
+                    'rows': 3,
+                    'maxlength': 500,
+                    'placeholder': 'forms.add_puzzle_to_collection.comment_placeholder'|trans,
+                }
+            }) }}
+            <div class="form-text">{{ 'collections.comment_help'|trans }}</div>
+            {{ form_errors(form.comment) }}
+        </div>
+        
+        <div class="d-flex justify-content-between">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+            
+            <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+                {{ 'forms.add_puzzle_to_collection.submit'|trans }}
+            </button>
+        </div>
+        
+    {{ form_end(form, {'render_rest': false}) }}
+</div>

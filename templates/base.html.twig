@@ -106,7 +106,7 @@
         </script>
         {% endblock %}
     </head>
-    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search">
+    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search toast">
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
                 <div class="container">
@@ -619,5 +619,8 @@
         </div>
 
         <div class="global-search-overlay" data-global-search-target="overlay"></div>
+        
+        <!-- Toast Container -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" data-toast-target="container" style="z-index: 1060;"></div>
     </body>
 </html>

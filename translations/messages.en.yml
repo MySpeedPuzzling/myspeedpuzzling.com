@@ -434,7 +434,6 @@ flashes:
     non_unique_player_code: "We're sorry, but it seems this code is already taken. Please choose another one."
     unknown_error: "We're sorry, but something went wrong - we've been notified and will try to fix it as soon as possible. Please try again later."
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."
-    puzzle_added_to_collection: "Puzzle has been added to your collection."
     puzzle_removed_from_collection: "Puzzle has been removed from the collection."
 
 hub:

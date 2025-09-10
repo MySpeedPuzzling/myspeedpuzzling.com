@@ -434,7 +434,6 @@ flashes:
     non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
     exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
-    puzzle_added_to_collection: "Puzzle bylo přidáno do vaší kolekce."
     puzzle_removed_from_collection: "Puzzle bylo odebráno z kolekce."
 
 hub:

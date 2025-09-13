@@ -6,11 +6,11 @@ namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\FormData\AddPuzzleToCollectionFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleToCollectionFormType;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
+use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
-use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,8 +44,6 @@ final class AddPuzzleToCollectionForm extends AbstractController
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private CollectionItemRepository $collectionItemRepository,
-        readonly private PlayerRepository $playerRepository,
-        readonly private PuzzleRepository $puzzleRepository,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
@@ -81,8 +79,6 @@ final class AddPuzzleToCollectionForm extends AbstractController
     #[LiveAction]
     public function save(): void
     {
-        $this->submitForm();
-
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($player === null) {
@@ -94,13 +90,42 @@ final class AddPuzzleToCollectionForm extends AbstractController
             return;
         }
 
+        $this->submitForm();
+
         /** @var AddPuzzleToCollectionFormData $formData */
         $formData = $this->getForm()->getData();
+
+        $collectionId = $formData->collection;
+
+        // Convert system collection placeholder back to null
+        if ($collectionId === '__system_collection__') {
+            $collectionId = null;
+        }
+
+        // Check if we need to create a new collection
+        if ($collectionId !== null && Uuid::isValid($collectionId) === false) {
+            // TODO: check if collection with that name exists use that instead of creating duplicate
+
+            // Generate new UUID for the collection
+            $newCollectionId = Uuid::uuid7()->toString();
+
+            // Create the collection first
+            $this->messageBus->dispatch(new CreateCollection(
+                collectionId: $newCollectionId,
+                playerId: $player->playerId,
+                name: $collectionId,
+                description: $formData->collectionDescription,
+                visibility: $formData->collectionVisibility,
+            ));
+
+            // Use the new collection ID for adding the puzzle
+            $collectionId = $newCollectionId;
+        }
 
         $this->messageBus->dispatch(new AddPuzzleToCollection(
             playerId: $player->playerId,
             puzzleId: $this->puzzleId,
-            collectionId: $formData->collectionId,
+            collectionId: $collectionId,
             comment: $formData->comment,
         ));
 
@@ -114,14 +139,17 @@ final class AddPuzzleToCollectionForm extends AbstractController
         ]);
 
         $this->dispatchBrowserEvent('modal:close');
+
+        // Emit event to refresh parent component
         $this->emit('puzzle:addedToCollection', [
             'puzzleId' => $this->puzzleId,
         ]);
+
+        $this->resetForm();
     }
 
-    #[LiveListener('collection:created')]
-    #[LiveListener('puzzle:addedToCollection')]
-    public function onCollectionCreated(): void
+    #[LiveListener('puzzle:removedFromCollection')]
+    public function onCollectionChanged(): void
     {
         // Clear cached collections to force refresh
         $this->availableCollections = null;
@@ -159,7 +187,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
         if (in_array(null, $existingCollectionIds, true) === false) {
             $availableCollections[] = new CollectionOverview(
                 playerId: $player->playerId,
-                collectionId: null,
+                collectionId: '__system_collection__',
                 name: $this->translator->trans('collections.system_name'),
                 description: null,
                 visibility: $player->puzzleCollectionVisibility,

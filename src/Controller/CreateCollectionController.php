@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\CollectionFormData;
 use SpeedPuzzling\Web\FormType\CollectionFormType;
@@ -62,6 +63,7 @@ final class CreateCollectionController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->messageBus->dispatch(
                 new CreateCollection(
+                    collectionId: Uuid::uuid7()->toString(),
                     playerId: $playerEntity->id->toString(),
                     name: $formData->name ?? '',
                     description: $formData->description,

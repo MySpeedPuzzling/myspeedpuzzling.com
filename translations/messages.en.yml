@@ -249,6 +249,7 @@ forms:
     private_profile_help: "Your name will not be displayed anywhere and times will be presented anonymously."
     add_puzzle_to_collection:
         collection: "Collection"
+        collection_help: "Choose existing collection or add the new collection name."
         comment: "Comment"
         comment_placeholder: "Optional comment about this puzzle..."
         submit: "Add to Collection"

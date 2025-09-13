@@ -50,7 +50,8 @@
             </div>
 
             {{ component('PuzzleActionsDropdown', {
-                puzzleId: puzzle.puzzleId
+                puzzleId: puzzle.puzzleId,
+                key: 'puzzle-actions-' ~ puzzle.puzzleId
             }) }}
         </div>
 

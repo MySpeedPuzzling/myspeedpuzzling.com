@@ -37,27 +37,20 @@
                     }) }}
                 </li>
             {% endfor %}
-
-            <li>
-                {% for ids in this.collectionIds %}
-                    {{ ids }}
-                {% endfor %}
-            </li>
         {% endif %}
     </ul>
 
     {% if this.isLoggedIn %}
-        <twig:Modal id="add-puzzle-to-collection-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}">
+        <twig:Modal id="add-puzzle-to-collection-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}" changeCounter="{{ this.changeCounter }}">
             {% block modal_header %}
                 <h5 class="modal-title">{{ 'collections.add_puzzle'|trans }}</h5>
             {% endblock %}
             {% block modal_body %}
                 {{ component('AddPuzzleToCollectionForm', {
                     puzzleId: puzzleId,
+                    key: 'add-form-' ~ puzzleId ~ '-' ~ changeCounter
                 }) }}
             {% endblock %}
         </twig:Modal>
     {% endif %}
 </div>
-
-

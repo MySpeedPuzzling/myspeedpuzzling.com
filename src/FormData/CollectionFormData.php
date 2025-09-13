@@ -17,8 +17,7 @@ final class CollectionFormData
     #[Assert\Length(max: 500)]
     public null|string $description = null;
 
-    #[Assert\NotBlank]
-    public null|CollectionVisibility $visibility = null;
+    public CollectionVisibility $visibility = CollectionVisibility::Private;
 
     public static function fromCollectionOverview(CollectionOverview $collection): self
     {

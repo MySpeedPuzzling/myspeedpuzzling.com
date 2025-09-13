@@ -1,22 +1,28 @@
 <div {{ attributes }}>
-    <div class="mb-3">
-        <twig:CreateCollectionForm />
+    <div data-controller="puzzle-collection-form">
+        {{ form_start(form, {
+            'attr': {
+                'data-action': 'live#action:prevent',
+                'data-live-action-param': 'save',
+                'data-model': 'norender|*'
+            }
+        }) }}
+            {{ form_row(form.collection, {
+                'attr': {
+                    'data-puzzle-collection-form-target': 'collection'
+                }
+            }) }}
 
-        <hr class="mt-3">
-    </div>
+            <div class="mb-3 d-none" data-puzzle-collection-form-target="newCollection">
+                <div class="border rounded p-3 bg-light shadow-lg">
+                    <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
 
-    {{ form_start(form, {
-        'attr': {
-            'data-action': 'live#action:prevent',
-            'data-live-action-param': 'save'
-        }
-    }) }}
-        
-        <div class="mb-3">
-            {{ form_row(form.collectionId) }}
-        </div>
-        
-        <div class="mb-3">
+                    {{ form_row(form.collectionDescription) }}
+
+                    {{ form_row(form.collectionVisibility) }}
+                </div>
+            </div>
+
             {{ form_row(form.comment, {
                 'attr': {
                     'rows': 2,
@@ -24,17 +30,17 @@
                     'placeholder': 'forms.add_puzzle_to_collection.comment_placeholder'|trans,
                 }
             }) }}
-        </div>
-        
-        <div>
-            <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
-                {{ 'forms.add_puzzle_to_collection.submit'|trans }}
-            </button>
 
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                {{ 'forms.cancel'|trans }}
-            </button>
-        </div>
-        
-    {{ form_end(form, {'render_rest': false}) }}
+            <div>
+                <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+                    {{ 'forms.add_puzzle_to_collection.submit'|trans }}
+                </button>
+
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {{ 'forms.cancel'|trans }}
+                </button>
+            </div>
+
+        {{ form_end(form, {'render_rest': false}) }}
+    </div>
 </div>

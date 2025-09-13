@@ -456,6 +456,10 @@ button[data-submit-prevention-target] {
     max-width: 320px;
 }
 
+.ts-control {
+    min-height: 46px;
+}
+
 .filters {
     .form-select {
         padding: 4px 25px 4px 6px;
@@ -481,6 +485,7 @@ button[data-submit-prevention-target] {
 
     .ts-control {
         padding: 4px 20px 4px 4px !important;
+        min-height: auto;
 
         .clear-button {
             right: 25px !important;

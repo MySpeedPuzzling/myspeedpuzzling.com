@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 readonly final class CreateCollection
 {
     public function __construct(
+        public string $collectionId,
         public string $playerId,
         public string $name,
         public null|string $description,

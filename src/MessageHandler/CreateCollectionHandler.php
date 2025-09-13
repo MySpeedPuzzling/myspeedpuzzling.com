@@ -30,7 +30,7 @@ readonly final class CreateCollectionHandler
         $player = $this->playerRepository->get($message->playerId);
 
         $collection = new Collection(
-            id: Uuid::uuid7(),
+            id: Uuid::fromString($message->collectionId),
             player: $player,
             name: $message->name,
             description: $message->description,

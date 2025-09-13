@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\CollectionFormData;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -40,14 +40,14 @@ final class CollectionFormType extends AbstractType
             ],
         ]);
 
-        $builder->add('visibility', ChoiceType::class, [
-            'label' => 'collections.form.visibility',
+        $builder->add('collectionVisibility', EnumType::class, [
+            'class' => CollectionVisibility::class,
+            'label' => 'forms.add_puzzle_to_collection.new_collection_visibility',
             'required' => true,
-            'expanded' => true,
-            'choices' => [
-                'collections.form.visibility_public' => CollectionVisibility::Public,
-                'collections.form.visibility_private' => CollectionVisibility::Private,
-            ],
+            'choice_label' => fn(CollectionVisibility $visibility) => match ($visibility) {
+                CollectionVisibility::Private => 'collections.visibility.private',
+                CollectionVisibility::Public => 'collections.visibility.public',
+            },
         ]);
     }
 

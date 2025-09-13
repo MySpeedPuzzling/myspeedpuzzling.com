@@ -8,7 +8,6 @@ use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Results\PuzzleCollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
-use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
@@ -23,16 +22,8 @@ final class PuzzleActionsDropdown
     #[LiveProp]
     public string $puzzleId = '';
 
-    /**
-     * @var list<string|null>
-     */
-    public array $collectionIds = [];
-
     #[LiveProp]
-    public int $random = 0;
-
-    #[LiveProp]
-    public bool $forceRerender = false;
+    public int $changeCounter = 0;
 
     /**
      * @var null|list<PuzzleCollectionOverview>
@@ -45,23 +36,12 @@ final class PuzzleActionsDropdown
     ) {
     }
 
-    #[LiveAction]
-    public function changeNumber(): void
-    {
-    }
-
-    public function getNumber(): int
-    {
-        return mt_rand(1, 1000);
-    }
-
     #[LiveListener('puzzle:addedToCollection')]
     #[LiveListener('puzzle:removedFromCollection')]
     public function onChange(): void
     {
-        // Reset cached collections and toggle property to force re-render
         $this->collections = null;
-        $this->forceRerender = !$this->forceRerender;
+        $this->changeCounter++;
     }
 
     /**
@@ -83,11 +63,6 @@ final class PuzzleActionsDropdown
             $loggedPlayer->playerId,
             $this->puzzleId
         ));
-
-        $this->collectionIds = array_map(
-            callback: fn (PuzzleCollectionOverview $item): null|string => $item->collectionId,
-            array: $this->collections,
-        );
 
         return $this->collections;
     }

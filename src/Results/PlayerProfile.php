@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 /**
@@ -29,6 +30,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     membership_ends_at: null|string,
  *     is_admin: bool,
  *     is_private: bool,
+ *     puzzle_collection_visibility: string,
  *  }
  */
 readonly final class PlayerProfile
@@ -52,6 +54,7 @@ readonly final class PlayerProfile
         public null|string $locale,
         public null|DateTimeImmutable $membershipEndsAt,
         public bool $activeMembership,
+        public CollectionVisibility $puzzleCollectionVisibility,
         public bool $isAdmin = false,
         public bool $isPrivate = false,
         public null|CountryCode $countryCode = null,
@@ -101,6 +104,7 @@ readonly final class PlayerProfile
             locale: $row['locale'],
             membershipEndsAt: $membershipEndsAt,
             activeMembership: $hasMembership,
+            puzzleCollectionVisibility: CollectionVisibility::from($row['puzzle_collection_visibility']),
             isAdmin: $row['is_admin'],
             isPrivate: $row['is_private'],
             countryCode: $countryCode,

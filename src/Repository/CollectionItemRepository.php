@@ -52,12 +52,12 @@ readonly final class CollectionItemRepository
     /**
      * @return array<CollectionItem>
      */
-    public function findByPlayerAndPuzzle(Player $player, Puzzle $puzzle): array
+    public function findByPlayerAndPuzzle(string $playerId, string $puzzleId): array
     {
         return $this->entityManager->getRepository(CollectionItem::class)
             ->findBy([
-                'player' => $player,
-                'puzzle' => $puzzle,
+                'player' => $playerId,
+                'puzzle' => $puzzleId,
             ]);
     }
 
@@ -73,7 +73,7 @@ readonly final class CollectionItemRepository
 
     public function countByCollection(null|Collection $collection, Player $player): int
     {
-        return (int) $this->entityManager->getRepository(CollectionItem::class)
+        return $this->entityManager->getRepository(CollectionItem::class)
             ->count([
                 'collection' => $collection,
                 'player' => $player,
@@ -83,12 +83,10 @@ readonly final class CollectionItemRepository
     public function save(CollectionItem $collectionItem): void
     {
         $this->entityManager->persist($collectionItem);
-        $this->entityManager->flush();
     }
 
     public function delete(CollectionItem $collectionItem): void
     {
         $this->entityManager->remove($collectionItem);
-        $this->entityManager->flush();
     }
 }

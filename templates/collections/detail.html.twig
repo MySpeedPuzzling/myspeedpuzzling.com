@@ -92,13 +92,12 @@
                                 
                                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                                     <div class="mt-2">
-                                        <form method="post" action="{{ path('remove_puzzle_from_collection', {puzzleId: item.puzzleId}) }}" class="d-inline">
-                                            <input type="hidden" name="collectionId" value="{{ collection.collectionId ?: '' }}">
-                                            <input type="hidden" name="returnUrl" value="{{ app.request.requestUri }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('{{ 'collections.confirm_remove'|trans }}')">
-                                                <i class="ci-trash me-1"></i> {{ 'collections.remove'|trans }}
-                                            </button>
-                                        </form>
+                                        {{ component('RemovePuzzleFromCollectionButton', {
+                                            puzzleId: item.puzzleId,
+                                            collectionId: collection.collectionId ?: '',
+                                            buttonClass: 'btn btn-sm btn-outline-danger',
+                                            buttonText: '<i class="ci-trash me-1"></i> ' ~ 'collections.remove'|trans
+                                        }) }}
                                     </div>
                                 {% endif %}
                             </div>

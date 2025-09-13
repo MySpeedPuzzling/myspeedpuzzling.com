@@ -1,0 +1,63 @@
+<div class="dropdown" {{ attributes }}>
+    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="ci-menu"></i>
+    </button>
+
+    <ul class="dropdown-menu">
+        <li>
+            <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: this.puzzleId}) }}">
+                <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: this.puzzleId}) }}">
+                <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
+            </a>
+        </li>
+        
+        {% if this.isLoggedIn %}
+            <li><hr class="dropdown-divider"></li>
+            
+            <li>
+                <a class="dropdown-item" 
+                   data-bs-toggle="modal" 
+                   data-bs-target="#add-puzzle-to-collection-{{ this.puzzleId }}"
+                   href="#">
+                    <i class="ci-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
+                </a>
+            </li>
+
+            {% for collection in this.getCollections() %}
+                <li>
+                    {{ component('RemovePuzzleFromCollectionButton', {
+                        puzzleId: this.puzzleId,
+                        collectionName: collection.collectionName,
+                        collectionId: collection.collectionId,
+                        key: collection.collectionId,
+                    }) }}
+                </li>
+            {% endfor %}
+
+            <li>
+                {% for ids in this.collectionIds %}
+                    {{ ids }}
+                {% endfor %}
+            </li>
+        {% endif %}
+    </ul>
+
+    {% if this.isLoggedIn %}
+        <twig:Modal id="add-puzzle-to-collection-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}">
+            {% block modal_header %}
+                <h5 class="modal-title">{{ 'collections.add_puzzle'|trans }}</h5>
+            {% endblock %}
+            {% block modal_body %}
+                {{ component('AddPuzzleToCollectionForm', {
+                    puzzleId: puzzleId,
+                }) }}
+            {% endblock %}
+        </twig:Modal>
+    {% endif %}
+</div>
+
+

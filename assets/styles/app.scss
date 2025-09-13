@@ -912,3 +912,21 @@ header {
         top: 101px;
     }
 }
+
+.toast-body {
+    color: #fff !important;
+    font-weight: bold;
+}
+
+.toast-container {
+    top: 100px;
+    right: 0;
+
+    @media (max-width: 767px) {
+        top: auto;
+        bottom: 15px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+}

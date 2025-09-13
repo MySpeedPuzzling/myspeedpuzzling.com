@@ -43,6 +43,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
     public function __invoke(string $puzzleId, Request $request, #[CurrentUser] User $user): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
+
         if ($player === null) {
             throw new PlayerNotFound();
         }

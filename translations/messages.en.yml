@@ -806,7 +806,6 @@ collections:
     added_on: "Added on %date%"
     back_to_collections: "Back to Collections"
     select_collection_help: "Choose a collection or leave empty to add to your default Puzzle Collection"
-    comment_help: "Optional comment about this puzzle (max 500 characters)"
     private_collection: "Private Collection"
     private_collection_message: "The collection \"%collection%\" by %player% is private and cannot be viewed."
     collection_not_found: "Collection not found"

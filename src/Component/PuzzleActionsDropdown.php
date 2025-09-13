@@ -8,19 +8,31 @@ use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Results\PuzzleCollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent]
-final class PuzzleCollectionsDropdown
+final class PuzzleActionsDropdown
 {
     use DefaultActionTrait;
     use ComponentToolsTrait;
 
     #[LiveProp]
     public string $puzzleId = '';
+
+    /**
+     * @var list<string|null>
+     */
+    public array $collectionIds = [];
+
+    #[LiveProp]
+    public int $random = 0;
+
+    #[LiveProp]
+    public bool $forceRerender = false;
 
     /**
      * @var null|list<PuzzleCollectionOverview>
@@ -31,6 +43,25 @@ final class PuzzleCollectionsDropdown
         readonly private GetPuzzleCollections $getPuzzleCollections,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
+    }
+
+    #[LiveAction]
+    public function changeNumber(): void
+    {
+    }
+
+    public function getNumber(): int
+    {
+        return mt_rand(1, 1000);
+    }
+
+    #[LiveListener('puzzle:addedToCollection')]
+    #[LiveListener('puzzle:removedFromCollection')]
+    public function onChange(): void
+    {
+        // Reset cached collections and toggle property to force re-render
+        $this->collections = null;
+        $this->forceRerender = !$this->forceRerender;
     }
 
     /**
@@ -44,6 +75,7 @@ final class PuzzleCollectionsDropdown
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         if ($loggedPlayer === null) {
+            $this->collections = [];
             return [];
         }
 
@@ -51,6 +83,11 @@ final class PuzzleCollectionsDropdown
             $loggedPlayer->playerId,
             $this->puzzleId
         ));
+
+        $this->collectionIds = array_map(
+            callback: fn (PuzzleCollectionOverview $item): null|string => $item->collectionId,
+            array: $this->collections,
+        );
 
         return $this->collections;
     }
@@ -63,19 +100,5 @@ final class PuzzleCollectionsDropdown
     public function isLoggedIn(): bool
     {
         return $this->retrieveLoggedUserProfile->getProfile() !== null;
-    }
-
-    #[LiveListener('puzzle:addedToCollection')]
-    public function onPuzzleAddedToCollection(): void
-    {
-        // Clear cached collections to force refresh
-        $this->collections = null;
-    }
-
-    #[LiveListener('puzzle:removedFromCollection')]
-    public function onPuzzleRemovedFromCollection(): void
-    {
-        // Clear cached collections to force refresh
-        $this->collections = null;
     }
 }

@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveListener;
@@ -46,6 +47,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
         readonly private PlayerRepository $playerRepository,
         readonly private PuzzleRepository $puzzleRepository,
         readonly private MessageBusInterface $messageBus,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -69,11 +71,8 @@ final class AddPuzzleToCollectionForm extends AbstractController
         $collections = $this->getAvailableCollections();
         $choices = [];
 
-        // Add regular collections
         foreach ($collections as $collection) {
-            if ($collection->collectionId !== null) {
-                $choices[$collection->name] = $collection->collectionId;
-            }
+            $choices[$collection->name] = $collection->collectionId;
         }
 
         return $choices;
@@ -121,6 +120,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
     }
 
     #[LiveListener('collection:created')]
+    #[LiveListener('puzzle:addedToCollection')]
     public function onCollectionCreated(): void
     {
         // Clear cached collections to force refresh
@@ -137,20 +137,17 @@ final class AddPuzzleToCollectionForm extends AbstractController
         }
 
         $player = $this->retrieveLoggedUserProfile->getProfile();
+
         if ($player === null) {
             return [];
         }
 
-        // Get all player collections
         $collections = $this->getPlayerCollections->byPlayerId($player->playerId, true);
-
-        // Get existing collection items for this puzzle
-        $playerEntity = $this->playerRepository->get($player->playerId);
-        $puzzleEntity = $this->puzzleRepository->get($this->puzzleId);
-        $existingCollectionItems = $this->collectionItemRepository->findByPlayerAndPuzzle($playerEntity, $puzzleEntity);
+        $existingCollectionItems = $this->collectionItemRepository->findByPlayerAndPuzzle($player->playerId, $this->puzzleId);
 
         // Create set of existing collection IDs (including null for system collection)
         $existingCollectionIds = [];
+
         foreach ($existingCollectionItems as $item) {
             $existingCollectionIds[] = $item->collection?->id->toString();
         }
@@ -159,8 +156,14 @@ final class AddPuzzleToCollectionForm extends AbstractController
         $availableCollections = [];
 
         // Only add system collection if not already containing the puzzle
-        if (!in_array(null, $existingCollectionIds, true)) {
-            // $choices['collections.system_name'] = null; // TODO
+        if (in_array(null, $existingCollectionIds, true) === false) {
+            $availableCollections[] = new CollectionOverview(
+                playerId: $player->playerId,
+                collectionId: null,
+                name: $this->translator->trans('collections.system_name'),
+                description: null,
+                visibility: $player->puzzleCollectionVisibility,
+            );
         }
 
         // Add regular collections that don't already contain the puzzle
@@ -171,6 +174,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
         }
 
         $this->availableCollections = $availableCollections;
+
         return $this->availableCollections;
     }
 }

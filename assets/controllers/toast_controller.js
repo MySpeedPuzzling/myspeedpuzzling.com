@@ -14,7 +14,7 @@ export default class extends Controller {
     }
 
     showToast(event) {
-        const { message, type = 'success', duration = 5000 } = event.detail;
+        const { message, type = 'success', duration = 7500 } = event.detail;
         
         // Create toast element
         const toastElement = this.createToastElement(message, type);
@@ -39,30 +39,22 @@ export default class extends Controller {
 
     createToastElement(message, type) {
         const toastElement = document.createElement('div');
-        toastElement.className = 'toast';
+        
+        const bgClass = type === 'success' ? 'text-bg-success' : 
+                       type === 'error' ? 'text-bg-danger' : 
+                       'text-bg-primary';
+
+        toastElement.className = `toast align-items-center ${bgClass} border-0 shadow-custom`;
         toastElement.setAttribute('role', 'alert');
         toastElement.setAttribute('aria-live', 'assertive');
         toastElement.setAttribute('aria-atomic', 'true');
 
-        const iconClass = type === 'success' ? 'ci-check-circle text-success' : 
-                         type === 'error' ? 'ci-x-circle text-danger' : 
-                         'ci-info-circle text-info';
-
-        const bgClass = type === 'success' ? 'bg-success' : 
-                       type === 'error' ? 'bg-danger' : 
-                       'bg-info';
-
         toastElement.innerHTML = `
-            <div class="toast-header ${bgClass} text-white">
-                <i class="${iconClass} me-2"></i>
-                <strong class="me-auto">
-                    ${type === 'success' ? 'Success' : 
-                      type === 'error' ? 'Error' : 'Info'}
-                </strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         `;
 

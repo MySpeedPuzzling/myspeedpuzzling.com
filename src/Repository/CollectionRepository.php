@@ -37,12 +37,10 @@ readonly final class CollectionRepository
     public function save(Collection $collection): void
     {
         $this->entityManager->persist($collection);
-        $this->entityManager->flush();
     }
 
     public function delete(Collection $collection): void
     {
         $this->entityManager->remove($collection);
-        $this->entityManager->flush();
     }
 }

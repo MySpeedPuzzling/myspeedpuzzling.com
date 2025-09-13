@@ -808,7 +808,6 @@ collections:
     added_on: "Přidáno %date%"
     back_to_collections: "Zpět na kolekce"
     select_collection_help: "Vyberte kolekci nebo nechte prázdné pro přidání do výchozí Puzzle kolekce"
-    comment_help: "Volitelný komentář k tomuto puzzle (maximálně 500 znaků)"
     private_collection: "Soukromá kolekce"
     private_collection_message: "Kolekce \"%collection%\" hráče %player% je soukromá a nelze ji zobrazit."
     collection_not_found: "Kolekce nenalezena"

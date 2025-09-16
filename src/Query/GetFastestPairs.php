@@ -65,7 +65,7 @@ WITH player_data AS (
         AND puzzle_solving_time.team IS NOT NULL
         AND seconds_to_solve > 0
         AND json_array_length(team -> 'puzzlers') = 2
-    GROUP BY puzzle.id, player.id, manufacturer.id, puzzle_solving_time.id
+    GROUP BY puzzle.id, player.id, manufacturer.id, puzzle_solving_time.id, competition.id
 )
 SELECT *
 FROM player_data

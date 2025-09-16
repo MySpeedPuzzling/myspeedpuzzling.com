@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Collection;
+use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
@@ -24,10 +25,17 @@ readonly final class CreateCollectionHandler
 
     /**
      * @throws PlayerNotFound
+     * @throws CollectionAlreadyExists
      */
     public function __invoke(CreateCollection $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
+
+        // Check if collection with same name already exists for this player
+        $existingCollection = $this->collectionRepository->findByNameAndPlayer($message->name, $message->playerId);
+        if ($existingCollection !== null) {
+            throw new CollectionAlreadyExists($existingCollection->id->toString());
+        }
 
         $collection = new Collection(
             id: Uuid::fromString($message->collectionId),

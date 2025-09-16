@@ -1,14 +1,16 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ collection.name }} - {{ player.playerName }}{% endblock %}
+{% block title %}{{ collection.name }}{% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %} - {{ player.playerName }}{% endif %}{% endblock %}
 
 {% block content %}
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="h3 mb-1">{{ collection.name }}</h1>
             <p class="text-muted mb-0">
-                {{ player.playerName ?? player.code }}
-                • {{ 'collections.items_count'|trans({'%count%': items|length}) }}
+                {% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %}
+                    {{ player.playerName ?? player.code }} •
+                {% endif %}
+                {{ 'collections.items_count'|trans({'%count%': items|length}) }}
             </p>
         </div>
         
@@ -37,6 +39,12 @@
         </div>
     </div>
 
+    <div class="mb-4">
+        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
+        </a>
+    </div>
+
     {% if collection and collection.description %}
         <p class="small">
             {{ collection.description|nl2br }}
@@ -52,65 +60,63 @@
             <p class="text-muted">{{ 'collections.no_puzzles_description'|trans }}</p>
         </div>
     {% else %}
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-3">
-            {% for item in items %}
-                <div class="col">
-                    <div class="card h-100 shadow-sm">
-                        {% if item.image %}
-                            <div class="card-img-top position-relative overflow-hidden" style="height: 200px;">
-                                <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                                     alt="{{ item.puzzleName }}" 
-                                     class="position-absolute top-50 start-50 translate-middle"
-                                     style="max-width: 100%; max-height: 100%; object-fit: cover;">
-                            </div>
-                        {% endif %}
-                        
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title fs-6 mb-2">
-                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}" class="text-decoration-none">
-                                    {{ item.puzzleName }}
-                                </a>
-                            </h5>
-                            
-                            <div class="text-muted small mb-2">
-                                {{ 'pieces_count'|trans({ '%count%': item.piecesCount })|raw }}
-                                {% if item.manufacturerName %}
-                                    <br>{{ item.manufacturerName }}
-                                {% endif %}
-                            </div>
-                            
-                            {% if item.comment %}
-                                <div class="small text-muted mb-2">
-                                    <em>{{ item.comment }}</em>
-                                </div>
-                            {% endif %}
-                            
-                            <div class="mt-auto">
-                                <small class="text-muted">
-                                    {{ 'collections.added_on'|trans({'%date%': item.addedAt|format_datetime('medium', 'none')}) }}
-                                </small>
-                                
-                                {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
-                                    <div class="mt-2">
-                                        {{ component('RemovePuzzleFromCollectionButton', {
-                                            puzzleId: item.puzzleId,
-                                            collectionId: collection.collectionId ?: '',
-                                            buttonClass: 'btn btn-sm btn-outline-danger',
-                                            buttonText: '<i class="ci-trash me-1"></i> ' ~ 'collections.remove'|trans
-                                        }) }}
+        <div class="table-responsive custom-table-wrapper mt-3 mb-3">
+            <table class="table custom-table table-striped table-hover mb-0">
+                <tbody>
+                    {% for item in items %}
+                        <tr>
+                            <td style="width: 60px;">
+                                {% if item.image %}
+                                    <img src="{{ item.image|imagine_filter('puzzle_small') }}"
+                                         alt="{{ item.puzzleName }}"
+                                         class="rounded"
+                                         style="width: 60px; height: 60px; object-fit: cover;">
+                                {% else %}
+                                    <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                                         style="width: 60px; height: 60px;">
+                                        <i class="ci-image text-muted"></i>
                                     </div>
                                 {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
+                            </td>
+                            <td>
+                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}" class="text-decoration-none fw-medium">
+                                    {{ item.puzzleName }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="text-nowrap small">
+                                    {{ item.piecesCount }}
+                                </span>
+                            </td>
+                            <td class="small">
+                                {{ item.manufacturerName ?? '-' }}
+                            </td>
+                            <td>
+                                {% if item.comment %}
+                                    <em class="text-muted">{{ item.comment }}</em>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted text-nowrap">
+                                    {{ item.addedAt|format_datetime('short', 'none') }}
+                                </small>
+                            </td>
+                            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                                <td style="width: 10px;">
+                                    <a href="#" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                                </td>
+                                <td style="width: 10px;">
+                                    <twig:RemovePuzzleFromCollectionButton puzzleId="{{ item.puzzleId }}" collectionId="{{ collection.collectionId }}" buttonClass="btn btn-sm btn-outline-danger">
+                                        {% block text %}<i class="bi bi-trash"></i>{% endblock %}
+                                    </twig:RemovePuzzleFromCollectionButton>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     {% endif %}
-
-    <div class="mt-4">
-        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
-        </a>
-    </div>
 {% endblock %}

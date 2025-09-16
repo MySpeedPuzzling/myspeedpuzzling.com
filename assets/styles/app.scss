@@ -935,3 +935,7 @@ header {
         transform: translateX(-50%);
     }
 }
+
+.shadow-primary {
+    box-shadow: 0 0 75px -10px rgba(254, 105, 106, .5) !important;
+}

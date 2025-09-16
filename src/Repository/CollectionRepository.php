@@ -43,4 +43,24 @@ readonly final class CollectionRepository
     {
         $this->entityManager->remove($collection);
     }
+
+    public function findByNameAndPlayer(string $name, string $playerId): null|Collection
+    {
+        if (!Uuid::isValid($playerId)) {
+            return null;
+        }
+
+        /** @var Collection|null $result */
+        $result = $this->entityManager->createQueryBuilder()
+            ->select('c')
+            ->from(Collection::class, 'c')
+            ->where('c.name = :name')
+            ->andWhere('c.player = :playerId')
+            ->setParameter('name', $name)
+            ->setParameter('playerId', $playerId)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $result;
+    }
 }

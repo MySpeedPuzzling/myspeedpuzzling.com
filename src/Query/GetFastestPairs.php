@@ -42,6 +42,9 @@ WITH player_data AS (
         puzzle_solving_time.team ->> 'team_id' AS team_id,
         first_attempt,
         player.is_private,
+        competition.id AS competition_id,
+        competition.name AS competition_name,
+        competition.slug AS competition_slug,
         JSON_AGG(
             JSON_BUILD_OBJECT(
                 'player_id', player_elem.player ->> 'player_id',
@@ -53,7 +56,8 @@ WITH player_data AS (
     FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
-    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id,
+    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id,
     LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     WHERE puzzle.pieces_count = :piecesCount
@@ -110,6 +114,9 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     is_private: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 

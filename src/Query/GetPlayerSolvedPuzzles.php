@@ -175,12 +175,16 @@ SELECT
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     first_attempt,
-    solved_counts.solved_times AS solved_times
+    solved_counts.solved_times AS solved_times,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
+    LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.team IS NULL
@@ -237,6 +241,9 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     solved_times: int,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 
@@ -303,11 +310,15 @@ SELECT
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
-    first_attempt
+    first_attempt,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON competition.id = pst.competition_id
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 
@@ -345,6 +356,9 @@ SQL;
              *     tracked_at: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 
@@ -415,11 +429,15 @@ SELECT
     pst.comment,
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
-    first_attempt
+    first_attempt,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON competition.id = pst.competition_id
 ORDER BY pst.seconds_to_solve ASC
 SQL;
 
@@ -457,6 +475,9 @@ SQL;
              *     tracked_at: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 

@@ -67,12 +67,16 @@ SELECT
     puzzle_solving_time.id AS time_id,
     puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.first_attempt,
-    is_private
+    is_private,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM FastestTimes
-INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = puzzle_solving_time_id
+INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = FastestTimes.puzzle_solving_time_id
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON player.id = puzzle_solving_time.player_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id
 ORDER BY puzzle_solving_time.seconds_to_solve
 SQL;
@@ -107,6 +111,9 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     is_private: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 

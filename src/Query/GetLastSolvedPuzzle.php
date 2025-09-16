@@ -47,11 +47,15 @@ SELECT
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     first_attempt,
-    is_private
+    is_private,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 WHERE
     (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
 ORDER BY puzzle_solving_time.tracked_at DESC
@@ -93,6 +97,9 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     is_private: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 
@@ -127,11 +134,15 @@ SELECT
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     first_attempt,
-    is_private
+    is_private,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
 WHERE player.name IS NOT NULL
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
@@ -172,6 +183,9 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     is_private: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 
@@ -237,6 +251,7 @@ INNER JOIN puzzle_solving_time pst ON pst.id = fpt.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN player ON pst.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON competition.id = pst.competition_id
 ORDER BY pst.tracked_at DESC
 SQL;
 
@@ -275,6 +290,9 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     is_private: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 

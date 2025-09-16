@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
-use SpeedPuzzling\Web\Query\GetPuzzleCollection;
+use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
@@ -23,10 +23,10 @@ final class PuzzleDetailController extends AbstractController
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
-        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
-        readonly private GetPuzzleCollection $getPuzzleCollection,
+        readonly private GetPuzzleCollections $getPuzzleCollections,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -66,12 +66,10 @@ final class PuzzleDetailController extends AbstractController
             $user?->getUserIdentifier()
         );
 
-
-        $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $puzzleCollections = [];
-
-        if ($playerProfile !== null) {
-            $puzzleCollections = $this->getPuzzleCollection->forPlayer($playerProfile->playerId);
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        if ($loggedPlayer !== null) {
+            $puzzleCollections = $this->getPuzzleCollections->byPlayerAndPuzzle($loggedPlayer->playerId, $puzzleId);
         }
 
         return $this->render('puzzle_detail.html.twig', [
@@ -79,6 +77,7 @@ final class PuzzleDetailController extends AbstractController
             'puzzles_solved_by_user' => $userSolvedPuzzles,
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
+            'logged_player' => $loggedPlayer,
         ]);
     }
 }

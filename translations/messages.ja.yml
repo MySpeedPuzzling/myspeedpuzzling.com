@@ -15,7 +15,6 @@ menu:
     membership: "メンバーシップ"
     search: "検索"
     statistics: "統計"
-    collection: "コレクション"
     favorite_puzzlers: "お気に入りプレイヤー"
     edit_profile: "プロフィール編集"
     change_player_code: "プレイヤーコード変更"
@@ -72,9 +71,6 @@ any: "すべて"
 all_pieces: "すべて"
 solo_solved: "ソロ完了:"
 first_attempt: "初回"
-add_to_collection: "マイコレクションに追加"
-in_collection: "マイコレクション内"
-remove_from_collection: "コレクションから削除"
 ranking_out_of: "の"
 wjpc_participant: "WJPC 2024参加者 (%name%)"
 share: "シェア"
@@ -534,8 +530,6 @@ flashes:
     can_not_favorite_yourself: "自分をお気に入りリストに追加することはできません。自分が自分のお気に入りパズラーであることは明らかです！"
     player_already_in_favorites: "このパズラーは既にお気に入りリストにいるので、再度追加しません ;-)。"
     player_not_in_favorites: "うーん、このパズラーはお気に入りにいないようなので、削除できません ;-)。"
-    puzzle_added_to_collection: "こんにちは...パズル。マイコレクションへようこそ！"
-    puzzle_removed_from_collection: "さようならパズル..."
     competition_duplicate_connection: "何か問題があります :-( 既に他のMySpeedPuzzlingプロフィールに接続されている競技会アカウントを選択しました。心配しないでください、自動的に通知されており、何が問題かを確認します。"
     competition_connection_saved: "素晴らしい！競技会アカウントがMySpeedPuzzlingプロフィールに正常に接続されました！"
     membership_subscribed_successfully: "メンバーシップがアクティブになりました！"
@@ -597,9 +591,6 @@ badges:
     badge:
         supporter: "サポーター"
 
-collection:
-    title: "コレクション"
-    empty_info: "このコレクションは現在空です。変える時かもしれません？結局、誰もがパズルと保管することを愛していますから :-)"
 
 scan:
     meta:

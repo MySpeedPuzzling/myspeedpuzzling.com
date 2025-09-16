@@ -106,7 +106,7 @@
         </script>
         {% endblock %}
     </head>
-    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search">
+    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search toast">
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
                 <div class="container">
@@ -244,11 +244,6 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_collection' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_collection', {'playerId': logged_user.profile.playerId}) }}">
-                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
-                                        </a>
-                                    </li>
-                                    <li>
                                         <a class="dropdown-item {% if currentRoute == 'player_favorite_puzzlers' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_favorite_puzzlers', {'playerId': logged_user.profile.playerId}) }}">
                                             <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                                         </a>
@@ -256,6 +251,11 @@
 
                                     <li><hr class="dropdown-divider"></li>
 
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_collections' %}active{% endif %}" href="{{ path('player_collections', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collections'|trans }}
+                                        </a>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
                                             <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
@@ -612,5 +612,8 @@
         </div>
 
         <div class="global-search-overlay" data-global-search-target="overlay"></div>
+        
+        <!-- Toast Container -->
+        <div class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>
     </body>
 </html>

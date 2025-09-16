@@ -15,11 +15,11 @@ menu:
     membership: "Členství"
     search: "Hledej"
     statistics: "Statistiky"
-    collection: "Kolekce"
     favorite_puzzlers: "Oblíbení puzzleři"
     edit_profile: "Upravit profil"
     change_player_code: "Změnit kód hráče"
     profile: "Profil"
+    collections: "Kolekce"
     events: "Eventy"
 
 footer:
@@ -72,9 +72,6 @@ any: "Libovolný"
 all_pieces: "Vše"
 solo_solved: "Skládáno SOLO:"
 first_attempt: "1. pokus"
-add_to_collection: "Přidat do mé sbírky"
-in_collection: "V mé sbírce"
-remove_from_collection: "Odebrat z mé sbírky"
 ranking_out_of: "z"
 wjpc_participant: "Účastník (%name%)"
 share: "Sdílet"
@@ -200,6 +197,7 @@ forms:
     drop_file: "Přetáhněte sem soubor pro nahrání"
     choose_file: "Nebo vyberte soubor"
     save: "Uložit"
+    cancel: "Zrušit"
     required_field: "Toto pole je povinné!"
     empty_group_error: "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
     too_high_ppm: "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
@@ -249,6 +247,13 @@ forms:
     global_search_placeholder: "Hledat puzzle nebo hráče..."
     private_profile: "Skrytý profil"
     private_profile_help: "Vaše jméno nebude nikde uvedeno a časy budou prezentovány jako anonymní."
+    add_puzzle_to_collection:
+        collection: "Kolekce"
+        comment: "Komentář"
+        comment_placeholder: "Volitelný komentář k tomuto puzzle..."
+        submit: "Přidat do kolekce"
+        puzzle_collection: "Puzzle kolekce (Výchozí)"
+        choose_collection: "- Vyberte kolekci -"
 
 puzzlers_comparison:
     meta:
@@ -421,14 +426,13 @@ flashes:
     can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
     player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
     player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
-    puzzle_added_to_collection: "Ahoj,.. puzzle. Vítejte v mé sbírce!"
-    puzzle_removed_from_collection: "Sbohem puzzle..."
     competition_duplicate_connection: "Něco je špatně :-( vybrali jste soutěžní účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
     competition_connection_saved: "Super! Soutěžní účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
     membership_subscribed_successfully: "členství je nyní aktivní!"
     non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
     exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
+    puzzle_removed_from_collection: "Puzzle bylo odebráno z kolekce."
 
 hub:
     title: "Hub"
@@ -493,9 +497,6 @@ badges:
     badge:
         supporter: "Podporovatel"
 
-collection:
-    title: "Sbírka"
-    empty_info: "Tato kolekce je prozatím prázdná. Možná už je vhodný čas to změnit? Přeci každý miluje puzzle a jejich skladování :-)."
 
 scan:
     meta:
@@ -744,3 +745,72 @@ blog:
             <p>Práci na Mail serveru zatím odkládám a navíc už vím, že bude "bokem", na samostatném serveru mimo MSP. Na jednu stranu bylo zábavné, vyzkoušet si "disaster recovery" proces - kdy v jedné chvíli jsem byl natolik zoufalý, že sem byl připraven na to, že tento server shoří v pekle, rozjedu to během chvilky na novém a jen změním DNS záznamy... naštěstí to nakonec nebylo potřeba.</p>
             <p>PS. ono se to opravdu rozbilo "samo" vlivem mail serveru, po týdnu, bez lidského zásahu... to je teda něco...</p>
             <p>PS2. jste stateční, pokud jste to dočetli až sem :-).</p>
+
+navigation:
+    home: "Domů"
+
+collections:
+    meta:
+        title: "Moje kolekce"
+    title: "Kolekce"
+    title_other: "Kolekce hráče %name%"
+    create:
+        button: "Vytvořit kolekci"
+        title: "Vytvořit novou kolekci"
+        meta:
+            title: "Vytvořit kolekci"
+        submit: "Vytvořit"
+    edit:
+        button: "Upravit"
+        title: "Upravit kolekci %name%"
+        meta:
+            title: "Upravit kolekci %name%"
+        submit: "Uložit změny"
+    delete:
+        button: "Smazat"
+        confirm:
+            title: "Smazat kolekci"
+            message: "Opravdu chcete smazat kolekci %name%? Tato akce je nevratná a smaže se také všechny puzzle v této kolekci."
+            button: "Smazat kolekci"
+    form:
+        name: "Název"
+        description: "Popis"
+        visibility: "Viditelnost"
+        visibility_public: "Veřejná"
+        visibility_private: "Soukromá"
+        visibility_help: "Veřejné kolekce jsou viditelné pro všechny uživatele, soukromé pouze pro vás."
+    flash:
+        created: "Kolekce byla úspěšně vytvořena."
+        updated: "Kolekce byla úspěšně upravena."
+        deleted: "Kolekce byla úspěšně smazána."
+        system_updated: "Viditelnost puzzle kolekce byla úspěšně upravena."
+    empty:
+        title: "Nemáte žádné kolekce"
+        message: "Vytvořte svoji první kolekci a začněte organizovat vaše oblíbené puzzle."
+        title_other: "Žádné veřejné kolekce"
+        message_other: "%name% nemá žádné veřejné kolekce."
+    visibility:
+        public: "Veřejná"
+        private: "Soukromá"
+    public: "Veřejná"
+    private: "Soukromá"
+    system_name: "Puzzle kolekce"
+    add_to_collection: "Přidat do kolekce"
+    add_puzzle: "Přidat puzzle do kolekce"
+    remove_from: "Odebrat z %collection%"
+    remove: "Odebrat"
+    confirm_remove: "Opravdu chcete odebrat toto puzzle z kolekce?"
+    items_count: "%count% puzzlí"
+    no_puzzles: "V této kolekci nejsou žádná puzzle"
+    no_puzzles_description: "Tato kolekce je prázdná. Přidejte nějaká puzzle pro začátek!"
+    added_on: "Přidáno %date%"
+    back_to_collections: "Zpět na kolekce"
+    select_collection_help: "Vyberte kolekci nebo nechte prázdné pro přidání do výchozí Puzzle kolekce"
+    private_collection: "Soukromá kolekce"
+    private_collection_message: "Kolekce \"%collection%\" hráče %player% je soukromá a nelze ji zobrazit."
+    collection_not_found: "Kolekce nenalezena"
+    edit_system:
+        title: "Upravit puzzle kolekci"
+        meta:
+            title: "Upravit puzzle kolekci"
+        submit: "Uložit změny"

@@ -10,9 +10,11 @@ use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
@@ -31,6 +33,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private PuzzlersGrouping $puzzlersGrouping,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private CompetitionRepository $competitionRepository,
     ) {
     }
 
@@ -50,6 +53,15 @@ readonly final class AddPuzzleSolvingTimeHandler
         $finishedAt = $message->finishedAt ?? $trackedAt;
         $solvingTime = SolvingTime::fromUserInput($message->time);
         $puzzlersCount = 1;
+        $competition = null;
+
+        if ($message->competitionId !== null) {
+            try {
+                $competition = $this->competitionRepository->get($message->competitionId);
+            } catch (CompetitionNotFound) {
+                // Already null ...
+            }
+        }
 
         if ($group !== null) {
             $puzzlersCount = count($group->puzzlers);
@@ -91,6 +103,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             $message->comment,
             $finishedPuzzlePhotoPath,
             $message->firstAttempt,
+            competition: $competition,
         );
 
         $this->entityManager->persist($solvingTime);

@@ -77,6 +77,7 @@ SELECT
     finished_at,
     finished_puzzle_photo,
     first_attempt,
+    competition.id AS competition_id,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
             JSON_AGG(
@@ -96,8 +97,9 @@ FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.id = :timeId
-GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id
+GROUP BY puzzle_solving_time.id, puzzle.id, player.id, manufacturer.id, competition.id
 SQL;
 
         /**
@@ -118,6 +120,7 @@ SQL;
          *     finished_at: string,
          *     finished_puzzle_photo: string,
          *     first_attempt: bool,
+         *     competition_id: null|string,
          * } $row
          */
         $row = $this->database

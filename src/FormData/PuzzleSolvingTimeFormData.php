@@ -24,6 +24,7 @@ final class PuzzleSolvingTimeFormData
     public null|string $brand = null;
 
     public null|string $puzzle = null;
+    public null|string $competition = null;
 
     #[Positive]
     #[Range(min: 10, max: 25000)]

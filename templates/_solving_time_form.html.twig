@@ -106,6 +106,16 @@
 
                 <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> {{ 'add_time.add_puzzler'|trans }}</button>
 
+                <div class="mb-3">
+                    {{ form_label(solving_time_form.competition, null, {
+                        'label_html': true,
+                        'label': ('forms.competition'|trans) ~ ' <span class="badge bg-primary ms-1">NEW</span>'
+                    }) }}
+                    {{ form_widget(solving_time_form.competition, {'attr': {'data-time-form-autocomplete-target': 'competition'}}) }}
+                    {{ form_help(solving_time_form.competition) }}
+                    {{ form_errors(solving_time_form.competition) }}
+                </div>
+
                 {{ form_row(solving_time_form.comment) }}
 
                 {{ form_label(solving_time_form.finishedPuzzlesPhoto) }}

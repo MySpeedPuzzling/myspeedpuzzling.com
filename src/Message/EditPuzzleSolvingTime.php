@@ -13,6 +13,7 @@ readonly final class EditPuzzleSolvingTime
     public function __construct(
         public string $currentUserId,
         public string $puzzleSolvingTimeId,
+        public null|string $competitionId,
         public string $time,
         public null|string $comment,
         /** @var array<string> */
@@ -31,10 +32,11 @@ readonly final class EditPuzzleSolvingTime
         assert($formData->time !== null);
 
         return new self(
-            $userId,
-            $timeId,
-            $formData->time,
-            $formData->comment,
+            currentUserId: $userId,
+            puzzleSolvingTimeId: $timeId,
+            competitionId: $formData->competition,
+            time: $formData->time,
+            comment: $formData->comment,
             groupPlayers: $groupPlayers,
             finishedAt: $formData->finishedAt,
             finishedPuzzlesPhoto: $formData->finishedPuzzlesPhoto,

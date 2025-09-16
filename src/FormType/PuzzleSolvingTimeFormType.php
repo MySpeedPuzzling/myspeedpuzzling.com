@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -21,6 +23,9 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Validator\Constraints\Image;
@@ -36,6 +41,8 @@ final class PuzzleSolvingTimeFormType extends AbstractType
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
+        readonly private GetCompetitionEvents $getCompetitionEvents,
+        readonly private CacheManager $cacheManager,
     ) {
     }
 
@@ -78,6 +85,22 @@ final class PuzzleSolvingTimeFormType extends AbstractType
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),
+            ],
+        ]);
+
+        $builder->add('competition', TextType::class, [
+            'label' => 'forms.competition',
+            'help' => 'forms.competition_help',
+            'required' => false,
+            'autocomplete' => true,
+            'options_as_html' => true,
+            'tom_select_options' => [
+                'create' => false,
+                'persist' => false,
+                'maxItems' => 1,
+                'options' => $this->getCompetitionsAutocompleteData(),
+                'closeAfterSelect' => true,
+                'createOnBlur' => false,
             ],
         ]);
 
@@ -220,5 +243,64 @@ final class PuzzleSolvingTimeFormType extends AbstractType
                 $form->get('puzzlePhoto')->addError(new FormError($this->translator->trans('forms.puzzle_photo_is_required')));
             }
         }
+    }
+
+    /**
+     * @return array<array{value: string, text: string}>
+     */
+    public function getCompetitionsAutocompleteData(): array
+    {
+        $events = [];
+        $results = [];
+
+        array_push($events, ...$this->getCompetitionEvents->allLive());
+        array_push($events, ...$this->getCompetitionEvents->allPast());
+
+        foreach ($events as $competition) {
+            $img = '';
+
+            if ($competition->logo !== null) {
+                $img = <<<HTML
+<img alt="Logo image" class="img-fluid rounded-2"
+    style="max-width: 60px; max-height: 60px;"
+    src="{$this->cacheManager->getBrowserPath($competition->logo, 'puzzle_small')}"
+/>
+HTML;
+            }
+
+            $date = $competition->dateFrom->format('d.m.Y');
+
+            if ($competition->dateTo !== null) {
+                $date .= ' - ' . $competition->dateTo->format('d.m.Y');
+            }
+
+            $location = '';
+
+            if ($competition->locationCountryCode !== null) {
+                $location = '<span class="shadow-custom fi fi-' . $competition->locationCountryCode->name . ' me-2"></span>';
+            }
+
+            $location .= $competition->location;
+
+            $html = <<<HTML
+<div class="py-1 d-flex low-line-height">
+    <div class="icon me-2">{$img}</div>
+    <div class="pe-1">
+        <div class="mb-1">
+            <span class="h6">{$competition->name}</span>
+            <small class="text-muted">{$date}</small>
+        </div>
+        <div class="description"><small>{$location}</small></div>
+    </div>
+</div>
+HTML;
+
+            $results[] = [
+                'value' => $competition->id,
+                'text' => $html,
+            ];
+        }
+
+        return $results;
     }
 }

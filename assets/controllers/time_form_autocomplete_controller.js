@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'newPuzzle'];
+    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle'];
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -9,6 +9,7 @@ export default class extends Controller {
     initialPuzzleValue = '';
 
     initialize() {
+        this._onCompetitionConnect = this._onCompetitionConnect.bind(this);
         this._onBrandConnect = this._onBrandConnect.bind(this);
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
     }
@@ -16,14 +17,17 @@ export default class extends Controller {
     connect() {
         this.initialBrandValue = this.brandTarget.value;
         this.initialPuzzleValue = this.puzzleTarget.value;
+        this.initialCompetitionValue = this.competitionTarget.value;
         this.brandTarget.addEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.addEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
+        this.competitionTarget.addEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
     }
 
     disconnect() {
         // Remove listeners when the controller is disconnected to avoid side-effects
         this.brandTarget.removeEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.removeEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
+        this.competitionTarget.removeEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
     }
 
     _onBrandConnect(event) {
@@ -76,6 +80,12 @@ export default class extends Controller {
         };
     }
 
+    _onCompetitionConnect(event) {
+        event.detail.options.onChange = (value) => {
+            this.onCompetitionValueChanged(value);
+        };
+    }
+
     onBrandValueChanged(value) {
         if (value !== this.initialBrandValue) {
             this.puzzleTarget.tomselect.clear();
@@ -109,6 +119,10 @@ export default class extends Controller {
         }
 
         this.puzzleTarget.tomselect.blur();
+    }
+
+    onCompetitionValueChanged(value) {
+        this.competitionTarget.tomselect.blur();
     }
 
     fetchPuzzleOptions(brandValue, openDropdown) {

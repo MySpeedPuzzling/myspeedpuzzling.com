@@ -9,9 +9,11 @@ use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
+use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
@@ -29,6 +31,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private Filesystem $filesystem,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private CompetitionRepository $competitionRepository,
     ) {
     }
 
@@ -46,6 +49,16 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         if ($currentPlayer->id->equals($solvingTime->player->id) === false) {
             throw new CanNotModifyOtherPlayersTime();
+        }
+
+        $competition = null;
+
+        if ($message->competitionId !== null) {
+            try {
+                $competition = $this->competitionRepository->get($message->competitionId);
+            } catch (CompetitionNotFound) {
+                // Already null ...
+            }
         }
 
         $finishedAt = $message->finishedAt ?? $solvingTime->finishedAt;
@@ -80,7 +93,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $finishedAt,
             $finishedPuzzlePhotoPath,
             $message->firstAttempt,
-            competition: null,
+            competition: $competition,
         );
     }
 }

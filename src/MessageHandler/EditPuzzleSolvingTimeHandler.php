@@ -80,6 +80,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $finishedAt,
             $finishedPuzzlePhotoPath,
             $message->firstAttempt,
+            competition: null,
         );
     }
 }

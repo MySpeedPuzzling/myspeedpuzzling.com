@@ -138,6 +138,11 @@
                                 <br>
                                 <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
                             {% endif %}
+
+                            {% if solved_puzzle.competitionName %}
+                                <br>
+                                <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ solved_puzzle.competitionName }}</span>
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

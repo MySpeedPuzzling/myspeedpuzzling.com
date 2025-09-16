@@ -101,9 +101,9 @@ readonly final class SolvedPuzzle
             finishedAt: new DateTimeImmutable($row['finished_at']),
             firstAttempt: $row['first_attempt'],
             isPrivate: $row['is_private'] ?? false,
-            competitionId: $row['competition_id'],
-            competitionName: $row['competition_name'],
-            competitionSlug: $row['competition_slug'],
+            competitionId: $row['competition_id'] ?? null,
+            competitionName: $row['competition_name'] ?? null,
+            competitionSlug: $row['competition_slug'] ?? null,
         );
     }
 }

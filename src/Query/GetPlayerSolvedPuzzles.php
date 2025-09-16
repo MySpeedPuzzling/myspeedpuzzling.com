@@ -178,7 +178,7 @@ SELECT
     solved_counts.solved_times AS solved_times,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -315,7 +315,7 @@ SELECT
     first_attempt,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
@@ -436,7 +436,7 @@ SELECT
     first_attempt,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id

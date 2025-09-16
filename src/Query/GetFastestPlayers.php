@@ -70,7 +70,7 @@ SELECT
     is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM FastestTimes
 INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = FastestTimes.puzzle_solving_time_id

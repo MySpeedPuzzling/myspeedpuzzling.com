@@ -34,6 +34,7 @@ readonly final class SolvedPuzzle
         public bool $firstAttempt,
         public bool $isPrivate,
         public null|string $competitionId,
+        public null|string $competitionShortcut,
         public null|string $competitionName,
         public null|string $competitionSlug,
     ) {
@@ -103,6 +104,7 @@ readonly final class SolvedPuzzle
             firstAttempt: $row['first_attempt'],
             isPrivate: $row['is_private'] ?? false,
             competitionId: $row['competition_id'],
+            competitionShortcut: $row['competition_shortcut'],
             competitionName: $row['competition_name'],
             competitionSlug: $row['competition_slug'],
         );

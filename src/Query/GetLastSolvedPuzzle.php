@@ -50,7 +50,7 @@ SELECT
     is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -139,7 +139,7 @@ SELECT
     is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -251,7 +251,7 @@ SELECT
     is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
-    competition.slug AS competition_slug,
+    competition.name AS competition_name,
     competition.slug AS competition_slug
 FROM
     filtered_puzzle_solving_time fpt

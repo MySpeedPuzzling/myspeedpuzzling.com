@@ -118,4 +118,26 @@ SQL;
             return CompetitionEvent::fromDatabaseRow($row);
         }, $data);
     }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function all(): array
+    {
+        $query = <<<SQL
+SELECT *
+FROM competition
+ORDER BY date_from DESC;
+SQL;
+        $now = $this->clock->now();
+
+        $data = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): CompetitionEvent {
+            /** @var CompetitionEventDatabaseRow $row */
+            return CompetitionEvent::fromDatabaseRow($row);
+        }, $data);
+    }
 }

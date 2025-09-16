@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  * @phpstan-type CompetitionEventDatabaseRow array{
  *     id: string,
  *     name: string,
+ *     shortcut: null|string,
  *     location: string,
  *     location_country_code: null|string,
  *     date_from: string,
@@ -33,6 +34,7 @@ readonly final class CompetitionEvent
     public function __construct(
         public string $id,
         public string $name,
+        public null|string $shortcut,
         public null|string $logo,
         public null|string $description,
         null|string $link,
@@ -58,6 +60,7 @@ readonly final class CompetitionEvent
         return new self(
             id: $row['id'],
             name: $row['name'],
+            shortcut: $row['shortcut'],
             logo: $row['logo'],
             description: $row['description'],
             link: $row['link'],

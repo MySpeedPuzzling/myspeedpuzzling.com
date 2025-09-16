@@ -177,7 +177,8 @@ SELECT
     first_attempt,
     solved_counts.solved_times AS solved_times,
     competition.id AS competition_id,
-    competition.name AS competition_name,
+    competition.shortcut AS competition_shortcut,
+    competition.slug AS competition_slug,
     competition.slug AS competition_slug
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -243,6 +244,7 @@ SQL;
              *     solved_times: int,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */
@@ -312,7 +314,8 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     first_attempt,
     competition.id AS competition_id,
-    competition.name AS competition_name,
+    competition.shortcut AS competition_shortcut,
+    competition.slug AS competition_slug,
     competition.slug AS competition_slug
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
@@ -358,6 +361,7 @@ SQL;
              *     first_attempt: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */
@@ -431,7 +435,8 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     first_attempt,
     competition.id AS competition_id,
-    competition.name AS competition_name,
+    competition.shortcut AS competition_shortcut,
+    competition.slug AS competition_slug,
     competition.slug AS competition_slug
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
@@ -477,6 +482,7 @@ SQL;
              *     first_attempt: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */

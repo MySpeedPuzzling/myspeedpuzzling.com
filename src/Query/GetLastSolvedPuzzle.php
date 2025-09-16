@@ -49,7 +49,8 @@ SELECT
     first_attempt,
     is_private,
     competition.id AS competition_id,
-    competition.name AS competition_name,
+    competition.shortcut AS competition_shortcut,
+    competition.slug AS competition_slug,
     competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -99,6 +100,7 @@ SQL;
              *     is_private: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */
@@ -136,7 +138,8 @@ SELECT
     first_attempt,
     is_private,
     competition.id AS competition_id,
-    competition.name AS competition_name,
+    competition.shortcut AS competition_shortcut,
+    competition.slug AS competition_slug,
     competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -185,6 +188,7 @@ SQL;
              *     is_private: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */
@@ -246,7 +250,8 @@ SELECT
     first_attempt,
     is_private,
     competition.id AS competition_id,
-    competition.name AS competition_name,
+    competition.shortcut AS competition_shortcut,
+    competition.slug AS competition_slug,
     competition.slug AS competition_slug
 FROM
     filtered_puzzle_solving_time fpt
@@ -295,6 +300,7 @@ SQL;
              *     is_private: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */

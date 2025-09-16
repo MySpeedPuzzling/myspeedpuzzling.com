@@ -43,6 +43,7 @@ WITH player_data AS (
         first_attempt,
         player.is_private,
         competition.id AS competition_id,
+        competition.shortcut AS competition_shortcut,
         competition.name AS competition_name,
         competition.slug AS competition_slug,
         JSON_AGG(
@@ -116,6 +117,7 @@ SQL;
              *     is_private: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
+             *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              * } $row
              */

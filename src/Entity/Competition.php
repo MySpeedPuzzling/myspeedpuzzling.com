@@ -26,6 +26,8 @@ class Competition
         public string $name,
         #[Column(unique: true, nullable: true)]
         public null|string $slug,
+        #[Column(unique: true, nullable: true)]
+        public null|string $shortcut,
         #[Column(nullable: true)]
         public null|string $logo,
         #[Column(nullable: true)]

@@ -64,6 +64,7 @@ readonly final class SolvedPuzzle
      *     is_private?: bool,
      *     competition_id: null|string,
      *     competition_name: null|string,
+     *     competition_shortcut: null|string,
      *     competition_slug: null|string,
      * } $row
      */

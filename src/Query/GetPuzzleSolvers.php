@@ -36,9 +36,14 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     finished_at,
     first_attempt,
-    is_private
+    is_private,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
+LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND player.name IS NOT NULL
     AND puzzle_solving_time.team IS NULL
@@ -62,6 +67,10 @@ SQL;
              *     finished_at: string,
              *     first_attempt: bool,
              *     is_private: bool,
+             *     competition_id: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 
@@ -88,6 +97,10 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     finished_at,
     first_attempt,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -97,7 +110,8 @@ SELECT
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
-    puzzle_solving_time pst,
+    puzzle_solving_time pst
+    LEFT JOIN competition ON competition.id = pst.competition_id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) 
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
@@ -105,7 +119,7 @@ WHERE
     AND pst.team IS NOT NULL
     AND json_array_length(team -> 'puzzlers') = 2
 GROUP BY
-    pst.id, time
+    pst.id, time, competition.id
 ORDER BY time ASC
 SQL;
 
@@ -126,6 +140,10 @@ SQL;
              *     players: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     competition_id: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 
@@ -152,6 +170,10 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     finished_at,
     first_attempt,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
     JSON_AGG(
         JSON_BUILD_OBJECT(
             'player_id', player_elem.player ->> 'player_id',
@@ -161,7 +183,8 @@ SELECT
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
-    puzzle_solving_time pst,
+    puzzle_solving_time pst
+    LEFT JOIN competition ON competition.id = pst.competition_id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
@@ -169,7 +192,7 @@ WHERE
     AND pst.team IS NOT NULL
     AND json_array_length(team -> 'puzzlers') > 2
 GROUP BY
-    pst.id, time
+    pst.id, time, competition.id
 ORDER BY time ASC
 SQL;
 
@@ -190,6 +213,10 @@ SQL;
              *     players: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     competition_id: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_name: null|string,
+             *     competition_slug: null|string,
              * } $row
              */
 

@@ -16,6 +16,10 @@ readonly final class PuzzleSolversGroup
         public array $players,
         public DateTimeImmutable $finishedAt,
         public bool $firstAttempt,
+        public null|string $competitionId,
+        public null|string $competitionShortcut,
+        public null|string $competitionName,
+        public null|string $competitionSlug,
     ) {
     }
 
@@ -29,6 +33,10 @@ readonly final class PuzzleSolversGroup
      *     players: string,
      *     finished_at: string,
      *     first_attempt: bool,
+     *     competition_id: null|string,
+     *     competition_shortcut: null|string,
+     *     competition_name: null|string,
+     *     competition_slug: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -41,6 +49,10 @@ readonly final class PuzzleSolversGroup
             players: $players,
             finishedAt: new DateTimeImmutable($row['finished_at']),
             firstAttempt: $row['first_attempt'],
+            competitionId: $row['competition_id'],
+            competitionShortcut: $row['competition_shortcut'],
+            competitionName: $row['competition_name'],
+            competitionSlug: $row['competition_slug'],
         );
     }
 

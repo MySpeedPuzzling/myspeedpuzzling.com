@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\FormData\AddPuzzleToCollectionFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleToCollectionFormType;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -104,22 +106,31 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
         // Check if we need to create a new collection
         if ($collectionId !== null && Uuid::isValid($collectionId) === false) {
-            // TODO: check if collection with that name exists use that instead of creating duplicate
-
             // Generate new UUID for the collection
             $newCollectionId = Uuid::uuid7()->toString();
 
-            // Create the collection first
-            $this->messageBus->dispatch(new CreateCollection(
-                collectionId: $newCollectionId,
-                playerId: $player->playerId,
-                name: $collectionId,
-                description: $formData->collectionDescription,
-                visibility: $formData->collectionVisibility,
-            ));
+            try {
+                // Create the collection first
+                $this->messageBus->dispatch(new CreateCollection(
+                    collectionId: $newCollectionId,
+                    playerId: $player->playerId,
+                    name: $collectionId,
+                    description: $formData->collectionDescription,
+                    visibility: $formData->collectionVisibility,
+                ));
 
-            // Use the new collection ID for adding the puzzle
-            $collectionId = $newCollectionId;
+                // Use the new collection ID for adding the puzzle
+                $collectionId = $newCollectionId;
+            } catch (HandlerFailedException $exception) {
+                $realException = $exception->getPrevious();
+                if ($realException instanceof CollectionAlreadyExists) {
+                    // Use the existing collection ID instead
+                    $collectionId = $realException->collectionId;
+                } else {
+                    // Re-throw if it's a different exception
+                    throw $exception;
+                }
+            }
         }
 
         $this->messageBus->dispatch(new AddPuzzleToCollection(

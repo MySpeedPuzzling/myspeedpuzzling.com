@@ -244,7 +244,10 @@ SELECT
     pst.finished_puzzle_photo AS finished_puzzle_photo,
     pst.team ->> 'team_id' AS team_id,
     first_attempt,
-    is_private
+    is_private,
+    competition.id AS competition_id,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug
 FROM
     filtered_puzzle_solving_time fpt
 INNER JOIN puzzle_solving_time pst ON pst.id = fpt.id

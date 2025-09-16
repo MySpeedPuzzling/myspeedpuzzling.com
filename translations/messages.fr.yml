@@ -83,6 +83,7 @@ delete: "Supprimer"
 active_membership: "Adhésion active"
 new_badge: "Nouveau"
 secret_puzzler_name: "Puzzleur masqué"
+right_now: "En ce moment"
 
 homepage:
     meta:

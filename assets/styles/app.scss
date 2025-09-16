@@ -29,7 +29,7 @@ body {
 
 main {
     flex-grow: 1;
-    padding-top: 101px;
+    padding-top: 130px;
 }
 
 .stopwatch {
@@ -888,5 +888,27 @@ header {
 
     @media (min-width: 500px) {
         width: 90px;
+    }
+}
+
+.competition-panel-info {
+    background: $primary;
+    color: #fff;
+    font-size: 12px;
+    position: absolute;
+    left: 0;
+    top: 98px;
+    width: 100%;
+    padding: 4px 15px;
+    text-align: center;
+
+    a {
+        color: #fff;
+        text-decoration: underline;
+        font-weight: bold;
+    }
+
+    @media (min-width: 768px) {
+        top: 101px;
     }
 }

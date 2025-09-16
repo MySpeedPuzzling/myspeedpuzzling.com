@@ -83,6 +83,7 @@ delete: "Smazat"
 active_membership: "Aktivní členství"
 new_badge: "Nové"
 secret_puzzler_name: "Utajený Puzzler"
+right_now: "Právě teď"
 
 homepage:
     meta:

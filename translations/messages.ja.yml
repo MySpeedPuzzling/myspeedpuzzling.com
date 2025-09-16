@@ -83,6 +83,7 @@ delete: "削除"
 active_membership: "アクティブメンバーシップ"
 new_badge: "新着"
 secret_puzzler_name: "秘密のパズラー"
+right_now: "今すぐ"
 
 homepage:
     meta:

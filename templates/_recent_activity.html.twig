@@ -141,7 +141,13 @@
 
                             {% if solved_puzzle.competitionName %}
                                 <br>
+                                {% if solved_puzzle.competitionSlug %}
+                                    <a href="{{ path('event_detail', {'slug': solved_puzzle.competitionSlug}) }}">
+                                {% endif %}
                                 <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ solved_puzzle.competitionShortcut ?? solved_puzzle.competitionName }}</span>
+                                {% if solved_puzzle.competitionSlug %}
+                                    </a>
+                                {% endif %}
                             {% endif %}
                         </td>
                     </tr>

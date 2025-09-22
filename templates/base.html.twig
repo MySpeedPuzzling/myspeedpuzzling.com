@@ -345,9 +345,11 @@
             </div>
         </header>
 
+        {#
         <div class="competition-panel-info">
             <i class="bi bi-trophy-fill me-1"></i> {{ 'right_now'|trans }}: <a href="{{ path('event_detail', {'slug': 'world-jigsaw-puzzle-championship-2025'}) }}">World Jigsaw Puzzle Championship</a>
         </div>
+        #}
 
         <main>
             <div data-global-search-target="searchBar" class="global-search">
@@ -575,7 +577,7 @@
             </script>
         {% endif %}
 
-        {% if logged_user.profile and not logged_user.profile.modalDisplayed %}
+        {% if false %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">

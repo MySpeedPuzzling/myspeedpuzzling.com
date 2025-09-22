@@ -37,7 +37,7 @@
                                     {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
                                         <i class="ci-star-filled text-warning"></i>
                                     {% endif %}
-                                    <small>{{ solving_time.playerName }}</small></a>
+                                    <small>{{ solving_time.playerName ?? ('#' ~ solving_time.playerCode) }}</small></a>
                                 {% if solving_time.playerCountry is not null %}
                                     <small class="shadow-custom fi fi-{{ solving_time.playerCountry.name }}"></small>
                                 {% endif %}
@@ -61,7 +61,7 @@
                                         <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
                                     {% endif %}
                                 {% else %}
-                                    <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                    <small class="player-name-item">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                 {% endif %}
                             {% endfor %}
                         {% endif %}

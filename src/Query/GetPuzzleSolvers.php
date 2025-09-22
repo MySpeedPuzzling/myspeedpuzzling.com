@@ -31,6 +31,7 @@ readonly final class GetPuzzleSolvers
 SELECT
     player.id AS player_id,
     player.name AS player_name,
+    player.code AS player_code,
     player.country AS player_country,
     puzzle_solving_time.puzzle_id AS puzzle_id,
     puzzle_solving_time.seconds_to_solve AS time,
@@ -60,7 +61,8 @@ SQL;
              * @var array{
              *     puzzle_id: string,
              *     player_id: string,
-             *     player_name: string,
+             *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     time: int,
              *     finished_at: string,

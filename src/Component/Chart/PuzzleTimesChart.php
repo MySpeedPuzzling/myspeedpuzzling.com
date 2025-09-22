@@ -47,7 +47,7 @@ final class PuzzleTimesChart
                 $labels[] = sprintf(
                     '%d. %s',
                     $rank,
-                    Strings::truncate($result->playerName, 15),
+                    Strings::truncate($result->playerName ?? $result->playerCode, 15),
                 );
 
                 if ($this->playerId !== null && $result->playerId === $this->playerId) {

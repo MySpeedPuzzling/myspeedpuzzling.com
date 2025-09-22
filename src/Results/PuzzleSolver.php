@@ -12,7 +12,8 @@ readonly final class PuzzleSolver
     public function __construct(
         public string $puzzleId,
         public string $playerId,
-        public string $playerName,
+        public null|string $playerName,
+        public string $playerCode,
         public null|CountryCode $playerCountry,
         public int $time,
         public DateTimeImmutable $finishedAt,
@@ -29,7 +30,8 @@ readonly final class PuzzleSolver
      * @param array{
      *     puzzle_id: string,
      *     player_id: string,
-     *     player_name: string,
+     *     player_name: null|string,
+     *     player_code: string,
      *     player_country: null|string,
      *     time: int,
      *     finished_at: string,
@@ -47,6 +49,7 @@ readonly final class PuzzleSolver
             puzzleId: $row['puzzle_id'],
             playerId: $row['player_id'],
             playerName: $row['player_name'],
+            playerCode: strtoupper($row['player_code']),
             playerCountry: CountryCode::fromCode($row['player_country']),
             time: $row['time'],
             finishedAt: new DateTimeImmutable($row['finished_at']),

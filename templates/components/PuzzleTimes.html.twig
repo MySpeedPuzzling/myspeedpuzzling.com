@@ -159,7 +159,7 @@
                                             <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
                                         {% endif %}
                                     {% else %}
-                                        <span class="player-name-item">{{ puzzle_solver.playerName }}</span>
+                                        <span class="player-name-item">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</span>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
@@ -171,7 +171,7 @@
                                         {% if logged_user.profile is not null and aggregated_solver[0].playerId in logged_user.profile.favoritePlayers %}
                                             <i class="ci-star-filled text-warning"></i>
                                         {% endif %}
-                                        {{ aggregated_solver[0].playerName }}</a>
+                                        {{ aggregated_solver[0].playerName ?? ('#' ~ aggregated_solver[0].playerCode) }}</a>
                                     {% if aggregated_solver[0].playerCountry is not null %}
                                         <small class="shadow-custom fi fi-{{ aggregated_solver[0].playerCountry.name }}"></small>
                                     {% endif %}

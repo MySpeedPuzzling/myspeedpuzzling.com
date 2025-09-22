@@ -32,7 +32,6 @@ WITH FastestTimes AS (
         INNER JOIN player pl ON pl.id = pst.player_id
         WHERE pst.team IS NULL
           AND p.pieces_count = :piecesCount
-          AND pl.name IS NOT NULL
           AND pst.seconds_to_solve > 0
 SQL;
 
@@ -60,6 +59,7 @@ SELECT
     puzzle_solving_time.finished_puzzle_photo,
     puzzle_solving_time.seconds_to_solve AS time,
     player.name AS player_name,
+    player.code AS player_code,
     player.country AS player_country,
     player.id AS player_id,
     COUNT(puzzle_solving_time.puzzle_id) AS solved_times,
@@ -97,7 +97,8 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     puzzle_image: null|string,
              *     time: int,
-             *     player_name: string,
+             *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     player_id: string,
              *     solved_times: int,

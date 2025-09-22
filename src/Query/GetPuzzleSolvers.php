@@ -45,7 +45,6 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
-    AND player.name IS NOT NULL
     AND puzzle_solving_time.team IS NULL
 ORDER BY seconds_to_solve ASC
 SQL;

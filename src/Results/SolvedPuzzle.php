@@ -13,7 +13,8 @@ readonly final class SolvedPuzzle
     public function __construct(
         public string $timeId,
         public string $playerId,
-        public string $playerName,
+        public null|string $playerName,
+        public string $playerCode,
         public null|CountryCode $playerCountry,
         public string $puzzleId,
         public string $puzzleName,
@@ -45,6 +46,7 @@ readonly final class SolvedPuzzle
      *     time_id: string,
      *     player_id: string,
      *     player_name: null|string,
+     *     player_code: string,
      *     player_country: null|string,
      *     puzzle_id: string,
      *     puzzle_name: string,
@@ -84,7 +86,8 @@ readonly final class SolvedPuzzle
         return new self(
             timeId: $row['time_id'],
             playerId: $row['player_id'],
-            playerName: $row['player_name'] ?? '',
+            playerName: $row['player_name'],
+            playerCode: strtoupper($row['player_code']),
             playerCountry: CountryCode::fromCode($row['player_country']),
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],

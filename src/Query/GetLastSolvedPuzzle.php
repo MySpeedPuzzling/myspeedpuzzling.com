@@ -37,6 +37,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     player.name AS player_name,
+    player.code AS player_code,
     player.country AS player_country,
     pieces_count,
     puzzle_solving_time.comment,
@@ -81,7 +82,8 @@ SQL;
              * @var array{
              *     time_id: string,
              *     player_id: string,
-             *     player_name: string,
+             *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -126,6 +128,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     player.name AS player_name,
+    player.code AS player_code,
     player.country AS player_country,
     pieces_count,
     puzzle_solving_time.comment,
@@ -146,7 +149,6 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-WHERE player.name IS NOT NULL
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;
@@ -169,7 +171,8 @@ SQL;
              * @var array{
              *     time_id: string,
              *     player_id: string,
-             *     player_name: string,
+             *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -238,6 +241,7 @@ SELECT
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     player.name AS player_name,
+    player.code AS player_code,
     player.country AS player_country,
     puzzle.pieces_count,
     pst.comment,
@@ -281,7 +285,8 @@ SQL;
              * @var array{
              *     time_id: string,
              *     player_id: string,
-             *     player_name: string,
+             *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,

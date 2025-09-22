@@ -170,6 +170,7 @@ SELECT
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
     player.name AS player_name,
+    player.code AS player_code,
     player.country AS player_country,
     puzzle.identification_number AS puzzle_identification_number,
     puzzle_solving_time.comment,
@@ -230,6 +231,7 @@ SQL;
              *     time_id: string,
              *     player_id: string,
              *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -348,6 +350,7 @@ SQL;
              *     team_id: null|string,
              *     player_id: string,
              *     player_name: null,
+             *     player_code: string,
              *     player_country: null,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -369,9 +372,12 @@ SQL;
              * } $row
              */
 
-            $row['player_name'] = null;
-            $row['player_country'] = null;
             $row['players'] = $players[$row['time_id']] ?? null;
+
+            // Dummy placeholder values
+            $row['player_name'] = null;
+            $row['player_code'] = '';
+            $row['player_country'] = null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);
@@ -469,6 +475,7 @@ SQL;
              *     team_id: null|string,
              *     player_id: string,
              *     player_name: null,
+             *     player_code: string,
              *     player_country: null,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -490,9 +497,12 @@ SQL;
              * } $row
              */
 
-            $row['player_name'] = null;
-            $row['player_country'] = null;
             $row['players'] = $players[$row['time_id']] ?? null;
+
+            // Dummy placeholder values
+            $row['player_name'] = null;
+            $row['player_code'] = '';
+            $row['player_country'] = null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);

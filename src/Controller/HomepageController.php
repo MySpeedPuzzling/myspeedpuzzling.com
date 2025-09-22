@@ -52,8 +52,10 @@ final class HomepageController extends AbstractController
             return $this->redirectToRoute('homepage', ['_locale' => $locale]);
         }
 
+        $lastSolvedPuzzle = $this->getLastSolvedPuzzle->limit(5);
+
         return $this->render('homepage.html.twig', [
-            'last_solved_puzzles' => $this->getLastSolvedPuzzle->limit(5),
+            'last_solved_puzzles' => $lastSolvedPuzzle,
             'global_statistics' => $this->getStatistics->globally(),
         ]);
     }

@@ -55,7 +55,7 @@
                                         {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                             <i class="ci-star-filled text-warning"></i>
                                         {% endif %}
-                                        <small>{{ puzzle_solver.playerName }}</small>
+                                        <small>{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                     </a>
                                     {% if puzzle_solver.playerCountry is not null %}
                                         <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>

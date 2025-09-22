@@ -98,7 +98,7 @@
                                             <i class="bi bi-incognito text-muted"></i>
                                         {% elseif puzzle_solver.playerId is not null %}
                                             <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                                <small>{{ puzzle_solver.playerName }}</small>
+                                                <small>{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                                 {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                                     <i class="ci-star-filled text-warning"></i>
                                                 {% endif %}

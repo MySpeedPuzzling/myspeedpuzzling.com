@@ -217,11 +217,11 @@
 
                                             {% if puzzle.competitionName %}
                                                 <br>
-                                                {% if solving_time.competitionSlug %}
-                                                    <a href="{{ path('event_detail', {'slug': solving_time.competitionSlug}) }}">
+                                                {% if puzzle.competitionSlug %}
+                                                    <a href="{{ path('event_detail', {'slug': puzzle.competitionSlug}) }}">
                                                 {% endif %}
                                                 <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i>{{ puzzle.competitionShortcut ?? puzzle.competitionName }}</span>
-                                                {% if solving_time.competitionSlug %}
+                                                {% if puzzle.competitionSlug %}
                                                     </a>
                                                 {% endif %}
                                             {% endif %}

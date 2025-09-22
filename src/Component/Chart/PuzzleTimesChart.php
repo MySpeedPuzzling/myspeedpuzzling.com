@@ -64,7 +64,7 @@ final class PuzzleTimesChart
                 $label = [];
 
                 foreach ($result->players as $player) {
-                    $label[] = Strings::truncate($player->playerName ?? '', 15);
+                    $label[] = Strings::truncate($player->playerName ?? $player->playerCode ?? '', 15);
 
                     if ($this->playerId !== null && $player->playerId === $this->playerId) {
                         $isMe = true;

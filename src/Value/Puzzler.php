@@ -31,8 +31,8 @@ readonly final class Puzzler
     {
         return new self(
             playerId: $row['player_id'],
-            playerName: $row['player_name'] ?? '',
-            playerCode: $row['player_code'],
+            playerName: $row['player_name'],
+            playerCode: $row['player_code'] !== null ? strtoupper($row['player_code']) : null,
             playerCountry: CountryCode::fromCode($row['player_country']),
             isPrivate: $row['is_private'] === null ? false : $row['is_private'],
         );
@@ -54,10 +54,12 @@ readonly final class Puzzler
         $playersData = Json::decode($json, true);
 
         $players = array_map(static function (array $data): Puzzler {
+            $playerCode = $data['player_code'] ?? null;
+
             return new Puzzler(
                 playerId: $data['player_id'],
                 playerName: $data['player_name'],
-                playerCode: $data['player_code'] ?? null,
+                playerCode: $playerCode !== null ? strtoupper($playerCode) : null,
                 playerCountry: CountryCode::fromCode($data['player_country']),
                 isPrivate: $data['is_private'] === null ? false : $data['is_private'],
             );

@@ -60,10 +60,6 @@ SQL;
              * } $row
              */
 
-            if ($row['player_name'] === null) {
-                continue;
-            }
-
             $results[$row['time_id']][] = Puzzler::fromDatabaseRow($row);
         }
 

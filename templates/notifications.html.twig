@@ -46,13 +46,13 @@
                                                 <i class="bi bi-incognito text-muted"></i>
                                             {% elseif puzzle_solver.playerId is not null %}
                                                 <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                                    {{ puzzle_solver.playerName }}
+                                                    {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
                                                 </a>
                                                 {% if puzzle_solver.playerCountry is not null %}
                                                     <span class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></span>
                                                 {% endif %}
                                             {% else %}
-                                                {{ puzzle_solver.playerName }}
+                                                {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
                                             {% endif %}
                                         </span>
                                     {% endfor %}

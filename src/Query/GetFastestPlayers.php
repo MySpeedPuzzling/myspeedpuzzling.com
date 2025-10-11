@@ -33,6 +33,7 @@ WITH FastestTimes AS (
         WHERE pst.team IS NULL
           AND p.pieces_count = :piecesCount
           AND pst.seconds_to_solve > 0
+          AND pl.is_private = false
 SQL;
 
         if ($countryCode != null) {

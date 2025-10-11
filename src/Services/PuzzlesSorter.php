@@ -219,6 +219,55 @@ readonly final class PuzzlesSorter
 
     /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @param array<string, non-empty-array<T>> $groupedSolvers
+     * @return array<string, non-empty-array<T>>
+     */
+    public function filterOutPrivateProfiles(array $groupedSolvers, null|string $loggedPlayerId): array
+    {
+        return array_filter(
+            array: $groupedSolvers,
+            callback: function (array $grouped) use ($loggedPlayerId): bool {
+                // For group/team puzzles
+                if ($grouped[0] instanceof PuzzleSolversGroup) {
+                    $loggedUserInGroup = false;
+                    $allPrivate = true;
+
+                    foreach ($grouped[0]->players as $player) {
+                        // Check if logged user is in the group
+                        if ($player->playerId === $loggedPlayerId) {
+                            $loggedUserInGroup = true;
+                        }
+                        // Check if at least one player is not private
+                        if ($player->isPrivate === false) {
+                            $allPrivate = false;
+                        }
+                    }
+
+                    // Show if logged user is in the group, or if not all players are private
+                    if ($loggedUserInGroup || $allPrivate === false) {
+                        return true;
+                    }
+
+                    // Hide only if all players are private and logged user is not in the group
+                    return false;
+                }
+
+                // For solo puzzles
+                if ($grouped[0] instanceof PuzzleSolver) {
+                    // Filter out if private and not the logged user
+                    if ($grouped[0]->isPrivate && $grouped[0]->playerId !== $loggedPlayerId) {
+                        return false;
+                    }
+                    return true;
+                }
+
+                return true;
+            }
+        );
+    }
+
+    /**
+     * @template T of PuzzleSolver|PuzzleSolversGroup
      * @param array<T> $solvedPuzzles
      * @return array<string, non-empty-array<T>>
      */

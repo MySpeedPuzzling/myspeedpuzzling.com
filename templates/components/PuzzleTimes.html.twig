@@ -145,7 +145,7 @@
                                         <br>
 
                                     {% endif %}
-                                    {% if puzzle_solver.isPrivate %}
+                                    {% if puzzle_solver.isPrivate and (logged_user.profile is null or puzzle_solver.playerId != logged_user.profile.playerId) %}
                                         <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                         <i class="bi bi-incognito text-muted"></i>
                                     {% elseif puzzle_solver.playerId is not null %}
@@ -163,7 +163,7 @@
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
-                                {% if aggregated_solver[0].isPrivate %}
+                                {% if aggregated_solver[0].isPrivate and (logged_user.profile is null or aggregated_solver[0].playerId != logged_user.profile.playerId) %}
                                     <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                     <i class="bi bi-incognito text-muted"></i>
                                 {% else %}

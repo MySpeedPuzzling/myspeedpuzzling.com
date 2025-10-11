@@ -103,6 +103,11 @@ final class PuzzleTimes
         $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
         $teamPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers);
 
+        // Filter out private profiles (unless they belong to the logged user)
+        $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutPrivateProfiles($soloPuzzleSolversGrouped, $loggedPlayerId);
+        $duoPuzzleSolversGrouped = $this->puzzlesSorter->filterOutPrivateProfiles($duoPuzzleSolversGrouped, $loggedPlayerId);
+        $teamPuzzleSolversGrouped = $this->puzzlesSorter->filterOutPrivateProfiles($teamPuzzleSolversGrouped, $loggedPlayerId);
+
         if ($this->category === 'group') {
             $this->times = $teamPuzzleSolversGrouped;
         } elseif ($this->category === 'duo') {

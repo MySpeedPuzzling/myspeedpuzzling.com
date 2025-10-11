@@ -252,15 +252,11 @@ readonly final class PuzzlesSorter
                     return false;
                 }
 
-                // For solo puzzles
-                if ($grouped[0] instanceof PuzzleSolver) {
-                    // Filter out if private and not the logged user
-                    if ($grouped[0]->isPrivate && $grouped[0]->playerId !== $loggedPlayerId) {
-                        return false;
-                    }
-                    return true;
+                // For solo puzzles (PuzzleSolver)
+                // Filter out if private and not the logged user
+                if ($grouped[0]->isPrivate && $grouped[0]->playerId !== $loggedPlayerId) {
+                    return false;
                 }
-
                 return true;
             }
         );

@@ -149,6 +149,7 @@ INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
+WHERE player.is_private = false
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
 SQL;
@@ -264,6 +265,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN player ON pst.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
+WHERE is_private = false
 ORDER BY pst.tracked_at DESC
 SQL;
 

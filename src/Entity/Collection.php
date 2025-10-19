@@ -43,6 +43,11 @@ class Collection
     ) {
     }
 
+    public function isPublic(): bool
+    {
+        return $this->visibility === CollectionVisibility::Public;
+    }
+
     public function changeName(string $name): void
     {
         $this->name = $name;

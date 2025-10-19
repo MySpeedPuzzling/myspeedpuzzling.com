@@ -62,23 +62,29 @@
                                 {% endif %}
                             </div>
                             
-                            {% if collection.description %}
-                                <p class="card-text text-muted mb-2 small">{{ collection.description }}</p>
-                            {% endif %}
-
-                            <div class="mb-2">
+                            <div>
                                 <span class="badge bg-info">
                                     <i class="bi bi-puzzle me-1"></i>
                                     {{ 'collections.items_count'|trans({'%count%': collection.itemCount}) }}
                                 </span>
                             </div>
-                            
-                            <div class="d-flex justify-content-between align-items-center text-muted small">
-                                <span>
-                                    <i class="bi bi-{{ collection.visibility == constant('SpeedPuzzling\\Web\\Value\\CollectionVisibility::Public') ? 'globe' : 'lock' }} me-1"></i>
-                                    {{ ('collections.visibility.' ~ collection.visibility.value)|trans }}
-                                </span>
-                            </div>
+
+                            {% if isOwnProfile %}
+                                <div class="d-flex justify-content-between align-items-center mt-2 text-muted small">
+                                    <span>
+                                        <i class="bi bi-{{ collection.isPublic() ? 'eye' : 'lock' }} me-1"></i>
+                                        {% if collection.isPublic() %}
+                                            {{ 'collections.visibility.public'|trans }}
+                                        {% else %}
+                                            {{ 'collections.visibility.private'|trans }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            {% endif %}
+
+                            {% if collection.description %}
+                                <p class="card-text text-muted mb-0 mt-2 small">{{ collection.description }}</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

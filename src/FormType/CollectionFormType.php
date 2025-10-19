@@ -40,7 +40,7 @@ final class CollectionFormType extends AbstractType
             ],
         ]);
 
-        $builder->add('collectionVisibility', EnumType::class, [
+        $builder->add('visibility', EnumType::class, [
             'class' => CollectionVisibility::class,
             'label' => 'forms.add_puzzle_to_collection.new_collection_visibility',
             'required' => true,

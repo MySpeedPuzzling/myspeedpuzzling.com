@@ -15,14 +15,17 @@
         </div>
         
         <div class="d-flex align-items-center">
-            {% if collection.visibility.value == 'private' %}
-                <span class="badge bg-secondary me-2">
-                    <i class="ci-locked me-1"></i> {{ 'collections.private'|trans }}
-                </span>
-            {% else %}
-                <span class="badge bg-success me-2">
-                    <i class="ci-eye me-1"></i> {{ 'collections.public'|trans }}
-                </span>
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                {% if collection.visibility.value == 'private' %}
+                    <span class="badge bg-secondary me-2">
+                        <i class="ci-locked me-1"></i> {{ 'collections.private'|trans }}
+                    </span>
+                {% else %}
+                    <span class="badge bg-success me-2">
+                        <i class="ci-eye me-1"></i> {{ 'collections.public'|trans }}
+                    </span>
+                {% endif %}
+
             {% endif %}
 
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}

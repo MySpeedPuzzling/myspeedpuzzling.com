@@ -19,4 +19,9 @@ readonly final class CollectionOverviewWithCount
         public bool $isSystemCollection,
     ) {
     }
+
+    public function isPublic(): bool
+    {
+        return $this->visibility === CollectionVisibility::Public;
+    }
 }

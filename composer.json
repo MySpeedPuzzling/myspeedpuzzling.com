@@ -125,7 +125,7 @@
         }
     },
     "scripts": {
-        "phpstan": "vendor/bin/phpstan --memory-limit=-1 analyse",
+        "phpstan": "vendor/bin/phpstan --memory-limit=2G analyse",
         "cs": "vendor/bin/phpcs",
         "cs-fix": "vendor/bin/phpcbf",
         "auto-scripts": {

@@ -53,6 +53,13 @@ final class CreateCollectionController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        // Check if user has active membership to create collections
+        if ($player->activeMembership === false) {
+            $this->addFlash('info', $this->translator->trans('collections.flash.membership_required'));
+
+            return $this->redirectToRoute('player_collections', ['playerId' => $player->playerId]);
+        }
+
         // Get Player entity for Message
         $playerEntity = $this->playerRepository->getByUserIdCreateIfNotExists($user->getUserIdentifier());
         $formData = new CollectionFormData();

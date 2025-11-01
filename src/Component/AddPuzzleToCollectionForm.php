@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\FormData\AddPuzzleToCollectionFormData;
 use SpeedPuzzling\Web\FormType\AddPuzzleToCollectionFormType;
 use Ramsey\Uuid\Uuid;
@@ -57,8 +58,14 @@ final class AddPuzzleToCollectionForm extends AbstractController
     protected function instantiateForm(): FormInterface
     {
         $collections = $this->getCollectionChoices();
+        $formData = new AddPuzzleToCollectionFormData();
 
-        return $this->createForm(AddPuzzleToCollectionFormType::class, new AddPuzzleToCollectionFormData(), [
+        // Set default collection to system collection for users without membership
+        if ($this->hasActiveMembership() === false) {
+            $formData->collection = Collection::SYSTEM_ID;
+        }
+
+        return $this->createForm(AddPuzzleToCollectionFormType::class, $formData, [
             'collections' => $collections,
         ]);
     }
@@ -76,6 +83,51 @@ final class AddPuzzleToCollectionForm extends AbstractController
         }
 
         return $choices;
+    }
+
+    public function hasActiveMembership(): bool
+    {
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            return false;
+        }
+
+        return $player->activeMembership;
+    }
+
+    public function getSystemCollectionId(): string
+    {
+        return \SpeedPuzzling\Web\Entity\Collection::SYSTEM_ID;
+    }
+
+    public function hasAvailableCollections(): bool
+    {
+        // For non-members, only check if puzzle is NOT in system collection
+        // (we don't care about other collections they created when they had membership)
+        if ($this->hasActiveMembership() === false) {
+            $player = $this->retrieveLoggedUserProfile->getProfile();
+
+            if ($player === null) {
+                return false;
+            }
+
+            $existingCollectionItems = $this->collectionItemRepository->findByPlayerAndPuzzle($player->playerId, $this->puzzleId);
+
+            // Check if puzzle is in system collection (collection is null)
+            foreach ($existingCollectionItems as $item) {
+                if ($item->collection === null) {
+                    // Puzzle is already in system collection
+                    return false;
+                }
+            }
+
+            // Puzzle is not in system collection yet
+            return true;
+        }
+
+        // For members, check if there are any available collections
+        return count($this->getCollectionChoices()) > 0;
     }
 
     #[LiveAction]
@@ -100,12 +152,22 @@ final class AddPuzzleToCollectionForm extends AbstractController
         $collectionId = $formData->collection;
 
         // Convert system collection placeholder back to null
-        if ($collectionId === '__system_collection__') {
+        if ($collectionId === Collection::SYSTEM_ID) {
             $collectionId = null;
         }
 
         // Check if we need to create a new collection
         if ($collectionId !== null && Uuid::isValid($collectionId) === false) {
+            // Check if user has active membership to create collections
+            if ($this->hasActiveMembership() === false) {
+                $this->dispatchBrowserEvent('toast:show', [
+                    'message' => $this->translator->trans('collections.membership_required.toast'),
+                    'type' => 'error',
+                ]);
+
+                return;
+            }
+
             // Generate new UUID for the collection
             $newCollectionId = Uuid::uuid7()->toString();
 
@@ -198,7 +260,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
         if (in_array(null, $existingCollectionIds, true) === false) {
             $availableCollections[] = new CollectionOverview(
                 playerId: $player->playerId,
-                collectionId: '__system_collection__',
+                collectionId: Collection::SYSTEM_ID,
                 name: $this->translator->trans('collections.system_name'),
                 description: null,
                 visibility: $player->puzzleCollectionVisibility,

@@ -49,7 +49,7 @@ services:
             - redis-data:/data
 
     adminer:
-        image: adminer:4.8.0
+        image: adminer:5.4.1
         ports:
             - "8000:8080"
         environment:

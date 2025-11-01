@@ -196,6 +196,8 @@ forms:
     drop_file: "Datei hierher ziehen und ablegen zum Hochladen"
     choose_file: "Oder Datei auswählen"
     save: "Speichern"
+    cancel: "Abbrechen"
+    close: "Schließen"
     required_field: "Dieses Feld ist erforderlich!"
     empty_group_error: "Sie können keine Gruppe nur mit sich selbst erstellen, das ist kein Gruppenpuzzeln :-)"
     too_high_ppm: "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
@@ -735,3 +737,82 @@ blog:
             <p>Für jetzt stelle ich die Mail-Server-Arbeit beiseite, und ich weiß, dass sie "zur Seite" sein wird, auf einem separaten Server, weg von MSP. Einerseits war es interessant, unseren "Disaster Recovery"-Prozess zu testen - an einem Punkt war ich so verzweifelt, dass ich bereit war, diesen Server in der Hölle brennen zu lassen, alles auf einem neuen aufzubauen und einfach die DNS-Einträge zu aktualisieren... Zum Glück erwies sich das am Ende als unnötig.</p>
             <p>PS. Es ist wirklich "von selbst" kaputtgegangen, dank des Mail-Servers, nach einer Woche ohne menschliches Eingreifen... Das ist schon etwas...</p>
             <p>PS2. Sie sind mutig, wenn Sie den ganzen Weg bis hierher gelesen haben :-).</p>
+
+navigation:
+    home: "Startseite"
+
+collections:
+    meta:
+        title: "Meine Sammlungen"
+    title: "Sammlungen"
+    title_other: "Sammlungen von %name%"
+    create:
+        button: "Sammlung erstellen"
+        title: "Neue Sammlung erstellen"
+        meta:
+            title: "Sammlung erstellen"
+        submit: "Erstellen"
+    edit:
+        button: "Bearbeiten"
+        title: "Sammlung %name% bearbeiten"
+        meta:
+            title: "Sammlung %name% bearbeiten"
+        submit: "Änderungen speichern"
+    delete:
+        button: "Löschen"
+        confirm:
+            title: "Sammlung löschen"
+            message: "Möchten Sie die Sammlung %name% wirklich löschen? Diese Aktion ist unwiderruflich und löscht auch alle Puzzles in dieser Sammlung."
+            button: "Sammlung löschen"
+    form:
+        name: "Name"
+        description: "Beschreibung"
+        visibility: "Sichtbarkeit"
+        visibility_public: "Öffentlich"
+        visibility_private: "Privat"
+        visibility_help: "Öffentliche Sammlungen sind für alle Benutzer sichtbar, private nur für Sie."
+    flash:
+        created: "Sammlung wurde erfolgreich erstellt."
+        updated: "Sammlung wurde erfolgreich aktualisiert."
+        deleted: "Sammlung wurde erfolgreich gelöscht."
+        system_updated: "Sichtbarkeit der Puzzle-Sammlung wurde erfolgreich aktualisiert."
+        membership_required: "Das Erstellen von Sammlungen ist eine Premium-Funktion. Holen Sie sich eine Mitgliedschaft, um Ihre Puzzles in unbegrenzten Sammlungen zu organisieren!"
+    membership_required:
+        title: "Unbegrenzte Sammlungen freischalten"
+        message: "Erstellen Sie unbegrenzte Sammlungen, um Ihre Puzzles mit einer Mitgliedschaft zu organisieren!"
+        toast: "Das Erstellen von Sammlungen erfordert eine aktive Mitgliedschaft."
+        help_text: "Möchten Sie Puzzles in mehrere Sammlungen organisieren?"
+        unlock_link: "Mit Mitgliedschaft freischalten"
+    empty:
+        title: "Sie haben keine Sammlungen"
+        message: "Erstellen Sie Ihre erste Sammlung und beginnen Sie, Ihre Lieblings-Puzzles zu organisieren."
+        title_other: "Keine öffentlichen Sammlungen"
+        message_other: "%name% hat keine öffentlichen Sammlungen."
+    visibility:
+        public: "Öffentlich"
+        private: "Privat"
+    public: "Öffentlich"
+    private: "Privat"
+    system_name: "Puzzle-Sammlung"
+    already_in_system: "Puzzle bereits in Ihrer Sammlung"
+    already_in_system_message: "Dieses Puzzle ist bereits in Ihrer Puzzle-Sammlung. Möchten Sie Ihre Puzzles in mehrere Sammlungen organisieren? Schalten Sie diese Funktion mit einer Mitgliedschaft frei!"
+    add_to_collection: "Zur Sammlung hinzufügen"
+    add_puzzle: "Puzzle zur Sammlung hinzufügen"
+    remove_from: "Aus %collection% entfernen"
+    remove: "Entfernen"
+    confirm_remove: "Sind Sie sicher, dass Sie dieses Puzzle aus der Sammlung entfernen möchten?"
+    items_count: "%count% Puzzles"
+    no_puzzles: "Keine Puzzles in dieser Sammlung"
+    no_puzzles_description: "Diese Sammlung ist leer. Fügen Sie einige Puzzles hinzu, um zu beginnen!"
+    added_on: "Hinzugefügt am %date%"
+    back_to_collections: "Zurück zu Sammlungen"
+    select_collection_help: "Wählen Sie eine Sammlung oder lassen Sie das Feld leer, um es zu Ihrer Standard-Puzzle-Sammlung hinzuzufügen"
+    private_collection: "Private Sammlung"
+    private_collection_message: "Die Sammlung \"%collection%\" von %player% ist privat und kann nicht angezeigt werden."
+    collection_not_found: "Sammlung nicht gefunden"
+    edit_system:
+        title: "Puzzle-Sammlung bearbeiten"
+        meta:
+            title: "Puzzle-Sammlung bearbeiten"
+        submit: "Änderungen speichern"
+        info: "Sie können nur die Sichtbarkeit Ihrer Puzzle-Sammlung ändern. Name und Beschreibung können nicht geändert werden."

@@ -2,20 +2,28 @@ import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
     static targets = ['collection', 'newCollection'];
+    static values = {
+        systemId: String
+    }
 
     uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     connect() {
-        this.collectionTarget.addEventListener('autocomplete:pre-connect', this._onAutocompleteConnect.bind(this));
-        
-        // Handle existing tomselect instance after re-render
-        if (this.collectionTarget.tomselect) {
-            this._configureExistingTomselect();
+        // Only set up if collection target exists (it may not exist when puzzle is already in collection for non-members)
+        if (this.hasCollectionTarget) {
+            this.collectionTarget.addEventListener('autocomplete:pre-connect', this._onAutocompleteConnect.bind(this));
+
+            // Handle existing tomselect instance after re-render
+            if (this.collectionTarget.tomselect) {
+                this._configureExistingTomselect();
+            }
         }
     }
 
     disconnect() {
-        this.collectionTarget.removeEventListener('autocomplete:pre-connect', this._onAutocompleteConnect.bind(this));
+        if (this.hasCollectionTarget) {
+            this.collectionTarget.removeEventListener('autocomplete:pre-connect', this._onAutocompleteConnect.bind(this));
+        }
     }
 
     _onAutocompleteConnect(event) {
@@ -52,8 +60,12 @@ export default class extends Controller {
     }
 
     _handleCollectionChange(value) {
+        if (!this.hasNewCollectionTarget) {
+            return;
+        }
+
         if (value) {
-            if (this.uuidRegex.test(value) || value === '__system_collection__') {
+            if (this.uuidRegex.test(value) || value === this.systemIdValue) {
                 // Existing collection selected (UUID or system collection) - hide new collection fields
                 this.newCollectionTarget.classList.add('d-none');
             } else {
@@ -66,14 +78,18 @@ export default class extends Controller {
         }
 
         // Blur the tomselect to close dropdown
-        if (this.collectionTarget.tomselect) {
+        if (this.hasCollectionTarget && this.collectionTarget.tomselect) {
             this.collectionTarget.tomselect.blur();
         }
     }
 
     _handleInitialValue() {
+        if (!this.hasCollectionTarget || !this.hasNewCollectionTarget) {
+            return;
+        }
+
         const currentValue = this.collectionTarget.value;
-        if (currentValue && !this.uuidRegex.test(currentValue) && currentValue !== '__system_collection__') {
+        if (currentValue && !this.uuidRegex.test(currentValue) && currentValue !== this.systemIdValue) {
             // If there's an initial value that's not a UUID or system collection, show new collection fields
             this.newCollectionTarget.classList.remove('d-none');
         } else {

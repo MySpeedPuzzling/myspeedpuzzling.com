@@ -19,6 +19,8 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 #[Entity]
 class Collection
 {
+    public const string SYSTEM_ID = '__system_collection__';
+
     public function __construct(
         #[Id]
         #[Immutable]

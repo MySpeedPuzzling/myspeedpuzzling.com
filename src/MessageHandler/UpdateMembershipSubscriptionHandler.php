@@ -65,6 +65,31 @@ readonly final class UpdateMembershipSubscriptionHandler
             } catch (MembershipNotFound) {
                 // Then try to find by player - there can be free membership without stripe
                 $membership = $this->membershipRepository->getByPlayerId($playerId);
+
+                // Validate that this membership doesn't belong to a different subscription
+                if ($membership->stripeSubscriptionId !== null && $membership->stripeSubscriptionId !== $subscriptionId) {
+                    // Check if current membership is still active
+                    if ($membership->endsAt === null) {
+                        // Active membership with different subscription - this is the BUG scenario
+                        // Don't let old/expired subscription webhooks cancel active memberships
+                        $this->logger->warning('Ignoring webhook for old subscription - player has active membership with different subscription', [
+                            'webhook_subscription_id' => $subscriptionId,
+                            'current_subscription_id' => $membership->stripeSubscriptionId,
+                            'player_id' => $playerId,
+                            'webhook_status' => $subscriptionStatus,
+                        ]);
+
+                        return;
+                    }
+
+                    // Membership is already cancelled/expired (endsAt !== null)
+                    // This is a legitimate RENEWAL - update it with new subscription
+                    $this->logger->info('Renewing cancelled membership with new subscription', [
+                        'old_subscription_id' => $membership->stripeSubscriptionId,
+                        'new_subscription_id' => $subscriptionId,
+                        'player_id' => $playerId,
+                    ]);
+                }
             }
 
             if ($subscription->cancel_at_period_end === true) {

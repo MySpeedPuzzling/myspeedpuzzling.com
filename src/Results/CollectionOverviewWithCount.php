@@ -17,6 +17,7 @@ readonly final class CollectionOverviewWithCount
         public DateTimeImmutable $createdAt,
         public int $itemCount,
         public bool $isSystemCollection,
+        public bool $isUnsolvedPuzzles = false,
     ) {
     }
 

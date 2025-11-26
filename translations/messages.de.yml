@@ -903,3 +903,30 @@ collections:
     no_move_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle verschoben werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
     no_copy_target: "Keine verfügbaren Sammlungen"
     no_copy_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle kopiert werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
+
+unsolved_puzzles:
+    description: "Puzzles in deiner Sammlung, die du noch nicht gelöst hast"
+    description_other: "Puzzles, die %name% besitzt, aber noch nicht gelöst hat"
+    edit:
+        meta:
+            title: "Sichtbarkeit ungelöster Puzzles bearbeiten"
+        submit: "Änderungen speichern"
+        title: "Sichtbarkeit ungelöster Puzzles bearbeiten"
+    empty:
+        message: "Alle Puzzles in deiner Sammlung wurden gelöst!"
+        title: "Keine ungelösten Puzzles"
+    flash:
+        updated: "Die Sichtbarkeit der ungelösten Puzzles wurde erfolgreich aktualisiert."
+    form:
+        visibility: "Sichtbarkeit"
+        visibility_help: "Die öffentliche Liste ungelöster Puzzles ist für alle Benutzer sichtbar, privat nur für dich."
+        visibility_private: "Privat"
+        visibility_public: "Öffentlich"
+    items_count: "%count% Puzzles"
+    meta:
+        title: "Ungelöste Puzzles"
+    name: "Ungelöste Puzzles"
+    private: "Private ungelöste Puzzles"
+    private_message: "Die Liste ungelöster Puzzles \"%collection%\" von %player% ist privat und kann nicht angezeigt werden."
+    title: "Ungelöste Puzzles"
+    title_other: "Ungelöste Puzzles von %name%"

@@ -903,3 +903,30 @@ collections:
     no_move_target_message: "There are no other collections to move this puzzle to. Create custom collections to organize your puzzles."
     no_copy_target: "No available collections"
     no_copy_target_message: "There are no other collections to copy this puzzle to. Create custom collections to organize your puzzles."
+
+unsolved_puzzles:
+    name: "Unsolved Puzzles"
+    meta:
+        title: "Unsolved Puzzles"
+    title: "Unsolved Puzzles"
+    title_other: "Unsolved Puzzles of %name%"
+    description: "Puzzles in your collection, but haven't solved yet"
+    description_other: "Puzzles %name% owns but hasn't solved yet"
+    items_count: "%count% puzzles"
+    empty:
+        title: "No unsolved puzzles"
+        message: "All puzzles in your collection have been solved!"
+    edit:
+        title: "Edit Unsolved Puzzles Visibility"
+        meta:
+            title: "Edit Unsolved Puzzles Visibility"
+        submit: "Save Changes"
+    form:
+        visibility: "Visibility"
+        visibility_public: "Public"
+        visibility_private: "Private"
+        visibility_help: "Public unsolved puzzles list is visible to all users, private only to you."
+    flash:
+        updated: "Unsolved puzzles visibility was successfully updated."
+    private: "Private Unsolved Puzzles"
+    private_message: "The unsolved puzzles list \"%collection%\" by %player% is private and cannot be viewed."

@@ -905,3 +905,30 @@ collections:
     no_move_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle přesunout. Vytvořte si vlastní kolekce pro organizaci puzzlí."
     no_copy_target: "Žádné dostupné kolekce"
     no_copy_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle zkopírovat. Vytvořte si vlastní kolekce pro organizaci puzzlí."
+
+unsolved_puzzles:
+    description: "Puzzle ve vaší sbírce, které jste ještě nesložili"
+    description_other: "Puzzle, které %name% vlastní, ale ještě nesložil/a"
+    edit:
+        meta:
+            title: "Upravit viditelnost nesložených puzzlí"
+        submit: "Uložit změny"
+        title: "Upravit viditelnost nesložených puzzlí"
+    empty:
+        message: "Všechny puzzle ve vaší sbírce byly složeny!"
+        title: "Žádné nesložené puzzle"
+    flash:
+        updated: "Viditelnost nesložených puzzlí byla úspěšně aktualizována."
+    form:
+        visibility: "Viditelnost"
+        visibility_help: "Veřejný seznam nesložených puzzlí je viditelný pro všechny uživatele, soukromý pouze pro vás."
+        visibility_private: "Soukromé"
+        visibility_public: "Veřejné"
+    items_count: "%count% puzzlí"
+    meta:
+        title: "Nesložené puzzle"
+    name: "Nesložené puzzle"
+    private: "Soukromé nesložené puzzle"
+    private_message: 'Seznam nesložených puzzlí "%collection%" od %player% je soukromý a nelze jej zobrazit.'
+    title: "Nesložené puzzle"
+    title_other: "Nesložené puzzle uživatele %name%"

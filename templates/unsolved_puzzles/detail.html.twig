@@ -1,0 +1,233 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ collection.name }}{% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %} - {{ player.playerName }}{% endif %}{% endblock %}
+
+{% block content %}
+<div data-controller="collection-items collection-filter">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div>
+            <h1 class="h3 mb-1">{{ collection.name }}</h1>
+            <p class="text-muted mb-0">
+                {% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %}
+                    {{ player.playerName ?? player.code }}
+                    <span class="text-muted px-2">•</span>
+                {% endif %}
+                <i class="bi bi-puzzle me-1"></i>
+                {{ 'unsolved_puzzles.items_count'|trans({'%count%': '<span data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
+                <span class="px-2"></span>
+                {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                    {% if collection.visibility.value == 'private' %}
+                        <span class="me-2 small">
+                        <i class="ci-locked me-1"></i> {{ 'collections.private'|trans }}
+                    </span>
+                    {% else %}
+                        <span class="text-primary small me-2">
+                        <i class="ci-eye me-1"></i> {{ 'collections.public'|trans }}
+                    </span>
+                    {% endif %}
+                {% endif %}
+            </p>
+            {% if collection.description %}
+                <p class="text-muted small mb-0 mt-1">{{ collection.description }}</p>
+            {% endif %}
+        </div>
+
+        <div class="d-flex align-items-center">
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                <a href="{{ path('edit_unsolved_puzzles', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
+        </a>
+    </div>
+
+    {% if items|length > 3 is not empty %}
+        <div class="filters mb-3">
+            <div class="row gx-2 align-items-center">
+                <div class="col-12 col-sm-6 col-lg-3 mb-2">
+                    <div class="position-relative">
+                        <input class="form-control" type="text"
+                               data-collection-filter-target="search"
+                               data-action="input->collection-filter#filter"
+                               placeholder="{{ 'filters.text_search_placeholder'|trans }}">
+                    </div>
+                </div>
+
+                <div class="col-6 col-sm-6 col-lg-2 mb-2">
+                    <select class="form-select" data-collection-filter-target="manufacturer" data-action="change->collection-filter#filter">
+                        <option value="">{{ 'filters.manufacturer_placeholder'|trans }}</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-sm-12 col-lg-7 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-all" checked
+                                   data-collection-filter-target="piecesRadio"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-all">{{ 'all_pieces'|trans }}</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-0-499"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="0-499"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-0-499">&lt; 500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-500"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="500"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-500">500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-501-999"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="501-999"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-501-999">501-999</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1000"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1000"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1000">1000</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1001-1499"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1001-1499"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1001-1499">1001-1499</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1500"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1500"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1500">1500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1501-1999"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1501-1999"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1501-1999">1501-1999</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-2000"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="2000"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-2000">2000</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-2001"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="2001-"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-2001">&gt; 2000</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if items is empty %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="bi bi-check-circle fs-1 text-success"></i>
+            </div>
+            <h4 class="text-muted">{{ 'unsolved_puzzles.empty.title'|trans }}</h4>
+            <p class="text-muted">{{ 'unsolved_puzzles.empty.message'|trans }}</p>
+        </div>
+    {% else %}
+        <div class="row g-3 mb-3">
+            {% for item in items %}
+                <div class="col-12 col-lg-6"
+                     data-collection-items-target="item"
+                     data-collection-item-id="{{ item.collectionItemId }}"
+                     data-collection-filter-target="item"
+                     data-pieces-count="{{ item.piecesCount }}"
+                     data-puzzle-name="{{ item.puzzleName }}"
+                     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+                     data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
+                     data-ean="{{ item.ean ?? '' }}"
+                     data-manufacturer="{{ item.manufacturerName ?? '' }}">
+                    <div class="card card-body shadow p-2 position-relative">
+                        <div class="d-flex">
+                            <div style="width: 60px;" class="flex-shrink-0">
+                                {% if item.image %}
+                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                        <img src="{{ item.image|imagine_filter('puzzle_small') }}"
+                                             alt="{{ item.puzzleName }}"
+                                             class="rounded"
+                                             style="width: 60px; height: 60px; object-fit: cover;">
+                                    </a>
+                                {% else %}
+                                    <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                                         style="width: 60px; height: 60px;">
+                                        <i class="ci-image text-muted"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="ps-2 flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <div class="pe-2">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
+                                           class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
+                                            {{ item.puzzleName }}
+                                        </a>
+                                        <br><small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+                                    </div>
+
+                                    {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                                    type="button" data-bs-toggle="dropdown">
+                                                <i class="ci-menu"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: item.puzzleId}) }}">
+                                                        <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: item.puzzleId}) }}">
+                                                        <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="fs-sm text-muted">
+                                    {{ item.manufacturerName ?? '-' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="hidden" data-collection-filter-target="noResults">
+            <div class="alert alert-warning mb-0">
+                {{ 'filters.no_puzzle_matches_filters'|trans }}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

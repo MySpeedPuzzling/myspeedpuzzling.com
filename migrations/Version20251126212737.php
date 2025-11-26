@@ -16,27 +16,37 @@ final class Version20251126212737 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('
-            INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at)
-            SELECT
-                gen_random_uuid(),
-                NULL,
-                player_id,
-                puzzle_id,
-                NULL,
-                NOW()
-            FROM tmp_collection
-        ');
+        $this->addSql("
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tmp_collection') THEN
+                    INSERT INTO collection_item (id, collection_id, player_id, puzzle_id, comment, added_at)
+                    SELECT
+                        gen_random_uuid(),
+                        NULL,
+                        player_id,
+                        puzzle_id,
+                        NULL,
+                        NOW()
+                    FROM tmp_collection;
+                END IF;
+            END $$;
+        ");
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('
-            DELETE FROM collection_item
-            WHERE collection_id IS NULL
-            AND (player_id, puzzle_id) IN (
-                SELECT player_id, puzzle_id FROM tmp_collection
-            )
-        ');
+        $this->addSql("
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tmp_collection') THEN
+                    DELETE FROM collection_item
+                    WHERE collection_id IS NULL
+                    AND (player_id, puzzle_id) IN (
+                        SELECT player_id, puzzle_id FROM tmp_collection
+                    );
+                END IF;
+            END $$;
+        ");
     }
 }

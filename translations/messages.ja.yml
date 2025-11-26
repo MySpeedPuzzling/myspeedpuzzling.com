@@ -901,3 +901,30 @@ collections:
     visibility:
         private: "非公開"
         public: "公開"
+
+unsolved_puzzles:
+    description: "コレクションにあるがまだ完成していないパズル"
+    description_other: "%name%が所有しているがまだ完成していないパズル"
+    edit:
+        meta:
+            title: "未完成パズルの公開設定を編集"
+        submit: "変更を保存"
+        title: "未完成パズルの公開設定を編集"
+    empty:
+        message: "コレクション内のすべてのパズルが完成しました！"
+        title: "未完成のパズルはありません"
+    flash:
+        updated: "未完成パズルの公開設定が正常に更新されました。"
+    form:
+        visibility: "公開設定"
+        visibility_help: "公開リストはすべてのユーザーに表示され、非公開リストはあなただけに表示されます。"
+        visibility_private: "非公開"
+        visibility_public: "公開"
+    items_count: "%count%個のパズル"
+    meta:
+        title: "未完成のパズル"
+    name: "未完成のパズル"
+    private: "非公開の未完成パズル"
+    private_message: "%player%の未完成パズルリスト「%collection%」は非公開のため閲覧できません。"
+    title: "未完成のパズル"
+    title_other: "%name%の未完成のパズル"

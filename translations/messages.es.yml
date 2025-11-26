@@ -903,3 +903,30 @@ collections:
     visibility:
         private: "Privada"
         public: "Pública"
+
+unsolved_puzzles:
+    description: "Puzzles en tu colección que aún no has resuelto"
+    description_other: "Puzzles que %name% posee pero aún no ha resuelto"
+    edit:
+        meta:
+            title: "Editar visibilidad de puzzles sin resolver"
+        submit: "Guardar cambios"
+        title: "Editar visibilidad de puzzles sin resolver"
+    empty:
+        message: "¡Todos los puzzles de tu colección han sido resueltos!"
+        title: "Sin puzzles sin resolver"
+    flash:
+        updated: "La visibilidad de los puzzles sin resolver se actualizó correctamente."
+    form:
+        visibility: "Visibilidad"
+        visibility_help: "La lista pública de puzzles sin resolver es visible para todos los usuarios, la privada solo para ti."
+        visibility_private: "Privada"
+        visibility_public: "Pública"
+    items_count: "%count% puzzles"
+    meta:
+        title: "Puzzles sin resolver"
+    name: "Puzzles sin resolver"
+    private: "Puzzles sin resolver privados"
+    private_message: "La lista de puzzles sin resolver \"%collection%\" de %player% es privada y no se puede ver."
+    title: "Puzzles sin resolver"
+    title_other: "Puzzles sin resolver de %name%"

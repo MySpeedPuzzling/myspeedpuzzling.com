@@ -30,12 +30,15 @@ readonly final class GetCollectionItems
         }
 
         $query = <<<SQL
-SELECT 
+SELECT
     ci.id as collection_item_id,
     ci.comment,
     ci.added_at,
     p.id as puzzle_id,
     p.name as puzzle_name,
+    p.alternative_name as puzzle_alternative_name,
+    p.identification_number as puzzle_identification_number,
+    p.ean,
     p.pieces_count,
     p.image,
     m.name as manufacturer_name
@@ -57,6 +60,9 @@ SQL;
              *     added_at: string,
              *     puzzle_id: string,
              *     puzzle_name: string,
+             *     puzzle_alternative_name: string|null,
+             *     puzzle_identification_number: string|null,
+             *     ean: string|null,
              *     pieces_count: int,
              *     image: string|null,
              *     manufacturer_name: string|null,
@@ -67,6 +73,9 @@ SQL;
                 collectionItemId: $row['collection_item_id'],
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
+                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleIdentificationNumber: $row['puzzle_identification_number'],
+                ean: $row['ean'],
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],

@@ -36,6 +36,7 @@ puzzle: "Puzzle"
 time: "Zeit"
 pieces_count: "%count%&nbsp;Teile"
 show_more: "Mehr anzeigen"
+show_less: "Weniger anzeigen"
 puzzle_solved: "gelöst"
 puzzle_available: "verfügbar zum Ausleihen"
 puzzle_not_available: "nicht verfügbar"
@@ -198,6 +199,7 @@ forms:
     save: "Speichern"
     cancel: "Abbrechen"
     close: "Schließen"
+    max_characters: "Maximal 500 Zeichen"
     required_field: "Dieses Feld ist erforderlich!"
     empty_group_error: "Sie können keine Gruppe nur mit sich selbst erstellen, das ist kein Gruppenpuzzeln :-)"
     too_high_ppm: "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
@@ -776,6 +778,7 @@ collections:
         updated: "Sammlung wurde erfolgreich aktualisiert."
         deleted: "Sammlung wurde erfolgreich gelöscht."
         system_updated: "Sichtbarkeit der Puzzle-Sammlung wurde erfolgreich aktualisiert."
+        comment_updated: "Kommentar wurde erfolgreich aktualisiert."
         membership_required: "Das Erstellen von Sammlungen ist eine Premium-Funktion. Holen Sie sich eine Mitgliedschaft, um Ihre Puzzles in unbegrenzten Sammlungen zu organisieren!"
     membership_required:
         title: "Unbegrenzte Sammlungen freischalten"
@@ -816,3 +819,9 @@ collections:
             title: "Puzzle-Sammlung bearbeiten"
         submit: "Änderungen speichern"
         info: "Sie können nur die Sichtbarkeit Ihrer Puzzle-Sammlung ändern. Name und Beschreibung können nicht geändert werden."
+    edit_comment:
+        title: "Kommentar bearbeiten"
+        meta:
+            title: "Kommentar bearbeiten - %name%"
+        submit: "Speichern"
+    remove_puzzle: "Aus Sammlung entfernen"

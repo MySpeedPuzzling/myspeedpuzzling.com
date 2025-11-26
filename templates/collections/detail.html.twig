@@ -10,6 +10,7 @@
                 {% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %}
                     {{ player.playerName ?? player.code }} •
                 {% endif %}
+                <i class="bi bi-puzzle me-1"></i>
                 {{ 'collections.items_count'|trans({'%count%': items|length}) }}
             </p>
         </div>
@@ -17,11 +18,11 @@
         <div class="d-flex align-items-center">
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                 {% if collection.visibility.value == 'private' %}
-                    <span class="badge bg-secondary me-2">
+                    <span class="me-2 small">
                         <i class="ci-locked me-1"></i> {{ 'collections.private'|trans }}
                     </span>
                 {% else %}
-                    <span class="badge bg-success me-2">
+                    <span class="text-primary small me-2">
                         <i class="ci-eye me-1"></i> {{ 'collections.public'|trans }}
                     </span>
                 {% endif %}
@@ -42,8 +43,8 @@
         </div>
     </div>
 
-    <div class="mb-4">
-        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-outline-secondary">
+    <div class="mb-3">
+        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
             <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
         </a>
     </div>
@@ -63,63 +64,81 @@
             <p class="text-muted">{{ 'collections.no_puzzles_description'|trans }}</p>
         </div>
     {% else %}
-        <div class="table-responsive custom-table-wrapper mt-3 mb-3">
-            <table class="table custom-table table-striped table-hover mb-0">
-                <tbody>
-                    {% for item in items %}
-                        <tr>
-                            <td style="width: 60px;">
+        <div class="row g-3 mt-3 mb-3">
+            {% for item in items %}
+                <div class="col-12 col-lg-6">
+                    <div class="card card-body shadow p-2 position-relative">
+                        <div class="d-flex">
+                            <div style="width: 60px;" class="flex-shrink-0">
                                 {% if item.image %}
-                                    <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                                         alt="{{ item.puzzleName }}"
-                                         class="rounded"
-                                         style="width: 60px; height: 60px; object-fit: cover;">
+                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                        <img src="{{ item.image|imagine_filter('puzzle_small') }}"
+                                             alt="{{ item.puzzleName }}"
+                                             class="rounded"
+                                             style="width: 60px; height: 60px; object-fit: cover;">
+                                    </a>
                                 {% else %}
                                     <div class="d-flex align-items-center justify-content-center rounded bg-light"
                                          style="width: 60px; height: 60px;">
                                         <i class="ci-image text-muted"></i>
                                     </div>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}" class="text-decoration-none fw-medium">
-                                    {{ item.puzzleName }}
-                                </a>
-                            </td>
-                            <td>
-                                <span class="text-nowrap small">
-                                    {{ item.piecesCount }}
-                                </span>
-                            </td>
-                            <td class="small">
-                                {{ item.manufacturerName ?? '-' }}
-                            </td>
-                            <td>
+                            </div>
+
+                            <div class="ps-2 flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <div class="pe-2">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
+                                           class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
+                                            {{ item.puzzleName }}
+                                        </a>
+                                        <br><small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+                                    </div>
+
+                                    {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                                    type="button" data-bs-toggle="dropdown">
+                                                <i class="ci-menu"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
+                                                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <twig:RemovePuzzleFromCollectionButton
+                                                        puzzleId="{{ item.puzzleId }}"
+                                                        collectionId="{{ collection.collectionId }}"
+                                                        buttonClass="dropdown-item text-danger">
+                                                        {% block text %}<i class="bi bi-trash me-1"></i> {{ 'collections.remove_puzzle'|trans }}{% endblock %}
+                                                    </twig:RemovePuzzleFromCollectionButton>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="fs-sm text-muted">
+                                    {{ item.manufacturerName ?? '-' }}
+                                </div>
+
                                 {% if item.comment %}
-                                    <em class="text-muted">{{ item.comment }}</em>
-                                {% else %}
-                                    <span class="text-muted">-</span>
+                                    <div class="mt-1" data-controller="expandable-text"
+                                         data-expandable-text-truncated-class="collection-comment-truncated">
+                                        <em class="text-muted fs-sm collection-comment-truncated"
+                                            data-expandable-text-target="text">{{ item.comment }}</em>
+                                        <a href="#" class="fs-sm"
+                                           data-expandable-text-target="toggle"
+                                           data-action="click->expandable-text#expand:prevent">{{ 'show_more'|trans }}</a>
+                                    </div>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <small class="text-muted text-nowrap">
-                                    {{ item.addedAt|format_datetime('short', 'none') }}
-                                </small>
-                            </td>
-                            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
-                                <td style="width: 10px;">
-                                    <a href="#" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                                </td>
-                                <td style="width: 10px;">
-                                    <twig:RemovePuzzleFromCollectionButton puzzleId="{{ item.puzzleId }}" collectionId="{{ collection.collectionId }}" buttonClass="btn btn-sm btn-outline-danger">
-                                        {% block text %}<i class="bi bi-trash"></i>{% endblock %}
-                                    </twig:RemovePuzzleFromCollectionButton>
-                                </td>
-                            {% endif %}
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
         </div>
     {% endif %}
 {% endblock %}

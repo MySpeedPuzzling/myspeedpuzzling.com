@@ -939,3 +939,10 @@ header {
 .shadow-primary {
     box-shadow: 0 0 75px -10px rgba(254, 105, 106, .5) !important;
 }
+
+.collection-comment-truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

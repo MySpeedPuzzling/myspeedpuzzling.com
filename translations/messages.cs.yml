@@ -37,6 +37,7 @@ puzzle: "Puzzle"
 time: "Čas"
 pieces_count: "%count%&nbsp;dílků"
 show_more: "Zobrazit více"
+show_less: "Skrýt"
 puzzle_solved: "poskládáno"
 puzzle_available: "k zapůjčení"
 puzzle_not_available: "nejsou k dispozici"
@@ -200,6 +201,7 @@ forms:
     save: "Uložit"
     cancel: "Zrušit"
     close: "Zavřít"
+    max_characters: "Maximálně 500 znaků"
     required_field: "Toto pole je povinné!"
     empty_group_error: "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
     too_high_ppm: "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
@@ -787,6 +789,7 @@ collections:
         updated: "Kolekce byla úspěšně upravena."
         deleted: "Kolekce byla úspěšně smazána."
         system_updated: "Viditelnost puzzle kolekce byla úspěšně upravena."
+        comment_updated: "Komentář byl úspěšně upraven."
         membership_required: "Vytváření kolekcí je prémiová funkce. Získejte členství a organizujte své puzzle do neomezeného množství kolekcí!"
     membership_required:
         title: "Odemkněte neomezené kolekce"
@@ -826,3 +829,9 @@ collections:
         meta:
             title: "Upravit puzzle kolekci"
         submit: "Uložit změny"
+    edit_comment:
+        title: "Upravit komentář"
+        meta:
+            title: "Upravit komentář - %name%"
+        submit: "Uložit"
+    remove_puzzle: "Odebrat z kolekce"

@@ -54,10 +54,10 @@ final class AddPuzzleToCollectionFormType extends AbstractType
         $builder->add('collectionDescription', TextareaType::class, [
             'label' => 'collections.form.description',
             'required' => false,
+            'help' => 'forms.max_characters',
             'attr' => [
                 'class' => 'form-control',
                 'rows' => 2,
-                'maxlength' => 500,
             ],
         ]);
 
@@ -74,8 +74,8 @@ final class AddPuzzleToCollectionFormType extends AbstractType
         $builder->add('comment', TextareaType::class, [
             'label' => 'forms.add_puzzle_to_collection.comment',
             'required' => false,
+            'help' => 'forms.max_characters',
             'attr' => [
-                'class' => 'form-control',
                 'rows' => 3,
                 'maxlength' => 500,
                 'placeholder' => 'forms.add_puzzle_to_collection.comment_placeholder',

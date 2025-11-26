@@ -29,69 +29,69 @@
         <div class="row">
             {% for collection in collections %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-lg">
+                    <div class="card shadow-lg">
+                        <div class="card-header d-flex justify-content-between align-items-start">
+                            <h5 class="card-title mb-0">
+                                {% if not collection.collectionId %}
+                                    <a href="{{ path('system_collection_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        {{ collection.name|trans }}
+                                    </a>
+                                {% else %}
+                                    <a href="{{ path('collection_detail', {collectionId: collection.collectionId}) }}" class="text-decoration-none">
+                                        {{ collection.name }}
+                                    </a>
+                                {% endif %}
+                            </h5>
+                            {% if isOwnProfile %}
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                            type="button" data-bs-toggle="dropdown">
+                                        <i class="ci-menu"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% if collection.collectionId %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_collection', {'collectionId': collection.collectionId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ collection.collectionId }}">
+                                                    <i class="bi bi-trash me-1"></i>{{ 'collections.delete.button'|trans }}
+                                                </button>
+                                            </li>
+                                        {% else %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_system_collection', {'playerId': player.playerId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
                         <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="card-title mb-0">
-                                    {% if not collection.collectionId %}
-                                        <a href="{{ path('system_collection_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                            {{ collection.name|trans }}
-                                        </a>
-                                    {% else %}
-                                        <a href="{{ path('collection_detail', {collectionId: collection.collectionId}) }}" class="text-decoration-none">
-                                            {{ collection.name }}
-                                        </a>
-                                    {% endif %}
-                                </h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-puzzle me-1"></i>
+                                    {{ 'collections.items_count'|trans({'%count%': collection.itemCount}) }}
+                                </div>
+
                                 {% if isOwnProfile %}
-                                    <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            {% if collection.collectionId %}
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ path('edit_collection', {'collectionId': collection.collectionId}) }}">
-                                                        <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ collection.collectionId }}">
-                                                        <i class="bi bi-trash me-1"></i>{{ 'collections.delete.button'|trans }}
-                                                    </button>
-                                                </li>
+                                    <div class="d-flex justify-content-between align-items-center mt-2 {{ collection.isPublic() ? 'text-primary' }} small">
+                                        <span>
+                                            <i class="bi bi-{{ collection.isPublic() ? 'eye' : 'lock' }} me-1"></i>
+                                            {% if collection.isPublic() %}
+                                                {{ 'collections.visibility.public'|trans }}
                                             {% else %}
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ path('edit_system_collection', {'playerId': player.playerId}) }}">
-                                                        <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
-                                                    </a>
-                                                </li>
+                                                {{ 'collections.visibility.private'|trans }}
                                             {% endif %}
-                                        </ul>
+                                        </span>
                                     </div>
                                 {% endif %}
                             </div>
-                            
-                            <div>
-                                <span class="badge bg-info">
-                                    <i class="bi bi-puzzle me-1"></i>
-                                    {{ 'collections.items_count'|trans({'%count%': collection.itemCount}) }}
-                                </span>
-                            </div>
-
-                            {% if isOwnProfile %}
-                                <div class="d-flex justify-content-between align-items-center mt-2 text-muted small">
-                                    <span>
-                                        <i class="bi bi-{{ collection.isPublic() ? 'eye' : 'lock' }} me-1"></i>
-                                        {% if collection.isPublic() %}
-                                            {{ 'collections.visibility.public'|trans }}
-                                        {% else %}
-                                            {{ 'collections.visibility.private'|trans }}
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            {% endif %}
 
                             {% if collection.description %}
                                 <p class="card-text text-muted mb-0 mt-2 small">{{ collection.description }}</p>

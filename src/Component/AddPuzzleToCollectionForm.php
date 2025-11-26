@@ -98,7 +98,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
     public function getSystemCollectionId(): string
     {
-        return \SpeedPuzzling\Web\Entity\Collection::SYSTEM_ID;
+        return Collection::SYSTEM_ID;
     }
 
     public function hasAvailableCollections(): bool

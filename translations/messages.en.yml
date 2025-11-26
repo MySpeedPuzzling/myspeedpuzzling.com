@@ -37,6 +37,7 @@ puzzle: "Puzzle"
 time: "Time"
 pieces_count: "%count%&nbsp;pieces"
 show_more: "Show more"
+show_less: "Show less"
 puzzle_solved: "completed"
 puzzle_available: "available for loan"
 puzzle_not_available: "not available"
@@ -198,6 +199,7 @@ forms:
     save: "Save"
     cancel: "Cancel"
     close: "Close"
+    max_characters: "Max 500 characters"
     required_field: "This field is required!"
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
     too_high_ppm: "Please check the time you entered, there is no way you can solve the puzzle that fast! :-) The time should be entered in HH:MM:SS format. The time you entered would be a new world record! :-)"
@@ -786,6 +788,7 @@ collections:
         updated: "Collection was successfully updated."
         deleted: "Collection was successfully deleted."
         system_updated: "Puzzle collection visibility was successfully updated."
+        comment_updated: "Comment was successfully updated."
         membership_required: "Creating collections is a premium feature. Get membership to organize your puzzles into unlimited collections!"
     membership_required:
         title: "Unlock Unlimited Collections"
@@ -826,3 +829,9 @@ collections:
             title: "Edit Puzzle Collection"
         submit: "Save Changes"
         info: "You can only change the visibility of your Puzzle Collection. Name and description cannot be modified."
+    edit_comment:
+        title: "Edit Comment"
+        meta:
+            title: "Edit Comment - %name%"
+        submit: "Save"
+    remove_puzzle: "Remove from Collection"

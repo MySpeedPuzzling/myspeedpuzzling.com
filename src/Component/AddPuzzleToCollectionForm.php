@@ -137,7 +137,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
         if ($player === null) {
             $this->dispatchBrowserEvent('toast:show', [
-                'message' => 'You must be logged in to add puzzles to collections.',
+                'message' => $this->translator->trans('collections.flash.login_required_add'),
                 'type' => 'error',
             ]);
 
@@ -207,7 +207,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
         // Show success toast and emit events to close modal and refresh parent components
         $this->dispatchBrowserEvent('toast:show', [
-            'message' => 'Puzzle successfully added to collection.',
+            'message' => $this->translator->trans('collections.flash.puzzle_added'),
             'type' => 'success',
         ]);
 

@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -35,6 +36,7 @@ final class RemovePuzzleFromCollectionButton
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -68,7 +70,7 @@ final class RemovePuzzleFromCollectionButton
         ));
 
         $this->dispatchBrowserEvent('toast:show', [
-            'message' => 'Puzzle removed from collection.',
+            'message' => $this->translator->trans('collections.flash.puzzle_removed'),
             'type' => 'success',
         ]);
 

@@ -138,7 +138,7 @@ final class CopyPuzzleToCollectionForm extends AbstractController
 
         if ($player === null) {
             $this->dispatchBrowserEvent('toast:show', [
-                'message' => 'You must be logged in to copy puzzles to collections.',
+                'message' => $this->translator->trans('collections.flash.login_required_copy'),
                 'type' => 'error',
             ]);
 

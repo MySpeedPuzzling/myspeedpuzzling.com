@@ -154,7 +154,7 @@ final class MovePuzzleToCollectionForm extends AbstractController
 
         if ($player === null) {
             $this->dispatchBrowserEvent('toast:show', [
-                'message' => 'You must be logged in to move puzzles between collections.',
+                'message' => $this->translator->trans('collections.flash.login_required_move'),
                 'type' => 'error',
             ]);
 

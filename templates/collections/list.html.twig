@@ -29,12 +29,12 @@
         <div class="row">
             {% for collection in collections %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card shadow-lg">
+                    <div class="card shadow-lg{{ not collection.collectionId ? ' border-start border-primary border-3' : '' }}">
                         <div class="card-header d-flex justify-content-between align-items-start">
                             <h5 class="card-title mb-0">
                                 {% if not collection.collectionId %}
                                     <a href="{{ path('system_collection_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                        {{ collection.name|trans }}
+                                        {{ collection.name }}
                                     </a>
                                 {% else %}
                                     <a href="{{ path('collection_detail', {collectionId: collection.collectionId}) }}" class="text-decoration-none">

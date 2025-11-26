@@ -196,6 +196,7 @@ add_time:
     choose_from_favorites: "- Vybrat z oblíbených -"
 
 forms:
+    saving: "Ukládání..."
     drop_file: "Přetáhněte sem soubor pro nahrání"
     choose_file: "Nebo vyberte soubor"
     save: "Uložit"
@@ -259,6 +260,7 @@ forms:
         submit: "Přidat do kolekce"
         puzzle_collection: "Puzzle kolekce (Výchozí)"
         choose_collection: "- Vyberte kolekci -"
+        new_collection_visibility: "Viditelnost"
 
 puzzlers_comparison:
     meta:
@@ -438,6 +440,7 @@ flashes:
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
     exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
     puzzle_removed_from_collection: "Puzzle bylo odebráno z kolekce."
+    collection_not_found: "Kolekce, kterou jste hledali, u nás není!"
 
 hub:
     title: "Hub"
@@ -465,6 +468,7 @@ statistics:
     longest_streak: "Nejdelší série"
     longest_streak_help: "Max po sobě jdoucích dní puzzlování"
     most_solved_brand: "Nejskládanější značka"
+    all_brands: "Všechny značky"
     no_results: |
         Víme, že miluješ skládání puzzlí — jsi v podstatě zašeptávač puzzlí. Ale za vybrané časové období… nic. Nula. Prázdno. Nicota.<br>
         Buď jsi žádné puzzle neskládal, nebo jsi ho zapomněl přidat na platformu (což je možná ještě větší záhada).<br>
@@ -791,6 +795,11 @@ collections:
         system_updated: "Viditelnost puzzle kolekce byla úspěšně upravena."
         comment_updated: "Komentář byl úspěšně upraven."
         membership_required: "Vytváření kolekcí je prémiová funkce. Získejte členství a organizujte své puzzle do neomezeného množství kolekcí!"
+        puzzle_added: "Puzzle bylo úspěšně přidáno do kolekce."
+        puzzle_removed: "Puzzle bylo odebráno z kolekce."
+        login_required_add: "Pro přidávání puzzlí do kolekcí musíte být přihlášeni."
+        login_required_copy: "Pro kopírování puzzlí do kolekcí musíte být přihlášeni."
+        login_required_move: "Pro přesouvání puzzlí mezi kolekcemi musíte být přihlášeni."
     membership_required:
         title: "Odemkněte neomezené kolekce"
         message: "Vytvářejte neomezené množství kolekcí pro organizaci vašich puzzle s členstvím!"

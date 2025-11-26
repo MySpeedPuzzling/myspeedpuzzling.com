@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use SpeedPuzzling\Web\FormData\AddPuzzleToCollectionFormData;
+use SpeedPuzzling\Web\FormData\CollectionPuzzleActionFormData;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
@@ -14,9 +14,9 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * @extends AbstractType<AddPuzzleToCollectionFormData>
+ * @extends AbstractType<CollectionPuzzleActionFormData>
  */
-final class AddPuzzleToCollectionFormType extends AbstractType
+final class CollectionPuzzleActionFormType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -86,7 +86,7 @@ final class AddPuzzleToCollectionFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => AddPuzzleToCollectionFormData::class,
+            'data_class' => CollectionPuzzleActionFormData::class,
             'collections' => [],
         ]);
 

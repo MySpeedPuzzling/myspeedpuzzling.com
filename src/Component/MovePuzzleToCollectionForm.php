@@ -9,8 +9,8 @@ use SpeedPuzzling\Web\FormData\CollectionPuzzleActionFormData;
 use SpeedPuzzling\Web\FormType\CollectionPuzzleActionFormType;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
-use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
 use SpeedPuzzling\Web\Message\CreateCollection;
+use SpeedPuzzling\Web\Message\MovePuzzleToCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
@@ -22,14 +22,13 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
-use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent]
-final class AddPuzzleToCollectionForm extends AbstractController
+final class MovePuzzleToCollectionForm extends AbstractController
 {
     use DefaultActionTrait;
     use ComponentToolsTrait;
@@ -37,6 +36,15 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
     #[LiveProp]
     public string $puzzleId = '';
+
+    #[LiveProp]
+    public string $collectionItemId = '';
+
+    #[LiveProp]
+    public null|string $sourceCollectionId = null;
+
+    #[LiveProp]
+    public null|string $existingComment = null;
 
     /**
      * @var null|list<CollectionOverview>
@@ -59,6 +67,11 @@ final class AddPuzzleToCollectionForm extends AbstractController
     {
         $collections = $this->getCollectionChoices();
         $formData = new CollectionPuzzleActionFormData();
+
+        // Pre-fill comment from existing item
+        if ($this->existingComment !== null) {
+            $formData->comment = $this->existingComment;
+        }
 
         // Set default collection to system collection for users without membership
         if ($this->hasActiveMembership() === false) {
@@ -103,8 +116,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
     public function hasAvailableCollections(): bool
     {
-        // For non-members, only check if puzzle is NOT in system collection
-        // (we don't care about other collections they created when they had membership)
+        // For non-members, only check if system collection is available
         if ($this->hasActiveMembership() === false) {
             $player = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -117,12 +129,17 @@ final class AddPuzzleToCollectionForm extends AbstractController
             // Check if puzzle is in system collection (collection is null)
             foreach ($existingCollectionItems as $item) {
                 if ($item->collection === null) {
-                    // Puzzle is already in system collection
+                    // Puzzle is already in system collection - can't move there
                     return false;
                 }
             }
 
-            // Puzzle is not in system collection yet
+            // Check if source is system collection - then no available target for non-members
+            if ($this->sourceCollectionId === null || $this->sourceCollectionId === Collection::SYSTEM_ID) {
+                return false;
+            }
+
+            // System collection is available as target
             return true;
         }
 
@@ -137,7 +154,7 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
         if ($player === null) {
             $this->dispatchBrowserEvent('toast:show', [
-                'message' => 'You must be logged in to add puzzles to collections.',
+                'message' => 'You must be logged in to move puzzles between collections.',
                 'type' => 'error',
             ]);
 
@@ -149,15 +166,15 @@ final class AddPuzzleToCollectionForm extends AbstractController
         /** @var CollectionPuzzleActionFormData $formData */
         $formData = $this->getForm()->getData();
 
-        $collectionId = $formData->collection;
+        $targetCollectionId = $formData->collection;
 
         // Convert system collection placeholder back to null
-        if ($collectionId === Collection::SYSTEM_ID) {
-            $collectionId = null;
+        if ($targetCollectionId === Collection::SYSTEM_ID) {
+            $targetCollectionId = null;
         }
 
         // Check if we need to create a new collection
-        if ($collectionId !== null && Uuid::isValid($collectionId) === false) {
+        if ($targetCollectionId !== null && Uuid::isValid($targetCollectionId) === false) {
             // Check if user has active membership to create collections
             if ($this->hasActiveMembership() === false) {
                 $this->dispatchBrowserEvent('toast:show', [
@@ -176,18 +193,18 @@ final class AddPuzzleToCollectionForm extends AbstractController
                 $this->messageBus->dispatch(new CreateCollection(
                     collectionId: $newCollectionId,
                     playerId: $player->playerId,
-                    name: $collectionId,
+                    name: $targetCollectionId,
                     description: $formData->collectionDescription,
                     visibility: $formData->collectionVisibility,
                 ));
 
-                // Use the new collection ID for adding the puzzle
-                $collectionId = $newCollectionId;
+                // Use the new collection ID for moving the puzzle
+                $targetCollectionId = $newCollectionId;
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
                 if ($realException instanceof CollectionAlreadyExists) {
                     // Use the existing collection ID instead
-                    $collectionId = $realException->collectionId;
+                    $targetCollectionId = $realException->collectionId;
                 } else {
                     // Re-throw if it's a different exception
                     throw $exception;
@@ -195,10 +212,17 @@ final class AddPuzzleToCollectionForm extends AbstractController
             }
         }
 
-        $this->messageBus->dispatch(new AddPuzzleToCollection(
+        // Convert source collection ID
+        $sourceCollectionId = $this->sourceCollectionId;
+        if ($sourceCollectionId === Collection::SYSTEM_ID) {
+            $sourceCollectionId = null;
+        }
+
+        $this->messageBus->dispatch(new MovePuzzleToCollection(
             playerId: $player->playerId,
             puzzleId: $this->puzzleId,
-            collectionId: $collectionId,
+            sourceCollectionId: $sourceCollectionId,
+            targetCollectionId: $targetCollectionId,
             comment: $formData->comment,
         ));
 
@@ -207,25 +231,23 @@ final class AddPuzzleToCollectionForm extends AbstractController
 
         // Show success toast and emit events to close modal and refresh parent components
         $this->dispatchBrowserEvent('toast:show', [
-            'message' => 'Puzzle successfully added to collection.',
+            'message' => $this->translator->trans('collections.puzzle_moved'),
             'type' => 'success',
         ]);
 
         $this->dispatchBrowserEvent('modal:close');
 
+        // Dispatch browser event to remove item from DOM
+        $this->dispatchBrowserEvent('collection:itemMoved', [
+            'collectionItemId' => $this->collectionItemId,
+        ]);
+
         // Emit event to refresh parent component
-        $this->emit('puzzle:addedToCollection', [
+        $this->emit('puzzle:movedToCollection', [
             'puzzleId' => $this->puzzleId,
         ]);
 
         $this->resetForm();
-    }
-
-    #[LiveListener('puzzle:removedFromCollection')]
-    public function onCollectionChanged(): void
-    {
-        // Clear cached collections to force refresh
-        $this->availableCollections = null;
     }
 
     /**
@@ -253,11 +275,17 @@ final class AddPuzzleToCollectionForm extends AbstractController
             $existingCollectionIds[] = $item->collection?->id->toString();
         }
 
-        // Filter out collections that already contain this puzzle
+        // Determine source collection ID for filtering
+        $sourceId = $this->sourceCollectionId;
+        if ($sourceId === Collection::SYSTEM_ID) {
+            $sourceId = null;
+        }
+
+        // Filter out collections that already contain this puzzle AND the source collection
         $availableCollections = [];
 
-        // Only add system collection if not already containing the puzzle
-        if (in_array(null, $existingCollectionIds, true) === false) {
+        // Only add system collection if not already containing the puzzle AND not the source
+        if (in_array(null, $existingCollectionIds, true) === false && $sourceId !== null) {
             $availableCollections[] = new CollectionOverview(
                 playerId: $player->playerId,
                 collectionId: Collection::SYSTEM_ID,
@@ -267,9 +295,13 @@ final class AddPuzzleToCollectionForm extends AbstractController
             );
         }
 
-        // Add regular collections that don't already contain the puzzle
+        // Add regular collections that don't already contain the puzzle AND are not the source
         foreach ($collections as $collection) {
-            if ($collection->collectionId !== null && !in_array($collection->collectionId, $existingCollectionIds, true)) {
+            if (
+                $collection->collectionId !== null
+                && !in_array($collection->collectionId, $existingCollectionIds, true)
+                && $collection->collectionId !== $this->sourceCollectionId
+            ) {
                 $availableCollections[] = $collection;
             }
         }

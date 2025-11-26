@@ -3,6 +3,7 @@
 {% block title %}{{ collection.name }}{% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %} - {{ player.playerName }}{% endif %}{% endblock %}
 
 {% block content %}
+<div data-controller="collection-items">
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="h3 mb-1">{{ collection.name }}</h1>
@@ -11,7 +12,7 @@
                     {{ player.playerName ?? player.code }} •
                 {% endif %}
                 <i class="bi bi-puzzle me-1"></i>
-                {{ 'collections.items_count'|trans({'%count%': items|length}) }}
+                {{ 'collections.items_count'|trans({'%count%': '<span data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
             </p>
         </div>
         
@@ -66,7 +67,9 @@
     {% else %}
         <div class="row g-3 mt-3 mb-3">
             {% for item in items %}
-                <div class="col-12 col-lg-6">
+                <div class="col-12 col-lg-6"
+                     data-collection-items-target="item"
+                     data-collection-item-id="{{ item.collectionItemId }}">
                     <div class="card card-body shadow p-2 position-relative">
                         <div class="d-flex">
                             <div style="width: 60px;" class="flex-shrink-0">
@@ -113,6 +116,18 @@
                                                     </a>
                                                 </li>
                                                 <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                                       data-bs-target="#move-to-collection-{{ item.collectionItemId }}">
+                                                        <i class="bi bi-arrow-right-square me-1"></i> {{ 'collections.move_to_collection'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                                       data-bs-target="#copy-to-collection-{{ item.collectionItemId }}">
+                                                        <i class="bi bi-copy me-1"></i> {{ 'collections.copy_to_collection'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li>
                                                     <a class="dropdown-item" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
                                                         <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
                                                     </a>
@@ -128,6 +143,32 @@
                                                 </li>
                                             </ul>
                                         </div>
+
+                                        <twig:Modal id="move-to-collection-{{ item.collectionItemId }}">
+                                            {% block modal_header %}
+                                                <h5 class="modal-title">{{ 'collections.move_puzzle'|trans }}</h5>
+                                            {% endblock %}
+                                            {% block modal_body %}
+                                                {{ component('MovePuzzleToCollectionForm', {
+                                                    puzzleId: item.puzzleId,
+                                                    collectionItemId: item.collectionItemId,
+                                                    sourceCollectionId: collection.collectionId,
+                                                    existingComment: item.comment
+                                                }) }}
+                                            {% endblock %}
+                                        </twig:Modal>
+
+                                        <twig:Modal id="copy-to-collection-{{ item.collectionItemId }}">
+                                            {% block modal_header %}
+                                                <h5 class="modal-title">{{ 'collections.copy_puzzle'|trans }}</h5>
+                                            {% endblock %}
+                                            {% block modal_body %}
+                                                {{ component('CopyPuzzleToCollectionForm', {
+                                                    puzzleId: item.puzzleId,
+                                                    sourceCollectionId: collection.collectionId
+                                                }) }}
+                                            {% endblock %}
+                                        </twig:Modal>
                                     {% endif %}
                                 </div>
 
@@ -152,4 +193,5 @@
             {% endfor %}
         </div>
     {% endif %}
+</div>
 {% endblock %}

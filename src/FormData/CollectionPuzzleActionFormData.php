@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\FormData;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Component\Validator\Constraints\Length;
 
-final class AddPuzzleToCollectionFormData
+final class CollectionPuzzleActionFormData
 {
     #[Length(max: 100)]
     public null|string $collection = null;

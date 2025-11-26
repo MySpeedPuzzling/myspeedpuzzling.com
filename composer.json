@@ -116,7 +116,8 @@
     },
     "autoload": {
         "psr-4": {
-            "SpeedPuzzling\\Web\\": "src"
+            "SpeedPuzzling\\Web\\": "src",
+            "SpeedPuzzling\\Tools\\": "tools"
         }
     },
     "autoload-dev": {

@@ -45,3 +45,6 @@ competitions_data.csv
 
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Translation checker output
+translations-missing.json

@@ -86,23 +86,29 @@ foreach ($files as $file) {
 }
 
 // Find missing keys
-// Structure: $missing["domain.key"] = ["locale1", "locale2", ...]
+// Structure: $missing["domain.key"] = ["filled" => [...], "missing" => [...]]
 $missing = [];
 
 foreach ($allKeysByDomain as $domain => $keys) {
     foreach (array_keys($keys) as $key) {
         $missingIn = [];
+        $filledIn = [];
 
         foreach ($locales as $locale) {
             // Check if this locale has this key in this domain
             if (!isset($languageKeys[$domain][$locale][$key])) {
                 $missingIn[] = $locale;
+            } else {
+                $filledIn[] = [$locale => $languageKeys[$domain][$locale][$key]];
             }
         }
 
         if ($missingIn !== []) {
             $fullKey = $domain . '.' . $key;
-            $missing[$fullKey] = $missingIn;
+            $missing[$fullKey] = [
+                'filled' => $filledIn,
+                'missing' => $missingIn,
+            ];
         }
     }
 }
@@ -132,8 +138,8 @@ foreach ($locales as $locale) {
     $perLocale[$locale] = 0;
 }
 
-foreach ($missing as $localesList) {
-    foreach ($localesList as $locale) {
+foreach ($missing as $entry) {
+    foreach ($entry['missing'] as $locale) {
         $perLocale[$locale]++;
     }
 }

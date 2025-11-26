@@ -253,8 +253,27 @@ forms:
     global_search_placeholder: "Hledat puzzle nebo hráče..."
     private_profile: "Skrytý profil"
     private_profile_help: "Vaše jméno nebude nikde uvedeno a časy budou prezentovány jako anonymní."
+    add: "Přidat"
+    back: "Zpět"
+    clear: "Vymazat"
+    confirm: "Potvrdit"
+    continue: "Pokračovat"
+    create: "Vytvořit"
+    delete: "Smazat"
+    edit: "Upravit"
+    next: "Další"
+    no: "Ne"
+    ok: "OK"
+    previous: "Předchozí"
+    remove: "Odebrat"
+    reset: "Obnovit"
+    search: "Hledat"
+    submit: "Odeslat"
+    update: "Aktualizovat"
+    yes: "Ano"
     add_puzzle_to_collection:
         collection: "Kolekce"
+        collection_help: "Vyberte existující kolekci nebo zadejte název nové kolekce."
         comment: "Komentář"
         comment_placeholder: "Volitelný komentář k tomuto puzzle..."
         submit: "Přidat do kolekce"
@@ -267,6 +286,25 @@ puzzlers_comparison:
         title: "Porovnání puzzlerů"
     title: "Porovnání puzzlerů"
     nothing_to_compare: "Bohužel nemáte žádné puzzle k porovnání, které byly poskládány oběma puzzlery."
+
+compare_players:
+    comparison: "Porovnání"
+    head_to_head: "Přímé srovnání"
+    select_players: "Vyberte hráče k porovnání"
+    statistics: "Statistiky"
+    title: "Porovnání hráčů"
+
+contact:
+    email: "E-mail"
+    message: "Zpráva"
+    send: "Odeslat"
+    thank_you: "Děkujeme za vaši zprávu!"
+    title: "Kontakt"
+
+recent_activity:
+    latest_times: "Nejnovější časy"
+    no_activity: "Žádná nedávná aktivita"
+    title: "Nedávná aktivita"
 
 edit_time:
     meta:
@@ -412,6 +450,10 @@ puzzlers:
     no_matches_found: "Nebyly nalezeny žádné shody"
     my_favorites: "Moji oblíbení"
     most_popular: "Nejpopulárnější"
+    by_country: "Podle země"
+    most_favorite: "Nejoblíbenější puzzleři"
+    search_placeholder: "Hledat jméno hráče nebo kód..."
+    total_players: "Celkem hráčů"
 
 players_per_country:
     meta:
@@ -493,12 +535,18 @@ dates:
 feedback:
     title: "Poslat zpětnou vazbu"
     success_msg: "Obdrželi jsme vaši zpětnu vazbu, moc si jí vážíme! Brzy se vám ozveme."
+    message: "Zpráva"
+    send: "Odeslat"
+    thank_you: "Děkujeme za vaši zpětnou vazbu!"
 
 notifications:
     title: "Notifikace"
     solved_puzzle_with_time: "za"
     solved_puzzle: "{0,1} poskládal puzzle|[2,Inf] poskládali puzzle"
     no_notifications: "Zatím nemáte žádné notifikace. Přihlašte se k odběru hráčů přidáním do oblíbených."
+    mark_all_as_read: "Označit vše jako přečtené"
+    mark_as_read: "Označit jako přečtené"
+    new_notification: "Nová notifikace"
 
 badges:
     title: "Odznaky"
@@ -838,6 +886,7 @@ collections:
         meta:
             title: "Upravit puzzle kolekci"
         submit: "Uložit změny"
+        info: "Můžete změnit pouze viditelnost vaší Puzzle kolekce. Název a popis nelze upravit."
     edit_comment:
         title: "Upravit komentář"
         meta:

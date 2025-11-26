@@ -20,6 +20,10 @@ menu:
     change_player_code: "プレイヤーコード変更"
     profile: "プロフィール"
     events: "イベント"
+    collections: "コレクション"
+
+navigation:
+    home: "ホーム"
 
 footer:
     created_with_love: "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
@@ -217,6 +221,17 @@ forms:
     no: "いいえ"
     ok: "OK"
     required_field: "この項目は必須です！"
+    max_characters: "最大500文字"
+    saving: "保存中..."
+    add_puzzle_to_collection:
+        choose_collection: "- コレクションを選択 -"
+        collection: "コレクション"
+        collection_help: "既存のコレクションを選択するか、新しいコレクション名を追加してください。"
+        comment: "コメント"
+        comment_placeholder: "このパズルについてのオプションコメント..."
+        new_collection_visibility: "表示設定"
+        puzzle_collection: "パズルコレクション（デフォルト）"
+        submit: "コレクションに追加"
     empty_group_error: "自分だけでグループを作成することはできません。それはグループパズルではありません :-)"
     too_high_ppm: "入力したタイムを確認してください。そんなに早くパズルを解くことは不可能です！ :-) タイムはHH:MM:SS形式で入力してください。入力したタイムは新世界記録になります！ :-)"
     unknown_error: "予期しないエラーが発生しました :(. 通知済みです。後でもう一度お試しください。"
@@ -288,6 +303,8 @@ notifications:
     mark_all_as_read: "すべて既読にする"
     no_notifications: "通知がありません"
     new_notification: "新しい通知"
+    solved_puzzle: "パズルを解きました"
+    solved_puzzle_with_time: "で"
 
 membership:
     meta:
@@ -348,6 +365,7 @@ feedback:
     message: "メッセージ"
     send: "送信"
     thank_you: "フィードバックありがとうございます！"
+    success_msg: "フィードバックを受け取りました。大変感謝しております！近日中にご連絡いたします。"
 
 events:
     title: "イベント"
@@ -374,6 +392,10 @@ puzzlers:
     most_favorite: "最も人気のパズラー"
     by_country: "国別"
     total_players: "合計プレイヤー"
+    results_for: "の検索結果"
+    no_matches_found: "該当するものが見つかりません"
+    my_favorites: "お気に入り"
+    most_popular: "最も人気"
 
 contact:
     title: "お問い合わせ"
@@ -521,6 +543,8 @@ players_per_country:
 
 flashes:
     stopwatch_already_saved: "これらのストップウォッチは既に保存されています。"
+    collection_not_found: "お探しのコレクションは存在しません！"
+    puzzle_removed_from_collection: "パズルがコレクションから削除されました。"
     puzzle_needs_approve: "最近追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
     time_added: "パズリングタイムを保存しました。"
     time_deleted: "すべての証拠を削除しました。今起こったことを誰も知ることはありません！"
@@ -566,6 +590,7 @@ statistics:
     longest_streak: "最長連続記録"
     longest_streak_help: "連続でパズリングした最大日数"
     most_solved_brand: "最も解いたブランド"
+    all_brands: "すべてのブランド"
     no_results: |
         パズルを解くのが好きなことは分かっています—基本的にパズルウィスパラーですからね。しかし、選択した期間では...何もありません。ゼロ。皆無。ナダ。<br>
         何も解いていないか、プラットフォームに追加し忘れたか（正直、それはもっと困惑しますが）のいずれかです。<br>
@@ -776,3 +801,103 @@ blog:
             <p>不要な詳細をいくつかスキップしました—その間に5分でDNSをCloudFlareプロキシに切り替え、停止についてのメッセージを表示するNode.jsワーカーを設定したことなど—空白ページがないように...</p>
             <p>今のところ、メールサーバーの作業は脇に置いておき、「脇に」、MSPから離れた別のサーバーに設置することを知っています。一方で、「災害復旧」プロセスをテストするのは興味深かったです—ある時点で、このサーバーを地獄で燃やし、新しいサーバーですべてを回転させ、DNSレコードを更新するだけでよいと準備していたほど絶望的でした...幸い、最終的にはそれは不要でした。</p>
             <p>PS. 人間の介入なしに1週間後、メールサーバーのおかげで本当に「自分で」壊れました...それはかなりのものです...</p>
+
+collections:
+    add_puzzle: "コレクションにパズルを追加"
+    add_to_collection: "コレクションに追加"
+    added_on: "%date%に追加"
+    already_in_system: "パズルは既にコレクションにあります"
+    already_in_system_message: "このパズルは既にパズルコレクションにあります。パズルを複数のコレクションに整理したいですか？メンバーシップでこの機能をアンロック！"
+    back_to_collections: "コレクションに戻る"
+    collection_not_found: "コレクションが見つかりません"
+    confirm_remove: "このパズルをコレクションから削除してもよろしいですか？"
+    copy_puzzle: "コレクションにパズルをコピー"
+    copy_puzzle_submit: "コピー"
+    copy_to_collection: "コレクションにコピー"
+    create:
+        button: "コレクションを作成"
+        meta:
+            title: "コレクションを作成"
+        submit: "作成"
+        title: "新しいコレクションを作成"
+    delete:
+        button: "削除"
+        confirm:
+            button: "コレクションを削除"
+            message: "コレクション%name%を本当に削除しますか？この操作は元に戻せず、このコレクション内のすべてのパズルも削除されます。"
+            title: "コレクションを削除"
+    edit:
+        button: "編集"
+        meta:
+            title: "コレクション%name%を編集"
+        submit: "変更を保存"
+        title: "コレクション%name%を編集"
+    edit_comment:
+        meta:
+            title: "コメントを編集 - %name%"
+        submit: "保存"
+        title: "コメントを編集"
+    edit_system:
+        info: "パズルコレクションの表示設定のみ変更できます。名前と説明は変更できません。"
+        meta:
+            title: "パズルコレクションを編集"
+        submit: "変更を保存"
+        title: "パズルコレクションを編集"
+    empty:
+        message: "最初のコレクションを作成して、お気に入りのパズルを整理しましょう。"
+        message_other: "%name%には公開コレクションがありません。"
+        title: "コレクションがありません"
+        title_other: "公開コレクションはありません"
+    flash:
+        comment_updated: "コメントが正常に更新されました。"
+        created: "コレクションが正常に作成されました。"
+        deleted: "コレクションが正常に削除されました。"
+        login_required_add: "コレクションにパズルを追加するにはログインが必要です。"
+        login_required_copy: "コレクションにパズルをコピーするにはログインが必要です。"
+        login_required_move: "コレクション間でパズルを移動するにはログインが必要です。"
+        membership_required: "コレクションの作成はプレミアム機能です。メンバーシップを取得して、無制限のコレクションでパズルを整理しましょう！"
+        puzzle_added: "パズルがコレクションに正常に追加されました。"
+        puzzle_removed: "パズルがコレクションから削除されました。"
+        system_updated: "パズルコレクションの表示設定が正常に更新されました。"
+        updated: "コレクションが正常に更新されました。"
+    form:
+        description: "説明"
+        name: "名前"
+        visibility: "表示設定"
+        visibility_help: "公開コレクションはすべてのユーザーに表示され、非公開コレクションはあなただけに表示されます。"
+        visibility_private: "非公開"
+        visibility_public: "公開"
+    items_count: "%count%個のパズル"
+    membership_required:
+        help_text: "パズルを複数のコレクションに整理したいですか？"
+        message: "メンバーシップで無制限のコレクションを作成してパズルを整理しましょう！"
+        title: "無制限のコレクションをアンロック"
+        toast: "コレクションの作成にはアクティブなメンバーシップが必要です。"
+        unlock_link: "メンバーシップでアンロック"
+    meta:
+        title: "マイコレクション"
+    move_puzzle: "コレクションにパズルを移動"
+    move_puzzle_submit: "移動"
+    move_to_collection: "コレクションに移動"
+    no_copy_target: "利用可能なコレクションがありません"
+    no_copy_target_message: "このパズルをコピーできる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
+    no_move_target: "利用可能なコレクションがありません"
+    no_move_target_message: "このパズルを移動できる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
+    no_puzzles: "このコレクションにパズルはありません"
+    no_puzzles_description: "このコレクションは空です。パズルを追加して始めましょう！"
+    private: "非公開"
+    private_collection: "非公開コレクション"
+    private_collection_message: "%player%のコレクション「%collection%」は非公開で表示できません。"
+    public: "公開"
+    puzzle_copied: "パズルがコレクションに正常にコピーされました。"
+    puzzle_moved: "パズルがコレクションに正常に移動されました。"
+    remove: "削除"
+    remove_from: "%collection%から削除"
+    remove_puzzle: "コレクションから削除"
+    select_collection_help: "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
+    system_name: "パズルコレクション"
+    title: "コレクション"
+    title_other: "%name%のコレクション"
+    visibility:
+        private: "非公開"
+        public: "公開"

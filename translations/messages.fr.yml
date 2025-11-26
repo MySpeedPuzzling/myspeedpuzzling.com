@@ -20,6 +20,10 @@ menu:
     change_player_code: "Changer le code joueur"
     profile: "Profil"
     events: "Événements"
+    collections: "Collections"
+
+navigation:
+    home: "Accueil"
 
 footer:
     created_with_love: "Créé avec amour pour les puzzles et le code par %simona% et %jan%"
@@ -198,6 +202,37 @@ forms:
     choose_file: "Ou sélectionnez un fichier"
     save: "Sauvegarder"
     required_field: "Ce champ est obligatoire !"
+    cancel: "Annuler"
+    close: "Fermer"
+    add: "Ajouter"
+    back: "Retour"
+    clear: "Effacer"
+    confirm: "Confirmer"
+    continue: "Continuer"
+    create: "Créer"
+    delete: "Supprimer"
+    edit: "Modifier"
+    max_characters: "Maximum 500 caractères"
+    next: "Suivant"
+    no: "Non"
+    ok: "OK"
+    previous: "Précédent"
+    remove: "Supprimer"
+    reset: "Réinitialiser"
+    saving: "Sauvegarde en cours..."
+    search: "Rechercher"
+    submit: "Envoyer"
+    update: "Mettre à jour"
+    yes: "Oui"
+    add_puzzle_to_collection:
+        choose_collection: "- Choisir une collection -"
+        collection: "Collection"
+        collection_help: "Choisissez une collection existante ou ajoutez un nouveau nom de collection."
+        comment: "Commentaire"
+        comment_placeholder: "Commentaire optionnel sur ce puzzle..."
+        new_collection_visibility: "Visibilité"
+        puzzle_collection: "Collection de Puzzles (Par défaut)"
+        submit: "Ajouter à la collection"
     empty_group_error: "Vous ne pouvez pas créer un groupe avec vous seulement, ce n'est pas de l'assemblage en groupe :-)"
     too_high_ppm: "Veuillez vérifier le temps que vous avez saisi, il n'est pas possible de résoudre le puzzle si rapidement ! :-) Le temps doit être saisi au format HH:MM:SS. Le temps que vous avez saisi serait un nouveau record du monde ! :-)"
     unknown_error: "Une erreur inattendue s'est produite :(. Nous avons été notifiés. Veuillez réessayer plus tard."
@@ -399,6 +434,10 @@ puzzlers:
     no_matches_found: "Aucune correspondance trouvée"
     my_favorites: "Mes favoris"
     most_popular: "Les plus populaires"
+    by_country: "Par pays"
+    most_favorite: "Puzzleurs les plus favoris"
+    search_placeholder: "Rechercher par nom ou code joueur..."
+    total_players: "Total des joueurs"
 
 players_per_country:
     meta:
@@ -408,6 +447,8 @@ players_per_country:
 
 flashes:
     stopwatch_already_saved: "Ces chronomètres ont déjà été sauvegardés."
+    collection_not_found: "La collection que vous avez recherchée n'existe pas sur notre plateforme !"
+    puzzle_removed_from_collection: "Le puzzle a été retiré de la collection."
     puzzle_needs_approve: "Les puzzles récemment ajoutés seront affichés publiquement après approbation par un administrateur - généralement dans les 24 heures suivant l'ajout."
     time_added: "Nous avons sauvegardé votre temps de puzzle."
     time_deleted: "Nous avons supprimé toutes les preuves. Personne ne saura jamais ce qui vient de se passer !"
@@ -453,6 +494,7 @@ statistics:
     longest_streak: "Plus longue série"
     longest_streak_help: "Max jours consécutifs de puzzle"
     most_solved_brand: "Marque la plus résolue"
+    all_brands: "Toutes les marques"
     no_results: |
         Nous savons que vous adorez résoudre des puzzles — vous êtes pratiquement un chuchotteur de puzzles. Mais pour la période sélectionnée… rien. Zéro. Zilch. Nada.<br> 
         Soit vous n'en avez résolu aucun, soit vous avez oublié de les ajouter à la plateforme (ce qui est encore plus déconcertant, honnêtement).<br>
@@ -478,12 +520,37 @@ dates:
 feedback:
     title: "Envoyer un commentaire"
     success_msg: "Nous avons reçu vos commentaires et les apprécions grandement ! Nous vous ferons savoir bientôt."
+    message: "Message"
+    send: "Envoyer"
+    thank_you: "Merci pour vos commentaires !"
+
+contact:
+    email: "E-mail"
+    message: "Message"
+    send: "Envoyer"
+    thank_you: "Merci de nous avoir contactés !"
+    title: "Contact"
+
+compare_players:
+    comparison: "Comparaison"
+    head_to_head: "Face à face"
+    select_players: "Sélectionner les joueurs à comparer"
+    statistics: "Statistiques"
+    title: "Comparaison des joueurs"
+
+recent_activity:
+    latest_times: "Derniers temps"
+    no_activity: "Aucune activité récente"
+    title: "Activité récente"
 
 notifications:
     title: "Notifications"
     solved_puzzle_with_time: "en"
     solved_puzzle: "a résolu le puzzle"
     no_notifications: "Vous n'avez aucune notification pour l'instant. Abonnez-vous à quelques joueurs en les ajoutant aux favoris."
+    mark_all_as_read: "Tout marquer comme lu"
+    mark_as_read: "Marquer comme lu"
+    new_notification: "Nouvelle notification"
 
 badges:
     title: "Badges"
@@ -736,3 +803,103 @@ blog:
             <p>Pour l'instant, je mets le travail du serveur de messagerie de côté, et je sais qu'il sera "sur le côté", sur un serveur séparé, loin de MSP. D'un côté, c'était intéressant de tester notre processus de "récupération après sinistre"—à un moment j'étais si désespéré que j'étais prêt à laisser ce serveur brûler en enfer, tout faire tourner sur un nouveau, et juste mettre à jour les enregistrements DNS… Heureusement, cela s'est avéré inutile à la fin.</p>
             <p>PS. Ça s'est vraiment cassé "tout seul", grâce au serveur de messagerie, après une semaine sans aucune intervention humaine… C'est quelque chose…</p>
             <p>PS2. Vous êtes courageux si vous avez lu jusqu'au bout :-).</p>
+
+collections:
+    add_puzzle: "Ajouter un puzzle à la collection"
+    add_to_collection: "Ajouter à la collection"
+    added_on: "Ajouté le %date%"
+    already_in_system: "Puzzle déjà dans votre collection"
+    already_in_system_message: "Ce puzzle est déjà dans votre Collection de Puzzles. Vous voulez organiser vos puzzles en plusieurs collections ? Débloquez cette fonctionnalité avec l'adhésion !"
+    back_to_collections: "Retour aux collections"
+    collection_not_found: "Collection non trouvée"
+    confirm_remove: "Êtes-vous sûr de vouloir retirer ce puzzle de la collection ?"
+    copy_puzzle: "Copier le puzzle dans la collection"
+    copy_puzzle_submit: "Copier"
+    copy_to_collection: "Copier vers la collection"
+    create:
+        button: "Créer une collection"
+        meta:
+            title: "Créer une collection"
+        submit: "Créer"
+        title: "Créer une nouvelle collection"
+    delete:
+        button: "Supprimer"
+        confirm:
+            button: "Supprimer la collection"
+            message: "Voulez-vous vraiment supprimer la collection %name% ? Cette action est irréversible et supprimera également tous les puzzles de cette collection."
+            title: "Supprimer la collection"
+    edit:
+        button: "Modifier"
+        meta:
+            title: "Modifier la collection %name%"
+        submit: "Enregistrer les modifications"
+        title: "Modifier la collection %name%"
+    edit_comment:
+        meta:
+            title: "Modifier le commentaire - %name%"
+        submit: "Enregistrer"
+        title: "Modifier le commentaire"
+    edit_system:
+        info: "Vous pouvez uniquement modifier la visibilité de votre Collection de Puzzles. Le nom et la description ne peuvent pas être modifiés."
+        meta:
+            title: "Modifier la collection de puzzles"
+        submit: "Enregistrer les modifications"
+        title: "Modifier la collection de puzzles"
+    empty:
+        message: "Créez votre première collection et commencez à organiser vos puzzles préférés."
+        message_other: "%name% n'a pas de collections publiques."
+        title: "Vous n'avez pas de collections"
+        title_other: "Pas de collections publiques"
+    flash:
+        comment_updated: "Le commentaire a été mis à jour avec succès."
+        created: "La collection a été créée avec succès."
+        deleted: "La collection a été supprimée avec succès."
+        login_required_add: "Vous devez être connecté pour ajouter des puzzles aux collections."
+        login_required_copy: "Vous devez être connecté pour copier des puzzles dans les collections."
+        login_required_move: "Vous devez être connecté pour déplacer des puzzles entre les collections."
+        membership_required: "La création de collections est une fonctionnalité premium. Obtenez l'adhésion pour organiser vos puzzles en collections illimitées !"
+        puzzle_added: "Le puzzle a été ajouté à la collection avec succès."
+        puzzle_removed: "Le puzzle a été retiré de la collection."
+        system_updated: "La visibilité de la collection de puzzles a été mise à jour avec succès."
+        updated: "La collection a été mise à jour avec succès."
+    form:
+        description: "Description"
+        name: "Nom"
+        visibility: "Visibilité"
+        visibility_help: "Les collections publiques sont visibles par tous les utilisateurs, les privées seulement par vous."
+        visibility_private: "Privée"
+        visibility_public: "Publique"
+    items_count: "%count% puzzles"
+    membership_required:
+        help_text: "Vous voulez organiser les puzzles en plusieurs collections ?"
+        message: "Créez des collections illimitées pour organiser vos puzzles avec l'adhésion !"
+        title: "Débloquez les collections illimitées"
+        toast: "La création de collections nécessite une adhésion active."
+        unlock_link: "Débloquer avec l'adhésion"
+    meta:
+        title: "Mes collections"
+    move_puzzle: "Déplacer le puzzle vers la collection"
+    move_puzzle_submit: "Déplacer"
+    move_to_collection: "Déplacer vers la collection"
+    no_copy_target: "Aucune collection disponible"
+    no_copy_target_message: "Il n'y a pas d'autres collections vers lesquelles copier ce puzzle. Créez des collections personnalisées pour organiser vos puzzles."
+    no_move_target: "Aucune collection disponible"
+    no_move_target_message: "Il n'y a pas d'autres collections vers lesquelles déplacer ce puzzle. Créez des collections personnalisées pour organiser vos puzzles."
+    no_puzzles: "Aucun puzzle dans cette collection"
+    no_puzzles_description: "Cette collection est vide. Ajoutez des puzzles pour commencer !"
+    private: "Privée"
+    private_collection: "Collection privée"
+    private_collection_message: "La collection \"%collection%\" de %player% est privée et ne peut pas être consultée."
+    public: "Publique"
+    puzzle_copied: "Le puzzle a été copié dans la collection avec succès."
+    puzzle_moved: "Le puzzle a été déplacé dans la collection avec succès."
+    remove: "Retirer"
+    remove_from: "Retirer de %collection%"
+    remove_puzzle: "Retirer de la collection"
+    select_collection_help: "Choisissez une collection ou laissez vide pour ajouter à votre Collection de Puzzles par défaut"
+    system_name: "Collection de Puzzles"
+    title: "Collections"
+    title_other: "Collections de %name%"
+    visibility:
+        private: "Privée"
+        public: "Publique"

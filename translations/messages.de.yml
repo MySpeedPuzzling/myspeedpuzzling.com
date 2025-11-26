@@ -19,6 +19,7 @@ menu:
     edit_profile: "Profil bearbeiten"
     change_player_code: "Spielercode ändern"
     profile: "Profil"
+    collections: "Sammlungen"
     events: "Veranstaltungen"
 
 footer:
@@ -200,6 +201,25 @@ forms:
     cancel: "Abbrechen"
     close: "Schließen"
     max_characters: "Maximal 500 Zeichen"
+    saving: "Speichern..."
+    add: "Hinzufügen"
+    back: "Zurück"
+    clear: "Löschen"
+    confirm: "Bestätigen"
+    continue: "Fortfahren"
+    create: "Erstellen"
+    delete: "Löschen"
+    edit: "Bearbeiten"
+    next: "Weiter"
+    "no": "Nein"
+    ok: "OK"
+    previous: "Zurück"
+    remove: "Entfernen"
+    reset: "Zurücksetzen"
+    search: "Suchen"
+    submit: "Absenden"
+    update: "Aktualisieren"
+    "yes": "Ja"
     required_field: "Dieses Feld ist erforderlich!"
     empty_group_error: "Sie können keine Gruppe nur mit sich selbst erstellen, das ist kein Gruppenpuzzeln :-)"
     too_high_ppm: "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
@@ -250,6 +270,15 @@ forms:
     global_search_placeholder: "Puzzle oder Spieler suchen..."
     private_profile: "Privates Profil"
     private_profile_help: "Ihr Name wird nirgendwo angezeigt und Zeiten werden anonym präsentiert."
+    add_puzzle_to_collection:
+        choose_collection: "- Sammlung wählen -"
+        collection: "Sammlung"
+        collection_help: "Wählen Sie eine vorhandene Sammlung oder geben Sie einen neuen Sammlungsnamen ein."
+        comment: "Kommentar"
+        comment_placeholder: "Optionaler Kommentar zu diesem Puzzle..."
+        new_collection_visibility: "Sichtbarkeit"
+        puzzle_collection: "Puzzle-Sammlung (Standard)"
+        submit: "Zur Sammlung hinzufügen"
 
 puzzlers_comparison:
     meta:
@@ -402,6 +431,10 @@ puzzlers:
     no_matches_found: "Keine Übereinstimmungen gefunden"
     my_favorites: "Meine Favoriten"
     most_popular: "Beliebteste"
+    by_country: "Nach Land"
+    most_favorite: "Beliebteste Puzzler"
+    search_placeholder: "Nach Spielernamen oder Code suchen..."
+    total_players: "Spieler insgesamt"
 
 players_per_country:
     meta:
@@ -411,6 +444,8 @@ players_per_country:
 
 flashes:
     stopwatch_already_saved: "Diese Stoppuhren wurden bereits gespeichert."
+    collection_not_found: "Die gesuchte Sammlung existiert bei uns nicht!"
+    puzzle_removed_from_collection: "Puzzle wurde aus der Sammlung entfernt."
     puzzle_needs_approve: "Neu hinzugefügte Puzzles werden nach der Genehmigung durch einen Administrator öffentlich angezeigt - normalerweise innerhalb von 24 Stunden nach dem Hinzufügen."
     time_added: "Wir haben Ihre Puzzle-Zeit gespeichert."
     time_deleted: "Wir haben alle Beweise gelöscht. Niemand wird jemals erfahren, was gerade passiert ist!"
@@ -456,6 +491,7 @@ statistics:
     longest_streak: "Längste Serie"
     longest_streak_help: "Max. aufeinanderfolgende Tage mit Puzzeln"
     most_solved_brand: "Meist gelöste Marke"
+    all_brands: "Alle Marken"
     no_results: |
         Wir wissen, dass Sie es lieben, Puzzles zu lösen - Sie sind im Grunde ein Puzzle-Flüsterer. Aber für den ausgewählten Zeitraum... nichts. Null. Nada.<br> 
         Entweder haben Sie keine gelöst, oder Sie haben vergessen, sie zur Plattform hinzuzufügen (was noch puzzlender ist, ehrlich gesagt).<br>
@@ -480,6 +516,9 @@ dates:
 
 feedback:
     title: "Feedback senden"
+    message: "Nachricht"
+    send: "Senden"
+    thank_you: "Vielen Dank für Ihr Feedback!"
     success_msg: "Wir haben Ihr Feedback erhalten und schätzen es sehr! Wir werden Ihnen bald antworten."
 
 notifications:
@@ -487,6 +526,9 @@ notifications:
     solved_puzzle_with_time: "in"
     solved_puzzle: "löste Puzzle"
     no_notifications: "Sie haben bisher keine Benachrichtigungen. Abonnieren Sie einige Spieler, indem Sie sie zu Favoriten hinzufügen."
+    mark_all_as_read: "Alle als gelesen markieren"
+    mark_as_read: "Als gelesen markieren"
+    new_notification: "Neue Benachrichtigung"
 
 badges:
     title: "Abzeichen"
@@ -743,6 +785,25 @@ blog:
 navigation:
     home: "Startseite"
 
+compare_players:
+    comparison: "Vergleich"
+    head_to_head: "Direktvergleich"
+    select_players: "Spieler zum Vergleichen auswählen"
+    statistics: "Statistiken"
+    title: "Spielervergleich"
+
+contact:
+    email: "E-Mail"
+    message: "Nachricht"
+    send: "Senden"
+    thank_you: "Vielen Dank für Ihre Nachricht!"
+    title: "Kontakt"
+
+recent_activity:
+    latest_times: "Neueste Zeiten"
+    no_activity: "Keine kürzlichen Aktivitäten"
+    title: "Kürzliche Aktivitäten"
+
 collections:
     meta:
         title: "Meine Sammlungen"
@@ -780,6 +841,11 @@ collections:
         system_updated: "Sichtbarkeit der Puzzle-Sammlung wurde erfolgreich aktualisiert."
         comment_updated: "Kommentar wurde erfolgreich aktualisiert."
         membership_required: "Das Erstellen von Sammlungen ist eine Premium-Funktion. Holen Sie sich eine Mitgliedschaft, um Ihre Puzzles in unbegrenzten Sammlungen zu organisieren!"
+        puzzle_added: "Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
+        puzzle_removed: "Puzzle wurde aus der Sammlung entfernt."
+        login_required_add: "Sie müssen angemeldet sein, um Puzzles zu Sammlungen hinzuzufügen."
+        login_required_copy: "Sie müssen angemeldet sein, um Puzzles in Sammlungen zu kopieren."
+        login_required_move: "Sie müssen angemeldet sein, um Puzzles zwischen Sammlungen zu verschieben."
     membership_required:
         title: "Unbegrenzte Sammlungen freischalten"
         message: "Erstellen Sie unbegrenzte Sammlungen, um Ihre Puzzles mit einer Mitgliedschaft zu organisieren!"
@@ -825,3 +891,15 @@ collections:
             title: "Kommentar bearbeiten - %name%"
         submit: "Speichern"
     remove_puzzle: "Aus Sammlung entfernen"
+    move_puzzle: "Puzzle in Sammlung verschieben"
+    copy_puzzle: "Puzzle in Sammlung kopieren"
+    move_to_collection: "In Sammlung verschieben"
+    copy_to_collection: "In Sammlung kopieren"
+    puzzle_moved: "Puzzle wurde erfolgreich in die Sammlung verschoben."
+    puzzle_copied: "Puzzle wurde erfolgreich in die Sammlung kopiert."
+    move_puzzle_submit: "Verschieben"
+    copy_puzzle_submit: "Kopieren"
+    no_move_target: "Keine verfügbaren Sammlungen"
+    no_move_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle verschoben werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
+    no_copy_target: "Keine verfügbaren Sammlungen"
+    no_copy_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle kopiert werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."

@@ -199,6 +199,25 @@ forms:
     save: "Save"
     cancel: "Cancel"
     close: "Close"
+    add: "Add"
+    back: "Back"
+    clear: "Clear"
+    confirm: "Confirm"
+    continue: "Continue"
+    create: "Create"
+    delete: "Delete"
+    edit: "Edit"
+    next: "Next"
+    no: "No"
+    ok: "OK"
+    previous: "Previous"
+    remove: "Remove"
+    reset: "Reset"
+    saving: "Saving..."
+    search: "Search"
+    submit: "Submit"
+    update: "Update"
+    yes: "Yes"
     max_characters: "Max 500 characters"
     required_field: "This field is required!"
     empty_group_error: "You cannot create a group with yourself only, that's not group assembling :-)"
@@ -258,12 +277,32 @@ forms:
         submit: "Add to Collection"
         puzzle_collection: "Puzzle Collection (Default)"
         choose_collection: "- Choose collection -"
+        new_collection_visibility: "Visibility"
 
 puzzlers_comparison:
     meta:
         title: "Puzzlers Comparison"
     title: "Puzzlers Comparison"
     nothing_to_compare: "Unfortunately, you have no puzzles to compare that have been assembled by both puzzlers."
+
+compare_players:
+    title: "Compare Players"
+    comparison: "Comparison"
+    head_to_head: "Head to Head"
+    select_players: "Select players to compare"
+    statistics: "Statistics"
+
+contact:
+    title: "Contact"
+    email: "Email"
+    message: "Message"
+    send: "Send"
+    thank_you: "Thank you for your message!"
+
+recent_activity:
+    title: "Recent Activity"
+    latest_times: "Latest Times"
+    no_activity: "No recent activity"
 
 edit_time:
     meta:
@@ -411,6 +450,10 @@ puzzlers:
     no_matches_found: "No matches found"
     my_favorites: "My Favorites"
     most_popular: "Most Popular"
+    by_country: "By Country"
+    most_favorite: "Most Favorite Puzzlers"
+    search_placeholder: "Search by player name or code..."
+    total_players: "Total Players"
 
 players_per_country:
     meta:
@@ -427,6 +470,7 @@ flashes:
     time_edited: "Edited information has been saved."
     player_not_found: "The player you tried to find is not registered with us!"
     puzzle_not_found: "The puzzle you tried to find does not exist on our platform!"
+    collection_not_found: "The collection you were looking for doesn't exist!"
     puzzler_added_to_favorites: "We've added the puzzler to your list of favorites."
     puzzler_removed_from_favorites: "We've removed the puzzler from your list of favorites."
     can_not_favorite_yourself: "You can't add yourself to your list of favorites. It's clear that you are your own favorite puzzler!"
@@ -466,9 +510,10 @@ statistics:
     longest_streak: "Longest streak"
     longest_streak_help: "Max consecutive days puzzling"
     most_solved_brand: "Most solved brand"
+    all_brands: "All Brands"
     no_results: |
-        We know you love solving puzzles — you’re basically a puzzle whisperer. But for the selected time period… nothing. Zero. Zilch. Nada.<br> 
-        Either you didn’t solve any, or you forgot to add them to the platform (which is even more puzzling, honestly).<br>
+        We know you love solving puzzles — you're basically a puzzle whisperer. But for the selected time period… nothing. Zero. Zilch. Nada.<br>
+        Either you didn't solve any, or you forgot to add them to the platform (which is even more puzzling, honestly).<br>
         Time to grab a puzzle and fix this tragic plot twist! Your stats are crying in the corner — go show them some love.
 
 dates:
@@ -491,12 +536,18 @@ dates:
 feedback:
     title: "Send feedback"
     success_msg: "We have received your feedback and highly appreciate it! We will let you know soon."
+    message: "Message"
+    send: "Send"
+    thank_you: "Thank you for your feedback!"
 
 notifications:
     title: "Notifications"
     solved_puzzle_with_time: "in"
     solved_puzzle: "solved puzzle"
     no_notifications: "You have no notifications so far. Subscribe to some players by adding them to favorites."
+    mark_all_as_read: "Mark all as read"
+    mark_as_read: "Mark as read"
+    new_notification: "New notification"
 
 badges:
     title: "Badges"
@@ -790,6 +841,11 @@ collections:
         system_updated: "Puzzle collection visibility was successfully updated."
         comment_updated: "Comment was successfully updated."
         membership_required: "Creating collections is a premium feature. Get membership to organize your puzzles into unlimited collections!"
+        login_required_add: "You must be logged in to add puzzles to collections."
+        login_required_copy: "You must be logged in to copy puzzles to collections."
+        login_required_move: "You must be logged in to move puzzles between collections."
+        puzzle_added: "Puzzle was successfully added to the collection."
+        puzzle_removed: "Puzzle was removed from the collection."
     membership_required:
         title: "Unlock Unlimited Collections"
         message: "Create unlimited collections to organize your puzzles with a membership!"

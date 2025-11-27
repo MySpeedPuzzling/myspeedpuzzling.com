@@ -1,0 +1,322 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'lend_borrow.title'|trans }}{% if not isOwnProfile %} - {{ player.playerName }}{% endif %}{% endblock %}
+
+{% block content %}
+<div data-controller="collection-items">
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div>
+            <h1 class="h3 mb-1">{{ 'lend_borrow.title'|trans }}</h1>
+            <p class="text-muted mb-0">
+                {% if not isOwnProfile %}
+                    {{ player.playerName ?? player.code }}
+                    <span class="text-muted px-2">•</span>
+                {% endif %}
+                <i class="bi bi-puzzle me-1"></i>
+                {{ 'lend_borrow.lent_count'|trans({'%count%': lentPuzzles|length}) }}
+                <span class="text-muted px-2">·</span>
+                {{ 'lend_borrow.borrowed_count'|trans({'%count%': borrowedPuzzles|length}) }}
+                <span class="px-2"></span>
+                <span class="{{ visibility.value == 'public' ? 'text-primary' : 'text-muted' }} small me-2">
+                    <i class="bi bi-{{ visibility.value == 'public' ? 'eye' : 'lock' }} me-1"></i>
+                    {% if visibility.value == 'public' %}
+                        {{ 'collections.public'|trans }}
+                    {% else %}
+                        {{ 'collections.private'|trans }}
+                    {% endif %}
+                </span>
+            </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            {% if isOwnProfile and hasMembership %}
+                <a href="{{ path('edit_lend_borrow_list_settings', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mb-4">
+        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
+        </a>
+    </div>
+
+    {# Tabs for Lent and Borrowed #}
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="lent-tab" data-bs-toggle="tab" data-bs-target="#lent-pane" type="button" role="tab" aria-controls="lent-pane" aria-selected="true">
+                <i class="bi bi-box-arrow-up-right me-1"></i>
+                {{ 'lend_borrow.tab.lent'|trans }}
+                <span class="badge bg-secondary ms-1">{{ lentPuzzles|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="borrowed-tab" data-bs-toggle="tab" data-bs-target="#borrowed-pane" type="button" role="tab" aria-controls="borrowed-pane" aria-selected="false">
+                <i class="bi bi-box-arrow-in-down-left me-1"></i>
+                {{ 'lend_borrow.tab.borrowed'|trans }}
+                <span class="badge bg-secondary ms-1">{{ borrowedPuzzles|length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        {# Lent Puzzles Tab #}
+        <div class="tab-pane fade show active" id="lent-pane" role="tabpanel" aria-labelledby="lent-tab">
+            {% if lentPuzzles is empty %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-box-arrow-up-right fs-1 text-muted"></i>
+                    </div>
+                    {% if isOwnProfile %}
+                        <h4 class="text-muted">{{ 'lend_borrow.lent.empty.title'|trans }}</h4>
+                        <p class="text-muted">{{ 'lend_borrow.lent.empty.message'|trans }}</p>
+                    {% else %}
+                        <h4 class="text-muted">{{ 'lend_borrow.lent.empty.title_other'|trans }}</h4>
+                        <p class="text-muted">{{ 'lend_borrow.lent.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="row g-3 mb-3">
+                    {% for item in lentPuzzles %}
+                        <div class="col-12 col-lg-6"
+                             data-collection-items-target="item"
+                             data-puzzle-id="{{ item.puzzleId }}"
+                             data-pieces-count="{{ item.piecesCount }}"
+                             data-puzzle-name="{{ item.puzzleName }}"
+                             data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+                             data-manufacturer="{{ item.manufacturerName ?? '' }}">
+                            <div class="card card-body shadow p-2 position-relative">
+                                <div class="d-flex">
+                                    <div style="width: 60px;" class="flex-shrink-0">
+                                        {% if item.image %}
+                                            <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                                <img src="{{ item.image|imagine_filter('puzzle_small') }}"
+                                                     alt="{{ item.puzzleName }}"
+                                                     class="rounded"
+                                                     style="width: 60px; height: 60px; object-fit: cover;">
+                                            </a>
+                                        {% else %}
+                                            <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="ci-image text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="ps-2 flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="pe-2">
+                                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
+                                                   class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
+                                                    {{ item.puzzleName }}
+                                                </a>
+                                                <br>
+                                                <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+
+                                                <div class="mt-1">
+                                                    <span class="badge bg-purple">
+                                                        <i class="bi bi-person me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': item.currentHolderName}) }}
+                                                    </span>
+                                                    <span class="badge bg-light text-dark">
+                                                        <i class="bi bi-calendar3 me-1"></i>{{ item.lentAt|format_date }}
+                                                    </span>
+                                                </div>
+
+                                                {% if item.notes %}
+                                                    <div class="text-muted small mt-1">{{ item.notes }}</div>
+                                                {% endif %}
+                                            </div>
+
+                                            {% if isOwnProfile %}
+                                                <div class="dropdown">
+                                                    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                                            type="button" data-bs-toggle="dropdown">
+                                                        <i class="ci-menu"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <a class="dropdown-item" href="{{ path('player_profile', {playerId: item.currentHolderId}) }}">
+                                                                <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_holder'|trans }}
+                                                            </a>
+                                                        </li>
+                                                        {% if hasMembership %}
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <li>
+                                                                <a class="dropdown-item text-success" href="#" data-bs-toggle="modal"
+                                                                   data-bs-target="#return-modal-{{ item.lentPuzzleId }}">
+                                                                    <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
+                                                                </a>
+                                                            </li>
+                                                        {% endif %}
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="fs-sm text-muted">
+                                            {{ item.manufacturerName ?? '-' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if isOwnProfile and hasMembership %}
+                            <twig:Modal id="return-modal-{{ item.lentPuzzleId }}">
+                                {% block modal_header %}
+                                    <h5 class="modal-title">{{ 'lend_borrow.return.title'|trans }}</h5>
+                                {% endblock %}
+                                {% block modal_body %}
+                                    <p class="mb-3">{{ 'lend_borrow.return.confirm_message'|trans({'%puzzle%': item.puzzleName}) }}</p>
+                                    {{ component('ReturnLentPuzzleButton', {
+                                        lentPuzzleId: item.lentPuzzleId
+                                    }) }}
+                                {% endblock %}
+                            </twig:Modal>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        {# Borrowed Puzzles Tab #}
+        <div class="tab-pane fade" id="borrowed-pane" role="tabpanel" aria-labelledby="borrowed-tab">
+            {% if borrowedPuzzles is empty %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-box-arrow-in-down-left fs-1 text-muted"></i>
+                    </div>
+                    {% if isOwnProfile %}
+                        <h4 class="text-muted">{{ 'lend_borrow.borrowed.empty.title'|trans }}</h4>
+                        <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message'|trans }}</p>
+                    {% else %}
+                        <h4 class="text-muted">{{ 'lend_borrow.borrowed.empty.title_other'|trans }}</h4>
+                        <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="row g-3 mb-3">
+                    {% for item in borrowedPuzzles %}
+                        <div class="col-12 col-lg-6"
+                             data-collection-items-target="item"
+                             data-puzzle-id="{{ item.puzzleId }}"
+                             data-pieces-count="{{ item.piecesCount }}"
+                             data-puzzle-name="{{ item.puzzleName }}"
+                             data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+                             data-manufacturer="{{ item.manufacturerName ?? '' }}">
+                            <div class="card card-body shadow p-2 position-relative">
+                                <div class="d-flex">
+                                    <div style="width: 60px;" class="flex-shrink-0">
+                                        {% if item.image %}
+                                            <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                                <img src="{{ item.image|imagine_filter('puzzle_small') }}"
+                                                     alt="{{ item.puzzleName }}"
+                                                     class="rounded"
+                                                     style="width: 60px; height: 60px; object-fit: cover;">
+                                            </a>
+                                        {% else %}
+                                            <div class="d-flex align-items-center justify-content-center rounded bg-light"
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="ci-image text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="ps-2 flex-grow-1">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="pe-2">
+                                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
+                                                   class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
+                                                    {{ item.puzzleName }}
+                                                </a>
+                                                <br>
+                                                <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+
+                                                <div class="mt-1">
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-person me-1"></i>{{ 'lend_borrow.borrowed_from'|trans({'%name%': item.ownerName}) }}
+                                                    </span>
+                                                    <span class="badge bg-light text-dark">
+                                                        <i class="bi bi-calendar3 me-1"></i>{{ item.lentAt|format_date }}
+                                                    </span>
+                                                </div>
+
+                                                {% if item.notes %}
+                                                    <div class="text-muted small mt-1">{{ item.notes }}</div>
+                                                {% endif %}
+                                            </div>
+
+                                            {% if isOwnProfile %}
+                                                <div class="dropdown">
+                                                    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                                            type="button" data-bs-toggle="dropdown">
+                                                        <i class="ci-menu"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <a class="dropdown-item" href="{{ path('player_profile', {playerId: item.ownerId}) }}">
+                                                                <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_owner'|trans }}
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <a class="dropdown-item text-success" href="#" data-bs-toggle="modal"
+                                                               data-bs-target="#return-borrowed-modal-{{ item.lentPuzzleId }}">
+                                                                <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal"
+                                                               data-bs-target="#pass-modal-{{ item.lentPuzzleId }}">
+                                                                <i class="bi bi-arrow-right-circle me-1"></i> {{ 'lend_borrow.pass.button'|trans }}
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="fs-sm text-muted">
+                                            {{ item.manufacturerName ?? '-' }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if isOwnProfile %}
+                            <twig:Modal id="return-borrowed-modal-{{ item.lentPuzzleId }}">
+                                {% block modal_header %}
+                                    <h5 class="modal-title">{{ 'lend_borrow.return.title'|trans }}</h5>
+                                {% endblock %}
+                                {% block modal_body %}
+                                    <p class="mb-3">{{ 'lend_borrow.return.confirm_message'|trans({'%puzzle%': item.puzzleName}) }}</p>
+                                    {{ component('ReturnLentPuzzleButton', {
+                                        lentPuzzleId: item.lentPuzzleId
+                                    }) }}
+                                {% endblock %}
+                            </twig:Modal>
+
+                            <twig:Modal id="pass-modal-{{ item.lentPuzzleId }}">
+                                {% block modal_header %}
+                                    <h5 class="modal-title">{{ 'lend_borrow.pass.title'|trans }}</h5>
+                                {% endblock %}
+                                {% block modal_body %}
+                                    <p class="mb-3">{{ 'lend_borrow.pass.description'|trans({'%puzzle%': item.puzzleName}) }}</p>
+                                    {{ component('PassLentPuzzleForm', {
+                                        lentPuzzleId: item.lentPuzzleId
+                                    }) }}
+                                {% endblock %}
+                            </twig:Modal>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

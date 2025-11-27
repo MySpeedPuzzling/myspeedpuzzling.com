@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetLentPuzzleIds;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -24,6 +25,7 @@ final class SystemCollectionDetailController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private GetLentPuzzleIds $getLentPuzzleIds,
     ) {
     }
 
@@ -64,6 +66,12 @@ final class SystemCollectionDetailController extends AbstractController
 
         $items = $this->getCollectionItems->byCollectionAndPlayer(null, $player->playerId);
 
+        // Get lent puzzles to show overlay - only for own profile
+        $lentPuzzles = [];
+        if ($loggedPlayerProfile?->playerId === $playerId) {
+            $lentPuzzles = $this->getLentPuzzleIds->byOwnerId($player->playerId);
+        }
+
         $collectionOverview = new CollectionOverview(
             playerId: $playerId,
             collectionId: null,
@@ -76,6 +84,7 @@ final class SystemCollectionDetailController extends AbstractController
             'collection' => $collectionOverview,
             'items' => $items,
             'player' => $player,
+            'lentPuzzles' => $lentPuzzles,
         ]);
     }
 }

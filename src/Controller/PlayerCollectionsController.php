@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPlayerCollectionsWithCounts;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
@@ -29,6 +31,8 @@ final class PlayerCollectionsController extends AbstractController
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetWishListItems $getWishListItems,
         readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetLentPuzzles $getLentPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
     ) {
@@ -122,6 +126,38 @@ final class PlayerCollectionsController extends AbstractController
             isWishList: false,
             isSellSwapList: true,
         ));
+
+        // Add lend/borrow list
+        $lentCount = $this->getLentPuzzles->countByOwnerId($player->playerId);
+        $borrowedCount = $this->getBorrowedPuzzles->countByHolderId($player->playerId);
+        $totalLendBorrowCount = $lentCount + $borrowedCount;
+
+        // Show lend/borrow list if:
+        // - It's the player's own profile (always show, with members badge if no membership)
+        // - OR it's public and visibility allows it
+        $showLendBorrowList = match (true) {
+            $isOwnProfile => true,
+            $player->lendBorrowListVisibility === CollectionVisibility::Public => true,
+            default => false,
+        };
+
+        if ($showLendBorrowList) {
+            array_unshift($collections, new CollectionOverviewWithCount(
+                collectionId: null,
+                name: $this->translator->trans('lend_borrow.name'),
+                description: $this->translator->trans('lend_borrow.description'),
+                visibility: $player->lendBorrowListVisibility,
+                createdAt: new DateTimeImmutable(),
+                itemCount: $totalLendBorrowCount,
+                isSystemCollection: false,
+                isUnsolvedPuzzles: false,
+                isWishList: false,
+                isSellSwapList: false,
+                isLendBorrowList: true,
+                lentCount: $lentCount,
+                borrowedCount: $borrowedCount,
+            ));
+        }
 
         return $this->render('collections/list.html.twig', [
             'collections' => $collections,

@@ -652,6 +652,7 @@ membership:
             <li>&hellip; a mnoho dalšího, toto je pouze malá ochutnávka toho, co pro vás chystáme!</li>
         </ul>
     members_exclusive_button: "Exkluzivně pro členy"
+    members_exclusive_short: "Pro členy"
     modal:
         title: Exkluzivní funkce pro členy
         cta: Stát se členem

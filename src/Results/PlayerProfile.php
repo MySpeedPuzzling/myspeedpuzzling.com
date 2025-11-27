@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     puzzle_collection_visibility: string,
  *     unsolved_puzzles_visibility: string,
  *     wish_list_visibility: string,
+ *     lend_borrow_list_visibility: string,
  *     sell_swap_list_settings: null|string,
  *  }
  */
@@ -61,6 +62,7 @@ readonly final class PlayerProfile
         public CollectionVisibility $puzzleCollectionVisibility,
         public CollectionVisibility $unsolvedPuzzlesVisibility,
         public CollectionVisibility $wishListVisibility,
+        public CollectionVisibility $lendBorrowListVisibility,
         public null|SellSwapListSettings $sellSwapListSettings = null,
         public bool $isAdmin = false,
         public bool $isPrivate = false,
@@ -131,6 +133,7 @@ readonly final class PlayerProfile
             puzzleCollectionVisibility: CollectionVisibility::from($row['puzzle_collection_visibility']),
             unsolvedPuzzlesVisibility: CollectionVisibility::from($row['unsolved_puzzles_visibility']),
             wishListVisibility: CollectionVisibility::from($row['wish_list_visibility']),
+            lendBorrowListVisibility: CollectionVisibility::from($row['lend_borrow_list_visibility']),
             sellSwapListSettings: $sellSwapListSettings,
             isAdmin: $row['is_admin'],
             isPrivate: $row['is_private'],

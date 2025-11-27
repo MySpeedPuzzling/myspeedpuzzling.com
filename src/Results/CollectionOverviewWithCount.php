@@ -20,6 +20,9 @@ readonly final class CollectionOverviewWithCount
         public bool $isUnsolvedPuzzles = false,
         public bool $isWishList = false,
         public bool $isSellSwapList = false,
+        public bool $isLendBorrowList = false,
+        public int $lentCount = 0,
+        public int $borrowedCount = 0,
     ) {
     }
 

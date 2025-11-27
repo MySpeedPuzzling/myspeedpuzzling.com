@@ -652,6 +652,7 @@ membership:
             <li>&hellip; and much more, this is just a small preview of what we’re preparing for you!</li>
         </ul>
     members_exclusive_button: "Members exclusive"
+    members_exclusive_short: "Members"
     modal:
         title: Exclusive Feature for Members
         cta: Become member
@@ -1076,3 +1077,69 @@ sell_swap_list:
         buyer: "Buyer"
         date: "Date"
         unknown_buyer: "Unknown"
+
+lend_borrow:
+    name: "Lend & Borrow"
+    title: "Lend & Borrow"
+    description: "Puzzles currently being lent or borrowed"
+    lent_count: "%count% lent"
+    borrowed_count: "%count% borrowed"
+    tab:
+        lent: "Lent out"
+        borrowed: "Borrowed"
+    lent_to: "Lent to %name%"
+    borrowed_from: "From %name%"
+    view_holder: "View current holder"
+    view_owner: "View owner"
+    lent:
+        empty:
+            title: "No puzzles lent out"
+            message: "You haven't lent any puzzles yet. Use the puzzle menu to lend puzzles to other players."
+            title_other: "No puzzles lent out"
+            message_other: "%name% hasn't lent any puzzles."
+    borrowed:
+        empty:
+            title: "No borrowed puzzles"
+            message: "You don't have any borrowed puzzles."
+            title_other: "No borrowed puzzles"
+            message_other: "%name% hasn't borrowed any puzzles."
+    form:
+        borrower_code: "Borrower's player code"
+        borrower_code_help: "Enter the player code of the person you want to lend to (e.g. #ABC123)"
+        borrower_code_placeholder: "#ABC123"
+        notes: "Notes"
+        notes_placeholder: "Optional notes about this loan..."
+        new_holder_code: "New holder's player code"
+        new_holder_code_help: "Enter the player code of the person you want to pass this puzzle to"
+        new_holder_code_placeholder: "#ABC123"
+    lend:
+        title: "Lend Puzzle"
+        button: "Lend to player"
+        description: "Lend this puzzle to another player. They will be able to pass it on or return it to you."
+    pass:
+        title: "Pass Puzzle"
+        button: "Pass to someone else"
+        description: "Pass %puzzle% to another player. The owner will still be able to track it."
+    return:
+        title: "Return Puzzle"
+        button: "Return to owner"
+        confirm_message: "Return %puzzle% to its owner?"
+    membership_required:
+        title: "Members Only Feature"
+        message: "Lending puzzles is available exclusively to members."
+    already_lent: "This puzzle is already lent out."
+    login_required: "You must be logged in to manage your lending list."
+    edit_settings:
+        title: "Edit Lend & Borrow Settings"
+        meta:
+            title: "Edit Lend & Borrow Settings"
+        submit: "Save Changes"
+    flash:
+        lent: "Puzzle was successfully lent."
+        passed: "Puzzle was successfully passed."
+        returned: "Puzzle was successfully returned to owner."
+        settings_updated: "Lend & Borrow settings were successfully updated."
+        login_required: "You must be logged in to manage your lending list."
+        validation_error: "Please fix the errors and try again."
+        player_not_found: "Player not found. Please check the player code."
+        cannot_lend_to_self: "You cannot lend a puzzle to yourself."

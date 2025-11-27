@@ -656,6 +656,7 @@ membership:
             <li>&hellip; et bien plus encore, ce n'est qu'un petit aperçu de ce que nous préparons pour vous !</li>
         </ul>
     members_exclusive_button: "Exclusif aux membres"
+    members_exclusive_short: "Membres"
     modal:
         title: Fonctionnalité exclusive pour les membres
         cta: Devenir membre

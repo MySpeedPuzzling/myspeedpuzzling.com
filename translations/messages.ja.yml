@@ -356,6 +356,7 @@ membership:
             <li>&hellip; その他多数、これはあなたのために準備している機能のほんの一部です！</li>
         </ul>
     members_exclusive_button: "メンバー限定"
+    members_exclusive_short: "メンバー"
     modal:
         title: "メンバー限定機能"
         cta: "メンバーになる"

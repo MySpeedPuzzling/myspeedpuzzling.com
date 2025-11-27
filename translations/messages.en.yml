@@ -863,10 +863,12 @@ collections:
         public: "Public"
         private: "Private"
     public: "Public"
+    private: "Private"
     system_name: "Puzzle Collection"
     already_in_system: "Puzzle Already in Your Collection"
     already_in_system_message: "This puzzle is already in your Puzzle Collection. Want to organize your puzzles into multiple collections? Unlock this feature with membership!"
     add_to_collection: "Add to Collection"
+    add_puzzle: "Add puzzle to collection"
     add_puzzle_here:
         button: "Add Puzzle"
     remove_from: "Remove from %collection%"
@@ -906,10 +908,10 @@ collections:
     no_copy_target: "No available collections"
     no_copy_target_message: "There are no other collections to copy this puzzle to. Create custom collections to organize your puzzles."
     comment_help: "Add an optional comment about this puzzle in your collection."
-    private:
+    private_page:
         title: "Private Collection"
         message: "The collection by %name% is private and cannot be viewed."
-    add_puzzle:
+    add_puzzle_form:
         title: "Add Puzzle to Collection"
         button: "Add Puzzle"
         description: "Select an existing puzzle or add a new one to your collection."

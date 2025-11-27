@@ -139,7 +139,7 @@ final class AddNewPuzzleToCollectionController extends AbstractController
                 comment: $data->comment,
             ));
 
-            $this->addFlash('success', $this->translator->trans('collections.add_puzzle.success'));
+            $this->addFlash('success', $this->translator->trans('collections.add_puzzle_form.success'));
 
             if ($targetCollectionId === null) {
                 return $this->redirectToRoute('system_collection_detail', [

@@ -1,13 +1,13 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'collections.add_puzzle.title'|trans }}{% endblock %}
+{% block title %}{{ 'collections.add_puzzle_form.title'|trans }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
     <div class="mb-4">
-        <h2>{{ 'collections.add_puzzle.title'|trans }}</h2>
-        <p class="text-muted">{{ 'collections.add_puzzle.description'|trans }}</p>
+        <h2>{{ 'collections.add_puzzle_form.title'|trans }}</h2>
+        <p class="text-muted">{{ 'collections.add_puzzle_form.description'|trans }}</p>
     </div>
 
     <div data-controller="add-puzzle-to-collection-form" data-add-puzzle-to-collection-form-system-id-value="{{ system_collection_id }}">
@@ -18,7 +18,7 @@
                 <div class="col-lg-6 mb-4">
                     <div class="card shadow-lg">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ 'collections.add_puzzle.puzzle_section'|trans }}</h5>
+                            <h5 class="mb-0">{{ 'collections.add_puzzle_form.puzzle_section'|trans }}</h5>
                         </div>
                         <div class="card-body">
                             {{ form_row(form.brand, {'attr': {'data-add-puzzle-to-collection-form-target': 'brand'}}) }}
@@ -27,7 +27,7 @@
 
                             <div data-add-puzzle-to-collection-form-target="newPuzzle" class="{{ hide_new_puzzle|default(true) ? 'd-none' }}">
                                 <div class="border rounded p-3 bg-light mt-3">
-                                    <h6 class="mb-3">{{ 'collections.add_puzzle.new_puzzle_section'|trans }}</h6>
+                                    <h6 class="mb-3">{{ 'collections.add_puzzle_form.new_puzzle_section'|trans }}</h6>
                                     <p>
                                         <small class="text-muted">{{ 'add_time.need_approve_info'|trans }}</small>
                                     </p>
@@ -56,7 +56,7 @@
                 <div class="col-lg-6 mb-4">
                     <div class="card shadow-lg">
                         <div class="card-header">
-                            <h5 class="mb-0">{{ 'collections.add_puzzle.collection_section'|trans }}</h5>
+                            <h5 class="mb-0">{{ 'collections.add_puzzle_form.collection_section'|trans }}</h5>
                         </div>
                         <div class="card-body">
                             {% if not has_active_membership %}
@@ -130,7 +130,7 @@
                 </a>
                 <button type="submit" name="submit" class="btn btn-primary" data-submit-prevention-target="submit">
                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    {{ 'collections.add_puzzle.submit'|trans }}
+                    {{ 'collections.add_puzzle_form.submit'|trans }}
                 </button>
             </div>
 

@@ -207,6 +207,7 @@ forms:
     choose_file: "O selecciona un archivo"
     save: "Guardar"
     required_field: "¡Este campo es obligatorio!"
+    removing: "Eliminando..."
     cancel: "Cancelar"
     close: "Cerrar"
     add: "Añadir"
@@ -810,7 +811,27 @@ blog:
             <p>PS2. Eres valiente si has leído hasta el final :-).</p>
 
 collections:
-    add_puzzle: "Añadir puzzle a la colección"
+    add_puzzle:
+        title: "Añadir puzzle a la colección"
+        button: "Añadir puzzle"
+        description: "Seleccione un puzzle existente o añada uno nuevo a su colección."
+        submit: "Añadir a la colección"
+        success: "El puzzle se ha añadido correctamente a la colección."
+        puzzle_section: "Seleccionar puzzle"
+        collection_section: "Seleccionar colección"
+        new_puzzle_section: "Detalles del nuevo puzzle"
+    add_puzzle_here:
+        button: "Añadir puzzle"
+    add_puzzle_form:
+        title: "Añadir puzzle a la colección"
+        button: "Añadir puzzle"
+        description: "Seleccione un puzzle existente o añada uno nuevo a su colección."
+        submit: "Añadir a la colección"
+        success: "El puzzle se ha añadido correctamente a la colección."
+        puzzle_section: "Seleccionar puzzle"
+        collection_section: "Seleccionar colección"
+        new_puzzle_section: "Detalles del nuevo puzzle"
+    comment_help: "Añada un comentario opcional sobre este puzzle en su colección."
     add_to_collection: "Añadir a la colección"
     added_on: "Añadido el %date%"
     already_in_system: "Puzzle ya en tu colección"
@@ -889,7 +910,12 @@ collections:
     no_move_target_message: "No hay otras colecciones a las que mover este puzzle. Crea colecciones personalizadas para organizar tus puzzles."
     no_puzzles: "No hay puzzles en esta colección"
     no_puzzles_description: "Esta colección está vacía. ¡Añade algunos puzzles para empezar!"
-    private: "Privada"
+    private:
+        title: "Colección privada"
+        message: "La colección de %name% es privada y no se puede ver."
+    private_page:
+        title: "Colección privada"
+        message: "La colección de %name% es privada y no se puede ver."
     private_collection: "Colección privada"
     private_collection_message: "La colección \"%collection%\" de %player% es privada y no se puede ver."
     public: "Pública"
@@ -1156,3 +1182,13 @@ lend_borrow:
         player_not_found: "Jugador no encontrado. Por favor verifica el código de jugador."
         cannot_lend_to_self: "No puedes prestarte un puzzle a ti mismo."
         cannot_borrow_from_self: "No puedes tomar prestado un puzzle de ti mismo."
+        cannot_pass_to_self: "No puede pasar un puzzle a sí mismo."
+
+status:
+    borrowed: "Prestado"
+    collection: "En colección"
+    for_sale: "En venta"
+    lent: "Prestado"
+    solved: "Resuelto"
+    unsolved: "Sin resolver"
+    wishlist: "Lista de deseos"

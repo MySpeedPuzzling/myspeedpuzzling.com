@@ -10,7 +10,7 @@
         {% if isOwnProfile %}
             <div class="d-flex gap-2">
                 <a href="{{ path('add_new_puzzle_to_collection') }}" class="btn btn-outline-primary">
-                    <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle.button'|trans }}
+                    <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle_form.button'|trans }}
                 </a>
                 {% if logged_user.profile.activeMembership %}
                     <a href="{{ path('create_collection') }}" class="btn btn-primary">

@@ -38,8 +38,6 @@
                 </li>
             {% endfor %}
 
-            <li><hr class="dropdown-divider"></li>
-
             {% if this.isPuzzleInWishList %}
                 <li>
                     {{ component('RemovePuzzleFromWishListButton', {
@@ -48,7 +46,7 @@
                         key: 'wishlist-remove-' ~ this.puzzleId,
                     }) }}
                 </li>
-            {% else %}
+            {% elseif not this.isPuzzleBorrowed and not this.hasCollections %}
                 <li>
                     <a class="dropdown-item"
                        data-bs-toggle="modal"
@@ -58,8 +56,6 @@
                     </a>
                 </li>
             {% endif %}
-
-            <li><hr class="dropdown-divider"></li>
 
             {% if this.isPuzzleInSellSwapList %}
                 <li>
@@ -79,8 +75,6 @@
                     </a>
                 </li>
             {% endif %}
-
-            <li><hr class="dropdown-divider"></li>
 
             {% if this.isPuzzleLent %}
                 <li>

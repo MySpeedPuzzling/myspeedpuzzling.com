@@ -908,10 +908,12 @@ collections:
     no_copy_target: "Žádné dostupné kolekce"
     no_copy_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle zkopírovat. Vytvořte si vlastní kolekce pro organizaci puzzlí."
     comment_help: "Přidejte volitelný komentář k tomuto puzzle ve vaší kolekci."
-    private:
+    private: "Soukromá"
+    add_puzzle: "Přidat puzzle do kolekce"
+    private_page:
         title: "Soukromá kolekce"
         message: "Kolekce hráče %name% je soukromá a nelze ji zobrazit."
-    add_puzzle:
+    add_puzzle_form:
         title: "Přidat puzzle do kolekce"
         button: "Přidat puzzle"
         description: "Vyberte existující puzzle nebo přidejte nové do své kolekce."

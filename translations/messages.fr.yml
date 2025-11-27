@@ -223,6 +223,7 @@ forms:
     ok: "OK"
     previous: "Précédent"
     remove: "Supprimer"
+    removing: "Suppression..."
     reset: "Réinitialiser"
     saving: "Sauvegarde en cours..."
     search: "Rechercher"
@@ -810,8 +811,28 @@ blog:
             <p>PS2. Vous êtes courageux si vous avez lu jusqu'au bout :-).</p>
 
 collections:
-    add_puzzle: "Ajouter un puzzle à la collection"
+    add_puzzle:
+        title: "Ajouter un puzzle à la collection"
+        button: "Ajouter un puzzle"
+        description: "Sélectionnez un puzzle existant ou ajoutez-en un nouveau à votre collection."
+        submit: "Ajouter à la collection"
+        success: "Le puzzle a été ajouté avec succès à la collection."
+        puzzle_section: "Sélectionner le puzzle"
+        collection_section: "Sélectionner la collection"
+        new_puzzle_section: "Détails du nouveau puzzle"
+    add_puzzle_here:
+        button: "Ajouter un puzzle"
+    add_puzzle_form:
+        title: "Ajouter un puzzle à la collection"
+        button: "Ajouter un puzzle"
+        description: "Sélectionnez un puzzle existant ou ajoutez-en un nouveau à votre collection."
+        submit: "Ajouter à la collection"
+        success: "Le puzzle a été ajouté avec succès à la collection."
+        puzzle_section: "Sélectionner le puzzle"
+        collection_section: "Sélectionner la collection"
+        new_puzzle_section: "Détails du nouveau puzzle"
     add_to_collection: "Ajouter à la collection"
+    comment_help: "Ajoutez un commentaire facultatif sur ce puzzle dans votre collection."
     added_on: "Ajouté le %date%"
     already_in_system: "Puzzle déjà dans votre collection"
     already_in_system_message: "Ce puzzle est déjà dans votre Collection de Puzzles. Vous voulez organiser vos puzzles en plusieurs collections ? Débloquez cette fonctionnalité avec l'adhésion !"
@@ -889,7 +910,12 @@ collections:
     no_move_target_message: "Il n'y a pas d'autres collections vers lesquelles déplacer ce puzzle. Créez des collections personnalisées pour organiser vos puzzles."
     no_puzzles: "Aucun puzzle dans cette collection"
     no_puzzles_description: "Cette collection est vide. Ajoutez des puzzles pour commencer !"
-    private: "Privée"
+    private:
+        title: "Collection privée"
+        message: "La collection de %name% est privée et ne peut pas être consultée."
+    private_page:
+        title: "Collection privée"
+        message: "La collection de %name% est privée et ne peut pas être consultée."
     private_collection: "Collection privée"
     private_collection_message: "La collection \"%collection%\" de %player% est privée et ne peut pas être consultée."
     public: "Publique"
@@ -1156,3 +1182,13 @@ lend_borrow:
         player_not_found: "Joueur non trouvé. Veuillez vérifier le code joueur."
         cannot_lend_to_self: "Vous ne pouvez pas vous prêter un puzzle à vous-même."
         cannot_borrow_from_self: "Vous ne pouvez pas emprunter un puzzle de vous-même."
+        cannot_pass_to_self: "Vous ne pouvez pas passer un puzzle à vous-même."
+
+status:
+    borrowed: "Emprunté"
+    collection: "Dans la collection"
+    for_sale: "À vendre"
+    lent: "Prêté"
+    solved: "Résolu"
+    unsolved: "Non résolu"
+    wishlist: "Liste de souhaits"

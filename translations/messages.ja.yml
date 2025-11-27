@@ -228,6 +228,7 @@ forms:
     required_field: "この項目は必須です！"
     max_characters: "最大500文字"
     saving: "保存中..."
+    removing: "削除中..."
     add_puzzle_to_collection:
         choose_collection: "- コレクションを選択 -"
         collection: "コレクション"
@@ -808,13 +809,33 @@ blog:
             <p>PS. 人間の介入なしに1週間後、メールサーバーのおかげで本当に「自分で」壊れました...それはかなりのものです...</p>
 
 collections:
-    add_puzzle: "コレクションにパズルを追加"
+    add_puzzle:
+        title: "コレクションにパズルを追加"
+        button: "パズルを追加"
+        description: "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
+        submit: "コレクションに追加"
+        success: "パズルがコレクションに正常に追加されました。"
+        puzzle_section: "パズルを選択"
+        collection_section: "コレクションを選択"
+        new_puzzle_section: "新しいパズルの詳細"
+    add_puzzle_here:
+        button: "パズルを追加"
+    add_puzzle_form:
+        title: "コレクションにパズルを追加"
+        button: "パズルを追加"
+        description: "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
+        submit: "コレクションに追加"
+        success: "パズルがコレクションに正常に追加されました。"
+        puzzle_section: "パズルを選択"
+        collection_section: "コレクションを選択"
+        new_puzzle_section: "新しいパズルの詳細"
     add_to_collection: "コレクションに追加"
     added_on: "%date%に追加"
     already_in_system: "パズルは既にコレクションにあります"
     already_in_system_message: "このパズルは既にパズルコレクションにあります。パズルを複数のコレクションに整理したいですか？メンバーシップでこの機能をアンロック！"
     back_to_collections: "コレクションに戻る"
     collection_not_found: "コレクションが見つかりません"
+    comment_help: "コレクション内のこのパズルについてオプションのコメントを追加してください。"
     confirm_remove: "このパズルをコレクションから削除してもよろしいですか？"
     copy_puzzle: "コレクションにパズルをコピー"
     copy_puzzle_submit: "コピー"
@@ -887,7 +908,12 @@ collections:
     no_move_target_message: "このパズルを移動できる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
     no_puzzles: "このコレクションにパズルはありません"
     no_puzzles_description: "このコレクションは空です。パズルを追加して始めましょう！"
-    private: "非公開"
+    private:
+        title: "プライベートコレクション"
+        message: "%name%のコレクションは非公開のため、閲覧できません。"
+    private_page:
+        title: "プライベートコレクション"
+        message: "%name%のコレクションは非公開のため、閲覧できません。"
     private_collection: "非公開コレクション"
     private_collection_message: "%player%のコレクション「%collection%」は非公開で表示できません。"
     public: "公開"
@@ -1104,6 +1130,7 @@ lend_borrow:
         borrowed: "パズルが借用としてマークされました。"
         cannot_borrow_from_self: "自分から自分へパズルを借りることはできません。"
         cannot_lend_to_self: "自分から自分へパズルを貸すことはできません。"
+        cannot_pass_to_self: "自分自身にパズルを渡すことはできません。"
         lent: "パズルが正常に貸し出されました。"
         login_required: "貸出リストを管理するにはログインが必要です。"
         passed: "パズルが正常に受け渡されました。"
@@ -1154,3 +1181,12 @@ lend_borrow:
     title: "貸出・借用"
     view_holder: "現在の保持者を表示"
     view_owner: "所有者を表示"
+
+status:
+    borrowed: "借用中"
+    collection: "コレクション内"
+    for_sale: "販売中"
+    lent: "貸出中"
+    solved: "完成"
+    unsolved: "未完成"
+    wishlist: "ウィッシュリスト"

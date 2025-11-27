@@ -207,6 +207,7 @@ forms:
     close: "Schließen"
     max_characters: "Maximal 500 Zeichen"
     saving: "Speichern..."
+    removing: "Entfernen..."
     add: "Hinzufügen"
     back: "Zurück"
     clear: "Löschen"
@@ -863,12 +864,36 @@ collections:
         public: "Öffentlich"
         private: "Privat"
     public: "Öffentlich"
-    private: "Privat"
+    private:
+        title: "Private Sammlung"
+        message: "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."
+    private_page:
+        title: "Private Sammlung"
+        message: "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."
     system_name: "Puzzle-Sammlung"
     already_in_system: "Puzzle bereits in Ihrer Sammlung"
     already_in_system_message: "Dieses Puzzle ist bereits in Ihrer Puzzle-Sammlung. Möchten Sie Ihre Puzzles in mehrere Sammlungen organisieren? Schalten Sie diese Funktion mit einer Mitgliedschaft frei!"
     add_to_collection: "Zur Sammlung hinzufügen"
-    add_puzzle: "Puzzle zur Sammlung hinzufügen"
+    add_puzzle:
+        title: "Puzzle zur Sammlung hinzufügen"
+        button: "Puzzle hinzufügen"
+        description: "Wählen Sie ein vorhandenes Puzzle aus oder fügen Sie ein neues zu Ihrer Sammlung hinzu."
+        submit: "Zur Sammlung hinzufügen"
+        success: "Das Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
+        puzzle_section: "Puzzle auswählen"
+        collection_section: "Sammlung auswählen"
+        new_puzzle_section: "Neue Puzzle-Details"
+    add_puzzle_here:
+        button: "Puzzle hinzufügen"
+    add_puzzle_form:
+        title: "Puzzle zur Sammlung hinzufügen"
+        button: "Puzzle hinzufügen"
+        description: "Wählen Sie ein vorhandenes Puzzle aus oder fügen Sie ein neues zu Ihrer Sammlung hinzu."
+        submit: "Zur Sammlung hinzufügen"
+        success: "Das Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
+        puzzle_section: "Puzzle auswählen"
+        collection_section: "Sammlung auswählen"
+        new_puzzle_section: "Neue Puzzle-Details"
     remove_from: "Aus %collection% entfernen"
     remove: "Entfernen"
     confirm_remove: "Sind Sie sicher, dass Sie dieses Puzzle aus der Sammlung entfernen möchten?"
@@ -905,6 +930,7 @@ collections:
     no_move_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle verschoben werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
     no_copy_target: "Keine verfügbaren Sammlungen"
     no_copy_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle kopiert werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
+    comment_help: "Fügen Sie einen optionalen Kommentar zu diesem Puzzle in Ihrer Sammlung hinzu."
 
 unsolved_puzzles:
     description: "Puzzles in deiner Sammlung, die du noch nicht gelöst hast"
@@ -1156,3 +1182,13 @@ lend_borrow:
         player_not_found: "Spieler nicht gefunden. Bitte überprüfe den Spielercode."
         cannot_lend_to_self: "Du kannst dir kein Puzzle selbst leihen."
         cannot_borrow_from_self: "Du kannst dir kein Puzzle von dir selbst ausleihen."
+        cannot_pass_to_self: "Sie können ein Puzzle nicht an sich selbst weitergeben."
+
+status:
+    borrowed: "Geliehen"
+    collection: "In der Sammlung"
+    for_sale: "Zu verkaufen"
+    lent: "Verliehen"
+    solved: "Gelöst"
+    unsolved: "Ungelöst"
+    wishlist: "Wunschliste"

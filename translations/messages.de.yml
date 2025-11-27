@@ -929,3 +929,230 @@ unsolved_puzzles:
     private_message: "Die Liste ungelöster Puzzles \"%collection%\" von %player% ist privat und kann nicht angezeigt werden."
     title: "Ungelöste Puzzles"
     title_other: "Ungelöste Puzzles von %name%"
+
+wish_list:
+    name: "Wunschliste"
+    meta:
+        title: "Wunschliste"
+    title: "Wunschliste"
+    title_other: "Wunschliste von %name%"
+    description: "Puzzles, die du bekommen möchtest"
+    description_other: "Puzzles, die %name% bekommen möchte"
+    items_count: "%count% Puzzles"
+    empty:
+        title: "Deine Wunschliste ist leer"
+        message: "Füge Puzzles hinzu, die du bekommen möchtest!"
+        title_other: "Leere Wunschliste"
+        message_other: "Die Wunschliste von %name% ist leer."
+    edit:
+        title: "Sichtbarkeit der Wunschliste bearbeiten"
+        meta:
+            title: "Sichtbarkeit der Wunschliste bearbeiten"
+        submit: "Änderungen speichern"
+    form:
+        visibility_help: "Die öffentliche Wunschliste ist für alle Benutzer sichtbar, privat nur für dich."
+        remove_on_add: "Automatisch von der Wunschliste entfernen"
+        remove_on_add_help: "Wenn aktiviert, wird dieses Puzzle automatisch von deiner Wunschliste entfernt, wenn du es zu einer Sammlung hinzufügst oder eine Lösungszeit hinzufügst."
+    flash:
+        updated: "Die Sichtbarkeit der Wunschliste wurde erfolgreich aktualisiert."
+        added: "Puzzle wurde zu deiner Wunschliste hinzugefügt."
+        removed: "Puzzle wurde von deiner Wunschliste entfernt."
+        login_required: "Du musst angemeldet sein, um deine Wunschliste zu verwalten."
+    private: "Private Wunschliste"
+    private_message: "Die Wunschliste von %player% ist privat und kann nicht angezeigt werden."
+    add:
+        title: "Zur Wunschliste hinzufügen"
+        button: "Zur Wunschliste hinzufügen"
+        success: "Puzzle wurde zu deiner Wunschliste hinzugefügt."
+    remove:
+        button: "Von der Wunschliste entfernen"
+        success: "Puzzle wurde von deiner Wunschliste entfernt."
+    already_in_list: "Dieses Puzzle ist bereits auf deiner Wunschliste."
+    login_required: "Du musst angemeldet sein, um Puzzles zu deiner Wunschliste hinzuzufügen."
+    auto_remove_enabled: "Auto-Entfernen aktiviert"
+
+sell_swap_list:
+    name: "Verkauf/Tausch-Liste"
+    meta:
+        title: "Verkauf/Tausch-Liste"
+    title: "Verkauf/Tausch-Liste"
+    title_other: "Verkauf/Tausch-Liste von %name%"
+    description: "Puzzles zum Verkauf oder Tausch"
+    description_other: "Puzzles, die %name% verkauft oder tauscht"
+    items_count: "%count% Puzzles"
+    contact_notice: "Kontaktiere den Verkäufer direkt, um Kauf oder Tausch zu vereinbaren."
+    empty:
+        title: "Deine Verkauf/Tausch-Liste ist leer"
+        message: "Füge Puzzles hinzu, die du verkaufen oder tauschen möchtest!"
+        title_other: "Leere Verkauf/Tausch-Liste"
+        message_other: "Die Verkauf/Tausch-Liste von %name% ist leer."
+    edit_settings:
+        title: "Verkauf/Tausch-Listen-Einstellungen bearbeiten"
+        meta:
+            title: "Verkauf/Tausch-Listen-Einstellungen bearbeiten"
+        submit: "Änderungen speichern"
+    edit_item:
+        title: "Artikel bearbeiten"
+        meta:
+            title: "Verkaufs-/Tauschartikel bearbeiten"
+        submit: "Änderungen speichern"
+    settings:
+        title: "Verkauf/Tausch-Listen-Einstellungen"
+        info: "Konfiguriere deine Verkauf/Tausch-Listen-Einstellungen. Diese Informationen werden potenziellen Käufern angezeigt."
+        description: "Beschreibung"
+        description_placeholder: "Teile Käufern deine Verkaufsbedingungen, bevorzugte Zahlungsmethoden usw. mit."
+        description_help: "Teile Käufern deine Verkaufsbedingungen, bevorzugte Zahlungsmethoden usw. mit."
+        currency: "Währung"
+        currency_placeholder: "Währung auswählen..."
+        currency_custom: "Eigene Währung"
+        custom_currency: "Eigene Währung"
+        currency_custom_placeholder: "z.B. USD, GBP, CHF..."
+        custom_currency_placeholder: "z.B. USD, GBP, CHF..."
+        custom_currency_help: "Verwende dies, wenn deine Währung nicht in der obigen Liste enthalten ist."
+        shipping_info: "Versandinformationen"
+        shipping_info_placeholder: "Beschreibe deine Versandoptionen und -kosten..."
+        shipping_info_help: "Beschreibe deine Versandoptionen und -kosten..."
+        contact_info: "Kontaktinformationen"
+        contact_info_placeholder: "Wie sollen Käufer dich kontaktieren?"
+        contact_info_help: "Wie sollen Käufer dich kontaktieren?"
+        contact_info_warning: "Deine Kontaktinformationen werden öffentlich sichtbar sein. Teile nur das, womit du dich wohlfühlst."
+    form:
+        listing_type: "Angebotstyp"
+        price: "Preis"
+        price_help: "Leer lassen, wenn du den Preis besprechen möchtest oder nur für Tauschartikel. Du kannst deine Währung in den Verkauf/Tausch-Listen-Einstellungen festlegen."
+        condition: "Zustand"
+        condition_placeholder: "Zustand auswählen..."
+        comment: "Kommentar"
+        comment_placeholder: "Zusätzliche Details zu diesem Puzzle..."
+    listing_type:
+        swap: "Tausch"
+        sell: "Verkauf"
+        both: "Verkauf oder Tausch"
+    condition:
+        like_new: "Wie neu"
+        normal: "Normal"
+        not_so_good: "Nicht so gut"
+        missing_pieces: "Fehlende Teile"
+    filter:
+        all_types: "Alle Typen"
+        min_price: "Min. Preis"
+        max_price: "Max. Preis"
+    add:
+        title: "Zur Verkauf/Tausch-Liste hinzufügen"
+        button: "Zur Verkauf/Tausch-Liste hinzufügen"
+        success: "Puzzle wurde zu deiner Verkauf/Tausch-Liste hinzugefügt."
+    remove:
+        button: "Von der Verkauf/Tausch-Liste entfernen"
+        success: "Puzzle wurde von deiner Verkauf/Tausch-Liste entfernt."
+    already_in_list: "Dieses Puzzle ist bereits auf deiner Verkauf/Tausch-Liste."
+    login_required: "Du musst angemeldet sein, um deine Verkauf/Tausch-Liste zu verwalten."
+    membership_required:
+        title: "Nur für Mitglieder"
+        message: "Die Verkauf/Tausch-Liste ist ausschließlich für Mitglieder verfügbar."
+    mark_sold:
+        title: "Als verkauft/getauscht markieren"
+        button: "Als verkauft/getauscht markieren"
+        confirm: "Bestätigen"
+        warning: "Dies entfernt das Puzzle von deiner Verkauf/Tausch-Liste und allen deinen Sammlungen."
+        buyer_input: "Käufer"
+        buyer_input_help: "Gib den Spielercode des Käufers ein (z.B. #ABC123) oder den Namen. Leer lassen, falls unbekannt."
+        buyer_input_placeholder: "#ABC123 oder Name..."
+        success: "Puzzle wurde als verkauft/getauscht markiert und aus deinen Sammlungen entfernt."
+    back_to_list: "Zurück zur Verkauf/Tausch-Liste"
+    flash:
+        updated: "Verkauf/Tausch-Listen-Einstellungen wurden erfolgreich aktualisiert."
+        settings_updated: "Verkauf/Tausch-Listen-Einstellungen wurden erfolgreich aktualisiert."
+        item_updated: "Verkauf/Tausch-Listeneintrag wurde erfolgreich aktualisiert."
+        added: "Puzzle wurde zu deiner Verkauf/Tausch-Liste hinzugefügt."
+        removed: "Puzzle wurde von deiner Verkauf/Tausch-Liste entfernt."
+        login_required: "Du musst angemeldet sein, um deine Verkauf/Tausch-Liste zu verwalten."
+        validation_error: "Bitte behebe die Fehler und versuche es erneut."
+    history:
+        title: "Verkauft/Getauscht-Verlauf"
+        menu: "Verlauf"
+        button: "Verlauf"
+        empty: "Noch keine verkauften oder getauschten Artikel."
+        puzzle: "Puzzle"
+        type: "Typ"
+        price: "Preis"
+        buyer: "Käufer"
+        date: "Datum"
+        unknown_buyer: "Unbekannt"
+
+lend_borrow:
+    name: "Verleihen & Ausleihen"
+    title: "Verleihen & Ausleihen"
+    description: "Aktuell verliehene oder ausgeliehene Puzzles"
+    lent_count: "%count% verliehen"
+    borrowed_count: "%count% ausgeliehen"
+    tab:
+        lent: "Verliehen"
+        borrowed: "Ausgeliehen"
+    lent_to: "Verliehen an %name%"
+    borrowed_from: "Von %name%"
+    view_holder: "Aktuellen Besitzer anzeigen"
+    view_owner: "Eigentümer anzeigen"
+    lent:
+        empty:
+            title: "Keine verliehenen Puzzles"
+            message: "Du hast noch keine Puzzles verliehen. Verwende das Puzzle-Menü, um Puzzles an andere Spieler zu verleihen."
+            title_other: "Keine verliehenen Puzzles"
+            message_other: "%name% hat keine Puzzles verliehen."
+    borrowed:
+        empty:
+            title: "Keine ausgeliehenen Puzzles"
+            message: "Du hast keine ausgeliehenen Puzzles."
+            title_other: "Keine ausgeliehenen Puzzles"
+            message_other: "%name% hat keine Puzzles ausgeliehen."
+    form:
+        borrower_code: "Spielercode oder Name des Ausleihers"
+        borrower_code_help: "Für registrierte Benutzer verwende #code (z.B. #ABC123). Für nicht registrierte Personen gib einfach deren Namen ein."
+        borrower_code_placeholder: "#ABC123 oder Max Mustermann"
+        owner_code: "Spielercode oder Name des Eigentümers"
+        owner_code_help: "Für registrierte Benutzer verwende #code (z.B. #ABC123). Für nicht registrierte Personen gib einfach deren Namen ein."
+        owner_code_placeholder: "#ABC123 oder Max Mustermann"
+        notes: "Notizen"
+        notes_placeholder: "Optionale Notizen zu dieser Ausleihe..."
+        new_holder_code: "Spielercode oder Name des neuen Besitzers"
+        new_holder_code_help: "Für registrierte Benutzer verwende #code (z.B. #ABC123). Für nicht registrierte Personen gib einfach deren Namen ein."
+        new_holder_code_placeholder: "#ABC123 oder Max Mustermann"
+    lend:
+        title: "Puzzle verleihen"
+        button: "An Spieler verleihen"
+        description: "Verleihe dieses Puzzle an einen anderen Spieler. Er kann es weitergeben oder dir zurückgeben."
+    borrow:
+        title: "Als ausgeliehen markieren"
+        button: "Ausgeliehen von"
+        description: "Markiere dieses Puzzle als von einem anderen Spieler ausgeliehen."
+    pass:
+        title: "Puzzle weitergeben"
+        button: "An jemand anderen weitergeben"
+        description: "Gib %puzzle% an einen anderen Spieler weiter. Der Eigentümer kann es weiterhin nachverfolgen."
+    return:
+        title: "Puzzle zurückgeben"
+        button: "An Eigentümer zurückgeben"
+        confirm_message: "%puzzle% an seinen Eigentümer zurückgeben?"
+    membership_required:
+        title: "Nur für Mitglieder"
+        message: "Das Verleihen von Puzzles ist ausschließlich für Mitglieder verfügbar."
+    already_lent: "Dieses Puzzle ist bereits verliehen."
+    already_lent_short: "Bereits verliehen"
+    already_borrowed: "Dieses Puzzle ist bereits auf deiner Liste ausgeliehener Puzzles."
+    already_borrowed_short: "Bereits ausgeliehen"
+    login_required: "Du musst angemeldet sein, um deine Verleihliste zu verwalten."
+    edit_settings:
+        title: "Verleihen & Ausleihen-Einstellungen bearbeiten"
+        meta:
+            title: "Verleihen & Ausleihen-Einstellungen bearbeiten"
+        submit: "Änderungen speichern"
+    flash:
+        lent: "Puzzle wurde erfolgreich verliehen."
+        passed: "Puzzle wurde erfolgreich weitergegeben."
+        returned: "Puzzle wurde erfolgreich an den Eigentümer zurückgegeben."
+        borrowed: "Puzzle wurde als ausgeliehen markiert."
+        settings_updated: "Verleihen & Ausleihen-Einstellungen wurden erfolgreich aktualisiert."
+        login_required: "Du musst angemeldet sein, um deine Verleihliste zu verwalten."
+        validation_error: "Bitte behebe die Fehler und versuche es erneut."
+        player_not_found: "Spieler nicht gefunden. Bitte überprüfe den Spielercode."
+        cannot_lend_to_self: "Du kannst dir kein Puzzle selbst leihen."
+        cannot_borrow_from_self: "Du kannst dir kein Puzzle von dir selbst ausleihen."

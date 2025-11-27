@@ -202,6 +202,7 @@ add_time:
 
 forms:
     saving: "Ukládání..."
+    removing: "Odebírání..."
     drop_file: "Přetáhněte sem soubor pro nahrání"
     choose_file: "Nebo vyberte soubor"
     save: "Uložit"
@@ -864,12 +865,12 @@ collections:
         public: "Veřejná"
         private: "Soukromá"
     public: "Veřejná"
-    private: "Soukromá"
     system_name: "Puzzle kolekce"
     already_in_system: "Puzzle je již ve vaší kolekci"
     already_in_system_message: "Toto puzzle již máte v Puzzle kolekci. Chcete organizovat puzzle do více kolekcí? Odemkněte tuto funkci s členstvím!"
     add_to_collection: "Přidat do kolekce"
-    add_puzzle: "Přidat puzzle do kolekce"
+    add_puzzle_here:
+        button: "Přidat puzzle"
     remove_from: "Odebrat z %collection%"
     remove: "Odebrat"
     confirm_remove: "Opravdu chcete odebrat toto puzzle z kolekce?"
@@ -906,6 +907,19 @@ collections:
     no_move_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle přesunout. Vytvořte si vlastní kolekce pro organizaci puzzlí."
     no_copy_target: "Žádné dostupné kolekce"
     no_copy_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle zkopírovat. Vytvořte si vlastní kolekce pro organizaci puzzlí."
+    comment_help: "Přidejte volitelný komentář k tomuto puzzle ve vaší kolekci."
+    private:
+        title: "Soukromá kolekce"
+        message: "Kolekce hráče %name% je soukromá a nelze ji zobrazit."
+    add_puzzle:
+        title: "Přidat puzzle do kolekce"
+        button: "Přidat puzzle"
+        description: "Vyberte existující puzzle nebo přidejte nové do své kolekce."
+        submit: "Přidat do kolekce"
+        success: "Puzzle bylo úspěšně přidáno do kolekce."
+        puzzle_section: "Vybrat puzzle"
+        collection_section: "Vybrat kolekci"
+        new_puzzle_section: "Detaily nového puzzle"
 
 unsolved_puzzles:
     description: "Puzzle ve vaší sbírce, které jste ještě nesložili"
@@ -1008,3 +1022,153 @@ lend_borrow:
         player_not_found: "Hráč nenalezen. Zkontrolujte prosím kód hráče."
         cannot_lend_to_self: "Nemůžete si půjčit puzzle sami sobě."
         cannot_borrow_from_self: "Nemůžete si vypůjčit puzzle od sebe sama."
+        cannot_pass_to_self: "Nemůžete předat puzzle sami sobě."
+
+wish_list:
+    meta:
+        title: "Seznam přání"
+    title: "Seznam přání"
+    title_other: "Seznam přání hráče %name%"
+    name: "Seznam přání"
+    description: "Puzzle, která chcete získat"
+    description_other: "Puzzle, která %name% chce získat"
+    items_count: "%count% puzzlí"
+    empty:
+        title: "Váš seznam přání je prázdný"
+        message: "Přidejte puzzle, která chcete získat, do svého seznamu přání!"
+        title_other: "Prázdný seznam přání"
+        message_other: "Seznam přání hráče %name% je prázdný."
+    add:
+        title: "Přidat na seznam přání"
+        button: "Přidat na seznam přání"
+        success: "Puzzle bylo přidáno na váš seznam přání."
+    remove:
+        button: "Odebrat ze seznamu přání"
+        success: "Puzzle bylo odebráno z vašeho seznamu přání."
+    already_in_list: "Toto puzzle je již ve vašem seznamu přání."
+    private: "Soukromý seznam přání"
+    private_message: "Seznam přání hráče %player% je soukromý a nelze jej zobrazit."
+    auto_remove_enabled: "Automatické odebrání povoleno"
+    edit:
+        title: "Upravit viditelnost seznamu přání"
+        submit: "Uložit změny"
+        meta:
+            title: "Upravit viditelnost seznamu přání"
+    form:
+        visibility_help: "Veřejný seznam přání je viditelný pro všechny uživatele, soukromý pouze pro vás."
+        remove_on_add: "Automaticky odebrat ze seznamu přání"
+        remove_on_add_help: "Pokud je zaškrtnuto, toto puzzle bude automaticky odebráno z vašeho seznamu přání, když jej přidáte do jakékoli kolekce nebo přidáte čas skládání."
+    flash:
+        added: "Puzzle bylo přidáno na váš seznam přání."
+        removed: "Puzzle bylo odebráno z vašeho seznamu přání."
+        updated: "Viditelnost seznamu přání byla úspěšně aktualizována."
+        login_required: "Pro správu seznamu přání musíte být přihlášeni."
+    login_required: "Pro přidávání puzzlí na seznam přání musíte být přihlášeni."
+
+sell_swap_list:
+    meta:
+        title: "Seznam k prodeji/výměně"
+    title: "Seznam k prodeji/výměně"
+    title_other: "Seznam k prodeji/výměně hráče %name%"
+    name: "Seznam k prodeji/výměně"
+    description: "Puzzle k prodeji nebo výměně"
+    description_other: "Puzzle, která %name% prodává nebo vyměňuje"
+    items_count: "%count% puzzlí"
+    empty:
+        title: "Váš seznam k prodeji/výměně je prázdný"
+        message: "Přidejte puzzle, která chcete prodat nebo vyměnit!"
+        title_other: "Prázdný seznam k prodeji/výměně"
+        message_other: "Seznam k prodeji/výměně hráče %name% je prázdný."
+    add:
+        title: "Přidat na seznam k prodeji/výměně"
+        button: "Přidat na seznam k prodeji/výměně"
+        success: "Puzzle bylo přidáno na váš seznam k prodeji/výměně."
+    remove:
+        button: "Odebrat ze seznamu k prodeji/výměně"
+        success: "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
+    already_in_list: "Toto puzzle je již ve vašem seznamu k prodeji/výměně."
+    contact_notice: "Kontaktujte prodejce přímo pro domluvení nákupu nebo výměny."
+    back_to_list: "Zpět na seznam k prodeji/výměně"
+    membership_required:
+        title: "Funkce pouze pro členy"
+        message: "Seznam k prodeji/výměně je dostupný výhradně členům."
+    login_required: "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
+    listing_type:
+        sell: "Prodej"
+        swap: "Výměna"
+        both: "Prodej i výměna"
+    condition:
+        like_new: "Jako nové"
+        normal: "Normální"
+        not_so_good: "Není v nejlepším stavu"
+        missing_pieces: "Chybějící dílky"
+    form:
+        listing_type: "Typ nabídky"
+        condition: "Stav"
+        condition_placeholder: "Vyberte stav..."
+        price: "Cena"
+        price_help: "Nechte prázdné, pokud preferujete domluvit cenu nebo pouze pro výměnu. Měnu můžete nastavit v nastavení seznamu k prodeji/výměně."
+        comment: "Komentář"
+        comment_placeholder: "Jakékoli další informace o tomto puzzle..."
+    settings:
+        title: "Nastavení seznamu k prodeji/výměně"
+        info: "Nakonfigurujte nastavení svého seznamu k prodeji/výměně. Tyto informace budou zobrazeny potenciálním kupcům."
+        description: "Popis"
+        description_help: "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
+        description_placeholder: "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
+        contact_info: "Kontaktní informace"
+        contact_info_help: "Jak vás mají kupci kontaktovat?"
+        contact_info_placeholder: "Jak vás mají kupci kontaktovat?"
+        contact_info_warning: "Vaše kontaktní informace budou veřejně viditelné. Sdílejte pouze to, s čím jste spokojeni."
+        shipping_info: "Informace o doručení"
+        shipping_info_help: "Popište vaše možnosti doručení a ceny..."
+        shipping_info_placeholder: "Popište vaše možnosti doručení a ceny..."
+        currency: "Měna"
+        currency_placeholder: "Vyberte měnu..."
+        currency_custom: "Vlastní měna"
+        custom_currency: "Vlastní měna"
+        custom_currency_help: "Použijte toto, pokud vaše měna není v seznamu výše."
+        custom_currency_placeholder: "např. USD, GBP, CHF..."
+        currency_custom_placeholder: "např. USD, GBP, CHF..."
+    edit_settings:
+        title: "Upravit nastavení seznamu k prodeji/výměně"
+        submit: "Uložit změny"
+        meta:
+            title: "Upravit nastavení seznamu k prodeji/výměně"
+    edit_item:
+        title: "Upravit položku"
+        submit: "Uložit změny"
+        meta:
+            title: "Upravit položku k prodeji/výměně"
+    filter:
+        all_types: "Všechny typy"
+        min_price: "Min. cena"
+        max_price: "Max. cena"
+    mark_sold:
+        title: "Označit jako prodáno/vyměněno"
+        button: "Označit jako prodáno/vyměněno"
+        confirm: "Potvrdit"
+        warning: "Toto odebere puzzle z vašeho seznamu k prodeji/výměně a ze všech vašich kolekcí."
+        success: "Puzzle bylo označeno jako prodáno/vyměněno a odebráno z vašich kolekcí."
+        buyer_input: "Kupec"
+        buyer_input_help: "Zadejte kód hráče kupce (např. #ABC123) nebo jméno. Nechte prázdné, pokud není známo."
+        buyer_input_placeholder: "#ABC123 nebo jméno..."
+    history:
+        title: "Historie prodaných/vyměněných"
+        button: "Historie"
+        menu: "Historie"
+        empty: "Zatím žádné prodané nebo vyměněné položky."
+        puzzle: "Puzzle"
+        date: "Datum"
+        price: "Cena"
+        buyer: "Kupec"
+        type: "Typ"
+        unknown_buyer: "Neznámý"
+    flash:
+        added: "Puzzle bylo přidáno na váš seznam k prodeji/výměně."
+        removed: "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
+        updated: "Nastavení seznamu k prodeji/výměně bylo úspěšně aktualizováno."
+        settings_updated: "Nastavení seznamu k prodeji/výměně bylo úspěšně aktualizováno."
+        item_updated: "Položka seznamu k prodeji/výměně byla úspěšně aktualizována."
+        login_required: "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
+        validation_error: "Opravte prosím chyby a zkuste to znovu."

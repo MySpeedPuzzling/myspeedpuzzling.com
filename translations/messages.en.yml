@@ -199,6 +199,7 @@ add_time:
     choose_from_favorites: "- Choose from favorites -"
 
 forms:
+    removing: "Removing..."
     drop_file: "Drag and drop a file here to upload"
     choose_file: "Or select a file"
     save: "Save"
@@ -862,20 +863,10 @@ collections:
         public: "Public"
         private: "Private"
     public: "Public"
-    private: "Private"
     system_name: "Puzzle Collection"
     already_in_system: "Puzzle Already in Your Collection"
     already_in_system_message: "This puzzle is already in your Puzzle Collection. Want to organize your puzzles into multiple collections? Unlock this feature with membership!"
     add_to_collection: "Add to Collection"
-    add_puzzle:
-        title: "Add Puzzle to Collection"
-        button: "Add Puzzle"
-        description: "Select an existing puzzle or add a new one to your collection."
-        puzzle_section: "Select Puzzle"
-        collection_section: "Select Collection"
-        new_puzzle_section: "New Puzzle Details"
-        submit: "Add to Collection"
-        success: "Puzzle has been successfully added to the collection."
     add_puzzle_here:
         button: "Add Puzzle"
     remove_from: "Remove from %collection%"
@@ -914,6 +905,19 @@ collections:
     no_move_target_message: "There are no other collections to move this puzzle to. Create custom collections to organize your puzzles."
     no_copy_target: "No available collections"
     no_copy_target_message: "There are no other collections to copy this puzzle to. Create custom collections to organize your puzzles."
+    comment_help: "Add an optional comment about this puzzle in your collection."
+    private:
+        title: "Private Collection"
+        message: "The collection by %name% is private and cannot be viewed."
+    add_puzzle:
+        title: "Add Puzzle to Collection"
+        button: "Add Puzzle"
+        description: "Select an existing puzzle or add a new one to your collection."
+        submit: "Add to Collection"
+        success: "Puzzle has been successfully added to the collection."
+        puzzle_section: "Select Puzzle"
+        collection_section: "Select Collection"
+        new_puzzle_section: "New Puzzle Details"
 
 unsolved_puzzles:
     name: "Unsolved Puzzles"
@@ -1165,3 +1169,4 @@ lend_borrow:
         player_not_found: "Player not found. Please check the player code."
         cannot_lend_to_self: "You cannot lend a puzzle to yourself."
         cannot_borrow_from_self: "You cannot borrow a puzzle from yourself."
+        cannot_pass_to_self: "You cannot pass a puzzle to yourself."

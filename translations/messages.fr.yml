@@ -929,3 +929,230 @@ unsolved_puzzles:
     private_message: 'La liste des puzzles non résolus "%collection%" de %player% est privée et ne peut pas être consultée.'
     title: "Puzzles non résolus"
     title_other: "Puzzles non résolus de %name%"
+
+wish_list:
+    name: "Liste de souhaits"
+    meta:
+        title: "Liste de souhaits"
+    title: "Liste de souhaits"
+    title_other: "Liste de souhaits de %name%"
+    description: "Puzzles que vous souhaitez obtenir"
+    description_other: "Puzzles que %name% souhaite obtenir"
+    items_count: "%count% puzzles"
+    empty:
+        title: "Votre liste de souhaits est vide"
+        message: "Ajoutez les puzzles que vous souhaitez obtenir à votre liste de souhaits !"
+        title_other: "Liste de souhaits vide"
+        message_other: "La liste de souhaits de %name% est vide."
+    edit:
+        title: "Modifier la visibilité de la liste de souhaits"
+        meta:
+            title: "Modifier la visibilité de la liste de souhaits"
+        submit: "Enregistrer les modifications"
+    form:
+        visibility_help: "La liste de souhaits publique est visible par tous les utilisateurs, la liste privée uniquement par vous."
+        remove_on_add: "Retirer automatiquement de la liste de souhaits"
+        remove_on_add_help: "Si coché, ce puzzle sera automatiquement retiré de votre liste de souhaits lorsque vous l'ajoutez à une collection ou ajoutez un temps de résolution."
+    flash:
+        updated: "La visibilité de la liste de souhaits a été mise à jour avec succès."
+        added: "Le puzzle a été ajouté à votre liste de souhaits."
+        removed: "Le puzzle a été retiré de votre liste de souhaits."
+        login_required: "Vous devez être connecté pour gérer votre liste de souhaits."
+    private: "Liste de souhaits privée"
+    private_message: "La liste de souhaits de %player% est privée et ne peut pas être consultée."
+    add:
+        title: "Ajouter à la liste de souhaits"
+        button: "Ajouter à la liste de souhaits"
+        success: "Le puzzle a été ajouté à votre liste de souhaits."
+    remove:
+        button: "Retirer de la liste de souhaits"
+        success: "Le puzzle a été retiré de votre liste de souhaits."
+    already_in_list: "Ce puzzle est déjà dans votre liste de souhaits."
+    login_required: "Vous devez être connecté pour ajouter des puzzles à votre liste de souhaits."
+    auto_remove_enabled: "Retrait automatique activé"
+
+sell_swap_list:
+    name: "Liste Vente/Échange"
+    meta:
+        title: "Liste Vente/Échange"
+    title: "Liste Vente/Échange"
+    title_other: "Liste Vente/Échange de %name%"
+    description: "Puzzles à vendre ou échanger"
+    description_other: "Puzzles que %name% vend ou échange"
+    items_count: "%count% puzzles"
+    contact_notice: "Contactez le vendeur directement pour organiser l'achat ou l'échange."
+    empty:
+        title: "Votre liste vente/échange est vide"
+        message: "Ajoutez des puzzles que vous souhaitez vendre ou échanger !"
+        title_other: "Liste vente/échange vide"
+        message_other: "La liste vente/échange de %name% est vide."
+    edit_settings:
+        title: "Modifier les paramètres de la liste vente/échange"
+        meta:
+            title: "Modifier les paramètres de la liste vente/échange"
+        submit: "Enregistrer les modifications"
+    edit_item:
+        title: "Modifier l'article"
+        meta:
+            title: "Modifier l'article vente/échange"
+        submit: "Enregistrer les modifications"
+    settings:
+        title: "Paramètres de la liste vente/échange"
+        info: "Configurez les paramètres de votre liste vente/échange. Ces informations seront affichées aux acheteurs potentiels."
+        description: "Description"
+        description_placeholder: "Informez les acheteurs de vos politiques de vente, méthodes de paiement préférées, etc."
+        description_help: "Informez les acheteurs de vos politiques de vente, méthodes de paiement préférées, etc."
+        currency: "Devise"
+        currency_placeholder: "Sélectionner la devise..."
+        currency_custom: "Devise personnalisée"
+        custom_currency: "Devise personnalisée"
+        currency_custom_placeholder: "par ex. USD, GBP, CHF..."
+        custom_currency_placeholder: "par ex. USD, GBP, CHF..."
+        custom_currency_help: "Utilisez ceci si votre devise n'est pas dans la liste ci-dessus."
+        shipping_info: "Informations d'expédition"
+        shipping_info_placeholder: "Décrivez vos options et coûts d'expédition..."
+        shipping_info_help: "Décrivez vos options et coûts d'expédition..."
+        contact_info: "Informations de contact"
+        contact_info_placeholder: "Comment les acheteurs doivent-ils vous contacter ?"
+        contact_info_help: "Comment les acheteurs doivent-ils vous contacter ?"
+        contact_info_warning: "Vos informations de contact seront publiquement visibles. Ne partagez que ce avec quoi vous êtes à l'aise."
+    form:
+        listing_type: "Type d'annonce"
+        price: "Prix"
+        price_help: "Laissez vide si vous préférez discuter du prix ou pour les articles d'échange uniquement. Vous pouvez définir votre devise dans les paramètres de la liste vente/échange."
+        condition: "État"
+        condition_placeholder: "Sélectionner l'état..."
+        comment: "Commentaire"
+        comment_placeholder: "Détails supplémentaires sur ce puzzle..."
+    listing_type:
+        swap: "Échange"
+        sell: "Vente"
+        both: "Vente ou échange"
+    condition:
+        like_new: "Comme neuf"
+        normal: "Normal"
+        not_so_good: "État moyen"
+        missing_pieces: "Pièces manquantes"
+    filter:
+        all_types: "Tous les types"
+        min_price: "Prix minimum"
+        max_price: "Prix maximum"
+    add:
+        title: "Ajouter à la liste vente/échange"
+        button: "Ajouter à la liste vente/échange"
+        success: "Le puzzle a été ajouté à votre liste vente/échange."
+    remove:
+        button: "Retirer de la liste vente/échange"
+        success: "Le puzzle a été retiré de votre liste vente/échange."
+    already_in_list: "Ce puzzle est déjà dans votre liste vente/échange."
+    login_required: "Vous devez être connecté pour gérer votre liste vente/échange."
+    membership_required:
+        title: "Fonctionnalité réservée aux membres"
+        message: "La liste vente/échange est disponible exclusivement aux membres."
+    mark_sold:
+        title: "Marquer comme vendu/échangé"
+        button: "Marquer comme vendu/échangé"
+        confirm: "Confirmer"
+        warning: "Cela retirera le puzzle de votre liste vente/échange et de toutes vos collections."
+        buyer_input: "Acheteur"
+        buyer_input_help: "Entrez le code joueur de l'acheteur (par ex. #ABC123) ou son nom. Laissez vide si inconnu."
+        buyer_input_placeholder: "#ABC123 ou nom..."
+        success: "Le puzzle a été marqué comme vendu/échangé et retiré de vos collections."
+    back_to_list: "Retour à la liste vente/échange"
+    flash:
+        updated: "Les paramètres de la liste vente/échange ont été mis à jour avec succès."
+        settings_updated: "Les paramètres de la liste vente/échange ont été mis à jour avec succès."
+        item_updated: "L'article de la liste vente/échange a été mis à jour avec succès."
+        added: "Le puzzle a été ajouté à votre liste vente/échange."
+        removed: "Le puzzle a été retiré de votre liste vente/échange."
+        login_required: "Vous devez être connecté pour gérer votre liste vente/échange."
+        validation_error: "Veuillez corriger les erreurs et réessayer."
+    history:
+        title: "Historique des ventes/échanges"
+        menu: "Historique"
+        button: "Historique"
+        empty: "Aucun article vendu ou échangé pour le moment."
+        puzzle: "Puzzle"
+        type: "Type"
+        price: "Prix"
+        buyer: "Acheteur"
+        date: "Date"
+        unknown_buyer: "Inconnu"
+
+lend_borrow:
+    name: "Prêt & Emprunt"
+    title: "Prêt & Emprunt"
+    description: "Puzzles actuellement prêtés ou empruntés"
+    lent_count: "%count% prêté(s)"
+    borrowed_count: "%count% emprunté(s)"
+    tab:
+        lent: "Prêtés"
+        borrowed: "Empruntés"
+    lent_to: "Prêté à %name%"
+    borrowed_from: "De %name%"
+    view_holder: "Voir le détenteur actuel"
+    view_owner: "Voir le propriétaire"
+    lent:
+        empty:
+            title: "Aucun puzzle prêté"
+            message: "Vous n'avez encore prêté aucun puzzle. Utilisez le menu du puzzle pour prêter des puzzles à d'autres joueurs."
+            title_other: "Aucun puzzle prêté"
+            message_other: "%name% n'a prêté aucun puzzle."
+    borrowed:
+        empty:
+            title: "Aucun puzzle emprunté"
+            message: "Vous n'avez aucun puzzle emprunté."
+            title_other: "Aucun puzzle emprunté"
+            message_other: "%name% n'a emprunté aucun puzzle."
+    form:
+        borrower_code: "Code joueur ou nom de l'emprunteur"
+        borrower_code_help: "Pour les utilisateurs enregistrés utilisez #code (par ex. #ABC123). Pour les personnes non enregistrées entrez simplement leur nom."
+        borrower_code_placeholder: "#ABC123 ou Jean Dupont"
+        owner_code: "Code joueur ou nom du propriétaire"
+        owner_code_help: "Pour les utilisateurs enregistrés utilisez #code (par ex. #ABC123). Pour les personnes non enregistrées entrez simplement leur nom."
+        owner_code_placeholder: "#ABC123 ou Jean Dupont"
+        notes: "Notes"
+        notes_placeholder: "Notes optionnelles sur ce prêt..."
+        new_holder_code: "Code joueur ou nom du nouveau détenteur"
+        new_holder_code_help: "Pour les utilisateurs enregistrés utilisez #code (par ex. #ABC123). Pour les personnes non enregistrées entrez simplement leur nom."
+        new_holder_code_placeholder: "#ABC123 ou Jean Dupont"
+    lend:
+        title: "Prêter le puzzle"
+        button: "Prêter à un joueur"
+        description: "Prêtez ce puzzle à un autre joueur. Il pourra le transmettre ou vous le retourner."
+    borrow:
+        title: "Marquer comme emprunté"
+        button: "Emprunté de"
+        description: "Marquez ce puzzle comme emprunté d'un autre joueur."
+    pass:
+        title: "Transmettre le puzzle"
+        button: "Transmettre à quelqu'un d'autre"
+        description: "Transmettez %puzzle% à un autre joueur. Le propriétaire pourra toujours le suivre."
+    return:
+        title: "Retourner le puzzle"
+        button: "Retourner au propriétaire"
+        confirm_message: "Retourner %puzzle% à son propriétaire ?"
+    membership_required:
+        title: "Fonctionnalité réservée aux membres"
+        message: "Le prêt de puzzles est disponible exclusivement aux membres."
+    already_lent: "Ce puzzle est déjà prêté."
+    already_lent_short: "Déjà prêté"
+    already_borrowed: "Ce puzzle est déjà dans votre liste d'emprunts."
+    already_borrowed_short: "Déjà emprunté"
+    login_required: "Vous devez être connecté pour gérer votre liste de prêts."
+    edit_settings:
+        title: "Modifier les paramètres de prêt & emprunt"
+        meta:
+            title: "Modifier les paramètres de prêt & emprunt"
+        submit: "Enregistrer les modifications"
+    flash:
+        lent: "Le puzzle a été prêté avec succès."
+        passed: "Le puzzle a été transmis avec succès."
+        returned: "Le puzzle a été retourné au propriétaire avec succès."
+        borrowed: "Le puzzle a été marqué comme emprunté."
+        settings_updated: "Les paramètres de prêt & emprunt ont été mis à jour avec succès."
+        login_required: "Vous devez être connecté pour gérer votre liste de prêts."
+        validation_error: "Veuillez corriger les erreurs et réessayer."
+        player_not_found: "Joueur non trouvé. Veuillez vérifier le code joueur."
+        cannot_lend_to_self: "Vous ne pouvez pas vous prêter un puzzle à vous-même."
+        cannot_borrow_from_self: "Vous ne pouvez pas emprunter un puzzle de vous-même."

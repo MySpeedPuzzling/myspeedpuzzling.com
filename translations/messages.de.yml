@@ -200,6 +200,7 @@ add_time:
     choose_from_favorites: "- Aus Favoriten wählen -"
 
 forms:
+    choose_from_favorites: "- Aus Favoriten wählen -"
     drop_file: "Datei hierher ziehen und ablegen zum Hochladen"
     choose_file: "Oder Datei auswählen"
     save: "Speichern"

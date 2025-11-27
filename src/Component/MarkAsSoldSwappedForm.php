@@ -9,6 +9,8 @@ use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\FormData\MarkAsSoldSwappedFormData;
 use SpeedPuzzling\Web\FormType\MarkAsSoldSwappedFormType;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
@@ -38,10 +40,29 @@ final class MarkAsSoldSwappedForm extends AbstractController
     public null|string $buyerInput = null;
 
     public function __construct(
+        readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
+    }
+
+    /**
+     * @return array<PlayerIdentification>
+     */
+    public function getFavoritePlayers(): array
+    {
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            return [];
+        }
+
+        try {
+            return $this->getFavoritePlayers->forPlayerId($player->playerId);
+        } catch (PlayerNotFound) {
+            return [];
+        }
     }
 
     /**

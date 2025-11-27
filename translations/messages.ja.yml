@@ -202,6 +202,7 @@ add_time:
     choose_from_favorites: "- お気に入りから選択 -"
 
 forms:
+    choose_from_favorites: "- お気に入りから選択 -"
     drop_file: "ファイルをここにドラッグ＆ドロップしてアップロード"
     choose_file: "またはファイルを選択"
     save: "保存"

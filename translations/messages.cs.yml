@@ -201,6 +201,7 @@ add_time:
     choose_from_favorites: "- Vybrat z oblíbených -"
 
 forms:
+    choose_from_favorites: "- Vybrat z oblíbených -"
     saving: "Ukládání..."
     removing: "Odebírání..."
     drop_file: "Přetáhněte sem soubor pro nahrání"

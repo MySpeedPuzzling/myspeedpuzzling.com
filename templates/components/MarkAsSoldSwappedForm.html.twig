@@ -7,8 +7,21 @@
             {{ 'sell_swap_list.mark_sold.warning'|trans }}
         </div>
 
-        <div class="mb-4">
-            {{ form_row(form.buyerInput) }}
+        <div class="mb-4" data-controller="favorite-player-select">
+            {{ form_label(form.buyerInput) }}
+            <div class="input-group">
+                {{ form_widget(form.buyerInput, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
+                <select class="form-select"
+                        data-favorite-player-select-target="select"
+                        data-action="change->favorite-player-select#selectChanged">
+                    <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+                    {% for favorite in this.favoritePlayers %}
+                        <option value="{{ favorite.playerCode }}">
+                            {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
         <div class="d-grid gap-2 d-sm-flex">

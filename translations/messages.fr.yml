@@ -203,6 +203,7 @@ add_time:
     choose_from_favorites: "- Choisir parmi les favoris -"
 
 forms:
+    choose_from_favorites: "- Choisir parmi les favoris -"
     drop_file: "Glissez-déposez un fichier ici pour l'uploader"
     choose_file: "Ou sélectionnez un fichier"
     save: "Sauvegarder"

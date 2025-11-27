@@ -24,8 +24,21 @@
         {% else %}
             {{ form_start(form, {attr: {'data-action': 'live#action:prevent', 'data-live-action-param': 'save', 'data-model': 'norender|*'}}) }}
 
-            <div class="mb-3">
-                {{ form_row(form.ownerCode) }}
+            <div class="mb-3" data-controller="favorite-player-select">
+                {{ form_label(form.ownerCode) }}
+                <div class="input-group">
+                    {{ form_widget(form.ownerCode, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
+                    <select class="form-select"
+                            data-favorite-player-select-target="select"
+                            data-action="change->favorite-player-select#selectChanged">
+                        <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+                        {% for favorite in this.favoritePlayers %}
+                            <option value="{{ favorite.playerCode }}">
+                                {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <small class="form-text text-muted">{{ 'lend_borrow.form.owner_code_help'|trans }}</small>
             </div>
 

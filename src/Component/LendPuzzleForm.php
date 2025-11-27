@@ -8,8 +8,10 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\LendPuzzleFormData;
 use SpeedPuzzling\Web\FormType\LendPuzzleFormType;
 use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
@@ -34,11 +36,30 @@ final class LendPuzzleForm extends AbstractController
 
     public function __construct(
         readonly private GetLentPuzzles $getLentPuzzles,
+        readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PlayerRepository $playerRepository,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
+    }
+
+    /**
+     * @return array<PlayerIdentification>
+     */
+    public function getFavoritePlayers(): array
+    {
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            return [];
+        }
+
+        try {
+            return $this->getFavoritePlayers->forPlayerId($player->playerId);
+        } catch (PlayerNotFound) {
+            return [];
+        }
     }
 
     /**

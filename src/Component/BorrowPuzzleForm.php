@@ -9,7 +9,9 @@ use SpeedPuzzling\Web\FormData\BorrowPuzzleFormData;
 use SpeedPuzzling\Web\FormType\BorrowPuzzleFormType;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Results\PlayerIdentification;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
@@ -34,11 +36,30 @@ final class BorrowPuzzleForm extends AbstractController
 
     public function __construct(
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
+        readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PlayerRepository $playerRepository,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
+    }
+
+    /**
+     * @return array<PlayerIdentification>
+     */
+    public function getFavoritePlayers(): array
+    {
+        $player = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($player === null) {
+            return [];
+        }
+
+        try {
+            return $this->getFavoritePlayers->forPlayerId($player->playerId);
+        } catch (PlayerNotFound) {
+            return [];
+        }
     }
 
     /**

@@ -29,13 +29,19 @@
             </p>
         </div>
         
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2">
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                 {% if collection.collectionId %}
+                    <a href="{{ path('add_new_puzzle_to_collection', {collectionId: collection.collectionId}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}
+                    </a>
                     <a href="{{ path('edit_collection', {collectionId: collection.collectionId}) }}" class="btn btn-sm btn-outline-primary">
                         <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                     </a>
                 {% else %}
+                    <a href="{{ path('add_new_puzzle_to_collection') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}
+                    </a>
                     <a href="{{ path('edit_system_collection', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
                         <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                     </a>

@@ -867,7 +867,17 @@ collections:
     already_in_system: "Puzzle Already in Your Collection"
     already_in_system_message: "This puzzle is already in your Puzzle Collection. Want to organize your puzzles into multiple collections? Unlock this feature with membership!"
     add_to_collection: "Add to Collection"
-    add_puzzle: "Add Puzzle to Collection"
+    add_puzzle:
+        title: "Add Puzzle to Collection"
+        button: "Add Puzzle"
+        description: "Select an existing puzzle or add a new one to your collection."
+        puzzle_section: "Select Puzzle"
+        collection_section: "Select Collection"
+        new_puzzle_section: "New Puzzle Details"
+        submit: "Add to Collection"
+        success: "Puzzle has been successfully added to the collection."
+    add_puzzle_here:
+        button: "Add Puzzle"
     remove_from: "Remove from %collection%"
     remove: "Remove"
     confirm_remove: "Are you sure you want to remove this puzzle from the collection?"

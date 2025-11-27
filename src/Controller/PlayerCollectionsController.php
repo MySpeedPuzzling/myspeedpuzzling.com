@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerCollectionsWithCounts;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\CollectionOverviewWithCount;
@@ -27,6 +28,7 @@ final class PlayerCollectionsController extends AbstractController
         readonly private GetPlayerCollectionsWithCounts $getPlayerCollectionsWithCounts,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetWishListItems $getWishListItems,
+        readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
     ) {
@@ -63,6 +65,7 @@ final class PlayerCollectionsController extends AbstractController
         $systemCollectionPuzzleCount = $this->getPlayerCollectionsWithCounts->countSystemCollection($player->playerId);
         $unsolvedPuzzlesCount = $this->getUnsolvedPuzzles->countByPlayerId($player->playerId);
         $wishListCount = $this->getWishListItems->countByPlayerId($player->playerId);
+        $sellSwapListCount = $this->getSellSwapListItems->countByPlayerId($player->playerId);
 
         // Add system collection if public or own profile
         if ($player->puzzleCollectionVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
@@ -105,6 +108,20 @@ final class PlayerCollectionsController extends AbstractController
                 isWishList: true,
             ));
         }
+
+        // Add sell/swap list (always public, visible to everyone)
+        array_unshift($collections, new CollectionOverviewWithCount(
+            collectionId: null,
+            name: $this->translator->trans('sell_swap_list.name'),
+            description: $this->translator->trans('sell_swap_list.description'),
+            visibility: CollectionVisibility::Public,
+            createdAt: new DateTimeImmutable(),
+            itemCount: $sellSwapListCount,
+            isSystemCollection: false,
+            isUnsolvedPuzzles: false,
+            isWishList: false,
+            isSellSwapList: true,
+        ));
 
         return $this->render('collections/list.html.twig', [
             'collections' => $collections,

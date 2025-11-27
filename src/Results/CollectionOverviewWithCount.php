@@ -19,6 +19,7 @@ readonly final class CollectionOverviewWithCount
         public bool $isSystemCollection,
         public bool $isUnsolvedPuzzles = false,
         public bool $isWishList = false,
+        public bool $isSellSwapList = false,
     ) {
     }
 

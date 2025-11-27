@@ -14,7 +14,9 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotFavoriteYourself;
 use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
+use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\SellSwapListSettings;
 
 #[Entity]
 class Player
@@ -81,6 +83,10 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: CollectionVisibility::class, options: ['default' => 'private'])]
     public CollectionVisibility $wishListVisibility = CollectionVisibility::Private;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: SellSwapListSettingsDoctrineType::NAME, nullable: true)]
+    public null|SellSwapListSettings $sellSwapListSettings = null;
 
     public function __construct(
         #[Id]
@@ -196,5 +202,10 @@ class Player
     public function changeWishListVisibility(CollectionVisibility $visibility): void
     {
         $this->wishListVisibility = $visibility;
+    }
+
+    public function changeSellSwapListSettings(SellSwapListSettings $settings): void
+    {
+        $this->sellSwapListSettings = $settings;
     }
 }

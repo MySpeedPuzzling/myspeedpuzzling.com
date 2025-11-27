@@ -6,11 +6,13 @@ export default class extends Controller {
     connect() {
         document.addEventListener('collection:itemMoved', this._handleItemMoved.bind(this));
         document.addEventListener('wishlist:itemRemoved', this._handleWishlistItemRemoved.bind(this));
+        document.addEventListener('sellswaplist:itemRemoved', this._handleSellSwapListItemRemoved.bind(this));
     }
 
     disconnect() {
         document.removeEventListener('collection:itemMoved', this._handleItemMoved.bind(this));
         document.removeEventListener('wishlist:itemRemoved', this._handleWishlistItemRemoved.bind(this));
+        document.removeEventListener('sellswaplist:itemRemoved', this._handleSellSwapListItemRemoved.bind(this));
     }
 
     _handleItemMoved(event) {
@@ -28,6 +30,20 @@ export default class extends Controller {
     }
 
     _handleWishlistItemRemoved(event) {
+        const puzzleId = event.detail.puzzleId;
+
+        // Find and remove the item element by puzzle ID
+        const itemElement = this.itemTargets.find(
+            item => item.dataset.puzzleId === puzzleId
+        );
+
+        if (itemElement) {
+            itemElement.remove();
+            this._updateCount();
+        }
+    }
+
+    _handleSellSwapListItemRemoved(event) {
         const puzzleId = event.detail.puzzleId;
 
         // Find and remove the item element by puzzle ID

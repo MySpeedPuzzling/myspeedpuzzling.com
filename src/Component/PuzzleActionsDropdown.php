@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
+use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\PuzzleCollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -33,9 +34,12 @@ final class PuzzleActionsDropdown
 
     private null|bool $inWishList = null;
 
+    private null|bool $inSellSwapList = null;
+
     public function __construct(
         readonly private GetPuzzleCollections $getPuzzleCollections,
         readonly private GetWishListItems $getWishListItems,
+        readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -44,10 +48,13 @@ final class PuzzleActionsDropdown
     #[LiveListener('puzzle:removedFromCollection')]
     #[LiveListener('puzzle:addedToWishList')]
     #[LiveListener('puzzle:removedFromWishList')]
+    #[LiveListener('puzzle:addedToSellSwapList')]
+    #[LiveListener('puzzle:removedFromSellSwapList')]
     public function onChange(): void
     {
         $this->collections = null;
         $this->inWishList = null;
+        $this->inSellSwapList = null;
         $this->changeCounter++;
     }
 
@@ -99,5 +106,22 @@ final class PuzzleActionsDropdown
         $this->inWishList = $this->getWishListItems->isPuzzleInWishList($loggedPlayer->playerId, $this->puzzleId);
 
         return $this->inWishList;
+    }
+
+    public function isPuzzleInSellSwapList(): bool
+    {
+        if ($this->inSellSwapList !== null) {
+            return $this->inSellSwapList;
+        }
+
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        if ($loggedPlayer === null) {
+            $this->inSellSwapList = false;
+            return false;
+        }
+
+        $this->inSellSwapList = $this->getSellSwapListItems->isPuzzleInSellSwapList($loggedPlayer->playerId, $this->puzzleId);
+
+        return $this->inSellSwapList;
     }
 }

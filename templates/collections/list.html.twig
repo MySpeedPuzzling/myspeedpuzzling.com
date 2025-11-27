@@ -29,10 +29,14 @@
         <div class="row">
             {% for collection in collections %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card shadow-lg border-start border-5 {% if collection.isWishList %} border-danger{% elseif collection.isUnsolvedPuzzles %} border-warning{% elseif collection.isSystemCollection %} border-primary{% endif %}">
+                    <div class="card shadow-lg border-start border-5 {% if collection.isSellSwapList %} border-success{% elseif collection.isWishList %} border-danger{% elseif collection.isUnsolvedPuzzles %} border-warning{% elseif collection.isSystemCollection %} border-primary{% endif %}">
                         <div class="card-header d-flex justify-content-between align-items-start">
                             <h5 class="card-title mb-0">
-                                {% if collection.isWishList %}
+                                {% if collection.isSellSwapList %}
+                                    <a href="{{ path('sell_swap_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        {{ collection.name }}
+                                    </a>
+                                {% elseif collection.isWishList %}
                                     <a href="{{ path('wish_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
                                         {{ collection.name }}
                                     </a>
@@ -69,6 +73,25 @@
                                                     <i class="bi bi-trash me-1"></i>{{ 'collections.delete.button'|trans }}
                                                 </button>
                                             </li>
+                                        {% elseif collection.isSellSwapList %}
+                                            {% if logged_user.profile.activeMembership %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_settings', {'playerId': player.playerId}) }}">
+                                                        <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('sold_swapped_history', {'playerId': player.playerId}) }}">
+                                                        <i class="bi bi-clock-history me-1"></i>{{ 'sell_swap_list.history.menu'|trans }}
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                                        <i class="ci-locked me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                    </button>
+                                                </li>
+                                            {% endif %}
                                         {% elseif collection.isWishList %}
                                             <li>
                                                 <a class="dropdown-item" href="{{ path('edit_wish_list', {'playerId': player.playerId}) }}">

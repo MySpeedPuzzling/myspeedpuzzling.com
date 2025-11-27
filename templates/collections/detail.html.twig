@@ -236,6 +236,13 @@
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                                       data-bs-target="#add-to-sell-swap-{{ item.collectionItemId }}">
+                                                        <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
                                                     <twig:RemovePuzzleFromCollectionButton
                                                         puzzleId="{{ item.puzzleId }}"
                                                         collectionId="{{ collection.collectionId }}"
@@ -268,6 +275,17 @@
                                                 {{ component('CopyPuzzleToCollectionForm', {
                                                     puzzleId: item.puzzleId,
                                                     sourceCollectionId: collection.collectionId
+                                                }) }}
+                                            {% endblock %}
+                                        </twig:Modal>
+
+                                        <twig:Modal id="add-to-sell-swap-{{ item.collectionItemId }}">
+                                            {% block modal_header %}
+                                                <h5 class="modal-title">{{ 'sell_swap_list.add.title'|trans }}</h5>
+                                            {% endblock %}
+                                            {% block modal_body %}
+                                                {{ component('AddPuzzleToSellSwapListForm', {
+                                                    puzzleId: item.puzzleId
                                                 }) }}
                                             {% endblock %}
                                         </twig:Modal>

@@ -58,6 +58,27 @@
                     </a>
                 </li>
             {% endif %}
+
+            <li><hr class="dropdown-divider"></li>
+
+            {% if this.isPuzzleInSellSwapList %}
+                <li>
+                    {{ component('RemovePuzzleFromSellSwapListButton', {
+                        puzzleId: this.puzzleId,
+                        buttonClass: 'dropdown-item',
+                        key: 'sell-swap-remove-' ~ this.puzzleId,
+                    }) }}
+                </li>
+            {% else %}
+                <li>
+                    <a class="dropdown-item"
+                       data-bs-toggle="modal"
+                       data-bs-target="#add-puzzle-to-sell-swap-list-{{ this.puzzleId }}"
+                       href="#">
+                        <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
+                    </a>
+                </li>
+            {% endif %}
         {% endif %}
     </ul>
 
@@ -82,6 +103,18 @@
                 {{ component('AddPuzzleToWishListForm', {
                     puzzleId: puzzleId,
                     key: 'wish-list-add-form-' ~ puzzleId ~ '-' ~ changeCounter
+                }) }}
+            {% endblock %}
+        </twig:Modal>
+
+        <twig:Modal id="add-puzzle-to-sell-swap-list-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}" changeCounter="{{ this.changeCounter }}">
+            {% block modal_header %}
+                <h5 class="modal-title">{{ 'sell_swap_list.add.title'|trans }}</h5>
+            {% endblock %}
+            {% block modal_body %}
+                {{ component('AddPuzzleToSellSwapListForm', {
+                    puzzleId: puzzleId,
+                    key: 'sell-swap-list-add-form-' ~ puzzleId ~ '-' ~ changeCounter
                 }) }}
             {% endblock %}
         </twig:Modal>

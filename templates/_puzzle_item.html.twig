@@ -24,9 +24,8 @@
                 <div class="d-md-flex">
                     <div class="puzzle-name">
                         <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                            {{ highlight(puzzle.puzzleName, search) }}{% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
+                            {{ highlight(puzzle.puzzleName, search) }}
                         </a>
-
                         <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                     </div>
 
@@ -40,7 +39,7 @@
 
                 <div class="d-md-flex justify-content-between">
                     <div class="d-flex justify-content-between text-nowrap puzzle-times-info">
-                        <small>{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
+                        <small class="pe-0 pe-md-2">{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
 
                         <br class="d-none d-md-block">
                         {% if ranking[puzzle.puzzleId] is defined %}
@@ -49,6 +48,28 @@
                     </div>
 
                     <div class="text-md-center">
+                        {% if puzzle.puzzleId in puzzle_statuses.solved %}
+                            <span class="mt-1 badge border border-success text-success rounded-pill"><i class="ci-check"></i> {{ 'status.solved'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.wishlist %}
+                            <span class="mt-1 badge border border-warning text-warning rounded-pill"><i class="ci-heart"></i> {{ 'status.wishlist'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.collection %}
+                            <span class="mt-1 badge border border-primary text-primary rounded-pill"><i class="bi bi-collection"></i> {{ 'status.collection'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.unsolved %}
+                            <span class="mt-1 badge border border-info text-info rounded-pill"><i class="ci-time"></i> {{ 'status.unsolved'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.borrowed %}
+                            <span class="mt-1 badge border border-dark text-dark rounded-pill"><i class="ci-arrow-down"></i> {{ 'status.borrowed'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.lent %}
+                            <span class="mt-1 badge border border-dark text-dark rounded-pill"><i class="ci-arrow-up"></i> {{ 'status.lent'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.sellSwap %}
+                            <span class="mt-1 badge border border-danger text-danger rounded-pill"><i class="ci-tag"></i> {{ 'status.for_sale'|trans }}</span>
+                        {% endif %}
+
                         {% for tag in tags[puzzle.puzzleId] ?? [] %}
                             <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
                         {% endfor %}

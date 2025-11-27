@@ -1170,3 +1170,12 @@ lend_borrow:
         cannot_lend_to_self: "You cannot lend a puzzle to yourself."
         cannot_borrow_from_self: "You cannot borrow a puzzle from yourself."
         cannot_pass_to_self: "You cannot pass a puzzle to yourself."
+
+status:
+    solved: "Solved"
+    wishlist: "Wishlist"
+    unsolved: "Unsolved"
+    collection: "In Collection"
+    borrowed: "Borrowed"
+    lent: "Lent"
+    for_sale: "For Sale"

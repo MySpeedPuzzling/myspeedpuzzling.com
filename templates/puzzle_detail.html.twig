@@ -19,11 +19,30 @@
 
             <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
                 <div class="me-md-4">
-                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }}
-                        {% if puzzle.puzzleId in puzzles_solved_by_user %}
-                            <i class="small text-decoration-none ci-check-circle text-success"></i>
+                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }}</h1>
+                    <div class="mb-1">
+                        {% if puzzle.puzzleId in puzzle_statuses.solved %}
+                            <span class="badge border border-success text-success rounded-pill"><i class="ci-check"></i> {{ 'status.solved'|trans }}</span>
                         {% endif %}
-                    </h1>
+                        {% if puzzle.puzzleId in puzzle_statuses.wishlist %}
+                            <span class="badge border border-warning text-warning rounded-pill"><i class="ci-heart"></i> {{ 'status.wishlist'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.collection %}
+                            <span class="badge border border-primary text-primary rounded-pill"><i class="bi bi-collection"></i> {{ 'status.collection'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.unsolved %}
+                            <span class="badge border border-info text-info rounded-pill"><i class="ci-time"></i> {{ 'status.unsolved'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.borrowed %}
+                            <span class="badge border border-dark text-dark rounded-pill"><i class="ci-arrow-down"></i> {{ 'status.borrowed'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.lent %}
+                            <span class="badge border border-dark text-dark rounded-pill"><i class="ci-arrow-up"></i> {{ 'status.lent'|trans }}</span>
+                        {% endif %}
+                        {% if puzzle.puzzleId in puzzle_statuses.sellSwap %}
+                            <span class="badge border border-danger text-danger rounded-pill"><i class="ci-tag"></i> {{ 'status.for_sale'|trans }}</span>
+                        {% endif %}
+                    </div>
 
                     <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                 </div>

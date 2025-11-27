@@ -8,7 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +22,7 @@ final class PuzzleDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
-        readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
         readonly private GetPuzzleCollections $getPuzzleCollections,
@@ -62,7 +62,7 @@ final class PuzzleDetailController extends AbstractController
             return $this->redirectToRoute('puzzles');
         }
 
-        $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byUserId(
             $user?->getUserIdentifier()
         );
 
@@ -74,7 +74,7 @@ final class PuzzleDetailController extends AbstractController
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'puzzles_solved_by_user' => $userSolvedPuzzles,
+            'puzzle_statuses' => $puzzleStatuses,
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
             'logged_player' => $loggedPlayer,

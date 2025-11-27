@@ -8,4 +8,5 @@ return static function (FrameworkConfig $framework): void {
     $messenger = $framework->messenger();
 
     $messenger->routing(SendEmailMessage::class)->senders(['sync']);
+    $messenger->routing('SpeedPuzzling\\Web\\Events\\*')->senders(['sync']);
 };

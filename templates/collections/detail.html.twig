@@ -62,7 +62,7 @@
         </p>
     {% endif %}
 
-    {% if items|length > 3 is not empty %}
+    {% if items|length > 3 %}
         <div class="filters mb-3">
             <div class="row gx-2 align-items-center">
                 <div class="col-12 col-sm-6 col-lg-3 mb-2">
@@ -171,6 +171,7 @@
                 <div class="col-12 col-lg-6"
                      data-collection-items-target="item"
                      data-collection-item-id="{{ item.collectionItemId }}"
+                     data-puzzle-id="{{ item.puzzleId }}"
                      data-collection-filter-target="item"
                      data-pieces-count="{{ item.piecesCount }}"
                      data-puzzle-name="{{ item.puzzleName }}"

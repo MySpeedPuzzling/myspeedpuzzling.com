@@ -74,6 +74,13 @@ final class RemovePuzzleFromCollectionButton
             'type' => 'success',
         ]);
 
+        // Browser event for Stimulus controller to remove item from DOM
+        $this->dispatchBrowserEvent('collection:itemRemoved', [
+            'puzzleId' => $this->puzzleId,
+            'collectionId' => $this->collectionId,
+        ]);
+
+        // Live Component event for PuzzleActionsDropdown to refresh
         $this->emit('puzzle:removedFromCollection', [
             'puzzleId' => $this->puzzleId,
             'collectionId' => $this->collectionId,

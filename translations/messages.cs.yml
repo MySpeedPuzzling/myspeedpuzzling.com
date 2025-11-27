@@ -1172,3 +1172,12 @@ sell_swap_list:
         item_updated: "Položka seznamu k prodeji/výměně byla úspěšně aktualizována."
         login_required: "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
         validation_error: "Opravte prosím chyby a zkuste to znovu."
+
+status:
+    solved: "Složeno"
+    wishlist: "Na přání"
+    unsolved: "Nesloženo"
+    collection: "V kolekci"
+    borrowed: "Půjčeno"
+    lent: "Půjčeno"
+    for_sale: "Na prodej"

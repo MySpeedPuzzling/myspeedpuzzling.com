@@ -10,7 +10,7 @@ use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
-use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
+use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
 use SpeedPuzzling\Web\Repository\LentPuzzleTransferRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -19,7 +19,7 @@ use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
-readonly final class LendPuzzleToPlayerHandler
+readonly final class BorrowPuzzleFromPlayerHandler
 {
     public function __construct(
         private PlayerRepository $playerRepository,
@@ -33,41 +33,43 @@ readonly final class LendPuzzleToPlayerHandler
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
      */
-    public function __invoke(LendPuzzleToPlayer $message): void
+    public function __invoke(BorrowPuzzleFromPlayer $message): void
     {
-        $owner = $this->playerRepository->get($message->ownerPlayerId);
+        $borrower = $this->playerRepository->get($message->borrowerPlayerId);
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
 
-        // Resolve borrower - either registered player or plain text name
-        $borrower = null;
-        $borrowerName = null;
+        // Resolve owner - either registered player or plain text name
+        $owner = null;
+        $ownerName = null;
 
-        if ($message->borrowerPlayerId !== null) {
-            $borrower = $this->playerRepository->get($message->borrowerPlayerId);
+        if ($message->ownerPlayerId !== null) {
+            $owner = $this->playerRepository->get($message->ownerPlayerId);
         } else {
-            $borrowerName = $message->borrowerName;
+            $ownerName = $message->ownerName;
         }
 
         // Check if puzzle is already lent by this owner
-        $existingLent = $this->lentPuzzleRepository->findByOwnerAndPuzzle($owner, $puzzle);
+        $existingLent = $owner !== null
+            ? $this->lentPuzzleRepository->findByOwnerAndPuzzle($owner, $puzzle)
+            : ($ownerName !== null ? $this->lentPuzzleRepository->findByOwnerNameAndPuzzle($ownerName, $puzzle) : null);
 
         if ($existingLent !== null) {
             // Get previous holder info for transfer record
             $previousHolder = $existingLent->currentHolderPlayer;
             $previousHolderName = $existingLent->currentHolderName;
 
-            // Already lent, update the holder
-            $existingLent->changeCurrentHolder($borrower, $borrowerName);
+            // Already lent, update the holder to be the borrower
+            $existingLent->changeCurrentHolder($borrower, null);
             $existingLent->changeNotes($message->notes);
 
-            // Record the transfer (pass)
+            // Record the transfer (pass from previous holder to this borrower)
             $transfer = new LentPuzzleTransfer(
                 Uuid::uuid7(),
                 $existingLent,
                 $previousHolder,
                 $previousHolderName,
                 $borrower,
-                $borrowerName,
+                null, // borrower is always registered, no name needed
                 new DateTimeImmutable(),
                 TransferType::Pass,
             );
@@ -79,27 +81,28 @@ readonly final class LendPuzzleToPlayerHandler
 
         $now = new DateTimeImmutable();
 
+        // Create new lent puzzle record with owner as owner and borrower as current holder
         $lentPuzzle = new LentPuzzle(
             Uuid::uuid7(),
             $puzzle,
             $owner,
-            null, // ownerName is null since owner is always the logged-in user (registered)
+            $ownerName,
             $borrower,
-            $borrowerName,
+            null, // borrower is always registered, no name needed
             $now,
             $message->notes,
         );
 
         $this->lentPuzzleRepository->save($lentPuzzle);
 
-        // Record the initial transfer
+        // Record the initial transfer (borrower self-reported they borrowed from owner)
         $transfer = new LentPuzzleTransfer(
             Uuid::uuid7(),
             $lentPuzzle,
             null, // from player (null indicates initial lend)
             null, // from player name
             $borrower,
-            $borrowerName,
+            null, // borrower is always registered, no name needed
             $now,
             TransferType::InitialLend,
         );

@@ -33,9 +33,15 @@ class LentPuzzleTransfer
         #[JoinColumn(nullable: true)]
         public null|Player $fromPlayer,
         #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, length: 200)]
+        public null|string $fromPlayerName,
+        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $toPlayer,
+        #[JoinColumn(nullable: true)]
+        public null|Player $toPlayer,
+        #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, length: 200)]
+        public null|string $toPlayerName,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $transferredAt,

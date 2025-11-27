@@ -24,9 +24,10 @@ readonly final class GetLentPuzzleIds
         $query = <<<SQL
 SELECT
     lp.puzzle_id,
+    lp.current_holder_name as holder_text_name,
     holder.name as holder_name
 FROM lent_puzzle lp
-JOIN player holder ON lp.current_holder_player_id = holder.id
+LEFT JOIN player holder ON lp.current_holder_player_id = holder.id
 WHERE lp.owner_player_id = :ownerId
 SQL;
 
@@ -36,8 +37,8 @@ SQL;
 
         $result = [];
         foreach ($data as $row) {
-            /** @var array{puzzle_id: string, holder_name: string|null} $row */
-            $result[$row['puzzle_id']] = $row['holder_name'] ?? '';
+            /** @var array{puzzle_id: string, holder_name: string|null, holder_text_name: string|null} $row */
+            $result[$row['puzzle_id']] = $row['holder_name'] ?? $row['holder_text_name'] ?? '';
         }
 
         return $result;

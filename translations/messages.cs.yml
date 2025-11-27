@@ -930,3 +930,81 @@ unsolved_puzzles:
     private_message: 'Seznam nesložených puzzlí "%collection%" od %player% je soukromý a nelze jej zobrazit.'
     title: "Nesložené puzzle"
     title_other: "Nesložené puzzle uživatele %name%"
+
+lend_borrow:
+    name: "Půjčování"
+    title: "Půjčování"
+    description: "Puzzles aktuálně půjčené nebo vypůjčené"
+    lent_count: "%count% půjčeno"
+    borrowed_count: "%count% vypůjčeno"
+    tab:
+        lent: "Půjčeno"
+        borrowed: "Vypůjčeno"
+    lent_to: "Půjčeno %name%"
+    borrowed_from: "Od %name%"
+    view_holder: "Zobrazit aktuálního držitele"
+    view_owner: "Zobrazit majitele"
+    lent:
+        empty:
+            title: "Žádná půjčená puzzle"
+            message: "Zatím jste nepůjčil/a žádná puzzle. Použijte nabídku puzzle k půjčení jiným hráčům."
+            title_other: "Žádná půjčená puzzle"
+            message_other: "%name% nepůjčil/a žádná puzzle."
+    borrowed:
+        empty:
+            title: "Žádná vypůjčená puzzle"
+            message: "Nemáte žádná vypůjčená puzzle."
+            title_other: "Žádná vypůjčená puzzle"
+            message_other: "%name% si nevypůjčil/a žádná puzzle."
+    form:
+        borrower_code: "Kód hráče nebo jméno příjemce"
+        borrower_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
+        borrower_code_placeholder: "#ABC123 nebo Jan Novák"
+        owner_code: "Kód hráče nebo jméno majitele"
+        owner_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
+        owner_code_placeholder: "#ABC123 nebo Jan Novák"
+        notes: "Poznámky"
+        notes_placeholder: "Volitelné poznámky k půjčce..."
+        new_holder_code: "Kód hráče nebo jméno nového držitele"
+        new_holder_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
+        new_holder_code_placeholder: "#ABC123 nebo Jan Novák"
+    lend:
+        title: "Půjčit puzzle"
+        button: "Půjčit hráči"
+        description: "Půjčte toto puzzle jinému hráči. Bude moci puzzle předat dál nebo vám ho vrátit."
+    borrow:
+        title: "Označit jako vypůjčené"
+        button: "Vypůjčeno od"
+        description: "Označte toto puzzle jako vypůjčené od jiného hráče."
+    pass:
+        title: "Předat puzzle"
+        button: "Předat někomu dalšímu"
+        description: "Předejte %puzzle% jinému hráči. Majitel bude stále moci puzzle sledovat."
+    return:
+        title: "Vrátit puzzle"
+        button: "Vrátit majiteli"
+        confirm_message: "Vrátit %puzzle% jeho majiteli?"
+    membership_required:
+        title: "Funkce pouze pro členy"
+        message: "Půjčování puzzle je dostupné výhradně členům."
+    already_lent: "Toto puzzle je již půjčené."
+    already_lent_short: "Již půjčeno"
+    already_borrowed: "Toto puzzle je již ve vašem seznamu vypůjčených."
+    already_borrowed_short: "Již vypůjčeno"
+    login_required: "Pro správu půjčování musíte být přihlášen/a."
+    edit_settings:
+        title: "Upravit nastavení půjčování"
+        meta:
+            title: "Upravit nastavení půjčování"
+        submit: "Uložit změny"
+    flash:
+        lent: "Puzzle bylo úspěšně půjčeno."
+        passed: "Puzzle bylo úspěšně předáno."
+        returned: "Puzzle bylo úspěšně vráceno majiteli."
+        borrowed: "Puzzle bylo označeno jako vypůjčené."
+        settings_updated: "Nastavení půjčování bylo úspěšně aktualizováno."
+        login_required: "Pro správu půjčování musíte být přihlášen/a."
+        validation_error: "Opravte prosím chyby a zkuste to znovu."
+        player_not_found: "Hráč nenalezen. Zkontrolujte prosím kód hráče."
+        cannot_lend_to_self: "Nemůžete si půjčit puzzle sami sobě."
+        cannot_borrow_from_self: "Nemůžete si vypůjčit puzzle od sebe sama."

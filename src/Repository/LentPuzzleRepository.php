@@ -45,6 +45,15 @@ readonly final class LentPuzzleRepository
             ]);
     }
 
+    public function findByOwnerNameAndPuzzle(string $ownerName, Puzzle $puzzle): null|LentPuzzle
+    {
+        return $this->entityManager->getRepository(LentPuzzle::class)
+            ->findOneBy([
+                'ownerName' => $ownerName,
+                'puzzle' => $puzzle,
+            ]);
+    }
+
     public function countByOwner(string $ownerId): int
     {
         return $this->entityManager->getRepository(LentPuzzle::class)

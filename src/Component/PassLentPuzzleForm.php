@@ -73,7 +73,7 @@ final class PassLentPuzzleForm extends AbstractController
         /** @var PassLentPuzzleFormData $formData */
         $formData = $this->getForm()->getData();
 
-        if ($formData->newHolderCode === null) {
+        if ($formData->newHolderCode === null || trim($formData->newHolderCode) === '') {
             $this->dispatchBrowserEvent('toast:show', [
                 'message' => $this->translator->trans('lend_borrow.flash.validation_error'),
                 'type' => 'error',
@@ -82,32 +82,46 @@ final class PassLentPuzzleForm extends AbstractController
             return;
         }
 
-        // Look up new holder by code
-        try {
-            $newHolder = $this->playerRepository->getByCode($formData->newHolderCode);
-        } catch (PlayerNotFound) {
-            $this->dispatchBrowserEvent('toast:show', [
-                'message' => $this->translator->trans('lend_borrow.flash.player_not_found'),
-                'type' => 'error',
-            ]);
+        // Parse input - if starts with # try to find registered player, otherwise use as plain text
+        $input = $formData->newHolderCode;
+        $isRegisteredPlayer = str_starts_with($input, '#');
+        $cleanedInput = trim($input, "# \t\n\r\0");
 
-            return;
-        }
+        $newHolderPlayerId = null;
+        $newHolderName = null;
 
-        // Cannot pass to yourself
-        if ($newHolder->id->toString() === $player->playerId) {
-            $this->dispatchBrowserEvent('toast:show', [
-                'message' => $this->translator->trans('lend_borrow.flash.cannot_pass_to_self'),
-                'type' => 'error',
-            ]);
+        if ($isRegisteredPlayer) {
+            try {
+                $newHolder = $this->playerRepository->getByCode($cleanedInput);
+                $newHolderPlayerId = $newHolder->id->toString();
 
-            return;
+                // Cannot pass to yourself
+                if ($newHolderPlayerId === $player->playerId) {
+                    $this->dispatchBrowserEvent('toast:show', [
+                        'message' => $this->translator->trans('lend_borrow.flash.cannot_pass_to_self'),
+                        'type' => 'error',
+                    ]);
+
+                    return;
+                }
+            } catch (PlayerNotFound) {
+                $this->dispatchBrowserEvent('toast:show', [
+                    'message' => $this->translator->trans('lend_borrow.flash.player_not_found'),
+                    'type' => 'error',
+                ]);
+
+                return;
+            }
+        } else {
+            // Use plain text name for non-registered person
+            $newHolderName = $cleanedInput;
         }
 
         $this->messageBus->dispatch(new PassLentPuzzle(
             lentPuzzleId: $this->lentPuzzleId,
             currentHolderPlayerId: $player->playerId,
-            newHolderPlayerId: $newHolder->id->toString(),
+            newHolderPlayerId: $newHolderPlayerId,
+            newHolderName: $newHolderName,
         ));
 
         $this->dispatchBrowserEvent('toast:show', [

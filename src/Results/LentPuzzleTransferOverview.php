@@ -13,8 +13,8 @@ readonly final class LentPuzzleTransferOverview
         public string $transferId,
         public null|string $fromPlayerId,
         public null|string $fromPlayerName,
-        public string $toPlayerId,
-        public string $toPlayerName,
+        public null|string $toPlayerId,
+        public null|string $toPlayerName,
         public DateTimeImmutable $transferredAt,
         public TransferType $transferType,
     ) {

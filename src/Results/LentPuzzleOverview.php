@@ -16,7 +16,7 @@ readonly final class LentPuzzleOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
-        public string $currentHolderId,
+        public null|string $currentHolderId,
         public string $currentHolderName,
         public null|string $currentHolderAvatar,
         public null|string $notes,

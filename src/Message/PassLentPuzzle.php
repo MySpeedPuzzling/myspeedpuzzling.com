@@ -9,7 +9,8 @@ readonly final class PassLentPuzzle
     public function __construct(
         public string $lentPuzzleId,
         public string $currentHolderPlayerId,
-        public string $newHolderPlayerId,
+        public null|string $newHolderPlayerId = null,
+        public null|string $newHolderName = null,
     ) {
     }
 }

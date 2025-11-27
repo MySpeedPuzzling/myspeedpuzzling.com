@@ -249,6 +249,12 @@
                                                         <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
                                                     </a>
                                                 </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                                       data-bs-target="#lend-puzzle-{{ item.collectionItemId }}">
+                                                        <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
+                                                    </a>
+                                                </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
                                                     <twig:RemovePuzzleFromCollectionButton
@@ -293,6 +299,17 @@
                                             {% endblock %}
                                             {% block modal_body %}
                                                 {{ component('AddPuzzleToSellSwapListForm', {
+                                                    puzzleId: item.puzzleId
+                                                }) }}
+                                            {% endblock %}
+                                        </twig:Modal>
+
+                                        <twig:Modal id="lend-puzzle-{{ item.collectionItemId }}">
+                                            {% block modal_header %}
+                                                <h5 class="modal-title">{{ 'lend_borrow.lend.title'|trans }}</h5>
+                                            {% endblock %}
+                                            {% block modal_body %}
+                                                {{ component('LendPuzzleForm', {
                                                     puzzleId: item.puzzleId
                                                 }) }}
                                             {% endblock %}

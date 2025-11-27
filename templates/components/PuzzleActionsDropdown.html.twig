@@ -79,6 +79,42 @@
                     </a>
                 </li>
             {% endif %}
+
+            <li><hr class="dropdown-divider"></li>
+
+            {% if this.isPuzzleLent %}
+                <li>
+                    <span class="dropdown-item text-muted">
+                        <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.already_lent_short'|trans }}
+                    </span>
+                </li>
+            {% else %}
+                <li>
+                    <a class="dropdown-item"
+                       data-bs-toggle="modal"
+                       data-bs-target="#lend-puzzle-{{ this.puzzleId }}"
+                       href="#">
+                        <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
+                    </a>
+                </li>
+            {% endif %}
+
+            {% if this.isPuzzleBorrowed %}
+                <li>
+                    <span class="dropdown-item text-muted">
+                        <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.already_borrowed_short'|trans }}
+                    </span>
+                </li>
+            {% else %}
+                <li>
+                    <a class="dropdown-item"
+                       data-bs-toggle="modal"
+                       data-bs-target="#borrow-puzzle-{{ this.puzzleId }}"
+                       href="#">
+                        <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.borrow.button'|trans }}
+                    </a>
+                </li>
+            {% endif %}
         {% endif %}
     </ul>
 
@@ -115,6 +151,30 @@
                 {{ component('AddPuzzleToSellSwapListForm', {
                     puzzleId: puzzleId,
                     key: 'sell-swap-list-add-form-' ~ puzzleId ~ '-' ~ changeCounter
+                }) }}
+            {% endblock %}
+        </twig:Modal>
+
+        <twig:Modal id="lend-puzzle-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}" changeCounter="{{ this.changeCounter }}">
+            {% block modal_header %}
+                <h5 class="modal-title">{{ 'lend_borrow.lend.title'|trans }}</h5>
+            {% endblock %}
+            {% block modal_body %}
+                {{ component('LendPuzzleForm', {
+                    puzzleId: puzzleId,
+                    key: 'lend-form-' ~ puzzleId ~ '-' ~ changeCounter
+                }) }}
+            {% endblock %}
+        </twig:Modal>
+
+        <twig:Modal id="borrow-puzzle-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}" changeCounter="{{ this.changeCounter }}">
+            {% block modal_header %}
+                <h5 class="modal-title">{{ 'lend_borrow.borrow.title'|trans }}</h5>
+            {% endblock %}
+            {% block modal_body %}
+                {{ component('BorrowPuzzleForm', {
+                    puzzleId: puzzleId,
+                    key: 'borrow-form-' ~ puzzleId ~ '-' ~ changeCounter
                 }) }}
             {% endblock %}
         </twig:Modal>

@@ -223,6 +223,12 @@
                                                         <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
                                                     </a>
                                                 </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                                       data-bs-target="#borrow-puzzle-{{ item.wishListItemId }}">
+                                                        <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.borrow.button'|trans }}
+                                                    </a>
+                                                </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
                                                     <twig:RemovePuzzleFromWishListButton puzzleId="{{ item.puzzleId }}" buttonClass="dropdown-item text-danger" />
@@ -236,6 +242,17 @@
                                             {% endblock %}
                                             {% block modal_body %}
                                                 {{ component('AddPuzzleToCollectionForm', {
+                                                    puzzleId: item.puzzleId
+                                                }) }}
+                                            {% endblock %}
+                                        </twig:Modal>
+
+                                        <twig:Modal id="borrow-puzzle-{{ item.wishListItemId }}">
+                                            {% block modal_header %}
+                                                <h5 class="modal-title">{{ 'lend_borrow.borrow.title'|trans }}</h5>
+                                            {% endblock %}
+                                            {% block modal_body %}
+                                                {{ component('BorrowPuzzleForm', {
                                                     puzzleId: item.puzzleId
                                                 }) }}
                                             {% endblock %}

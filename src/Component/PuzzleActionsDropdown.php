@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetWishListItems;
@@ -36,10 +38,16 @@ final class PuzzleActionsDropdown
 
     private null|bool $inSellSwapList = null;
 
+    private null|bool $inLentList = null;
+
+    private null|bool $inBorrowedList = null;
+
     public function __construct(
         readonly private GetPuzzleCollections $getPuzzleCollections,
         readonly private GetWishListItems $getWishListItems,
         readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetLentPuzzles $getLentPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -50,11 +58,16 @@ final class PuzzleActionsDropdown
     #[LiveListener('puzzle:removedFromWishList')]
     #[LiveListener('puzzle:addedToSellSwapList')]
     #[LiveListener('puzzle:removedFromSellSwapList')]
+    #[LiveListener('puzzle:lent')]
+    #[LiveListener('puzzle:returned')]
+    #[LiveListener('puzzle:borrowed')]
     public function onChange(): void
     {
         $this->collections = null;
         $this->inWishList = null;
         $this->inSellSwapList = null;
+        $this->inLentList = null;
+        $this->inBorrowedList = null;
         $this->changeCounter++;
     }
 
@@ -123,5 +136,39 @@ final class PuzzleActionsDropdown
         $this->inSellSwapList = $this->getSellSwapListItems->isPuzzleInSellSwapList($loggedPlayer->playerId, $this->puzzleId);
 
         return $this->inSellSwapList;
+    }
+
+    public function isPuzzleLent(): bool
+    {
+        if ($this->inLentList !== null) {
+            return $this->inLentList;
+        }
+
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        if ($loggedPlayer === null) {
+            $this->inLentList = false;
+            return false;
+        }
+
+        $this->inLentList = $this->getLentPuzzles->isPuzzleLentByOwner($loggedPlayer->playerId, $this->puzzleId);
+
+        return $this->inLentList;
+    }
+
+    public function isPuzzleBorrowed(): bool
+    {
+        if ($this->inBorrowedList !== null) {
+            return $this->inBorrowedList;
+        }
+
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        if ($loggedPlayer === null) {
+            $this->inBorrowedList = false;
+            return false;
+        }
+
+        $this->inBorrowedList = $this->getBorrowedPuzzles->isPuzzleBorrowedByHolder($loggedPlayer->playerId, $this->puzzleId);
+
+        return $this->inBorrowedList;
     }
 }

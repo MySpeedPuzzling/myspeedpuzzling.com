@@ -25,6 +25,7 @@ SELECT
     lp.id as lent_puzzle_id,
     lp.notes,
     lp.lent_at,
+    lp.current_holder_name as holder_text_name,
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.alternative_name as puzzle_alternative_name,
@@ -37,7 +38,7 @@ SELECT
 FROM lent_puzzle lp
 JOIN puzzle p ON lp.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
-JOIN player holder ON lp.current_holder_player_id = holder.id
+LEFT JOIN player holder ON lp.current_holder_player_id = holder.id
 WHERE lp.owner_player_id = :ownerId
 ORDER BY lp.lent_at DESC
 SQL;
@@ -51,14 +52,15 @@ SQL;
              *     lent_puzzle_id: string,
              *     notes: string|null,
              *     lent_at: string,
+             *     holder_text_name: string|null,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: string|null,
              *     pieces_count: int,
              *     image: string|null,
              *     manufacturer_name: string|null,
-             *     current_holder_id: string,
-             *     current_holder_name: string,
+             *     current_holder_id: string|null,
+             *     current_holder_name: string|null,
              *     current_holder_avatar: string|null,
              * } $row
              */
@@ -72,7 +74,7 @@ SQL;
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
                 currentHolderId: $row['current_holder_id'],
-                currentHolderName: $row['current_holder_name'],
+                currentHolderName: $row['current_holder_name'] ?? $row['holder_text_name'] ?? '',
                 currentHolderAvatar: $row['current_holder_avatar'],
                 notes: $row['notes'],
                 lentAt: new DateTimeImmutable($row['lent_at']),

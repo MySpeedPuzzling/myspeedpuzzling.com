@@ -36,8 +36,10 @@ readonly final class ReturnLentPuzzleHandler
         $actingPlayer = $this->playerRepository->get($message->actingPlayerId);
 
         // Verify the acting player is either the current holder or the owner
-        $isCurrentHolder = $lentPuzzle->currentHolderPlayer->id->equals($actingPlayer->id);
-        $isOwner = $lentPuzzle->ownerPlayer->id->equals($actingPlayer->id);
+        $isCurrentHolder = $lentPuzzle->currentHolderPlayer !== null
+            && $lentPuzzle->currentHolderPlayer->id->equals($actingPlayer->id);
+        $isOwner = $lentPuzzle->ownerPlayer !== null
+            && $lentPuzzle->ownerPlayer->id->equals($actingPlayer->id);
 
         if (!$isCurrentHolder && !$isOwner) {
             throw new LentPuzzleNotFound();
@@ -48,7 +50,9 @@ readonly final class ReturnLentPuzzleHandler
             Uuid::uuid7(),
             $lentPuzzle,
             $lentPuzzle->currentHolderPlayer,
+            $lentPuzzle->currentHolderName,
             $lentPuzzle->ownerPlayer,
+            $lentPuzzle->ownerName,
             new DateTimeImmutable(),
             TransferType::Return,
         );

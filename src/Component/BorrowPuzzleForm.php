@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\FormData\LendPuzzleFormData;
-use SpeedPuzzling\Web\FormType\LendPuzzleFormType;
-use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
-use SpeedPuzzling\Web\Query\GetLentPuzzles;
+use SpeedPuzzling\Web\FormData\BorrowPuzzleFormData;
+use SpeedPuzzling\Web\FormType\BorrowPuzzleFormType;
+use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,7 +23,7 @@ use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent]
-final class LendPuzzleForm extends AbstractController
+final class BorrowPuzzleForm extends AbstractController
 {
     use DefaultActionTrait;
     use ComponentToolsTrait;
@@ -33,7 +33,7 @@ final class LendPuzzleForm extends AbstractController
     public string $puzzleId = '';
 
     public function __construct(
-        readonly private GetLentPuzzles $getLentPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PlayerRepository $playerRepository,
         readonly private MessageBusInterface $messageBus,
@@ -42,13 +42,13 @@ final class LendPuzzleForm extends AbstractController
     }
 
     /**
-     * @return FormInterface<LendPuzzleFormData>
+     * @return FormInterface<BorrowPuzzleFormData>
      */
     protected function instantiateForm(): FormInterface
     {
-        $formData = new LendPuzzleFormData();
+        $formData = new BorrowPuzzleFormData();
 
-        return $this->createForm(LendPuzzleFormType::class, $formData);
+        return $this->createForm(BorrowPuzzleFormType::class, $formData);
     }
 
     public function isLoggedIn(): bool
@@ -63,7 +63,7 @@ final class LendPuzzleForm extends AbstractController
         return $player !== null && $player->activeMembership;
     }
 
-    public function isPuzzleAlreadyLent(): bool
+    public function isPuzzleAlreadyBorrowed(): bool
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -71,7 +71,7 @@ final class LendPuzzleForm extends AbstractController
             return false;
         }
 
-        return $this->getLentPuzzles->isPuzzleLentByOwner($player->playerId, $this->puzzleId);
+        return $this->getBorrowedPuzzles->isPuzzleBorrowedByHolder($player->playerId, $this->puzzleId);
     }
 
     #[LiveAction]
@@ -99,10 +99,10 @@ final class LendPuzzleForm extends AbstractController
 
         $this->submitForm();
 
-        /** @var LendPuzzleFormData $formData */
+        /** @var BorrowPuzzleFormData $formData */
         $formData = $this->getForm()->getData();
 
-        if ($formData->borrowerCode === null || trim($formData->borrowerCode) === '') {
+        if ($formData->ownerCode === null || trim($formData->ownerCode) === '') {
             $this->dispatchBrowserEvent('toast:show', [
                 'message' => $this->translator->trans('lend_borrow.flash.validation_error'),
                 'type' => 'error',
@@ -112,22 +112,22 @@ final class LendPuzzleForm extends AbstractController
         }
 
         // Parse input - if starts with # try to find registered player, otherwise use as plain text
-        $input = $formData->borrowerCode;
+        $input = $formData->ownerCode;
         $isRegisteredPlayer = str_starts_with($input, '#');
         $cleanedInput = trim($input, "# \t\n\r\0");
 
-        $borrowerPlayerId = null;
-        $borrowerName = null;
+        $ownerPlayerId = null;
+        $ownerName = null;
 
         if ($isRegisteredPlayer) {
             try {
-                $borrower = $this->playerRepository->getByCode($cleanedInput);
-                $borrowerPlayerId = $borrower->id->toString();
+                $owner = $this->playerRepository->getByCode($cleanedInput);
+                $ownerPlayerId = $owner->id->toString();
 
-                // Cannot lend to yourself
-                if ($borrowerPlayerId === $player->playerId) {
+                // Cannot borrow from yourself
+                if ($ownerPlayerId === $player->playerId) {
                     $this->dispatchBrowserEvent('toast:show', [
-                        'message' => $this->translator->trans('lend_borrow.flash.cannot_lend_to_self'),
+                        'message' => $this->translator->trans('lend_borrow.flash.cannot_borrow_from_self'),
                         'type' => 'error',
                     ]);
 
@@ -143,25 +143,25 @@ final class LendPuzzleForm extends AbstractController
             }
         } else {
             // Use plain text name for non-registered person
-            $borrowerName = $cleanedInput;
+            $ownerName = $cleanedInput;
         }
 
-        $this->messageBus->dispatch(new LendPuzzleToPlayer(
-            ownerPlayerId: $player->playerId,
+        $this->messageBus->dispatch(new BorrowPuzzleFromPlayer(
+            borrowerPlayerId: $player->playerId,
             puzzleId: $this->puzzleId,
-            borrowerPlayerId: $borrowerPlayerId,
-            borrowerName: $borrowerName,
+            ownerPlayerId: $ownerPlayerId,
+            ownerName: $ownerName,
             notes: $formData->notes,
         ));
 
         $this->dispatchBrowserEvent('toast:show', [
-            'message' => $this->translator->trans('lend_borrow.flash.lent'),
+            'message' => $this->translator->trans('lend_borrow.flash.borrowed'),
             'type' => 'success',
         ]);
 
         $this->dispatchBrowserEvent('modal:close');
 
-        $this->emit('puzzle:lent', [
+        $this->emit('puzzle:borrowed', [
             'puzzleId' => $this->puzzleId,
         ]);
     }

@@ -31,12 +31,18 @@ class LentPuzzle
         public Puzzle $puzzle,
         #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $ownerPlayer,
+        #[JoinColumn(nullable: true)]
+        public null|Player $ownerPlayer,
+        #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, length: 200)]
+        public null|string $ownerName,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $currentHolderPlayer,
+        #[JoinColumn(nullable: true)]
+        public null|Player $currentHolderPlayer,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::STRING, nullable: true, length: 200)]
+        public null|string $currentHolderName,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $lentAt,
@@ -46,9 +52,10 @@ class LentPuzzle
     ) {
     }
 
-    public function changeCurrentHolder(Player $player): void
+    public function changeCurrentHolder(null|Player $player, null|string $name): void
     {
         $this->currentHolderPlayer = $player;
+        $this->currentHolderName = $player === null ? $name : null;
     }
 
     public function changeNotes(null|string $notes): void

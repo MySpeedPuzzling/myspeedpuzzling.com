@@ -952,7 +952,7 @@ wish_list:
     form:
         visibility_help: "Die öffentliche Wunschliste ist für alle Benutzer sichtbar, privat nur für dich."
         remove_on_add: "Automatisch von der Wunschliste entfernen"
-        remove_on_add_help: "Wenn aktiviert, wird dieses Puzzle automatisch von deiner Wunschliste entfernt, wenn du es zu einer Sammlung hinzufügst oder eine Lösungszeit hinzufügst."
+        remove_on_add_help: "Wenn aktiviert, wird dieses Puzzle automatisch von deiner Wunschliste entfernt, wenn du es zu einer Sammlung hinzufügst, eine Lösungszeit hinzufügst oder es ausleihst."
     flash:
         updated: "Die Sichtbarkeit der Wunschliste wurde erfolgreich aktualisiert."
         added: "Puzzle wurde zu deiner Wunschliste hinzugefügt."

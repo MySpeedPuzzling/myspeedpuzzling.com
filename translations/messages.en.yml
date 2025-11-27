@@ -965,7 +965,7 @@ wish_list:
     form:
         visibility_help: "Public wish list is visible to all users, private only to you."
         remove_on_add: "Automatically remove from wish list"
-        remove_on_add_help: "When checked, this puzzle will be automatically removed from your wish list when you add it to any collection or add a solving time."
+        remove_on_add_help: "When checked, this puzzle will be automatically removed from your wish list when you add it to any collection, add a solving time, or borrow it."
     flash:
         updated: "Wish list visibility was successfully updated."
         added: "Puzzle was added to your wish list."

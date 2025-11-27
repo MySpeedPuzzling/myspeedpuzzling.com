@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
+use SpeedPuzzling\Web\Events\PuzzleBorrowed;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
@@ -17,6 +18,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class LendPuzzleToPlayerHandler
@@ -26,6 +28,7 @@ readonly final class LendPuzzleToPlayerHandler
         private PuzzleRepository $puzzleRepository,
         private LentPuzzleRepository $lentPuzzleRepository,
         private LentPuzzleTransferRepository $lentPuzzleTransferRepository,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -74,6 +77,13 @@ readonly final class LendPuzzleToPlayerHandler
 
             $this->lentPuzzleTransferRepository->save($transfer);
 
+            if ($borrower !== null) {
+                $this->messageBus->dispatch(new PuzzleBorrowed(
+                    $borrower->id->toString(),
+                    $puzzle->id->toString(),
+                ));
+            }
+
             return;
         }
 
@@ -105,5 +115,12 @@ readonly final class LendPuzzleToPlayerHandler
         );
 
         $this->lentPuzzleTransferRepository->save($transfer);
+
+        if ($borrower !== null) {
+            $this->messageBus->dispatch(new PuzzleBorrowed(
+                $borrower->id->toString(),
+                $puzzle->id->toString(),
+            ));
+        }
     }
 }

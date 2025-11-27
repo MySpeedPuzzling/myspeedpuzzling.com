@@ -952,7 +952,7 @@ wish_list:
     form:
         visibility_help: "La liste de souhaits publique est visible par tous les utilisateurs, la liste privée uniquement par vous."
         remove_on_add: "Retirer automatiquement de la liste de souhaits"
-        remove_on_add_help: "Si coché, ce puzzle sera automatiquement retiré de votre liste de souhaits lorsque vous l'ajoutez à une collection ou ajoutez un temps de résolution."
+        remove_on_add_help: "Si coché, ce puzzle sera automatiquement retiré de votre liste de souhaits lorsque vous l'ajoutez à une collection, ajoutez un temps de résolution ou l'empruntez."
     flash:
         updated: "La visibilité de la liste de souhaits a été mise à jour avec succès."
         added: "Le puzzle a été ajouté à votre liste de souhaits."

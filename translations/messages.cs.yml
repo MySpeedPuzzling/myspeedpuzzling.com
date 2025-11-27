@@ -1057,7 +1057,7 @@ wish_list:
     form:
         visibility_help: "Veřejný seznam přání je viditelný pro všechny uživatele, soukromý pouze pro vás."
         remove_on_add: "Automaticky odebrat ze seznamu přání"
-        remove_on_add_help: "Pokud je zaškrtnuto, toto puzzle bude automaticky odebráno z vašeho seznamu přání, když jej přidáte do jakékoli kolekce nebo přidáte čas skládání."
+        remove_on_add_help: "Pokud je zaškrtnuto, toto puzzle bude automaticky odebráno z vašeho seznamu přání, když jej přidáte do jakékoli kolekce, přidáte čas skládání nebo si jej vypůjčíte."
     flash:
         added: "Puzzle bylo přidáno na váš seznam přání."
         removed: "Puzzle bylo odebráno z vašeho seznamu přání."

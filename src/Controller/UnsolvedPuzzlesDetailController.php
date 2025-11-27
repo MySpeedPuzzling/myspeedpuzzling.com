@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Results\CollectionOverview;
@@ -22,6 +23,7 @@ final class UnsolvedPuzzlesDetailController extends AbstractController
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
     ) {
@@ -62,7 +64,11 @@ final class UnsolvedPuzzlesDetailController extends AbstractController
             ]);
         }
 
-        $items = $this->getUnsolvedPuzzles->byPlayerId($player->playerId);
+        $collectionItems = $this->getUnsolvedPuzzles->byPlayerId($player->playerId);
+        $borrowedItems = $this->getBorrowedPuzzles->unsolvedByHolderId($player->playerId);
+
+        // Merge arrays with borrowed items first
+        $items = array_merge($borrowedItems, $collectionItems);
 
         $collectionOverview = new CollectionOverview(
             playerId: $playerId,

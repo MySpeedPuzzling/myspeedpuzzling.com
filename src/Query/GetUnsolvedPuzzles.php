@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\CollectionItemOverview;
+use SpeedPuzzling\Web\Results\UnsolvedPuzzleItem;
 
 readonly final class GetUnsolvedPuzzles
 {
@@ -16,7 +16,7 @@ readonly final class GetUnsolvedPuzzles
     }
 
     /**
-     * @return array<CollectionItemOverview>
+     * @return array<UnsolvedPuzzleItem>
      */
     public function byPlayerId(string $playerId): array
     {
@@ -48,7 +48,7 @@ SQL;
             ->executeQuery($query, ['playerId' => $playerId])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): CollectionItemOverview {
+        return array_map(static function (array $row): UnsolvedPuzzleItem {
             /** @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -62,8 +62,7 @@ SQL;
              * } $row
              */
 
-            return new CollectionItemOverview(
-                collectionItemId: $row['puzzle_id'],
+            return new UnsolvedPuzzleItem(
                 puzzleId: $row['puzzle_id'],
                 puzzleName: $row['puzzle_name'],
                 puzzleAlternativeName: $row['puzzle_alternative_name'],
@@ -72,8 +71,10 @@ SQL;
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
-                comment: null,
                 addedAt: new DateTimeImmutable($row['added_at']),
+                isBorrowed: false,
+                borrowedFromPlayerId: null,
+                borrowedFromPlayerName: null,
             );
         }, $data);
     }

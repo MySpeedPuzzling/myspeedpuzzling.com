@@ -67,7 +67,8 @@ final class PlayerCollectionsController extends AbstractController
 
         $collections = $this->getPlayerCollectionsWithCounts->byPlayerId($player->playerId, $isOwnProfile);
         $systemCollectionPuzzleCount = $this->getPlayerCollectionsWithCounts->countSystemCollection($player->playerId);
-        $unsolvedPuzzlesCount = $this->getUnsolvedPuzzles->countByPlayerId($player->playerId);
+        $unsolvedPuzzlesCount = $this->getUnsolvedPuzzles->countByPlayerId($player->playerId)
+            + $this->getBorrowedPuzzles->countUnsolvedByHolderId($player->playerId);
         $wishListCount = $this->getWishListItems->countByPlayerId($player->playerId);
         $sellSwapListCount = $this->getSellSwapListItems->countByPlayerId($player->playerId);
 

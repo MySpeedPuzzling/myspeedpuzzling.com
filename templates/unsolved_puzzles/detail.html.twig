@@ -155,7 +155,7 @@
             {% for item in items %}
                 <div class="col-12 col-lg-6"
                      data-collection-items-target="item"
-                     data-collection-item-id="{{ item.collectionItemId }}"
+                     data-collection-item-id="{{ item.puzzleId }}"
                      data-collection-filter-target="item"
                      data-pieces-count="{{ item.piecesCount }}"
                      data-puzzle-name="{{ item.puzzleName }}"
@@ -211,14 +211,14 @@
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
                                                     <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#lend-puzzle-{{ item.collectionItemId }}">
+                                                       data-bs-target="#lend-puzzle-{{ item.puzzleId }}">
                                                         <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
                                                     </a>
                                                 </li>
                                             </ul>
                                         </div>
 
-                                        <twig:Modal id="lend-puzzle-{{ item.collectionItemId }}">
+                                        <twig:Modal id="lend-puzzle-{{ item.puzzleId }}">
                                             {% block modal_header %}
                                                 <h5 class="modal-title">{{ 'lend_borrow.lend.title'|trans }}</h5>
                                             {% endblock %}
@@ -234,6 +234,20 @@
                                 <div class="fs-sm text-muted">
                                     {{ item.manufacturerName ?? '-' }}
                                 </div>
+                                {% if item.isBorrowed %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-info-subtle text-info">
+                                            <i class="bi bi-box-arrow-in-left me-1"></i>
+                                            {% if item.borrowedFromPlayerId %}
+                                                <a href="{{ path('player_profile', {playerId: item.borrowedFromPlayerId}) }}" class="text-info">
+                                                    {{ item.borrowedFromPlayerName }}
+                                                </a>
+                                            {% else %}
+                                                {{ item.borrowedFromPlayerName }}
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

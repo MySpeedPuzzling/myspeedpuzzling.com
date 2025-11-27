@@ -17,10 +17,10 @@
         
         {% if this.isLoggedIn %}
             <li><hr class="dropdown-divider"></li>
-            
+
             <li>
-                <a class="dropdown-item" 
-                   data-bs-toggle="modal" 
+                <a class="dropdown-item"
+                   data-bs-toggle="modal"
                    data-bs-target="#add-puzzle-to-collection-{{ this.puzzleId }}"
                    href="#">
                     <i class="ci-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
@@ -37,6 +37,27 @@
                     }) }}
                 </li>
             {% endfor %}
+
+            <li><hr class="dropdown-divider"></li>
+
+            {% if this.isPuzzleInWishList %}
+                <li>
+                    {{ component('RemovePuzzleFromWishListButton', {
+                        puzzleId: this.puzzleId,
+                        buttonClass: 'dropdown-item',
+                        key: 'wishlist-remove-' ~ this.puzzleId,
+                    }) }}
+                </li>
+            {% else %}
+                <li>
+                    <a class="dropdown-item"
+                       data-bs-toggle="modal"
+                       data-bs-target="#add-puzzle-to-wish-list-{{ this.puzzleId }}"
+                       href="#">
+                        <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
+                    </a>
+                </li>
+            {% endif %}
         {% endif %}
     </ul>
 
@@ -49,6 +70,18 @@
                 {{ component('AddPuzzleToCollectionForm', {
                     puzzleId: puzzleId,
                     key: 'add-form-' ~ puzzleId ~ '-' ~ changeCounter
+                }) }}
+            {% endblock %}
+        </twig:Modal>
+
+        <twig:Modal id="add-puzzle-to-wish-list-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}" changeCounter="{{ this.changeCounter }}">
+            {% block modal_header %}
+                <h5 class="modal-title">{{ 'wish_list.add.title'|trans }}</h5>
+            {% endblock %}
+            {% block modal_body %}
+                {{ component('AddPuzzleToWishListForm', {
+                    puzzleId: puzzleId,
+                    key: 'wish-list-add-form-' ~ puzzleId ~ '-' ~ changeCounter
                 }) }}
             {% endblock %}
         </twig:Modal>

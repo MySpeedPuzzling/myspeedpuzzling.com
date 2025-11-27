@@ -25,6 +25,11 @@ menu:
 navigation:
     home: "Inicio"
 
+form:
+    visibility: "Visibilidad"
+    visibility_public: "Pública"
+    visibility_private: "Privada"
+
 footer:
     created_with_love: "Creado con amor por los puzzles y el código por %simona% y %jan%"
     about: "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los puzzles y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
@@ -230,7 +235,6 @@ forms:
         collection_help: "Elige una colección existente o añade un nuevo nombre de colección."
         comment: "Comentario"
         comment_placeholder: "Comentario opcional sobre este puzzle..."
-        new_collection_visibility: "Visibilidad"
         puzzle_collection: "Colección de Puzzles (Predeterminada)"
         submit: "Añadir a la colección"
     empty_group_error: "No puedes crear un grupo solo contigo, eso no es armado en grupo :-)"
@@ -865,10 +869,7 @@ collections:
     form:
         description: "Descripción"
         name: "Nombre"
-        visibility: "Visibilidad"
         visibility_help: "Las colecciones públicas son visibles para todos los usuarios, las privadas solo para ti."
-        visibility_private: "Privada"
-        visibility_public: "Pública"
     items_count: "%count% puzzles"
     membership_required:
         help_text: "¿Quieres organizar puzzles en múltiples colecciones?"
@@ -918,10 +919,7 @@ unsolved_puzzles:
     flash:
         updated: "La visibilidad de los puzzles sin resolver se actualizó correctamente."
     form:
-        visibility: "Visibilidad"
         visibility_help: "La lista pública de puzzles sin resolver es visible para todos los usuarios, la privada solo para ti."
-        visibility_private: "Privada"
-        visibility_public: "Pública"
     items_count: "%count% puzzles"
     meta:
         title: "Puzzles sin resolver"

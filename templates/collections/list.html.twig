@@ -29,10 +29,14 @@
         <div class="row">
             {% for collection in collections %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card shadow-lg{% if collection.isUnsolvedPuzzles %} border-start border-warning border-3{% elseif collection.isSystemCollection %} border-start border-primary border-3{% endif %}">
+                    <div class="card shadow-lg border-start border-5 {% if collection.isWishList %} border-danger{% elseif collection.isUnsolvedPuzzles %} border-warning{% elseif collection.isSystemCollection %} border-primary{% endif %}">
                         <div class="card-header d-flex justify-content-between align-items-start">
                             <h5 class="card-title mb-0">
-                                {% if collection.isUnsolvedPuzzles %}
+                                {% if collection.isWishList %}
+                                    <a href="{{ path('wish_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        {{ collection.name }}
+                                    </a>
+                                {% elseif collection.isUnsolvedPuzzles %}
                                     <a href="{{ path('unsolved_puzzles_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
                                         {{ collection.name }}
                                     </a>
@@ -64,6 +68,12 @@
                                                 <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ collection.collectionId }}">
                                                     <i class="bi bi-trash me-1"></i>{{ 'collections.delete.button'|trans }}
                                                 </button>
+                                            </li>
+                                        {% elseif collection.isWishList %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_wish_list', {'playerId': player.playerId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
                                             </li>
                                         {% elseif collection.isUnsolvedPuzzles %}
                                             <li>

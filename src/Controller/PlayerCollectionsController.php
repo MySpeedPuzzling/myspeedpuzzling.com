@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerCollectionsWithCounts;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\CollectionOverviewWithCount;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -25,6 +26,7 @@ final class PlayerCollectionsController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerCollectionsWithCounts $getPlayerCollectionsWithCounts,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetWishListItems $getWishListItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
     ) {
@@ -60,6 +62,7 @@ final class PlayerCollectionsController extends AbstractController
         $collections = $this->getPlayerCollectionsWithCounts->byPlayerId($player->playerId, $isOwnProfile);
         $systemCollectionPuzzleCount = $this->getPlayerCollectionsWithCounts->countSystemCollection($player->playerId);
         $unsolvedPuzzlesCount = $this->getUnsolvedPuzzles->countByPlayerId($player->playerId);
+        $wishListCount = $this->getWishListItems->countByPlayerId($player->playerId);
 
         // Add system collection if public or own profile
         if ($player->puzzleCollectionVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
@@ -74,7 +77,7 @@ final class PlayerCollectionsController extends AbstractController
             ));
         }
 
-        // Add unsolved puzzles FIRST (before system collection) if public or own profile
+        // Add unsolved puzzles (before system collection) if public or own profile
         if ($player->unsolvedPuzzlesVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
             array_unshift($collections, new CollectionOverviewWithCount(
                 collectionId: null,
@@ -85,6 +88,21 @@ final class PlayerCollectionsController extends AbstractController
                 itemCount: $unsolvedPuzzlesCount,
                 isSystemCollection: false,
                 isUnsolvedPuzzles: true,
+            ));
+        }
+
+        // Add wish list FIRST (before all other collections) if public or own profile
+        if ($player->wishListVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
+            array_unshift($collections, new CollectionOverviewWithCount(
+                collectionId: null,
+                name: $this->translator->trans('wish_list.name'),
+                description: $this->translator->trans('wish_list.description'),
+                visibility: $player->wishListVisibility,
+                createdAt: new DateTimeImmutable(),
+                itemCount: $wishListCount,
+                isSystemCollection: false,
+                isUnsolvedPuzzles: false,
+                isWishList: true,
             ));
         }
 

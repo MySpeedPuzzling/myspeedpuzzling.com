@@ -22,6 +22,11 @@ menu:
     collections: "Collections"
     events: "Events"
 
+form:
+    visibility: "Visibility"
+    visibility_public: "Public"
+    visibility_private: "Private"
+
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
     about: "My Speed Puzzling is community platform for all puzzle lovers and especially for speed puzzling enthusiast.<br>This is the ultimate place to share your times, compare with others and have fun together."
@@ -277,8 +282,6 @@ forms:
         submit: "Add to Collection"
         puzzle_collection: "Puzzle Collection (Default)"
         choose_collection: "- Choose collection -"
-        new_collection_visibility: "Visibility"
-
 puzzlers_comparison:
     meta:
         title: "Puzzlers Comparison"
@@ -830,9 +833,6 @@ collections:
     form:
         name: "Name"
         description: "Description"
-        visibility: "Visibility"
-        visibility_public: "Public"
-        visibility_private: "Private"
         visibility_help: "Public collections are visible to all users, private collections only to you."
     flash:
         created: "Collection was successfully created."
@@ -922,11 +922,49 @@ unsolved_puzzles:
             title: "Edit Unsolved Puzzles Visibility"
         submit: "Save Changes"
     form:
-        visibility: "Visibility"
-        visibility_public: "Public"
-        visibility_private: "Private"
         visibility_help: "Public unsolved puzzles list is visible to all users, private only to you."
     flash:
         updated: "Unsolved puzzles visibility was successfully updated."
     private: "Private Unsolved Puzzles"
     private_message: "The unsolved puzzles list \"%collection%\" by %player% is private and cannot be viewed."
+
+wish_list:
+    name: "Wish List"
+    meta:
+        title: "Wish List"
+    title: "Wish List"
+    title_other: "Wish List of %name%"
+    description: "Puzzles you want to get"
+    description_other: "Puzzles %name% wants to get"
+    items_count: "%count% puzzles"
+    empty:
+        title: "Your wish list is empty"
+        message: "Add puzzles you want to get to your wish list!"
+        title_other: "Empty wish list"
+        message_other: "%name%'s wish list is empty."
+    edit:
+        title: "Edit Wish List Visibility"
+        meta:
+            title: "Edit Wish List Visibility"
+        submit: "Save Changes"
+    form:
+        visibility_help: "Public wish list is visible to all users, private only to you."
+        remove_on_add: "Automatically remove from wish list"
+        remove_on_add_help: "When checked, this puzzle will be automatically removed from your wish list when you add it to any collection or add a solving time."
+    flash:
+        updated: "Wish list visibility was successfully updated."
+        added: "Puzzle was added to your wish list."
+        removed: "Puzzle was removed from your wish list."
+        login_required: "You must be logged in to manage your wish list."
+    private: "Private Wish List"
+    private_message: "The wish list by %player% is private and cannot be viewed."
+    add:
+        title: "Add to Wish List"
+        button: "Add to Wish List"
+        success: "Puzzle was added to your wish list."
+    remove:
+        button: "Remove from Wish List"
+        success: "Puzzle was removed from your wish list."
+    already_in_list: "This puzzle is already in your wish list."
+    login_required: "You must be logged in to add puzzles to your wish list."
+    auto_remove_enabled: "Auto-remove enabled"

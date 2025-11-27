@@ -18,6 +18,7 @@ readonly final class CollectionOverviewWithCount
         public int $itemCount,
         public bool $isSystemCollection,
         public bool $isUnsolvedPuzzles = false,
+        public bool $isWishList = false,
     ) {
     }
 

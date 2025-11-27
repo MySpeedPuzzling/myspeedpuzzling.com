@@ -22,6 +22,11 @@ menu:
     collections: "Kolekce"
     events: "Eventy"
 
+form:
+    visibility: "Viditelnost"
+    visibility_public: "Veřejná"
+    visibility_private: "Soukromá"
+
 footer:
     created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
     about: "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence.<br>Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívání si zábavy ze skládání puzzlí společně."
@@ -279,8 +284,6 @@ forms:
         submit: "Přidat do kolekce"
         puzzle_collection: "Puzzle kolekce (Výchozí)"
         choose_collection: "- Vyberte kolekci -"
-        new_collection_visibility: "Viditelnost"
-
 puzzlers_comparison:
     meta:
         title: "Porovnání puzzlerů"
@@ -832,9 +835,6 @@ collections:
     form:
         name: "Název"
         description: "Popis"
-        visibility: "Viditelnost"
-        visibility_public: "Veřejná"
-        visibility_private: "Soukromá"
         visibility_help: "Veřejné kolekce jsou viditelné pro všechny uživatele, soukromé pouze pro vás."
     flash:
         created: "Kolekce byla úspěšně vytvořena."
@@ -920,10 +920,7 @@ unsolved_puzzles:
     flash:
         updated: "Viditelnost nesložených puzzlí byla úspěšně aktualizována."
     form:
-        visibility: "Viditelnost"
         visibility_help: "Veřejný seznam nesložených puzzlí je viditelný pro všechny uživatele, soukromý pouze pro vás."
-        visibility_private: "Soukromé"
-        visibility_public: "Veřejné"
     items_count: "%count% puzzlí"
     meta:
         title: "Nesložené puzzle"

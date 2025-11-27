@@ -25,6 +25,11 @@ menu:
 navigation:
     home: "ホーム"
 
+form:
+    visibility: "表示設定"
+    visibility_public: "公開"
+    visibility_private: "非公開"
+
 footer:
     created_with_love: "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
     about: "マイスピードパズリングは、すべてのパズル愛好家、特にスピードパズル愛好家のためのコミュニティプラットフォームです。<br>タイムを共有し、他の人と比較し、一緒に楽しむための究極の場所です。"
@@ -229,7 +234,6 @@ forms:
         collection_help: "既存のコレクションを選択するか、新しいコレクション名を追加してください。"
         comment: "コメント"
         comment_placeholder: "このパズルについてのオプションコメント..."
-        new_collection_visibility: "表示設定"
         puzzle_collection: "パズルコレクション（デフォルト）"
         submit: "コレクションに追加"
     empty_group_error: "自分だけでグループを作成することはできません。それはグループパズルではありません :-)"
@@ -863,10 +867,7 @@ collections:
     form:
         description: "説明"
         name: "名前"
-        visibility: "表示設定"
         visibility_help: "公開コレクションはすべてのユーザーに表示され、非公開コレクションはあなただけに表示されます。"
-        visibility_private: "非公開"
-        visibility_public: "公開"
     items_count: "%count%個のパズル"
     membership_required:
         help_text: "パズルを複数のコレクションに整理したいですか？"
@@ -916,10 +917,7 @@ unsolved_puzzles:
     flash:
         updated: "未完成パズルの公開設定が正常に更新されました。"
     form:
-        visibility: "公開設定"
         visibility_help: "公開リストはすべてのユーザーに表示され、非公開リストはあなただけに表示されます。"
-        visibility_private: "非公開"
-        visibility_public: "公開"
     items_count: "%count%個のパズル"
     meta:
         title: "未完成のパズル"

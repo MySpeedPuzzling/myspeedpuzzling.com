@@ -32,6 +32,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     is_private: bool,
  *     puzzle_collection_visibility: string,
  *     unsolved_puzzles_visibility: string,
+ *     wish_list_visibility: string,
  *  }
  */
 readonly final class PlayerProfile
@@ -57,6 +58,7 @@ readonly final class PlayerProfile
         public bool $activeMembership,
         public CollectionVisibility $puzzleCollectionVisibility,
         public CollectionVisibility $unsolvedPuzzlesVisibility,
+        public CollectionVisibility $wishListVisibility,
         public bool $isAdmin = false,
         public bool $isPrivate = false,
         public null|CountryCode $countryCode = null,
@@ -108,6 +110,7 @@ readonly final class PlayerProfile
             activeMembership: $hasMembership,
             puzzleCollectionVisibility: CollectionVisibility::from($row['puzzle_collection_visibility']),
             unsolvedPuzzlesVisibility: CollectionVisibility::from($row['unsolved_puzzles_visibility']),
+            wishListVisibility: CollectionVisibility::from($row['wish_list_visibility']),
             isAdmin: $row['is_admin'],
             isPrivate: $row['is_private'],
             countryCode: $countryCode,

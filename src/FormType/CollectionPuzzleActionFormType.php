@@ -63,11 +63,11 @@ final class CollectionPuzzleActionFormType extends AbstractType
 
         $builder->add('collectionVisibility', EnumType::class, [
             'class' => CollectionVisibility::class,
-            'label' => 'collections.form.visibility',
+            'label' => 'form.visibility',
             'required' => true,
             'choice_label' => fn(CollectionVisibility $visibility) => match ($visibility) {
-                CollectionVisibility::Private => 'collections.form.visibility_private',
-                CollectionVisibility::Public => 'collections.form.visibility_public',
+                CollectionVisibility::Private => 'form.visibility_private',
+                CollectionVisibility::Public => 'form.visibility_public',
             },
         ]);
 

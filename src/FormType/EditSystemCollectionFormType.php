@@ -22,12 +22,12 @@ final class EditSystemCollectionFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('visibility', ChoiceType::class, [
-            'label' => 'collections.form.visibility',
+            'label' => 'form.visibility',
             'required' => true,
             'expanded' => true,
             'choices' => [
-                'collections.form.visibility_public' => CollectionVisibility::Public,
-                'collections.form.visibility_private' => CollectionVisibility::Private,
+                'form.visibility_public' => CollectionVisibility::Public,
+                'form.visibility_private' => CollectionVisibility::Private,
             ],
         ]);
     }

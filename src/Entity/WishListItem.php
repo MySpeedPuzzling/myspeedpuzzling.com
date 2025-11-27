@@ -15,23 +15,16 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\Events\PuzzleAddedToCollection;
 
 #[Entity]
-#[UniqueConstraint(columns: ['collection_id', 'player_id', 'puzzle_id'])]
-class CollectionItem implements EntityWithEvents
+#[UniqueConstraint(columns: ['player_id', 'puzzle_id'])]
+class WishListItem
 {
-    use HasEvents;
-
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
-        #[ManyToOne]
-        #[JoinColumn(nullable: true, onDelete: 'CASCADE')]
-        public null|Collection $collection,
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
@@ -41,21 +34,16 @@ class CollectionItem implements EntityWithEvents
         #[JoinColumn(nullable: false)]
         public Puzzle $puzzle,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-        #[Column(type: Types::TEXT, length: 500, nullable: true)]
-        public null|string $comment,
+        #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+        public bool $removeOnCollectionAdd,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $addedAt,
     ) {
-        $this->recordThat(new PuzzleAddedToCollection(
-            $this->id,
-            $this->player->id->toString(),
-            $this->puzzle->id->toString(),
-        ));
     }
 
-    public function changeComment(null|string $comment): void
+    public function changeRemoveOnCollectionAdd(bool $removeOnCollectionAdd): void
     {
-        $this->comment = $comment;
+        $this->removeOnCollectionAdd = $removeOnCollectionAdd;
     }
 }

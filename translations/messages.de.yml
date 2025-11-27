@@ -22,6 +22,11 @@ menu:
     collections: "Sammlungen"
     events: "Veranstaltungen"
 
+form:
+    visibility: "Sichtbarkeit"
+    visibility_public: "Öffentlich"
+    visibility_private: "Privat"
+
 footer:
     created_with_love: "Mit Liebe für Puzzles und Code erstellt von %simona% und %jan%"
     about: "My Speed Puzzling ist eine Community-Plattform für alle Puzzle-Liebhaber und besonders für Speed Puzzling-Enthusiasten.<br>Dies ist der ultimative Ort, um Ihre Zeiten zu teilen, sich mit anderen zu vergleichen und gemeinsam Spaß zu haben."
@@ -276,7 +281,6 @@ forms:
         collection_help: "Wählen Sie eine vorhandene Sammlung oder geben Sie einen neuen Sammlungsnamen ein."
         comment: "Kommentar"
         comment_placeholder: "Optionaler Kommentar zu diesem Puzzle..."
-        new_collection_visibility: "Sichtbarkeit"
         puzzle_collection: "Puzzle-Sammlung (Standard)"
         submit: "Zur Sammlung hinzufügen"
 
@@ -830,9 +834,6 @@ collections:
     form:
         name: "Name"
         description: "Beschreibung"
-        visibility: "Sichtbarkeit"
-        visibility_public: "Öffentlich"
-        visibility_private: "Privat"
         visibility_help: "Öffentliche Sammlungen sind für alle Benutzer sichtbar, private nur für Sie."
     flash:
         created: "Sammlung wurde erfolgreich erstellt."
@@ -918,10 +919,7 @@ unsolved_puzzles:
     flash:
         updated: "Die Sichtbarkeit der ungelösten Puzzles wurde erfolgreich aktualisiert."
     form:
-        visibility: "Sichtbarkeit"
         visibility_help: "Die öffentliche Liste ungelöster Puzzles ist für alle Benutzer sichtbar, privat nur für dich."
-        visibility_private: "Privat"
-        visibility_public: "Öffentlich"
     items_count: "%count% Puzzles"
     meta:
         title: "Ungelöste Puzzles"

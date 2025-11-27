@@ -1,0 +1,42 @@
+<div {{ attributes }}>
+    {% if this.isLoggedIn %}
+        {% if this.isPuzzleInWishList %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-heart-fill me-2"></i>{{ 'wish_list.already_in_list'|trans }}
+            </div>
+        {% else %}
+            <form data-action="live#action:prevent"
+                  data-live-action-param="save"
+                  data-model="norender|*">
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input type="checkbox"
+                               class="form-check-input"
+                               id="removeOnCollectionAdd"
+                               data-model="removeOnCollectionAdd"
+                               {% if this.removeOnCollectionAdd %}checked{% endif %}>
+                        <label class="form-check-label" for="removeOnCollectionAdd">
+                            {{ 'wish_list.form.remove_on_add'|trans }}
+                        </label>
+                    </div>
+                    <small class="form-text text-muted d-block mt-2">
+                        {{ 'wish_list.form.remove_on_add_help'|trans }}
+                    </small>
+                </div>
+
+                <div class="d-grid gap-2 d-sm-flex">
+                    <button type="submit" class="btn btn-primary flex-grow-1" data-loading-text="{{ 'forms.saving'|trans }}">
+                        <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        {{ 'forms.cancel'|trans }}
+                    </button>
+                </div>
+            </form>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ 'wish_list.login_required'|trans }}
+        </div>
+    {% endif %}
+</div>

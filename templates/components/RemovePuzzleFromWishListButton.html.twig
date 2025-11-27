@@ -1,0 +1,12 @@
+<div {{ attributes }}>
+    {% if this.isLoggedIn %}
+        <button type="button"
+                class="{{ this.buttonClass }}"
+                data-action="live#action"
+                data-live-action-param="remove">
+            {% block text %}
+                <i class="bi bi-heart-dash me-1"></i> {{ 'wish_list.remove.button'|trans }}
+            {% endblock %}
+        </button>
+    {% endif %}
+</div>

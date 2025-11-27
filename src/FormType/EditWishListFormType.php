@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use SpeedPuzzling\Web\FormData\EditUnsolvedPuzzlesFormData;
+use SpeedPuzzling\Web\FormData\EditWishListFormData;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -12,9 +12,9 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * @extends AbstractType<EditUnsolvedPuzzlesFormData>
+ * @extends AbstractType<EditWishListFormData>
  */
-final class EditUnsolvedPuzzlesFormType extends AbstractType
+final class EditWishListFormType extends AbstractType
 {
     /**
      * @param mixed[] $options
@@ -35,7 +35,7 @@ final class EditUnsolvedPuzzlesFormType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
-            'data_class' => EditUnsolvedPuzzlesFormData::class,
+            'data_class' => EditWishListFormData::class,
         ]);
     }
 }

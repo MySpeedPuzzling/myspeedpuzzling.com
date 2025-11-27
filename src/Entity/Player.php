@@ -78,6 +78,10 @@ class Player
     #[Column(type: Types::STRING, enumType: CollectionVisibility::class, options: ['default' => 'private'])]
     public CollectionVisibility $unsolvedPuzzlesVisibility = CollectionVisibility::Private;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: CollectionVisibility::class, options: ['default' => 'private'])]
+    public CollectionVisibility $wishListVisibility = CollectionVisibility::Private;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -187,5 +191,10 @@ class Player
     public function changeUnsolvedPuzzlesVisibility(CollectionVisibility $visibility): void
     {
         $this->unsolvedPuzzlesVisibility = $visibility;
+    }
+
+    public function changeWishListVisibility(CollectionVisibility $visibility): void
+    {
+        $this->wishListVisibility = $visibility;
     }
 }

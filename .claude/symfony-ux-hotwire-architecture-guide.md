@@ -11,19 +11,19 @@ This document describes architectural patterns for building dynamic, efficient U
 ### Issues to Address
 
 1. **Modal Proliferation**: Pages render many hidden modals (e.g., 20 edit modals + 20 delete confirmation modals), causing:
-   - Bloated HTML responses
-   - Slow initial page loads
-   - Memory overhead
+    - Bloated HTML responses
+    - Slow initial page loads
+    - Memory overhead
 
 2. **N+1 Component Problem**: Using Live Components for repeated UI elements (e.g., wishlist buttons on list items) causes:
-   - Multiple component instances (20 items = 20 components)
-   - Repeated database queries (each component queries independently)
-   - Poor scalability
+    - Multiple component instances (20 items = 20 components)
+    - Repeated database queries (each component queries independently)
+    - Poor scalability
 
 3. **Custom Event Spaghetti**: Excessive custom Stimulus controllers and event listeners to coordinate:
-   - Modal open/close
-   - DOM updates after actions (remove item, update counts)
-   - State synchronization between components
+    - Modal open/close
+    - DOM updates after actions (remove item, update counts)
+    - State synchronization between components
 
 4. **Tight Coupling**: Logic scattered across multiple Live Components, Stimulus controllers, and templates without clear boundaries.
 
@@ -550,22 +550,145 @@ frameLoaded(event) {
 
 ---
 
+## Pattern: Form Validation and Modal Behavior
+
+### The Problem
+
+When a form in a modal has validation errors, the modal must stay open and display errors. It should only close on successful submission.
+
+### How It Works
+
+The modal closes when `modal-frame` becomes empty. The Live Component controls what gets returned:
+
+- **Validation fails** → Re-render component with errors → Frame stays populated → Modal stays open
+- **Validation passes** → Return Turbo Stream that clears frame → Modal closes
+
+### Live Component Implementation
+
+```php
+#[AsLiveComponent]
+class ItemForm extends AbstractController
+{
+    use DefaultActionTrait;
+    use ComponentWithFormTrait;
+    
+    #[LiveProp]
+    public Item $item;
+    
+    #[LiveProp]
+    public string $context = 'list';
+    
+    protected function instantiateForm(): FormInterface
+    {
+        return $this->createForm(ItemType::class, $this->item);
+    }
+    
+    #[LiveAction]
+    public function save(EntityManagerInterface $em): Response
+    {
+        $this->submitForm();
+        
+        // Validation FAILED → Re-render with errors
+        // Frame stays populated → Modal stays OPEN
+        if (!$this->getForm()->isValid()) {
+            return $this->render('@LiveComponent/default.html.twig');
+        }
+        
+        // Validation PASSED → Save and close modal
+        $em->flush();
+        
+        return match($this->context) {
+            'detail' => $this->redirectToRoute('item_show', ['id' => $this->item->getId()]),
+            'list' => $this->render('item/_update_stream.html.twig', [
+                'item' => $this->item,
+            ]),
+        };
+    }
+}
+```
+
+### Flow Diagram
+
+```
+User clicks Save
+       │
+       ▼
+┌─────────────────────────────────────┐
+│ Live Component: save() action       │
+└─────────────────────────────────────┘
+       │
+       ├── Validation FAILS
+       │         │
+       │         ▼
+       │   Return: re-rendered component with errors
+       │   modal-frame content = <form with errors>
+       │   Modal stays OPEN ✓
+       │
+       └── Validation PASSES
+                 │
+                 ▼
+           Return: Turbo Streams (clears modal-frame)
+           modal-frame content = empty
+           Stimulus detects → Modal CLOSES ✓
+```
+
+### Alternative: Plain Form Without Live Component
+
+If not using Live Component, the controller must handle both cases:
+
+```php
+#[Route('/item/{id}/edit', methods: ['POST'])]
+public function update(Request $request, Item $item): Response
+{
+    $form = $this->createForm(ItemType::class, $item);
+    $form->handleRequest($request);
+    
+    // Validation failed → return modal template with errors
+    if (!$form->isValid()) {
+        return $this->render('item/_edit_modal.html.twig', [
+            'item' => $item,
+            'form' => $form,
+        ]);
+    }
+    
+    // Success → return streams
+    $this->em->flush();
+    return $this->render('item/_update_stream.html.twig', [...]);
+}
+```
+
+### Why Live Component is Preferred for Modal Forms
+
+| Feature | Plain Form | Live Component |
+|---------|------------|----------------|
+| Server-side validation | On submit only | Real-time as you type |
+| Modal stays open on error | Manual handling | Automatic |
+| Field-level error display | After submit | Instant feedback |
+| Dependent fields | Requires page reload | Dynamic updates |
+| Controller complexity | Validation logic needed | Component handles it |
+
+### Key Insight
+
+> The Live Component acts as a gatekeeper: it only returns Turbo Streams (which close the modal) when validation passes. On failure, it re-renders itself, keeping the modal open with errors displayed.
+
+---
+
 ## When to Use Live Components
 
 ### ✅ Good Use Cases
 
 1. **Complex forms with real-time validation**
-   - Dependent dropdowns
-   - Async validation (username availability)
-   - Dynamic form fields (add/remove)
+    - Dependent dropdowns
+    - Async validation (username availability)
+    - Dynamic form fields (add/remove)
 
 2. **Filter forms**
-   - Multiple interdependent filters
-   - Live preview of results count
+    - Multiple interdependent filters
+    - Live preview of results count
 
 3. **Single-item detail pages**
-   - Complex interactions isolated to one entity
-   - No N+1 concern
+    - Complex interactions isolated to one entity
+    - No N+1 concern
 
 ### ❌ Avoid For
 

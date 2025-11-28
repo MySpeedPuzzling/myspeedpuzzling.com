@@ -48,37 +48,49 @@ Use the right tool for each job:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ Layer 1: Controller                                             │
-│ - Route handling                                                │
+│ - Route handling (GET and POST)                                 │
 │ - Request type detection (Turbo Frame vs normal)                │
-│ - Template selection                                            │
-│ - Context passing                                               │
+│ - Form validation and processing                                │
+│ - Returns Turbo Streams on success                              │
+│ - Returns appropriate template on GET or validation failure     │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Layer 2: Templates (Wrappers)                                   │
-│ - Modal wrapper (_modal.html.twig)                              │
-│ - Full page wrapper (full_page.html.twig)                       │
-│ - Both embed the SAME component                                 │
+│ Layer 2: Templates                                              │
+│ - Modal wrapper (_modal.html.twig) for Turbo Frame requests     │
+│ - Full page wrapper (edit.html.twig) for normal requests        │
+│ - Stream templates (_success_stream.html.twig)                  │
+│ - Both can optionally embed Live Component for real-time UX     │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Layer 3: Live Component                                         │
-│ - Form logic and validation                                     │
-│ - Context-aware response handling                               │
-│ - Returns Turbo Streams OR redirects based on context           │
+│ Layer 3: Live Component (OPTIONAL)                              │
+│ - Real-time validation feedback only                            │
+│ - Does NOT handle form submission                               │
+│ - Form action points to Controller, not LiveAction              │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ Layer 4: Turbo Streams                                          │
+│ Layer 4: Turbo Streams (returned by Controller)                 │
 │ - Update specific DOM elements                                  │
 │ - Remove deleted items                                          │
 │ - Update counters                                               │
 │ - Clear modal frame (triggers close)                            │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Critical Constraint: Live Components Cannot Return Turbo Streams
+
+**Live Components and Turbo Streams are separate technologies that don't integrate directly.** When a LiveAction returns a Turbo Stream response, the Live Component JavaScript doesn't handle the `text/vnd.turbo-stream.html` content type correctly—it expects HTML for morphing updates.
+
+This means:
+- ❌ `#[LiveAction]` methods cannot return Turbo Stream responses
+- ✅ Controllers can return Turbo Stream responses
+- ✅ Live Components can be used for real-time validation UI
+- ✅ Form submission should go to Controller, not LiveAction
 
 ---
 
@@ -146,10 +158,9 @@ This distinction is critical to understand:
 {# base.html.twig #}
 <div id="modal-container" 
      class="hidden" 
-     data-controller="modal"
-     data-modal-frame-target="frame">
+     data-controller="modal">
     
-    <div class="modal-backdrop" data-action="click->modal#close"></div>
+    <div class="modal-backdrop" data-action="click->modal#backdropClick"></div>
     
     <div class="modal-content">
         <!-- THE ONLY TURBO FRAME NEEDED FOR MODALS -->
@@ -161,27 +172,115 @@ This distinction is critical to understand:
 
 ### Triggering the Modal
 
+**Important:** Do NOT use `data-action="click->modal#open"` — it conflicts with Turbo's click handling. Instead, the Stimulus controller listens for `turbo:before-fetch-request` on the frame.
+
 ```twig
-{# Any page #}
+{# Any page - just target the frame, no click action needed #}
 <a href="{{ path('item_edit', {id: item.id}) }}"
-   data-turbo-frame="modal-frame"
-   data-modal-context="list"
-   data-action="click->modal#open">
+   data-turbo-frame="modal-frame">
     Edit
 </a>
 ```
 
+### Stimulus Modal Controller
+
+```javascript
+// assets/controllers/modal_controller.js
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+    static targets = ["frame"]
+    
+    connect() {
+        // Open modal when frame starts fetching content
+        this.frameTarget.addEventListener('turbo:before-fetch-request', () => {
+            this.open()
+        })
+        
+        // Watch for frame becoming empty (close trigger)
+        this.observer = new MutationObserver(() => {
+            if (this.frameTarget.innerHTML.trim() === '') {
+                this.close()
+            }
+        })
+        this.observer.observe(this.frameTarget, { childList: true })
+    }
+    
+    disconnect() {
+        this.observer?.disconnect()
+    }
+    
+    open() {
+        this.element.classList.remove('hidden')
+        document.body.classList.add('overflow-hidden')
+    }
+    
+    close() {
+        this.element.classList.add('hidden')
+        document.body.classList.remove('overflow-hidden')
+        this.frameTarget.innerHTML = ''
+    }
+    
+    // Close on backdrop click
+    backdropClick(event) {
+        if (event.target === event.currentTarget) {
+            this.close()
+        }
+    }
+    
+    // Close on Escape key (add data-action="keydown.esc@window->modal#closeOnEscape" to body)
+    closeOnEscape(event) {
+        this.close()
+    }
+}
+```
+
 ### Modal Content Response
+
+**Option A: Without Live Component (simpler)**
 
 ```twig
 {# item/_edit_modal.html.twig #}
 <turbo-frame id="modal-frame">
     <div class="modal-header">
         <h2>Edit {{ item.name }}</h2>
-        <button data-action="modal#close">&times;</button>
+        <button type="button" data-action="modal#close">&times;</button>
     </div>
     
-    {{ component('ItemForm', {item: item, context: context}) }}
+    <div class="modal-body">
+        {{ form_start(form, {
+            action: path('item_edit', {id: item.id}),
+            attr: {'data-turbo-frame': 'modal-frame'}
+        }) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.description) }}
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-action="modal#close">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</turbo-frame>
+```
+
+**Option B: With Live Component (real-time validation)**
+
+```twig
+{# item/_edit_modal.html.twig #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h2>Edit {{ item.name }}</h2>
+        <button type="button" data-action="modal#close">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+        {# Live Component for real-time validation, but form submits to CONTROLLER #}
+        {{ component('ItemEditForm', {
+            item: item,
+            formAction: path('item_edit', {id: item.id})
+        }) }}
+    </div>
 </turbo-frame>
 ```
 
@@ -207,66 +306,83 @@ Same action (edit, delete) invoked from different pages (list, detail) requires 
 - From list: Update item in place, update count, stay on page
 - From detail: Redirect to list or refresh detail
 
-### Solution: Pass Context
+### Solution: Pass Context via Hidden Field
 
-#### Step 1: Mark the Link with Context
+#### Step 1: Include Context in Form Template
+
+```twig
+{# item/_delete_confirm_modal.html.twig #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h2>Delete {{ item.name }}?</h2>
+    </div>
+    
+    <form action="{{ path('item_delete', {id: item.id}) }}" method="post">
+        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ item.id) }}">
+        <input type="hidden" name="context" value="{{ context }}">
+        
+        <p>Are you sure you want to delete this item?</p>
+        
+        <button type="button" data-action="modal#close">Cancel</button>
+        <button type="submit">Delete</button>
+    </form>
+</turbo-frame>
+```
+
+#### Step 2: Controller Passes Context When Rendering Modal
+
+```php
+#[Route('/item/{id}/delete/confirm', name: 'item_delete_confirm', methods: ['GET'])]
+public function deleteConfirm(Request $request, Item $item): Response
+{
+    $context = $request->query->get('context', 'list');
+    
+    return $this->render('item/_delete_confirm_modal.html.twig', [
+        'item' => $item,
+        'context' => $context,
+    ]);
+}
+```
+
+#### Step 3: Controller Uses Context for Response
+
+```php
+#[Route('/item/{id}/delete', name: 'item_delete', methods: ['POST'])]
+public function delete(Request $request, Item $item, EntityManagerInterface $em): Response
+{
+    $context = $request->request->get('context', 'list');
+    $id = $item->getId();
+    
+    $em->remove($item);
+    $em->flush();
+    
+    // Different response based on context
+    if ($context === 'detail') {
+        $this->addFlash('success', 'Item deleted.');
+        return $this->redirectToRoute('item_list', [], Response::HTTP_SEE_OTHER);
+    }
+    
+    // List context: return Turbo Streams
+    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+    return $this->render('item/_delete_stream.html.twig', [
+        'deletedId' => $id,
+        'count' => $this->itemRepository->count([]),
+        'isEmpty' => $this->itemRepository->count([]) === 0,
+    ]);
+}
+```
+
+#### Step 4: Links Include Context
 
 ```twig
 {# list.html.twig #}
-<a href="{{ path('item_delete_confirm', {id: item.id}) }}"
-   data-turbo-frame="modal-frame"
-   data-modal-context="list">Delete</a>
+<a href="{{ path('item_delete_confirm', {id: item.id, context: 'list'}) }}"
+   data-turbo-frame="modal-frame">Delete</a>
 
 {# detail.html.twig #}
-<a href="{{ path('item_delete_confirm', {id: item.id}) }}"
-   data-turbo-frame="modal-frame"
-   data-modal-context="detail">Delete</a>
+<a href="{{ path('item_delete_confirm', {id: item.id, context: 'detail'}) }}"
+   data-turbo-frame="modal-frame">Delete</a>
 ```
-
-#### Step 2: Stimulus Injects Context into Form
-
-```javascript
-// modal_controller.js
-open(event) {
-    this.currentContext = event.currentTarget.dataset.modalContext || 'default'
-    this.containerTarget.classList.remove('hidden')
-}
-
-submitStart(event) {
-    const form = event.target
-    let input = form.querySelector('input[name="_context"]')
-    if (!input) {
-        input = document.createElement('input')
-        input.type = 'hidden'
-        input.name = '_context'
-        form.appendChild(input)
-    }
-    input.value = this.currentContext
-}
-```
-
-#### Step 3: Live Component Uses Context
-
-```php
-#[AsLiveComponent]
-class ItemForm extends AbstractController
-{
-    #[LiveProp]
-    public string $context = 'list';
-    
-    #[LiveAction]
-    public function save(EntityManagerInterface $em): Response
-    {
-        // ... validation and save logic ...
-        
-        return match($this->context) {
-            'detail' => $this->redirectToRoute('item_show', ['id' => $this->item->getId()]),
-            'list' => $this->renderTurboStream('item/_update_stream.html.twig', [
-                'item' => $this->item,
-            ]),
-        };
-    }
-}
 ```
 
 ---
@@ -277,42 +393,217 @@ class ItemForm extends AbstractController
 
 Every feature must work without JavaScript. Turbo and Stimulus enhance, not enable.
 
-### Implementation
+### Complete Controller Pattern (GET + POST in Single Action)
 
-#### Controller Detects Request Type
+This is the recommended pattern — a single controller action handles:
+- GET requests (initial form load)
+- POST requests (form submission)
+- Turbo Frame requests (modal)
+- Normal requests (full page)
+- Validation failures (re-render form with errors)
+- Success (Turbo Streams or redirect)
 
 ```php
-#[Route('/item/{id}/edit', name: 'item_edit')]
-public function edit(Request $request, Item $item): Response
+<?php
+// src/Controller/ItemController.php
+
+namespace App\Controller;
+
+use App\Entity\Item;
+use App\Form\ItemType;
+use App\Repository\ItemRepository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\UX\Turbo\TurboBundle;
+
+class ItemController extends AbstractController
 {
-    $isTurboFrame = $request->headers->has('Turbo-Frame');
-    
-    $template = $isTurboFrame
-        ? 'item/_edit_modal.html.twig'    // Just the frame content
-        : 'item/edit.html.twig';           // Full page
-    
-    return $this->render($template, ['item' => $item]);
+    #[Route('/item/{id}/edit', name: 'item_edit', methods: ['GET', 'POST'])]
+    public function edit(
+        Request $request, 
+        Item $item, 
+        EntityManagerInterface $em,
+        ItemRepository $itemRepository
+    ): Response {
+        $form = $this->createForm(ItemType::class, $item);
+        $form->handleRequest($request);
+        
+        $isTurboFrameRequest = $request->headers->has('Turbo-Frame');
+        
+        // ─────────────────────────────────────────────────────────
+        // FORM SUBMITTED
+        // ─────────────────────────────────────────────────────────
+        if ($form->isSubmitted()) {
+            
+            // ✅ VALID - Save and return appropriate response
+            if ($form->isValid()) {
+                $em->flush();
+                
+                // Turbo request → Return Turbo Streams
+                if ($isTurboFrameRequest) {
+                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+                    
+                    return $this->render('item/_edit_success_stream.html.twig', [
+                        'item' => $item,
+                    ]);
+                }
+                
+                // Normal request → Redirect
+                $this->addFlash('success', 'Item updated successfully!');
+                return $this->redirectToRoute('item_list', [], Response::HTTP_SEE_OTHER);
+            }
+            
+            // ❌ INVALID - Re-render form with errors
+            // For Turbo Frame: modal stays open with errors
+            // For Normal: full page with errors
+        }
+        
+        // ─────────────────────────────────────────────────────────
+        // INITIAL GET REQUEST (or invalid POST)
+        // ─────────────────────────────────────────────────────────
+        
+        // Turbo Frame request → Return just the modal content
+        if ($isTurboFrameRequest) {
+            return $this->render('item/_edit_modal.html.twig', [
+                'item' => $item,
+                'form' => $form,
+            ]);
+        }
+        
+        // Normal request → Return full page
+        return $this->render('item/edit.html.twig', [
+            'item' => $item,
+            'form' => $form,
+        ]);
+    }
 }
 ```
 
-#### Two Templates, Same Component
+### Request Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         FORM SUBMISSION FLOW                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Click "Edit" link
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ GET /item/1/edit                                                          │
+│                                                                           │
+│ Controller detects:                                                       │
+│   - Turbo-Frame header? → Return _modal.html.twig (just frame content)   │
+│   - Normal request?     → Return edit.html.twig (full page)              │
+└──────────────────────────────────────────────────────────────────────────┘
+       │
+       ▼
+Modal opens with form (or full page loads)
+       │
+       ▼
+User fills form, clicks Submit
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│ POST /item/1/edit                                                         │
+│                                                                           │
+│ Controller validates form:                                                │
+│                                                                           │
+│   INVALID?                                                                │
+│     - Turbo-Frame? → Return _modal.html.twig with errors (modal stays)   │
+│     - Normal?      → Return edit.html.twig with errors                   │
+│                                                                           │
+│   VALID?                                                                  │
+│     - Turbo request? → Return Turbo Streams (update DOM + close modal)   │
+│     - Normal?        → Redirect to list                                  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Templates
+
+#### Modal Template (Turbo Frame Response)
 
 ```twig
-{# item/_edit_modal.html.twig - For Turbo Frame requests #}
+{# templates/item/_edit_modal.html.twig #}
 <turbo-frame id="modal-frame">
-    {{ component('ItemForm', {item: item, context: 'list'}) }}
+    <div class="modal-header">
+        <h2>Edit {{ item.name }}</h2>
+        <button type="button" data-action="modal#close">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+        {{ form_start(form, {
+            action: path('item_edit', {id: item.id}),
+            attr: {'data-turbo-frame': 'modal-frame'}
+        }) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.description) }}
+            {{ form_row(form.price) }}
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-action="modal#close">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Save Changes
+                </button>
+            </div>
+        {{ form_end(form) }}
+    </div>
 </turbo-frame>
 ```
 
+#### Full Page Template (Non-JS Fallback)
+
 ```twig
-{# item/edit.html.twig - For normal requests (new tab, no JS) #}
+{# templates/item/edit.html.twig #}
 {% extends 'base.html.twig' %}
 
 {% block body %}
-    <h1>Edit {{ item.name }}</h1>
-    {{ component('ItemForm', {item: item, context: 'detail'}) }}
-    <a href="{{ path('item_list') }}">Back to list</a>
+    <div class="container">
+        <h1>Edit {{ item.name }}</h1>
+        
+        {{ form_start(form) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.description) }}
+            {{ form_row(form.price) }}
+            
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="{{ path('item_list') }}" class="btn btn-secondary">Cancel</a>
+        {{ form_end(form) }}
+    </div>
 {% endblock %}
+```
+
+#### Turbo Stream Success Response
+
+```twig
+{# templates/item/_edit_success_stream.html.twig #}
+
+{# 1. Update the item in the list #}
+<turbo-stream action="replace" target="item-{{ item.id }}">
+    <template>
+        {% include 'item/_list_item.html.twig' with {item: item} %}
+    </template>
+</turbo-stream>
+
+{# 2. Close modal by clearing the frame #}
+<turbo-stream action="update" target="modal-frame">
+    <template></template>
+</turbo-stream>
+
+{# 3. Optional: Show flash message #}
+<turbo-stream action="prepend" target="flash-messages">
+    <template>
+        <div class="alert alert-success alert-dismissible fade show">
+            Item updated successfully!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </template>
+</turbo-stream>
 ```
 
 ---
@@ -403,31 +694,42 @@ public function delete(Request $request, Item $item): Response
     $this->em->remove($item);
     $this->em->flush();
     
-    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+    // Check if this is a Turbo request
+    if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat() 
+        || $request->headers->has('Turbo-Frame')) {
+        
+        $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+        
+        return $this->render('item/_delete_stream.html.twig', [
+            'deletedId' => $id,
+            'count' => $this->itemRepository->count([]),
+            'isEmpty' => $this->itemRepository->count([]) === 0,
+        ]);
+    }
     
-    return $this->render('item/_delete_stream.html.twig', [
-        'deletedId' => $id,
-        'count' => $this->itemRepository->count([]),
-        'isEmpty' => $this->itemRepository->count([]) === 0,
-    ]);
+    // Non-Turbo request: redirect
+    $this->addFlash('success', 'Item deleted.');
+    return $this->redirectToRoute('item_list', [], Response::HTTP_SEE_OTHER);
 }
 ```
 
-### Returning Streams from Live Component
+### ⚠️ Important: Live Components CANNOT Return Turbo Streams
+
+Do NOT attempt to return Turbo Streams from a LiveAction:
 
 ```php
+// ❌ THIS DOES NOT WORK
 #[LiveAction]
 public function delete(): Response
 {
-    $id = $this->item->getId();
-    $this->em->remove($this->item);
-    $this->em->flush();
+    // ... delete logic ...
     
-    return $this->render('item/_delete_stream.html.twig', [
-        'deletedId' => $id,
-        'count' => $this->itemRepository->count([]),
-    ]);
+    // This will NOT work - Live Component JS expects HTML, not streams
+    return $this->render('item/_delete_stream.html.twig', [...]);
 }
+```
+
+Instead, have forms submit to a Controller, not to LiveAction. See "Pattern: Form with Optional Live Component" below.
 ```
 
 ---
@@ -496,34 +798,27 @@ public function edit(Request $request, Item $item): Response
 }
 ```
 
-### ❌ Don't: Mix Concerns in Live Components
+### ❌ Don't: Expect LiveAction to Return Turbo Streams
 
 ```php
-// WRONG - component handling routing logic
+// WRONG - Live Components cannot return Turbo Streams
 #[LiveAction]
 public function save(): Response
 {
-    if ($this->request->headers->has('Turbo-Frame')) {
-        // ...
-    }
+    // ... save logic ...
+    return $this->render('item/_update_stream.html.twig', [...]);
 }
 ```
 
-Component should receive context as prop, not detect it:
+Instead, have the form submit to a Controller:
 
 ```php
-// CORRECT - context passed in
-#[LiveProp]
-public string $context = 'list';
+// CORRECT - form action points to controller, not LiveAction
+// In your component template:
+{{ form_start(form, {action: path('item_edit', {id: item.id})}) }}
 
-#[LiveAction]
-public function save(): Response
-{
-    return match($this->context) {
-        'list' => $this->renderStream(...),
-        'detail' => $this->redirect(...),
-    };
-}
+// Controller handles the POST and returns Turbo Streams
+```
 ```
 
 ### ❌ Don't: Listen for `turbo:frame-load` to Open Modal
@@ -556,54 +851,48 @@ frameLoaded(event) {
 
 When a form in a modal has validation errors, the modal must stay open and display errors. It should only close on successful submission.
 
-### How It Works
+### How It Works (Controller-Based)
 
-The modal closes when `modal-frame` becomes empty. The Live Component controls what gets returned:
+The modal closes when `modal-frame` becomes empty. The Controller controls what gets returned:
 
-- **Validation fails** → Re-render component with errors → Frame stays populated → Modal stays open
+- **Validation fails** → Re-render modal template with errors → Frame stays populated → Modal stays open
 - **Validation passes** → Return Turbo Stream that clears frame → Modal closes
 
-### Live Component Implementation
+### Controller Handles Everything
 
 ```php
-#[AsLiveComponent]
-class ItemForm extends AbstractController
+#[Route('/item/{id}/edit', name: 'item_edit', methods: ['GET', 'POST'])]
+public function edit(Request $request, Item $item, EntityManagerInterface $em): Response
 {
-    use DefaultActionTrait;
-    use ComponentWithFormTrait;
+    $form = $this->createForm(ItemType::class, $item);
+    $form->handleRequest($request);
     
-    #[LiveProp]
-    public Item $item;
+    $isTurboFrameRequest = $request->headers->has('Turbo-Frame');
     
-    #[LiveProp]
-    public string $context = 'list';
-    
-    protected function instantiateForm(): FormInterface
-    {
-        return $this->createForm(ItemType::class, $this->item);
-    }
-    
-    #[LiveAction]
-    public function save(EntityManagerInterface $em): Response
-    {
-        $this->submitForm();
-        
-        // Validation FAILED → Re-render with errors
-        // Frame stays populated → Modal stays OPEN
-        if (!$this->getForm()->isValid()) {
-            return $this->render('@LiveComponent/default.html.twig');
-        }
-        
-        // Validation PASSED → Save and close modal
+    if ($form->isSubmitted() && $form->isValid()) {
         $em->flush();
         
-        return match($this->context) {
-            'detail' => $this->redirectToRoute('item_show', ['id' => $this->item->getId()]),
-            'list' => $this->render('item/_update_stream.html.twig', [
-                'item' => $this->item,
-            ]),
-        };
+        if ($isTurboFrameRequest) {
+            // Success: return Turbo Streams (updates DOM, clears modal)
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+            return $this->render('item/_edit_success_stream.html.twig', [
+                'item' => $item,
+            ]);
+        }
+        
+        return $this->redirectToRoute('item_list', [], Response::HTTP_SEE_OTHER);
     }
+    
+    // GET request OR validation failed: render form
+    // For Turbo Frame: modal stays open with errors
+    $template = $isTurboFrameRequest 
+        ? 'item/_edit_modal.html.twig' 
+        : 'item/edit.html.twig';
+    
+    return $this->render($template, [
+        'item' => $item,
+        'form' => $form,
+    ]);
 }
 ```
 
@@ -614,13 +903,13 @@ User clicks Save
        │
        ▼
 ┌─────────────────────────────────────┐
-│ Live Component: save() action       │
+│ Controller handles POST             │
 └─────────────────────────────────────┘
        │
        ├── Validation FAILS
        │         │
        │         ▼
-       │   Return: re-rendered component with errors
+       │   Return: _modal.html.twig with form errors
        │   modal-frame content = <form with errors>
        │   Modal stays OPEN ✓
        │
@@ -632,44 +921,86 @@ User clicks Save
            Stimulus detects → Modal CLOSES ✓
 ```
 
-### Alternative: Plain Form Without Live Component
+### Optional: Add Live Component for Real-Time Validation
 
-If not using Live Component, the controller must handle both cases:
+If you want real-time validation feedback (errors as user types), add a Live Component. **But the form still submits to the Controller, not to a LiveAction.**
+
+#### Live Component (Validation UI Only)
 
 ```php
-#[Route('/item/{id}/edit', methods: ['POST'])]
-public function update(Request $request, Item $item): Response
+<?php
+// src/Twig/Components/ItemEditForm.php
+
+#[AsLiveComponent]
+class ItemEditForm extends AbstractController
 {
-    $form = $this->createForm(ItemType::class, $item);
-    $form->handleRequest($request);
+    use DefaultActionTrait;
+    use ComponentWithFormTrait;
     
-    // Validation failed → return modal template with errors
-    if (!$form->isValid()) {
-        return $this->render('item/_edit_modal.html.twig', [
-            'item' => $item,
-            'form' => $form,
+    #[LiveProp]
+    public Item $item;
+    
+    #[LiveProp]
+    public string $formAction = '';  // Controller URL
+    
+    protected function instantiateForm(): FormInterface
+    {
+        return $this->createForm(ItemType::class, $this->item, [
+            // Form submits to CONTROLLER, not to LiveAction
+            'action' => $this->formAction,
         ]);
     }
     
-    // Success → return streams
-    $this->em->flush();
-    return $this->render('item/_update_stream.html.twig', [...]);
+    // NO #[LiveAction] for saving!
+    // Form POST goes to the controller which returns Turbo Streams
 }
 ```
 
-### Why Live Component is Preferred for Modal Forms
+#### Component Template
 
-| Feature | Plain Form | Live Component |
-|---------|------------|----------------|
-| Server-side validation | On submit only | Real-time as you type |
-| Modal stays open on error | Manual handling | Automatic |
-| Field-level error display | After submit | Instant feedback |
-| Dependent fields | Requires page reload | Dynamic updates |
-| Controller complexity | Validation logic needed | Component handles it |
+```twig
+{# templates/components/ItemEditForm.html.twig #}
+<div {{ attributes }}>
+    {{ form_start(form, {attr: {'data-turbo-frame': 'modal-frame'}}) }}
+        
+        {# data-model enables real-time validation on change #}
+        <div class="mb-3">
+            {{ form_label(form.name) }}
+            {{ form_widget(form.name, {attr: {'data-model': 'on(change)|*'}}) }}
+            {{ form_errors(form.name) }}
+        </div>
+        
+        <div class="mb-3">
+            {{ form_label(form.description) }}
+            {{ form_widget(form.description, {attr: {'data-model': 'on(change)|*'}}) }}
+            {{ form_errors(form.description) }}
+        </div>
+        
+        <button type="submit">Save</button>
+    {{ form_end(form) }}
+</div>
+```
+
+#### Modal Template Uses Component
+
+```twig
+{# templates/item/_edit_modal.html.twig #}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h2>Edit {{ item.name }}</h2>
+        <button type="button" data-action="modal#close">&times;</button>
+    </div>
+    
+    {{ component('ItemEditForm', {
+        item: item,
+        formAction: path('item_edit', {id: item.id})
+    }) }}
+</turbo-frame>
+```
 
 ### Key Insight
 
-> The Live Component acts as a gatekeeper: it only returns Turbo Streams (which close the modal) when validation passes. On failure, it re-renders itself, keeping the modal open with errors displayed.
+> **The form's `action` attribute determines where it submits.** Set it to your Controller route, not to a LiveAction. The Live Component provides real-time validation UI, but the Controller handles the actual submission and returns Turbo Streams.
 
 ---
 
@@ -677,25 +1008,34 @@ public function update(Request $request, Item $item): Response
 
 ### ✅ Good Use Cases
 
-1. **Complex forms with real-time validation**
-    - Dependent dropdowns
-    - Async validation (username availability)
-    - Dynamic form fields (add/remove)
+1. **Real-time form validation UI** (not form submission handling)
+    - Show errors as user types
+    - Validate on field blur
+    - But form still submits to Controller
 
-2. **Filter forms**
-    - Multiple interdependent filters
-    - Live preview of results count
+2. **Dependent form fields**
+    - Dynamic dropdowns that depend on other selections
+    - Form fields that appear/hide based on other inputs
 
-3. **Single-item detail pages**
-    - Complex interactions isolated to one entity
-    - No N+1 concern
+3. **Filter forms with live preview**
+    - Show count of results as filters change
+    - Update preview without page reload
+
+4. **Complex single-entity interactions**
+    - Detail pages with many interactive features
+    - No N+1 concern (single entity)
 
 ### ❌ Avoid For
 
-1. **Repeated elements in lists** - Use Turbo Streams instead
-2. **Simple open/close UI** - Use Stimulus
-3. **Navigation** - Use Turbo Frames
-4. **Simple forms** - Standard forms + Turbo Stream response
+1. **Form submission handling** - Controllers should handle POST and return Turbo Streams
+2. **Repeated elements in lists** - Use simple Twig + Turbo Streams
+3. **Simple open/close UI** - Use Stimulus
+4. **Navigation** - Use Turbo Frames
+5. **Returning Turbo Streams** - Live Components can't do this properly
+
+### Key Principle
+
+> **Live Components are for UI interactivity, not for handling form submissions or returning Turbo Streams.** Use them to enhance the user experience with real-time feedback, but let Controllers handle the actual business logic and response generation.
 
 ---
 
@@ -711,21 +1051,23 @@ templates/
 │   ├── _list_item.html.twig          # Single item partial
 │   ├── _edit_modal.html.twig         # Modal wrapper for edit
 │   ├── _delete_confirm_modal.html.twig
-│   ├── _edit_stream.html.twig        # Turbo Stream for edit success
-│   ├── _delete_stream.html.twig      # Turbo Stream for delete success
+│   ├── _edit_success_stream.html.twig    # Turbo Stream for edit success
+│   ├── _delete_success_stream.html.twig  # Turbo Stream for delete success
 │   └── _empty_state.html.twig        # Empty list state
+├── components/                       # Live Component templates (optional)
+│   └── ItemEditForm.html.twig        # Real-time validation UI only
 
 src/
 ├── Controller/
-│   └── ItemController.php            # Thin, handles routing + request type
+│   └── ItemController.php            # Handles GET, POST, returns Turbo Streams
 ├── Twig/
 │   └── Components/
-│       ├── ItemForm.php              # Form logic + validation
-│       └── ItemDeleteConfirm.php     # Delete confirmation logic
+│       └── ItemEditForm.php          # Optional: real-time validation UI only
+│                                     # NO LiveAction for save!
 
 assets/
 └── controllers/
-    └── modal_controller.js           # Open/close, context injection
+    └── modal_controller.js           # Open/close modal
 ```
 
 ---
@@ -734,14 +1076,42 @@ assets/
 
 When implementing a new feature:
 
-- [ ] Single modal frame in `base.html.twig`?
-- [ ] Links use `data-turbo-frame="modal-frame"`?
-- [ ] Context passed via `data-modal-context`?
-- [ ] Controller returns different templates for Turbo vs normal requests?
-- [ ] Modal template wraps content in `<turbo-frame id="modal-frame">`?
-- [ ] Full page template extends base and works standalone?
-- [ ] Live Component receives context as `#[LiveProp]`?
-- [ ] Success response returns Turbo Streams (for list) or redirect (for detail)?
-- [ ] Stream clears modal frame to trigger close?
-- [ ] List items have `id` attributes (not wrapped in frames)?
-- [ ] List data fetched with single query, not per-item components?
+### Modal Setup
+- [ ] Single modal frame in `base.html.twig` with Stimulus controller
+- [ ] Modal controller listens to `turbo:before-fetch-request` to open
+- [ ] Modal controller uses MutationObserver to close when frame is empty
+
+### Links and Navigation
+- [ ] Links use `data-turbo-frame="modal-frame"` (no click action needed)
+- [ ] Context passed via query parameter: `path('route', {id: id, context: 'list'})`
+
+### Controller Pattern
+- [ ] Single controller action handles both GET and POST
+- [ ] Controller detects `Turbo-Frame` header for request type
+- [ ] Returns modal template for Turbo Frame GET requests
+- [ ] Returns full page template for normal GET requests
+- [ ] Returns Turbo Streams for successful Turbo Frame POST
+- [ ] Returns redirect for successful normal POST
+- [ ] Returns modal template with errors for invalid Turbo Frame POST
+
+### Templates
+- [ ] Modal template wraps content in `<turbo-frame id="modal-frame">`
+- [ ] Form action points to controller route (not to LiveAction)
+- [ ] Form includes `data-turbo-frame="modal-frame"` attribute
+- [ ] Full page template extends base and works standalone (progressive enhancement)
+
+### Turbo Streams
+- [ ] Stream template updates relevant DOM elements
+- [ ] Stream clears `modal-frame` to trigger close
+- [ ] Stream returned from Controller (not from Live Component)
+
+### Live Components (Optional)
+- [ ] Used only for real-time validation UI
+- [ ] Form action points to Controller, NOT to LiveAction
+- [ ] NO `#[LiveAction]` methods that return Turbo Streams
+
+### List Performance
+- [ ] List data fetched with single query in controller
+- [ ] State (wishlist, etc.) fetched as ID arrays, not per-item queries
+- [ ] List items have `id` attributes for stream targeting
+- [ ] No Live Components for repeated list elements

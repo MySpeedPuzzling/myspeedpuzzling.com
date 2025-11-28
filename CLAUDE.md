@@ -99,3 +99,13 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely
 - **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.
 - Always use Uuid::uuid7() to create new id.
+- When thrown exception is extending `NotFoundHttpException` or uses `WithHttpStatus` attribute, not need to catch and return response like this:
+```
+try {
+    $puzzle = $this->getPuzzleOverview->byId($puzzleId);
+} catch (PuzzleNotFound) {
+    return new Response('', Response::HTTP_NOT_FOUND);
+}
+```
+Instead just call `$puzzle = $this->getPuzzleOverview->byId($puzzleId);` and let it bubble.
+- To check in twig template that user has active membership, use `{% if logged_user.profile.activeMembership %}` - this is safe when 100% sure that user is logged in. When need to check in that he is logged as well, use `{% if logged_user.profile is not null and logged_user.profile.activeMembership %}`.

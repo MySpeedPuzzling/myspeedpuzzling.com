@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller;
+namespace SpeedPuzzling\Web\Controller\SellSwap;
 
-use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
@@ -17,7 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class EditSellSwapListItemController extends AbstractController
@@ -45,24 +44,23 @@ final class EditSellSwapListItemController extends AbstractController
         ],
         name: 'edit_sell_swap_list_item',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $itemId): Response
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function __invoke(Request $request, string $itemId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($loggedPlayer === null) {
-            return $this->redirectToRoute('my_profile');
-        }
+        assert($loggedPlayer !== null);
 
         $item = $this->sellSwapListItemRepository->get($itemId);
 
         // Only allow editing own items
         if ($item->player->id->toString() !== $loggedPlayer->playerId) {
-            throw new SellSwapListItemNotFound();
+            throw $this->createAccessDeniedException();
         }
 
         // Membership required
-        if (!$loggedPlayer->activeMembership) {
+        if ($loggedPlayer->activeMembership === false) {
             $this->addFlash('warning', $this->translator->trans('sell_swap_list.membership_required.message'));
+
             return $this->redirectToRoute('sell_swap_list_detail', ['playerId' => $loggedPlayer->playerId]);
         }
 

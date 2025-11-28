@@ -1,0 +1,33 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'sell_swap_list.add.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if not logged_user.profile.activeMembership %}
+            <div class="text-center py-3">
+                <div class="mb-3">
+                    <i class="ci-locked fs-1 text-muted"></i>
+                </div>
+                <h5 class="text-muted">{{ 'sell_swap_list.membership_required.title'|trans }}</h5>
+                <p class="text-muted small">{{ 'sell_swap_list.membership_required.message'|trans }}</p>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                    data-bs-dismiss="modal"
+                >
+                    <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_button'|trans }}
+                </button>
+            </div>
+        {% elseif is_in_sell_swap_list %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-shop me-2"></i>{{ 'sell_swap_list.already_in_list'|trans }}
+            </div>
+        {% else %}
+            {{ include('sell-swap/_add_item_form.html.twig', {in_modal: true}) }}
+        {% endif %}
+    </div>
+</turbo-frame>

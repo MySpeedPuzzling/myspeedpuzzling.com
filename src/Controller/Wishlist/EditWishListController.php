@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller;
+namespace SpeedPuzzling\Web\Controller\Wishlist;
 
-use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\EditWishListFormData;
 use SpeedPuzzling\Web\FormType\EditWishListFormType;
 use SpeedPuzzling\Web\Message\EditWishList;
-use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,14 +15,13 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class EditWishListController extends AbstractController
 {
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
     ) {
@@ -44,22 +41,18 @@ final class EditWishListController extends AbstractController
         ],
         name: 'edit_wish_list',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $playerId): Response
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function __invoke(Request $request, string $playerId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($loggedPlayer === null) {
-            return $this->redirectToRoute('my_profile');
-        }
+        assert($loggedPlayer !== null);
 
         // Only allow editing own wish list
         if ($loggedPlayer->playerId !== $playerId) {
-            throw new PlayerNotFound();
+            throw $this->createAccessDeniedException();
         }
 
-        $player = $this->getPlayerProfile->byId($playerId);
-
-        $formData = EditWishListFormData::fromVisibility($player->wishListVisibility);
+        $formData = EditWishListFormData::fromVisibility($loggedPlayer->wishListVisibility);
 
         $form = $this->createForm(EditWishListFormType::class, $formData);
         $form->handleRequest($request);
@@ -77,9 +70,9 @@ final class EditWishListController extends AbstractController
             return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
         }
 
-        return $this->render('wish_list/edit.html.twig', [
+        return $this->render('wishlist/edit.html.twig', [
             'form' => $form,
-            'player' => $player,
+            'player' => $loggedPlayer,
             'cancelUrl' => $this->generateUrl('player_collections', ['playerId' => $playerId]),
         ]);
     }

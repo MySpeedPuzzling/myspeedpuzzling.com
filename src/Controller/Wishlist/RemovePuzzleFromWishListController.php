@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller;
+namespace SpeedPuzzling\Web\Controller\Wishlist;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromWishList;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -14,6 +14,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Turbo\TurboBundle;
 
@@ -39,16 +40,11 @@ final class RemovePuzzleFromWishListController extends AbstractController
         name: 'remove_puzzle_from_wish_list',
         methods: ['POST'],
     )]
-    public function __invoke(
-        Request $request,
-        string $puzzleId,
-        #[CurrentUser] null|UserInterface $user,
-    ): Response {
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function __invoke(Request $request, string $puzzleId): Response
+    {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($loggedPlayer === null) {
-            return $this->redirectToRoute('homepage');
-        }
+        assert($loggedPlayer !== null);
 
         $this->messageBus->dispatch(
             new RemovePuzzleFromWishList(

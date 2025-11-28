@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller;
+namespace SpeedPuzzling\Web\Controller\Wishlist;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
@@ -58,7 +58,7 @@ final class WishListDetailController extends AbstractController
 
         // Check visibility permissions
         if ($visibility === CollectionVisibility::Private && $playerId !== $loggedPlayerProfile?->playerId) {
-            return $this->render('wish_list/private.html.twig', [
+            return $this->render('wishlist/private.html.twig', [
                 'player' => $player,
                 'collectionName' => $collectionName,
             ]);
@@ -74,7 +74,7 @@ final class WishListDetailController extends AbstractController
             visibility: $visibility,
         );
 
-        return $this->render('wish_list/detail.html.twig', [
+        return $this->render('wishlist/detail.html.twig', [
             'collection' => $collectionOverview,
             'items' => $items,
             'player' => $player,

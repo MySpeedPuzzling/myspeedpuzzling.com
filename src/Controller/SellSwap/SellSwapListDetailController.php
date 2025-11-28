@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller;
+namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;

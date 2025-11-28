@@ -1,67 +1,10 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}{{ 'wish_list.add.title'|trans }} - {{ puzzle.puzzleName }}{% endblock %}
-
-{% block content %}
-<div class="container py-4">
-    <div class="card mx-auto" style="max-width: 500px;">
-        <div class="card-header">
-            <h5 class="mb-0">
-                {% if is_in_wishlist %}
-                    {{ 'wish_list.remove.title'|trans }}
-                {% else %}
-                    {{ 'wish_list.add.title'|trans }}
-                {% endif %}
-            </h5>
-        </div>
-        <div class="card-body">
-            {% if not is_logged_in %}
-                <div class="alert alert-warning mb-3">
-                    <i class="bi bi-exclamation-triangle me-2"></i>{{ 'wish_list.login_required'|trans }}
-                </div>
-                <a href="{{ path('login') }}" class="btn btn-primary">
-                    {{ 'menu.sign_in'|trans }}
-                </a>
-            {% elseif is_in_wishlist %}
-                <p class="mb-3">{{ 'wish_list.already_in_wishlist'|trans({'%puzzle%': puzzle.puzzleName}) }}</p>
-                <form action="{{ path('remove_puzzle_from_wish_list', {puzzleId: puzzle.puzzleId}) }}"
-                      method="post">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-heart-dash me-1"></i> {{ 'wish_list.remove.button'|trans }}
-                    </button>
-                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-secondary">
-                        {{ 'forms.cancel'|trans }}
-                    </a>
-                </form>
-            {% else %}
-                <form action="{{ path('wishlist_add', {puzzleId: puzzle.puzzleId}) }}"
-                      method="post">
-                    <div class="mb-4">
-                        <div class="form-check">
-                            <input type="checkbox"
-                                   class="form-check-input"
-                                   id="removeOnCollectionAdd"
-                                   name="removeOnCollectionAdd"
-                                   value="1"
-                                   checked>
-                            <label class="form-check-label" for="removeOnCollectionAdd">
-                                {{ 'wish_list.form.remove_on_add'|trans }}
-                            </label>
-                        </div>
-                        <small class="form-text text-muted d-block mt-2">
-                            {{ 'wish_list.form.remove_on_add_help'|trans }}
-                        </small>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
-                    </button>
-                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-secondary">
-                        {{ 'forms.cancel'|trans }}
-                    </a>
-                </form>
-            {% endif %}
-        </div>
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'wish_list.add.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-</div>
-{% endblock %}
+
+    <div class="modal-body">
+        {{ include('wishlist/_add_item_form.html.twig', {in_modal: true}) }}
+    </div>
+</turbo-frame>

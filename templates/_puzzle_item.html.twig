@@ -85,6 +85,11 @@
                     puzzle_id: puzzle.puzzleId,
                     puzzle_statuses: puzzle_statuses
                 }) }}
+
+                {{ include('sell-swap/_dropdown_action.html.twig', {
+                    puzzle_id: puzzle.puzzleId,
+                    puzzle_statuses: puzzle_statuses
+                }) }}
             </ul>
         </div>
     </div>

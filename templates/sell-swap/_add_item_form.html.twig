@@ -1,0 +1,37 @@
+{{ form_start(form, {
+    action: path('sellswap_add', {puzzleId: puzzle.puzzleId}),
+    attr: in_modal ? {'data-turbo': 'true'} : {}
+}) }}
+
+<div class="mb-3">
+    {{ form_row(form.listingType) }}
+</div>
+
+<div class="mb-3">
+    {{ form_row(form.price) }}
+</div>
+
+<div class="mb-3">
+    {{ form_row(form.condition) }}
+</div>
+
+<div class="mb-4">
+    {{ form_row(form.comment) }}
+</div>
+
+<div class="d-grid gap-2 d-sm-flex">
+    <button type="submit" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
+    </button>
+    {% if in_modal %}
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            {{ 'forms.cancel'|trans }}
+        </button>
+    {% else %}
+        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-secondary">
+            {{ 'forms.cancel'|trans }}
+        </a>
+    {% endif %}
+</div>
+
+{{ form_end(form) }}

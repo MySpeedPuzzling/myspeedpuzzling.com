@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller;
+namespace SpeedPuzzling\Web\Controller\SellSwap;
 
-use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\EditSellSwapListSettingsFormData;
 use SpeedPuzzling\Web\FormType\EditSellSwapListSettingsFormType;
 use SpeedPuzzling\Web\Message\EditSellSwapListSettings;
@@ -16,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class EditSellSwapListSettingsController extends AbstractController
@@ -29,9 +27,6 @@ final class EditSellSwapListSettingsController extends AbstractController
     ) {
     }
 
-    /**
-     * @throws PlayerNotFound
-     */
     #[Route(
         path: [
             'cs' => '/upravit-prodej-vymenu/{playerId}',
@@ -43,22 +38,21 @@ final class EditSellSwapListSettingsController extends AbstractController
         ],
         name: 'edit_sell_swap_list_settings',
     )]
-    public function __invoke(Request $request, #[CurrentUser] User $user, string $playerId): Response
+    #[IsGranted('IS_AUTHENTICATED_FULLY')]
+    public function __invoke(Request $request, string $playerId): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($loggedPlayer === null) {
-            return $this->redirectToRoute('my_profile');
-        }
+        assert($loggedPlayer !== null);
 
         // Only allow editing own sell/swap list settings
         if ($loggedPlayer->playerId !== $playerId) {
-            throw new PlayerNotFound();
+            throw $this->createAccessDeniedException();
         }
 
         // Membership required
         if (!$loggedPlayer->activeMembership) {
             $this->addFlash('warning', $this->translator->trans('sell_swap_list.membership_required.message'));
+
             return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
         }
 

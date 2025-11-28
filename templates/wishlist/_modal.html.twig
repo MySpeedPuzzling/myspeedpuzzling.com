@@ -1,20 +1,27 @@
-<div {{ attributes }}>
-    {% if this.isLoggedIn %}
-        {% if this.isPuzzleInWishList %}
-            <div class="alert alert-info mb-0">
-                <i class="bi bi-heart-fill me-2"></i>{{ 'wish_list.already_in_list'|trans }}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'wish_list.add.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if not is_logged_in %}
+            <div class="alert alert-warning mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>{{ 'wish_list.login_required'|trans }}
             </div>
         {% else %}
-            <form data-action="live#action:prevent"
-                  data-live-action-param="save"
-                  data-model="norender|*">
+            <form action="{{ path('wishlist_add', {puzzleId: puzzle.puzzleId}) }}"
+                  method="post"
+                  data-turbo="true">
+
                 <div class="mb-4">
                     <div class="form-check">
                         <input type="checkbox"
                                class="form-check-input"
                                id="removeOnCollectionAdd"
-                               data-model="removeOnCollectionAdd"
-                               {% if this.removeOnCollectionAdd %}checked{% endif %}>
+                               name="removeOnCollectionAdd"
+                               value="1"
+                               checked>
                         <label class="form-check-label" for="removeOnCollectionAdd">
                             {{ 'wish_list.form.remove_on_add'|trans }}
                         </label>
@@ -25,7 +32,7 @@
                 </div>
 
                 <div class="d-grid gap-2 d-sm-flex">
-                    <button type="submit" class="btn btn-primary flex-grow-1" data-loading-text="{{ 'forms.saving'|trans }}">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
                         <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
                     </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -34,9 +41,5 @@
                 </div>
             </form>
         {% endif %}
-    {% else %}
-        <div class="alert alert-warning mb-0">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ 'wish_list.login_required'|trans }}
-        </div>
-    {% endif %}
-</div>
+    </div>
+</turbo-frame>

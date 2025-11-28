@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -24,6 +25,7 @@ final class WishListDetailController extends AbstractController
         readonly private GetWishListItems $getWishListItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
@@ -76,6 +78,7 @@ final class WishListDetailController extends AbstractController
             'collection' => $collectionOverview,
             'items' => $items,
             'player' => $player,
+            'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($loggedPlayerProfile?->playerId),
         ]);
     }
 }

@@ -38,24 +38,10 @@
                 </li>
             {% endfor %}
 
-            {% if this.isPuzzleInWishList %}
-                <li>
-                    {{ component('RemovePuzzleFromWishListButton', {
-                        puzzleId: this.puzzleId,
-                        buttonClass: 'dropdown-item',
-                        key: 'wishlist-remove-' ~ this.puzzleId,
-                    }) }}
-                </li>
-            {% elseif not this.isPuzzleBorrowed and not this.hasCollections %}
-                <li>
-                    <a class="dropdown-item"
-                       data-bs-toggle="modal"
-                       data-bs-target="#add-puzzle-to-wish-list-{{ this.puzzleId }}"
-                       href="#">
-                        <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
-                    </a>
-                </li>
-            {% endif %}
+            {{ include('wishlist/_dropdown_action.html.twig', {
+                puzzle_id: this.puzzleId,
+                puzzle_statuses: this.getPuzzleStatuses(),
+            }) }}
 
             {% if this.isPuzzleInSellSwapList %}
                 <li>
@@ -121,18 +107,6 @@
                 {{ component('AddPuzzleToCollectionForm', {
                     puzzleId: puzzleId,
                     key: 'add-form-' ~ puzzleId ~ '-' ~ changeCounter
-                }) }}
-            {% endblock %}
-        </twig:Modal>
-
-        <twig:Modal id="add-puzzle-to-wish-list-{{ this.puzzleId }}" puzzleId="{{ this.puzzleId }}" changeCounter="{{ this.changeCounter }}">
-            {% block modal_header %}
-                <h5 class="modal-title">{{ 'wish_list.add.title'|trans }}</h5>
-            {% endblock %}
-            {% block modal_body %}
-                {{ component('AddPuzzleToWishListForm', {
-                    puzzleId: puzzleId,
-                    key: 'wish-list-add-form-' ~ puzzleId ~ '-' ~ changeCounter
                 }) }}
             {% endblock %}
         </twig:Modal>

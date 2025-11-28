@@ -1,0 +1,22 @@
+{% if puzzle_id in puzzle_statuses.wishlist %}
+    <li id="wishlist-action-{{puzzle_id }}">
+        <form action="{{ path('remove_puzzle_from_wish_list', {puzzleId: puzzle_id}) }}"
+              method="post"
+              class="d-inline"
+              data-turbo="true">
+
+            <button type="submit" class="dropdown-item text-danger">
+                <i class="bi bi-heart-fill text-danger me-1"></i> {{ 'wish_list.remove.button'|trans }}
+            </button>
+        </form>
+    </li>
+{% elseif puzzle_id not in puzzle_statuses.collection and puzzle_id not in puzzle_statuses.borrowed %}
+    <li id="wishlist-action-{{puzzle_id }}">
+        <a class="dropdown-item"
+           href="{{ path('wishlist_add', {puzzleId: puzzle_id}) }}"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
+        </a>
+    </li>
+{% endif %}

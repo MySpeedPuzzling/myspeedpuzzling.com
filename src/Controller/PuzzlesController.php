@@ -49,11 +49,9 @@ final class PuzzlesController extends AbstractController
         $searchForm = $this->createForm(SearchPuzzleFormType::class, $searchData);
         $searchForm->handleRequest($request);
 
-        $puzzleStatuses = $this->getUserPuzzleStatuses->byUserId(
-            $user?->getUserIdentifier()
-        );
-
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($playerProfile?->playerId);
 
         $userRanking = [];
         if ($playerProfile !== null) {

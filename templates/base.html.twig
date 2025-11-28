@@ -619,8 +619,21 @@
         </div>
 
         <div class="global-search-overlay" data-global-search-target="overlay"></div>
-        
+
         <!-- Toast Container -->
-        <div class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>
+        <div id="toast-container" class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>
+
+        <!-- Dynamic Modal (Turbo-powered) -->
+        <div id="dynamic-modal-container"
+             class="modal fade"
+             tabindex="-1"
+             data-controller="dynamic-modal">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <turbo-frame id="modal-frame" data-dynamic-modal-target="frame">
+                    </turbo-frame>
+                </div>
+            </div>
+        </div>
     </body>
 </html>

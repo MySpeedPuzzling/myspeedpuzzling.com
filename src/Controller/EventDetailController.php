@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,6 +21,7 @@ final class EventDetailController extends AbstractController
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -43,10 +45,9 @@ final class EventDetailController extends AbstractController
             $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
         }
 
-        $puzzleStatuses = $this->getUserPuzzleStatuses->byUserId(
-            $user?->getUserIdentifier()
-        );
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
 
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,

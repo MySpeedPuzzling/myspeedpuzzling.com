@@ -230,9 +230,11 @@
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <twig:RemovePuzzleFromWishListButton puzzleId="{{ item.puzzleId }}" buttonClass="dropdown-item text-danger" />
-                                                </li>
+
+                                                {{ include('wishlist/_dropdown_action.html.twig', {
+                                                    puzzle_id: item.puzzleId,
+                                                    puzzle_statuses: puzzle_statuses
+                                                }) }}
                                             </ul>
                                         </div>
 

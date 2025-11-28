@@ -62,12 +62,10 @@ final class PuzzleDetailController extends AbstractController
             return $this->redirectToRoute('puzzles');
         }
 
-        $puzzleStatuses = $this->getUserPuzzleStatuses->byUserId(
-            $user?->getUserIdentifier()
-        );
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
         $puzzleCollections = [];
-        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         if ($loggedPlayer !== null) {
             $puzzleCollections = $this->getPuzzleCollections->byPlayerAndPuzzle($loggedPlayer->playerId, $puzzleId);
         }

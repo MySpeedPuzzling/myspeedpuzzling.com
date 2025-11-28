@@ -17,28 +17,14 @@ final class GetUserPuzzleStatuses
     ) {
     }
 
-    public function byUserId(null|string $userId): UserPuzzleStatuses
+    public function byPlayerId(null|string $playerId): UserPuzzleStatuses
     {
-        if ($userId === null) {
+        if ($playerId === null) {
             return UserPuzzleStatuses::empty();
         }
 
-        if (isset($this->cache[$userId])) {
-            return $this->cache[$userId];
-        }
-
-        // First get the player_id from user_id
-        $playerIdQuery = <<<SQL
-SELECT id FROM player WHERE user_id = :userId
-SQL;
-
-        /** @var string|false $playerId */
-        $playerId = $this->database
-            ->executeQuery($playerIdQuery, ['userId' => $userId])
-            ->fetchOne();
-
-        if ($playerId === false) {
-            return UserPuzzleStatuses::empty();
+        if (isset($this->cache[$playerId])) {
+            return $this->cache[$playerId];
         }
 
         // Fetch all statuses in one query using UNION ALL
@@ -118,7 +104,7 @@ SQL;
             sellSwap: array_keys($sellSwap),
         );
 
-        $this->cache[$userId] = $result;
+        $this->cache[$playerId] = $result;
 
         return $result;
     }

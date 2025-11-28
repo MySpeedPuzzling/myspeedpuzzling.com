@@ -84,6 +84,13 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 - **Premium Membership**: Stripe-powered subscription management
 - **Multi-language**: Czech and English translations
 
+### Turbo Configuration
+- **IMPORTANT**: Turbo is globally disabled via `data-turbo="false"` on the `<html>` element in `base.html.twig`
+- To use Turbo on specific links or forms, you MUST explicitly enable it with `data-turbo="true"`
+- Example for Turbo Frame links: `<a href="..." data-turbo="true" data-turbo-frame="modal-frame">`
+- Example for forms: `<form ... data-turbo="true" data-turbo-frame="modal-frame">`
+- See `.claude/symfony-ux-hotwire-architecture-guide.md` for modal architecture patterns
+
 - When generating migrations for example or running any other commands that needs to run in the PHP environment, ALWAYS run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.
 - When running commands for Javascript environment, ALWAYS run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.
 - For database structure, analyse Doctrine ORM entities - it represents the database structure

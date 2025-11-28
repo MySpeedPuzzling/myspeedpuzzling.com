@@ -8,14 +8,17 @@ use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\PuzzleCollectionOverview;
+use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveListener;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\ComponentToolsTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\ExposeInTemplate;
 
 #[AsLiveComponent]
 final class PuzzleActionsDropdown
@@ -49,13 +52,12 @@ final class PuzzleActionsDropdown
         readonly private GetLentPuzzles $getLentPuzzles,
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
     #[LiveListener('puzzle:addedToCollection')]
     #[LiveListener('puzzle:removedFromCollection')]
-    #[LiveListener('puzzle:addedToWishList')]
-    #[LiveListener('puzzle:removedFromWishList')]
     #[LiveListener('puzzle:addedToSellSwapList')]
     #[LiveListener('puzzle:removedFromSellSwapList')]
     #[LiveListener('puzzle:lent')]
@@ -170,5 +172,13 @@ final class PuzzleActionsDropdown
         $this->inBorrowedList = $this->getBorrowedPuzzles->isPuzzleBorrowedByHolder($loggedPlayer->playerId, $this->puzzleId);
 
         return $this->inBorrowedList;
+    }
+
+    #[ExposeInTemplate]
+    public function getPuzzleStatuses(): UserPuzzleStatuses
+    {
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+
+        return $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
     }
 }

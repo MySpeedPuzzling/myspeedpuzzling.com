@@ -88,6 +88,7 @@ final class CollectionPuzzleActionFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => CollectionPuzzleActionFormData::class,
             'collections' => [],
+            'csrf_protection' => false,
         ]);
 
         $resolver->setAllowedTypes('collections', 'array');

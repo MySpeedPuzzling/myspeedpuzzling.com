@@ -217,18 +217,16 @@
                                                         <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
                                                     </a>
                                                 </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#add-to-collection-{{ item.wishListItemId }}">
-                                                        <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#borrow-puzzle-{{ item.wishListItemId }}">
-                                                        <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.borrow.button'|trans }}
-                                                    </a>
-                                                </li>
+                                                {{ include('collections/_dropdown_action.html.twig', {
+                                                    puzzle_id: item.puzzleId,
+                                                    puzzle_statuses: puzzle_statuses
+                                                }) }}
+
+                                                {{ include('lend-borrow/_dropdown_action.html.twig', {
+                                                    puzzle_id: item.puzzleId,
+                                                    puzzle_statuses: puzzle_statuses
+                                                }) }}
+
                                                 <li><hr class="dropdown-divider"></li>
 
                                                 {{ include('wishlist/_dropdown_action.html.twig', {
@@ -237,28 +235,6 @@
                                                 }) }}
                                             </ul>
                                         </div>
-
-                                        <twig:Modal id="add-to-collection-{{ item.wishListItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'collections.add_puzzle'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('AddPuzzleToCollectionForm', {
-                                                    puzzleId: item.puzzleId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
-
-                                        <twig:Modal id="borrow-puzzle-{{ item.wishListItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'lend_borrow.borrow.title'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('BorrowPuzzleForm', {
-                                                    puzzleId: item.puzzleId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
                                     {% endif %}
                                 </div>
 

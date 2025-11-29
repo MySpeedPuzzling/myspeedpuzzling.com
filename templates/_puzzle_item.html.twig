@@ -81,6 +81,11 @@
                 </li>
                 <li><hr class="dropdown-divider"></li>
 
+                {{ include('collections/_dropdown_action.html.twig', {
+                    puzzle_id: puzzle.puzzleId,
+                    puzzle_statuses: puzzle_statuses
+                }) }}
+
                 {{ include('wishlist/_dropdown_action.html.twig', {
                     puzzle_id: puzzle.puzzleId,
                     puzzle_statuses: puzzle_statuses

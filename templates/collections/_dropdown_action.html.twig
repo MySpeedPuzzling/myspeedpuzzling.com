@@ -1,0 +1,49 @@
+{#
+    Collection dropdown action - shows Add or Remove based on puzzle status.
+    Uses a <div> wrapper with display:contents for Turbo Stream replacement.
+
+    Required variables: puzzle_id, puzzle_statuses
+#}
+<div id="collection-action-{{ puzzle_id }}" style="display: contents;">
+{% set collections_for_puzzle = puzzle_statuses.puzzleCollections[puzzle_id]|default({}) %}
+
+{% if collections_for_puzzle|length > 0 %}
+    {# Puzzle is in one or more collections - show add and remove options #}
+    <li>
+        <a class="dropdown-item"
+           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
+        </a>
+    </li>
+    {% for collection_id, collection_name in collections_for_puzzle %}
+        <li>
+            <form action="{{ path('collection_remove', {puzzleId: puzzle_id}) }}"
+                  method="post"
+                  class="d-inline w-100"
+                  data-turbo="true">
+                <input type="hidden" name="collectionId" value="{{ collection_id }}">
+                <button type="submit" class="dropdown-item text-danger w-100 text-start">
+                    <i class="bi bi-bookmark-dash me-1"></i>
+                    {% if collection_name == '__system_collection__' %}
+                        {{ 'collections.remove_from'|trans({'%collection%': 'collections.system_name'|trans}) }}
+                    {% else %}
+                        {{ 'collections.remove_from'|trans({'%collection%': collection_name}) }}
+                    {% endif %}
+                </button>
+            </form>
+        </li>
+    {% endfor %}
+{% else %}
+    {# Puzzle is not in any collection - show add option #}
+    <li>
+        <a class="dropdown-item"
+           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
+        </a>
+    </li>
+{% endif %}
+</div>

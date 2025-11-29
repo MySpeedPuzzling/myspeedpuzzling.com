@@ -6,7 +6,7 @@
 <div data-controller="collection-items collection-filter">
     <div class="d-flex align-items-center justify-content-between mb-2">
         <div>
-            <h1 class="h3 mb-1">{{ collection.name }}</h1>
+            <h1 class="h3 mb-1"><i class="ci-time me-2"></i>{{ collection.name }}</h1>
             <p class="text-muted mb-0">
                 {% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %}
                     {{ player.playerName ?? player.code }}
@@ -210,24 +210,15 @@
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#lend-puzzle-{{ item.puzzleId }}">
+                                                    <a class="dropdown-item"
+                                                       href="{{ path('lend_puzzle', {puzzleId: item.puzzleId}) }}"
+                                                       data-turbo="true"
+                                                       data-turbo-frame="modal-frame">
                                                         <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
                                                     </a>
                                                 </li>
                                             </ul>
                                         </div>
-
-                                        <twig:Modal id="lend-puzzle-{{ item.puzzleId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'lend_borrow.lend.title'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('LendPuzzleForm', {
-                                                    puzzleId: item.puzzleId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
                                     {% endif %}
                                 </div>
 

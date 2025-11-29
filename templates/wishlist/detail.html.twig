@@ -6,7 +6,7 @@
 <div data-controller="collection-items collection-filter">
     <div class="d-flex align-items-center justify-content-between mb-2">
         <div>
-            <h1 class="h3 mb-1">{{ collection.name }}</h1>
+            <h1 class="h3 mb-1"><i class="bi bi-heart me-2"></i>{{ collection.name }}</h1>
             <p class="text-muted mb-0">
                 {% if logged_user.profile is null or logged_user.profile.playerId != collection.playerId %}
                     {{ player.playerName ?? player.code }}

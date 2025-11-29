@@ -1,0 +1,10 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'sell_swap_list.mark_sold.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {{ include('sell-swap/_mark_sold_form.html.twig', {in_modal: true}) }}
+    </div>
+</turbo-frame>

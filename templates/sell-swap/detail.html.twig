@@ -8,7 +8,7 @@
 
     <div class="d-flex align-items-center justify-content-between mb-2">
         <div>
-            <h1 class="h3 mb-1">{{ 'sell_swap_list.title'|trans }}</h1>
+            <h1 class="h3 mb-1"><i class="bi bi-shop me-2"></i>{{ 'sell_swap_list.title'|trans }}</h1>
             <p class="text-muted mb-0">
                 {% if not isOwnProfile %}
                     {{ player.playerName ?? player.code }}
@@ -139,6 +139,7 @@
         <div class="row g-3 mb-3">
             {% for item in items %}
                 <div class="col-12 col-lg-6"
+                     id="sellswap-list-item-{{ item.puzzleId }}"
                      data-collection-items-target="item"
                      data-sell-swap-filter-target="item"
                      data-puzzle-id="{{ item.puzzleId }}"
@@ -223,29 +224,26 @@
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item text-success" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#mark-sold-{{ item.sellSwapListItemId }}">
+                                                    <a class="dropdown-item text-success"
+                                                       href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}"
+                                                       data-turbo="true"
+                                                       data-turbo-frame="modal-frame">
                                                         <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
-                                                    <twig:RemovePuzzleFromSellSwapListButton puzzleId="{{ item.puzzleId }}" buttonClass="dropdown-item text-danger" />
+                                                    <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}"
+                                                          method="post"
+                                                          data-turbo="true">
+                                                        <input type="hidden" name="context" value="list">
+                                                        <button type="submit" class="dropdown-item text-danger">
+                                                            <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+                                                        </button>
+                                                    </form>
                                                 </li>
                                             </ul>
                                         </div>
-
-                                        <twig:Modal id="mark-sold-{{ item.sellSwapListItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'sell_swap_list.mark_sold.title'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('MarkAsSoldSwappedForm', {
-                                                    sellSwapListItemId: item.sellSwapListItemId,
-                                                    puzzleId: item.puzzleId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
                                     {% endif %}
                                 </div>
 

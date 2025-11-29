@@ -39,11 +39,10 @@ final class AddToSellSwapListFormType extends AbstractType
             'label' => 'sell_swap_list.form.price',
             'required' => false,
             'help' => 'sell_swap_list.form.price_help',
-            'scale' => 2,
             'html5' => true,
             'attr' => [
                 'min' => 0,
-                'step' => '0.01',
+                'step' => 'any',
             ],
         ]);
 

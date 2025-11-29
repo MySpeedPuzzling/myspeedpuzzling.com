@@ -57,6 +57,18 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
         if ($request->headers->has('Turbo-Frame') || TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+            $context = $request->request->getString('context', 'detail');
+
+            // Different response based on context
+            if ($context === 'list') {
+                // Called from sell-swap list page - just remove the item
+                return $this->render('sell-swap/_remove_from_list_stream.html.twig', [
+                    'puzzle_id' => $puzzleId,
+                    'message' => $this->translator->trans('sell_swap_list.flash.removed'),
+                ]);
+            }
+
+            // Called from puzzle detail page - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
             return $this->render('sell-swap/_stream.html.twig', [

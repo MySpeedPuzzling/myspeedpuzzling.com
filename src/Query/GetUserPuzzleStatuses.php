@@ -29,25 +29,25 @@ final class GetUserPuzzleStatuses
 
         // Fetch all statuses in one query using UNION ALL
         $query = <<<SQL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId
 UNION ALL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
 UNION ALL
-SELECT ci.puzzle_id, NULL::text as lent_puzzle_id, COALESCE(c.id::text, '__system_collection__') as collection_id, c.name as collection_name, 'collection' as status
+SELECT ci.puzzle_id, NULL::text as lent_puzzle_id, COALESCE(c.id::text, '__system_collection__') as collection_id, c.name as collection_name, NULL::text as sell_swap_item_id, 'collection' as status
 FROM collection_item ci
 LEFT JOIN collection c ON c.id = ci.collection_id
 WHERE ci.player_id = :playerId
 UNION ALL
-SELECT puzzle_id, id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, 'borrowed' as status FROM lent_puzzle
+SELECT puzzle_id, id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, 'borrowed' as status FROM lent_puzzle
     WHERE current_holder_player_id = :playerId
     AND (owner_player_id IS NULL OR owner_player_id != :playerId)
 UNION ALL
-SELECT puzzle_id, id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, 'lent' as status FROM lent_puzzle WHERE owner_player_id = :playerId
+SELECT puzzle_id, id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, 'lent' as status FROM lent_puzzle WHERE owner_player_id = :playerId
 UNION ALL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, 'sell_swap' as status FROM sell_swap_list_item WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, id::text as sell_swap_item_id, 'sell_swap' as status FROM sell_swap_list_item WHERE player_id = :playerId
 SQL;
 
-        /** @var array<array{puzzle_id: string, lent_puzzle_id: string|null, collection_id: string|null, collection_name: string|null, status: string}> $rows */
+        /** @var array<array{puzzle_id: string, lent_puzzle_id: string|null, collection_id: string|null, collection_name: string|null, sell_swap_item_id: string|null, status: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, ['playerId' => $playerId])
             ->fetchAllAssociative();
@@ -61,6 +61,7 @@ SQL;
         $sellSwap = [];
         $lentPuzzleIds = [];
         $borrowedPuzzleIds = [];
+        $sellSwapItemIds = [];
         /** @var array<string, array<string, string>> $puzzleCollections */
         $puzzleCollections = [];
 
@@ -98,6 +99,9 @@ SQL;
                     break;
                 case 'sell_swap':
                     $sellSwap[$puzzleId] = true;
+                    if ($row['sell_swap_item_id'] !== null) {
+                        $sellSwapItemIds[$puzzleId] = $row['sell_swap_item_id'];
+                    }
                     break;
             }
         }
@@ -126,6 +130,7 @@ SQL;
             lentPuzzleIds: $lentPuzzleIds,
             borrowedPuzzleIds: $borrowedPuzzleIds,
             puzzleCollections: $puzzleCollections,
+            sellSwapItemIds: $sellSwapItemIds,
         );
 
         $this->cache[$playerId] = $result;

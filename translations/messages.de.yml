@@ -197,7 +197,6 @@ add_time:
     add_puzzler: "Gruppen-Mitspieler hinzufügen"
     teamplayer: "Mitspieler"
     player_code_info: "Wählen Sie aus Favoriten oder geben Sie den Spielercode (beginnt mit #) ein. Wenn der Puzzler kein Konto auf myspeedpuzzling.com hat, geben Sie bitte seinen Namen ein."
-    choose_from_favorites: "- Aus Favoriten wählen -"
 
 forms:
     choose_from_favorites: "- Aus Favoriten wählen -"

@@ -18,6 +18,7 @@ export default class extends Controller {
 
     modal = null;
     observer = null;
+    openTimeout = null;
 
     connect() {
         this.modal = Modal.getOrCreateInstance(this.element);
@@ -41,15 +42,20 @@ export default class extends Controller {
         this.observer?.disconnect();
         document.removeEventListener('keydown', this.handleKeydown);
         document.removeEventListener('modal:close', this.handleClose);
+        clearTimeout(this.openTimeout);
     }
 
     handleBeforeFetch = () => {
-        this.open();
+        // Delay modal opening to allow content to load first
+        clearTimeout(this.openTimeout);
+        this.openTimeout = setTimeout(() => {
+            this.open();
+        }, 150);
     };
 
     handleMutation = () => {
         // Close modal if frame content is empty (cleared by Turbo Stream)
-        if (this.frameTarget.innerHTML.trim() === '') {
+        if (this.frameTarget.innerHTML.trim() === '' && this.isOpen()) {
             this.close();
         }
     };
@@ -70,9 +76,9 @@ export default class extends Controller {
     }
 
     close() {
+        clearTimeout(this.openTimeout);
         this.modal.hide();
         document.body.classList.remove('modal-open');
-        // Clear frame content to reset state
         this.frameTarget.innerHTML = '';
     }
 

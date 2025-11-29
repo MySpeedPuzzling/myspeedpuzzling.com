@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ final class LendBorrowListDetailController extends AbstractController
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
@@ -76,6 +78,7 @@ final class LendBorrowListDetailController extends AbstractController
             'isOwnProfile' => $isOwnProfile,
             'hasMembership' => $hasMembership,
             'visibility' => $visibility,
+            'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($playerId),
         ]);
     }
 }

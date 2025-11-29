@@ -39,7 +39,7 @@
                             <h5 class="card-title mb-0">
                                 {% if collection.isLendBorrowList %}
                                     <a href="{{ path('lend_borrow_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                        {{ collection.name }}
+                                        <i class="bi bi-box-arrow-right me-1"></i>{{ collection.name }}
                                     </a>
                                     {% if isOwnProfile and not logged_user.profile.activeMembership and collection.borrowedCount == 0 %}
                                         <button type="button"
@@ -51,7 +51,7 @@
                                     {% endif %}
                                 {% elseif collection.isSellSwapList %}
                                     <a href="{{ path('sell_swap_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                        {{ collection.name }}
+                                        <i class="bi bi-shop me-1"></i>{{ collection.name }}
                                     </a>
                                     {% if isOwnProfile and not logged_user.profile.activeMembership %}
                                         <button type="button"
@@ -63,19 +63,19 @@
                                     {% endif %}
                                 {% elseif collection.isWishList %}
                                     <a href="{{ path('wish_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                        {{ collection.name }}
+                                        <i class="bi bi-heart me-1"></i>{{ collection.name }}
                                     </a>
                                 {% elseif collection.isUnsolvedPuzzles %}
                                     <a href="{{ path('unsolved_puzzles_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                        {{ collection.name }}
+                                        <i class="ci-time me-1"></i>{{ collection.name }}
                                     </a>
                                 {% elseif collection.isSystemCollection %}
                                     <a href="{{ path('system_collection_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
-                                        {{ collection.name }}
+                                        <i class="bi bi-collection me-1"></i>{{ collection.name }}
                                     </a>
                                 {% else %}
                                     <a href="{{ path('collection_detail', {collectionId: collection.collectionId}) }}" class="text-decoration-none">
-                                        {{ collection.name }}
+                                        <i class="bi bi-collection me-1"></i>{{ collection.name }}
                                     </a>
                                 {% endif %}
                             </h5>

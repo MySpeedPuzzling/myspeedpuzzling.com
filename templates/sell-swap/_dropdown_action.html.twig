@@ -1,5 +1,14 @@
+<div id="sellswap-action-{{ puzzle_id }}" style="display: contents;">
 {% if puzzle_id in puzzle_statuses.sellSwap %}
-    <li id="sellswap-action-{{ puzzle_id }}">
+    <li>
+        <a class="dropdown-item text-success"
+           href="{{ path('sellswap_mark_sold', {itemId: puzzle_statuses.sellSwapItemIds[puzzle_id]}) }}"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+        </a>
+    </li>
+    <li>
         <form action="{{ path('sellswap_remove', {puzzleId: puzzle_id}) }}"
               method="post"
               class="d-inline"
@@ -11,7 +20,7 @@
         </form>
     </li>
 {% else %}
-    <li id="sellswap-action-{{ puzzle_id }}">
+    <li>
         <a class="dropdown-item"
            href="{{ path('sellswap_add', {puzzleId: puzzle_id}) }}"
            data-turbo="true"
@@ -20,3 +29,4 @@
         </a>
     </li>
 {% endif %}
+</div>

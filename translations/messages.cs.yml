@@ -198,7 +198,6 @@ add_time:
     add_puzzler: "Přidat skupinového skládájícího"
     teamplayer: "Spoluskládající"
     player_code_info: "Vyberte z oblíbených nebo zadejte kód hráče (začíná na #). Pokud skládající nemá účet na myspeedpuzzling.com, zadejte prosím jeho jméno."
-    choose_from_favorites: "- Vybrat z oblíbených -"
 
 forms:
     choose_from_favorites: "- Vybrat z oblíbených -"

@@ -26,12 +26,16 @@
 
                     {{ form_start(form) }}
 
-                    <div class="mb-3">
-                        {{ form_row(form.listingType) }}
-                    </div>
+                    <div data-controller="conditional-field" data-conditional-field-trigger-value="swap" data-conditional-field-hide-on-value="true">
+                        <div class="mb-3">
+                            {{ form_row(form.listingType, {
+                                attr: {'data-action': 'change->conditional-field#toggle'}
+                            }) }}
+                        </div>
 
-                    <div class="mb-3">
-                        {{ form_row(form.price) }}
+                        <div class="mb-3" data-conditional-field-target="conditionalElement">
+                            {{ form_row(form.price) }}
+                        </div>
                     </div>
 
                     <div class="mb-3">

@@ -10,7 +10,7 @@
         <input name="group_players[]" class="form-control {% if isInputInvalid %}is-invalid{% endif %}" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
 
         <select class="form-select group-favorite-player-select" data-action="change->add-copuzzler#selectChanged">
-            <option value="">{{ 'add_time.choose_from_favorites'|trans }}</option>
+            <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
             {% for favorite_player in favorite_players %}
                 <option value="{{ favorite_player.playerCode }}">{{ favorite_player.playerName }}</option>
             {% endfor %}

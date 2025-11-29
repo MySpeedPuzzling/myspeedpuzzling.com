@@ -196,9 +196,9 @@ add_time:
     add_puzzler: "Add group co-puzzler"
     teamplayer: "Co-puzzler"
     player_code_info: "Choose from favorites or enter the player's code (starts with #). If the puzzler does not have an account on myspeedpuzzling.com, please enter their name."
-    choose_from_favorites: "- Choose from favorites -"
 
 forms:
+    choose_from_favorites: "- Choose from favorites -"
     removing: "Removing..."
     drop_file: "Drag and drop a file here to upload"
     choose_file: "Or select a file"

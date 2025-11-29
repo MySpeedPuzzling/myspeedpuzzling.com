@@ -199,7 +199,6 @@ add_time:
     add_puzzler: "グループ協力者を追加"
     teamplayer: "協力者"
     player_code_info: "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
-    choose_from_favorites: "- お気に入りから選択 -"
 
 forms:
     choose_from_favorites: "- お気に入りから選択 -"

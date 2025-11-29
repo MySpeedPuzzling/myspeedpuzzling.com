@@ -20,7 +20,7 @@
             <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
                 <div class="me-md-4">
                     <h1 class="h4 mb-0">{{ puzzle.puzzleName }}</h1>
-                    <div class="mb-1">
+                    <div class="mb-1" id="puzzle-badges-{{ puzzle.puzzleId }}">
                         {{ include('puzzle/_badges.html.twig', {
                             puzzle_id: puzzle.puzzleId,
                             puzzle_statuses: puzzle_statuses,

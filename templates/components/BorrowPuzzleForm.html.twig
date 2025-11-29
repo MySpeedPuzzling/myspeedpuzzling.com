@@ -22,7 +22,10 @@
                 <i class="bi bi-box-arrow-in-left me-2"></i>{{ 'lend_borrow.already_borrowed'|trans }}
             </div>
         {% else %}
-            {{ form_start(form, {attr: {'data-action': 'live#action:prevent', 'data-live-action-param': 'save', 'data-model': 'norender|*'}}) }}
+            {{ form_start(form, {
+                action: path('borrow_puzzle', {puzzleId: this.puzzleId}),
+                attr: {'data-turbo': 'true'}
+            }) }}
 
             <div class="mb-3" data-controller="favorite-player-select">
                 {{ form_label(form.ownerCode) }}

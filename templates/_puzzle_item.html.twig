@@ -90,6 +90,11 @@
                     puzzle_id: puzzle.puzzleId,
                     puzzle_statuses: puzzle_statuses
                 }) }}
+
+                {{ include('lend-borrow/_dropdown_action.html.twig', {
+                    puzzle_id: puzzle.puzzleId,
+                    puzzle_statuses: puzzle_statuses
+                }) }}
             </ul>
         </div>
     </div>

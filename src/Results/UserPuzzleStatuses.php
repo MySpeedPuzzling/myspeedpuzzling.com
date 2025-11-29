@@ -14,6 +14,8 @@ readonly final class UserPuzzleStatuses
      * @param list<string> $borrowed
      * @param list<string> $lent
      * @param list<string> $sellSwap
+     * @param array<string, string> $lentPuzzleIds Mapping puzzleId -> lentPuzzleId (for owned lent puzzles)
+     * @param array<string, string> $borrowedPuzzleIds Mapping puzzleId -> lentPuzzleId (for borrowed puzzles)
      */
     public function __construct(
         public array $solved,
@@ -23,6 +25,8 @@ readonly final class UserPuzzleStatuses
         public array $borrowed,
         public array $lent,
         public array $sellSwap,
+        public array $lentPuzzleIds = [],
+        public array $borrowedPuzzleIds = [],
     ) {
     }
 

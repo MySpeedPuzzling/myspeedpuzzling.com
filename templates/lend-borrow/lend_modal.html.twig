@@ -1,0 +1,10 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'lend_borrow.lend.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {{ component('LendPuzzleForm', {puzzleId: puzzle.puzzleId}) }}
+    </div>
+</turbo-frame>

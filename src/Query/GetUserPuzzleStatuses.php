@@ -29,22 +29,22 @@ final class GetUserPuzzleStatuses
 
         // Fetch all statuses in one query using UNION ALL
         $query = <<<SQL
-SELECT puzzle_id, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId
 UNION ALL
-SELECT puzzle_id, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
 UNION ALL
-SELECT puzzle_id, 'collection' as status FROM collection_item WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, 'collection' as status FROM collection_item WHERE player_id = :playerId
 UNION ALL
-SELECT puzzle_id, 'borrowed' as status FROM lent_puzzle
+SELECT puzzle_id, id::text as lent_puzzle_id, 'borrowed' as status FROM lent_puzzle
     WHERE current_holder_player_id = :playerId
     AND (owner_player_id IS NULL OR owner_player_id != :playerId)
 UNION ALL
-SELECT puzzle_id, 'lent' as status FROM lent_puzzle WHERE owner_player_id = :playerId
+SELECT puzzle_id, id::text as lent_puzzle_id, 'lent' as status FROM lent_puzzle WHERE owner_player_id = :playerId
 UNION ALL
-SELECT puzzle_id, 'sell_swap' as status FROM sell_swap_list_item WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, 'sell_swap' as status FROM sell_swap_list_item WHERE player_id = :playerId
 SQL;
 
-        /** @var array<array{puzzle_id: string, status: string}> $rows */
+        /** @var array<array{puzzle_id: string, lent_puzzle_id: string|null, status: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, ['playerId' => $playerId])
             ->fetchAllAssociative();
@@ -56,6 +56,8 @@ SQL;
         $borrowed = [];
         $lent = [];
         $sellSwap = [];
+        $lentPuzzleIds = [];
+        $borrowedPuzzleIds = [];
 
         foreach ($rows as $row) {
             $puzzleId = $row['puzzle_id'];
@@ -71,9 +73,15 @@ SQL;
                     break;
                 case 'borrowed':
                     $borrowed[$puzzleId] = true;
+                    if ($row['lent_puzzle_id'] !== null) {
+                        $borrowedPuzzleIds[$puzzleId] = $row['lent_puzzle_id'];
+                    }
                     break;
                 case 'lent':
                     $lent[$puzzleId] = true;
+                    if ($row['lent_puzzle_id'] !== null) {
+                        $lentPuzzleIds[$puzzleId] = $row['lent_puzzle_id'];
+                    }
                     break;
                 case 'sell_swap':
                     $sellSwap[$puzzleId] = true;
@@ -102,6 +110,8 @@ SQL;
             borrowed: array_keys($borrowed),
             lent: array_keys($lent),
             sellSwap: array_keys($sellSwap),
+            lentPuzzleIds: $lentPuzzleIds,
+            borrowedPuzzleIds: $borrowedPuzzleIds,
         );
 
         $this->cache[$playerId] = $result;

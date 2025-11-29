@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
-use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
-use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Results\PuzzleCollectionOverview;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -36,17 +33,8 @@ final class PuzzleActionsDropdown
      */
     private null|array $collections = null;
 
-    private null|bool $inWishList = null;
-
-    private null|bool $inLentList = null;
-
-    private null|bool $inBorrowedList = null;
-
     public function __construct(
         readonly private GetPuzzleCollections $getPuzzleCollections,
-        readonly private GetWishListItems $getWishListItems,
-        readonly private GetLentPuzzles $getLentPuzzles,
-        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
@@ -54,15 +42,9 @@ final class PuzzleActionsDropdown
 
     #[LiveListener('puzzle:addedToCollection')]
     #[LiveListener('puzzle:removedFromCollection')]
-    #[LiveListener('puzzle:lent')]
-    #[LiveListener('puzzle:returned')]
-    #[LiveListener('puzzle:borrowed')]
     public function onChange(): void
     {
         $this->collections = null;
-        $this->inWishList = null;
-        $this->inLentList = null;
-        $this->inBorrowedList = null;
         $this->changeCounter++;
     }
 
@@ -97,57 +79,6 @@ final class PuzzleActionsDropdown
     public function isLoggedIn(): bool
     {
         return $this->retrieveLoggedUserProfile->getProfile() !== null;
-    }
-
-    public function isPuzzleInWishList(): bool
-    {
-        if ($this->inWishList !== null) {
-            return $this->inWishList;
-        }
-
-        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-        if ($loggedPlayer === null) {
-            $this->inWishList = false;
-            return false;
-        }
-
-        $this->inWishList = $this->getWishListItems->isPuzzleInWishList($loggedPlayer->playerId, $this->puzzleId);
-
-        return $this->inWishList;
-    }
-
-    public function isPuzzleLent(): bool
-    {
-        if ($this->inLentList !== null) {
-            return $this->inLentList;
-        }
-
-        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-        if ($loggedPlayer === null) {
-            $this->inLentList = false;
-            return false;
-        }
-
-        $this->inLentList = $this->getLentPuzzles->isPuzzleLentByOwner($loggedPlayer->playerId, $this->puzzleId);
-
-        return $this->inLentList;
-    }
-
-    public function isPuzzleBorrowed(): bool
-    {
-        if ($this->inBorrowedList !== null) {
-            return $this->inBorrowedList;
-        }
-
-        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-        if ($loggedPlayer === null) {
-            $this->inBorrowedList = false;
-            return false;
-        }
-
-        $this->inBorrowedList = $this->getBorrowedPuzzles->isPuzzleBorrowedByHolder($loggedPlayer->playerId, $this->puzzleId);
-
-        return $this->inBorrowedList;
     }
 
     #[ExposeInTemplate]

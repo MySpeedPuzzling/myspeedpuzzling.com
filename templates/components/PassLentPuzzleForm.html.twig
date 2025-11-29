@@ -1,6 +1,9 @@
 <div {{ attributes }}>
     {% if this.isLoggedIn %}
-        {{ form_start(form, {attr: {'data-action': 'live#action:prevent', 'data-live-action-param': 'save', 'data-model': 'norender|*'}}) }}
+        {{ form_start(form, {
+            action: path('pass_puzzle', {lentPuzzleId: this.lentPuzzleId}),
+            attr: {'data-turbo': 'true'}
+        }) }}
 
         <div class="mb-3" data-controller="favorite-player-select">
             {{ form_label(form.newHolderCode) }}

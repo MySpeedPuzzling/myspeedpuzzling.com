@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzleIds;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\CollectionRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -28,6 +29,7 @@ final class CollectionDetailController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetLentPuzzleIds $getLentPuzzleIds,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
@@ -89,6 +91,7 @@ final class CollectionDetailController extends AbstractController
             'items' => $items,
             'player' => $player,
             'lentPuzzles' => $lentPuzzles,
+            'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
         ]);
     }
 }

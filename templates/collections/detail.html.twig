@@ -233,15 +233,11 @@
                                                     </a>
                                                 </li>
                                                 <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#move-to-collection-{{ item.collectionItemId }}">
+                                                    <a class="dropdown-item"
+                                                       href="{{ path('collection_move', {puzzleId: item.puzzleId, sourceCollectionId: collection.collectionId ?? '__system_collection__'}) }}"
+                                                       data-turbo="true"
+                                                       data-turbo-frame="modal-frame">
                                                         <i class="bi bi-arrow-right-square me-1"></i> {{ 'collections.move_to_collection'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#copy-to-collection-{{ item.collectionItemId }}">
-                                                        <i class="bi bi-copy me-1"></i> {{ 'collections.copy_to_collection'|trans }}
                                                     </a>
                                                 </li>
                                                 <li>
@@ -250,77 +246,18 @@
                                                     </a>
                                                 </li>
                                                 <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#add-to-sell-swap-{{ item.collectionItemId }}">
-                                                        <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#lend-puzzle-{{ item.collectionItemId }}">
-                                                        <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <twig:RemovePuzzleFromCollectionButton
-                                                        puzzleId="{{ item.puzzleId }}"
-                                                        collectionId="{{ collection.collectionId }}"
-                                                        buttonClass="dropdown-item text-danger">
-                                                        {% block text %}<i class="bi bi-trash me-1"></i> {{ 'collections.remove_puzzle'|trans }}{% endblock %}
-                                                    </twig:RemovePuzzleFromCollectionButton>
-                                                </li>
+
+                                                {{ include('sell-swap/_dropdown_action.html.twig', {
+                                                    puzzle_id: item.puzzleId,
+                                                    puzzle_statuses: puzzle_statuses
+                                                }) }}
+
+                                                {{ include('lend-borrow/_dropdown_action.html.twig', {
+                                                    puzzle_id: item.puzzleId,
+                                                    puzzle_statuses: puzzle_statuses
+                                                }) }}
                                             </ul>
                                         </div>
-
-                                        <twig:Modal id="move-to-collection-{{ item.collectionItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'collections.move_puzzle'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('MovePuzzleToCollectionForm', {
-                                                    puzzleId: item.puzzleId,
-                                                    collectionItemId: item.collectionItemId,
-                                                    sourceCollectionId: collection.collectionId,
-                                                    existingComment: item.comment
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
-
-                                        <twig:Modal id="copy-to-collection-{{ item.collectionItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'collections.copy_puzzle'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('CopyPuzzleToCollectionForm', {
-                                                    puzzleId: item.puzzleId,
-                                                    sourceCollectionId: collection.collectionId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
-
-                                        <twig:Modal id="add-to-sell-swap-{{ item.collectionItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'sell_swap_list.add.title'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('AddPuzzleToSellSwapListForm', {
-                                                    puzzleId: item.puzzleId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
-
-                                        <twig:Modal id="lend-puzzle-{{ item.collectionItemId }}">
-                                            {% block modal_header %}
-                                                <h5 class="modal-title">{{ 'lend_borrow.lend.title'|trans }}</h5>
-                                            {% endblock %}
-                                            {% block modal_body %}
-                                                {{ component('LendPuzzleForm', {
-                                                    puzzleId: item.puzzleId
-                                                }) }}
-                                            {% endblock %}
-                                        </twig:Modal>
                                     {% endif %}
                                 </div>
 

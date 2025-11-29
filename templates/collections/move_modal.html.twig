@@ -1,0 +1,34 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'collections.move_puzzle'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if not has_active_membership and not has_available_collections %}
+            {# Non-member and no available target collections #}
+            <div class="alert alert-info mb-0">
+                <h6 class="alert-heading mb-2">
+                    <i class="bi bi-info-circle me-2"></i>{{ 'collections.no_move_target'|trans }}
+                </h6>
+                <p class="mb-3">{{ 'collections.no_move_target_message'|trans }}</p>
+                <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                    data-bs-dismiss="modal"
+                >
+                    <i class="ci-locked me-1"></i>{{ 'collections.membership_required.unlock_link'|trans }}
+                </button>
+            </div>
+        {% elseif not has_available_collections %}
+            {# Member but no available target collections #}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-collection me-2"></i>{{ 'collections.no_move_target_member'|trans }}
+            </div>
+        {% else %}
+            {{ include('collections/_move_form.html.twig', {in_modal: true}) }}
+        {% endif %}
+    </div>
+</turbo-frame>

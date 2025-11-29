@@ -146,19 +146,10 @@
                                                             </li>
                                                         {% endif %}
                                                         {% if hasMembership %}
-                                                            <li><hr class="dropdown-divider"></li>
-                                                            <li>
-                                                                <a class="dropdown-item text-success" href="#" data-bs-toggle="modal"
-                                                                   data-bs-target="#return-modal-{{ item.lentPuzzleId }}">
-                                                                    <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
-                                                                </a>
-                                                            </li>
-                                                            <li>
-                                                                <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal"
-                                                                   data-bs-target="#pass-lent-modal-{{ item.lentPuzzleId }}">
-                                                                    <i class="bi bi-arrow-right-circle me-1"></i> {{ 'lend_borrow.pass.button'|trans }}
-                                                                </a>
-                                                            </li>
+                                                            {{ include('sell-swap/_dropdown_action.html.twig', {
+                                                                puzzle_id: puzzle.puzzleId,
+                                                                puzzle_statuses: puzzle_statuses
+                                                            }) }}
                                                         {% endif %}
                                                     </ul>
                                                 </div>
@@ -172,32 +163,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        {% if isOwnProfile and hasMembership %}
-                            <twig:Modal id="return-modal-{{ item.lentPuzzleId }}">
-                                {% block modal_header %}
-                                    <h5 class="modal-title">{{ 'lend_borrow.return.title'|trans }}</h5>
-                                {% endblock %}
-                                {% block modal_body %}
-                                    <p class="mb-3">{{ 'lend_borrow.return.confirm_message'|trans({'%puzzle%': item.puzzleName}) }}</p>
-                                    {{ component('ReturnLentPuzzleButton', {
-                                        lentPuzzleId: item.lentPuzzleId
-                                    }) }}
-                                {% endblock %}
-                            </twig:Modal>
-
-                            <twig:Modal id="pass-lent-modal-{{ item.lentPuzzleId }}">
-                                {% block modal_header %}
-                                    <h5 class="modal-title">{{ 'lend_borrow.pass.title'|trans }}</h5>
-                                {% endblock %}
-                                {% block modal_body %}
-                                    <p class="mb-3">{{ 'lend_borrow.pass.description'|trans({'%puzzle%': item.puzzleName}) }}</p>
-                                    {{ component('PassLentPuzzleForm', {
-                                        lentPuzzleId: item.lentPuzzleId
-                                    }) }}
-                                {% endblock %}
-                            </twig:Modal>
-                        {% endif %}
                     {% endfor %}
                 </div>
             {% endif %}
@@ -285,18 +250,11 @@
                                                             </li>
                                                             <li><hr class="dropdown-divider"></li>
                                                         {% endif %}
-                                                        <li>
-                                                            <a class="dropdown-item text-success" href="#" data-bs-toggle="modal"
-                                                               data-bs-target="#return-borrowed-modal-{{ item.lentPuzzleId }}">
-                                                                <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
-                                                            </a>
-                                                        </li>
-                                                        <li>
-                                                            <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal"
-                                                               data-bs-target="#pass-modal-{{ item.lentPuzzleId }}">
-                                                                <i class="bi bi-arrow-right-circle me-1"></i> {{ 'lend_borrow.pass.button'|trans }}
-                                                            </a>
-                                                        </li>
+
+                                                        {{ include('sell-swap/_dropdown_action.html.twig', {
+                                                            puzzle_id: puzzle.puzzleId,
+                                                            puzzle_statuses: puzzle_statuses
+                                                        }) }}
                                                     </ul>
                                                 </div>
                                             {% endif %}
@@ -309,32 +267,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        {% if isOwnProfile %}
-                            <twig:Modal id="return-borrowed-modal-{{ item.lentPuzzleId }}">
-                                {% block modal_header %}
-                                    <h5 class="modal-title">{{ 'lend_borrow.return.title'|trans }}</h5>
-                                {% endblock %}
-                                {% block modal_body %}
-                                    <p class="mb-3">{{ 'lend_borrow.return.confirm_message'|trans({'%puzzle%': item.puzzleName}) }}</p>
-                                    {{ component('ReturnLentPuzzleButton', {
-                                        lentPuzzleId: item.lentPuzzleId
-                                    }) }}
-                                {% endblock %}
-                            </twig:Modal>
-
-                            <twig:Modal id="pass-modal-{{ item.lentPuzzleId }}">
-                                {% block modal_header %}
-                                    <h5 class="modal-title">{{ 'lend_borrow.pass.title'|trans }}</h5>
-                                {% endblock %}
-                                {% block modal_body %}
-                                    <p class="mb-3">{{ 'lend_borrow.pass.description'|trans({'%puzzle%': item.puzzleName}) }}</p>
-                                    {{ component('PassLentPuzzleForm', {
-                                        lentPuzzleId: item.lentPuzzleId
-                                    }) }}
-                                {% endblock %}
-                            </twig:Modal>
-                        {% endif %}
                     {% endfor %}
                 </div>
             {% endif %}

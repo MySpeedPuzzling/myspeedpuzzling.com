@@ -194,8 +194,14 @@ add_time:
     choose_manufacturer: "Choose a manufacturer from the list"
     time_from_stopwatch: "Time from stopwatch"
     add_puzzler: "Add group co-puzzler"
+    group_puzzling: "Puzzling in pair/group"
+    competition_result: "Competition result"
     teamplayer: "Co-puzzler"
     player_code_info: "Choose from favorites or enter the player's code (starts with #). If the puzzler does not have an account on myspeedpuzzling.com, please enter their name."
+    mode:
+        speed_puzzling: "Speed Puzzling"
+        relax: "Relax (No Time)"
+        to_collection: "Puzzle to Collection"
 
 forms:
     choose_from_favorites: "- Choose from favorites -"

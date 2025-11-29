@@ -8,24 +8,21 @@
     <div class="mb-4">
         <div class="btn-group w-100" role="group" aria-label="Form mode selection">
             <input type="radio" class="btn-check" name="form-mode" id="mode-speed" autocomplete="off" checked>
-            <label class="btn btn-outline-primary py-2 px-2 px-sm-3" for="mode-speed">
-                <i class="bi bi-stopwatch-fill me-1"></i>
-                <span class="d-none d-sm-inline">Speed Puzzling</span>
-                <span class="d-sm-none">Speed</span>
+            <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-speed">
+                <i class="bi bi-stopwatch-fill"></i>
+                <small>{{ 'add_time.mode.speed_puzzling'|trans }}</small>
             </label>
 
             <input type="radio" class="btn-check" name="form-mode" id="mode-relax" autocomplete="off">
-            <label class="btn btn-outline-primary py-2 px-2 px-sm-3" for="mode-relax">
-                <i class="bi bi-cup-hot-fill me-1"></i>
-                <span class="d-none d-sm-inline">Relax</span>
-                <span class="d-sm-none">Relax</span>
+            <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-relax">
+                <i class="bi bi-cup-hot-fill"></i>
+                <small>{{ 'add_time.mode.relax'|trans }}</small>
             </label>
 
             <input type="radio" class="btn-check" name="form-mode" id="mode-collection" autocomplete="off">
-            <label class="btn btn-outline-primary py-2 px-2 px-sm-3" for="mode-collection">
-                <i class="bi bi-collection-fill me-1"></i>
-                <span class="d-none d-sm-inline">To Collection</span>
-                <span class="d-sm-none">Collection</span>
+            <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-collection">
+                <i class="bi bi-collection-fill"></i>
+                <small>{{ 'add_time.mode.to_collection'|trans }}</small>
             </label>
         </div>
     </div>

@@ -196,6 +196,8 @@ add_time:
     choose_manufacturer: "Vybrat výrobce ze seznamu"
     time_from_stopwatch: "Čas ze stopek"
     add_puzzler: "Přidat skupinového skládájícího"
+    group_puzzling: "Skládání ve dvojici/skupině"
+    competition_result: "Výsledek ze soutěže"
     teamplayer: "Spoluskládající"
     player_code_info: "Vyberte z oblíbených nebo zadejte kód hráče (začíná na #). Pokud skládající nemá účet na myspeedpuzzling.com, zadejte prosím jeho jméno."
 

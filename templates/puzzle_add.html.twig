@@ -1,9 +1,9 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'add_time.meta.title'|trans }}{% endblock %}
+{% block title %}{{ 'puzzle_add.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>{{ 'add_time.title'|trans }}</h1>
+    <h1>{{ 'puzzle_add.title'|trans }}</h1>
 
     <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}" data-puzzle-add-form-system-id-value="{{ system_collection_id }}">
         <div class="mb-4">
@@ -14,7 +14,7 @@
                        data-action="change->puzzle-add-form#switchMode">
                 <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-speed">
                     <i class="bi bi-stopwatch-fill"></i>
-                    <small>{{ 'add_time.mode.speed_puzzling'|trans }}</small>
+                    <small>{{ 'puzzle_add.mode.speed_puzzling'|trans }}</small>
                 </label>
 
                 <input type="radio" class="btn-check" name="form-mode" id="mode-relax" autocomplete="off"
@@ -23,7 +23,7 @@
                        data-action="change->puzzle-add-form#switchMode">
                 <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-relax">
                     <i class="bi bi-cup-hot-fill"></i>
-                    <small>{{ 'add_time.mode.relax'|trans }}</small>
+                    <small>{{ 'puzzle_add.mode.relax'|trans }}</small>
                 </label>
 
                 <input type="radio" class="btn-check" name="form-mode" id="mode-collection" autocomplete="off"
@@ -32,7 +32,7 @@
                        data-action="change->puzzle-add-form#switchMode">
                 <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-collection">
                     <i class="bi bi-collection-fill"></i>
-                    <small>{{ 'add_time.mode.to_collection'|trans }}</small>
+                    <small>{{ 'puzzle_add.mode.to_collection'|trans }}</small>
                 </label>
             </div>
         </div>

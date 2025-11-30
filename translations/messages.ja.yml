@@ -1,6 +1,6 @@
 menu:
     my_profile: "マイプロフィール"
-    add_time: "タイム追加"
+    puzzle_add: "追加"
     stopwatch: "ストップウォッチ"
     puzzles_overview: "パズル"
     ladder: "リーダーボード"
@@ -38,6 +38,7 @@ footer:
     speed_puzzling_players: "スピードパズリングプレイヤー"
     latest_puzzle_times: "最新のパズルタイム"
     750_piece_puzzles: "750ピースパズル"
+    puzzle_add: "パズル追加"
 
 puzzler_name: "名前"
 puzzler: "パズラー"
@@ -182,10 +183,10 @@ stopwatch:
         paused: "一時停止"
         finished: "パズル完了"
 
-add_time:
+puzzle_add:
     meta:
-        title: "タイム追加"
-    title: "タイム追加"
+        title: "パズル追加"
+    title: "追加..."
     chosen_puzzle: "選択されたパズル:"
     choose_puzzle: "パズルを選択"
     puzzle_needed: "リストからパズルを選択するか、新しいものを追加する必要があります"
@@ -199,6 +200,10 @@ add_time:
     add_puzzler: "グループ協力者を追加"
     teamplayer: "協力者"
     player_code_info: "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
+    mode:
+        speed_puzzling: "スピードパズリング"
+        relax: "リラックス（タイムなし）"
+        to_collection: "コレクションに追加"
 
 forms:
     choose_from_favorites: "- お気に入りから選択 -"

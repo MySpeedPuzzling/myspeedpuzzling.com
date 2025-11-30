@@ -1,6 +1,6 @@
 menu:
     my_profile: "Mi perfil"
-    add_time: "Añadir tiempo"
+    puzzle_add: "Agregar"
     stopwatch: "Cronómetro"
     puzzles_overview: "Puzzle"
     ladder: "Clasificación"
@@ -38,6 +38,7 @@ footer:
     speed_puzzling_players: "Jugadores Speed Puzzling"
     latest_puzzle_times: "Últimos Tiempos Puzzle"
     750_piece_puzzles: "Puzzles 750 Piezas"
+    puzzle_add: "Agregar puzzle"
 
 puzzler_name: "Nombre"
 puzzler: "Puzzlero"
@@ -183,10 +184,10 @@ stopwatch:
         paused: "Pausado"
         finished: "Rompecabezas completado"
 
-add_time:
+puzzle_add:
     meta:
-        title: "Añadir Tiempo"
-    title: "Añadir Tiempo"
+        title: "Agregar puzzle"
+    title: "Agregar..."
     chosen_puzzle: "Rompecabezas seleccionado:"
     choose_puzzle: "Elegir un puzzle"
     puzzle_needed: "Debes seleccionar un puzzle de la lista o añadir uno nuevo"
@@ -200,6 +201,10 @@ add_time:
     add_puzzler: "Añadir co-puzzlero del grupo"
     teamplayer: "Co-puzzlero"
     player_code_info: "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlero no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
+    mode:
+        speed_puzzling: "Speed Puzzling"
+        relax: "Relax (sin tiempo)"
+        to_collection: "Puzzle a la Colección"
 
 forms:
     choose_from_favorites: "- Elegir de favoritos -"

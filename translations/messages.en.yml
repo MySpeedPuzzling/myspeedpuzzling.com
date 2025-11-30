@@ -1,6 +1,6 @@
 menu:
     my_profile: "My profile"
-    add_time: "Add time"
+    puzzle_add: "Add"
     stopwatch: "Stopwatch"
     puzzles_overview: "Puzzle"
     ladder: "Leaderboard"
@@ -35,6 +35,7 @@ footer:
     speed_puzzling_players: "Speed Puzzling Players"
     latest_puzzle_times: "Latest Puzzle Times"
     750_piece_puzzles: "750 Piece Puzzles"
+    puzzle_add: "Add puzzle"
 
 puzzler_name: "Name"
 puzzler: "Puzzler"
@@ -183,10 +184,10 @@ stopwatch:
         paused: "Paused"
         finished: "Puzzle completed"
 
-add_time:
+puzzle_add:
     meta:
-        title: "Add Time"
-    title: "Add Time"
+        title: "Add Puzzle"
+    title: "Add..."
     chosen_puzzle: "Selected puzzle:"
     choose_puzzle: "Choose a puzzle"
     puzzle_needed: "You must select a puzzle from the list or add a new one"

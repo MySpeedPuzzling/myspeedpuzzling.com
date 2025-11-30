@@ -35,14 +35,14 @@
         <div class="d-flex align-items-center gap-2">
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                 {% if collection.collectionId %}
-                    <a href="{{ path('add_time') }}?mode=collection&collection={{ collection.collectionId }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ path('puzzle_add') }}?mode=collection&collection={{ collection.collectionId }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}
                     </a>
                     <a href="{{ path('edit_collection', {collectionId: collection.collectionId}) }}" class="btn btn-sm btn-outline-primary">
                         <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                     </a>
                 {% else %}
-                    <a href="{{ path('add_time') }}?mode=collection&collection={{ system_collection_id }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ path('puzzle_add') }}?mode=collection&collection={{ system_collection_id }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}
                     </a>
                     <a href="{{ path('edit_system_collection', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
@@ -219,7 +219,7 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
-                                                    <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: item.puzzleId}) }}">
+                                                    <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: item.puzzleId}) }}">
                                                         <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
                                                     </a>
                                                 </li>

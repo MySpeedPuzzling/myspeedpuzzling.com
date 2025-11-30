@@ -1,6 +1,6 @@
 menu:
     my_profile: "Můj profil"
-    add_time: "Přidat čas"
+    puzzle_add: "Přidat"
     stopwatch: "Stopky"
     puzzles_overview: "Puzzle"
     ladder: "Žebříček"
@@ -35,6 +35,7 @@ footer:
     speed_puzzling_players: "Speed Puzzling Hráči"
     latest_puzzle_times: "Nejnovější Časy Puzzlí"
     750_piece_puzzles: "750 Dílkové Puzzle"
+    puzzle_add: "Přidat puzzle"
 
 puzzler_name: "Jméno"
 puzzler: "Puzzler"
@@ -181,10 +182,10 @@ stopwatch:
         paused: "Zastavené"
         finished: "Složené puzzle"
 
-add_time:
+puzzle_add:
     meta:
-        title: "Přidat čas"
-    title: "Přidat čas"
+        title: "Přidat puzzle"
+    title: "Přidat..."
     chosen_puzzle: "Vybrané puzzle:"
     choose_puzzle: "Vyberte puzzle"
     puzzle_needed: "Musíte vybrat puzzle ze seznamu nebo přidat nové"
@@ -200,6 +201,10 @@ add_time:
     competition_result: "Výsledek ze soutěže"
     teamplayer: "Spoluskládající"
     player_code_info: "Vyberte z oblíbených nebo zadejte kód hráče (začíná na #). Pokud skládající nemá účet na myspeedpuzzling.com, zadejte prosím jeho jméno."
+    mode:
+        speed_puzzling: "Speed Puzzling"
+        relax: "Relax (bez času)"
+        to_collection: "Puzzle do kolekce"
 
 forms:
     choose_from_favorites: "- Vybrat z oblíbených -"

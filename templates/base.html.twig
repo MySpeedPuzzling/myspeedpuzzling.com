@@ -271,11 +271,11 @@
                         {% endif %}
 
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" rel="nofollow" href="{{ path('add_time') }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('puzzle_add') %}active{% endif %}" rel="nofollow" href="{{ path('puzzle_add') }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-add"></i>
                             </div>
-                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
+                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.puzzle_add'|trans }}</small></div>
                         </a>
 
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
@@ -399,7 +399,7 @@
                                     <a rel="nofollow" href="{{ path('my_profile') }}" class="widget-list-link">{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a rel="nofollow" href="{{ path('add_time') }}" class="widget-list-link">{{ 'menu.add_time'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('puzzle_add') }}" class="widget-list-link">{{ 'footer.puzzle_add'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>

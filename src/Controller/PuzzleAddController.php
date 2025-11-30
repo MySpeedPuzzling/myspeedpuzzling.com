@@ -39,7 +39,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
-final class AddTimeController extends AbstractController
+final class PuzzleAddController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
@@ -55,14 +55,14 @@ final class AddTimeController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/pridat-cas/{puzzleId}',
-            'en' => '/en/add-time/{puzzleId}',
-            'es' => '/es/anadir-tiempo/{puzzleId}',
-            'ja' => '/ja/時間追加/{puzzleId}',
-            'fr' => '/fr/ajouter-temps/{puzzleId}',
-            'de' => '/de/zeit-hinzufuegen/{puzzleId}',
+            'cs' => '/pridat-puzzle/{puzzleId}',
+            'en' => '/en/puzzle-add/{puzzleId}',
+            'es' => '/es/agregar-puzzle/{puzzleId}',
+            'ja' => '/ja/パズル追加/{puzzleId}',
+            'fr' => '/fr/ajouter-puzzle/{puzzleId}',
+            'de' => '/de/puzzle-hinzufuegen/{puzzleId}',
         ],
-        name: 'add_time',
+        name: 'puzzle_add',
     )]
     #[Route(
         path: [
@@ -224,7 +224,7 @@ final class AddTimeController extends AbstractController
             }
         }
 
-        return $this->render('add-time.html.twig', [
+        return $this->render('puzzle_add.html.twig', [
             'active_stopwatch' => $activeStopwatch,
             'active_puzzle' => $activePuzzle,
             'solving_time_form' => $addTimeForm,

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'add_time.meta.title'|trans }}{% endblock %}
+{% block title %}{{ 'puzzle_add.meta.title'|trans }}{% endblock %}
 
 {% block content %}
     <h1 class="h2">{{ 'added_time_recap.title'|trans }}</h1>
@@ -16,12 +16,12 @@
 
     <div class="my-4">
         <div class="btn-group btn-group">
-            <a rel="nofollow" href="{{ path('add_time') }}"  class="btn btn-accent pe-2"><i class="ci-add"></i> {{ 'added_time_recap.add_time'|trans }}</a>
+            <a rel="nofollow" href="{{ path('puzzle_add') }}"  class="btn btn-accent pe-2"><i class="ci-add"></i> {{ 'added_time_recap.add_time'|trans }}</a>
             <button type="button" class="btn btn-accent dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="visually-hidden">Toggle Dropdown</span>
             </button>
             <ul class="dropdown-menu shadow-custom">
-                <li><a class="dropdown-item" rel="nofollow" href="{{ path('add_time', {puzzleId: solved_puzzle.puzzleId}) }}">{{ 'added_time_recap.the_same_puzzle'|trans }}</a></li>
+                <li><a class="dropdown-item" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: solved_puzzle.puzzleId}) }}">{{ 'added_time_recap.the_same_puzzle'|trans }}</a></li>
             </ul>
         </div>
 

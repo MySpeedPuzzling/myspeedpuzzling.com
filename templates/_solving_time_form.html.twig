@@ -13,7 +13,7 @@
 
                 {% if active_puzzle is not null %}
                     <div class="card card-body shadow mb-3">
-                        <h5>{{ 'add_time.chosen_puzzle'|trans }}</h5>
+                        <h5>{{ 'puzzle_add.chosen_puzzle'|trans }}</h5>
 
                         <div class="py-1 d-flex low-line-height">
                             {% if active_puzzle.puzzleImage is not null%}
@@ -42,7 +42,7 @@
 
                         <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
                             <p>
-                                <small class="text-muted">{{ 'add_time.need_approve_info'|trans }}</small>
+                                <small class="text-muted">{{ 'puzzle_add.need_approve_info'|trans }}</small>
                             </p>
 
                             {{ form_row(solving_time_form.puzzlePiecesCount) }}
@@ -72,7 +72,7 @@
                         {# Time field - Speed Puzzling only #}
                         <div class="col-sm mb-3" data-puzzle-add-form-target="timeSection">
                             {% if active_stopwatch is not null %}
-                                <span class="form-label">{{ 'add_time.time_from_stopwatch'|trans }}</span><br>
+                                <span class="form-label">{{ 'puzzle_add.time_from_stopwatch'|trans }}</span><br>
                                 <span class="h5 mt-2 d-inline-block">{{ active_stopwatch.totalSeconds|puzzlingTime }}</span>
                             {% endif %}
 
@@ -123,7 +123,7 @@
                     {% set has_group_players = filled_group_players is defined and filled_group_players|length > 0 %}
                     <div data-controller="toggle">
                         <button type="button" class="btn btn-outline-primary w-100 mb-3 shadow {{ has_group_players ? 'hidden' }}" data-action="click->toggle#toggle click->add-copuzzler#addPuzzler" data-toggle-target-param="group">
-                            <i class="ci-add-user me-1"></i> {{ 'add_time.group_puzzling'|trans }}
+                            <i class="ci-add-user me-1"></i> {{ 'puzzle_add.group_puzzling'|trans }}
                         </button>
 
                         <div class="card card-body shadow mb-3 {{ not has_group_players ? 'hidden' }}" data-toggle-target="group">
@@ -136,7 +136,7 @@
                                 {% endfor %}
                             </div>
 
-                            <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="ci-add-user"></i> {{ 'add_time.add_puzzler'|trans }}</button>
+                            <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="ci-add-user"></i> {{ 'puzzle_add.add_puzzler'|trans }}</button>
                         </div>
                     </div>
                 </div>
@@ -146,7 +146,7 @@
                     {% set competition_filled = solving_time_form.competition.vars.value is not empty %}
                     <div data-controller="toggle">
                         <button type="button" class="btn btn-outline-accent shadow w-100 mb-3 {{ competition_filled ? 'hidden' }}" data-action="click->toggle#toggle" data-toggle-target-param="competition">
-                            <i class="bi-trophy me-1"></i> {{ 'add_time.competition_result'|trans }}
+                            <i class="bi-trophy me-1"></i> {{ 'puzzle_add.competition_result'|trans }}
                         </button>
 
                         <div class="card card-body shadow mb-3 {{ not competition_filled ? 'hidden' }}" data-toggle-target="competition">

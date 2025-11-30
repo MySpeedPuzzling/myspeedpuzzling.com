@@ -184,15 +184,39 @@
                 {# Collection section (Collection mode only, not in edit form) #}
                 {% if solving_time_form.collection is defined %}
                     <div class="card card-body shadow mb-3 d-none" data-puzzle-add-form-target="collectionSection">
-                        {{ form_row(solving_time_form.collection) }}
-
-                        <div data-puzzle-add-form-target="newCollectionFields" class="d-none">
-                            <div class="border rounded p-3 bg-light mb-3">
-                                <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
-                                {{ form_row(solving_time_form.collectionVisibility) }}
-                                {{ form_row(solving_time_form.collectionDescription) }}
+                        {% if not has_active_membership|default(true) %}
+                            {# Non-member: show locked input with system collection name #}
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'forms.add_puzzle_to_collection.collection'|trans }}</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control"
+                                           value="{{ 'collections.system_name'|trans }}" disabled readonly>
+                                    <span class="input-group-text bg-light">
+                                        <i class="ci-locked"></i>
+                                    </span>
+                                </div>
+                                <small class="form-text text-muted">
+                                    {{ 'collections.membership_required.help_text'|trans }}
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                                            data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                        <i class="ci-locked"></i> {{ 'collections.membership_required.unlock_link'|trans }}
+                                    </button>
+                                </small>
                             </div>
-                        </div>
+                            {# Hidden actual collection field with system collection pre-selected #}
+                            {{ form_row(solving_time_form.collection, {'row_attr': {'class': 'd-none'}}) }}
+                        {% else %}
+                            {# Member: show collection selector with autocomplete #}
+                            {{ form_row(solving_time_form.collection) }}
+
+                            <div data-puzzle-add-form-target="newCollectionFields" class="d-none">
+                                <div class="border rounded p-3 bg-light mb-3">
+                                    <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
+                                    {{ form_row(solving_time_form.collectionVisibility) }}
+                                    {{ form_row(solving_time_form.collectionDescription) }}
+                                </div>
+                            </div>
+                        {% endif %}
 
                         {{ form_row(solving_time_form.collectionComment) }}
                     </div>

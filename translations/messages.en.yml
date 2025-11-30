@@ -924,6 +924,7 @@ collections:
     copy_to_collection: "Copy to collection"
     puzzle_moved: "Puzzle successfully moved to collection."
     puzzle_copied: "Puzzle successfully copied to collection."
+    moving_from: "Moving from %collection%"
     move_puzzle_submit: "Move"
     copy_puzzle_submit: "Copy"
     no_move_target: "No available collections"

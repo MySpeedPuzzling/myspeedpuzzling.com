@@ -1,0 +1,16 @@
+<div class="share-profile-link" data-controller="clipboard">
+    <small>{{ 'share'|trans }} (<span class="text-muted">{{ 'my_profile.share_mention_myspeedpuzzling'|trans|raw }}</span>)</small>
+    <div class="input-group input-group-sm">
+        <input
+            data-action="click->clipboard#selectInputContent dblclick->clipboard#selectInputContent focus->clipboard#selectInputContent"
+            {{ stimulus_target('clipboard', 'input')}}
+            value="{{ share_url }}"
+            class="form-control form-control-sm"
+            type="text"
+            readonly
+        >
+        <button {{ stimulus_action('clipboard', 'copyToClipboard', 'click')}} class="btn btn-sm btn-icon btn-primary" type="button">
+            <i {{ stimulus_target('clipboard', 'buttonIcon')}} class="ci-share"></i>
+        </button>
+    </div>
+</div>

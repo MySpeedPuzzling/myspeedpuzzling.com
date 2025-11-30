@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzleIds;
@@ -92,6 +93,7 @@ final class CollectionDetailController extends AbstractController
             'player' => $player,
             'lentPuzzles' => $lentPuzzles,
             'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
+            'system_collection_id' => Collection::SYSTEM_ID,
         ]);
     }
 }

@@ -27,6 +27,9 @@
                     {% endif %}
                 {% endif %}
             </p>
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and collection.visibility.value == 'public' %}
+                {{ include('_share_link.html.twig', {share_url: url('unsolved_puzzles_detail', {playerId: player.playerId})}) }}
+            {% endif %}
             {% if collection.description %}
                 <p class="text-muted small mb-0 mt-1">{{ collection.description }}</p>
             {% endif %}

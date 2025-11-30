@@ -18,7 +18,8 @@ export default class extends Controller {
     ];
 
     static values = {
-        mode: { type: String, default: 'speed_puzzling' }
+        mode: { type: String, default: 'speed_puzzling' },
+        systemId: { type: String, default: '__system_collection__' }
     };
 
     connect() {
@@ -88,8 +89,8 @@ export default class extends Controller {
 
     handleCollectionChange(event) {
         const value = event.target.value;
-        // If value is not a UUID, it's a new collection name
-        const isNewCollection = value && !this.isUuid(value);
+        // If value is not a UUID and not the system collection ID, it's a new collection name
+        const isNewCollection = value && !this.isUuid(value) && value !== this.systemIdValue;
 
         if (this.hasNewCollectionFieldsTarget) {
             this.newCollectionFieldsTarget.classList.toggle('d-none', !isNewCollection);

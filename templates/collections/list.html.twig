@@ -9,7 +9,7 @@
         <h2>{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h2>
         {% if isOwnProfile %}
             <div class="d-flex gap-2">
-                <a href="{{ path('add_new_puzzle_to_collection') }}" class="btn btn-outline-primary">
+                <a href="{{ path('add_time') }}?mode=collection" class="btn btn-outline-primary">
                     <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle_form.button'|trans }}
                 </a>
                 {% if logged_user.profile.activeMembership %}

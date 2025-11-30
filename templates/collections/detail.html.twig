@@ -27,19 +27,22 @@
                     {% endif %}
                 {% endif %}
             </p>
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and collection.visibility.value == 'public' %}
+                {{ include('_share_link.html.twig', {share_url: url('collection_detail', {collectionId: collection.collectionId})}) }}
+            {% endif %}
         </div>
         
         <div class="d-flex align-items-center gap-2">
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                 {% if collection.collectionId %}
-                    <a href="{{ path('add_new_puzzle_to_collection', {collectionId: collection.collectionId}) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ path('add_time') }}?mode=collection&collection={{ collection.collectionId }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}
                     </a>
                     <a href="{{ path('edit_collection', {collectionId: collection.collectionId}) }}" class="btn btn-sm btn-outline-primary">
                         <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                     </a>
                 {% else %}
-                    <a href="{{ path('add_new_puzzle_to_collection') }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ path('add_time') }}?mode=collection&collection={{ system_collection_id }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-puzzle me-1"></i> {{ 'collections.add_puzzle_here.button'|trans }}
                     </a>
                     <a href="{{ path('edit_system_collection', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
@@ -180,14 +183,7 @@
                      data-ean="{{ item.ean ?? '' }}"
                      data-manufacturer="{{ item.manufacturerName ?? '' }}">
                     {% set isLent = lentPuzzles[item.puzzleId] is defined %}
-                    <div class="card card-body shadow p-2 position-relative {{ isLent ? 'puzzle-lent' : '' }}">
-                        {% if isLent %}
-                            <div class="puzzle-lent-overlay">
-                                <span class="badge bg-purple">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': lentPuzzles[item.puzzleId]}) }}
-                                </span>
-                            </div>
-                        {% endif %}
+                    <div class="card card-body shadow p-2 {{ isLent ? 'puzzle-lent' : '' }}">
                         <div class="d-flex">
                             <div style="width: 60px;" class="flex-shrink-0">
                                 {% if item.image %}
@@ -232,6 +228,12 @@
                                                         <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
                                                     </a>
                                                 </li>
+
+                                                {{ include('collections/_dropdown_action.html.twig', {
+                                                    puzzle_id: item.puzzleId,
+                                                    puzzle_statuses: puzzle_statuses,
+                                                }) }}
+
                                                 <li>
                                                     <a class="dropdown-item"
                                                        href="{{ path('collection_move', {puzzleId: item.puzzleId, sourceCollectionId: collection.collectionId ?? '__system_collection__'}) }}"
@@ -264,6 +266,14 @@
                                 <div class="fs-sm text-muted">
                                     {{ item.manufacturerName ?? '-' }}
                                 </div>
+
+                                {% if isLent %}
+                                    <div class="mt-1">
+                                        <span class="badge bg-purple">
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': lentPuzzles[item.puzzleId]}) }}
+                                        </span>
+                                    </div>
+                                {% endif %}
 
                                 {% if item.comment %}
                                     <div class="mt-1" data-controller="expandable-text"

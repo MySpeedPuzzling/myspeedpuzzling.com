@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
@@ -114,6 +115,29 @@ final class AddTimeController extends AbstractController
             $data->puzzle = $activePuzzle->puzzleId;
         }
 
+        // Handle query parameters for mode and collection pre-selection
+        $initialMode = 'speed_puzzling';
+        $queryMode = $request->query->getString('mode');
+        $queryCollection = $request->query->getString('collection');
+
+        if ($queryMode === 'collection') {
+            $data->mode = PuzzleAddMode::Collection;
+            $initialMode = 'collection';
+
+            if ($queryCollection !== '') {
+                $data->collection = $queryCollection;
+            }
+        } elseif ($queryMode === 'relax') {
+            $data->mode = PuzzleAddMode::Relax;
+            $initialMode = 'relax';
+        }
+
+        // For non-members in collection mode, force system collection
+        $hasActiveMembership = $userProfile->activeMembership;
+        if ($data->mode === PuzzleAddMode::Collection && $hasActiveMembership === false) {
+            $data->collection = Collection::SYSTEM_ID;
+        }
+
         /** @var array<string> $groupPlayers */
         $groupPlayers = $request->request->all('group_players');
 
@@ -125,15 +149,21 @@ final class AddTimeController extends AbstractController
             }
         }
 
-        // Get player collections for form options
+        // Get player collections for form options (include system collection)
         $collections = [];
+        $systemCollectionName = $this->translator->trans('collections.system_name');
+        $collections[$systemCollectionName] = Collection::SYSTEM_ID;
+
         foreach ($this->getPlayerCollections->byPlayerId($userProfile->playerId) as $collection) {
-            $collections[$collection->name] = $collection->collectionId;
+            if ($collection->collectionId !== null) {
+                $collections[$collection->name] = $collection->collectionId;
+            }
         }
 
         $addTimeForm = $this->createForm(PuzzleAddFormType::class, $data, [
             'active_puzzle' => $activePuzzle,
             'collections' => $collections,
+            'has_active_membership' => $hasActiveMembership,
         ]);
         $addTimeForm->handleRequest($request);
 
@@ -200,6 +230,9 @@ final class AddTimeController extends AbstractController
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
             'hide_new_puzzle' => Uuid::isValid($data->puzzle ?? '') || $data->brand === null,
             'collections' => $collections,
+            'initial_mode' => $initialMode,
+            'has_active_membership' => $hasActiveMembership,
+            'system_collection_id' => Collection::SYSTEM_ID,
         ]);
     }
 
@@ -283,9 +316,13 @@ final class AddTimeController extends AbstractController
         assert($data->collection !== null);
 
         $collectionId = $data->collection;
+        $targetCollectionId = $collectionId;
 
-        // Handle new collection creation if needed
-        if (Uuid::isValid($data->collection) === false) {
+        // Handle system collection - convert to null for dispatch
+        if ($collectionId === Collection::SYSTEM_ID) {
+            $targetCollectionId = null;
+        } elseif (Uuid::isValid($data->collection) === false) {
+            // Handle new collection creation if needed
             $newCollectionId = Uuid::uuid7();
 
             try {
@@ -299,10 +336,12 @@ final class AddTimeController extends AbstractController
                     ),
                 );
 
-                $collectionId = $newCollectionId->toString();
+                $targetCollectionId = $newCollectionId->toString();
             } catch (HandlerFailedException $exception) {
                 // If collection already exists, we can still proceed
-                if (!$exception->getPrevious() instanceof CollectionAlreadyExists) {
+                if ($exception->getPrevious() instanceof CollectionAlreadyExists) {
+                    $targetCollectionId = $exception->getPrevious()->collectionId;
+                } else {
                     throw $exception;
                 }
             }
@@ -312,14 +351,19 @@ final class AddTimeController extends AbstractController
             new AddPuzzleToCollection(
                 playerId: $playerId,
                 puzzleId: $data->puzzle,
-                collectionId: $collectionId,
+                collectionId: $targetCollectionId,
                 comment: $data->collectionComment,
             ),
         );
 
         $this->addFlash('success', $this->translator->trans('flashes.puzzle_added_to_collection'));
 
-        return $this->redirectToRoute('my_profile');
+        // Redirect to the specific collection
+        if ($targetCollectionId === null) {
+            return $this->redirectToRoute('system_collection_detail', ['playerId' => $playerId]);
+        }
+
+        return $this->redirectToRoute('collection_detail', ['collectionId' => $targetCollectionId]);
     }
 
     /**

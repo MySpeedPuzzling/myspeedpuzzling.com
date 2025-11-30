@@ -21,6 +21,9 @@
                     <i class="ci-eye me-1"></i> {{ 'collections.public'|trans }}
                 </span>
             </p>
+            {% if isOwnProfile %}
+                {{ include('_share_link.html.twig', {share_url: url('sell_swap_list_detail', {playerId: player.playerId})}) }}
+            {% endif %}
         </div>
 
         <div class="d-flex align-items-center gap-2">

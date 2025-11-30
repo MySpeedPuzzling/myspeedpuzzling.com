@@ -259,6 +259,9 @@ final class PuzzleAddFormType extends AbstractType
         /** @var array<string, string> $collections */
         $collections = $options['collections'] ?? [];
 
+        /** @var bool $hasActiveMembership */
+        $hasActiveMembership = $options['has_active_membership'] ?? true;
+
         $collectionChoices = [];
         foreach ($collections as $name => $collectionId) {
             $collectionChoices[] = [
@@ -267,18 +270,21 @@ final class PuzzleAddFormType extends AbstractType
             ];
         }
 
+        // Non-members cannot create new collections
+        $allowCreateCollection = $hasActiveMembership;
+
         $builder->add('collection', TextType::class, [
             'label' => 'forms.add_puzzle_to_collection.collection',
             'help' => 'forms.add_puzzle_to_collection.collection_help',
             'required' => false,
             'autocomplete' => true,
             'tom_select_options' => [
-                'create' => true,
+                'create' => $allowCreateCollection,
                 'persist' => false,
                 'maxItems' => 1,
                 'options' => $collectionChoices,
                 'closeAfterSelect' => true,
-                'createOnBlur' => true,
+                'createOnBlur' => $allowCreateCollection,
             ],
             'attr' => [
                 'class' => 'form-control',
@@ -332,9 +338,11 @@ final class PuzzleAddFormType extends AbstractType
             'data_class' => PuzzleAddFormData::class,
             'active_puzzle' => null,
             'collections' => [],
+            'has_active_membership' => true,
         ]);
 
         $resolver->setAllowedTypes('collections', 'array');
+        $resolver->setAllowedTypes('has_active_membership', 'bool');
     }
 
     /**

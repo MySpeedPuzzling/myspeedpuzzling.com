@@ -28,6 +28,9 @@
                     {% endif %}
                 </span>
             </p>
+            {% if isOwnProfile and visibility.value == 'public' %}
+                {{ include('_share_link.html.twig', {share_url: url('lend_borrow_list_detail', {playerId: player.playerId})}) }}
+            {% endif %}
         </div>
 
         <div class="d-flex align-items-center gap-2">
@@ -46,22 +49,21 @@
     </div>
 
     {# Tabs for Lent and Borrowed #}
-    <ul class="nav nav-tabs mb-4" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="lent-tab" data-bs-toggle="tab" data-bs-target="#lent-pane" type="button" role="tab" aria-controls="lent-pane" aria-selected="true">
-                <i class="bi bi-box-arrow-up-right me-1"></i>
-                {{ 'lend_borrow.tab.lent'|trans }}
-                <span class="badge bg-secondary ms-1">{{ lentPuzzles|length }}</span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="borrowed-tab" data-bs-toggle="tab" data-bs-target="#borrowed-pane" type="button" role="tab" aria-controls="borrowed-pane" aria-selected="false">
-                <i class="bi bi-box-arrow-in-down-left me-1"></i>
-                {{ 'lend_borrow.tab.borrowed'|trans }}
-                <span class="badge bg-secondary ms-1">{{ borrowedPuzzles|length }}</span>
-            </button>
-        </li>
-    </ul>
+    <div class="btn-group w-100 mb-4" role="tablist">
+        <input type="radio" class="btn-check" name="lend-borrow-tab" id="lent-tab" autocomplete="off" checked
+               data-bs-toggle="tab" data-bs-target="#lent-pane">
+        <label class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm" for="lent-tab">
+            <i class="bi bi-box-arrow-up-right"></i>
+            <small>{{ 'lend_borrow.tab.lent'|trans }} ({{ lentPuzzles|length }})</small>
+        </label>
+
+        <input type="radio" class="btn-check" name="lend-borrow-tab" id="borrowed-tab" autocomplete="off"
+               data-bs-toggle="tab" data-bs-target="#borrowed-pane">
+        <label class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm" for="borrowed-tab">
+            <i class="bi bi-box-arrow-in-down-left"></i>
+            <small>{{ 'lend_borrow.tab.borrowed'|trans }} ({{ borrowedPuzzles|length }})</small>
+        </label>
+    </div>
 
     <div class="tab-content">
         {# Lent Puzzles Tab #}
@@ -145,8 +147,9 @@
                                                                 </a>
                                                             </li>
                                                         {% endif %}
+
                                                         {% if hasMembership %}
-                                                            {{ include('sell-swap/_dropdown_action.html.twig', {
+                                                            {{ include('lend-borrow/_dropdown_action.html.twig', {
                                                                 puzzle_id: item.puzzleId,
                                                                 puzzle_statuses: puzzle_statuses
                                                             }) }}
@@ -248,10 +251,9 @@
                                                                     <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_owner'|trans }}
                                                                 </a>
                                                             </li>
-                                                            <li><hr class="dropdown-divider"></li>
                                                         {% endif %}
 
-                                                        {{ include('sell-swap/_dropdown_action.html.twig', {
+                                                        {{ include('lend-borrow/_dropdown_action.html.twig', {
                                                             puzzle_id: item.puzzleId,
                                                             puzzle_statuses: puzzle_statuses
                                                         }) }}

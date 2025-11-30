@@ -17,16 +17,7 @@
     color: var(--cz-accent) !important;
 }
 
-// Lent puzzle overlay in collections
+// Lent puzzle styling in collections
 .puzzle-lent {
-    opacity: 0.8;
-    position: relative;
-
-    .puzzle-lent-overlay {
-        position: absolute;
-        top: 0;
-        right: 0;
-        z-index: 10;
-        padding: 0.25rem;
-    }
+    opacity: 0.7;
 }

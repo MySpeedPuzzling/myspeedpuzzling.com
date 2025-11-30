@@ -31,6 +31,12 @@ final class PassLentPuzzleForm extends AbstractController
     #[LiveProp]
     public string $lentPuzzleId = '';
 
+    #[LiveProp]
+    public string $context = 'detail';
+
+    #[LiveProp]
+    public string $tab = '';
+
     public function __construct(
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,

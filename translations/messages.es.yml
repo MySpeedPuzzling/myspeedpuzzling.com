@@ -62,6 +62,7 @@ filtered_out_puzzlers_count_info: "Ocultos <strong>%count% puzzleros</strong> si
 my_time: "Mi tiempo:"
 puzzle_solved_count: "Número de completados:"
 puzzle_solved_times: "completado %count%x"
+puzzle.relax_solvings_count: "%count%x resuelto en modo relax"
 never_solved_puzzles: "Nadie ha resuelto estos puzzles aún, ¡sé el primero!"
 show_more_solving_times: "Más (%count%x)"
 be_first_to_solve: "Nadie ha resuelto estos puzzles aún. ¡Sé el primero!"
@@ -91,6 +92,9 @@ active_membership: "Membresía activa"
 new_badge: "Nuevo"
 secret_puzzler_name: "Puzzlero Oculto"
 right_now: "Ahora mismo"
+
+badge:
+    relax: "Relax"
 
 homepage:
     meta:
@@ -201,6 +205,8 @@ puzzle_add:
     add_puzzler: "Añadir co-puzzlero del grupo"
     teamplayer: "Co-puzzlero"
     player_code_info: "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlero no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
+    competition_result: "Resultado de competición"
+    group_puzzling: "Armando en pareja/grupo"
     mode:
         speed_puzzling: "Speed Puzzling"
         relax: "Relax (sin tiempo)"
@@ -235,6 +241,10 @@ forms:
     submit: "Enviar"
     update: "Actualizar"
     yes: "Sí"
+    hours_short: "hrs"
+    minutes_short: "min"
+    seconds_short: "seg"
+    time_required: "Por favor, introduce el tiempo"
     add_puzzle_to_collection:
         choose_collection: "- Elegir colección -"
         collection: "Colección"
@@ -459,6 +469,8 @@ flashes:
     stopwatch_already_saved: "Estos cronómetros ya han sido guardados."
     collection_not_found: "¡La colección que buscabas no existe en nuestra plataforma!"
     puzzle_removed_from_collection: "El puzzle ha sido eliminado de la colección."
+    puzzle_added_to_collection: "El puzzle ha sido añadido a la colección."
+    tracking_added: "Hemos guardado el seguimiento de tu puzzle."
     puzzle_needs_approve: "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
     time_added: "Hemos guardado tu tiempo de rompecabezas."
     time_deleted: "¡Hemos eliminado toda evidencia. ¡Nadie sabrá jamás lo que acaba de pasar!"
@@ -615,6 +627,17 @@ global_search:
     info: "¡Bienvenida nueva búsqueda! Busca por nombre del puzzle, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
     no_player_found: "No se encontró jugador :-("
     no_puzzle_found: "No se encontró puzzle :-("
+
+added_tracking_recap:
+    meta:
+        title: "Puzzle registrado"
+    title: "¡Puzzle registrado con éxito!"
+    add_another: "Registrar otro puzzle"
+    the_same_puzzle: "Registrar el mismo puzzle de nuevo"
+    puzzle_detail: "Ver detalle del puzzle"
+    manufacturer: "Fabricante"
+    pieces: "Piezas"
+    group_puzzlers: "Armado con"
 
 membership:
     meta:
@@ -816,15 +839,6 @@ blog:
             <p>PS2. Eres valiente si has leído hasta el final :-).</p>
 
 collections:
-    add_puzzle:
-        title: "Añadir puzzle a la colección"
-        button: "Añadir puzzle"
-        description: "Seleccione un puzzle existente o añada uno nuevo a su colección."
-        submit: "Añadir a la colección"
-        success: "El puzzle se ha añadido correctamente a la colección."
-        puzzle_section: "Seleccionar puzzle"
-        collection_section: "Seleccionar colección"
-        new_puzzle_section: "Detalles del nuevo puzzle"
     add_puzzle_here:
         button: "Añadir puzzle"
     add_puzzle_form:
@@ -833,11 +847,11 @@ collections:
         description: "Seleccione un puzzle existente o añada uno nuevo a su colección."
         submit: "Añadir a la colección"
         success: "El puzzle se ha añadido correctamente a la colección."
-        puzzle_section: "Seleccionar puzzle"
-        collection_section: "Seleccionar colección"
-        new_puzzle_section: "Detalles del nuevo puzzle"
     comment_help: "Añada un comentario opcional sobre este puzzle en su colección."
     add_to_collection: "Añadir a la colección"
+    add_puzzle: "Añadir puzzle a la colección"
+    moving_from: "Moviendo de %collection%"
+    private: "Privada"
     added_on: "Añadido el %date%"
     already_in_system: "Puzzle ya en tu colección"
     already_in_system_message: "Este puzzle ya está en tu Colección de Puzzles. ¿Quieres organizar tus puzzles en múltiples colecciones? ¡Desbloquea esta función con la membresía!"
@@ -915,9 +929,6 @@ collections:
     no_move_target_message: "No hay otras colecciones a las que mover este puzzle. Crea colecciones personalizadas para organizar tus puzzles."
     no_puzzles: "No hay puzzles en esta colección"
     no_puzzles_description: "Esta colección está vacía. ¡Añade algunos puzzles para empezar!"
-    private:
-        title: "Colección privada"
-        message: "La colección de %name% es privada y no se puede ver."
     private_page:
         title: "Colección privada"
         message: "La colección de %name% es privada y no se puede ver."

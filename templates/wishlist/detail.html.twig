@@ -13,7 +13,7 @@
                     <span class="text-muted px-2">•</span>
                 {% endif %}
                 <i class="bi bi-puzzle me-1"></i>
-                {{ 'wish_list.items_count'|trans({'%count%': '<span data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
+                {{ 'wish_list.items_count'|trans({'%count%': '<span id="wishlist-count" data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
                 <span class="px-2"></span>
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                     {% if collection.visibility.value == 'private' %}
@@ -145,23 +145,15 @@
         </div>
     {% endif %}
 
+    {% set isOwnProfile = logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
+    <div id="wishlist-list-container">
     {% if items is empty %}
-        <div class="text-center py-5">
-            <div class="mb-3">
-                <i class="bi bi-heart fs-1 text-muted"></i>
-            </div>
-            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
-                <h4 class="text-muted">{{ 'wish_list.empty.title'|trans }}</h4>
-                <p class="text-muted">{{ 'wish_list.empty.message'|trans }}</p>
-            {% else %}
-                <h4 class="text-muted">{{ 'wish_list.empty.title_other'|trans }}</h4>
-                <p class="text-muted">{{ 'wish_list.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
-            {% endif %}
-        </div>
+        {{ include('wishlist/_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
     {% else %}
         <div class="row g-3 mb-3">
             {% for item in items %}
                 <div class="col-12 col-lg-6"
+                     id="wishlist-item-{{ item.puzzleId }}"
                      data-collection-items-target="item"
                      data-collection-item-id="{{ item.wishListItemId }}"
                      data-puzzle-id="{{ item.puzzleId }}"
@@ -234,7 +226,8 @@
 
                                                 {{ include('wishlist/_dropdown_action.html.twig', {
                                                     puzzle_id: item.puzzleId,
-                                                    puzzle_statuses: puzzle_statuses
+                                                    puzzle_statuses: puzzle_statuses,
+                                                    context: 'list',
                                                 }) }}
                                             </ul>
                                         </div>
@@ -257,5 +250,6 @@
             </div>
         </div>
     {% endif %}
+    </div>
 </div>
 {% endblock %}

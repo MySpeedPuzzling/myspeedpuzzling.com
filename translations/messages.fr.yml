@@ -62,6 +62,7 @@ filtered_out_puzzlers_count_info: "Masqué <strong>%count% puzzleurs</strong> sa
 my_time: "Mon temps :"
 puzzle_solved_count: "Nombre de complétions :"
 puzzle_solved_times: "terminé %count%x"
+puzzle.relax_solvings_count: "%count%x résolu en mode relax"
 never_solved_puzzles: "Personne n'a encore résolu ces puzzles, soyez le premier !"
 show_more_solving_times: "Plus (%count%x)"
 be_first_to_solve: "Personne n'a encore résolu ces puzzles. Soyez le premier !"
@@ -91,6 +92,9 @@ active_membership: "Adhésion active"
 new_badge: "Nouveau"
 secret_puzzler_name: "Puzzleur masqué"
 right_now: "En ce moment"
+
+badge:
+    relax: "Relax"
 
 homepage:
     meta:
@@ -205,6 +209,8 @@ puzzle_add:
         speed_puzzling: "Speed Puzzling"
         relax: "Relax (sans temps)"
         to_collection: "Puzzle à la Collection"
+    competition_result: "Résultat de compétition"
+    group_puzzling: "Puzzle en duo/groupe"
 
 forms:
     choose_from_favorites: "- Choisir parmi les favoris -"
@@ -235,6 +241,10 @@ forms:
     submit: "Envoyer"
     update: "Mettre à jour"
     yes: "Oui"
+    hours_short: "h"
+    minutes_short: "min"
+    seconds_short: "sec"
+    time_required: "Veuillez entrer le temps"
     add_puzzle_to_collection:
         choose_collection: "- Choisir une collection -"
         collection: "Collection"
@@ -459,6 +469,8 @@ flashes:
     stopwatch_already_saved: "Ces chronomètres ont déjà été sauvegardés."
     collection_not_found: "La collection que vous avez recherchée n'existe pas sur notre plateforme !"
     puzzle_removed_from_collection: "Le puzzle a été retiré de la collection."
+    puzzle_added_to_collection: "Le puzzle a été ajouté à la collection."
+    tracking_added: "Nous avons enregistré votre suivi de puzzle."
     puzzle_needs_approve: "Les puzzles récemment ajoutés seront affichés publiquement après approbation par un administrateur - généralement dans les 24 heures suivant l'ajout."
     time_added: "Nous avons sauvegardé votre temps de puzzle."
     time_deleted: "Nous avons supprimé toutes les preuves. Personne ne saura jamais ce qui vient de se passer !"
@@ -610,6 +622,17 @@ added_time_recap:
     add_time: "Ajouter nouveau temps"
     the_same_puzzle: "Pour le même puzzle"
     puzzle_detail: "Résultats"
+
+added_tracking_recap:
+    meta:
+        title: "Puzzle suivi"
+    title: "Puzzle suivi avec succès !"
+    add_another: "Suivre un autre puzzle"
+    the_same_puzzle: "Suivre à nouveau le même puzzle"
+    puzzle_detail: "Voir le détail du puzzle"
+    manufacturer: "Fabricant"
+    pieces: "Pièces"
+    group_puzzlers: "Puzzlé avec"
 
 global_search:
     info: "Bienvenue nouvelle recherche ! Recherchez par nom de puzzle, ean ou code. Recherchez un joueur par nom ou code. Veuillez nous faire part de vos commentaires."
@@ -816,15 +839,9 @@ blog:
             <p>PS2. Vous êtes courageux si vous avez lu jusqu'au bout :-).</p>
 
 collections:
-    add_puzzle:
-        title: "Ajouter un puzzle à la collection"
-        button: "Ajouter un puzzle"
-        description: "Sélectionnez un puzzle existant ou ajoutez-en un nouveau à votre collection."
-        submit: "Ajouter à la collection"
-        success: "Le puzzle a été ajouté avec succès à la collection."
-        puzzle_section: "Sélectionner le puzzle"
-        collection_section: "Sélectionner la collection"
-        new_puzzle_section: "Détails du nouveau puzzle"
+    add_puzzle: "Ajouter puzzle à la collection"
+    moving_from: "Déplacement depuis %collection%"
+    private: "Privée"
     add_puzzle_here:
         button: "Ajouter un puzzle"
     add_puzzle_form:
@@ -833,9 +850,6 @@ collections:
         description: "Sélectionnez un puzzle existant ou ajoutez-en un nouveau à votre collection."
         submit: "Ajouter à la collection"
         success: "Le puzzle a été ajouté avec succès à la collection."
-        puzzle_section: "Sélectionner le puzzle"
-        collection_section: "Sélectionner la collection"
-        new_puzzle_section: "Détails du nouveau puzzle"
     add_to_collection: "Ajouter à la collection"
     comment_help: "Ajoutez un commentaire facultatif sur ce puzzle dans votre collection."
     added_on: "Ajouté le %date%"
@@ -915,9 +929,6 @@ collections:
     no_move_target_message: "Il n'y a pas d'autres collections vers lesquelles déplacer ce puzzle. Créez des collections personnalisées pour organiser vos puzzles."
     no_puzzles: "Aucun puzzle dans cette collection"
     no_puzzles_description: "Cette collection est vide. Ajoutez des puzzles pour commencer !"
-    private:
-        title: "Collection privée"
-        message: "La collection de %name% est privée et ne peut pas être consultée."
     private_page:
         title: "Collection privée"
         message: "La collection de %name% est privée et ne peut pas être consultée."

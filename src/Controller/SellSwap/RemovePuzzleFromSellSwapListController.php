@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromSellSwapList;
+use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,6 +24,7 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetSellSwapListItems $getSellSwapListItems,
     ) {
     }
 
@@ -61,9 +63,14 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
 
             // Different response based on context
             if ($context === 'list') {
-                // Called from sell-swap list page - just remove the item
+                // Called from sell-swap list page - remove the item, update count, possibly show empty state
+                $remainingCount = $this->getSellSwapListItems->countByPlayerId($loggedPlayer->playerId);
+
                 return $this->render('sell-swap/_remove_from_list_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
+                    'remaining_count' => $remainingCount,
+                    'isOwnProfile' => true, // Always true since only owner can remove
+                    'player' => $loggedPlayer,
                     'message' => $this->translator->trans('sell_swap_list.flash.removed'),
                 ]);
             }

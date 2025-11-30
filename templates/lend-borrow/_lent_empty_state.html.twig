@@ -1,0 +1,12 @@
+<div class="text-center py-5">
+    <div class="mb-3">
+        <i class="bi bi-box-arrow-up-right fs-1 text-muted"></i>
+    </div>
+    {% if isOwnProfile %}
+        <h4 class="text-muted">{{ 'lend_borrow.lent.empty.title'|trans }}</h4>
+        <p class="text-muted">{{ 'lend_borrow.lent.empty.message'|trans }}</p>
+    {% else %}
+        <h4 class="text-muted">{{ 'lend_borrow.lent.empty.title_other'|trans }}</h4>
+        <p class="text-muted">{{ 'lend_borrow.lent.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
+    {% endif %}
+</div>

@@ -17,7 +17,23 @@
     color: var(--cz-accent) !important;
 }
 
-// Lent puzzle styling in collections
+// Lent puzzle styling in collections - emphasize "not home" state
 .puzzle-lent {
-    opacity: 0.7;
+    // Grayscale the puzzle image
+    img {
+        filter: grayscale(80%);
+        opacity: 0.7;
+    }
+
+    // Mute text content
+    a:not(.dropdown-item):not(.btn),
+    small,
+    .text-muted {
+        opacity: 0.6;
+    }
+
+    // Keep dropdown button and menu fully visible
+    .dropdown {
+        opacity: 1;
+    }
 }

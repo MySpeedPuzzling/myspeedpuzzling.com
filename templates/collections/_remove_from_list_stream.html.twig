@@ -1,21 +1,23 @@
-{# Remove the item from the sell-swap list #}
-<turbo-stream action="remove" target="sellswap-list-item-{{ puzzle_id }}"></turbo-stream>
+{# Only remove the item if we're viewing the same collection we removed from #}
+{% if removed_from_collection_id == current_collection_id %}
+<turbo-stream action="remove" target="collection-item-{{ puzzle_id }}"></turbo-stream>
 
 {# Update the count #}
-<turbo-stream action="update" target="sellswap-count">
+<turbo-stream action="update" target="collection-count">
     <template>{{ remaining_count }}</template>
 </turbo-stream>
 
 {# Show empty state if no items remaining #}
 {% if remaining_count == 0 %}
-<turbo-stream action="update" target="sellswap-list-container">
+<turbo-stream action="update" target="collection-list-container">
     <template>
-        {{ include('sell-swap/_empty_state.html.twig') }}
+        {{ include('collections/_empty_state.html.twig') }}
     </template>
 </turbo-stream>
 {% endif %}
+{% endif %}
 
-{# Show toast notification #}
+{# Toast always shows (regardless of which collection) #}
 <turbo-stream action="append" target="toast-container">
     <template>
         <div class="toast align-items-center text-bg-success border-0"

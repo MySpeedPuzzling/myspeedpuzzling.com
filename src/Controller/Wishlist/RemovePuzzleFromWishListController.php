@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Wishlist;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromWishList;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,6 +24,7 @@ final class RemovePuzzleFromWishListController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetWishListItems $getWishListItems,
     ) {
     }
 
@@ -55,6 +57,23 @@ final class RemovePuzzleFromWishListController extends AbstractController
         if ($request->headers->has('Turbo-Frame') || TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+            $context = $request->request->getString('context', 'detail');
+
+            // Different response based on context
+            if ($context === 'list') {
+                // Called from wishlist detail page - remove item, update count, possibly show empty state
+                $remainingCount = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+
+                return $this->render('wishlist/_remove_from_list_stream.html.twig', [
+                    'puzzle_id' => $puzzleId,
+                    'remaining_count' => $remainingCount,
+                    'isOwnProfile' => true, // Always true since only owner can remove
+                    'player' => $loggedPlayer,
+                    'message' => $this->translator->trans('wish_list.remove.success'),
+                ]);
+            }
+
+            // Called from puzzle detail page - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
             return $this->render('wishlist/_stream.html.twig', [

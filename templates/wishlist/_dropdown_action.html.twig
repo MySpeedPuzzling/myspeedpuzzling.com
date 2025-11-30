@@ -1,10 +1,11 @@
+{% set context = context|default('detail') %}
 {% if puzzle_id in puzzle_statuses.wishlist %}
     <li id="wishlist-action-{{puzzle_id }}">
         <form action="{{ path('remove_puzzle_from_wish_list', {puzzleId: puzzle_id}) }}"
               method="post"
               class="d-inline"
               data-turbo="true">
-
+            <input type="hidden" name="context" value="{{ context }}">
             <button type="submit" class="dropdown-item text-danger">
                 <i class="bi bi-heart-fill text-danger me-1"></i> {{ 'wish_list.remove.button'|trans }}
             </button>

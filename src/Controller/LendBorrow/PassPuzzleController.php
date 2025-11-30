@@ -8,6 +8,8 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\PassLentPuzzleFormData;
 use SpeedPuzzling\Web\FormType\PassLentPuzzleFormType;
 use SpeedPuzzling\Web\Message\PassLentPuzzle;
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -30,6 +32,8 @@ final class PassPuzzleController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private LentPuzzleRepository $lentPuzzleRepository,
         readonly private PlayerRepository $playerRepository,
+        readonly private GetLentPuzzles $getLentPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
     ) {
     }
 
@@ -97,6 +101,20 @@ final class PassPuzzleController extends AbstractController
                 $newHolderName = $cleanedInput;
             }
 
+            // Determine if this is pass-to-owner (which behaves as return)
+            $wasPassedToOwner = false;
+            if ($newHolderPlayerId !== null && $lentPuzzle->ownerPlayer !== null) {
+                $wasPassedToOwner = $lentPuzzle->ownerPlayer->id->toString() === $newHolderPlayerId;
+            }
+
+            // Get display name for the new holder (for UPDATE stream)
+            $newHolderDisplayName = $newHolderName; // Plain text name
+            if ($newHolderPlayerId !== null && !$wasPassedToOwner) {
+                // Registered player - get their display name
+                $newHolderPlayer = $this->playerRepository->get($newHolderPlayerId);
+                $newHolderDisplayName = $newHolderPlayer->name ?? $newHolderPlayer->code;
+            }
+
             $this->messageBus->dispatch(new PassLentPuzzle(
                 lentPuzzleId: $lentPuzzleId,
                 currentHolderPlayerId: $loggedPlayer->playerId,
@@ -108,6 +126,37 @@ final class PassPuzzleController extends AbstractController
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+                // Context and tab come from form submission (hidden fields) or query string
+                $context = $request->request->getString('context', $request->query->getString('context', 'detail'));
+                $tab = $request->request->getString('tab', $request->query->getString('tab', ''));
+
+                // Different response based on context
+                if ($context === 'list') {
+                    $lentCount = $this->getLentPuzzles->countByOwnerId($loggedPlayer->playerId);
+                    $borrowedCount = $this->getBorrowedPuzzles->countByHolderId($loggedPlayer->playerId);
+
+                    // Owner passing to someone else (not owner) = UPDATE item, don't remove
+                    if ($tab === 'lent' && !$wasPassedToOwner) {
+                        return $this->render('lend-borrow/_update_lent_item_stream.html.twig', [
+                            'puzzle_id' => $puzzleId,
+                            'new_holder_name' => $newHolderDisplayName,
+                            'message' => $this->translator->trans('lend_borrow.flash.passed'),
+                        ]);
+                    }
+
+                    // Borrower passing OR pass-to-owner = REMOVE item
+                    return $this->render('lend-borrow/_remove_from_list_stream.html.twig', [
+                        'puzzle_id' => $puzzleId,
+                        'tab' => $tab,
+                        'lent_count' => $lentCount,
+                        'borrowed_count' => $borrowedCount,
+                        'isOwnProfile' => true,
+                        'player' => $loggedPlayer,
+                        'message' => $this->translator->trans('lend_borrow.flash.passed'),
+                    ]);
+                }
+
+                // Called from puzzle detail page - update badges and dropdown
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
                 return $this->render('lend-borrow/_stream.html.twig', [
@@ -125,10 +174,16 @@ final class PassPuzzleController extends AbstractController
         }
 
         // Handle GET - show modal/form
+        // Context and tab come from query string for initial modal load
+        $context = $request->query->getString('context', 'detail');
+        $tab = $request->query->getString('tab', '');
+
         $templateParams = [
             'lentPuzzleId' => $lentPuzzleId,
             'puzzle' => $lentPuzzle->puzzle,
             'form' => $form,
+            'context' => $context,
+            'tab' => $tab,
         ];
 
         // Turbo Frame request - return frame content only

@@ -946,9 +946,6 @@ collections:
         description: "Select an existing puzzle or add a new one to your collection."
         submit: "Add to Collection"
         success: "Puzzle has been successfully added to the collection."
-        puzzle_section: "Select Puzzle"
-        collection_section: "Select Collection"
-        new_puzzle_section: "New Puzzle Details"
 
 unsolved_puzzles:
     name: "Unsolved Puzzles"

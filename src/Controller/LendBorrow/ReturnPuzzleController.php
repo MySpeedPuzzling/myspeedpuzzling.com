@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\LendBorrow;
 
 use SpeedPuzzling\Web\Message\ReturnLentPuzzle;
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -25,6 +27,8 @@ final class ReturnPuzzleController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private LentPuzzleRepository $lentPuzzleRepository,
+        readonly private GetLentPuzzles $getLentPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
     ) {
     }
 
@@ -61,6 +65,27 @@ final class ReturnPuzzleController extends AbstractController
         if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+            $context = $request->request->getString('context', 'detail');
+            $tab = $request->request->getString('tab', '');
+
+            // Different response based on context
+            if ($context === 'list') {
+                // Called from lend-borrow list page - remove item, update counts, possibly show empty state
+                $lentCount = $this->getLentPuzzles->countByOwnerId($loggedPlayer->playerId);
+                $borrowedCount = $this->getBorrowedPuzzles->countByHolderId($loggedPlayer->playerId);
+
+                return $this->render('lend-borrow/_remove_from_list_stream.html.twig', [
+                    'puzzle_id' => $puzzleId,
+                    'tab' => $tab,
+                    'lent_count' => $lentCount,
+                    'borrowed_count' => $borrowedCount,
+                    'isOwnProfile' => true,
+                    'player' => $loggedPlayer,
+                    'message' => $this->translator->trans('lend_borrow.flash.returned'),
+                ]);
+            }
+
+            // Called from puzzle detail page - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
             return $this->render('lend-borrow/_stream.html.twig', [

@@ -84,4 +84,28 @@ SQL;
             );
         }, $data);
     }
+
+    public function countByCollectionAndPlayer(null|string $collectionId, string $playerId): int
+    {
+        $collectionCondition = $collectionId === null
+            ? 'collection_id IS NULL'
+            : 'collection_id = :collectionId';
+
+        $params = ['playerId' => $playerId];
+        if ($collectionId !== null) {
+            $params['collectionId'] = $collectionId;
+        }
+
+        $query = <<<SQL
+SELECT COUNT(*) as item_count
+FROM collection_item
+WHERE player_id = :playerId AND {$collectionCondition}
+SQL;
+
+        $result = $this->database
+            ->executeQuery($query, $params)
+            ->fetchOne();
+
+        return is_numeric($result) ? (int) $result : 0;
+    }
 }

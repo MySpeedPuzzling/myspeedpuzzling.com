@@ -1,0 +1,49 @@
+{# Remove the item from the appropriate tab #}
+{% if tab == 'lent' %}
+<turbo-stream action="remove" target="lent-item-{{ puzzle_id }}"></turbo-stream>
+{% else %}
+<turbo-stream action="remove" target="borrowed-item-{{ puzzle_id }}"></turbo-stream>
+{% endif %}
+
+{# Update the tab counts #}
+<turbo-stream action="update" target="lent-tab-count">
+    <template>{{ lent_count }}</template>
+</turbo-stream>
+
+<turbo-stream action="update" target="borrowed-tab-count">
+    <template>{{ borrowed_count }}</template>
+</turbo-stream>
+
+{# Show empty state for lent tab if needed #}
+{% if tab == 'lent' and lent_count == 0 %}
+<turbo-stream action="update" target="lent-list-container">
+    <template>
+        {{ include('lend-borrow/_lent_empty_state.html.twig') }}
+    </template>
+</turbo-stream>
+{% endif %}
+
+{# Show empty state for borrowed tab if needed #}
+{% if tab == 'borrowed' and borrowed_count == 0 %}
+<turbo-stream action="update" target="borrowed-list-container">
+    <template>
+        {{ include('lend-borrow/_borrowed_empty_state.html.twig') }}
+    </template>
+</turbo-stream>
+{% endif %}
+
+{# Show toast notification #}
+<turbo-stream action="append" target="toast-container">
+    <template>
+        <div class="toast align-items-center text-bg-success border-0"
+             data-controller="turbo-stream-toast"
+             data-turbo-stream-toast-delay-value="3000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    {{ message }}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </template>
+</turbo-stream>

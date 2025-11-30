@@ -50,41 +50,30 @@
 
     {# Tabs for Lent and Borrowed #}
     <div class="btn-group w-100 mb-4" role="tablist">
-        <input type="radio" class="btn-check" name="lend-borrow-tab" id="lent-tab" autocomplete="off" checked
-               data-bs-toggle="tab" data-bs-target="#lent-pane">
-        <label class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm" for="lent-tab">
+        <button type="button" class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm active"
+                id="lent-tab" data-bs-toggle="tab" data-bs-target="#lent-pane" role="tab" aria-controls="lent-pane" aria-selected="true">
             <i class="bi bi-box-arrow-up-right"></i>
-            <small>{{ 'lend_borrow.tab.lent'|trans }} ({{ lentPuzzles|length }})</small>
-        </label>
+            <small>{{ 'lend_borrow.tab.lent'|trans }} (<span id="lent-tab-count">{{ lentPuzzles|length }}</span>)</small>
+        </button>
 
-        <input type="radio" class="btn-check" name="lend-borrow-tab" id="borrowed-tab" autocomplete="off"
-               data-bs-toggle="tab" data-bs-target="#borrowed-pane">
-        <label class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm" for="borrowed-tab">
+        <button type="button" class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm"
+                id="borrowed-tab" data-bs-toggle="tab" data-bs-target="#borrowed-pane" role="tab" aria-controls="borrowed-pane" aria-selected="false">
             <i class="bi bi-box-arrow-in-down-left"></i>
-            <small>{{ 'lend_borrow.tab.borrowed'|trans }} ({{ borrowedPuzzles|length }})</small>
-        </label>
+            <small>{{ 'lend_borrow.tab.borrowed'|trans }} (<span id="borrowed-tab-count">{{ borrowedPuzzles|length }}</span>)</small>
+        </button>
     </div>
 
     <div class="tab-content">
         {# Lent Puzzles Tab #}
         <div class="tab-pane fade show active" id="lent-pane" role="tabpanel" aria-labelledby="lent-tab">
+            <div id="lent-list-container">
             {% if lentPuzzles is empty %}
-                <div class="text-center py-5">
-                    <div class="mb-3">
-                        <i class="bi bi-box-arrow-up-right fs-1 text-muted"></i>
-                    </div>
-                    {% if isOwnProfile %}
-                        <h4 class="text-muted">{{ 'lend_borrow.lent.empty.title'|trans }}</h4>
-                        <p class="text-muted">{{ 'lend_borrow.lent.empty.message'|trans }}</p>
-                    {% else %}
-                        <h4 class="text-muted">{{ 'lend_borrow.lent.empty.title_other'|trans }}</h4>
-                        <p class="text-muted">{{ 'lend_borrow.lent.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
-                    {% endif %}
-                </div>
+                {{ include('lend-borrow/_lent_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
             {% else %}
                 <div class="row g-3 mb-3">
                     {% for item in lentPuzzles %}
                         <div class="col-12 col-lg-6"
+                             id="lent-item-{{ item.puzzleId }}"
                              data-collection-items-target="item"
                              data-puzzle-id="{{ item.puzzleId }}"
                              data-pieces-count="{{ item.piecesCount }}"
@@ -120,7 +109,7 @@
                                                 <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
 
                                                 <div class="mt-1">
-                                                    <span class="badge bg-purple">
+                                                    <span id="lent-holder-{{ item.puzzleId }}" class="badge bg-purple">
                                                         <i class="bi bi-person me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': item.currentHolderName}) }}
                                                     </span>
                                                     <span class="badge bg-light text-dark">
@@ -151,7 +140,9 @@
                                                         {% if hasMembership %}
                                                             {{ include('lend-borrow/_dropdown_action.html.twig', {
                                                                 puzzle_id: item.puzzleId,
-                                                                puzzle_statuses: puzzle_statuses
+                                                                puzzle_statuses: puzzle_statuses,
+                                                                context: 'list',
+                                                                tab: 'lent',
                                                             }) }}
                                                         {% endif %}
                                                     </ul>
@@ -169,27 +160,19 @@
                     {% endfor %}
                 </div>
             {% endif %}
+            </div>
         </div>
 
         {# Borrowed Puzzles Tab #}
         <div class="tab-pane fade" id="borrowed-pane" role="tabpanel" aria-labelledby="borrowed-tab">
+            <div id="borrowed-list-container">
             {% if borrowedPuzzles is empty %}
-                <div class="text-center py-5">
-                    <div class="mb-3">
-                        <i class="bi bi-box-arrow-in-down-left fs-1 text-muted"></i>
-                    </div>
-                    {% if isOwnProfile %}
-                        <h4 class="text-muted">{{ 'lend_borrow.borrowed.empty.title'|trans }}</h4>
-                        <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message'|trans }}</p>
-                    {% else %}
-                        <h4 class="text-muted">{{ 'lend_borrow.borrowed.empty.title_other'|trans }}</h4>
-                        <p class="text-muted">{{ 'lend_borrow.borrowed.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
-                    {% endif %}
-                </div>
+                {{ include('lend-borrow/_borrowed_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
             {% else %}
                 <div class="row g-3 mb-3">
                     {% for item in borrowedPuzzles %}
                         <div class="col-12 col-lg-6"
+                             id="borrowed-item-{{ item.puzzleId }}"
                              data-collection-items-target="item"
                              data-puzzle-id="{{ item.puzzleId }}"
                              data-pieces-count="{{ item.piecesCount }}"
@@ -255,7 +238,9 @@
 
                                                         {{ include('lend-borrow/_dropdown_action.html.twig', {
                                                             puzzle_id: item.puzzleId,
-                                                            puzzle_statuses: puzzle_statuses
+                                                            puzzle_statuses: puzzle_statuses,
+                                                            context: 'list',
+                                                            tab: 'borrowed',
                                                         }) }}
                                                     </ul>
                                                 </div>
@@ -272,6 +257,7 @@
                     {% endfor %}
                 </div>
             {% endif %}
+            </div>
         </div>
     </div>
 </div>

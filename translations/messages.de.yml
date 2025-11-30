@@ -59,6 +59,7 @@ filtered_out_puzzlers_count_info: "Versteckt <strong>%count% Puzzler</strong> oh
 my_time: "Meine Zeit:"
 puzzle_solved_count: "Anzahl der Lösungen:"
 puzzle_solved_times: "%count%x gelöst"
+puzzle.relax_solvings_count: "%count%x im Relax-Modus gelöst"
 never_solved_puzzles: "Diese Puzzles hat noch niemand gelöst - sei der Erste!"
 show_more_solving_times: "Mehr (%count%x)"
 be_first_to_solve: "Diese Puzzles wurden noch nicht gelöst. Sei der Erste!"
@@ -88,6 +89,9 @@ active_membership: "Aktive Mitgliedschaft"
 new_badge: "Neu"
 secret_puzzler_name: "Versteckter Puzzler"
 right_now: "Gerade jetzt"
+
+badge:
+    relax: "Relax"
 
 homepage:
     meta:
@@ -202,6 +206,8 @@ puzzle_add:
         speed_puzzling: "Speed Puzzling"
         relax: "Relax (keine Zeit)"
         to_collection: "Puzzle zur Sammlung"
+    competition_result: "Wettbewerbsergebnis"
+    group_puzzling: "Puzzeln zu zweit/in Gruppe"
 
 forms:
     choose_from_favorites: "- Aus Favoriten wählen -"
@@ -289,6 +295,10 @@ forms:
         comment_placeholder: "Optionaler Kommentar zu diesem Puzzle..."
         puzzle_collection: "Puzzle-Sammlung (Standard)"
         submit: "Zur Sammlung hinzufügen"
+    hours_short: "Std"
+    minutes_short: "Min"
+    seconds_short: "Sek"
+    time_required: "Bitte geben Sie die Zeit ein"
 
 puzzlers_comparison:
     meta:
@@ -458,6 +468,8 @@ flashes:
     puzzle_removed_from_collection: "Puzzle wurde aus der Sammlung entfernt."
     puzzle_needs_approve: "Neu hinzugefügte Puzzles werden nach der Genehmigung durch einen Administrator öffentlich angezeigt - normalerweise innerhalb von 24 Stunden nach dem Hinzufügen."
     time_added: "Wir haben Ihre Puzzle-Zeit gespeichert."
+    puzzle_added_to_collection: "Puzzle wurde zur Sammlung hinzugefügt."
+    tracking_added: "Wir haben Ihre Puzzle-Verfolgung gespeichert."
     time_deleted: "Wir haben alle Beweise gelöscht. Niemand wird jemals erfahren, was gerade passiert ist!"
     profile_saved: "Profiländerungen gespeichert!"
     time_edited: "Bearbeitete Informationen wurden gespeichert."
@@ -593,6 +605,17 @@ global_search:
     info: "Willkommen bei der neuen Suche! Suchen Sie nach Puzzle-Namen, EAN oder Code. Suchen Sie Spieler nach Namen oder Code. Bitte lassen Sie uns Ihr Feedback wissen."
     no_player_found: "Kein Spieler gefunden :-("
     no_puzzle_found: "Kein Puzzle gefunden :-("
+
+added_tracking_recap:
+    meta:
+        title: "Puzzle verfolgt"
+    title: "Puzzle erfolgreich verfolgt!"
+    add_another: "Weiteres Puzzle verfolgen"
+    the_same_puzzle: "Gleiches Puzzle erneut verfolgen"
+    puzzle_detail: "Puzzle-Details anzeigen"
+    manufacturer: "Hersteller"
+    pieces: "Teile"
+    group_puzzlers: "Gepuzzelt mit"
 
 membership:
     meta:
@@ -869,9 +892,6 @@ collections:
         public: "Öffentlich"
         private: "Privat"
     public: "Öffentlich"
-    private:
-        title: "Private Sammlung"
-        message: "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."
     private_page:
         title: "Private Sammlung"
         message: "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."
@@ -879,15 +899,6 @@ collections:
     already_in_system: "Puzzle bereits in Ihrer Sammlung"
     already_in_system_message: "Dieses Puzzle ist bereits in Ihrer Puzzle-Sammlung. Möchten Sie Ihre Puzzles in mehrere Sammlungen organisieren? Schalten Sie diese Funktion mit einer Mitgliedschaft frei!"
     add_to_collection: "Zur Sammlung hinzufügen"
-    add_puzzle:
-        title: "Puzzle zur Sammlung hinzufügen"
-        button: "Puzzle hinzufügen"
-        description: "Wählen Sie ein vorhandenes Puzzle aus oder fügen Sie ein neues zu Ihrer Sammlung hinzu."
-        submit: "Zur Sammlung hinzufügen"
-        success: "Das Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
-        puzzle_section: "Puzzle auswählen"
-        collection_section: "Sammlung auswählen"
-        new_puzzle_section: "Neue Puzzle-Details"
     add_puzzle_here:
         button: "Puzzle hinzufügen"
     add_puzzle_form:
@@ -896,9 +907,6 @@ collections:
         description: "Wählen Sie ein vorhandenes Puzzle aus oder fügen Sie ein neues zu Ihrer Sammlung hinzu."
         submit: "Zur Sammlung hinzufügen"
         success: "Das Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
-        puzzle_section: "Puzzle auswählen"
-        collection_section: "Sammlung auswählen"
-        new_puzzle_section: "Neue Puzzle-Details"
     remove_from: "Aus %collection% entfernen"
     remove: "Entfernen"
     confirm_remove: "Sind Sie sicher, dass Sie dieses Puzzle aus der Sammlung entfernen möchten?"
@@ -929,6 +937,9 @@ collections:
     copy_to_collection: "In Sammlung kopieren"
     puzzle_moved: "Puzzle wurde erfolgreich in die Sammlung verschoben."
     puzzle_copied: "Puzzle wurde erfolgreich in die Sammlung kopiert."
+    add_puzzle: "Puzzle zur Sammlung hinzufügen"
+    moving_from: "Verschieben von %collection%"
+    private: "Privat"
     move_puzzle_submit: "Verschieben"
     copy_puzzle_submit: "Kopieren"
     no_move_target: "Keine verfügbaren Sammlungen"

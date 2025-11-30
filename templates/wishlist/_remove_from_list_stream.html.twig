@@ -1,16 +1,16 @@
-{# Remove the item from the sell-swap list #}
-<turbo-stream action="remove" target="sellswap-list-item-{{ puzzle_id }}"></turbo-stream>
+{# Remove the item from the wishlist #}
+<turbo-stream action="remove" target="wishlist-item-{{ puzzle_id }}"></turbo-stream>
 
 {# Update the count #}
-<turbo-stream action="update" target="sellswap-count">
+<turbo-stream action="update" target="wishlist-count">
     <template>{{ remaining_count }}</template>
 </turbo-stream>
 
 {# Show empty state if no items remaining #}
 {% if remaining_count == 0 %}
-<turbo-stream action="update" target="sellswap-list-container">
+<turbo-stream action="update" target="wishlist-list-container">
     <template>
-        {{ include('sell-swap/_empty_state.html.twig') }}
+        {{ include('wishlist/_empty_state.html.twig') }}
     </template>
 </turbo-stream>
 {% endif %}

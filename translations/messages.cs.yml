@@ -59,6 +59,7 @@ filtered_out_puzzlers_count_info: "Schováno <strong>%count% puzzlerů</strong> 
 my_time: "Můj čas:"
 puzzle_solved_count: "Počet složení:"
 puzzle_solved_times: "skládáno %count%&times;"
+puzzle.relax_solvings_count: "%count%x složeno v relax módu"
 never_solved_puzzles: "Tyto puzzle ještě nikdo neskládal, buď první!"
 show_more_solving_times: "Více (%count%x)"
 be_first_to_solve: "Tyto puzzle ještě nikdo neskládal. Buď první!"
@@ -88,6 +89,9 @@ active_membership: "Aktivní členství"
 new_badge: "Nové"
 secret_puzzler_name: "Utajený Puzzler"
 right_now: "Právě teď"
+
+badge:
+    relax: "Relax"
 
 homepage:
     meta:
@@ -497,6 +501,8 @@ flashes:
     unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
     exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
     puzzle_removed_from_collection: "Puzzle bylo odebráno z kolekce."
+    puzzle_added_to_collection: "Puzzle bylo přidáno do kolekce."
+    tracking_added: "Záznam o puzzle jsme uložili."
     collection_not_found: "Kolekce, kterou jste hledali, u nás není!"
 
 hub:
@@ -612,6 +618,17 @@ added_time_recap:
     add_time: "Přidat další čas"
     the_same_puzzle: "Ke stejným puzzlím"
     puzzle_detail: "Výsledky"
+
+added_tracking_recap:
+    meta:
+        title: "Puzzle zaznamenáno"
+    title: "Puzzle úspěšně zaznamenáno!"
+    add_another: "Zaznamenat další puzzle"
+    the_same_puzzle: "Zaznamenat stejné puzzle znovu"
+    puzzle_detail: "Zobrazit detail puzzle"
+    manufacturer: "Výrobce"
+    pieces: "Dílky"
+    group_puzzlers: "Skládáno s"
 
 global_search:
     info: "Přivítejte nové vyhledávání! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
@@ -910,6 +927,7 @@ collections:
     copy_puzzle: "Zkopírovat puzzle do kolekce"
     move_to_collection: "Přesunout do kolekce"
     copy_to_collection: "Zkopírovat do kolekce"
+    moving_from: "Přesouváno z %collection%"
     puzzle_moved: "Puzzle bylo úspěšně přesunuto do kolekce."
     puzzle_copied: "Puzzle bylo úspěšně zkopírováno do kolekce."
     move_puzzle_submit: "Přesunout"
@@ -930,9 +948,6 @@ collections:
         description: "Vyberte existující puzzle nebo přidejte nové do své kolekce."
         submit: "Přidat do kolekce"
         success: "Puzzle bylo úspěšně přidáno do kolekce."
-        puzzle_section: "Vybrat puzzle"
-        collection_section: "Vybrat kolekci"
-        new_puzzle_section: "Detaily nového puzzle"
 
 unsolved_puzzles:
     description: "Puzzle ve vaší sbírce, které jste ještě nesložili"

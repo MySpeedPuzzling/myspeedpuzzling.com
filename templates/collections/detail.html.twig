@@ -13,7 +13,7 @@
                     <span class="text-muted px-2">•</span>
                 {% endif %}
                 <i class="bi bi-puzzle me-1"></i>
-                {{ 'collections.items_count'|trans({'%count%': '<span data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
+                {{ 'collections.items_count'|trans({'%count%': '<span id="collection-count" data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
                 <span class="px-2"></span>
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                     {% if collection.visibility.value == 'private' %}
@@ -160,18 +160,14 @@
         </div>
     {% endif %}
 
+    <div id="collection-list-container">
     {% if items is empty %}
-        <div class="text-center py-5">
-            <div class="mb-3">
-                <i class="ci-package fs-1 text-muted"></i>
-            </div>
-            <h4 class="text-muted">{{ 'collections.no_puzzles'|trans }}</h4>
-            <p class="text-muted">{{ 'collections.no_puzzles_description'|trans }}</p>
-        </div>
+        {{ include('collections/_empty_state.html.twig') }}
     {% else %}
         <div class="row g-3 mb-3">
             {% for item in items %}
                 <div class="col-12 col-lg-6"
+                     id="collection-item-{{ item.puzzleId }}"
                      data-collection-items-target="item"
                      data-collection-item-id="{{ item.collectionItemId }}"
                      data-puzzle-id="{{ item.puzzleId }}"
@@ -214,7 +210,7 @@
                                     {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                                         <div class="dropdown">
                                             <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
-                                                    type="button" data-bs-toggle="dropdown">
+                                                    type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed">
                                                 <i class="ci-menu"></i>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
@@ -232,6 +228,8 @@
                                                 {{ include('collections/_dropdown_action.html.twig', {
                                                     puzzle_id: item.puzzleId,
                                                     puzzle_statuses: puzzle_statuses,
+                                                    context: 'list',
+                                                    currentCollectionId: collection.collectionId ?? '__system_collection__',
                                                 }) }}
 
                                                 <li>
@@ -298,5 +296,6 @@
             </div>
         </div>
     {% endif %}
+    </div>
 </div>
 {% endblock %}

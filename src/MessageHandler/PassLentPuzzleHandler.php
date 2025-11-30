@@ -59,21 +59,41 @@ readonly final class PassLentPuzzleHandler
         $previousHolder = $lentPuzzle->currentHolderPlayer;
         $previousHolderName = $lentPuzzle->currentHolderName;
 
-        // Record the transfer before changing holder
-        $transfer = new LentPuzzleTransfer(
-            Uuid::uuid7(),
-            $lentPuzzle,
-            $previousHolder,
-            $previousHolderName,
-            $newHolder,
-            $newHolderName,
-            new DateTimeImmutable(),
-            TransferType::Pass,
-        );
+        // Check if passing to owner = treat as return
+        $isPassingToOwner = $newHolder !== null
+            && $lentPuzzle->ownerPlayer !== null
+            && $newHolder->id->equals($lentPuzzle->ownerPlayer->id);
 
-        $this->lentPuzzleTransferRepository->save($transfer);
+        if ($isPassingToOwner) {
+            // Behave as return - record transfer and delete the lent puzzle
+            $transfer = new LentPuzzleTransfer(
+                Uuid::uuid7(),
+                $lentPuzzle,
+                $previousHolder,
+                $previousHolderName,
+                $lentPuzzle->ownerPlayer,
+                $lentPuzzle->ownerName,
+                new DateTimeImmutable(),
+                TransferType::Return,
+            );
 
-        // Update the current holder
-        $lentPuzzle->changeCurrentHolder($newHolder, $newHolderName);
+            $this->lentPuzzleTransferRepository->save($transfer);
+            $this->lentPuzzleRepository->delete($lentPuzzle);
+        } else {
+            // Normal pass - record transfer and update current holder
+            $transfer = new LentPuzzleTransfer(
+                Uuid::uuid7(),
+                $lentPuzzle,
+                $previousHolder,
+                $previousHolderName,
+                $newHolder,
+                $newHolderName,
+                new DateTimeImmutable(),
+                TransferType::Pass,
+            );
+
+            $this->lentPuzzleTransferRepository->save($transfer);
+            $lentPuzzle->changeCurrentHolder($newHolder, $newHolderName);
+        }
     }
 }

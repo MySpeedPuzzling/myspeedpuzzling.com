@@ -62,6 +62,7 @@ filtered_out_puzzlers_count_info: "初回情報のない<strong>%count%人のパ
 my_time: "マイタイム:"
 puzzle_solved_count: "完了回数:"
 puzzle_solved_times: "%count%回完了"
+puzzle.relax_solvings_count: "リラックスモードで%count%回完成"
 never_solved_puzzles: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
 show_more_solving_times: "もっと見る (%count%回)"
 be_first_to_solve: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
@@ -91,6 +92,9 @@ active_membership: "アクティブメンバーシップ"
 new_badge: "新着"
 secret_puzzler_name: "秘密のパズラー"
 right_now: "今すぐ"
+
+badge:
+    relax: "リラックス"
 
 homepage:
     meta:
@@ -198,6 +202,8 @@ puzzle_add:
     choose_manufacturer: "リストからメーカーを選択"
     time_from_stopwatch: "ストップウォッチからのタイム"
     add_puzzler: "グループ協力者を追加"
+    group_puzzling: "ペア/グループでパズル"
+    competition_result: "大会結果"
     teamplayer: "協力者"
     player_code_info: "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
     mode:
@@ -256,6 +262,10 @@ forms:
     avatar: "アバター/写真"
     search_puzzler: "名前、プレイヤーコード、または一部..."
     time_format_placeholder: "HH:MM:SS"
+    time_required: "時間を入力してください"
+    hours_short: "時間"
+    minutes_short: "分"
+    seconds_short: "秒"
     comment: "追加情報"
     finished_puzzle_photo: "完成パズルの写真"
     add_new_puzzle: "新しいパズルを追加 - リストにありません"
@@ -556,8 +566,10 @@ flashes:
     stopwatch_already_saved: "これらのストップウォッチは既に保存されています。"
     collection_not_found: "お探しのコレクションは存在しません！"
     puzzle_removed_from_collection: "パズルがコレクションから削除されました。"
+    puzzle_added_to_collection: "パズルがコレクションに追加されました。"
     puzzle_needs_approve: "最近追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
     time_added: "パズリングタイムを保存しました。"
+    tracking_added: "パズルの記録を保存しました。"
     time_deleted: "すべての証拠を削除しました。今起こったことを誰も知ることはありません！"
     profile_saved: "プロフィール変更が保存されました！"
     time_edited: "編集された情報が保存されました。"
@@ -664,6 +676,17 @@ added_time_recap:
     add_time: "新しいタイムを追加"
     the_same_puzzle: "同じパズルに"
     puzzle_detail: "結果"
+
+added_tracking_recap:
+    meta:
+        title: "パズル記録済み"
+    title: "パズルの記録が完了しました！"
+    add_another: "別のパズルを記録"
+    the_same_puzzle: "同じパズルをもう一度記録"
+    puzzle_detail: "パズル詳細を見る"
+    manufacturer: "メーカー"
+    pieces: "ピース"
+    group_puzzlers: "一緒にパズルした人"
 
 global_search:
     info: "新しい検索へようこそ！パズル名、ean、またはコードで検索。プレイヤーを名前またはコードで検索。フィードバックをお聞かせください。"
@@ -814,15 +837,6 @@ blog:
             <p>PS. 人間の介入なしに1週間後、メールサーバーのおかげで本当に「自分で」壊れました...それはかなりのものです...</p>
 
 collections:
-    add_puzzle:
-        title: "コレクションにパズルを追加"
-        button: "パズルを追加"
-        description: "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
-        submit: "コレクションに追加"
-        success: "パズルがコレクションに正常に追加されました。"
-        puzzle_section: "パズルを選択"
-        collection_section: "コレクションを選択"
-        new_puzzle_section: "新しいパズルの詳細"
     add_puzzle_here:
         button: "パズルを追加"
     add_puzzle_form:
@@ -831,9 +845,7 @@ collections:
         description: "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
         submit: "コレクションに追加"
         success: "パズルがコレクションに正常に追加されました。"
-        puzzle_section: "パズルを選択"
-        collection_section: "コレクションを選択"
-        new_puzzle_section: "新しいパズルの詳細"
+    add_puzzle: "コレクションにパズルを追加"
     add_to_collection: "コレクションに追加"
     added_on: "%date%に追加"
     already_in_system: "パズルは既にコレクションにあります"
@@ -907,20 +919,19 @@ collections:
     move_puzzle: "コレクションにパズルを移動"
     move_puzzle_submit: "移動"
     move_to_collection: "コレクションに移動"
+    moving_from: "%collection%から移動中"
     no_copy_target: "利用可能なコレクションがありません"
     no_copy_target_message: "このパズルをコピーできる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
     no_move_target: "利用可能なコレクションがありません"
     no_move_target_message: "このパズルを移動できる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
     no_puzzles: "このコレクションにパズルはありません"
     no_puzzles_description: "このコレクションは空です。パズルを追加して始めましょう！"
-    private:
-        title: "プライベートコレクション"
-        message: "%name%のコレクションは非公開のため、閲覧できません。"
     private_page:
         title: "プライベートコレクション"
         message: "%name%のコレクションは非公開のため、閲覧できません。"
     private_collection: "非公開コレクション"
     private_collection_message: "%player%のコレクション「%collection%」は非公開で表示できません。"
+    private: "プライベート"
     public: "公開"
     puzzle_copied: "パズルがコレクションに正常にコピーされました。"
     puzzle_moved: "パズルがコレクションに正常に移動されました。"

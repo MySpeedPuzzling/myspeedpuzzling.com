@@ -4,6 +4,8 @@
             action: path('pass_puzzle', {lentPuzzleId: this.lentPuzzleId}),
             attr: {'data-turbo': 'true'}
         }) }}
+        <input type="hidden" name="context" value="{{ this.context }}">
+        <input type="hidden" name="tab" value="{{ this.tab }}">
 
         <div class="mb-3" data-controller="favorite-player-select">
             {{ form_label(form.newHolderCode) }}

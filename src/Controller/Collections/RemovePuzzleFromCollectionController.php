@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Collections;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,6 +24,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -64,6 +66,30 @@ final class RemovePuzzleFromCollectionController extends AbstractController
         if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+            $context = $request->request->getString('context', 'detail');
+            $currentCollectionId = $request->request->getString('currentCollectionId', '');
+            if ($currentCollectionId === '__system_collection__' || $currentCollectionId === '') {
+                $currentCollectionId = null;
+            }
+
+            // Different response based on context
+            if ($context === 'list') {
+                // Called from collection detail page - remove item, update count, possibly show empty state
+                $remainingCount = $this->getCollectionItems->countByCollectionAndPlayer(
+                    is_string($collectionId) ? $collectionId : null,
+                    $loggedPlayer->playerId,
+                );
+
+                return $this->render('collections/_remove_from_list_stream.html.twig', [
+                    'puzzle_id' => $puzzleId,
+                    'removed_from_collection_id' => is_string($collectionId) ? $collectionId : '__system_collection__',
+                    'current_collection_id' => $currentCollectionId ?? '__system_collection__',
+                    'remaining_count' => $remainingCount,
+                    'message' => $this->translator->trans('collections.flash.puzzle_removed'),
+                ]);
+            }
+
+            // Called from puzzle detail page - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
             return $this->render('collections/_stream.html.twig', [

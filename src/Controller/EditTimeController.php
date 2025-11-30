@@ -61,7 +61,9 @@ final class EditTimeController extends AbstractController
         }
 
         $data = new EditPuzzleSolvingTimeFormData();
-        $data->setTimeFromSeconds($solvedPuzzle->time);
+        if ($solvedPuzzle->time !== null) {
+            $data->setTimeFromSeconds($solvedPuzzle->time);
+        }
         $data->comment = $solvedPuzzle->comment;
         $data->finishedAt = $solvedPuzzle->finishedAt;
         $data->puzzle = $solvedPuzzle->puzzleId;

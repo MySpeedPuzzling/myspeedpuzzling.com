@@ -36,10 +36,7 @@
 
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
-                    {{ include('_recent_activity.html.twig', {
-                        solved_puzzles: last_solved_puzzles,
-                        show_limit: 4,
-                    }) }}
+                    <twig:RecentActivity limit="20" :showLimit="4" />
                 </div>
 
                 <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
@@ -50,18 +47,8 @@
                             </div>
                             <div>{{ 'hub.not_logged'|trans }}</div>
                         </div>
-                    {% elseif last_solved_favorites_puzzles is empty %}
-                        <div class="alert alert-accent small d-flex mt-3" role="alert">
-                            <div class="alert-icon py-0">
-                                <i class="ci-announcement"></i>
-                            </div>
-                            <div>{{ 'hub.no_favorites'|trans }}</div>
-                        </div>
                     {% else %}
-                        {{ include('_recent_activity.html.twig', {
-                            solved_puzzles: last_solved_favorites_puzzles,
-                            show_limit: 4,
-                        }) }}
+                        <twig:RecentActivity limit="20" :showLimit="4" :favoritesOnly="true" />
                     {% endif %}
                 </div>
             </div>

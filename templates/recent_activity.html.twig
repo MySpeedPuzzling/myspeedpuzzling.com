@@ -5,7 +5,5 @@
 {% block content %}
     <h1>{{ 'ladder.recent_activity'|trans }}</h1>
 
-    {{ include('_recent_activity.html.twig', {
-        solved_puzzles: last_solved_puzzles,
-    }) }}
+    <twig:RecentActivity limit="100" />
 {% endblock %}

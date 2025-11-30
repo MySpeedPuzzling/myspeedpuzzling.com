@@ -47,6 +47,7 @@ BestTimes AS (
         INNER JOIN PlayerPuzzles pp ON pst.puzzle_id = pp.puzzle_id
     WHERE
         pst.team IS NULL
+        AND pst.seconds_to_solve IS NOT NULL
     GROUP BY
         pst.puzzle_id, pst.player_id
 ),
@@ -136,6 +137,7 @@ WITH BestTimes AS (
         puzzle_solving_time
     WHERE team IS NULL
         AND puzzle_id = :puzzleId
+        AND seconds_to_solve IS NOT NULL
     GROUP BY
         puzzle_id, player_id
 ),

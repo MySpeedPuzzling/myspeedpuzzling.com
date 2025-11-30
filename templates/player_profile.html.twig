@@ -75,12 +75,7 @@
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
-                {{ include('_recent_activity.html.twig', {
-                    solved_puzzles: last_solved_puzzles,
-                    is_on_profile: true,
-                    ranking: logged_player_ranking,
-                    show_limit: 3,
-                }) }}
+                <twig:RecentActivity :playerId="player.playerId" limit="20" :showLimit="3" :isOnProfile="true" />
             </div>
 
             <div class="tab-pane fade" id="info" role="tabpanel">
@@ -166,7 +161,7 @@
         <div {{ stimulus_controller('puzzle_filter') }}>
             <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
 
-            <twig:PlayerTimes playerId="{{ player.playerId }}" />
+            <twig:PlayerSolvedPuzzles playerId="{{ player.playerId }}" />
         </div>
     {% endif %}
 {% endblock %}

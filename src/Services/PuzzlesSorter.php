@@ -12,6 +12,44 @@ use SpeedPuzzling\Web\Value\CountryCode;
 readonly final class PuzzlesSorter
 {
     /**
+     * Compare two nullable times, placing null values at the end (ascending order).
+     * Returns negative if $a should come first, positive if $b should come first.
+     */
+    private static function compareTimesAscending(null|int $a, null|int $b): int
+    {
+        if ($a === null && $b === null) {
+            return 0;
+        }
+        if ($a === null) {
+            return 1; // null goes to end
+        }
+        if ($b === null) {
+            return -1; // null goes to end
+        }
+
+        return $a <=> $b;
+    }
+
+    /**
+     * Compare two nullable times, placing null values at the end (descending order).
+     * Returns negative if $a should come first, positive if $b should come first.
+     */
+    private static function compareTimesDescending(null|int $a, null|int $b): int
+    {
+        if ($a === null && $b === null) {
+            return 0;
+        }
+        if ($a === null) {
+            return 1; // null goes to end
+        }
+        if ($b === null) {
+            return -1; // null goes to end
+        }
+
+        return $b <=> $a;
+    }
+
+    /**
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<string, non-empty-array<SolvedPuzzle>>
      */
@@ -26,7 +64,7 @@ readonly final class PuzzlesSorter
         if ($withReordering === true) {
             foreach ($grouped as $puzzleId => $puzzles) {
                 // Find the puzzle with the lowest time and place it at the beginning
-                usort($puzzles, static fn(SolvedPuzzle $a, SolvedPuzzle $b): int => $a->time <=> $b->time);
+                usort($puzzles, static fn(SolvedPuzzle $a, SolvedPuzzle $b): int => self::compareTimesAscending($a->time, $b->time));
                 $fastestPuzzle = array_shift($puzzles);
 
                 // Sort the remaining puzzles by finishedAt
@@ -60,7 +98,7 @@ readonly final class PuzzlesSorter
             }
 
             if ($a instanceof SolvedPuzzle && $b instanceof SolvedPuzzle) {
-                return $a->time <=> $b->time;
+                return self::compareTimesAscending($a->time, $b->time);
             }
 
             // Oldest first if no first try found
@@ -98,7 +136,7 @@ readonly final class PuzzlesSorter
     {
         usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             if ($a->finishedAt->getTimestamp() === $b->finishedAt->getTimestamp()) {
-                return $a->time <=> $b->time;
+                return self::compareTimesAscending($a->time, $b->time);
             }
 
             return $a->finishedAt <=> $b->finishedAt;
@@ -115,7 +153,7 @@ readonly final class PuzzlesSorter
     public function sortByFastest(array $solvedPuzzles): array
     {
         usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $a, PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $b): int {
-            $timeComparison = $a->time <=> $b->time;
+            $timeComparison = self::compareTimesAscending($a->time, $b->time);
 
             if ($timeComparison !== 0) {
                 return $timeComparison;
@@ -133,9 +171,9 @@ readonly final class PuzzlesSorter
      */
     public function sortBySlowest(array $solvedPuzzles): array
     {
-        usort($solvedPuzzles, function (SolvedPuzzle $a, SolvedPuzzle $b): int {
-            // Compare in descending order: highest time first.
-            return $b->time <=> $a->time;
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
+            // Compare in descending order: highest time first, nulls at end.
+            return self::compareTimesDescending($a->time, $b->time);
         });
 
         return $solvedPuzzles;
@@ -308,7 +346,7 @@ readonly final class PuzzlesSorter
             $fastestA = $puzzlesA[0];
             $fastestB = $puzzlesB[0];
 
-            return $fastestA->time <=> $fastestB->time;
+            return self::compareTimesAscending($fastestA->time, $fastestB->time);
         });
 
         return $grouped;
@@ -343,14 +381,14 @@ readonly final class PuzzlesSorter
         }
 
         // 2) Sort groups by first result
-        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB): int {
             /** @var non-empty-array<SolvedPuzzle> $groupedA */
             /** @var non-empty-array<SolvedPuzzle> $groupedB */
 
             $a = $groupedA[array_key_first($groupedA)];
             $b = $groupedB[array_key_first($groupedB)];
 
-            $timeComparison = $a->time <=> $b->time;
+            $timeComparison = self::compareTimesAscending($a->time, $b->time);
 
             if ($timeComparison !== 0) {
                 return $timeComparison;
@@ -378,14 +416,14 @@ readonly final class PuzzlesSorter
         }
 
         // 2) Sort groups by first result
-        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB): int {
             /** @var non-empty-array<SolvedPuzzle> $groupedA */
             /** @var non-empty-array<SolvedPuzzle> $groupedB */
 
             $a = $groupedA[array_key_first($groupedA)];
             $b = $groupedB[array_key_first($groupedB)];
 
-            $timeComparison = $b->time <=> $a->time;
+            $timeComparison = self::compareTimesDescending($a->time, $b->time);
 
             if ($timeComparison !== 0) {
                 return $timeComparison;

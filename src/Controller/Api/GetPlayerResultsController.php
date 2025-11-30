@@ -73,8 +73,9 @@ final class GetPlayerResultsController extends AbstractController
         $data = [
             'id' => $result->timeId,
             'time_seconds' => $result->time,
-            'time' => $this->puzzlingTimeFormatter->formatTime($result->time),
-            'ppm' => $ppm,
+            'time' => $result->time !== null ? $this->puzzlingTimeFormatter->formatTime($result->time) : null,
+            'ppm' => $result->time !== null ? $ppm : null,
+            'is_relax_mode' => $result->time === null,
             'first_attempt' => $result->firstAttempt,
             'puzzle_id' => $result->puzzleId,
             'puzzle_name' => $result->puzzleName,

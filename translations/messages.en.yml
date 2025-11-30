@@ -58,6 +58,7 @@ filtered_out_puzzlers_count_info: "Hidden <strong>%count% puzzlers</strong> with
 my_time: "My time:"
 puzzle_solved_count: "Number of completions:"
 puzzle_solved_times: "completed %count%x"
+puzzle.relax_solvings_count: "%count%x solved in relax mode"
 never_solved_puzzles: "No one has solved these puzzles yet, be the first!"
 show_more_solving_times: "More (%count%x)"
 be_first_to_solve: "No one has solved these puzzles yet. Be the first!"
@@ -87,6 +88,9 @@ active_membership: "Active membership"
 new_badge: "New"
 secret_puzzler_name: "Hidden Puzzler"
 right_now: "Right now"
+
+badge:
+    relax: "Relax"
 
 homepage:
     meta:

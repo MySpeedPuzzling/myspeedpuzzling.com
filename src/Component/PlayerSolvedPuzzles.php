@@ -18,7 +18,7 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 #[AsLiveComponent]
-final class PlayerTimes
+final class PlayerSolvedPuzzles
 {
     use DefaultActionTrait;
 

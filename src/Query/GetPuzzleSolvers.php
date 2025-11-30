@@ -47,6 +47,7 @@ INNER JOIN player ON puzzle_solving_time.player_id = player.id
 LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.team IS NULL
+    AND puzzle_solving_time.seconds_to_solve IS NOT NULL
 ORDER BY seconds_to_solve ASC
 SQL;
 
@@ -119,6 +120,7 @@ FROM
 WHERE
     pst.puzzle_id = :puzzleId
     AND pst.team IS NOT NULL
+    AND pst.seconds_to_solve IS NOT NULL
     AND json_array_length(team -> 'puzzlers') = 2
 GROUP BY
     pst.id, time, competition.id
@@ -193,6 +195,7 @@ FROM
 WHERE
     pst.puzzle_id = :puzzleId
     AND pst.team IS NOT NULL
+    AND pst.seconds_to_solve IS NOT NULL
     AND json_array_length(team -> 'puzzlers') > 2
 GROUP BY
     pst.id, time, competition.id
@@ -225,5 +228,39 @@ SQL;
 
             return PuzzleSolversGroup::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * @throws PuzzleNotFound
+     * @return array{solo: int, duo: int, team: int}
+     */
+    public function relaxCountsByPuzzleId(string $puzzleId): array
+    {
+        if (Uuid::isValid($puzzleId) === false) {
+            throw new PuzzleNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    COUNT(*) FILTER (WHERE team IS NULL) AS solo_count,
+    COUNT(*) FILTER (WHERE team IS NOT NULL AND json_array_length(team -> 'puzzlers') = 2) AS duo_count,
+    COUNT(*) FILTER (WHERE team IS NOT NULL AND json_array_length(team -> 'puzzlers') > 2) AS team_count
+FROM puzzle_solving_time
+WHERE puzzle_id = :puzzleId
+    AND seconds_to_solve IS NULL
+SQL;
+
+        /** @var array{solo_count: int, duo_count: int, team_count: int} $row */
+        $row = $this->database
+            ->executeQuery($query, [
+                'puzzleId' => $puzzleId,
+            ])
+            ->fetchAssociative();
+
+        return [
+            'solo' => (int) $row['solo_count'],
+            'duo' => (int) $row['duo_count'],
+            'team' => (int) $row['team_count'],
+        ];
     }
 }

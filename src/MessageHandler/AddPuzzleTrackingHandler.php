@@ -8,7 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
-use SpeedPuzzling\Web\Entity\PuzzleTracking;
+use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
@@ -64,17 +64,20 @@ readonly final class AddPuzzleTrackingHandler
             );
         }
 
-        $puzzleTracking = new PuzzleTracking(
-            $trackingId,
-            $player,
-            $puzzle,
-            $trackedAt,
-            $group,
-            $finishedAt,
-            $message->comment,
-            $finishedPuzzlePhotoPath,
+        $solvingTime = new PuzzleSolvingTime(
+            id: $trackingId,
+            secondsToSolve: null,
+            player: $player,
+            puzzle: $puzzle,
+            trackedAt: $trackedAt,
+            verified: false,
+            team: $group,
+            finishedAt: $finishedAt,
+            comment: $message->comment,
+            finishedPuzzlePhoto: $finishedPuzzlePhotoPath,
+            firstAttempt: false,
         );
 
-        $this->entityManager->persist($puzzleTracking);
+        $this->entityManager->persist($solvingTime);
     }
 }

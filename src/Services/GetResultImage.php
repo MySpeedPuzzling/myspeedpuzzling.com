@@ -123,7 +123,7 @@ readonly final class GetResultImage
                 $font->align('center');
                 $font->valign('top');
             })
-            ->text($this->puzzlingTimeFormatter->formatTime($solvingTime->time), $size / 2, 260 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeBig) {
+            ->text($solvingTime->time !== null ? $this->puzzlingTimeFormatter->formatTime($solvingTime->time) : 'Relax', $size / 2, 260 + $puzzleNameHeight + $puzzleNameOffset + $offsetTop, function (FontFactory $font) use ($fontSizeBig) {
                 $font->filename(__DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf');
                 $font->color('#ffffff');
                 $font->stroke('#000000', 1);

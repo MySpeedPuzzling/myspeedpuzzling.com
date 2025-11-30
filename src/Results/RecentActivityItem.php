@@ -8,10 +8,10 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\Puzzler;
 
-readonly final class SolvedPuzzle
+readonly final class RecentActivityItem
 {
     public function __construct(
-        public string $timeId,
+        public string $id,
         public string $playerId,
         public null|string $playerName,
         public string $playerCode,
@@ -25,13 +25,12 @@ readonly final class SolvedPuzzle
         public null|string $puzzleImage,
         public null|string $comment,
         public DateTimeImmutable $trackedAt,
+        public DateTimeImmutable $finishedAt,
         public null|string $finishedPuzzlePhoto,
         public null|string $teamId,
         /** @var null|array<Puzzler> */
         public null|array $players,
-        public int $solvedTimes,
         public null|string $puzzleIdentificationNumber,
-        public DateTimeImmutable $finishedAt,
         public bool $firstAttempt,
         public bool $isPrivate,
         public null|string $competitionId,
@@ -39,6 +38,16 @@ readonly final class SolvedPuzzle
         public null|string $competitionName,
         public null|string $competitionSlug,
     ) {
+    }
+
+    public function isRelaxMode(): bool
+    {
+        return $this->time === null;
+    }
+
+    public function isSpeedMode(): bool
+    {
+        return $this->time !== null;
     }
 
     /**
@@ -57,12 +66,11 @@ readonly final class SolvedPuzzle
      *     pieces_count: int,
      *     comment: null|string,
      *     tracked_at: string,
+     *     finished_at: string,
      *     finished_puzzle_photo: null|string,
      *     puzzle_identification_number: null|string,
      *     team_id?: null|string,
      *     players?: null|string|array<Puzzler>,
-     *     solved_times?: int,
-     *     finished_at: string,
      *     first_attempt: bool,
      *     is_private?: bool,
      *     competition_id: null|string,
@@ -84,7 +92,7 @@ readonly final class SolvedPuzzle
         }
 
         return new self(
-            timeId: $row['time_id'],
+            id: $row['time_id'],
             playerId: $row['player_id'],
             playerName: $row['player_name'],
             playerCode: strtoupper($row['player_code']),
@@ -98,12 +106,11 @@ readonly final class SolvedPuzzle
             puzzleImage: $row['puzzle_image'],
             comment: $row['comment'],
             trackedAt: new DateTimeImmutable($row['tracked_at']),
+            finishedAt: new DateTimeImmutable($row['finished_at']),
             finishedPuzzlePhoto: $row['finished_puzzle_photo'],
             teamId: $row['team_id'] ?? null,
             players: $players,
-            solvedTimes: $row['solved_times'] ?? 1,
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
-            finishedAt: new DateTimeImmutable($row['finished_at']),
             firstAttempt: $row['first_attempt'],
             isPrivate: $row['is_private'] ?? false,
             competitionId: $row['competition_id'],

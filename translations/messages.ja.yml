@@ -850,7 +850,7 @@ collections:
     added_on: "%date%に追加"
     already_in_system: "パズルは既にコレクションにあります"
     already_in_system_message: "このパズルは既にパズルコレクションにあります。パズルを複数のコレクションに整理したいですか？メンバーシップでこの機能をアンロック！"
-    back_to_collections: "コレクションに戻る"
+    back_to_library: "パズルライブラリに戻る"
     collection_not_found: "コレクションが見つかりません"
     comment_help: "コレクション内のこのパズルについてオプションのコメントを追加してください。"
     confirm_remove: "このパズルをコレクションから削除してもよろしいですか？"

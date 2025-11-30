@@ -906,7 +906,7 @@ collections:
     no_puzzles: "No puzzles in this collection"
     no_puzzles_description: "This collection is empty. Add some puzzles to get started!"
     added_on: "Added on %date%"
-    back_to_collections: "Back to Collections"
+    back_to_library: "Back to Puzzle Library"
     select_collection_help: "Choose a collection or leave empty to add to your default Puzzle Collection"
     private_collection: "Private Collection"
     private_collection_message: "The collection \"%collection%\" by %player% is private and cannot be viewed."

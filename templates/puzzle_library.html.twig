@@ -5,21 +5,21 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-md-flex justify-content-between align-items-center mb-4">
         <h2>{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h2>
         {% if isOwnProfile %}
             <div class="d-flex gap-2">
-                <a href="{{ path('puzzle_add') }}?mode=collection" class="btn btn-outline-primary">
+                <a href="{{ path('puzzle_add') }}?mode=collection" class="btn btn-sm btn-outline-primary">
                     <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle_form.button'|trans }}
                 </a>
                 {% if logged_user.profile.activeMembership %}
-                    <a href="{{ path('create_collection') }}" class="btn btn-primary">
+                    <a href="{{ path('create_collection') }}" class="btn btn-sm btn-primary">
                         <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}
                     </a>
                 {% else %}
                     <button
                         type="button"
-                        class="btn btn-outline-primary"
+                        class="btn btn-sm btn-outline-primary"
                         data-bs-toggle="modal"
                         data-bs-target="#membersExclusiveModal"
                     >
@@ -154,9 +154,20 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="card-body">
+                        <div class="card-body py-2">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                                {% if isOwnProfile %}
+                                    <div class="{{ collection.isPublic() ? 'text-primary' }} small">
+                                        <i class="bi bi-{{ collection.isPublic() ? 'eye' : 'lock' }} me-1"></i>
+                                        {% if collection.isPublic() %}
+                                            {{ 'collections.visibility.public'|trans }}
+                                        {% else %}
+                                            {{ 'collections.visibility.private'|trans }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <div class="small">
                                     <i class="bi bi-puzzle me-1"></i>
                                     {% if collection.isLendBorrowList %}
                                         {{ 'lend_borrow.lent_count'|trans({'%count%': collection.lentCount}) }}
@@ -166,19 +177,6 @@
                                         {{ 'collections.items_count'|trans({'%count%': collection.itemCount}) }}
                                     {% endif %}
                                 </div>
-
-                                {% if isOwnProfile %}
-                                    <div class="d-flex justify-content-between align-items-center mt-2 {{ collection.isPublic() ? 'text-primary' }} small">
-                                        <span>
-                                            <i class="bi bi-{{ collection.isPublic() ? 'eye' : 'lock' }} me-1"></i>
-                                            {% if collection.isPublic() %}
-                                                {{ 'collections.visibility.public'|trans }}
-                                            {% else %}
-                                                {{ 'collections.visibility.private'|trans }}
-                                            {% endif %}
-                                        </span>
-                                    </div>
-                                {% endif %}
                             </div>
 
                             {% if collection.description %}

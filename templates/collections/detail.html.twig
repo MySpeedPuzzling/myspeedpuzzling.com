@@ -55,7 +55,7 @@
 
     <div class="mb-4">
         <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
+            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_library'|trans }}
         </a>
     </div>
 
@@ -225,6 +225,14 @@
                                                     </a>
                                                 </li>
 
+                                                <li><hr class="dropdown-divider"></li>
+
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
+                                                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                                                    </a>
+                                                </li>
+
                                                 {{ include('collections/_dropdown_action.html.twig', {
                                                     puzzle_id: item.puzzleId,
                                                     puzzle_statuses: puzzle_statuses,
@@ -240,12 +248,7 @@
                                                         <i class="bi bi-arrow-right-square me-1"></i> {{ 'collections.move_to_collection'|trans }}
                                                     </a>
                                                 </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
-                                                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
+
 
                                                 {{ include('sell-swap/_dropdown_action.html.twig', {
                                                     puzzle_id: item.puzzleId,

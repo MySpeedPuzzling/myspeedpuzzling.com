@@ -23,14 +23,6 @@
                 <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-secondary">
                     {{ 'forms.cancel'|trans }}
                 </a>
-            {% elseif not has_available_collections %}
-                {# Member but puzzle is already in all collections #}
-                <div class="alert alert-info mb-3">
-                    <i class="bi bi-collection me-2"></i>{{ 'collections.already_in_all'|trans }}
-                </div>
-                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-secondary">
-                    {{ 'forms.cancel'|trans }}
-                </a>
             {% else %}
                 {{ include('collections/_add_form.html.twig', {in_modal: false}) }}
             {% endif %}

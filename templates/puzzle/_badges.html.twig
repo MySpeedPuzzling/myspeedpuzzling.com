@@ -12,10 +12,10 @@
     <span class="mt-1 badge border border-info text-info rounded-pill"><i class="ci-time"></i> {{ 'status.unsolved'|trans }}</span>
 {% endif %}
 {% if puzzle_id in puzzle_statuses.borrowed %}
-    <span class="mt-1 badge border border-dark text-dark rounded-pill"><i class="ci-arrow-down"></i> {{ 'status.borrowed'|trans }}</span>
+    <span class="mt-1 badge border border-dark text-dark rounded-pill"><i class="bi bi-box-arrow-in-left"></i> {{ 'status.borrowed'|trans }}</span>
 {% endif %}
 {% if puzzle_id in puzzle_statuses.lent %}
-    <span class="mt-1 badge border border-dark text-dark rounded-pill"><i class="ci-arrow-up"></i> {{ 'status.lent'|trans }}</span>
+    <span class="mt-1 badge border border-dark text-dark rounded-pill"><i class="bi bi-box-arrow-right"></i> {{ 'status.lent'|trans }}</span>
 {% endif %}
 {% if puzzle_id in puzzle_statuses.sellSwap %}
     <span class="mt-1 badge border border-danger text-danger rounded-pill"><i class="ci-tag"></i> {{ 'status.for_sale'|trans }}</span>

@@ -855,7 +855,7 @@ collections:
     added_on: "Ajouté le %date%"
     already_in_system: "Puzzle déjà dans votre collection"
     already_in_system_message: "Ce puzzle est déjà dans votre Collection de Puzzles. Vous voulez organiser vos puzzles en plusieurs collections ? Débloquez cette fonctionnalité avec l'adhésion !"
-    back_to_collections: "Retour aux collections"
+    back_to_library: "Retour à la bibliothèque de puzzles"
     collection_not_found: "Collection non trouvée"
     confirm_remove: "Êtes-vous sûr de vouloir retirer ce puzzle de la collection ?"
     copy_puzzle: "Copier le puzzle dans la collection"

@@ -80,12 +80,18 @@ final class RemovePuzzleFromCollectionController extends AbstractController
                     $loggedPlayer->playerId,
                 );
 
+                // Fetch puzzle statuses for dropdown update
+                $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+
                 return $this->render('collections/_remove_from_list_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
                     'removed_from_collection_id' => is_string($collectionId) ? $collectionId : '__system_collection__',
                     'current_collection_id' => $currentCollectionId ?? '__system_collection__',
                     'remaining_count' => $remainingCount,
                     'message' => $this->translator->trans('collections.flash.puzzle_removed'),
+                    'puzzle_statuses' => $puzzleStatuses,
+                    'context' => $context,
+                    'source_collection_id' => $currentCollectionId,
                 ]);
             }
 

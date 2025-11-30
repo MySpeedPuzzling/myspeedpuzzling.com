@@ -22,11 +22,6 @@
                     <i class="ci-locked me-1"></i>{{ 'collections.membership_required.unlock_link'|trans }}
                 </button>
             </div>
-        {% elseif not has_available_collections %}
-            {# Member but puzzle is already in all collections #}
-            <div class="alert alert-info mb-0">
-                <i class="bi bi-collection me-2"></i>{{ 'collections.already_in_all'|trans }}
-            </div>
         {% else %}
             {{ include('collections/_add_form.html.twig', {in_modal: true}) }}
         {% endif %}

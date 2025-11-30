@@ -17,6 +17,19 @@
 {% endif %}
 {% endif %}
 
+{# Update collection action dropdown (always, to reflect removed collection) #}
+<turbo-stream action="replace" target="collection-action-{{ puzzle_id }}">
+    <template>
+        {{ include('collections/_dropdown_action.html.twig', {
+            puzzle_id: puzzle_id,
+            puzzle_statuses: puzzle_statuses,
+            source_collection_id: source_collection_id,
+            context: context,
+            currentCollectionId: current_collection_id
+        }) }}
+    </template>
+</turbo-stream>
+
 {# Toast always shows (regardless of which collection) #}
 <turbo-stream action="append" target="toast-container">
     <template>

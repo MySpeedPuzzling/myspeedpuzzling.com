@@ -3,18 +3,20 @@
 // Use this to write your custom SCSS
 //
 
-// Purple color for lend/borrow list (using accent color)
+// Purple color for lend/borrow list (soft purple)
+$soft-purple: #9b8bb8;
+
 .border-purple {
-    border-color: var(--cz-accent) !important;
+    border-color: $soft-purple !important;
 }
 
 .bg-purple {
-    background-color: var(--cz-accent) !important;
+    background-color: $soft-purple !important;
     color: #fff !important;
 }
 
 .text-purple {
-    color: var(--cz-accent) !important;
+    color: $soft-purple !important;
 }
 
 // Lent puzzle styling in collections - emphasize "not home" state

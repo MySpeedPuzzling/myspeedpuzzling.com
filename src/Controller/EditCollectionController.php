@@ -88,14 +88,14 @@ final class EditCollectionController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('collections.flash.updated'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $player->playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }
 
         return $this->render('collections/edit.html.twig', [
             'form' => $form,
             'collection' => $collectionOverview,
             'player' => $player,
-            'cancelUrl' => $this->generateUrl('player_collections', ['playerId' => $player->playerId]),
+            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $player->playerId]),
         ]);
     }
 }

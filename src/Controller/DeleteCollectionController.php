@@ -65,6 +65,6 @@ final class DeleteCollectionController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('collections.flash.deleted'));
 
-        return $this->redirectToRoute('player_collections', ['playerId' => $player->playerId]);
+        return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
     }
 }

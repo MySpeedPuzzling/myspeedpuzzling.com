@@ -67,13 +67,13 @@ final class EditWishListController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('wish_list.flash.updated'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
         return $this->render('wishlist/edit.html.twig', [
             'form' => $form,
             'player' => $loggedPlayer,
-            'cancelUrl' => $this->generateUrl('player_collections', ['playerId' => $playerId]),
+            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),
         ]);
     }
 }

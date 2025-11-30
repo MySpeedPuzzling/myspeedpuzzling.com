@@ -20,7 +20,7 @@ menu:
     change_player_code: "プレイヤーコード変更"
     profile: "プロフィール"
     events: "イベント"
-    collections: "コレクション"
+    puzzle_library: "パズルライブラリ"
 
 navigation:
     home: "ホーム"
@@ -50,7 +50,7 @@ show_less: "閉じる"
 puzzle_solved: "完了"
 puzzle_available: "貸出可能"
 puzzle_not_available: "貸出不可"
-add_my_time: "マイタイム追加"
+add_solving: "記録を追加"
 start_solving: "解き始める"
 show_times: "タイム表示"
 fastest_time_short: "最速: %time%"
@@ -915,7 +915,7 @@ collections:
         toast: "コレクションの作成にはアクティブなメンバーシップが必要です。"
         unlock_link: "メンバーシップでアンロック"
     meta:
-        title: "マイコレクション"
+        title: "パズルライブラリ"
     move_puzzle: "コレクションにパズルを移動"
     move_puzzle_submit: "移動"
     move_to_collection: "コレクションに移動"
@@ -940,8 +940,8 @@ collections:
     remove_puzzle: "コレクションから削除"
     select_collection_help: "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
     system_name: "パズルコレクション"
-    title: "コレクション"
-    title_other: "%name%のコレクション"
+    title: "パズルライブラリ"
+    title_other: "%name%のパズルライブラリ"
     visibility:
         private: "非公開"
         public: "公開"

@@ -19,7 +19,7 @@ menu:
     edit_profile: "Edit profile"
     change_player_code: "Change player code"
     profile: "Profile"
-    collections: "Collections"
+    puzzle_library: "Puzzle library"
     events: "Events"
 
 form:
@@ -47,7 +47,7 @@ show_less: "Show less"
 puzzle_solved: "completed"
 puzzle_available: "available for loan"
 puzzle_not_available: "not available"
-add_my_time: "Add my time"
+add_solving: "Add solving"
 start_solving: "Start solving"
 show_times: "Show times"
 fastest_time_short: "Top: %time%"
@@ -839,9 +839,9 @@ navigation:
 
 collections:
     meta:
-        title: "My Collections"
-    title: "Collections"
-    title_other: "Collections of %name%"
+        title: "Puzzle Library"
+    title: "Puzzle Library"
+    title_other: "Puzzle library of %name%"
     create:
         button: "Create Collection"
         title: "Create New Collection"

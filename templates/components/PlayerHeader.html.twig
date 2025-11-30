@@ -18,8 +18,8 @@
                 {{ 'menu.statistics'|trans }}
             {% elseif route == 'player_favorite_puzzlers' %}
                 {{ 'menu.favorite_puzzlers'|trans }}
-            {% elseif route == 'player_collections' %}
-                {{ 'menu.collections'|trans }}
+            {% elseif route == 'puzzle_library' %}
+                {{ 'menu.puzzle_library'|trans }}
             {% elseif route == 'edit_profile' %}
                 {{ 'menu.edit_profile'|trans }}
             {% else %}
@@ -40,8 +40,8 @@
                     <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                 </a>
 
-                <a href="{{ path('player_collections', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_collections' %}active{% endif %}">
-                    <i class="bi bi-collection me-1"></i> {{ 'menu.collections'|trans }}
+                <a href="{{ path('puzzle_library', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'puzzle_library' %}active{% endif %}">
+                    <i class="bi bi-collection me-1"></i> {{ 'menu.puzzle_library'|trans }}
                 </a>
             {% endif %}
 

@@ -57,7 +57,7 @@ final class CreateCollectionController extends AbstractController
         if ($player->activeMembership === false) {
             $this->addFlash('info', $this->translator->trans('collections.flash.membership_required'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $player->playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }
 
         // Get Player entity for Message
@@ -80,13 +80,13 @@ final class CreateCollectionController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('collections.flash.created'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $player->playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }
 
         return $this->render('collections/create.html.twig', [
             'form' => $form,
             'player' => $player,
-            'cancelUrl' => $this->generateUrl('player_collections', ['playerId' => $player->playerId]),
+            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $player->playerId]),
         ]);
     }
 }

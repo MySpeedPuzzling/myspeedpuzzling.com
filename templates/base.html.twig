@@ -252,8 +252,8 @@
                                     <li><hr class="dropdown-divider"></li>
 
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_collections' %}active{% endif %}" href="{{ path('player_collections', {'playerId': logged_user.profile.playerId}) }}">
-                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collections'|trans }}
+                                        <a class="dropdown-item {% if currentRoute == 'puzzle_library' %}active{% endif %}" href="{{ path('puzzle_library', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-collection me-1"></i> {{ 'menu.puzzle_library'|trans }}
                                         </a>
                                     </li>
                                     <li>

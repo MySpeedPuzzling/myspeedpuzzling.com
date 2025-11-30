@@ -23,7 +23,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-final class PlayerCollectionsController extends AbstractController
+final class PuzzleLibraryController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
@@ -43,14 +43,14 @@ final class PlayerCollectionsController extends AbstractController
      */
     #[Route(
         path: [
-            'cs' => '/kolekce-hrace/{playerId}',
-            'en' => '/en/player-collections/{playerId}',
-            'es' => '/es/colecciones-jugador/{playerId}',
-            'ja' => '/ja/プレイヤーのコレクション/{playerId}',
-            'fr' => '/fr/collections-joueur/{playerId}',
-            'de' => '/de/spieler-sammlungen/{playerId}',
+            'cs' => '/knihovna-puzzli/{playerId}',
+            'en' => '/en/puzzle-library/{playerId}',
+            'es' => '/es/biblioteca-puzzles/{playerId}',
+            'ja' => '/ja/パズルライブラリ/{playerId}',
+            'fr' => '/fr/bibliotheque-puzzles/{playerId}',
+            'de' => '/de/puzzle-bibliothek/{playerId}',
         ],
-        name: 'player_collections',
+        name: 'puzzle_library',
     )]
     public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
     {
@@ -160,7 +160,7 @@ final class PlayerCollectionsController extends AbstractController
             ));
         }
 
-        return $this->render('collections/list.html.twig', [
+        return $this->render('puzzle_library.html.twig', [
             'collections' => $collections,
             'player' => $player,
             'isOwnProfile' => $isOwnProfile,

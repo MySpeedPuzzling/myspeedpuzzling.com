@@ -74,13 +74,13 @@ final class EditUnsolvedPuzzlesController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('unsolved_puzzles.flash.updated'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
         return $this->render('unsolved_puzzles/edit.html.twig', [
             'form' => $form,
             'player' => $player,
-            'cancelUrl' => $this->generateUrl('player_collections', ['playerId' => $playerId]),
+            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),
         ]);
     }
 }

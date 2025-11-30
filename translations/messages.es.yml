@@ -20,7 +20,7 @@ menu:
     change_player_code: "Cambiar código de jugador"
     profile: "Perfil"
     events: "Eventos"
-    collections: "Colecciones"
+    puzzle_library: "Biblioteca de puzzles"
 
 navigation:
     home: "Inicio"
@@ -50,7 +50,7 @@ show_less: "Mostrar menos"
 puzzle_solved: "completado"
 puzzle_available: "disponible para préstamo"
 puzzle_not_available: "no disponible"
-add_my_time: "Añadir mi tiempo"
+add_solving: "Añadir resolución"
 start_solving: "Comenzar a resolver"
 show_times: "Mostrar tiempos"
 fastest_time_short: "Mejor: %time%"
@@ -919,7 +919,7 @@ collections:
         toast: "Crear colecciones requiere una membresía activa."
         unlock_link: "Desbloquear con membresía"
     meta:
-        title: "Mis colecciones"
+        title: "Biblioteca de puzzles"
     move_puzzle: "Mover puzzle a la colección"
     move_puzzle_submit: "Mover"
     move_to_collection: "Mover a colección"
@@ -942,8 +942,8 @@ collections:
     remove_puzzle: "Eliminar de la colección"
     select_collection_help: "Elige una colección o deja vacío para añadir a tu Colección de Puzzles predeterminada"
     system_name: "Colección de Puzzles"
-    title: "Colecciones"
-    title_other: "Colecciones de %name%"
+    title: "Biblioteca de puzzles"
+    title_other: "Biblioteca de puzzles de %name%"
     visibility:
         private: "Privada"
         public: "Pública"

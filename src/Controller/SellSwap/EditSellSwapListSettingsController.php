@@ -53,7 +53,7 @@ final class EditSellSwapListSettingsController extends AbstractController
         if (!$loggedPlayer->activeMembership) {
             $this->addFlash('warning', $this->translator->trans('sell_swap_list.membership_required.message'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
         $player = $this->getPlayerProfile->byId($playerId);

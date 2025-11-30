@@ -61,7 +61,7 @@ final class EditLendBorrowListSettingsController extends AbstractController
         if (!$loggedPlayer->activeMembership) {
             $this->addFlash('warning', $this->translator->trans('lend_borrow.membership_required.message'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
         $player = $this->getPlayerProfile->byId($playerId);
@@ -81,13 +81,13 @@ final class EditLendBorrowListSettingsController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('lend_borrow.flash.settings_updated'));
 
-            return $this->redirectToRoute('player_collections', ['playerId' => $playerId]);
+            return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
         return $this->render('lend-borrow/edit_settings.html.twig', [
             'form' => $form,
             'player' => $player,
-            'cancelUrl' => $this->generateUrl('player_collections', ['playerId' => $playerId]),
+            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),
         ]);
     }
 }

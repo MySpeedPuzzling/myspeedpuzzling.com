@@ -19,7 +19,7 @@ menu:
     edit_profile: "Upravit profil"
     change_player_code: "Změnit kód hráče"
     profile: "Profil"
-    collections: "Kolekce"
+    puzzle_library: "Puzzle knihovna"
     events: "Eventy"
 
 form:
@@ -47,7 +47,7 @@ show_less: "Skrýt"
 puzzle_solved: "poskládáno"
 puzzle_available: "k zapůjčení"
 puzzle_not_available: "nejsou k dispozici"
-add_my_time: "Přidat můj čas"
+add_solving: "Přidat skládání"
 start_solving: "Začít skládat"
 show_times: "Zobrazit časy"
 fastest_time_short: "Top: %time%"
@@ -841,9 +841,9 @@ navigation:
 
 collections:
     meta:
-        title: "Moje kolekce"
-    title: "Kolekce"
-    title_other: "Kolekce hráče %name%"
+        title: "Puzzle knihovna"
+    title: "Puzzle knihovna"
+    title_other: "Puzzle knihovna uživatele %name%"
     create:
         button: "Vytvořit kolekci"
         title: "Vytvořit novou kolekci"

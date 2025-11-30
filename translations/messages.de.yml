@@ -19,7 +19,7 @@ menu:
     edit_profile: "Profil bearbeiten"
     change_player_code: "Spielercode ändern"
     profile: "Profil"
-    collections: "Sammlungen"
+    puzzle_library: "Puzzlebibliothek"
     events: "Veranstaltungen"
 
 form:
@@ -47,7 +47,7 @@ show_less: "Weniger anzeigen"
 puzzle_solved: "gelöst"
 puzzle_available: "verfügbar zum Ausleihen"
 puzzle_not_available: "nicht verfügbar"
-add_my_time: "Meine Zeit hinzufügen"
+add_solving: "Lösung hinzufügen"
 start_solving: "Lösung starten"
 show_times: "Zeiten anzeigen"
 fastest_time_short: "Top: %time%"
@@ -840,9 +840,9 @@ recent_activity:
 
 collections:
     meta:
-        title: "Meine Sammlungen"
-    title: "Sammlungen"
-    title_other: "Sammlungen von %name%"
+        title: "Puzzlebibliothek"
+    title: "Puzzlebibliothek"
+    title_other: "Puzzlebibliothek von %name%"
     create:
         button: "Sammlung erstellen"
         title: "Neue Sammlung erstellen"

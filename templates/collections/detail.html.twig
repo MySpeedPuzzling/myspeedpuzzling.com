@@ -27,7 +27,7 @@
                     {% endif %}
                 {% endif %}
             </p>
-            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and collection.visibility.value == 'public' %}
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and collection.visibility.value == 'public' and collection.collectionId %}
                 {{ include('_share_link.html.twig', {share_url: url('collection_detail', {collectionId: collection.collectionId})}) }}
             {% endif %}
         </div>
@@ -54,7 +54,7 @@
     </div>
 
     <div class="mb-4">
-        <a href="{{ path('player_collections', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
+        <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
             <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_collections'|trans }}
         </a>
     </div>
@@ -216,7 +216,7 @@
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li>
                                                     <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: item.puzzleId}) }}">
-                                                        <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+                                                        <i class="ci-add me-1"></i> {{  'add_solving'|trans }}
                                                     </a>
                                                 </li>
                                                 <li>

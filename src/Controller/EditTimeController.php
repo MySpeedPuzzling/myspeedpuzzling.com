@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
-use SpeedPuzzling\Web\FormType\PuzzleSolvingTimeFormType;
+use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,7 +27,6 @@ final class EditTimeController extends AbstractController
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
-        readonly private PuzzlingTimeFormatter $timeFormatter,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPuzzlesOverview $getPuzzlesOverview,
         readonly private GetPuzzleOverview $getPuzzleOverview,
@@ -62,8 +60,8 @@ final class EditTimeController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        $data = new PuzzleSolvingTimeFormData();
-        $data->time = $this->timeFormatter->formatTime($solvedPuzzle->time);
+        $data = new EditPuzzleSolvingTimeFormData();
+        $data->setTimeFromSeconds($solvedPuzzle->time);
         $data->comment = $solvedPuzzle->comment;
         $data->finishedAt = $solvedPuzzle->finishedAt;
         $data->puzzle = $solvedPuzzle->puzzleId;
@@ -89,7 +87,7 @@ final class EditTimeController extends AbstractController
             }
         }
 
-        $editTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $data);
+        $editTimeForm = $this->createForm(EditPuzzleSolvingTimeFormType::class, $data);
         $editTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $editTimeForm->isSubmitted() && $editTimeForm->isValid()) {

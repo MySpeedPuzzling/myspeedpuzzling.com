@@ -5,28 +5,36 @@
 {% block content %}
     <h1>{{ 'add_time.title'|trans }}</h1>
 
-    <div class="mb-4">
-        <div class="btn-group w-100" role="group" aria-label="Form mode selection">
-            <input type="radio" class="btn-check" name="form-mode" id="mode-speed" autocomplete="off" checked>
-            <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-speed">
-                <i class="bi bi-stopwatch-fill"></i>
-                <small>{{ 'add_time.mode.speed_puzzling'|trans }}</small>
-            </label>
+    <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="speed_puzzling">
+        <div class="mb-4">
+            <div class="btn-group w-100" role="group" aria-label="Form mode selection">
+                <input type="radio" class="btn-check" name="form-mode" id="mode-speed" autocomplete="off" checked
+                       value="speed_puzzling"
+                       data-action="change->puzzle-add-form#switchMode">
+                <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-speed">
+                    <i class="bi bi-stopwatch-fill"></i>
+                    <small>{{ 'add_time.mode.speed_puzzling'|trans }}</small>
+                </label>
 
-            <input type="radio" class="btn-check" name="form-mode" id="mode-relax" autocomplete="off">
-            <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-relax">
-                <i class="bi bi-cup-hot-fill"></i>
-                <small>{{ 'add_time.mode.relax'|trans }}</small>
-            </label>
+                <input type="radio" class="btn-check" name="form-mode" id="mode-relax" autocomplete="off"
+                       value="relax"
+                       data-action="change->puzzle-add-form#switchMode">
+                <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-relax">
+                    <i class="bi bi-cup-hot-fill"></i>
+                    <small>{{ 'add_time.mode.relax'|trans }}</small>
+                </label>
 
-            <input type="radio" class="btn-check" name="form-mode" id="mode-collection" autocomplete="off">
-            <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-collection">
-                <i class="bi bi-collection-fill"></i>
-                <small>{{ 'add_time.mode.to_collection'|trans }}</small>
-            </label>
+                <input type="radio" class="btn-check" name="form-mode" id="mode-collection" autocomplete="off"
+                       value="collection"
+                       data-action="change->puzzle-add-form#switchMode">
+                <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-collection">
+                    <i class="bi bi-collection-fill"></i>
+                    <small>{{ 'add_time.mode.to_collection'|trans }}</small>
+                </label>
+            </div>
         </div>
-    </div>
 
-    {{ include('_solving_time_form.html.twig') }}
+        {{ include('_solving_time_form.html.twig') }}
+    </div>
 
 {% endblock %}

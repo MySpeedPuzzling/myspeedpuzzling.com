@@ -33,6 +33,39 @@ readonly final class SolvingTime
         return new self($seconds);
     }
 
+    public static function fromHoursMinutesSeconds(
+        null|int $hours,
+        null|int $minutes,
+        null|int $seconds,
+    ): self {
+        if ($hours === null && $minutes === null && $seconds === null) {
+            return new self(null);
+        }
+
+        $totalSeconds = ($seconds ?? 0)
+            + (($minutes ?? 0) * 60)
+            + (($hours ?? 0) * 3600);
+
+        if ($totalSeconds === 0) {
+            return new self(null);
+        }
+
+        return new self($totalSeconds);
+    }
+
+    public function toTimeString(): null|string
+    {
+        if ($this->seconds === null) {
+            return null;
+        }
+
+        $hours = intdiv($this->seconds, 3600);
+        $minutes = intdiv($this->seconds % 3600, 60);
+        $seconds = $this->seconds % 60;
+
+        return sprintf('%d:%02d:%02d', $hours, $minutes, $seconds);
+    }
+
     public function calculatePpm(int $pieces, int $puzzlersCount = 1): float
     {
         $puzzlersCount = max(1, $puzzlersCount);

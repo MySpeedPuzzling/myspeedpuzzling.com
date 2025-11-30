@@ -246,6 +246,10 @@ forms:
     avatar: "Avatar/photo"
     search_puzzler: "Name, player code, or part of..."
     time_format_placeholder: "HH:MM:SS"
+    time_required: "Please enter the time"
+    hours_short: "hrs"
+    minutes_short: "min"
+    seconds_short: "sec"
     comment: "Additional info"
     finished_puzzle_photo: "Photo of completed puzzles"
     add_new_puzzle: "Add new puzzle - not in the list"
@@ -475,6 +479,7 @@ flashes:
     stopwatch_already_saved: "These stopwatches have already been saved."
     puzzle_needs_approve: "Recently added puzzles will be publicly displayed after approval by an administrator - usually within 24 hours of adding."
     time_added: "We have saved your puzzling time."
+    tracking_added: "We have saved your puzzle tracking."
     time_deleted: "We've deleted all evidence. No one will ever know what just happened!"
     profile_saved: "Profile changes saved!"
     time_edited: "Edited information has been saved."
@@ -493,6 +498,7 @@ flashes:
     unknown_error: "We're sorry, but something went wrong - we've been notified and will try to fix it as soon as possible. Please try again later."
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."
     puzzle_removed_from_collection: "Puzzle has been removed from the collection."
+    puzzle_added_to_collection: "Puzzle has been added to the collection."
 
 hub:
     title: "Hub"
@@ -607,6 +613,17 @@ added_time_recap:
     add_time: "Add new time"
     the_same_puzzle: "For the same puzzle"
     puzzle_detail: "Results"
+
+added_tracking_recap:
+    meta:
+        title: "Puzzle Tracked"
+    title: "Puzzle tracked successfully!"
+    add_another: "Track another puzzle"
+    the_same_puzzle: "Track the same puzzle again"
+    puzzle_detail: "View puzzle detail"
+    manufacturer: "Manufacturer"
+    pieces: "Pieces"
+    group_puzzlers: "Puzzled with"
 
 global_search:
     info: "Welcome new search! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."

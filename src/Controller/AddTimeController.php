@@ -8,20 +8,26 @@ use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
-use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
-use SpeedPuzzling\Web\FormType\PuzzleSolvingTimeFormType;
+use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
+use SpeedPuzzling\Web\FormType\PuzzleAddFormType;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\AddPuzzleToCollection;
+use SpeedPuzzling\Web\Message\AddPuzzleTracking;
+use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Message\FinishStopwatch;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
-use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -37,10 +43,10 @@ final class AddTimeController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetStopwatch $getStopwatch,
-        readonly private PuzzlingTimeFormatter $timeFormatter,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private LoggerInterface $logger,
+        readonly private GetPlayerCollections $getPlayerCollections,
     ) {
     }
 
@@ -72,9 +78,12 @@ final class AddTimeController extends AbstractController
         null|string $puzzleId = null,
         null|string $stopwatchId = null,
     ): Response {
+        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
+        assert($userProfile !== null);
+
         $activePuzzle = null;
         $activeStopwatch = null;
-        $data = new PuzzleSolvingTimeFormData();
+        $data = new PuzzleAddFormData();
 
         if ($puzzleId !== null) {
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
@@ -82,7 +91,12 @@ final class AddTimeController extends AbstractController
 
         if ($stopwatchId !== null) {
             $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
-            $data->time = $this->timeFormatter->formatTime($activeStopwatch->totalSeconds);
+
+            // Pre-fill time fields from stopwatch
+            $totalSeconds = $activeStopwatch->totalSeconds;
+            $data->timeHours = intdiv($totalSeconds, 3600);
+            $data->timeMinutes = intdiv($totalSeconds % 3600, 60);
+            $data->timeSeconds = $totalSeconds % 60;
 
             if ($activeStopwatch->status === StopwatchStatus::Finished) {
                 $this->addFlash('warning', $this->translator->trans('flashes.stopwatch_already_saved'));
@@ -111,16 +125,24 @@ final class AddTimeController extends AbstractController
             }
         }
 
-        $addTimeForm = $this->createForm(PuzzleSolvingTimeFormType::class, $data, [
+        // Get player collections for form options
+        $collections = [];
+        foreach ($this->getPlayerCollections->byPlayerId($userProfile->playerId) as $collection) {
+            $collections[$collection->name] = $collection->collectionId;
+        }
+
+        $addTimeForm = $this->createForm(PuzzleAddFormType::class, $data, [
             'active_puzzle' => $activePuzzle,
+            'collections' => $collections,
         ]);
         $addTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $addTimeForm->isSubmitted() && $addTimeForm->isValid()) {
-            $timeId = Uuid::uuid7();
             $userId = $user->getUserIdentifier();
+            $mode = $data->mode;
 
-            // Adding new puzzles by user
+            // Step 1: Handle new puzzle creation (all modes)
+            $newPuzzleCreated = false;
             if (
                 is_string($data->puzzle)
                 && $data->puzzlePiecesCount !== null
@@ -128,57 +150,47 @@ final class AddTimeController extends AbstractController
             ) {
                 $newPuzzleId = Uuid::uuid7();
 
-                if ($data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
+                // Photo fallback only for Speed/Relax (not Collection)
+                if ($mode !== PuzzleAddMode::Collection && $data->puzzlePhoto === null && $data->finishedPuzzlesPhoto !== null) {
                     $data->puzzlePhoto = clone $data->finishedPuzzlesPhoto;
                 }
 
                 $this->messageBus->dispatch(
-                    AddPuzzle::fromFormData($newPuzzleId, $userId, $data),
+                    new AddPuzzle(
+                        puzzleId: $newPuzzleId,
+                        userId: $userId,
+                        puzzleName: $data->puzzle,
+                        brand: $data->brand ?? '',
+                        piecesCount: $data->puzzlePiecesCount,
+                        puzzlePhoto: $data->puzzlePhoto,
+                        puzzleEan: $data->puzzleEan,
+                        puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
+                    ),
                 );
 
                 // After adding puzzle, change the data to the puzzle id for further handlers
                 $data->puzzle = $newPuzzleId->toString();
+                $newPuzzleCreated = true;
 
                 $this->addFlash('warning', $this->translator->trans('flashes.puzzle_needs_approve'));
             }
 
+            // Step 2: Mode-specific handling
             try {
-                $this->messageBus->dispatch(
-                    AddPuzzleSolvingTime::fromFormData($timeId, $userId, $groupPlayers, $data),
-                );
+                switch ($mode) {
+                    case PuzzleAddMode::SpeedPuzzling:
+                        return $this->handleSpeedPuzzling($data, $userId, $groupPlayers, $activeStopwatch, $stopwatchId);
 
-                if ($activeStopwatch !== null) {
-                    assert($data->puzzle !== null);
+                    case PuzzleAddMode::Relax:
+                        return $this->handleRelax($data, $userId, $groupPlayers);
 
-                    $this->messageBus->dispatch(
-                        new FinishStopwatch(
-                            $stopwatchId,
-                            $userId,
-                            $data->puzzle,
-                        ),
-                    );
+                    case PuzzleAddMode::Collection:
+                        return $this->handleCollection($data, $userProfile->playerId);
                 }
-
-                return $this->redirectToRoute('added_time_recap', ['timeId' => $timeId]);
             } catch (HandlerFailedException $exception) {
-                $realException = $exception->getPrevious();
-
-                if ($realException instanceof CanNotAssembleEmptyGroup) {
-                    $addTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
-                } elseif ($realException instanceof SuspiciousPpm) {
-                    $addTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
-                } else {
-                    $addTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
-
-                    $this->logger->warning('Puzzle time could not be added', [
-                        'exception' => $exception,
-                    ]);
-                }
+                $this->handleException($exception, $addTimeForm);
             }
         }
-
-        $userProfile = $this->retrieveLoggedUserProfile->getProfile();
-        assert($userProfile !== null);
 
         return $this->render('add-time.html.twig', [
             'active_stopwatch' => $activeStopwatch,
@@ -187,6 +199,146 @@ final class AddTimeController extends AbstractController
             'filled_group_players' => $groupPlayers,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($userProfile->playerId),
             'hide_new_puzzle' => Uuid::isValid($data->puzzle ?? '') || $data->brand === null,
+            'collections' => $collections,
         ]);
+    }
+
+    /**
+     * @param array<string> $groupPlayers
+     */
+    private function handleSpeedPuzzling(
+        PuzzleAddFormData $data,
+        string $userId,
+        array $groupPlayers,
+        mixed $activeStopwatch,
+        null|string $stopwatchId,
+    ): Response {
+        $timeId = Uuid::uuid7();
+
+        assert($data->puzzle !== null);
+
+        $timeString = $data->getTimeAsString();
+        assert($timeString !== null);
+
+        $this->messageBus->dispatch(
+            new AddPuzzleSolvingTime(
+                timeId: $timeId,
+                userId: $userId,
+                puzzleId: $data->puzzle,
+                competitionId: $data->competition,
+                time: $timeString,
+                comment: $data->comment,
+                finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
+                groupPlayers: $groupPlayers,
+                finishedAt: $data->finishedAt,
+                firstAttempt: $data->firstAttempt,
+            ),
+        );
+
+        if ($activeStopwatch !== null && $stopwatchId !== null) {
+            $this->messageBus->dispatch(
+                new FinishStopwatch(
+                    $stopwatchId,
+                    $userId,
+                    $data->puzzle,
+                ),
+            );
+        }
+
+        return $this->redirectToRoute('added_time_recap', ['timeId' => $timeId]);
+    }
+
+    /**
+     * @param array<string> $groupPlayers
+     */
+    private function handleRelax(
+        PuzzleAddFormData $data,
+        string $userId,
+        array $groupPlayers,
+    ): Response {
+        $trackingId = Uuid::uuid7();
+
+        assert($data->puzzle !== null);
+
+        $this->messageBus->dispatch(
+            new AddPuzzleTracking(
+                trackingId: $trackingId,
+                userId: $userId,
+                puzzleId: $data->puzzle,
+                comment: $data->comment,
+                finishedPuzzlesPhoto: $data->finishedPuzzlesPhoto,
+                groupPlayers: $groupPlayers,
+                finishedAt: $data->finishedAt,
+            ),
+        );
+
+        return $this->redirectToRoute('added_tracking_recap', ['trackingId' => $trackingId]);
+    }
+
+    private function handleCollection(
+        PuzzleAddFormData $data,
+        string $playerId,
+    ): Response {
+        assert($data->puzzle !== null);
+        assert($data->collection !== null);
+
+        $collectionId = $data->collection;
+
+        // Handle new collection creation if needed
+        if (Uuid::isValid($data->collection) === false) {
+            $newCollectionId = Uuid::uuid7();
+
+            try {
+                $this->messageBus->dispatch(
+                    new CreateCollection(
+                        collectionId: $newCollectionId->toString(),
+                        playerId: $playerId,
+                        name: $data->collection,
+                        description: $data->collectionDescription,
+                        visibility: $data->collectionVisibility,
+                    ),
+                );
+
+                $collectionId = $newCollectionId->toString();
+            } catch (HandlerFailedException $exception) {
+                // If collection already exists, we can still proceed
+                if (!$exception->getPrevious() instanceof CollectionAlreadyExists) {
+                    throw $exception;
+                }
+            }
+        }
+
+        $this->messageBus->dispatch(
+            new AddPuzzleToCollection(
+                playerId: $playerId,
+                puzzleId: $data->puzzle,
+                collectionId: $collectionId,
+                comment: $data->collectionComment,
+            ),
+        );
+
+        $this->addFlash('success', $this->translator->trans('flashes.puzzle_added_to_collection'));
+
+        return $this->redirectToRoute('my_profile');
+    }
+
+    /**
+     * @param FormInterface<PuzzleAddFormData> $form
+     */
+    private function handleException(HandlerFailedException $exception, FormInterface $form): void
+    {
+        $realException = $exception->getPrevious();
+
+        if ($realException instanceof CanNotAssembleEmptyGroup) {
+            $form->addError(new FormError($this->translator->trans('forms.empty_group_error')));
+        } elseif ($realException instanceof SuspiciousPpm) {
+            $form->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
+        } else {
+            $form->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
+
+            $this->logger->warning('Puzzle time could not be added', [
+                'exception' => $exception,
+            ]);
+        }
     }
 }

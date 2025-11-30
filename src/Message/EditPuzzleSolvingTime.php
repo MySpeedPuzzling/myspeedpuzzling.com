@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
-use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 readonly final class EditPuzzleSolvingTime
@@ -27,15 +27,16 @@ readonly final class EditPuzzleSolvingTime
     /**
      * @param array<string> $groupPlayers
      */
-    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, PuzzleSolvingTimeFormData $formData): self
+    public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData): self
     {
-        assert($formData->time !== null);
+        $timeString = $formData->getTimeAsString();
+        assert($timeString !== null);
 
         return new self(
             currentUserId: $userId,
             puzzleSolvingTimeId: $timeId,
             competitionId: $formData->competition,
-            time: $formData->time,
+            time: $timeString,
             comment: $formData->comment,
             groupPlayers: $groupPlayers,
             finishedAt: $formData->finishedAt,

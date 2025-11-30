@@ -43,7 +43,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
                     'thumbnail' => [
                         'size' => [200, 200],
                         'mode' => 'inset',
-                    ]
+                    ],
                 ],
             ],
             'puzzle_medium' => [
@@ -54,7 +54,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
                         'size' => [400, 400],
                         'mode' => 'inset',
                         'allow_upscale' => false,
-                    ]
+                    ],
                 ],
             ],
         ],

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\CollectionAlreadyExists;
 use SpeedPuzzling\Web\FormData\CollectionPuzzleActionFormData;
 use SpeedPuzzling\Web\FormType\CollectionPuzzleActionFormType;
 use SpeedPuzzling\Web\Message\CreateCollection;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Message\MovePuzzleToCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -37,6 +38,7 @@ final class MovePuzzleToCollectionController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private CollectionItemRepository $collectionItemRepository,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -175,16 +177,39 @@ final class MovePuzzleToCollectionController extends AbstractController
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+                $context = $request->query->getString('context', 'detail');
+
+                // If coming from collection list, use the list stream template
+                if ($context === 'list') {
+                    $currentCollectionId = $request->query->get('sourceCollectionId') ?? Collection::SYSTEM_ID;
+                    $currentCollectionIdForQuery = $currentCollectionId === Collection::SYSTEM_ID ? null : $currentCollectionId;
+
+                    $remainingCount = $this->getCollectionItems->countByCollectionAndPlayer(
+                        $currentCollectionIdForQuery,
+                        $loggedPlayer->playerId,
+                    );
+
+                    return $this->render('collections/_remove_from_list_stream.html.twig', [
+                        'puzzle_id' => $puzzleId,
+                        'puzzle_statuses' => $puzzleStatuses,
+                        'removed_from_collection_id' => $currentCollectionId,
+                        'current_collection_id' => $currentCollectionId,
+                        'remaining_count' => $remainingCount,
+                        'source_collection_id' => $currentCollectionId,
+                        'context' => 'list',
+                        'message' => $this->translator->trans('collections.puzzle_moved'),
+                    ]);
+                }
 
                 return $this->render('collections/_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
-                    'message' => $this->translator->trans('collections.flash.puzzle_moved'),
+                    'message' => $this->translator->trans('collections.puzzle_moved'),
                 ]);
             }
 
             // Non-Turbo request: redirect with flash message
-            $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_moved'));
+            $this->addFlash('success', $this->translator->trans('collections.puzzle_moved'));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }
@@ -210,6 +235,7 @@ final class MovePuzzleToCollectionController extends AbstractController
             'puzzle_id' => $puzzleId,
             'source_collection_id' => $request->query->get('sourceCollectionId') ?? Collection::SYSTEM_ID,
             'source_collection_name' => $sourceCollectionName,
+            'context' => $request->query->getString('context', ''),
         ];
 
         // Turbo Frame request - return frame content only

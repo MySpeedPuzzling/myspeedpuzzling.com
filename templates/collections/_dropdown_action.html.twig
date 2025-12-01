@@ -1,6 +1,5 @@
 {#
     Collection dropdown action - shows Add, Move, or Remove based on puzzle status.
-    Uses a <div> wrapper with display:contents for Turbo Stream replacement.
 
     Required variables: puzzle_id, puzzle_statuses
     Optional variables: source_collection_id (for Move action on collection pages), context (for Turbo Stream response type)
@@ -8,7 +7,6 @@
 {% set source_collection_id = source_collection_id|default(null) %}
 {% set context = context|default('detail') %}
 {% set currentCollectionId = currentCollectionId|default(null) %}
-<div id="collection-action-{{ puzzle_id }}" style="display: contents;">
 {% set collections_for_puzzle = puzzle_statuses.puzzleCollections[puzzle_id]|default({}) %}
 
 {% if collections_for_puzzle|length > 0 %}
@@ -62,4 +60,3 @@
         </a>
     </li>
 {% endif %}
-</div>

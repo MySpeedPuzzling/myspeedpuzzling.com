@@ -1,5 +1,4 @@
 {% set context = context|default('detail') %}
-<div id="sellswap-action-{{ puzzle_id }}" style="display: contents;">
 {% if puzzle_id in puzzle_statuses.sellSwap %}
     <li>
         <a class="dropdown-item text-success"
@@ -20,7 +19,7 @@
             </button>
         </form>
     </li>
-{% else %}
+{% elseif puzzle_id in puzzle_statuses.collection %}
     <li>
         <a class="dropdown-item"
            href="{{ path('sellswap_add', {puzzleId: puzzle_id}) }}"
@@ -29,5 +28,11 @@
             <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
         </a>
     </li>
+{% else %}
+    <li>
+        <span class="dropdown-item disabled text-muted">
+            <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}
+            <small class="d-block text-muted">{{ 'sell_swap_list.not_in_collection'|trans }}</small>
+        </span>
+    </li>
 {% endif %}
-</div>

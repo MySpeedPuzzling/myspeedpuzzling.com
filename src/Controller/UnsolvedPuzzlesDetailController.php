@@ -6,8 +6,10 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetLentPuzzleIds;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -26,6 +28,8 @@ final class UnsolvedPuzzlesDetailController extends AbstractController
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private GetLentPuzzleIds $getLentPuzzleIds,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
@@ -70,6 +74,12 @@ final class UnsolvedPuzzlesDetailController extends AbstractController
         // Merge arrays with borrowed items first
         $items = array_merge($borrowedItems, $collectionItems);
 
+        // Get lent puzzles to show overlay - only for own profile
+        $lentPuzzles = [];
+        if ($loggedPlayerProfile?->playerId === $playerId) {
+            $lentPuzzles = $this->getLentPuzzleIds->byOwnerId($player->playerId);
+        }
+
         $collectionOverview = new CollectionOverview(
             playerId: $playerId,
             collectionId: null,
@@ -82,6 +92,8 @@ final class UnsolvedPuzzlesDetailController extends AbstractController
             'collection' => $collectionOverview,
             'items' => $items,
             'player' => $player,
+            'lentPuzzles' => $lentPuzzles,
+            'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
         ]);
     }
 }

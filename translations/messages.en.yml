@@ -1087,6 +1087,7 @@ sell_swap_list:
         success: "Puzzle was removed from your sell/swap list."
     already_in_list: "This puzzle is already in your sell/swap list."
     login_required: "You must be logged in to manage your sell/swap list."
+    not_in_collection: "Add to collection first"
     membership_required:
         title: "Members Only Feature"
         message: "The sell/swap list is available exclusively to members."
@@ -1181,6 +1182,7 @@ lend_borrow:
     already_borrowed: "This puzzle is already in your borrowed list."
     already_borrowed_short: "Already borrowed"
     login_required: "You must be logged in to manage your lending list."
+    not_in_collection: "Not in your collection"
     edit_settings:
         title: "Edit Lend & Borrow Settings"
         meta:

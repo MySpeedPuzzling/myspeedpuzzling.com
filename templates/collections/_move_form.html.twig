@@ -1,13 +1,19 @@
 {# Move puzzle to collection form - used in both modal and full page #}
 {% set in_modal = in_modal|default(false) %}
+{% set context = context|default('') %}
 
 <div data-controller="puzzle-collection-form" data-puzzle-collection-form-system-id-value="{{ system_collection_id }}">
     <p class="text-muted small mb-3">
         {{ 'collections.moving_from'|trans({'%collection%': source_collection_name}) }}
     </p>
 
+    {% set form_action = path('collection_move', {puzzleId: puzzle_id, sourceCollectionId: source_collection_id}) %}
+    {% if context %}
+        {% set form_action = form_action ~ '&context=' ~ context %}
+    {% endif %}
+
     {{ form_start(form, {
-        'action': path('collection_move', {puzzleId: puzzle_id, sourceCollectionId: source_collection_id}),
+        'action': form_action,
         'attr': {
             'data-turbo': 'true',
             'data-turbo-frame': in_modal ? 'modal-frame' : '_top'

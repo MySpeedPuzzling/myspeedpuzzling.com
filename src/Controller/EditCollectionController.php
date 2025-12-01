@@ -86,7 +86,7 @@ final class EditCollectionController extends AbstractController
                 ),
             );
 
-            $this->addFlash('success', $this->translator->trans('collections.flash.updated'));
+            $this->addFlash('success', $this->translator->trans('collections.updated'));
 
             return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }

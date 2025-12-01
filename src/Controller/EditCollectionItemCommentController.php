@@ -73,7 +73,7 @@ final class EditCollectionItemCommentController extends AbstractController
                 ),
             );
 
-            $this->addFlash('success', $this->translator->trans('collections.flash.comment_updated'));
+            $this->addFlash('success', $this->translator->trans('collections.comment_updated'));
 
             // Redirect back to collection detail or system collection
             if ($collectionItem->collection !== null) {

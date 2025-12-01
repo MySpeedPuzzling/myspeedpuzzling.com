@@ -233,31 +233,12 @@
                                                     </a>
                                                 </li>
 
-                                                {{ include('collections/_dropdown_action.html.twig', {
+                                                {{ include('puzzle/_dropdown_actions.html.twig', {
                                                     puzzle_id: item.puzzleId,
                                                     puzzle_statuses: puzzle_statuses,
                                                     context: 'list',
+                                                    source_collection_id: collection.collectionId ?? '__system_collection__',
                                                     currentCollectionId: collection.collectionId ?? '__system_collection__',
-                                                }) }}
-
-                                                <li>
-                                                    <a class="dropdown-item"
-                                                       href="{{ path('collection_move', {puzzleId: item.puzzleId, sourceCollectionId: collection.collectionId ?? '__system_collection__'}) }}"
-                                                       data-turbo="true"
-                                                       data-turbo-frame="modal-frame">
-                                                        <i class="bi bi-arrow-right-square me-1"></i> {{ 'collections.move_to_collection'|trans }}
-                                                    </a>
-                                                </li>
-
-
-                                                {{ include('sell-swap/_dropdown_action.html.twig', {
-                                                    puzzle_id: item.puzzleId,
-                                                    puzzle_statuses: puzzle_statuses
-                                                }) }}
-
-                                                {{ include('lend-borrow/_dropdown_action.html.twig', {
-                                                    puzzle_id: item.puzzleId,
-                                                    puzzle_statuses: puzzle_statuses
                                                 }) }}
                                             </ul>
                                         </div>

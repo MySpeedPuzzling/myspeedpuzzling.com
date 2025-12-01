@@ -1,6 +1,6 @@
 {% set context = context|default('detail') %}
 {% if puzzle_id in puzzle_statuses.wishlist %}
-    <li id="wishlist-action-{{puzzle_id }}">
+    <li>
         <form action="{{ path('remove_puzzle_from_wish_list', {puzzleId: puzzle_id}) }}"
               method="post"
               class="d-inline"
@@ -12,7 +12,7 @@
         </form>
     </li>
 {% elseif puzzle_id not in puzzle_statuses.collection and puzzle_id not in puzzle_statuses.borrowed %}
-    <li id="wishlist-action-{{puzzle_id }}">
+    <li>
         <a class="dropdown-item"
            href="{{ path('wishlist_add', {puzzleId: puzzle_id}) }}"
            data-turbo="true"

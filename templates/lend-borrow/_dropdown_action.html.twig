@@ -4,12 +4,10 @@
     - If puzzle is BORROWED by user: show Return + Pass actions (cannot lend borrowed puzzle)
     - Otherwise: show Lend and Borrow actions
 
-    Uses a <div> wrapper with display:contents for Turbo Stream replacement.
     Optional variables: context (for Turbo Stream response type), tab (lent/borrowed for list context)
 #}
 {% set context = context|default('detail') %}
 {% set tab = tab|default('') %}
-<div id="lend-borrow-actions-{{ puzzle_id }}" style="display: contents;">
 {% if puzzle_id in puzzle_statuses.lent %}
     {# User lent this puzzle - show return/pass actions #}
     {% set lent_puzzle_id = puzzle_statuses.lentPuzzleIds[puzzle_id] %}
@@ -57,15 +55,24 @@
         </a>
     </li>
 {% else %}
-    {# Puzzle not lent or borrowed - show both lend and borrow actions #}
-    <li>
-        <a class="dropdown-item"
-           href="{{ path('lend_puzzle', {puzzleId: puzzle_id}) }}"
-           data-turbo="true"
-           data-turbo-frame="modal-frame">
-            <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
-        </a>
-    </li>
+    {# Puzzle not lent or borrowed - show lend (if in collection) and borrow actions #}
+    {% if puzzle_id in puzzle_statuses.collection %}
+        <li>
+            <a class="dropdown-item"
+               href="{{ path('lend_puzzle', {puzzleId: puzzle_id}) }}"
+               data-turbo="true"
+               data-turbo-frame="modal-frame">
+                <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
+            </a>
+        </li>
+    {% else %}
+        <li>
+            <span class="dropdown-item disabled text-muted">
+                <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}
+                <small class="d-block text-muted">{{ 'lend_borrow.not_in_collection'|trans }}</small>
+            </span>
+        </li>
+    {% endif %}
     <li>
         <a class="dropdown-item"
            href="{{ path('borrow_puzzle', {puzzleId: puzzle_id}) }}"
@@ -75,4 +82,3 @@
         </a>
     </li>
 {% endif %}
-</div>

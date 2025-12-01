@@ -13,15 +13,11 @@
     </template>
 </turbo-stream>
 
-{# Update sell/swap action button (for dropdown menus) #}
-<turbo-stream action="replace" target="sellswap-action-{{ puzzle_id }}">
-    <template>
-        {{ include('sell-swap/_dropdown_action.html.twig', {
-            puzzle_id: puzzle_id,
-            puzzle_statuses: puzzle_statuses
-        }) }}
-    </template>
-</turbo-stream>
+{# Update all dropdown actions (they depend on each other's state) #}
+{{ include('puzzle/_dropdown_actions_stream.html.twig', {
+    puzzle_id: puzzle_id,
+    puzzle_statuses: puzzle_statuses,
+}) }}
 
 {# Show toast notification #}
 <turbo-stream action="append" target="toast-container">

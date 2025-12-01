@@ -1,0 +1,19 @@
+{#
+    Turbo stream partial to replace the entire grouped dropdown actions.
+    Ensures all dropdowns update together when any action is performed.
+
+    Required variables: puzzle_id, puzzle_statuses
+    Optional variables: source_collection_id, context, currentCollectionId, tab
+#}
+<turbo-stream action="replace" target="puzzle-dropdown-actions-{{ puzzle_id }}">
+    <template>
+        {{ include('puzzle/_dropdown_actions.html.twig', {
+            puzzle_id: puzzle_id,
+            puzzle_statuses: puzzle_statuses,
+            source_collection_id: source_collection_id|default(null),
+            context: context|default('detail'),
+            currentCollectionId: currentCollectionId|default(null),
+            tab: tab|default(null),
+        }) }}
+    </template>
+</turbo-stream>

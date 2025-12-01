@@ -156,12 +156,12 @@ final class AddPuzzleToCollectionController extends AbstractController
                 return $this->render('collections/_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
-                    'message' => $this->translator->trans('collections.flash.puzzle_added'),
+                    'message' => $this->translator->trans('collections.puzzle_added'),
                 ]);
             }
 
             // Non-Turbo request: redirect with flash message
-            $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_added'));
+            $this->addFlash('success', $this->translator->trans('collections.puzzle_added'));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }

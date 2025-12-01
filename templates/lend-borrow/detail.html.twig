@@ -138,7 +138,7 @@
                                                         {% endif %}
 
                                                         {% if hasMembership %}
-                                                            {{ include('lend-borrow/_dropdown_action.html.twig', {
+                                                            {{ include('puzzle/_dropdown_actions.html.twig', {
                                                                 puzzle_id: item.puzzleId,
                                                                 puzzle_statuses: puzzle_statuses,
                                                                 context: 'list',
@@ -236,7 +236,7 @@
                                                             </li>
                                                         {% endif %}
 
-                                                        {{ include('lend-borrow/_dropdown_action.html.twig', {
+                                                        {{ include('puzzle/_dropdown_actions.html.twig', {
                                                             puzzle_id: item.puzzleId,
                                                             puzzle_statuses: puzzle_statuses,
                                                             context: 'list',

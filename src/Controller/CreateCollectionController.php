@@ -55,7 +55,7 @@ final class CreateCollectionController extends AbstractController
 
         // Check if user has active membership to create collections
         if ($player->activeMembership === false) {
-            $this->addFlash('info', $this->translator->trans('collections.flash.membership_required'));
+            $this->addFlash('info', $this->translator->trans('collections.membership_required'));
 
             return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }
@@ -78,7 +78,7 @@ final class CreateCollectionController extends AbstractController
                 ),
             );
 
-            $this->addFlash('success', $this->translator->trans('collections.flash.created'));
+            $this->addFlash('success', $this->translator->trans('collections.created'));
 
             return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }

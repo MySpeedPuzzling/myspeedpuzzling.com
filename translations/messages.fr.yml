@@ -907,6 +907,7 @@ collections:
         puzzle_removed: "Le puzzle a été retiré de la collection."
         system_updated: "La visibilité de la collection de puzzles a été mise à jour avec succès."
         updated: "La collection a été mise à jour avec succès."
+        puzzle_moved: "Le puzzle a été déplacé dans la collection avec succès."
     form:
         description: "Description"
         name: "Nom"
@@ -936,7 +937,6 @@ collections:
     private_collection_message: "La collection \"%collection%\" de %player% est privée et ne peut pas être consultée."
     public: "Publique"
     puzzle_copied: "Le puzzle a été copié dans la collection avec succès."
-    puzzle_moved: "Le puzzle a été déplacé dans la collection avec succès."
     remove: "Retirer"
     remove_from: "Retirer de %collection%"
     remove_puzzle: "Retirer de la collection"

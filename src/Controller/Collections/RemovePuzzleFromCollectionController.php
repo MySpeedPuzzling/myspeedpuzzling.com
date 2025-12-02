@@ -88,7 +88,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
                     'removed_from_collection_id' => is_string($collectionId) ? $collectionId : '__system_collection__',
                     'current_collection_id' => $currentCollectionId ?? '__system_collection__',
                     'remaining_count' => $remainingCount,
-                    'message' => $this->translator->trans('collections.puzzle_removed'),
+                    'message' => $this->translator->trans('collections.flash.puzzle_removed'),
                     'puzzle_statuses' => $puzzleStatuses,
                     'context' => $context,
                     'source_collection_id' => $currentCollectionId,
@@ -101,7 +101,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
             return $this->render('collections/_stream.html.twig', [
                 'puzzle_id' => $puzzleId,
                 'puzzle_statuses' => $puzzleStatuses,
-                'message' => $this->translator->trans('collections.puzzle_removed'),
+                'message' => $this->translator->trans('collections.flash.puzzle_removed'),
             ]);
         }
 

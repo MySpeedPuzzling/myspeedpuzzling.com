@@ -11,7 +11,31 @@
         </button>
     </p>
 
-    {{ include('_solving_time_form.html.twig') }}
+    <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}">
+        <div class="mb-4">
+            <div class="btn-group w-100" role="group" aria-label="Form mode selection">
+                <input type="radio" class="btn-check" name="form-mode" id="mode-speed" autocomplete="off"
+                       {{ initial_mode|default('speed_puzzling') == 'speed_puzzling' ? 'checked' : '' }}
+                       value="speed_puzzling"
+                       data-action="change->puzzle-add-form#switchMode">
+                <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-speed">
+                    <i class="bi bi-stopwatch-fill"></i>
+                    <small>{{ 'puzzle_add.mode.speed_puzzling'|trans }}</small>
+                </label>
+
+                <input type="radio" class="btn-check" name="form-mode" id="mode-relax" autocomplete="off"
+                       {{ initial_mode|default('speed_puzzling') == 'relax' ? 'checked' : '' }}
+                       value="relax"
+                       data-action="change->puzzle-add-form#switchMode">
+                <label class="btn btn-outline-primary py-2 px-2 d-flex flex-column align-items-center lh-sm text-wrap" for="mode-relax">
+                    <i class="bi bi-cup-hot-fill"></i>
+                    <small>{{ 'puzzle_add.mode.relax'|trans }}</small>
+                </label>
+            </div>
+        </div>
+
+        {{ include('_solving_time_form.html.twig') }}
+    </div>
 
     <div class="modal fade" tabindex="-1" role="dialog" id="modalConfirm">
         <div class="modal-dialog modal-dialog-centered" role="document">

@@ -67,7 +67,7 @@ class PuzzleSolvingTime implements EntityWithEvents
     }
 
     public function modify(
-        int $seconds,
+        null|int $seconds,
         null|string $comment,
         null|PuzzlersGroup $puzzlersGroup,
         DateTimeImmutable $finishedAt,

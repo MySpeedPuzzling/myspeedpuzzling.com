@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -63,6 +64,11 @@ final class EditTimeController extends AbstractController
         }
 
         $data = new EditPuzzleSolvingTimeFormData();
+
+        // Detect initial mode based on whether time exists
+        $initialMode = $solvedPuzzle->time !== null ? 'speed_puzzling' : 'relax';
+        $data->mode = $solvedPuzzle->time !== null ? PuzzleAddMode::SpeedPuzzling : PuzzleAddMode::Relax;
+
         if ($solvedPuzzle->time !== null) {
             $data->setTimeFromSeconds($solvedPuzzle->time);
         }
@@ -120,6 +126,7 @@ final class EditTimeController extends AbstractController
             'puzzles' => $puzzlesPerManufacturer,
             'active_stopwatch' => null,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
+            'initial_mode' => $initialMode,
         ]);
     }
 }

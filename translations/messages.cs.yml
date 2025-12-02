@@ -878,6 +878,7 @@ collections:
         login_required_add: "Pro přidávání puzzlí do kolekcí musíte být přihlášeni."
         login_required_copy: "Pro kopírování puzzlí do kolekcí musíte být přihlášeni."
         login_required_move: "Pro přesouvání puzzlí mezi kolekcemi musíte být přihlášeni."
+        puzzle_moved: "Puzzle bylo úspěšně přesunuto do kolekce."
     membership_required:
         title: "Odemkněte neomezené kolekce"
         message: "Vytvářejte neomezené množství kolekcí pro organizaci vašich puzzle s členstvím!"
@@ -928,8 +929,6 @@ collections:
     move_to_collection: "Přesunout do kolekce"
     copy_to_collection: "Zkopírovat do kolekce"
     moving_from: "Přesouváno z %collection%"
-    puzzle_moved: "Puzzle bylo úspěšně přesunuto do kolekce."
-    puzzle_copied: "Puzzle bylo úspěšně zkopírováno do kolekce."
     move_puzzle_submit: "Přesunout"
     copy_puzzle_submit: "Zkopírovat"
     no_move_target: "Žádné dostupné kolekce"

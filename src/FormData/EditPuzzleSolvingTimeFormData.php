@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints\Length;
@@ -14,6 +15,8 @@ use Symfony\Component\Validator\Constraints\Range;
 
 final class EditPuzzleSolvingTimeFormData
 {
+    public PuzzleAddMode $mode = PuzzleAddMode::SpeedPuzzling;
+
     #[PositiveOrZero]
     #[Range(max: 99)]
     public int $timeHours = 0;

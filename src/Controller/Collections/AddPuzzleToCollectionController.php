@@ -156,7 +156,7 @@ final class AddPuzzleToCollectionController extends AbstractController
                 return $this->render('collections/_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
-                    'message' => $this->translator->trans('collections.puzzle_added'),
+                    'message' => $this->translator->trans('collections.flash.puzzle_added'),
                 ]);
             }
 

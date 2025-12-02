@@ -14,7 +14,7 @@ readonly final class EditPuzzleSolvingTime
         public string $currentUserId,
         public string $puzzleSolvingTimeId,
         public null|string $competitionId,
-        public string $time,
+        public null|string $time,
         public null|string $comment,
         /** @var array<string> */
         public array $groupPlayers,
@@ -29,14 +29,11 @@ readonly final class EditPuzzleSolvingTime
      */
     public static function fromFormData(string $userId, string $timeId, array $groupPlayers, EditPuzzleSolvingTimeFormData $formData): self
     {
-        $timeString = $formData->getTimeAsString();
-        assert($timeString !== null);
-
         return new self(
             currentUserId: $userId,
             puzzleSolvingTimeId: $timeId,
             competitionId: $formData->competition,
-            time: $timeString,
+            time: $formData->getTimeAsString(),
             comment: $formData->comment,
             groupPlayers: $groupPlayers,
             finishedAt: $formData->finishedAt,

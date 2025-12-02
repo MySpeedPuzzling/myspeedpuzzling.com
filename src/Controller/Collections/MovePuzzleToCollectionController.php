@@ -197,19 +197,19 @@ final class MovePuzzleToCollectionController extends AbstractController
                         'remaining_count' => $remainingCount,
                         'source_collection_id' => $currentCollectionId,
                         'context' => 'list',
-                        'message' => $this->translator->trans('collections.puzzle_moved'),
+                        'message' => $this->translator->trans('collections.flash.puzzle_moved'),
                     ]);
                 }
 
                 return $this->render('collections/_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
-                    'message' => $this->translator->trans('collections.puzzle_moved'),
+                    'message' => $this->translator->trans('collections.flash.puzzle_moved'),
                 ]);
             }
 
             // Non-Turbo request: redirect with flash message
-            $this->addFlash('success', $this->translator->trans('collections.puzzle_moved'));
+            $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_moved'));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }

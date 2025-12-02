@@ -903,6 +903,7 @@ collections:
         puzzle_removed: "パズルがコレクションから削除されました。"
         system_updated: "パズルコレクションの表示設定が正常に更新されました。"
         updated: "コレクションが正常に更新されました。"
+        puzzle_moved: "パズルがコレクションに正常に移動されました。"
     form:
         description: "説明"
         name: "名前"
@@ -934,7 +935,6 @@ collections:
     private: "プライベート"
     public: "公開"
     puzzle_copied: "パズルがコレクションに正常にコピーされました。"
-    puzzle_moved: "パズルがコレクションに正常に移動されました。"
     remove: "削除"
     remove_from: "%collection%から削除"
     remove_puzzle: "コレクションから削除"

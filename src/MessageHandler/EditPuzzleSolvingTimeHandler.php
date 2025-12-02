@@ -63,8 +63,10 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         $finishedAt = $message->finishedAt ?? $solvingTime->finishedAt;
 
-        $seconds = SolvingTime::fromUserInput($message->time)->seconds;
-        assert($seconds !== null);
+        $seconds = null;
+        if ($message->time !== null) {
+            $seconds = SolvingTime::fromUserInput($message->time)->seconds;
+        }
 
         $finishedPuzzlePhotoPath = $solvingTime->finishedPuzzlePhoto;
 

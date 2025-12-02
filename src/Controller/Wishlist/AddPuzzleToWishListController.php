@@ -52,7 +52,7 @@ final class AddPuzzleToWishListController extends AbstractController
 
         // Handle POST - add to wishlist
         if ($request->isMethod('POST')) {
-            $removeOnCollectionAdd = $request->request->getBoolean('removeOnCollectionAdd', true);
+            $removeOnCollectionAdd = $request->request->getBoolean('removeOnCollectionAdd', false);
 
             $this->messageBus->dispatch(new AddPuzzleToWishList(
                 playerId: $loggedPlayer->playerId,

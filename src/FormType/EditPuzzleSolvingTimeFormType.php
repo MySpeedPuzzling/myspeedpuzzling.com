@@ -11,9 +11,11 @@ use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetManufacturers;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -65,6 +67,16 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
                 'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
             ];
         }
+
+        // Mode field (hidden, controlled by JS) - only Speed and Relax modes for editing
+        $builder->add('mode', EnumType::class, [
+            'class' => PuzzleAddMode::class,
+            'label' => false,
+            'choice_filter' => fn (PuzzleAddMode $mode): bool => $mode !== PuzzleAddMode::Collection,
+            'attr' => [
+                'class' => 'd-none',
+            ],
+        ]);
 
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
@@ -265,8 +277,8 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
         FormInterface $form,
         EditPuzzleSolvingTimeFormData $data,
     ): void {
-        // Time is required for editing solving time
-        if ($data->hasTime() === false) {
+        // Time is required only for Speed Puzzling mode
+        if ($data->mode === PuzzleAddMode::SpeedPuzzling && $data->hasTime() === false) {
             $form->get('timeMinutes')->addError(new FormError($this->translator->trans('forms.time_required')));
         }
 

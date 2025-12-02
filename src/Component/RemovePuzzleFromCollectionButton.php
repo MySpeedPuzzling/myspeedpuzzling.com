@@ -70,7 +70,7 @@ final class RemovePuzzleFromCollectionButton
         ));
 
         $this->dispatchBrowserEvent('toast:show', [
-            'message' => $this->translator->trans('collections.puzzle_removed'),
+            'message' => $this->translator->trans('collections.flash.puzzle_removed'),
             'type' => 'success',
         ]);
 

@@ -877,6 +877,7 @@ collections:
         login_required_add: "Sie müssen angemeldet sein, um Puzzles zu Sammlungen hinzuzufügen."
         login_required_copy: "Sie müssen angemeldet sein, um Puzzles in Sammlungen zu kopieren."
         login_required_move: "Sie müssen angemeldet sein, um Puzzles zwischen Sammlungen zu verschieben."
+        puzzle_moved: "Puzzle wurde erfolgreich in die Sammlung verschoben."
     membership_required:
         title: "Unbegrenzte Sammlungen freischalten"
         message: "Erstellen Sie unbegrenzte Sammlungen, um Ihre Puzzles mit einer Mitgliedschaft zu organisieren!"
@@ -935,7 +936,6 @@ collections:
     copy_puzzle: "Puzzle in Sammlung kopieren"
     move_to_collection: "In Sammlung verschieben"
     copy_to_collection: "In Sammlung kopieren"
-    puzzle_moved: "Puzzle wurde erfolgreich in die Sammlung verschoben."
     puzzle_copied: "Puzzle wurde erfolgreich in die Sammlung kopiert."
     add_puzzle: "Puzzle zur Sammlung hinzufügen"
     moving_from: "Verschieben von %collection%"

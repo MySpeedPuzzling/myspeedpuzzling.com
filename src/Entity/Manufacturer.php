@@ -29,6 +29,8 @@ class Manufacturer
         public null|Player $addedByUser = null,
         #[Column(nullable: true)]
         public null|DateTimeImmutable $addedAt = null,
+        #[Column(nullable: true)]
+        public null|string $logo = null,
     ) {
     }
 }

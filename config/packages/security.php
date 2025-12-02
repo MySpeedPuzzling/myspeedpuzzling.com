@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Auth0\Symfony\Security\UserProvider;
+use SpeedPuzzling\Web\Security\Auth0EntryPoint;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
 use Symfony\Config\SecurityConfig;
 
@@ -24,6 +25,7 @@ return static function (SecurityConfig $securityConfig): void {
         ->pattern('^/')
         ->provider('auth0_provider')
         ->customAuthenticators(['auth0.authenticator'])
+        ->entryPoint(Auth0EntryPoint::class)
         ->logout()
             ->path('app_logout')
             ->target('/');

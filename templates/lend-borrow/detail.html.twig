@@ -121,16 +121,16 @@
                                                                     <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_holder'|trans }}
                                                                 </a>
                                                             </li>
+
+                                                            <li class="dropdown-divider"></li>
                                                         {% endif %}
 
-                                                        {% if hasMembership %}
-                                                            {{ include('puzzle/_dropdown_actions.html.twig', {
-                                                                puzzle_id: item.puzzleId,
-                                                                puzzle_statuses: puzzle_statuses,
-                                                                context: 'list',
-                                                                tab: 'lent',
-                                                            }) }}
-                                                        {% endif %}
+                                                        {{ include('puzzle/_dropdown_actions.html.twig', {
+                                                            puzzle_id: item.puzzleId,
+                                                            puzzle_statuses: puzzle_statuses,
+                                                            context: 'list',
+                                                            tab: 'lent',
+                                                        }) }}
                                                     </ul>
                                                 </div>
                                             {% endif %}
@@ -220,6 +220,8 @@
                                                                     <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_owner'|trans }}
                                                                 </a>
                                                             </li>
+
+                                                            <li class="dropdown-divider"></li>
                                                         {% endif %}
 
                                                         {{ include('puzzle/_dropdown_actions.html.twig', {

@@ -90,7 +90,7 @@ SQL;
 SELECT COUNT(*) as item_count
 FROM lent_puzzle
 WHERE current_holder_player_id = :holderId
-AND owner_player_id != :holderId
+AND (owner_player_id IS NULL OR owner_player_id != :holderId)
 SQL;
 
         $result = $this->database
@@ -107,7 +107,7 @@ SELECT COUNT(*) as count
 FROM lent_puzzle
 WHERE current_holder_player_id = :holderId
 AND puzzle_id = :puzzleId
-AND owner_player_id != :holderId
+AND (owner_player_id IS NULL OR owner_player_id != :holderId)
 SQL;
 
         $result = $this->database

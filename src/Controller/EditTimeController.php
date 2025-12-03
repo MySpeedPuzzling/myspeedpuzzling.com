@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Controller;
 use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
+use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
+use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
@@ -16,8 +18,10 @@ use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -101,13 +105,25 @@ final class EditTimeController extends AbstractController
         $editTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
-            $this->messageBus->dispatch(
-                EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
-            );
+            try {
+                $this->messageBus->dispatch(
+                    EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
+                );
 
-            $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
+                $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
 
-            return $this->redirectToRoute('my_profile');
+                return $this->redirectToRoute('my_profile');
+            } catch (HandlerFailedException $exception) {
+                $realException = $exception->getPrevious();
+
+                if ($realException instanceof CanNotAssembleEmptyGroup) {
+                    $editTimeForm->addError(new FormError($this->translator->trans('forms.empty_group_error')));
+                } elseif ($realException instanceof SuspiciousPpm) {
+                    $editTimeForm->addError(new FormError($this->translator->trans('forms.too_high_ppm')));
+                } else {
+                    throw $exception;
+                }
+            }
         }
 
         /** @var array<string, array<PuzzleOverview>> $puzzlesPerManufacturer */

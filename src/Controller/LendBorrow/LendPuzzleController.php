@@ -83,11 +83,13 @@ final class LendPuzzleController extends AbstractController
 
             $borrowerPlayerId = null;
             $borrowerName = null;
+            $borrowerDisplayName = null;
 
             if ($isRegisteredPlayer) {
                 try {
                     $borrower = $this->playerRepository->getByCode($cleanedInput);
                     $borrowerPlayerId = $borrower->id->toString();
+                    $borrowerDisplayName = $borrower->name ?? $cleanedInput;
 
                     // Cannot lend to yourself
                     if ($borrowerPlayerId === $loggedPlayer->playerId) {
@@ -103,6 +105,7 @@ final class LendPuzzleController extends AbstractController
             } else {
                 // Use plain text name for non-registered person
                 $borrowerName = $cleanedInput;
+                $borrowerDisplayName = $cleanedInput;
             }
 
             $this->messageBus->dispatch(new LendPuzzleToPlayer(
@@ -118,12 +121,15 @@ final class LendPuzzleController extends AbstractController
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+                $context = $request->request->get('context', 'detail');
 
                 return $this->render('lend-borrow/_stream.html.twig', [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
                     'action' => 'lent',
                     'message' => $this->translator->trans('lend_borrow.flash.lent'),
+                    'context' => $context,
+                    'borrower_name' => $borrowerDisplayName,
                 ]);
             }
 

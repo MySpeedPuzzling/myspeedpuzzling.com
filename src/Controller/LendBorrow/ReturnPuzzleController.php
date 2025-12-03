@@ -85,7 +85,7 @@ final class ReturnPuzzleController extends AbstractController
                 ]);
             }
 
-            // Called from puzzle detail page - update badges and dropdown
+            // Called from puzzle detail page or collection detail - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
             return $this->render('lend-borrow/_stream.html.twig', [
@@ -93,6 +93,7 @@ final class ReturnPuzzleController extends AbstractController
                 'puzzle_statuses' => $puzzleStatuses,
                 'action' => 'returned',
                 'message' => $this->translator->trans('lend_borrow.flash.returned'),
+                'context' => $context,
             ]);
         }
 

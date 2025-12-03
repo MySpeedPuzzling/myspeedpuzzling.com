@@ -179,7 +179,7 @@
                      data-ean="{{ item.ean ?? '' }}"
                      data-manufacturer="{{ item.manufacturerName ?? '' }}">
                     {% set isLent = lentPuzzles[item.puzzleId] is defined %}
-                    <div class="card card-body shadow p-2 {{ isLent ? 'puzzle-lent' : '' }}">
+                    <div id="collection-card-{{ item.puzzleId }}" class="card card-body shadow p-2 {{ isLent ? 'puzzle-lent' : '' }}">
                         <div class="d-flex">
                             <div style="width: 60px;" class="flex-shrink-0">
                                 {% if item.image %}
@@ -236,7 +236,7 @@
                                                 {{ include('puzzle/_dropdown_actions.html.twig', {
                                                     puzzle_id: item.puzzleId,
                                                     puzzle_statuses: puzzle_statuses,
-                                                    context: 'list',
+                                                    context: 'collection-detail',
                                                     source_collection_id: collection.collectionId ?? '__system_collection__',
                                                     currentCollectionId: collection.collectionId ?? '__system_collection__',
                                                 }) }}
@@ -249,13 +249,15 @@
                                     {{ item.manufacturerName ?? '-' }}
                                 </div>
 
-                                {% if isLent %}
-                                    <div class="mt-1">
-                                        <span class="badge bg-purple">
-                                            <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': lentPuzzles[item.puzzleId]}) }}
-                                        </span>
-                                    </div>
-                                {% endif %}
+                                <div id="lent-badge-{{ item.puzzleId }}">
+                                    {% if isLent %}
+                                        <div class="mt-1">
+                                            <span class="badge bg-purple">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': lentPuzzles[item.puzzleId]}) }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                </div>
 
                                 {% if item.comment %}
                                     <div class="mt-1" data-controller="expandable-text"

@@ -34,3 +34,30 @@
         </div>
     </template>
 </turbo-stream>
+
+{# Update collection item card if coming from collection detail page #}
+{% if context|default('detail') == 'collection-detail' %}
+    {% if action|default('') == 'returned' %}
+        {# Clear lent badge #}
+        <turbo-stream action="update" target="lent-badge-{{ puzzle_id }}">
+            <template></template>
+        </turbo-stream>
+
+        {# Remove puzzle-lent class to restore normal appearance #}
+        <turbo-stream action="remove_class" target="collection-card-{{ puzzle_id }}" class-name="puzzle-lent"></turbo-stream>
+    {% else %}
+        {# Add lent badge #}
+        <turbo-stream action="update" target="lent-badge-{{ puzzle_id }}">
+            <template>
+                <div class="mt-1">
+                    <span class="badge bg-purple">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': borrower_name}) }}
+                    </span>
+                </div>
+            </template>
+        </turbo-stream>
+
+        {# Add puzzle-lent class for grayscale effect #}
+        <turbo-stream action="add_class" target="collection-card-{{ puzzle_id }}" class-name="puzzle-lent"></turbo-stream>
+    {% endif %}
+{% endif %}

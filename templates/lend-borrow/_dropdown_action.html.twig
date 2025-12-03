@@ -69,7 +69,7 @@
     {% elseif puzzle_id in puzzle_statuses.collection %}
         <li>
             <a class="dropdown-item"
-               href="{{ path('lend_puzzle', {puzzleId: puzzle_id}) }}"
+               href="{{ path('lend_puzzle', {puzzleId: puzzle_id}) }}?context={{ context }}"
                data-turbo="true"
                data-turbo-frame="modal-frame">
                 <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}

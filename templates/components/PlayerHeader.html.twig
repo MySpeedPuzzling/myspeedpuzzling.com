@@ -1,19 +1,18 @@
 {% set route = app.request.attributes.get('_route') %}
 
-<div class="d-flex justify-content-between align-items-baseline player-profile-header mt-n2 ms-n3 me-n3 mb-2 py-2 px-3">
-    <h1 class="d-flex align-items-baseline h4 m-0">
-        <div class="player-name-h1">
-            {{ player.playerName }}<br>
-            <code class="small text-muted">#{{ player.code|upper }}</code>
-        </div>
-
+<nav class="player-profile-header player-breadcrumb mt-n2 ms-n3 me-n3 mb-2 py-1 px-3">
+    <span class="player-breadcrumb-name">
+        <span class="player-breadcrumb-name-text">{{ player.playerName }}</span>
         {% if player.countryCode is not null %}
-            <span class="h4 ms-2 shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+            <span class="player-breadcrumb-flag fi fi-{{ player.countryCode.name }}"></span>
         {% endif %}
-    </h1>
+        <code class="player-breadcrumb-code">#{{ player.code|upper }}</code>
+    </span>
 
-    <div class="dropdown d-inline-block">
-        <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <span class="player-breadcrumb-divider">/</span>
+
+    <div class="dropdown">
+        <button type="button" class="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             {% if route == 'player_statistics' %}
                 {{ 'menu.statistics'|trans }}
             {% elseif route == 'player_favorite_puzzlers' %}
@@ -26,7 +25,7 @@
                 {{ 'menu.profile'|trans }}
             {% endif %}
         </button>
-        <div class="dropdown-menu" style="">
+        <div class="dropdown-menu">
             <a href="{{ path('player_profile', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'player_profile' %}active{% endif %}">
                 <i class="bi bi-person me-1"></i> {{ 'menu.profile'|trans }}
             </a>
@@ -72,4 +71,4 @@
             {% endif %}
         </div>
     </div>
-</div>
+</nav>

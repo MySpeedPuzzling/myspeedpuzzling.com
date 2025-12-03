@@ -12,9 +12,9 @@
         </a>
     </div>
 
-    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between gap-2 mb-4">
+    <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-2 mb-4">
         <div>
-            <h1 class="h3 mb-0 d-flex align-items-baseline">
+            <h1 class="h3 mb-0 d-flex align-items-center">
                 <span><i class="bi bi-collection me-2"></i>{{ collection.name }}</span>
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                     <small class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2">

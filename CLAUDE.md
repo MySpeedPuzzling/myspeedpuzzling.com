@@ -76,6 +76,15 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 5. Queries fetch read-optimized data for display
 6. Live Components provide real-time updates
 
+### Test Fixtures
+For working with test fixtures, see `.claude/fixtures.md` for complete documentation of test data structure including:
+- Player accounts (membership, admin, private profiles)
+- Lent/borrowed puzzles and transfer history
+- Collections and collection items
+- Sell/swap listings, wishlists
+- Competitions and solving times
+- Connections between players (favorites, team solving, lending)
+
 ### Notable Features
 - **Puzzle Time Tracking**: Sophisticated stopwatch with pause/resume and verification
 - **Competition Management**: WJPC (World Jigsaw Puzzle Championship) integration

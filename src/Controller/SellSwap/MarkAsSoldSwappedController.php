@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormType\MarkAsSoldSwappedFormType;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -31,6 +32,7 @@ final class MarkAsSoldSwappedController extends AbstractController
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetSellSwapListItems $getSellSwapListItems,
     ) {
     }
 
@@ -107,6 +109,9 @@ final class MarkAsSoldSwappedController extends AbstractController
                     $templateParams['puzzle_statuses'] = $puzzleStatuses;
                     $templateParams['collection_id'] = $collectionId;
                     $templateParams['logged_user'] = $this->getUser();
+                } elseif ($context === 'list') {
+                    // For list context, fetch remaining count to update the counter
+                    $templateParams['remaining_count'] = $this->getSellSwapListItems->countByPlayerId($loggedPlayer->playerId);
                 }
 
                 return $this->render('sell-swap/_mark_sold_stream.html.twig', $templateParams);

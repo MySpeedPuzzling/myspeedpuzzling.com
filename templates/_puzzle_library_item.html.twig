@@ -225,7 +225,7 @@
                                     </li>
                                     <li>
                                         <a class="dropdown-item text-success"
-                                           href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}"
+                                           href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}?context=list"
                                            data-turbo="true"
                                            data-turbo-frame="modal-frame">
                                             <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}

@@ -11,6 +11,9 @@
     - logged_user: Current logged user
     - puzzle_statuses: UserPuzzleStatuses
     - collection_id: Current collection ID
+
+    For list context, additional parameters:
+    - remaining_count: Number of remaining items in the sell/swap list
 #}
 
 {{ include('_modal_close_stream.html.twig') }}
@@ -28,8 +31,29 @@
         source_collection_id: coll_id,
         currentCollectionId: coll_id,
     }) }}
+{% elseif context|default('detail') == 'list' %}
+    {# Sell-swap list page: remove the item and update count #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'sell-swap',
+        puzzle_id: puzzle_id,
+    }) }}
+
+    {# Update the count #}
+    <turbo-stream action="update" target="sellswap-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+
+    {# Show empty state if no items remaining #}
+    {% if remaining_count == 0 %}
+    <turbo-stream action="update" target="sellswap-list-container">
+        <template>
+            {{ include('sell-swap/_empty_state.html.twig') }}
+        </template>
+    </turbo-stream>
+    {% endif %}
 {% else %}
-    {# Sell-swap list page: remove the item #}
+    {# Default/detail context: just remove the item #}
     {{ include('_library_item_stream.html.twig', {
         action: 'remove',
         page_context: 'sell-swap',

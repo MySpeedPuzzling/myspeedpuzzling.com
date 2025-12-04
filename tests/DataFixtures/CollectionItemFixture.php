@@ -38,6 +38,7 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public const string ITEM_20 = '018d0009-0000-0000-0000-000000000020';
     public const string ITEM_21 = '018d0009-0000-0000-0000-000000000021';
     public const string ITEM_22 = '018d0009-0000-0000-0000-000000000022';
+    public const string ITEM_23 = '018d0009-0000-0000-0000-000000000023';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -309,6 +310,19 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         );
         $manager->persist($item22);
         $this->addReference(self::ITEM_22, $item22);
+
+        // ITEM_23: PUZZLE_500_02 in PLAYER_WITH_STRIPE's system collection (null)
+        // Purpose: Puzzle in BOTH system collection AND named collections (already in COLLECTION_PUBLIC + COLLECTION_STRIPE_TREFL)
+        // For tests: "Remove from other collection", "Borrow from player", "Lend to player"
+        $item23 = $this->createCollectionItem(
+            id: self::ITEM_23,
+            player: $player5,
+            puzzle: $puzzle500_02,
+            collection: null,
+            daysAgo: 1,
+        );
+        $manager->persist($item23);
+        $this->addReference(self::ITEM_23, $item23);
 
         $manager->flush();
     }

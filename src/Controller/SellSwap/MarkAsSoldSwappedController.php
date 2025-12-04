@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
-use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,7 +30,6 @@ final class MarkAsSoldSwappedController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
-        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
@@ -94,23 +92,16 @@ final class MarkAsSoldSwappedController extends AbstractController
                     'context' => $context,
                 ];
 
-                // For collection-detail context, fetch collection item for card replacement
+                // For collection-detail context, get remaining count for counter update
                 if ($context === 'collection-detail') {
                     $collectionId = $request->request->getString('collection_id');
                     // Handle __system_collection__ marker - treat as null (system collection)
                     $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
 
-                    $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
-                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
-                        $puzzleId,
-                        $loggedPlayer->playerId,
+                    $templateParams['remaining_count'] = $this->getCollectionItems->countByCollectionAndPlayer(
                         $collectionIdForQuery,
+                        $loggedPlayer->playerId,
                     );
-
-                    $templateParams['item'] = $collectionItem;
-                    $templateParams['puzzle_statuses'] = $puzzleStatuses;
-                    $templateParams['collection_id'] = $collectionId;
-                    // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
                 } elseif ($context === 'unsolved-detail') {
                     // For unsolved-detail context: remove the card and update count
                     // When puzzle is marked as sold, user no longer owns it

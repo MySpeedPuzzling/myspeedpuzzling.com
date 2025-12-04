@@ -73,9 +73,9 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 **COLLECTION_STRIPE_TREFL** (PLAYER_WITH_STRIPE): PUZZLE_1000_04, PUZZLE_500_02
 
-**General collection (no named collection):**
+**General collection (no named collection / system collection):**
 - PLAYER_REGULAR: PUZZLE_500_03, PUZZLE_1000_01, PUZZLE_1000_02
-- PLAYER_WITH_STRIPE: PUZZLE_500_03, PUZZLE_1000_02, PUZZLE_1500_01, PUZZLE_2000
+- PLAYER_WITH_STRIPE: PUZZLE_500_03, PUZZLE_1000_02, PUZZLE_1500_01, PUZZLE_2000, PUZZLE_500_02, PUZZLE_1500_02
 
 ## Connections Between Players
 
@@ -212,4 +212,5 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | Favorite players set | PLAYER_WITH_FAVORITES |
 | Team solving experience | PLAYER_REGULAR, PLAYER_PRIVATE |
 | Multiple collections | PLAYER_WITH_STRIPE (2), PLAYER_REGULAR (2) |
-| Puzzle in 2 collections | PLAYER_WITH_STRIPE: PUZZLE_500_02 |
+| Puzzle in 3 collections | PLAYER_WITH_STRIPE: PUZZLE_500_02 (system + PUBLIC + STRIPE_TREFL) |
+| Borrowed + in collection | PLAYER_WITH_STRIPE: PUZZLE_1500_02 (borrowed + in system collection) |

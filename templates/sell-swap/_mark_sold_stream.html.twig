@@ -19,18 +19,19 @@
 {{ include('_modal_close_stream.html.twig') }}
 
 {% if context|default('detail') == 'collection-detail' %}
-    {# Collection detail page: replace the whole card to remove swap badge #}
-    {% set coll_id = collection_id|default('__system_collection__') %}
+    {# Collection detail page: remove the card (marking as sold removes from all collections) #}
     {{ include('_library_item_stream.html.twig', {
-        action: 'replace',
+        action: 'remove',
         page_context: 'collection',
-        item: item,
-        puzzle_statuses: puzzle_statuses,
-        logged_user: logged_user,
-        isOwnProfile: true,
-        source_collection_id: coll_id,
-        currentCollectionId: coll_id,
+        puzzle_id: puzzle_id,
     }) }}
+
+    {# Update the collection count #}
+    {% if remaining_count is defined %}
+    <turbo-stream action="update" target="collection-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+    {% endif %}
 {% elseif context|default('detail') == 'unsolved-detail' %}
     {# Unsolved puzzles page: remove the item (sold = no longer owned) and update count #}
     {{ include('_library_item_stream.html.twig', {

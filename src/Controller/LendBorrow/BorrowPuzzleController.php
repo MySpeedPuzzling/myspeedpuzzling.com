@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\FormType\BorrowPuzzleFormType;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -34,6 +35,7 @@ final class BorrowPuzzleController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private PlayerRepository $playerRepository,
         readonly private GetWishListItems $getWishListItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
     ) {
     }
 
@@ -128,11 +130,21 @@ final class BorrowPuzzleController extends AbstractController
                     'action' => 'borrowed',
                     'message' => $this->translator->trans('lend_borrow.flash.borrowed'),
                     'context' => $context,
+                    // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
                 ];
 
                 // For list context (from wishlist page), fetch remaining count
                 if ($context === 'list') {
                     $templateParams['remaining_count'] = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+                } elseif ($context === 'unsolved-detail') {
+                    // For unsolved-detail context: user is owner (tracking borrow source)
+                    // Fetch unsolved item for card replacement with updated badges
+                    $templateParams['is_owner'] = true;
+
+                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    if ($unsolvedItem !== null) {
+                        $templateParams['item'] = $unsolvedItem;
+                    }
                 }
 
                 return $this->render('lend-borrow/_stream.html.twig', $templateParams);

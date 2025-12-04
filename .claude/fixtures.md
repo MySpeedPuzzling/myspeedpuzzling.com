@@ -26,14 +26,15 @@ This document describes the test data structure defined in `tests/DataFixtures/`
 
 ## Lent/Borrowed Puzzles
 
-All lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
+Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
-| Const | Puzzle | Current Holder | Status | Notes |
-|-------|--------|----------------|--------|-------|
-| `LENT_01` | PUZZLE_2000 (2000 pcs) | PLAYER_REGULAR | Active | "Handle with care" |
-| `LENT_02` | PUZZLE_1500_01 (1500 pcs) | "Jane Doe" (non-registered) | Active | - |
-| `LENT_03` | PUZZLE_1000_01 (1000 pcs) | - | **Returned** | "Returned in good condition" |
-| `LENT_04` | PUZZLE_500_03 (500 pcs) | PLAYER_WITH_FAVORITES | Active (passed) | "For testing purposes" |
+| Const | Puzzle | Owner | Current Holder | Status | Notes |
+|-------|--------|-------|----------------|--------|-------|
+| `LENT_01` | PUZZLE_2000 (2000 pcs) | PLAYER_WITH_STRIPE | PLAYER_REGULAR | Active | "Handle with care" |
+| `LENT_02` | PUZZLE_1500_01 (1500 pcs) | PLAYER_WITH_STRIPE | "Jane Doe" (non-registered) | Active | - |
+| `LENT_03` | PUZZLE_1000_01 (1000 pcs) | PLAYER_WITH_STRIPE | - | **Returned** | "Returned in good condition" |
+| `LENT_04` | PUZZLE_500_03 (500 pcs) | PLAYER_WITH_STRIPE | PLAYER_WITH_FAVORITES | Active (passed) | "For testing purposes" |
+| `LENT_05` | PUZZLE_1500_02 (1500 pcs) | PLAYER_REGULAR | PLAYER_WITH_STRIPE | Active | - |
 
 ### Transfer History
 
@@ -49,6 +50,8 @@ All lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 1. `PLAYER_WITH_STRIPE → PLAYER_REGULAR` (10 days ago) - Initial lend
 2. `PLAYER_REGULAR → PLAYER_WITH_FAVORITES` (5 days ago) - Pass
 
+**LENT_05**: `PLAYER_REGULAR → PLAYER_WITH_STRIPE` (15 days ago) - Initial lend
+
 ## Collections
 
 ### Named Collections (Collection entity)
@@ -58,14 +61,17 @@ All lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | `COLLECTION_PUBLIC` | My Ravensburger Collection | PLAYER_WITH_STRIPE | Public | "All my favorite Ravensburger puzzles" |
 | `COLLECTION_PRIVATE` | Wishlist | PLAYER_REGULAR | Private | "Puzzles I want to buy" |
 | `COLLECTION_FAVORITES` | Completed Favorites | PLAYER_REGULAR | Private | - |
+| `COLLECTION_STRIPE_TREFL` | My Trefl Collection | PLAYER_WITH_STRIPE | Public | "All my Trefl puzzles" |
 
 ### Collection Items Distribution
 
-**COLLECTION_PUBLIC** (PLAYER_WITH_STRIPE): PUZZLE_500_01, PUZZLE_500_02, PUZZLE_1000_01
+**COLLECTION_PUBLIC** (PLAYER_WITH_STRIPE): PUZZLE_500_01, PUZZLE_500_02, PUZZLE_1000_01, PUZZLE_1000_03, PUZZLE_1000_05, PUZZLE_300, PUZZLE_500_04
 
-**COLLECTION_PRIVATE** (PLAYER_REGULAR): PUZZLE_1500_01, PUZZLE_2000, PUZZLE_3000
+**COLLECTION_PRIVATE** (PLAYER_REGULAR): PUZZLE_1500_01, PUZZLE_2000, PUZZLE_3000, PUZZLE_1500_02
 
 **COLLECTION_FAVORITES** (PLAYER_REGULAR): PUZZLE_500_01, PUZZLE_500_02
+
+**COLLECTION_STRIPE_TREFL** (PLAYER_WITH_STRIPE): PUZZLE_1000_04, PUZZLE_500_02
 
 **General collection (no named collection):**
 - PLAYER_REGULAR: PUZZLE_500_03, PUZZLE_1000_01, PUZZLE_1000_02
@@ -81,6 +87,7 @@ All lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 ### Lending Relationships
 - `PLAYER_WITH_STRIPE` lends to: `PLAYER_REGULAR`, `PLAYER_WITH_FAVORITES`, "Jane Doe" (non-registered)
+- `PLAYER_REGULAR` lends to: `PLAYER_WITH_STRIPE`
 
 ### Puzzle Pass Chain
 - `PLAYER_WITH_STRIPE → PLAYER_REGULAR → PLAYER_WITH_FAVORITES` (PUZZLE_500_03)
@@ -97,6 +104,7 @@ All lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | `SELLSWAP_04` | PUZZLE_500_03 | Sell | 15.00 | NotSoGood |
 | `SELLSWAP_05` | PUZZLE_1000_02 | Swap | - | LikeNew |
 | `SELLSWAP_06` | PUZZLE_1500_01 | Both | 60.00 | MissingPieces |
+| `SELLSWAP_07` | PUZZLE_1000_03 | Sell | 35.00 | Normal |
 
 ## Wishlists
 
@@ -197,9 +205,11 @@ All lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | Admin privileges | PLAYER_ADMIN |
 | Private profile | PLAYER_PRIVATE |
 | Stripe customer | PLAYER_WITH_STRIPE |
-| Owns lent puzzles | PLAYER_WITH_STRIPE |
-| Holds borrowed puzzle | PLAYER_REGULAR, PLAYER_WITH_FAVORITES |
+| Owns lent puzzles | PLAYER_WITH_STRIPE, PLAYER_REGULAR |
+| Holds borrowed puzzle | PLAYER_REGULAR, PLAYER_WITH_FAVORITES, PLAYER_WITH_STRIPE |
 | Sell/swap listings | PLAYER_WITH_STRIPE |
 | Public collection | PLAYER_WITH_STRIPE |
 | Favorite players set | PLAYER_WITH_FAVORITES |
 | Team solving experience | PLAYER_REGULAR, PLAYER_PRIVATE |
+| Multiple collections | PLAYER_WITH_STRIPE (2), PLAYER_REGULAR (2) |
+| Puzzle in 2 collections | PLAYER_WITH_STRIPE: PUZZLE_500_02 |

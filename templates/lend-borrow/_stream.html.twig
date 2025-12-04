@@ -59,7 +59,7 @@
 {% elseif context|default('detail') == 'unsolved-detail' %}
     {# Unsolved puzzles page #}
     {% if is_owner|default(false) and item is defined %}
-        {# Owner's puzzle: replace card with updated badges (lent/returned) #}
+        {# Owner's puzzle: replace card with updated badges (lent/returned/borrowed) #}
         {{ include('_library_item_stream.html.twig', {
             action: 'replace',
             page_context: 'unsolved',
@@ -75,6 +75,13 @@
             page_context: 'unsolved',
             puzzle_id: puzzle_id,
         }) }}
+
+        {# Update the unsolved count #}
+        {% if remaining_count is defined %}
+        <turbo-stream action="update" target="unsolved-count">
+            <template>{{ remaining_count }}</template>
+        </turbo-stream>
+        {% endif %}
     {% endif %}
 {% else %}
     {# Puzzle detail page: update badges and dropdown #}

@@ -23,6 +23,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
     public const string SELLSWAP_04 = '018d000b-0000-0000-0000-000000000004';
     public const string SELLSWAP_05 = '018d000b-0000-0000-0000-000000000005';
     public const string SELLSWAP_06 = '018d000b-0000-0000-0000-000000000006';
+    public const string SELLSWAP_07 = '018d000b-0000-0000-0000-000000000007';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -40,6 +41,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
         $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
+        $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
         $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
 
         // Sell only, like new condition, with comment
@@ -125,6 +127,20 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         );
         $manager->persist($item06);
         $this->addReference(self::SELLSWAP_06, $item06);
+
+        // Sell only, for testing mark as sold on unsolved page (puzzle_1000_03 is unsolved)
+        $item07 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_07,
+            player: $player5,
+            puzzle: $puzzle1000_03,
+            listingType: ListingType::Sell,
+            price: 35.00,
+            condition: PuzzleCondition::Normal,
+            comment: null,
+            daysAgo: 1,
+        );
+        $manager->persist($item07);
+        $this->addReference(self::SELLSWAP_07, $item07);
 
         $manager->flush();
     }

@@ -100,7 +100,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
                     'action' => 'added',
                     'message' => $this->translator->trans('sell_swap_list.flash.added'),
                     'context' => $context,
-                    'logged_user' => $this->getUser(),
+                    // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
                 ];
 
                 // For collection-detail context, fetch the collection item for full card replacement

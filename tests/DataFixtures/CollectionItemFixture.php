@@ -31,6 +31,13 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public const string ITEM_13 = '018d0009-0000-0000-0000-000000000013';
     public const string ITEM_14 = '018d0009-0000-0000-0000-000000000014';
     public const string ITEM_15 = '018d0009-0000-0000-0000-000000000015';
+    public const string ITEM_16 = '018d0009-0000-0000-0000-000000000016';
+    public const string ITEM_17 = '018d0009-0000-0000-0000-000000000017';
+    public const string ITEM_18 = '018d0009-0000-0000-0000-000000000018';
+    public const string ITEM_19 = '018d0009-0000-0000-0000-000000000019';
+    public const string ITEM_20 = '018d0009-0000-0000-0000-000000000020';
+    public const string ITEM_21 = '018d0009-0000-0000-0000-000000000021';
+    public const string ITEM_22 = '018d0009-0000-0000-0000-000000000022';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -45,13 +52,20 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         $publicCollection = $this->getReference(CollectionFixture::COLLECTION_PUBLIC, Collection::class);
         $privateCollection = $this->getReference(CollectionFixture::COLLECTION_PRIVATE, Collection::class);
         $favoritesCollection = $this->getReference(CollectionFixture::COLLECTION_FAVORITES, Collection::class);
+        $stripeTreflCollection = $this->getReference(CollectionFixture::COLLECTION_STRIPE_TREFL, Collection::class);
 
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
         $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
+        $puzzle500_04 = $this->getReference(PuzzleFixture::PUZZLE_500_04, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
         $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
+        $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
+        $puzzle1000_04 = $this->getReference(PuzzleFixture::PUZZLE_1000_04, Puzzle::class);
+        $puzzle1000_05 = $this->getReference(PuzzleFixture::PUZZLE_1000_05, Puzzle::class);
+        $puzzle300 = $this->getReference(PuzzleFixture::PUZZLE_300, Puzzle::class);
         $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
+        $puzzle1500_02 = $this->getReference(PuzzleFixture::PUZZLE_1500_02, Puzzle::class);
         $puzzle2000 = $this->getReference(PuzzleFixture::PUZZLE_2000, Puzzle::class);
         $puzzle3000 = $this->getReference(PuzzleFixture::PUZZLE_3000, Puzzle::class);
 
@@ -217,6 +231,84 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         );
         $manager->persist($item15);
         $this->addReference(self::ITEM_15, $item15);
+
+        // Additional items for PLAYER_WITH_STRIPE - unsolved puzzles for testing
+        // ITEM_16: PUZZLE_1000_03 in COLLECTION_PUBLIC (unsolved, for sell/swap + mark sold tests)
+        $item16 = $this->createCollectionItem(
+            id: self::ITEM_16,
+            player: $player5,
+            puzzle: $puzzle1000_03,
+            collection: $publicCollection,
+            daysAgo: 70,
+        );
+        $manager->persist($item16);
+        $this->addReference(self::ITEM_16, $item16);
+
+        // ITEM_17: PUZZLE_1000_04 in COLLECTION_STRIPE_TREFL (unsolved, for remove from single collection)
+        $item17 = $this->createCollectionItem(
+            id: self::ITEM_17,
+            player: $player5,
+            puzzle: $puzzle1000_04,
+            collection: $stripeTreflCollection,
+            daysAgo: 65,
+        );
+        $manager->persist($item17);
+        $this->addReference(self::ITEM_17, $item17);
+
+        // ITEM_18: PUZZLE_500_02 in COLLECTION_STRIPE_TREFL (same puzzle in 2 collections - for test 2)
+        $item18 = $this->createCollectionItem(
+            id: self::ITEM_18,
+            player: $player5,
+            puzzle: $puzzle500_02,
+            collection: $stripeTreflCollection,
+            daysAgo: 60,
+        );
+        $manager->persist($item18);
+        $this->addReference(self::ITEM_18, $item18);
+
+        // ITEM_19: PUZZLE_1000_05 in COLLECTION_PUBLIC (unsolved, for adding to sell/swap)
+        $item19 = $this->createCollectionItem(
+            id: self::ITEM_19,
+            player: $player5,
+            puzzle: $puzzle1000_05,
+            collection: $publicCollection,
+            daysAgo: 55,
+        );
+        $manager->persist($item19);
+        $this->addReference(self::ITEM_19, $item19);
+
+        // ITEM_20: PUZZLE_300 in COLLECTION_PUBLIC (unsolved, for borrow from player test)
+        $item20 = $this->createCollectionItem(
+            id: self::ITEM_20,
+            player: $player5,
+            puzzle: $puzzle300,
+            collection: $publicCollection,
+            daysAgo: 50,
+        );
+        $manager->persist($item20);
+        $this->addReference(self::ITEM_20, $item20);
+
+        // ITEM_21: PUZZLE_500_04 in COLLECTION_PUBLIC (unsolved, for lend to player test)
+        $item21 = $this->createCollectionItem(
+            id: self::ITEM_21,
+            player: $player5,
+            puzzle: $puzzle500_04,
+            collection: $publicCollection,
+            daysAgo: 45,
+        );
+        $manager->persist($item21);
+        $this->addReference(self::ITEM_21, $item21);
+
+        // ITEM_22: PUZZLE_1500_02 in COLLECTION_PRIVATE (owned by PLAYER_REGULAR, lent to PLAYER_WITH_STRIPE)
+        $item22 = $this->createCollectionItem(
+            id: self::ITEM_22,
+            player: $player1,
+            puzzle: $puzzle1500_02,
+            collection: $privateCollection,
+            daysAgo: 40,
+        );
+        $manager->persist($item22);
+        $this->addReference(self::ITEM_22, $item22);
 
         $manager->flush();
     }

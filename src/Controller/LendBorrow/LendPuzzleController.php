@@ -133,7 +133,7 @@ final class LendPuzzleController extends AbstractController
                     'action' => 'lent',
                     'message' => $this->translator->trans('lend_borrow.flash.lent'),
                     'context' => $context,
-                    'logged_user' => $this->getUser(),
+                    // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
                 ];
 
                 // For collection-detail context, fetch the collection item for full card replacement

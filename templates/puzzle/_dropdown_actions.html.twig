@@ -7,7 +7,9 @@
 #}
 {% set context = context|default('detail') %}
 <div id="puzzle-dropdown-actions-{{ puzzle_id }}" style="display: contents;">
-{% if logged_user.profile is not null %}
+{# Handle both cases: logged_user with .profile attribute (from Twig global) or raw User object (from stream response) #}
+{% set hasProfile = logged_user.profile is defined and logged_user.profile is not null %}
+{% if hasProfile %}
     {{ include('wishlist/_dropdown_action.html.twig', {
         puzzle_id: puzzle_id,
         puzzle_statuses: puzzle_statuses,

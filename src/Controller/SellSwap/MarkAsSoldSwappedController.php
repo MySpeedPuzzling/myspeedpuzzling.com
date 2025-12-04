@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -33,6 +34,7 @@ final class MarkAsSoldSwappedController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
     ) {
     }
 
@@ -108,7 +110,11 @@ final class MarkAsSoldSwappedController extends AbstractController
                     $templateParams['item'] = $collectionItem;
                     $templateParams['puzzle_statuses'] = $puzzleStatuses;
                     $templateParams['collection_id'] = $collectionId;
-                    $templateParams['logged_user'] = $this->getUser();
+                    // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
+                } elseif ($context === 'unsolved-detail') {
+                    // For unsolved-detail context: remove the card and update count
+                    // When puzzle is marked as sold, user no longer owns it
+                    $templateParams['remaining_count'] = $this->getUnsolvedPuzzles->countByPlayerId($loggedPlayer->playerId);
                 } elseif ($context === 'list') {
                     // For list context, fetch remaining count to update the counter
                     $templateParams['remaining_count'] = $this->getSellSwapListItems->countByPlayerId($loggedPlayer->playerId);

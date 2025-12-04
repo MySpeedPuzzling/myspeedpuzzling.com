@@ -18,6 +18,7 @@ final class CollectionFixture extends Fixture implements DependentFixtureInterfa
     public const string COLLECTION_PUBLIC = '018d0008-0000-0000-0000-000000000001';
     public const string COLLECTION_PRIVATE = '018d0008-0000-0000-0000-000000000002';
     public const string COLLECTION_FAVORITES = '018d0008-0000-0000-0000-000000000003';
+    public const string COLLECTION_STRIPE_TREFL = '018d0008-0000-0000-0000-000000000004';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -61,6 +62,17 @@ final class CollectionFixture extends Fixture implements DependentFixtureInterfa
         );
         $manager->persist($favoritesCollection);
         $this->addReference(self::COLLECTION_FAVORITES, $favoritesCollection);
+
+        $stripeTreflCollection = $this->createCollection(
+            id: self::COLLECTION_STRIPE_TREFL,
+            player: $player5,
+            name: 'My Trefl Collection',
+            description: 'All my Trefl puzzles',
+            visibility: CollectionVisibility::Public,
+            daysAgo: 30,
+        );
+        $manager->persist($stripeTreflCollection);
+        $this->addReference(self::COLLECTION_STRIPE_TREFL, $stripeTreflCollection);
 
         $manager->flush();
     }

@@ -88,7 +88,7 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
                 'action' => 'removed',
                 'message' => $this->translator->trans('sell_swap_list.flash.removed'),
                 'context' => $context,
-                'logged_user' => $this->getUser(),
+                // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
             ];
 
             // For collection-detail context, fetch collection item for card replacement

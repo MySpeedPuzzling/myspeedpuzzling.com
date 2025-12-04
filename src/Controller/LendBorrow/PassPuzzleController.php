@@ -176,7 +176,7 @@ final class PassPuzzleController extends AbstractController
                     'action' => 'passed',
                     'message' => $this->translator->trans('lend_borrow.flash.passed'),
                     'context' => $context,
-                    'logged_user' => $this->getUser(),
+                    // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
                 ];
 
                 // For collection-detail context, fetch the collection item for full card replacement
@@ -203,8 +203,10 @@ final class PassPuzzleController extends AbstractController
                         if ($unsolvedItem !== null) {
                             $templateParams['item'] = $unsolvedItem;
                         }
+                    } else {
+                        // Borrower passed or owner passed to self (return) - card will be removed, update count
+                        $templateParams['remaining_count'] = $this->getUnsolvedPuzzles->countByPlayerId($loggedPlayer->playerId);
                     }
-                    // If borrower passed or owner passed to self (return), card will be removed
                 }
 
                 return $this->render('lend-borrow/_stream.html.twig', $templateParams);

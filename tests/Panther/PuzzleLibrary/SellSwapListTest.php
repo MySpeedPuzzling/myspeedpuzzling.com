@@ -33,7 +33,7 @@ final class SellSwapListTest extends AbstractPantherTestCase
 
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#sellswap-count')->text();
-        self::assertEquals('6', $initialCount, 'Initial sell/swap count should be 6');
+        self::assertEquals('7', $initialCount, 'Initial sell/swap count should be 7');
 
         // Find the puzzle card for PUZZLE_500_01 (SELLSWAP_01 - Sell only)
         $puzzleCardSelector = '#library-sell-swap-' . PuzzleFixture::PUZZLE_500_01;
@@ -55,14 +55,14 @@ final class SellSwapListTest extends AbstractPantherTestCase
             ->click();
 
         // Wait for Turbo Stream to process and update the count
-        $client->waitForElementToContain('#sellswap-count', '5', timeoutInSecond: 2);
+        $client->waitForElementToContain('#sellswap-count', '6', timeoutInSecond: 2);
 
         // Verify the card is removed from the list
         self::assertSelectorNotExists($puzzleCardSelector);
 
         // Verify the count is updated
         $newCount = $client->getCrawler()->filter('#sellswap-count')->text();
-        self::assertEquals('5', $newCount, 'Sell/swap count should decrease to 5 after removing');
+        self::assertEquals('6', $newCount, 'Sell/swap count should decrease to 6 after removing');
     }
 
     public function testOwnerCanMarkItemAsSoldViaTurboStream(): void
@@ -91,7 +91,7 @@ final class SellSwapListTest extends AbstractPantherTestCase
 
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#sellswap-count')->text();
-        self::assertEquals('6', $initialCount, 'Initial sell/swap count should be 6');
+        self::assertEquals('7', $initialCount, 'Initial sell/swap count should be 7');
 
         // Find the puzzle card for PUZZLE_500_02 (SELLSWAP_02 - Swap only)
         $puzzleCardSelector = '#library-sell-swap-' . PuzzleFixture::PUZZLE_500_02;
@@ -131,7 +131,7 @@ final class SellSwapListTest extends AbstractPantherTestCase
             ->click();
 
         // Wait for Turbo Stream to process and update the count
-        $client->waitForElementToContain('#sellswap-count', '5', timeoutInSecond: 2);
+        $client->waitForElementToContain('#sellswap-count', '6', timeoutInSecond: 2);
 
         // Verify the card is removed from the list
         self::assertSelectorNotExists($puzzleCardSelector);

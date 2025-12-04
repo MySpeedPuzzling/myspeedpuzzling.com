@@ -31,6 +31,18 @@
         source_collection_id: coll_id,
         currentCollectionId: coll_id,
     }) }}
+{% elseif context|default('detail') == 'unsolved-detail' %}
+    {# Unsolved puzzles page: remove the item (sold = no longer owned) and update count #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'unsolved',
+        puzzle_id: puzzle_id,
+    }) }}
+
+    {# Update the unsolved count #}
+    <turbo-stream action="update" target="unsolved-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
 {% elseif context|default('detail') == 'list' %}
     {# Sell-swap list page: remove the item and update count #}
     {{ include('_library_item_stream.html.twig', {

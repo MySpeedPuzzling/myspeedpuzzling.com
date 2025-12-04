@@ -102,7 +102,7 @@ final class ReturnPuzzleController extends AbstractController
                 'action' => 'returned',
                 'message' => $this->translator->trans('lend_borrow.flash.returned'),
                 'context' => $context,
-                'logged_user' => $this->getUser(),
+                // Note: logged_user is provided by Twig global (RetrieveLoggedUserProfile service)
             ];
 
             // For collection-detail context, fetch the collection item for full card replacement
@@ -129,6 +129,9 @@ final class ReturnPuzzleController extends AbstractController
                     if ($unsolvedItem !== null) {
                         $templateParams['item'] = $unsolvedItem;
                     }
+                } else {
+                    // Borrower returned - card will be removed, update count
+                    $templateParams['remaining_count'] = $this->getUnsolvedPuzzles->countByPlayerId($loggedPlayer->playerId);
                 }
             }
 

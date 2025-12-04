@@ -20,7 +20,11 @@ final class PlayerFixture extends Fixture
 
     public const string PLAYER_PRIVATE = '018d0000-0000-0000-0000-000000000002';
     public const string PLAYER_ADMIN = '018d0000-0000-0000-0000-000000000003';
+
     public const string PLAYER_WITH_FAVORITES = '018d0000-0000-0000-0000-000000000004';
+    public const string PLAYER_WITH_FAVORITES_USER_ID = 'auth0|fav004';
+    public const string PLAYER_WITH_FAVORITES_EMAIL = 'player3@speedpuzzling.cz';
+    public const string PLAYER_WITH_FAVORITES_NAME = 'Michael Johnson';
 
     public const string PLAYER_WITH_STRIPE = '018d0000-0000-0000-0000-000000000005';
     public const string PLAYER_WITH_STRIPE_USER_ID = 'auth0|stripe005';

@@ -113,7 +113,8 @@
         "symfony/css-selector": "^7.0",
         "symfony/debug-bundle": "^7.0",
         "symfony/panther": "^2.3",
-        "symfony/web-profiler-bundle": "^7.0"
+        "symfony/web-profiler-bundle": "^7.0",
+        "ext-pdo": "*"
     },
     "autoload": {
         "psr-4": {

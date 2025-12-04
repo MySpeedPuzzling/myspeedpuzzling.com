@@ -27,6 +27,7 @@ if (
 ) {
     bootstrapDatabase($cacheFilePath);
     file_put_contents($cacheFilePath, $currentDatabaseHash);
+    createPantherTemplateDatabase();
 }
 
 
@@ -38,17 +39,15 @@ function bootstrapDatabase(string $cacheFilePath): void
     $application = new Application($kernel);
     $application->setAutoExit(false);
 
-    if (is_file($cacheFilePath)) {
-        $application->run(new ArrayInput([
-            'command' => 'doctrine:database:drop',
-            '--if-exists' => 1,
-            '--force' => 1,
-        ]));
-    }
+    // Always drop and recreate when cache is invalid
+    $application->run(new ArrayInput([
+        'command' => 'doctrine:database:drop',
+        '--if-exists' => 1,
+        '--force' => 1,
+    ]));
 
     $application->run(new ArrayInput([
         'command' => 'doctrine:database:create',
-        '--if-not-exists' => 1,
     ]));
 
     // Faster than running migrations
@@ -66,4 +65,30 @@ function bootstrapDatabase(string $cacheFilePath): void
     }
 
     $kernel->shutdown();
+}
+
+function createPantherTemplateDatabase(): void
+{
+    $pdo = new PDO(
+        'pgsql:host=postgres;port=5432;dbname=postgres',
+        'postgres',
+        'postgres',
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+
+    // Terminate any connections to template and source databases
+    $pdo->exec(
+        "SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+        WHERE datname IN ('speedpuzzling_test_template', 'speedpuzzling_test') AND pid <> pg_backend_pid()"
+    );
+
+    // Unmark as template (required before dropping)
+    $pdo->exec("UPDATE pg_database SET datistemplate = FALSE WHERE datname = 'speedpuzzling_test_template'");
+
+    // Drop and recreate
+    $pdo->exec("DROP DATABASE IF EXISTS speedpuzzling_test_template");
+    $pdo->exec("CREATE DATABASE speedpuzzling_test_template TEMPLATE speedpuzzling_test");
+
+    // Mark as template for faster cloning
+    $pdo->exec("UPDATE pg_database SET datistemplate = TRUE WHERE datname = 'speedpuzzling_test_template'");
 }

@@ -51,7 +51,7 @@ jobs:
               - 5432:5432
       chrome:
           image: selenium/standalone-chrome:latest
-          options: --shm-size=2gb
+          options: "--shm-size=2gb"
           ports:
               - 4444:4444
     steps:
@@ -76,17 +76,19 @@ jobs:
       -   run: npm install
       -   run: npm run dev
       -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
-        env:
+          env:
             DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
       -   name: Start web server
-        run: php -S 0.0.0.0:8080 -t public &
-        env:
+          run: php -S 0.0.0.0:8080 -t public &
+          env:
             DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
+
       -   name: Wait for web server
-        run: sleep 3
+          run: sleep 3
+
       -   name: Run Panther tests
-        run: vendor/bin/phpunit --testsuite "Panther Test Suite"
-        env:
+          run: vendor/bin/phpunit --testsuite "Panther Test Suite"
+          env:
             DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
             PANTHER_EXTERNAL_BASE_URI: http://localhost:8080
             PANTHER_SELENIUM_HOST: http://localhost:4444

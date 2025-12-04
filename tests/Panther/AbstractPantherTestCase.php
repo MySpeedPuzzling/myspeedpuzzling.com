@@ -12,15 +12,22 @@ abstract class AbstractPantherTestCase extends PantherTestCase
 {
     protected static function createBrowserClient(): Client
     {
-        return self::createPantherClient(
-            options: [
-                'browser' => self::SELENIUM,
-                'external_base_uri' => $_SERVER['PANTHER_EXTERNAL_BASE_URI'] ?? 'http://web:8080',
-            ],
-            managerOptions: [
-                'host' => $_SERVER['PANTHER_SELENIUM_HOST'] ?? 'http://chrome:4444',
-                'capabilities' => DesiredCapabilities::chrome(),
-            ],
-        );
+        // Use Selenium when running in Docker (PANTHER_SELENIUM_HOST is set)
+        // Otherwise use ChromeDriver directly (CI/local machine)
+        if (isset($_SERVER['PANTHER_SELENIUM_HOST'])) {
+            return self::createPantherClient(
+                options: [
+                    'browser' => self::SELENIUM,
+                    'external_base_uri' => $_SERVER['PANTHER_EXTERNAL_BASE_URI'] ?? 'http://web:8080',
+                ],
+                managerOptions: [
+                    'host' => $_SERVER['PANTHER_SELENIUM_HOST'],
+                    'capabilities' => DesiredCapabilities::chrome(),
+                ],
+            );
+        }
+
+        // Default: Panther auto-starts PHP server and uses ChromeDriver
+        return self::createPantherClient();
     }
 }

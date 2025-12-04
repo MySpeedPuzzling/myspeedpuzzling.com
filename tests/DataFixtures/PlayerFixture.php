@@ -14,10 +14,18 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 final class PlayerFixture extends Fixture
 {
     public const string PLAYER_REGULAR = '018d0000-0000-0000-0000-000000000001';
+    public const string PLAYER_REGULAR_USER_ID = 'auth0|regular001';
+    public const string PLAYER_REGULAR_EMAIL = 'player1@speedpuzzling.cz';
+    public const string PLAYER_REGULAR_NAME = 'John Doe';
+
     public const string PLAYER_PRIVATE = '018d0000-0000-0000-0000-000000000002';
     public const string PLAYER_ADMIN = '018d0000-0000-0000-0000-000000000003';
     public const string PLAYER_WITH_FAVORITES = '018d0000-0000-0000-0000-000000000004';
+
     public const string PLAYER_WITH_STRIPE = '018d0000-0000-0000-0000-000000000005';
+    public const string PLAYER_WITH_STRIPE_USER_ID = 'auth0|stripe005';
+    public const string PLAYER_WITH_STRIPE_EMAIL = 'player4@speedpuzzling.cz';
+    public const string PLAYER_WITH_STRIPE_NAME = 'Sarah Williams';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -29,9 +37,9 @@ final class PlayerFixture extends Fixture
         $regularPlayer = $this->createPlayer(
             id: self::PLAYER_REGULAR,
             code: 'player1',
-            userId: 'auth0|regular001',
-            email: 'player1@speedpuzzling.cz',
-            name: 'John Doe',
+            userId: self::PLAYER_REGULAR_USER_ID,
+            email: self::PLAYER_REGULAR_EMAIL,
+            name: self::PLAYER_REGULAR_NAME,
             country: 'cz',
             city: 'Prague',
         );
@@ -81,9 +89,9 @@ final class PlayerFixture extends Fixture
         $playerWithStripe = $this->createPlayer(
             id: self::PLAYER_WITH_STRIPE,
             code: 'player4',
-            userId: 'auth0|stripe005',
-            email: 'player4@speedpuzzling.cz',
-            name: 'Sarah Williams',
+            userId: self::PLAYER_WITH_STRIPE_USER_ID,
+            email: self::PLAYER_WITH_STRIPE_EMAIL,
+            name: self::PLAYER_WITH_STRIPE_NAME,
             country: 'gb',
             city: 'London',
             stripeCustomerId: 'cus_test_123456789',

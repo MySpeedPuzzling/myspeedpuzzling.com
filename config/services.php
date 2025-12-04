@@ -49,8 +49,9 @@ return static function(ContainerConfigurator $configurator): void
     $services->set(PsrLogMessageProcessor::class)
         ->tag('monolog.processor');
 
-    // Controllers
-    $services->load('SpeedPuzzling\\Web\\Controller\\', __DIR__ . '/../src/Controller/**/{*Controller.php}');
+    // Controllers (excluding Test directory - registered only in dev/test environments)
+    $services->load('SpeedPuzzling\\Web\\Controller\\', __DIR__ . '/../src/Controller/**/{*Controller.php}')
+        ->exclude([__DIR__ . '/../src/Controller/Test/']);
 
     // Twig extensions
     $services->load('SpeedPuzzling\\Web\\Twig\\', __DIR__ . '/../src/Twig/{*TwigExtension.php}');

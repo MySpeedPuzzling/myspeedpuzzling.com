@@ -11,17 +11,18 @@ final class PantherDatabaseManager
     private static null|self $instance = null;
 
     private const DATABASE_URL_FILE = __DIR__ . '/../../../var/panther_db_url.txt';
-    private const TEMPLATE_DB = 'speedpuzzling_test_template';
 
     private null|PDO $pdo = null;
     private null|string $currentDatabase = null;
+    private string $templateDb;
 
-    /** @var array{host: string, port: int, user: string, password: string} */
+    /** @var array{host: string, port: int, user: string, password: string, dbname: string} */
     private array $dbConfig;
 
     private function __construct()
     {
         $this->dbConfig = self::parseDatabaseUrl();
+        $this->templateDb = $this->dbConfig['dbname'] . '_template';
     }
 
     public static function getInstance(): self
@@ -44,11 +45,11 @@ final class PantherDatabaseManager
         // Terminate any lingering connections to template
         $pdo->exec(
             "SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-            WHERE datname = '" . self::TEMPLATE_DB . "' AND pid <> pg_backend_pid()"
+            WHERE datname = '{$this->templateDb}' AND pid <> pg_backend_pid()"
         );
 
         // Create database from template (fast operation ~50ms)
-        $pdo->exec("CREATE DATABASE \"{$this->currentDatabase}\" TEMPLATE \"" . self::TEMPLATE_DB . "\"");
+        $pdo->exec("CREATE DATABASE \"{$this->currentDatabase}\" TEMPLATE \"{$this->templateDb}\"");
 
         // Write DATABASE_URL to shared file using same host/port as original
         $databaseUrl = sprintf(
@@ -109,7 +110,7 @@ final class PantherDatabaseManager
     }
 
     /**
-     * @return array{host: string, port: int, user: string, password: string}
+     * @return array{host: string, port: int, user: string, password: string, dbname: string}
      */
     private static function parseDatabaseUrl(): array
     {
@@ -122,16 +123,19 @@ final class PantherDatabaseManager
                 'port' => 5432,
                 'user' => 'postgres',
                 'password' => 'postgres',
+                'dbname' => 'speedpuzzling_test',
             ];
         }
 
         $parsed = parse_url($databaseUrl);
+        $dbname = isset($parsed['path']) ? ltrim($parsed['path'], '/') : 'speedpuzzling_test';
 
         return [
             'host' => $parsed['host'] ?? 'postgres',
             'port' => $parsed['port'] ?? 5432,
             'user' => $parsed['user'] ?? 'postgres',
             'password' => $parsed['pass'] ?? 'postgres',
+            'dbname' => $dbname,
         ];
     }
 }

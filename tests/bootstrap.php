@@ -70,6 +70,8 @@ function bootstrapDatabase(string $cacheFilePath): void
 function createPantherTemplateDatabase(): void
 {
     $dbConfig = parseDatabaseUrl();
+    $sourceDb = $dbConfig['dbname'];
+    $templateDb = $sourceDb . '_template';
 
     $dsn = sprintf(
         'pgsql:host=%s;port=%d;dbname=postgres',
@@ -87,43 +89,46 @@ function createPantherTemplateDatabase(): void
     // Terminate any connections to template and source databases
     $pdo->exec(
         "SELECT pg_terminate_backend(pid) FROM pg_stat_activity
-        WHERE datname IN ('speedpuzzling_test_template', 'speedpuzzling_test') AND pid <> pg_backend_pid()"
+        WHERE datname IN ('$templateDb', '$sourceDb') AND pid <> pg_backend_pid()"
     );
 
     // Unmark as template (required before dropping)
-    $pdo->exec("UPDATE pg_database SET datistemplate = FALSE WHERE datname = 'speedpuzzling_test_template'");
+    $pdo->exec("UPDATE pg_database SET datistemplate = FALSE WHERE datname = '$templateDb'");
 
     // Drop and recreate
-    $pdo->exec("DROP DATABASE IF EXISTS speedpuzzling_test_template");
-    $pdo->exec("CREATE DATABASE speedpuzzling_test_template TEMPLATE speedpuzzling_test");
+    $pdo->exec("DROP DATABASE IF EXISTS \"$templateDb\"");
+    $pdo->exec("CREATE DATABASE \"$templateDb\" TEMPLATE \"$sourceDb\"");
 
     // Mark as template for faster cloning
-    $pdo->exec("UPDATE pg_database SET datistemplate = TRUE WHERE datname = 'speedpuzzling_test_template'");
+    $pdo->exec("UPDATE pg_database SET datistemplate = TRUE WHERE datname = '$templateDb'");
 }
 
 /**
- * @return array{host: string, port: int, user: string, password: string}
+ * @return array{host: string, port: int, user: string, password: string, dbname: string}
  */
 function parseDatabaseUrl(): array
 {
     $databaseUrl = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? getenv('DATABASE_URL');
 
-    if ($databaseUrl === false || $databaseUrl === '') {
+    if (!is_string($databaseUrl) || $databaseUrl === '') {
         // Fallback for Docker environment
         return [
             'host' => 'postgres',
             'port' => 5432,
             'user' => 'postgres',
             'password' => 'postgres',
+            'dbname' => 'speedpuzzling_test',
         ];
     }
 
     $parsed = parse_url($databaseUrl);
+    $dbname = isset($parsed['path']) ? ltrim($parsed['path'], '/') : 'speedpuzzling_test';
 
     return [
         'host' => $parsed['host'] ?? 'postgres',
         'port' => $parsed['port'] ?? 5432,
         'user' => $parsed['user'] ?? 'postgres',
         'password' => $parsed['pass'] ?? 'postgres',
+        'dbname' => $dbname,
     ];
 }

@@ -1,16 +1,20 @@
 {#
-    Stream for lend-borrow actions from puzzle detail page or collection detail.
+    Stream for lend-borrow actions from puzzle detail page, collection detail, or unsolved page.
 
     Parameters:
     - puzzle_id: The puzzle ID
     - puzzle_statuses: UserPuzzleStatuses
     - action: 'lent', 'returned', 'passed'
     - message: Toast message
-    - context: 'detail' (puzzle detail page) or 'collection-detail' (collection page)
+    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), or 'unsolved-detail' (unsolved page)
 
     For collection-detail context, additional parameters:
     - item: CollectionItemOverview - full item data for card replacement
     - logged_user: Current logged user
+    - collection_id: Collection ID
+
+    For unsolved-detail context (only for pass/return actions on borrowed puzzles):
+    - The item is removed because after pass/return, user no longer has the borrowed puzzle
 #}
 
 {{ include('_modal_close_stream.html.twig') }}
@@ -28,6 +32,26 @@
         source_collection_id: coll_id,
         currentCollectionId: coll_id,
     }) }}
+{% elseif context|default('detail') == 'unsolved-detail' %}
+    {# Unsolved puzzles page #}
+    {% if action in ['passed', 'returned'] %}
+        {# Pass/return on borrowed item: remove the card (user no longer has borrowed puzzle) #}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'remove',
+            page_context: 'unsolved',
+            puzzle_id: puzzle_id,
+        }) }}
+    {% elseif item is defined %}
+        {# Lend action on collection item: replace the card to show lent badge #}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'replace',
+            page_context: 'unsolved',
+            item: item,
+            puzzle_statuses: puzzle_statuses,
+            logged_user: logged_user,
+            isOwnProfile: true,
+        }) }}
+    {% endif %}
 {% else %}
     {# Puzzle detail page: update badges and dropdown #}
     <turbo-stream action="update" target="puzzle-badges-{{ puzzle_id }}">

@@ -11,6 +11,8 @@
     - player: For empty state template
 #}
 
+{{ include('_modal_close_stream.html.twig') }}
+
 {# Remove the item from the appropriate tab #}
 {% if tab == 'lent' %}
     {{ include('_library_item_stream.html.twig', {

@@ -26,13 +26,16 @@
         puzzle_id: puzzle_id,
         puzzle_statuses: puzzle_statuses,
         context: context,
+        currentCollectionId: currentCollectionId|default(null),
     }) }}
 
     {{ include('lend-borrow/_dropdown_action.html.twig', {
         puzzle_id: puzzle_id,
         puzzle_statuses: puzzle_statuses,
+        logged_user: logged_user,
         context: context,
         tab: tab|default(null),
+        currentCollectionId: currentCollectionId|default(null),
     }) }}
 {% endif %}
 </div>

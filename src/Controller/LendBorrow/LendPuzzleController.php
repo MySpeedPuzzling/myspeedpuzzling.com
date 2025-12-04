@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -34,6 +35,7 @@ final class LendPuzzleController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private PlayerRepository $playerRepository,
         readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
     ) {
     }
 
@@ -145,6 +147,14 @@ final class LendPuzzleController extends AbstractController
                     $templateParams['item'] = $collectionItem;
                     $templateParams['logged_user'] = $loggedPlayer;
                     $templateParams['collection_id'] = $collectionId;
+                } elseif ($context === 'unsolved-detail') {
+                    // For unsolved-detail context, fetch unsolved item for card replacement
+                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+
+                    if ($unsolvedItem !== null) {
+                        $templateParams['item'] = $unsolvedItem;
+                        $templateParams['logged_user'] = $loggedPlayer;
+                    }
                 }
 
                 return $this->render('lend-borrow/_stream.html.twig', $templateParams);

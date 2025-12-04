@@ -33,9 +33,12 @@
 
 {# Determine dropdown context for puzzle/_dropdown_actions.html.twig #}
 {# - 'list' for list pages that remove items (wishlist, sell-swap, lend-borrow lists)
-   - 'collection-detail' for collection pages that replace items #}
+   - 'collection-detail' for collection pages that replace items
+   - 'unsolved-detail' for unsolved puzzles page that replaces items #}
 {% if page_context == 'collection' %}
     {% set dropdown_context = 'collection-detail' %}
+{% elseif page_context == 'unsolved' %}
+    {% set dropdown_context = 'unsolved-detail' %}
 {% else %}
     {% set dropdown_context = 'list' %}
 {% endif %}

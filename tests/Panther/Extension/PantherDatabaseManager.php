@@ -16,8 +16,12 @@ final class PantherDatabaseManager
     private null|PDO $pdo = null;
     private null|string $currentDatabase = null;
 
+    /** @var array{host: string, port: int, user: string, password: string} */
+    private array $dbConfig;
+
     private function __construct()
     {
+        $this->dbConfig = self::parseDatabaseUrl();
     }
 
     public static function getInstance(): self
@@ -46,9 +50,13 @@ final class PantherDatabaseManager
         // Create database from template (fast operation ~50ms)
         $pdo->exec("CREATE DATABASE \"{$this->currentDatabase}\" TEMPLATE \"" . self::TEMPLATE_DB . "\"");
 
-        // Write DATABASE_URL to shared file
+        // Write DATABASE_URL to shared file using same host/port as original
         $databaseUrl = sprintf(
-            'postgresql://postgres:postgres@postgres:5432/%s?serverVersion=16&charset=utf8',
+            'postgresql://%s:%s@%s:%d/%s?serverVersion=16&charset=utf8',
+            $this->dbConfig['user'],
+            $this->dbConfig['password'],
+            $this->dbConfig['host'],
+            $this->dbConfig['port'],
             $this->currentDatabase
         );
 
@@ -83,14 +91,47 @@ final class PantherDatabaseManager
     private function getAdminConnection(): PDO
     {
         if ($this->pdo === null) {
+            $dsn = sprintf(
+                'pgsql:host=%s;port=%d;dbname=postgres',
+                $this->dbConfig['host'],
+                $this->dbConfig['port']
+            );
+
             $this->pdo = new PDO(
-                'pgsql:host=postgres;port=5432;dbname=postgres',
-                'postgres',
-                'postgres',
+                $dsn,
+                $this->dbConfig['user'],
+                $this->dbConfig['password'],
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
         }
 
         return $this->pdo;
+    }
+
+    /**
+     * @return array{host: string, port: int, user: string, password: string}
+     */
+    private static function parseDatabaseUrl(): array
+    {
+        $databaseUrl = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? getenv('DATABASE_URL');
+
+        if (!is_string($databaseUrl) || $databaseUrl === '') {
+            // Fallback for Docker environment
+            return [
+                'host' => 'postgres',
+                'port' => 5432,
+                'user' => 'postgres',
+                'password' => 'postgres',
+            ];
+        }
+
+        $parsed = parse_url($databaseUrl);
+
+        return [
+            'host' => $parsed['host'] ?? 'postgres',
+            'port' => $parsed['port'] ?? 5432,
+            'user' => $parsed['user'] ?? 'postgres',
+            'password' => $parsed['pass'] ?? 'postgres',
+        ];
     }
 }

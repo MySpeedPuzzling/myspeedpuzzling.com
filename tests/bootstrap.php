@@ -69,10 +69,18 @@ function bootstrapDatabase(string $cacheFilePath): void
 
 function createPantherTemplateDatabase(): void
 {
+    $dbConfig = parseDatabaseUrl();
+
+    $dsn = sprintf(
+        'pgsql:host=%s;port=%d;dbname=postgres',
+        $dbConfig['host'],
+        $dbConfig['port']
+    );
+
     $pdo = new PDO(
-        'pgsql:host=postgres;port=5432;dbname=postgres',
-        'postgres',
-        'postgres',
+        $dsn,
+        $dbConfig['user'],
+        $dbConfig['password'],
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
     );
 
@@ -91,4 +99,31 @@ function createPantherTemplateDatabase(): void
 
     // Mark as template for faster cloning
     $pdo->exec("UPDATE pg_database SET datistemplate = TRUE WHERE datname = 'speedpuzzling_test_template'");
+}
+
+/**
+ * @return array{host: string, port: int, user: string, password: string}
+ */
+function parseDatabaseUrl(): array
+{
+    $databaseUrl = $_ENV['DATABASE_URL'] ?? $_SERVER['DATABASE_URL'] ?? getenv('DATABASE_URL');
+
+    if ($databaseUrl === false || $databaseUrl === '') {
+        // Fallback for Docker environment
+        return [
+            'host' => 'postgres',
+            'port' => 5432,
+            'user' => 'postgres',
+            'password' => 'postgres',
+        ];
+    }
+
+    $parsed = parse_url($databaseUrl);
+
+    return [
+        'host' => $parsed['host'] ?? 'postgres',
+        'port' => $parsed['port'] ?? 5432,
+        'user' => $parsed['user'] ?? 'postgres',
+        'password' => $parsed['pass'] ?? 'postgres',
+    ];
 }

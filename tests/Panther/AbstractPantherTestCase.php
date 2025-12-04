@@ -25,7 +25,8 @@ abstract class AbstractPantherTestCase extends PantherTestCase
             return self::createPantherClient(
                 options: [
                     'browser' => self::SELENIUM,
-                    'external_base_uri' => $_SERVER['PANTHER_EXTERNAL_BASE_URI'] ?? 'http://web:8080',
+                    // Use web-test container which runs in test environment with test database
+                    'external_base_uri' => $_SERVER['PANTHER_EXTERNAL_BASE_URI'] ?? 'http://web-test:8080',
                 ],
                 managerOptions: [
                     'host' => $seleniumHost,

@@ -5,6 +5,6 @@
     </div>
 
     <div class="modal-body">
-        {{ include('sell-swap/_mark_sold_form.html.twig', {in_modal: true}) }}
+        {{ include('sell-swap/_mark_sold_form.html.twig', {in_modal: true, context: context|default('detail'), collection_id: collection_id|default('')}) }}
     </div>
 </turbo-frame>

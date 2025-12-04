@@ -3,9 +3,10 @@
 {% if puzzle_id in puzzle_statuses.sellSwap %}
     {# Puzzle is already in sell/swap list - show manage actions #}
     {% if hasMembership %}
+        {% set collection_id = currentCollectionId|default('') %}
         <li>
             <a class="dropdown-item text-success"
-               href="{{ path('sellswap_mark_sold', {itemId: puzzle_statuses.sellSwapItemIds[puzzle_id]}) }}"
+               href="{{ path('sellswap_mark_sold', {itemId: puzzle_statuses.sellSwapItemIds[puzzle_id]}) }}?context={{ context }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
                data-turbo="true"
                data-turbo-frame="modal-frame">
                 <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
@@ -17,6 +18,7 @@
                   class="d-inline"
                   data-turbo="true">
                 <input type="hidden" name="context" value="{{ context }}">
+                <input type="hidden" name="collection_id" value="{{ collection_id }}">
                 <button type="submit" class="dropdown-item text-danger">
                     <i class="bi bi-shop text-danger me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
                 </button>

@@ -30,7 +30,7 @@
     </li>
     <li>
         <a class="dropdown-item text-primary"
-           href="{{ path('pass_puzzle', {lentPuzzleId: lent_puzzle_id}) }}?context={{ context }}&tab={{ tab }}"
+           href="{{ path('pass_puzzle', {lentPuzzleId: lent_puzzle_id}) }}?context={{ context }}&tab={{ tab }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
            data-turbo="true"
            data-turbo-frame="modal-frame">
             <i class="bi bi-arrow-right-circle me-1"></i> {{ 'lend_borrow.pass.button'|trans }}
@@ -46,6 +46,7 @@
               class="d-inline w-100">
             <input type="hidden" name="context" value="{{ context }}">
             <input type="hidden" name="tab" value="{{ tab }}">
+            <input type="hidden" name="collection_id" value="{{ collection_id }}">
             <button type="submit" class="dropdown-item text-success w-100 text-start">
                 <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
             </button>
@@ -53,7 +54,7 @@
     </li>
     <li>
         <a class="dropdown-item text-primary"
-           href="{{ path('pass_puzzle', {lentPuzzleId: lent_puzzle_id}) }}?context={{ context }}&tab={{ tab }}"
+           href="{{ path('pass_puzzle', {lentPuzzleId: lent_puzzle_id}) }}?context={{ context }}&tab={{ tab }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
            data-turbo="true"
            data-turbo-frame="modal-frame">
             <i class="bi bi-arrow-right-circle me-1"></i> {{ 'lend_borrow.pass.button'|trans }}

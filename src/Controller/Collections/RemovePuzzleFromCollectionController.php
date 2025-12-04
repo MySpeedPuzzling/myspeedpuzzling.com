@@ -83,16 +83,34 @@ final class RemovePuzzleFromCollectionController extends AbstractController
                 // Fetch puzzle statuses for dropdown update
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
-                return $this->render('collections/_remove_from_list_stream.html.twig', [
+                $removedFromCollectionId = is_string($collectionId) ? $collectionId : '__system_collection__';
+                $currentCollectionIdForTemplate = $currentCollectionId ?? '__system_collection__';
+
+                $templateParams = [
                     'puzzle_id' => $puzzleId,
-                    'removed_from_collection_id' => is_string($collectionId) ? $collectionId : '__system_collection__',
-                    'current_collection_id' => $currentCollectionId ?? '__system_collection__',
+                    'removed_from_collection_id' => $removedFromCollectionId,
+                    'current_collection_id' => $currentCollectionIdForTemplate,
                     'remaining_count' => $remainingCount,
                     'message' => $this->translator->trans('collections.flash.puzzle_removed'),
                     'puzzle_statuses' => $puzzleStatuses,
                     'context' => $context,
                     'source_collection_id' => $currentCollectionId,
-                ]);
+                ];
+
+                // If removing from a different collection, fetch the item for card replacement
+                if ($context === 'collection-detail' && $removedFromCollectionId !== $currentCollectionIdForTemplate) {
+                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $currentCollectionId,
+                    );
+
+                    $templateParams['item'] = $collectionItem;
+                    $templateParams['logged_user'] = $loggedPlayer;
+                    $templateParams['collection_id'] = $currentCollectionIdForTemplate;
+                }
+
+                return $this->render('collections/_remove_from_list_stream.html.twig', $templateParams);
             }
 
             // Called from puzzle detail page - update badges and dropdown

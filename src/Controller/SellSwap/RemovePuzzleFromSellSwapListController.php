@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromSellSwapList;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -25,6 +26,7 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -75,15 +77,32 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
                 ]);
             }
 
-            // Called from puzzle detail page - update badges and dropdown
+            // Called from puzzle detail page or collection detail - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
-            return $this->render('sell-swap/_stream.html.twig', [
+            $templateParams = [
                 'puzzle_id' => $puzzleId,
                 'puzzle_statuses' => $puzzleStatuses,
                 'action' => 'removed',
                 'message' => $this->translator->trans('sell_swap_list.flash.removed'),
-            ]);
+                'context' => $context,
+            ];
+
+            // For collection-detail context, fetch collection item for card replacement
+            if ($context === 'collection-detail') {
+                $collectionId = $request->request->getString('collection_id');
+                $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                    $puzzleId,
+                    $loggedPlayer->playerId,
+                    $collectionId !== '' ? $collectionId : null,
+                );
+
+                $templateParams['item'] = $collectionItem;
+                $templateParams['logged_user'] = $loggedPlayer;
+                $templateParams['collection_id'] = $collectionId;
+            }
+
+            return $this->render('sell-swap/_stream.html.twig', $templateParams);
         }
 
         // Non-Turbo request: redirect with flash message

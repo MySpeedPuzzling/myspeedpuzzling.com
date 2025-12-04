@@ -6,6 +6,6 @@
 
     <div class="modal-body">
         <p class="mb-3">{{ 'lend_borrow.pass.description'|trans({'%puzzle%': puzzle.name}) }}</p>
-        {{ component('PassLentPuzzleForm', {lentPuzzleId: lentPuzzleId, context: context|default('detail'), tab: tab|default('')}) }}
+        {{ component('PassLentPuzzleForm', {lentPuzzleId: lentPuzzleId, context: context|default('detail'), tab: tab|default(''), collectionId: collection_id|default('')}) }}
     </div>
 </turbo-frame>

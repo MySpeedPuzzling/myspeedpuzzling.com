@@ -1,17 +1,40 @@
 {#
-    Stream for marking item as sold/swapped (removes from list).
+    Stream for marking item as sold/swapped (removes from sell-swap list).
 
     Parameters:
     - puzzle_id: The puzzle ID
     - message: Toast message
+    - context: 'detail' (puzzle detail page), 'list' (sell-swap list), or 'collection-detail'
+
+    For collection-detail context, additional parameters:
+    - item: CollectionItemOverview - full item data for card replacement
+    - logged_user: Current logged user
+    - puzzle_statuses: UserPuzzleStatuses
+    - collection_id: Current collection ID
 #}
 
 {{ include('_modal_close_stream.html.twig') }}
 
-{{ include('_library_item_stream.html.twig', {
-    action: 'remove',
-    page_context: 'sell-swap',
-    puzzle_id: puzzle_id,
-}) }}
+{% if context|default('detail') == 'collection-detail' %}
+    {# Collection detail page: replace the whole card to remove swap badge #}
+    {% set coll_id = collection_id|default('__system_collection__') %}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'replace',
+        page_context: 'collection',
+        item: item,
+        puzzle_statuses: puzzle_statuses,
+        logged_user: logged_user,
+        isOwnProfile: true,
+        source_collection_id: coll_id,
+        currentCollectionId: coll_id,
+    }) }}
+{% else %}
+    {# Sell-swap list page: remove the item #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'sell-swap',
+        puzzle_id: puzzle_id,
+    }) }}
+{% endif %}
 
 {{ include('_toast_stream.html.twig', {message: message}) }}

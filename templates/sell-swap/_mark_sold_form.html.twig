@@ -6,6 +6,9 @@
     }
 }) }}
 
+<input type="hidden" name="context" value="{{ context|default('detail') }}">
+<input type="hidden" name="collection_id" value="{{ collection_id|default('') }}">
+
 <div class="alert alert-warning mb-3">
     <i class="bi bi-exclamation-triangle me-2"></i>
     {{ 'sell_swap_list.mark_sold.warning'|trans }}

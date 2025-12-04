@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 use SpeedPuzzling\Web\FormData\MarkAsSoldSwappedFormData;
 use SpeedPuzzling\Web\FormType\MarkAsSoldSwappedFormType;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,6 +29,8 @@ final class MarkAsSoldSwappedController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -77,11 +81,32 @@ final class MarkAsSoldSwappedController extends AbstractController
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
-                return $this->render('sell-swap/_mark_sold_stream.html.twig', [
+                $context = $request->request->getString('context', 'detail');
+
+                $templateParams = [
                     'item_id' => $itemId,
                     'puzzle_id' => $puzzleId,
                     'message' => $this->translator->trans('sell_swap_list.mark_sold.success'),
-                ]);
+                    'context' => $context,
+                ];
+
+                // For collection-detail context, fetch collection item for card replacement
+                if ($context === 'collection-detail') {
+                    $collectionId = $request->request->getString('collection_id');
+                    $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $collectionId !== '' ? $collectionId : null,
+                    );
+
+                    $templateParams['item'] = $collectionItem;
+                    $templateParams['logged_user'] = $loggedPlayer;
+                    $templateParams['puzzle_statuses'] = $puzzleStatuses;
+                    $templateParams['collection_id'] = $collectionId;
+                }
+
+                return $this->render('sell-swap/_mark_sold_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message
@@ -98,6 +123,8 @@ final class MarkAsSoldSwappedController extends AbstractController
             'puzzle_id' => $puzzleId,
             'form' => $form,
             'favorite_players' => $favoritePlayers,
+            'context' => $request->query->getString('context', 'detail'),
+            'collection_id' => $request->query->getString('collection_id', ''),
         ];
 
         // Turbo Frame request - return frame content only

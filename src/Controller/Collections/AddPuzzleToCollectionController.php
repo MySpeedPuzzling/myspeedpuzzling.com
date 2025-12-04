@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\CreateCollection;
 use SpeedPuzzling\Web\Query\GetPlayerCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Repository\CollectionItemRepository;
 use SpeedPuzzling\Web\Results\CollectionOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -37,6 +38,7 @@ final class AddPuzzleToCollectionController extends AbstractController
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetPlayerCollections $getPlayerCollections,
         readonly private CollectionItemRepository $collectionItemRepository,
+        readonly private GetWishListItems $getWishListItems,
     ) {
     }
 
@@ -151,13 +153,22 @@ final class AddPuzzleToCollectionController extends AbstractController
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+                $context = $request->request->getString('context', 'detail');
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
-                return $this->render('collections/_stream.html.twig', [
+                $templateParams = [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
                     'message' => $this->translator->trans('collections.flash.puzzle_added'),
-                ]);
+                    'context' => $context,
+                ];
+
+                // For list context (from wishlist page), fetch remaining count
+                if ($context === 'list') {
+                    $templateParams['remaining_count'] = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+                }
+
+                return $this->render('collections/_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message
@@ -174,6 +185,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             'has_available_collections' => $hasAvailableCollections,
             'system_collection_id' => Collection::SYSTEM_ID,
             'puzzle_id' => $puzzleId,
+            'context' => $request->query->getString('context', 'detail'),
         ];
 
         // Turbo Frame request - return frame content only

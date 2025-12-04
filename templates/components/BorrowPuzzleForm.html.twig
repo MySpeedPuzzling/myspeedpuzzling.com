@@ -26,6 +26,7 @@
                 action: path('borrow_puzzle', {puzzleId: this.puzzleId}),
                 attr: {'data-turbo': 'true'}
             }) }}
+            <input type="hidden" name="context" value="{{ this.context }}">
 
             <div class="mb-3" data-controller="favorite-player-select">
                 {{ form_label(form.ownerCode) }}

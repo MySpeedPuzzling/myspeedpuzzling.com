@@ -94,7 +94,7 @@
     {% if hasMembership %}
         <li>
             <a class="dropdown-item"
-               href="{{ path('borrow_puzzle', {puzzleId: puzzle_id}) }}"
+               href="{{ path('borrow_puzzle', {puzzleId: puzzle_id}) }}?context={{ context }}"
                data-turbo="true"
                data-turbo-frame="modal-frame">
                 <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.borrow.button'|trans }}

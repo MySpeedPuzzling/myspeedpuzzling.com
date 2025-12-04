@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
+use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,6 +33,7 @@ final class BorrowPuzzleController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private PlayerRepository $playerRepository,
+        readonly private GetWishListItems $getWishListItems,
     ) {
     }
 
@@ -117,14 +119,23 @@ final class BorrowPuzzleController extends AbstractController
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
+                $context = $request->request->getString('context', 'detail');
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
-                return $this->render('lend-borrow/_stream.html.twig', [
+                $templateParams = [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
                     'action' => 'borrowed',
                     'message' => $this->translator->trans('lend_borrow.flash.borrowed'),
-                ]);
+                    'context' => $context,
+                ];
+
+                // For list context (from wishlist page), fetch remaining count
+                if ($context === 'list') {
+                    $templateParams['remaining_count'] = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+                }
+
+                return $this->render('lend-borrow/_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message
@@ -138,6 +149,7 @@ final class BorrowPuzzleController extends AbstractController
             'puzzle' => $puzzle,
             'form' => $form,
             'is_already_borrowed' => $isAlreadyBorrowed,
+            'context' => $request->query->getString('context', 'detail'),
         ];
 
         // Turbo Frame request - return frame content only

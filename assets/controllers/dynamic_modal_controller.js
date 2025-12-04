@@ -21,7 +21,11 @@ export default class extends Controller {
     openTimeout = null;
 
     connect() {
-        this.modal = Modal.getOrCreateInstance(this.element);
+        // Disable focus trap to allow interaction with tom-select dropdowns
+        // that render outside the modal dialog
+        this.modal = Modal.getOrCreateInstance(this.element, {
+            focus: false
+        });
 
         // Open modal when frame starts fetching content
         this.frameTarget.addEventListener('turbo:before-fetch-request', this.handleBeforeFetch);

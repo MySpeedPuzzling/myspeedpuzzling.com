@@ -32,6 +32,9 @@ final class BorrowPuzzleForm extends AbstractController
     #[LiveProp]
     public string $puzzleId = '';
 
+    #[LiveProp]
+    public string $context = 'detail';
+
     public function __construct(
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private GetFavoritePlayers $getFavoritePlayers,

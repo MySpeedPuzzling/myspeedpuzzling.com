@@ -1,5 +1,6 @@
 {# Add puzzle to collection form - used in both modal and full page #}
 {% set in_modal = in_modal|default(false) %}
+{% set context = context|default('detail') %}
 
 <div data-controller="puzzle-collection-form" data-puzzle-collection-form-system-id-value="{{ system_collection_id }}">
     {{ form_start(form, {
@@ -9,6 +10,7 @@
             'data-turbo-frame': in_modal ? 'modal-frame' : '_top'
         }
     }) }}
+        <input type="hidden" name="context" value="{{ context }}">
         {% if not has_active_membership %}
             {# Non-member: only show system collection as disabled #}
             <div class="mb-3">

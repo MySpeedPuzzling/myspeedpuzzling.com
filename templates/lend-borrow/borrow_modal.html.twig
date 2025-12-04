@@ -5,6 +5,6 @@
     </div>
 
     <div class="modal-body">
-        {{ component('BorrowPuzzleForm', {puzzleId: puzzle.puzzleId}) }}
+        {{ component('BorrowPuzzleForm', {puzzleId: puzzle.puzzleId, context: context|default('detail')}) }}
     </div>
 </turbo-frame>

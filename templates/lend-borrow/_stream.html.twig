@@ -1,12 +1,12 @@
 {#
-    Stream for lend-borrow actions from puzzle detail page, collection detail, or unsolved page.
+    Stream for lend-borrow actions from puzzle detail page, collection detail, unsolved page, or wishlist page.
 
     Parameters:
     - puzzle_id: The puzzle ID
     - puzzle_statuses: UserPuzzleStatuses
-    - action: 'lent', 'returned', 'passed'
+    - action: 'lent', 'returned', 'passed', 'borrowed'
     - message: Toast message
-    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), or 'unsolved-detail' (unsolved page)
+    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), 'unsolved-detail' (unsolved page), or 'list' (wishlist page)
 
     For collection-detail context, additional parameters:
     - item: CollectionItemOverview - full item data for card replacement
@@ -15,11 +15,35 @@
 
     For unsolved-detail context (only for pass/return actions on borrowed puzzles):
     - The item is removed because after pass/return, user no longer has the borrowed puzzle
+
+    For list context (wishlist), additional parameters:
+    - remaining_count: Number of remaining items in wishlist
 #}
 
 {{ include('_modal_close_stream.html.twig') }}
 
-{% if context|default('detail') == 'collection-detail' %}
+{% if context|default('detail') == 'list' %}
+    {# Wishlist page: remove the item and update count #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'wishlist',
+        puzzle_id: puzzle_id,
+    }) }}
+
+    {# Update the count #}
+    <turbo-stream action="update" target="wishlist-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+
+    {# Show empty state if no items remaining #}
+    {% if remaining_count == 0 %}
+    <turbo-stream action="update" target="wishlist-list-container">
+        <template>
+            {{ include('wishlist/_empty_state.html.twig') }}
+        </template>
+    </turbo-stream>
+    {% endif %}
+{% elseif context|default('detail') == 'collection-detail' %}
     {# Collection detail page: replace the whole card #}
     {% set coll_id = collection_id|default('__system_collection__') %}
     {{ include('_library_item_stream.html.twig', {

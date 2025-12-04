@@ -13,7 +13,7 @@
     {# Puzzle is in one or more collections - show add, move, and remove options #}
     <li>
         <a class="dropdown-item"
-           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}"
+           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}?context={{ context }}"
            data-turbo="true"
            data-turbo-frame="modal-frame">
             <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
@@ -53,7 +53,7 @@
     {# Puzzle is not in any collection - show add option #}
     <li>
         <a class="dropdown-item"
-           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}"
+           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}?context={{ context }}"
            data-turbo="true"
            data-turbo-frame="modal-frame">
             <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}

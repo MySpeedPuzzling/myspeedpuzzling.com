@@ -137,9 +137,13 @@ final class PassPuzzleController extends AbstractController
 
                     // Owner passing to someone else (not owner) = UPDATE item, don't remove
                     if ($tab === 'lent' && !$wasPassedToOwner) {
+                        $lentItem = $this->getLentPuzzles->getByPuzzleIdAndOwnerId($puzzleId, $loggedPlayer->playerId);
+                        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+
                         return $this->render('lend-borrow/_update_lent_item_stream.html.twig', [
-                            'puzzle_id' => $puzzleId,
-                            'new_holder_name' => $newHolderDisplayName,
+                            'item' => $lentItem,
+                            'puzzle_statuses' => $puzzleStatuses,
+                            'logged_user' => $loggedPlayer,
                             'message' => $this->translator->trans('lend_borrow.flash.passed'),
                         ]);
                     }

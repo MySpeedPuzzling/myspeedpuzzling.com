@@ -3,6 +3,9 @@
     attr: in_modal ? {'data-turbo': 'true'} : {}
 }) }}
 
+<input type="hidden" name="context" value="{{ context|default('detail') }}">
+<input type="hidden" name="collection_id" value="{{ collection_id|default('') }}">
+
 <div data-controller="conditional-field" data-conditional-field-trigger-value="swap" data-conditional-field-hide-on-value="true">
     <div class="mb-3">
         {{ form_row(form.listingType, {

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
 use SpeedPuzzling\Web\FormType\AddToSellSwapListFormType;
 use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -29,6 +30,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -88,13 +90,31 @@ final class AddPuzzleToSellSwapListController extends AbstractController
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+                $context = $request->request->getString('context', 'detail');
 
-                return $this->render('sell-swap/_stream.html.twig', [
+                $templateParams = [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
                     'action' => 'added',
                     'message' => $this->translator->trans('sell_swap_list.flash.added'),
-                ]);
+                    'context' => $context,
+                ];
+
+                // For collection-detail context, fetch the collection item for full card replacement
+                if ($context === 'collection-detail') {
+                    $collectionId = $request->request->getString('collection_id');
+                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $collectionId !== '' ? $collectionId : null,
+                    );
+
+                    $templateParams['item'] = $collectionItem;
+                    $templateParams['logged_user'] = $loggedPlayer;
+                    $templateParams['collection_id'] = $collectionId;
+                }
+
+                return $this->render('sell-swap/_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message
@@ -108,6 +128,8 @@ final class AddPuzzleToSellSwapListController extends AbstractController
             'puzzle' => $puzzle,
             'form' => $form,
             'is_in_sell_swap_list' => $isInSellSwapList,
+            'context' => $request->query->getString('context', 'detail'),
+            'collection_id' => $request->query->getString('collection_id', ''),
         ];
 
         // Turbo Frame request - return frame content only

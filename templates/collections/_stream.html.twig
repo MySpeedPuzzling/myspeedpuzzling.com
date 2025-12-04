@@ -1,9 +1,16 @@
-{# Close modal by clearing the frame #}
-<turbo-stream action="update" target="modal-frame">
-    <template></template>
-</turbo-stream>
+{#
+    Stream for collection actions from puzzle detail page.
+    Updates badges and dropdown on the detail page.
 
-{# Update puzzle badges container #}
+    Parameters:
+    - puzzle_id: The puzzle ID
+    - puzzle_statuses: UserPuzzleStatuses object
+    - message: Toast message
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{# Update puzzle badges container on detail page #}
 <turbo-stream action="update" target="puzzle-badges-{{ puzzle_id }}">
     <template>
         {{ include('puzzle/_badges.html.twig', {
@@ -13,24 +20,10 @@
     </template>
 </turbo-stream>
 
-{# Update all dropdown actions (they depend on each other's state) #}
+{# Update dropdown actions on detail page #}
 {{ include('puzzle/_dropdown_actions_stream.html.twig', {
     puzzle_id: puzzle_id,
     puzzle_statuses: puzzle_statuses,
 }) }}
 
-{# Show toast notification #}
-<turbo-stream action="append" target="toast-container">
-    <template>
-        <div class="toast align-items-center text-bg-success border-0"
-             data-controller="turbo-stream-toast"
-             data-turbo-stream-toast-delay-value="3000">
-            <div class="d-flex">
-                <div class="toast-body">
-                    {{ message }}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </template>
-</turbo-stream>
+{{ include('_toast_stream.html.twig', {message: message}) }}

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
+use SpeedPuzzling\Web\Events\LendingTransferCompleted;
 use SpeedPuzzling\Web\Exceptions\LentPuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\PassLentPuzzle;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Repository\LentPuzzleTransferRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class PassLentPuzzleHandler
@@ -23,6 +25,7 @@ readonly final class PassLentPuzzleHandler
         private PlayerRepository $playerRepository,
         private LentPuzzleRepository $lentPuzzleRepository,
         private LentPuzzleTransferRepository $lentPuzzleTransferRepository,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -78,6 +81,17 @@ readonly final class PassLentPuzzleHandler
             );
 
             $this->lentPuzzleTransferRepository->save($transfer);
+
+            $this->messageBus->dispatch(new LendingTransferCompleted(
+                $transfer->id,
+                $lentPuzzle->puzzle->id,
+                TransferType::Return,
+                $currentHolder->id,
+                $previousHolder?->id,
+                $lentPuzzle->ownerPlayer?->id,
+                $lentPuzzle->ownerPlayer?->id,
+            ));
+
             $this->lentPuzzleRepository->delete($lentPuzzle);
         } else {
             // Normal pass - record transfer and update current holder
@@ -93,6 +107,17 @@ readonly final class PassLentPuzzleHandler
             );
 
             $this->lentPuzzleTransferRepository->save($transfer);
+
+            $this->messageBus->dispatch(new LendingTransferCompleted(
+                $transfer->id,
+                $lentPuzzle->puzzle->id,
+                TransferType::Pass,
+                $currentHolder->id,
+                $previousHolder?->id,
+                $newHolder?->id,
+                $lentPuzzle->ownerPlayer?->id,
+            ));
+
             $lentPuzzle->changeCurrentHolder($newHolder, $newHolderName);
         }
     }

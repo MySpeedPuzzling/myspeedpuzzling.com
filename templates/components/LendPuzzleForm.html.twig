@@ -27,6 +27,7 @@
                 attr: {'data-turbo': 'true'}
             }) }}
             <input type="hidden" name="context" value="{{ app.request.query.get('context', 'detail') }}">
+            <input type="hidden" name="collection_id" value="{{ app.request.query.get('collection_id', '') }}">
 
             <div class="mb-3" data-controller="favorite-player-select">
                 {{ form_label(form.borrowerCode) }}

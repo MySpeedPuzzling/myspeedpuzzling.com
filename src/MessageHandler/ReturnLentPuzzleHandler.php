@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
+use SpeedPuzzling\Web\Events\LendingTransferCompleted;
 use SpeedPuzzling\Web\Exceptions\LentPuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\ReturnLentPuzzle;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Repository\LentPuzzleTransferRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\TransferType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class ReturnLentPuzzleHandler
@@ -23,6 +25,7 @@ readonly final class ReturnLentPuzzleHandler
         private PlayerRepository $playerRepository,
         private LentPuzzleRepository $lentPuzzleRepository,
         private LentPuzzleTransferRepository $lentPuzzleTransferRepository,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -58,6 +61,16 @@ readonly final class ReturnLentPuzzleHandler
         );
 
         $this->lentPuzzleTransferRepository->save($transfer);
+
+        $this->messageBus->dispatch(new LendingTransferCompleted(
+            $transfer->id,
+            $lentPuzzle->puzzle->id,
+            TransferType::Return,
+            $actingPlayer->id,
+            $lentPuzzle->currentHolderPlayer?->id,
+            $lentPuzzle->ownerPlayer?->id,
+            $lentPuzzle->ownerPlayer?->id,
+        ));
 
         // Delete the lent puzzle record (puzzle is returned to owner)
         $this->lentPuzzleRepository->delete($lentPuzzle);

@@ -3,7 +3,7 @@
 {% block title %}{{ 'sell_swap_list.title'|trans }}{% if not isOwnProfile %} - {{ player.playerName }}{% endif %}{% endblock %}
 
 {% block content %}
-<div data-controller="collection-items sell-swap-filter">
+<div data-controller="collection-items collection-filter">
     <twig:PlayerHeader player="{{ player }}" />
 
     <div class="mb-3">
@@ -87,22 +87,22 @@
                 <div class="col-12 col-sm-6 col-lg-3 mb-2">
                     <div class="position-relative">
                         <input class="form-control" type="text"
-                               data-sell-swap-filter-target="search"
-                               data-action="input->sell-swap-filter#filter"
+                               data-collection-filter-target="search"
+                               data-action="input->collection-filter#filter"
                                placeholder="{{ 'filters.text_search_placeholder'|trans }}">
                     </div>
                 </div>
 
                 <div class="col-6 col-sm-3 col-lg-2 mb-2">
-                    <select class="form-select" data-sell-swap-filter-target="manufacturer" data-action="change->sell-swap-filter#filter">
+                    <select class="form-select" data-collection-filter-target="manufacturer" data-action="change->collection-filter#filter">
                         <option value="">{{ 'filters.manufacturer_placeholder'|trans }}</option>
                     </select>
                 </div>
 
                 <div class="col-6 col-sm-3 col-lg-2 mb-2">
                     <select class="form-select"
-                            data-sell-swap-filter-target="listingTypeSelect"
-                            data-action="change->sell-swap-filter#filter">
+                            data-collection-filter-target="listingTypeSelect"
+                            data-action="change->collection-filter#filter">
                         <option value="all">{{ 'sell_swap_list.filter.all_types'|trans }}</option>
                         <option value="swap">{{ 'sell_swap_list.listing_type.swap'|trans }}</option>
                         <option value="sell">{{ 'sell_swap_list.listing_type.sell'|trans }}</option>
@@ -111,14 +111,14 @@
 
                 <div class="col-6 col-sm-3 col-lg-2 mb-2">
                     <input type="number" class="form-control" placeholder="{{ 'sell_swap_list.filter.min_price'|trans }}"
-                           data-sell-swap-filter-target="priceMin"
-                           data-action="input->sell-swap-filter#filter">
+                           data-collection-filter-target="priceMin"
+                           data-action="input->collection-filter#filter">
                 </div>
 
                 <div class="col-6 col-sm-3 col-lg-2 mb-2">
                     <input type="number" class="form-control" placeholder="{{ 'sell_swap_list.filter.max_price'|trans }}"
-                           data-sell-swap-filter-target="priceMax"
-                           data-action="input->sell-swap-filter#filter">
+                           data-collection-filter-target="priceMax"
+                           data-action="input->collection-filter#filter">
                 </div>
             </div>
         </div>
@@ -130,126 +130,18 @@
     {% else %}
         <div class="row g-3 mb-3">
             {% for item in items %}
-                <div class="col-12 col-lg-6"
-                     id="sellswap-list-item-{{ item.puzzleId }}"
-                     data-collection-items-target="item"
-                     data-sell-swap-filter-target="item"
-                     data-puzzle-id="{{ item.puzzleId }}"
-                     data-sell-swap-item-id="{{ item.sellSwapListItemId }}"
-                     data-pieces-count="{{ item.piecesCount }}"
-                     data-puzzle-name="{{ item.puzzleName }}"
-                     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
-                     data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
-                     data-ean="{{ item.ean ?? '' }}"
-                     data-manufacturer="{{ item.manufacturerName ?? '' }}"
-                     data-listing-type="{{ item.listingType.value }}"
-                     data-price="{{ item.price ?? '' }}">
-                    <div class="card card-body shadow p-2 position-relative">
-                        <div class="d-flex">
-                            <div style="width: 60px;" class="flex-shrink-0">
-                                {% if item.image %}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                        <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                                             alt="{{ item.puzzleName }}"
-                                             class="rounded"
-                                             style="width: 60px; height: 60px; object-fit: cover;">
-                                    </a>
-                                {% else %}
-                                    <div class="d-flex align-items-center justify-content-center rounded bg-light"
-                                         style="width: 60px; height: 60px;">
-                                        <i class="ci-image text-muted"></i>
-                                    </div>
-                                {% endif %}
-                            </div>
-
-                            <div class="ps-2 flex-grow-1">
-                                <div class="d-flex justify-content-between">
-                                    <div class="pe-2">
-                                        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
-                                           class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
-                                            {{ item.puzzleName }}
-                                        </a>
-                                        <br>
-                                        <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
-
-                                        <div class="mt-1">
-                                            {% if item.listingType.value == 'swap' %}
-                                                <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
-                                            {% elseif item.listingType.value == 'sell' %}
-                                                <span class="badge bg-success">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
-                                            {% else %}
-                                                <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
-                                            {% endif %}
-
-                                            {% if item.price %}
-                                                <span class="badge bg-warning text-dark">{{ item.price }} {{ settings.customCurrency ?? settings.currency ?? '' }}</span>
-                                            {% endif %}
-
-                                            <span class="badge bg-secondary">
-                                                {% if item.condition.value == 'like_new' %}
-                                                    {{ 'sell_swap_list.condition.like_new'|trans }}
-                                                {% elseif item.condition.value == 'normal' %}
-                                                    {{ 'sell_swap_list.condition.normal'|trans }}
-                                                {% elseif item.condition.value == 'not_so_good' %}
-                                                    {{ 'sell_swap_list.condition.not_so_good'|trans }}
-                                                {% else %}
-                                                    {{ 'sell_swap_list.condition.missing_pieces'|trans }}
-                                                {% endif %}
-                                            </span>
-                                        </div>
-
-                                        {% if item.comment %}
-                                            <div class="text-muted small mt-1">{{ item.comment }}</div>
-                                        {% endif %}
-                                    </div>
-
-                                    {% if isOwnProfile %}
-                                        <div class="dropdown">
-                                            <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
-                                                    type="button" data-bs-toggle="dropdown">
-                                                <i class="ci-menu"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item.sellSwapListItemId}) }}">
-                                                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item text-success"
-                                                       href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}"
-                                                       data-turbo="true"
-                                                       data-turbo-frame="modal-frame">
-                                                        <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
-                                                    </a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}"
-                                                          method="post"
-                                                          data-turbo="true">
-                                                        <input type="hidden" name="context" value="list">
-                                                        <button type="submit" class="dropdown-item text-danger">
-                                                            <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    {% endif %}
-                                </div>
-
-                                <div class="fs-sm text-muted">
-                                    {{ item.manufacturerName ?? '-' }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {{ include('_puzzle_library_item.html.twig', {
+                    item: item,
+                    page_context: 'sell-swap',
+                    puzzle_statuses: puzzle_statuses,
+                    logged_user: logged_user,
+                    isOwnProfile: isOwnProfile,
+                    settings: settings,
+                }) }}
             {% endfor %}
         </div>
 
-        <div class="hidden" data-sell-swap-filter-target="noResults">
+        <div class="hidden" data-collection-filter-target="noResults">
             <div class="alert alert-warning mb-0">
                 {{ 'filters.no_puzzle_matches_filters'|trans }}
             </div>

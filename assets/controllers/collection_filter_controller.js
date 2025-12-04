@@ -3,17 +3,23 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Collection Filter Controller
  *
- * A focused, lightweight filter for collection items.
- * Features: text search, manufacturer dropdown, pieces count radio pills.
+ * A unified filter for collection/library items across all pages.
+ * Features: text search, manufacturer dropdown, pieces count radio pills,
+ * listing type filter, price range filter.
+ *
+ * All targets are optional - the controller gracefully handles missing elements.
  */
 export default class extends Controller {
     static targets = [
-        "item",           // Each filterable collection item
-        "search",         // Text search input
-        "manufacturer",   // Manufacturer select dropdown
-        "piecesRadio",    // Pieces count radio buttons
-        "visibleCount",   // Counter showing visible items
-        "noResults"       // No results message
+        "item",              // Each filterable collection item
+        "search",            // Text search input
+        "manufacturer",      // Manufacturer select dropdown
+        "piecesRadio",       // Pieces count radio buttons
+        "listingTypeSelect", // Listing type select dropdown (sell-swap)
+        "priceMin",          // Price min input (sell-swap)
+        "priceMax",          // Price max input (sell-swap)
+        "visibleCount",      // Counter showing visible items
+        "noResults"          // No results message
     ];
 
     static classes = ["hidden"];
@@ -92,11 +98,13 @@ export default class extends Controller {
         const searchTerm = this.normalizeString(this.hasSearchTarget ? this.searchTarget.value : '');
         const manufacturer = this.hasManufacturerTarget ? this.manufacturerTarget.value : '';
         const piecesRange = this.getSelectedPiecesRange();
+        const listingType = this.getSelectedListingType();
+        const priceRange = this.getPriceRange();
 
         let visibleCount = 0;
 
         this.itemTargets.forEach(item => {
-            const isVisible = this.itemMatchesFilters(item, searchTerm, manufacturer, piecesRange);
+            const isVisible = this.itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, listingType, priceRange);
             item.style.display = isVisible ? '' : 'none';
             if (isVisible) visibleCount++;
         });
@@ -105,7 +113,7 @@ export default class extends Controller {
         this.updateNoResultsMessage(visibleCount === 0);
     }
 
-    itemMatchesFilters(item, searchTerm, manufacturer, piecesRange) {
+    itemMatchesFilters(item, searchTerm, manufacturer, piecesRange, listingType, priceRange) {
         // Text search - matches name, alternative name, code, or EAN
         if (searchTerm) {
             const name = this.normalizeString(item.dataset.puzzleName || '');
@@ -133,6 +141,26 @@ export default class extends Controller {
             }
         }
 
+        // Listing type filter (sell-swap)
+        if (listingType && listingType !== 'all') {
+            const itemListingType = item.dataset.listingType;
+            // 'both' matches both swap and sell filters
+            if (itemListingType !== listingType && itemListingType !== 'both') {
+                return false;
+            }
+        }
+
+        // Price range filter (sell-swap)
+        if (priceRange.min !== null || priceRange.max !== null) {
+            const price = parseFloat(item.dataset.price) || 0;
+            if (priceRange.min !== null && price < priceRange.min) {
+                return false;
+            }
+            if (priceRange.max !== null && price > priceRange.max) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -141,6 +169,18 @@ export default class extends Controller {
 
         const checked = this.piecesRadioTargets.find(radio => radio.checked);
         return checked ? (checked.dataset.range || '') : '';
+    }
+
+    getSelectedListingType() {
+        if (!this.hasListingTypeSelectTarget) return '';
+        return this.listingTypeSelectTarget.value || '';
+    }
+
+    getPriceRange() {
+        return {
+            min: this.hasPriceMinTarget && this.priceMinTarget.value ? parseFloat(this.priceMinTarget.value) : null,
+            max: this.hasPriceMaxTarget && this.priceMaxTarget.value ? parseFloat(this.priceMaxTarget.value) : null
+        };
     }
 
     matchesPiecesRange(count, rangeValue) {
@@ -184,6 +224,19 @@ export default class extends Controller {
             if (allRadio) {
                 allRadio.checked = true;
             }
+        }
+
+        // Reset listing type to "all"
+        if (this.hasListingTypeSelectTarget) {
+            this.listingTypeSelectTarget.value = 'all';
+        }
+
+        // Reset price range
+        if (this.hasPriceMinTarget) {
+            this.priceMinTarget.value = '';
+        }
+        if (this.hasPriceMaxTarget) {
+            this.priceMaxTarget.value = '';
         }
 
         this.filter();

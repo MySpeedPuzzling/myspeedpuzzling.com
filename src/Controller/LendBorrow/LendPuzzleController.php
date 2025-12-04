@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\FormData\LendPuzzleFormData;
 use SpeedPuzzling\Web\FormType\LendPuzzleFormType;
 use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -32,6 +33,7 @@ final class LendPuzzleController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private PlayerRepository $playerRepository,
+        readonly private GetCollectionItems $getCollectionItems,
     ) {
     }
 
@@ -121,16 +123,31 @@ final class LendPuzzleController extends AbstractController
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
                 $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
-                $context = $request->request->get('context', 'detail');
+                $context = $request->request->getString('context', 'detail');
 
-                return $this->render('lend-borrow/_stream.html.twig', [
+                $templateParams = [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
                     'action' => 'lent',
                     'message' => $this->translator->trans('lend_borrow.flash.lent'),
                     'context' => $context,
-                    'borrower_name' => $borrowerDisplayName,
-                ]);
+                ];
+
+                // For collection-detail context, fetch the collection item for full card replacement
+                if ($context === 'collection-detail') {
+                    $collectionId = $request->request->getString('collection_id');
+                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $collectionId !== '' ? $collectionId : null,
+                    );
+
+                    $templateParams['item'] = $collectionItem;
+                    $templateParams['logged_user'] = $loggedPlayer;
+                    $templateParams['collection_id'] = $collectionId;
+                }
+
+                return $this->render('lend-borrow/_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message

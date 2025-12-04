@@ -1,8 +1,29 @@
+{#
+    Stream for removing puzzle from lend-borrow list (from list context).
+
+    Parameters:
+    - puzzle_id: The puzzle ID being removed
+    - tab: 'lent' or 'borrowed'
+    - lent_count: Remaining items in lent tab
+    - borrowed_count: Remaining items in borrowed tab
+    - message: Toast message
+    - isOwnProfile: For empty state template
+    - player: For empty state template
+#}
+
 {# Remove the item from the appropriate tab #}
 {% if tab == 'lent' %}
-<turbo-stream action="remove" target="lent-item-{{ puzzle_id }}"></turbo-stream>
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'lend-borrow-lent',
+        puzzle_id: puzzle_id,
+    }) }}
 {% else %}
-<turbo-stream action="remove" target="borrowed-item-{{ puzzle_id }}"></turbo-stream>
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'lend-borrow-borrowed',
+        puzzle_id: puzzle_id,
+    }) }}
 {% endif %}
 
 {# Update the tab counts #}
@@ -18,7 +39,7 @@
 {% if tab == 'lent' and lent_count == 0 %}
 <turbo-stream action="update" target="lent-list-container">
     <template>
-        {{ include('lend-borrow/_lent_empty_state.html.twig') }}
+        {{ include('lend-borrow/_lent_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
     </template>
 </turbo-stream>
 {% endif %}
@@ -27,23 +48,9 @@
 {% if tab == 'borrowed' and borrowed_count == 0 %}
 <turbo-stream action="update" target="borrowed-list-container">
     <template>
-        {{ include('lend-borrow/_borrowed_empty_state.html.twig') }}
+        {{ include('lend-borrow/_borrowed_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
     </template>
 </turbo-stream>
 {% endif %}
 
-{# Show toast notification #}
-<turbo-stream action="append" target="toast-container">
-    <template>
-        <div class="toast align-items-center text-bg-success border-0"
-             data-controller="turbo-stream-toast"
-             data-turbo-stream-toast-delay-value="3000">
-            <div class="d-flex">
-                <div class="toast-body">
-                    {{ message }}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </template>
-</turbo-stream>
+{{ include('_toast_stream.html.twig', {message: message}) }}

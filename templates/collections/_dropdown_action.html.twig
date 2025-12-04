@@ -22,7 +22,7 @@
     {% if source_collection_id is not null %}
         <li>
             <a class="dropdown-item"
-               href="{{ path('collection_move', {puzzleId: puzzle_id, sourceCollectionId: source_collection_id}) }}"
+               href="{{ path('collection_move', {puzzleId: puzzle_id, sourceCollectionId: source_collection_id, context: context}) }}"
                data-turbo="true"
                data-turbo-frame="modal-frame">
                 <i class="bi bi-arrow-right-square me-1"></i> {{ 'collections.move_to_collection'|trans }}

@@ -111,4 +111,68 @@ SQL;
 
         return is_numeric($result) && (int) $result > 0;
     }
+
+    public function getByPuzzleIdAndOwnerId(string $puzzleId, string $ownerId): null|LentPuzzleOverview
+    {
+        $query = <<<SQL
+SELECT
+    lp.id as lent_puzzle_id,
+    lp.notes,
+    lp.lent_at,
+    lp.current_holder_name as holder_text_name,
+    p.id as puzzle_id,
+    p.name as puzzle_name,
+    p.alternative_name as puzzle_alternative_name,
+    p.pieces_count,
+    p.image,
+    m.name as manufacturer_name,
+    holder.id as current_holder_id,
+    holder.name as current_holder_name,
+    holder.avatar as current_holder_avatar
+FROM lent_puzzle lp
+JOIN puzzle p ON lp.puzzle_id = p.id
+LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
+LEFT JOIN player holder ON lp.current_holder_player_id = holder.id
+WHERE lp.owner_player_id = :ownerId AND lp.puzzle_id = :puzzleId
+SQL;
+
+        /** @var array{
+         *     lent_puzzle_id: string,
+         *     notes: string|null,
+         *     lent_at: string,
+         *     holder_text_name: string|null,
+         *     puzzle_id: string,
+         *     puzzle_name: string,
+         *     puzzle_alternative_name: string|null,
+         *     pieces_count: int,
+         *     image: string|null,
+         *     manufacturer_name: string|null,
+         *     current_holder_id: string|null,
+         *     current_holder_name: string|null,
+         *     current_holder_avatar: string|null,
+         * }|false $row
+         */
+        $row = $this->database
+            ->executeQuery($query, ['ownerId' => $ownerId, 'puzzleId' => $puzzleId])
+            ->fetchAssociative();
+
+        if ($row === false) {
+            return null;
+        }
+
+        return new LentPuzzleOverview(
+            lentPuzzleId: $row['lent_puzzle_id'],
+            puzzleId: $row['puzzle_id'],
+            puzzleName: $row['puzzle_name'],
+            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            piecesCount: $row['pieces_count'],
+            manufacturerName: $row['manufacturer_name'],
+            image: $row['image'],
+            currentHolderId: $row['current_holder_id'],
+            currentHolderName: $row['current_holder_name'] ?? $row['holder_text_name'] ?? '',
+            currentHolderAvatar: $row['current_holder_avatar'],
+            notes: $row['notes'],
+            lentAt: new DateTimeImmutable($row['lent_at']),
+        );
+    }
 }

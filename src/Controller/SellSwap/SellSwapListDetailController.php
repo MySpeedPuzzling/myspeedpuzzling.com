@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,6 +23,7 @@ final class SellSwapListDetailController extends AbstractController
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
@@ -57,6 +59,7 @@ final class SellSwapListDetailController extends AbstractController
             'player' => $player,
             'isOwnProfile' => $isOwnProfile,
             'settings' => $player->sellSwapListSettings,
+            'puzzle_statuses' => $this->getUserPuzzleStatuses->byPlayerId($player->playerId),
         ]);
     }
 }

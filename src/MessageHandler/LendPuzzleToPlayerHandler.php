@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\LentPuzzleTransfer;
+use SpeedPuzzling\Web\Events\LendingTransferCompleted;
 use SpeedPuzzling\Web\Events\PuzzleBorrowed;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -77,6 +78,16 @@ readonly final class LendPuzzleToPlayerHandler
 
             $this->lentPuzzleTransferRepository->save($transfer);
 
+            $this->messageBus->dispatch(new LendingTransferCompleted(
+                $transfer->id,
+                $puzzle->id,
+                TransferType::Pass,
+                $owner->id,
+                $previousHolder?->id,
+                $borrower?->id,
+                $owner->id,
+            ));
+
             if ($borrower !== null) {
                 $this->messageBus->dispatch(new PuzzleBorrowed(
                     $borrower->id->toString(),
@@ -115,6 +126,16 @@ readonly final class LendPuzzleToPlayerHandler
         );
 
         $this->lentPuzzleTransferRepository->save($transfer);
+
+        $this->messageBus->dispatch(new LendingTransferCompleted(
+            $transfer->id,
+            $puzzle->id,
+            TransferType::InitialLend,
+            $owner->id,
+            null,
+            $borrower?->id,
+            $owner->id,
+        ));
 
         if ($borrower !== null) {
             $this->messageBus->dispatch(new PuzzleBorrowed(

@@ -1,36 +1,47 @@
-{# Close modal by clearing the frame #}
-<turbo-stream action="update" target="modal-frame">
-    <template></template>
-</turbo-stream>
+{#
+    Stream for sell-swap actions from puzzle detail page or collection detail.
 
-{# Update puzzle badges container #}
-<turbo-stream action="update" target="puzzle-badges-{{ puzzle_id }}">
-    <template>
-        {{ include('puzzle/_badges.html.twig', {
-            puzzle_id: puzzle_id,
-            puzzle_statuses: puzzle_statuses
-        }) }}
-    </template>
-</turbo-stream>
+    Parameters:
+    - puzzle_id: The puzzle ID
+    - puzzle_statuses: UserPuzzleStatuses object
+    - message: Toast message
+    - context: 'detail' (puzzle detail page) or 'collection-detail' (collection page)
 
-{# Update all dropdown actions (they depend on each other's state) #}
-{{ include('puzzle/_dropdown_actions_stream.html.twig', {
-    puzzle_id: puzzle_id,
-    puzzle_statuses: puzzle_statuses,
-}) }}
+    For collection-detail context, additional parameters:
+    - item: CollectionItemOverview - full item data for card replacement
+    - logged_user: Current logged user
+#}
 
-{# Show toast notification #}
-<turbo-stream action="append" target="toast-container">
-    <template>
-        <div class="toast align-items-center text-bg-success border-0"
-             data-controller="turbo-stream-toast"
-             data-turbo-stream-toast-delay-value="3000">
-            <div class="d-flex">
-                <div class="toast-body">
-                    {{ message }}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </template>
-</turbo-stream>
+{{ include('_modal_close_stream.html.twig') }}
+
+{% if context|default('detail') == 'collection-detail' %}
+    {# Collection detail page: replace the whole card #}
+    {% set coll_id = collection_id|default('__system_collection__') %}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'replace',
+        page_context: 'collection',
+        item: item,
+        puzzle_statuses: puzzle_statuses,
+        logged_user: logged_user,
+        isOwnProfile: true,
+        source_collection_id: coll_id,
+        currentCollectionId: coll_id,
+    }) }}
+{% else %}
+    {# Puzzle detail page: update badges and dropdown #}
+    <turbo-stream action="update" target="puzzle-badges-{{ puzzle_id }}">
+        <template>
+            {{ include('puzzle/_badges.html.twig', {
+                puzzle_id: puzzle_id,
+                puzzle_statuses: puzzle_statuses
+            }) }}
+        </template>
+    </turbo-stream>
+
+    {{ include('puzzle/_dropdown_actions_stream.html.twig', {
+        puzzle_id: puzzle_id,
+        puzzle_statuses: puzzle_statuses,
+    }) }}
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

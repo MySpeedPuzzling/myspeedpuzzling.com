@@ -568,6 +568,14 @@ notifications:
     mark_all_as_read: "Označit vše jako přečtené"
     mark_as_read: "Označit jako přečtené"
     new_notification: "Nová notifikace"
+    lending:
+        lent_to_you: "%owner% vám půjčil puzzle"
+        borrowed_from_you: "%borrower% si od vás vypůjčil puzzle"
+        returned_to_you: "%holder% vám vrátil puzzle"
+        taken_back: "%owner% si vzal puzzle zpět"
+        passed_to_you: "%from% vám předal puzzle"
+        passed_from_you: "Puzzle bylo předáno hráči %to%"
+        your_puzzle_passed: "Vaše puzzle bylo předáno od %from% hráči %to%"
 
 badges:
     title: "Odznaky"

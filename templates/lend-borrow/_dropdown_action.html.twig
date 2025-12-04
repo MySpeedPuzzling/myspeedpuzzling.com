@@ -4,10 +4,14 @@
     - If puzzle is BORROWED by user: show Return + Pass actions (cannot lend borrowed puzzle)
     - Otherwise: show Lend and Borrow actions
 
-    Optional variables: context (for Turbo Stream response type), tab (lent/borrowed for list context)
+    Optional variables:
+    - context: for Turbo Stream response type (detail, list, collection-detail)
+    - tab: lent/borrowed for list context
+    - currentCollectionId: collection ID for collection-detail context
 #}
 {% set context = context|default('detail') %}
 {% set tab = tab|default('') %}
+{% set collection_id = currentCollectionId|default('') %}
 {% if puzzle_id in puzzle_statuses.lent %}
     {# User lent this puzzle - show return/pass actions #}
     {% set lent_puzzle_id = puzzle_statuses.lentPuzzleIds[puzzle_id] %}
@@ -18,6 +22,7 @@
               class="d-inline w-100">
             <input type="hidden" name="context" value="{{ context }}">
             <input type="hidden" name="tab" value="{{ tab }}">
+            <input type="hidden" name="collection_id" value="{{ collection_id }}">
             <button type="submit" class="dropdown-item text-success w-100 text-start">
                 <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
             </button>
@@ -69,7 +74,7 @@
     {% elseif puzzle_id in puzzle_statuses.collection %}
         <li>
             <a class="dropdown-item"
-               href="{{ path('lend_puzzle', {puzzleId: puzzle_id}) }}?context={{ context }}"
+               href="{{ path('lend_puzzle', {puzzleId: puzzle_id}) }}?context={{ context }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
                data-turbo="true"
                data-turbo-frame="modal-frame">
                 <i class="bi bi-box-arrow-right me-1"></i> {{ 'lend_borrow.lend.button'|trans }}

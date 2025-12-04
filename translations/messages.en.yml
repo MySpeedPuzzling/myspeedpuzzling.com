@@ -569,6 +569,14 @@ notifications:
     mark_all_as_read: "Mark all as read"
     mark_as_read: "Mark as read"
     new_notification: "New notification"
+    lending:
+        lent_to_you: "%owner% lent you a puzzle"
+        borrowed_from_you: "%borrower% borrowed your puzzle"
+        returned_to_you: "%holder% returned your puzzle"
+        taken_back: "%owner% took back the puzzle"
+        passed_to_you: "%from% passed you a puzzle"
+        passed_from_you: "Puzzle was passed to %to%"
+        your_puzzle_passed: "Your puzzle was passed from %from% to %to%"
 
 badges:
     title: "Badges"

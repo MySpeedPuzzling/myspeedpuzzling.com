@@ -180,7 +180,7 @@ final class MovePuzzleToCollectionController extends AbstractController
                 $context = $request->query->getString('context', 'detail');
 
                 // If coming from collection list, use the list stream template
-                if ($context === 'list') {
+                if ($context === 'list' || $context === 'collection-detail') {
                     $currentCollectionId = $request->query->get('sourceCollectionId') ?? Collection::SYSTEM_ID;
                     $currentCollectionIdForQuery = $currentCollectionId === Collection::SYSTEM_ID ? null : $currentCollectionId;
 

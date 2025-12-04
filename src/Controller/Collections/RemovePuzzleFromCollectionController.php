@@ -73,7 +73,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
             }
 
             // Different response based on context
-            if ($context === 'list') {
+            if ($context === 'list' || $context === 'collection-detail') {
                 // Called from collection detail page - remove item, update count, possibly show empty state
                 $remainingCount = $this->getCollectionItems->countByCollectionAndPlayer(
                     is_string($collectionId) ? $collectionId : null,

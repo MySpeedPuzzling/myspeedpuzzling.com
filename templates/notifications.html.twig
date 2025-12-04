@@ -18,57 +18,95 @@
                 <tbody>
                     {% for notification in notifications %}
                         <tr class="{{ notification.readAt is null ? 'table-active-player' }}">
-                            <td class="text-center" style="width: 60px;">
-                                <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
-                                    {% if notification.targetPlayerAvatar is not null %}
-                                        <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|imagine_filter('puzzle_small') }}">
+                            {% if notification.isLendingNotification %}
+                                {# Lending notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi bi-arrow-left-right fs-3 text-primary"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+
+                                    {% if notification.notificationType.value == 'PuzzleLentToYou' %}
+                                        <span>{{ 'notifications.lending.lent_to_you'|trans({'%owner%': notification.ownerPlayerName}) }}</span>
+                                    {% elseif notification.notificationType.value == 'PuzzleBorrowedFromYou' %}
+                                        <span>{{ 'notifications.lending.borrowed_from_you'|trans({'%borrower%': notification.toPlayerName}) }}</span>
+                                    {% elseif notification.notificationType.value == 'PuzzleReturnedToYou' %}
+                                        <span>{{ 'notifications.lending.returned_to_you'|trans({'%holder%': notification.fromPlayerName}) }}</span>
+                                    {% elseif notification.notificationType.value == 'PuzzleTakenBack' %}
+                                        <span>{{ 'notifications.lending.taken_back'|trans({'%owner%': notification.ownerPlayerName}) }}</span>
+                                    {% elseif notification.notificationType.value == 'PuzzlePassedToYou' %}
+                                        <span>{{ 'notifications.lending.passed_to_you'|trans({'%from%': notification.fromPlayerName}) }}</span>
+                                    {% elseif notification.notificationType.value == 'PuzzlePassedFromYou' %}
+                                        <span>{{ 'notifications.lending.passed_from_you'|trans({'%to%': notification.toPlayerName}) }}</span>
+                                    {% elseif notification.notificationType.value == 'YourPuzzleWasPassed' %}
+                                        <span>{{ 'notifications.lending.your_puzzle_passed'|trans({'%from%': notification.fromPlayerName, '%to%': notification.toPlayerName}) }}</span>
+                                    {% endif %}
+                                    -
+                                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.lendingPuzzleId}) }}">{{ notification.lendingManufacturerName }} {{ 'pieces_count'|trans({ '%count%': notification.lendingPiecesCount })|raw }}</a>
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if notification.lendingPuzzleImage is not null %}
+                                        <a href="{{ path('puzzle_detail', {puzzleId: notification.lendingPuzzleId}) }}">
+                                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': notification.lendingManufacturerName ~ ' ' ~ notification.lendingPuzzleName}) }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.lendingPuzzleImage|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                {# Puzzle solving notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
+                                        {% if notification.targetPlayerAvatar is not null %}
+                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|imagine_filter('puzzle_small') }}">
+                                        {% else %}
+                                            <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+
+                                    {% if notification.players is null %}
+                                        <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}">
+                                            {{ notification.targetPlayerName }}
+                                        </a>
+                                        {% if notification.targetPlayerCountry is not null %}
+                                            <span class="shadow-custom fi fi-{{ notification.targetPlayerCountry.name }}"></span>
+                                        {% endif %}
                                     {% else %}
-                                        <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
-                                    {% endif %}
-                                </a>
-                            </td>
-
-                            <td class="align-middle fs-sm text-muted">
-                                <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
-
-                                {% if notification.players is null %}
-                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}">
-                                        {{ notification.targetPlayerName }}
-                                    </a>
-                                    {% if notification.targetPlayerCountry is not null %}
-                                        <span class="shadow-custom fi fi-{{ notification.targetPlayerCountry.name }}"></span>
-                                    {% endif %}
-                                {% else %}
-                                    {% for puzzle_solver in notification.players %}
-                                        <span class="{{ not loop.first ? 'ms-1' }}">
-                                            {% if puzzle_solver.isPrivate %}
-                                                <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
-                                                <i class="bi bi-incognito text-muted"></i>
-                                            {% elseif puzzle_solver.playerId is not null %}
-                                                <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                        {% for puzzle_solver in notification.players %}
+                                            <span class="{{ not loop.first ? 'ms-1' }}">
+                                                {% if puzzle_solver.isPrivate %}
+                                                    <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                                    <i class="bi bi-incognito text-muted"></i>
+                                                {% elseif puzzle_solver.playerId is not null %}
+                                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                                        {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
+                                                    </a>
+                                                    {% if puzzle_solver.playerCountry is not null %}
+                                                        <span class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></span>
+                                                    {% endif %}
+                                                {% else %}
                                                     {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
-                                                </a>
-                                                {% if puzzle_solver.playerCountry is not null %}
-                                                    <span class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></span>
                                                 {% endif %}
-                                            {% else %}
-                                                {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
-                                            {% endif %}
-                                        </span>
-                                    {% endfor %}
-                                {% endif %}
-                                <span class="ms-1">- {{ 'notifications.solved_puzzle'|trans({'%count%': notification.players is null ? 1 : notification.players|length }) }}</span>
-                                <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.puzzleId}) }}">{{ notification.manufacturerName }} {{ 'pieces_count'|trans({ '%count%': notification.piecesCount })|raw }}</a>
-                                {{ 'notifications.solved_puzzle_with_time'|trans }} <span style="color: #000;">{{ notification.time|puzzlingTime }}</span>
-                            </td>
+                                            </span>
+                                        {% endfor %}
+                                    {% endif %}
+                                    <span class="ms-1">- {{ 'notifications.solved_puzzle'|trans({'%count%': notification.players is null ? 1 : notification.players|length }) }}</span>
+                                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.puzzleId}) }}">{{ notification.manufacturerName }} {{ 'pieces_count'|trans({ '%count%': notification.piecesCount })|raw }}</a>
+                                    {{ 'notifications.solved_puzzle_with_time'|trans }} <span style="color: #000;">{{ notification.time|puzzlingTime }}</span>
+                                </td>
 
-                            <td class="" style="width: 80px;">
-                                {% if notification.puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
-                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}) }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
-                            </td>
+                                <td class="" style="width: 80px;">
+                                    {% if notification.puzzleImage is not null%}
+                                        <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
+                                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}) }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.puzzleImage|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </tbody>

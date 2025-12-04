@@ -58,91 +58,13 @@
             {% else %}
                 <div class="row g-3 mb-3">
                     {% for item in lentPuzzles %}
-                        <div class="col-12 col-lg-6"
-                             id="lent-item-{{ item.puzzleId }}"
-                             data-collection-items-target="item"
-                             data-puzzle-id="{{ item.puzzleId }}"
-                             data-pieces-count="{{ item.piecesCount }}"
-                             data-puzzle-name="{{ item.puzzleName }}"
-                             data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
-                             data-manufacturer="{{ item.manufacturerName ?? '' }}">
-                            <div class="card card-body shadow p-2 position-relative">
-                                <div class="d-flex">
-                                    <div style="width: 60px;" class="flex-shrink-0">
-                                        {% if item.image %}
-                                            <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                                <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                                                     alt="{{ item.puzzleName }}"
-                                                     class="rounded"
-                                                     style="width: 60px; height: 60px; object-fit: cover;">
-                                            </a>
-                                        {% else %}
-                                            <div class="d-flex align-items-center justify-content-center rounded bg-light"
-                                                 style="width: 60px; height: 60px;">
-                                                <i class="ci-image text-muted"></i>
-                                            </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="ps-2 flex-grow-1">
-                                        <div class="d-flex justify-content-between">
-                                            <div class="pe-2">
-                                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
-                                                   class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
-                                                    {{ item.puzzleName }}
-                                                </a>
-                                                <br>
-                                                <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
-
-                                                <div class="mt-1">
-                                                    <span id="lent-holder-{{ item.puzzleId }}" class="badge bg-purple">
-                                                        <i class="bi bi-person me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': item.currentHolderName}) }}
-                                                    </span>
-                                                    <span class="badge bg-light text-dark">
-                                                        <i class="bi bi-calendar3 me-1"></i>{{ item.lentAt|format_date }}
-                                                    </span>
-                                                </div>
-
-                                                {% if item.notes %}
-                                                    <div class="text-muted small mt-1">{{ item.notes }}</div>
-                                                {% endif %}
-                                            </div>
-
-                                            {% if isOwnProfile %}
-                                                <div class="dropdown">
-                                                    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
-                                                            type="button" data-bs-toggle="dropdown">
-                                                        <i class="ci-menu"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        {% if item.currentHolderId %}
-                                                            <li>
-                                                                <a class="dropdown-item" href="{{ path('player_profile', {playerId: item.currentHolderId}) }}">
-                                                                    <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_holder'|trans }}
-                                                                </a>
-                                                            </li>
-
-                                                            <li class="dropdown-divider"></li>
-                                                        {% endif %}
-
-                                                        {{ include('puzzle/_dropdown_actions.html.twig', {
-                                                            puzzle_id: item.puzzleId,
-                                                            puzzle_statuses: puzzle_statuses,
-                                                            context: 'list',
-                                                            tab: 'lent',
-                                                        }) }}
-                                                    </ul>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-
-                                        <div class="fs-sm text-muted">
-                                            {{ item.manufacturerName ?? '-' }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {{ include('_puzzle_library_item.html.twig', {
+                            item: item,
+                            page_context: 'lend-borrow-lent',
+                            puzzle_statuses: puzzle_statuses,
+                            logged_user: logged_user,
+                            isOwnProfile: isOwnProfile,
+                        }) }}
                     {% endfor %}
                 </div>
             {% endif %}
@@ -157,91 +79,13 @@
             {% else %}
                 <div class="row g-3 mb-3">
                     {% for item in borrowedPuzzles %}
-                        <div class="col-12 col-lg-6"
-                             id="borrowed-item-{{ item.puzzleId }}"
-                             data-collection-items-target="item"
-                             data-puzzle-id="{{ item.puzzleId }}"
-                             data-pieces-count="{{ item.piecesCount }}"
-                             data-puzzle-name="{{ item.puzzleName }}"
-                             data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
-                             data-manufacturer="{{ item.manufacturerName ?? '' }}">
-                            <div class="card card-body shadow p-2 position-relative">
-                                <div class="d-flex">
-                                    <div style="width: 60px;" class="flex-shrink-0">
-                                        {% if item.image %}
-                                            <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                                <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                                                     alt="{{ item.puzzleName }}"
-                                                     class="rounded"
-                                                     style="width: 60px; height: 60px; object-fit: cover;">
-                                            </a>
-                                        {% else %}
-                                            <div class="d-flex align-items-center justify-content-center rounded bg-light"
-                                                 style="width: 60px; height: 60px;">
-                                                <i class="ci-image text-muted"></i>
-                                            </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="ps-2 flex-grow-1">
-                                        <div class="d-flex justify-content-between">
-                                            <div class="pe-2">
-                                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
-                                                   class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
-                                                    {{ item.puzzleName }}
-                                                </a>
-                                                <br>
-                                                <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
-
-                                                <div class="mt-1">
-                                                    <span class="badge bg-info">
-                                                        <i class="bi bi-person me-1"></i>{{ 'lend_borrow.borrowed_from'|trans({'%name%': item.ownerName}) }}
-                                                    </span>
-                                                    <span class="badge bg-light text-dark">
-                                                        <i class="bi bi-calendar3 me-1"></i>{{ item.lentAt|format_date }}
-                                                    </span>
-                                                </div>
-
-                                                {% if item.notes %}
-                                                    <div class="text-muted small mt-1">{{ item.notes }}</div>
-                                                {% endif %}
-                                            </div>
-
-                                            {% if isOwnProfile %}
-                                                <div class="dropdown">
-                                                    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
-                                                            type="button" data-bs-toggle="dropdown">
-                                                        <i class="ci-menu"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        {% if item.ownerId %}
-                                                            <li>
-                                                                <a class="dropdown-item" href="{{ path('player_profile', {playerId: item.ownerId}) }}">
-                                                                    <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_owner'|trans }}
-                                                                </a>
-                                                            </li>
-
-                                                            <li class="dropdown-divider"></li>
-                                                        {% endif %}
-
-                                                        {{ include('puzzle/_dropdown_actions.html.twig', {
-                                                            puzzle_id: item.puzzleId,
-                                                            puzzle_statuses: puzzle_statuses,
-                                                            context: 'list',
-                                                            tab: 'borrowed',
-                                                        }) }}
-                                                    </ul>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-
-                                        <div class="fs-sm text-muted">
-                                            {{ item.manufacturerName ?? '-' }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        {{ include('_puzzle_library_item.html.twig', {
+                            item: item,
+                            page_context: 'lend-borrow-borrowed',
+                            puzzle_statuses: puzzle_statuses,
+                            logged_user: logged_user,
+                            isOwnProfile: isOwnProfile,
+                        }) }}
                     {% endfor %}
                 </div>
             {% endif %}

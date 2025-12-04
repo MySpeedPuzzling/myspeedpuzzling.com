@@ -108,4 +108,71 @@ SQL;
 
         return is_numeric($result) ? (int) $result : 0;
     }
+
+    public function getByPuzzleIdAndPlayerId(string $puzzleId, string $playerId, null|string $collectionId = null): null|CollectionItemOverview
+    {
+        $collectionCondition = $collectionId === null
+            ? 'ci.collection_id IS NULL'
+            : 'ci.collection_id = :collectionId';
+
+        $params = ['playerId' => $playerId, 'puzzleId' => $puzzleId];
+        if ($collectionId !== null) {
+            $params['collectionId'] = $collectionId;
+        }
+
+        $query = <<<SQL
+SELECT
+    ci.id as collection_item_id,
+    ci.comment,
+    ci.added_at,
+    p.id as puzzle_id,
+    p.name as puzzle_name,
+    p.alternative_name as puzzle_alternative_name,
+    p.identification_number as puzzle_identification_number,
+    p.ean,
+    p.pieces_count,
+    p.image,
+    m.name as manufacturer_name
+FROM collection_item ci
+JOIN puzzle p ON ci.puzzle_id = p.id
+LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
+WHERE ci.player_id = :playerId AND ci.puzzle_id = :puzzleId AND {$collectionCondition}
+SQL;
+
+        /** @var array{
+         *     collection_item_id: string,
+         *     comment: string|null,
+         *     added_at: string,
+         *     puzzle_id: string,
+         *     puzzle_name: string,
+         *     puzzle_alternative_name: string|null,
+         *     puzzle_identification_number: string|null,
+         *     ean: string|null,
+         *     pieces_count: int,
+         *     image: string|null,
+         *     manufacturer_name: string|null,
+         * }|false $row
+         */
+        $row = $this->database
+            ->executeQuery($query, $params)
+            ->fetchAssociative();
+
+        if ($row === false) {
+            return null;
+        }
+
+        return new CollectionItemOverview(
+            collectionItemId: $row['collection_item_id'],
+            puzzleId: $row['puzzle_id'],
+            puzzleName: $row['puzzle_name'],
+            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            puzzleIdentificationNumber: $row['puzzle_identification_number'],
+            ean: $row['ean'],
+            piecesCount: $row['pieces_count'],
+            manufacturerName: $row['manufacturer_name'],
+            image: $row['image'],
+            comment: $row['comment'],
+            addedAt: new DateTimeImmutable($row['added_at']),
+        );
+    }
 }

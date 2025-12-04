@@ -40,9 +40,10 @@
     </li>
 {% elseif puzzle_id in puzzle_statuses.collection %}
     {# Has membership AND puzzle in collection - show add option #}
+    {% set collection_id = currentCollectionId|default('') %}
     <li>
         <a class="dropdown-item"
-           href="{{ path('sellswap_add', {puzzleId: puzzle_id}) }}"
+           href="{{ path('sellswap_add', {puzzleId: puzzle_id}) }}?context={{ context }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
            data-turbo="true"
            data-turbo-frame="modal-frame">
             <i class="bi bi-shop me-1"></i> {{ 'sell_swap_list.add.button'|trans }}

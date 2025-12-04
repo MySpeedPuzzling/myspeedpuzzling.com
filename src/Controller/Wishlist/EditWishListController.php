@@ -52,6 +52,8 @@ final class EditWishListController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        $returnTo = $request->query->getString('returnTo', 'library');
+
         $formData = EditWishListFormData::fromVisibility($loggedPlayer->wishListVisibility);
 
         $form = $this->createForm(EditWishListFormType::class, $formData);
@@ -67,13 +69,21 @@ final class EditWishListController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('wish_list.flash.updated'));
 
+            if ($returnTo === 'detail') {
+                return $this->redirectToRoute('wish_list_detail', ['playerId' => $playerId]);
+            }
+
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
+
+        $cancelUrl = $returnTo === 'detail'
+            ? $this->generateUrl('wish_list_detail', ['playerId' => $playerId])
+            : $this->generateUrl('puzzle_library', ['playerId' => $playerId]);
 
         return $this->render('wishlist/edit.html.twig', [
             'form' => $form,
             'player' => $loggedPlayer,
-            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),
+            'cancelUrl' => $cancelUrl,
         ]);
     }
 }

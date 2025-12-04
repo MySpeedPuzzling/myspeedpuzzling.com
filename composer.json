@@ -112,6 +112,7 @@
         "symfony/browser-kit": "^7.0",
         "symfony/css-selector": "^7.0",
         "symfony/debug-bundle": "^7.0",
+        "symfony/panther": "^2.3",
         "symfony/web-profiler-bundle": "^7.0"
     },
     "autoload": {
@@ -176,6 +177,15 @@
             "symfony/runtime": true,
             "php-http/discovery": false,
             "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "audit": {
+            "ignore": [
+                "PKSA-9bp8-3bj8-8jj2",
+                "PKSA-1g87-trgd-pt11",
+                "PKSA-r19n-r8k1-m54h",
+                "PKSA-w6j7-c1kq-w6yb",
+                "PKSA-365x-2zjk-pt47"
+            ]
         }
     }
 }

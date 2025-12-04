@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Collections;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCollection;
+use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +27,8 @@ final class RemovePuzzleFromCollectionController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
     ) {
     }
 
@@ -106,11 +110,38 @@ final class RemovePuzzleFromCollectionController extends AbstractController
                     );
 
                     $templateParams['item'] = $collectionItem;
-                    $templateParams['logged_user'] = $loggedPlayer;
                     $templateParams['collection_id'] = $currentCollectionIdForTemplate;
                 }
 
                 return $this->render('collections/_remove_from_list_stream.html.twig', $templateParams);
+            }
+
+            // Called from unsolved puzzles page
+            if ($context === 'unsolved-detail') {
+                $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+
+                // Check if the puzzle is still unsolved (still in any collection)
+                $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+
+                // Get remaining count for unsolved puzzles (collection items + borrowed items)
+                $remainingCount = $this->getUnsolvedPuzzles->countByPlayerId($loggedPlayer->playerId)
+                    + $this->getBorrowedPuzzles->countUnsolvedByHolderId($loggedPlayer->playerId);
+
+                $templateParams = [
+                    'puzzle_id' => $puzzleId,
+                    'puzzle_statuses' => $puzzleStatuses,
+                    'message' => $this->translator->trans('collections.flash.puzzle_removed'),
+                    'context' => $context,
+                    'remaining_count' => $remainingCount,
+                ];
+
+                if ($unsolvedItem !== null) {
+                    // Puzzle is still in some collection - replace card with updated dropdown
+                    $templateParams['item'] = $unsolvedItem;
+                }
+                // If unsolvedItem is null, puzzle is no longer in any collection - card will be removed
+
+                return $this->render('collections/_unsolved_stream.html.twig', $templateParams);
             }
 
             // Called from puzzle detail page - update badges and dropdown

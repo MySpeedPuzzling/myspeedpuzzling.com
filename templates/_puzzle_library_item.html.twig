@@ -74,19 +74,12 @@
         <div class="d-flex">
             {# Puzzle image #}
             <div style="width: 60px;" class="flex-shrink-0">
-                {% if item.image %}
-                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                        <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                             alt="{{ item.puzzleName }}"
-                             class="rounded"
-                             style="width: 60px; height: 60px; object-fit: cover;">
-                    </a>
-                {% else %}
-                    <div class="d-flex align-items-center justify-content-center rounded bg-light"
-                         style="width: 60px; height: 60px;">
-                        <i class="ci-image text-muted"></i>
-                    </div>
-                {% endif %}
+                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                    <img src="{{ item.image|puzzle_image('puzzle_small') }}"
+                         alt="{{ item.puzzleName }}"
+                         class="rounded"
+                         style="width: 60px; height: 60px; object-fit: cover;">
+                </a>
             </div>
 
             <div class="ps-2 flex-grow-1">

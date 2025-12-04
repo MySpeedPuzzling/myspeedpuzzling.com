@@ -33,8 +33,12 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and collection.visibility.value == 'public' and collection.collectionId %}
-                {{ include('_share_button.html.twig', {share_url: url('collection_detail', {collectionId: collection.collectionId})}) }}
+            {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId and collection.visibility.value == 'public' %}
+                {% if collection.collectionId %}
+                    {{ include('_share_button.html.twig', {share_url: url('collection_detail', {collectionId: collection.collectionId})}) }}
+                {% else %}
+                    {{ include('_share_button.html.twig', {share_url: url('system_collection_detail', {playerId: player.playerId})}) }}
+                {% endif %}
             {% endif %}
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
                 {% if collection.collectionId %}

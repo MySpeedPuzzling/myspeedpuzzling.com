@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\PassLentPuzzle;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -36,6 +37,7 @@ final class PassPuzzleController extends AbstractController
         readonly private GetLentPuzzles $getLentPuzzles,
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
     ) {
     }
 
@@ -62,6 +64,10 @@ final class PassPuzzleController extends AbstractController
         // Get the lent puzzle for puzzle info
         $lentPuzzle = $this->lentPuzzleRepository->get($lentPuzzleId);
         $puzzleId = $lentPuzzle->puzzle->id->toString();
+
+        // Determine if user is the owner (before action modifies state)
+        $isOwner = $lentPuzzle->ownerPlayer !== null
+            && $lentPuzzle->ownerPlayer->id->toString() === $loggedPlayer->playerId;
 
         $formData = new PassLentPuzzleFormData();
         $form = $this->createForm(PassLentPuzzleFormType::class, $formData);
@@ -145,7 +151,6 @@ final class PassPuzzleController extends AbstractController
                         return $this->render('lend-borrow/_update_lent_item_stream.html.twig', [
                             'item' => $lentItem,
                             'puzzle_statuses' => $puzzleStatuses,
-                            'logged_user' => $loggedPlayer,
                             'message' => $this->translator->trans('lend_borrow.flash.passed'),
                         ]);
                     }
@@ -171,20 +176,35 @@ final class PassPuzzleController extends AbstractController
                     'action' => 'passed',
                     'message' => $this->translator->trans('lend_borrow.flash.passed'),
                     'context' => $context,
+                    'logged_user' => $this->getUser(),
                 ];
 
                 // For collection-detail context, fetch the collection item for full card replacement
                 if ($context === 'collection-detail') {
                     $collectionId = $request->request->getString('collection_id', $request->query->getString('collection_id', ''));
+                    // Handle __system_collection__ marker - treat as null (system collection)
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
                     $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
                         $puzzleId,
                         $loggedPlayer->playerId,
-                        $collectionId !== '' ? $collectionId : null,
+                        $collectionIdForQuery,
                     );
 
                     $templateParams['item'] = $collectionItem;
-                    $templateParams['logged_user'] = $loggedPlayer;
                     $templateParams['collection_id'] = $collectionId;
+                } elseif ($context === 'unsolved-detail') {
+                    // For unsolved-detail: owner stays (replace), borrower leaves (remove)
+                    $templateParams['is_owner'] = $isOwner;
+
+                    if ($isOwner && !$wasPassedToOwner) {
+                        // Owner passed to someone else - fetch unsolved item for card replacement
+                        $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                        if ($unsolvedItem !== null) {
+                            $templateParams['item'] = $unsolvedItem;
+                        }
+                    }
+                    // If borrower passed or owner passed to self (return), card will be removed
                 }
 
                 return $this->render('lend-borrow/_stream.html.twig', $templateParams);

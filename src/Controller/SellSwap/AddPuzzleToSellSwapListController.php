@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -31,6 +32,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
     ) {
     }
 
@@ -98,20 +100,27 @@ final class AddPuzzleToSellSwapListController extends AbstractController
                     'action' => 'added',
                     'message' => $this->translator->trans('sell_swap_list.flash.added'),
                     'context' => $context,
+                    'logged_user' => $this->getUser(),
                 ];
 
                 // For collection-detail context, fetch the collection item for full card replacement
                 if ($context === 'collection-detail') {
                     $collectionId = $request->request->getString('collection_id');
+                    // Handle __system_collection__ marker - treat as null (system collection)
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
                     $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
                         $puzzleId,
                         $loggedPlayer->playerId,
-                        $collectionId !== '' ? $collectionId : null,
+                        $collectionIdForQuery,
                     );
 
                     $templateParams['item'] = $collectionItem;
-                    $templateParams['logged_user'] = $loggedPlayer;
                     $templateParams['collection_id'] = $collectionId;
+                } elseif ($context === 'unsolved-detail') {
+                    // For unsolved-detail context, fetch the unsolved puzzle item
+                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    $templateParams['item'] = $unsolvedItem;
                 }
 
                 return $this->render('sell-swap/_stream.html.twig', $templateParams);

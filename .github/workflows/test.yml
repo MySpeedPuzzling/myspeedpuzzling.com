@@ -36,7 +36,60 @@ jobs:
       -   run: composer install --no-scripts --no-progress
       -   run: npm install
       -   run: npm run dev
-      -   run: vendor/bin/phpunit
+      -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
+
+  panther-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+          image: postgres:16
+          env:
+              POSTGRES_PASSWORD: postgres
+              POSTGRES_DB: speedpuzzling
+          options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          ports:
+              - 5432:5432
+      chrome:
+          image: selenium/standalone-chrome:latest
+          options: --shm-size=2gb
+          ports:
+              - 4444:4444
+    steps:
+      -   uses: actions/checkout@v4
+      -   uses: actions/cache@v4
+          with:
+              path: vendor
+              key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+              restore-keys: |
+                  ${{ runner.os }}-composer-
+      -   uses: actions/cache@v4
+          with:
+              path: node_modules
+              key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+              restore-keys: |
+                  ${{ runner.os }}-npm-
+      -   uses: shivammathur/setup-php@v2
+          with:
+              php-version: '8.3'
+              extensions: pdo_pgsql, intl, redis, imagick, uuid
+      -   run: composer install --no-scripts --no-progress
+      -   run: npm install
+      -   run: npm run dev
+      -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+        env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
+      -   name: Start web server
+        run: php -S 0.0.0.0:8080 -t public &
+        env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
+      -   name: Wait for web server
+        run: sleep 3
+      -   name: Run Panther tests
+        run: vendor/bin/phpunit --testsuite "Panther Test Suite"
+        env:
+            DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
+            PANTHER_EXTERNAL_BASE_URI: http://localhost:8080
+            PANTHER_SELENIUM_HOST: http://localhost:4444
 
 
   phpstan:

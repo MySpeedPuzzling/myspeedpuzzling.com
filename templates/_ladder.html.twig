@@ -7,11 +7,9 @@
                     <small style="color: #000;">{{ loop.index }}</small>
                 </td>
                 <td class="text-center low-line-height" style="width: 90px;">
-                    {% if solving_time.puzzleImage is not null%}
-                        <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}) }}" class="rounded-2 mt-1" style="max-width: 80px;max-height: 80px;" src="{{ solving_time.puzzleImage|imagine_filter('puzzle_small') }}">
-                        </a>
-                    {% endif %}
+                    <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
+                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}) }}" class="rounded-2 mt-1" style="max-width: 80px;max-height: 80px;" src="{{ solving_time.puzzleImage|puzzle_image('puzzle_small') }}">
+                    </a>
                 </td>
 
                 <td class="d-none d-sm-table-cell">

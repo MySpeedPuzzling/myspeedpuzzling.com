@@ -133,27 +133,31 @@ final class LendPuzzleController extends AbstractController
                     'action' => 'lent',
                     'message' => $this->translator->trans('lend_borrow.flash.lent'),
                     'context' => $context,
+                    'logged_user' => $this->getUser(),
                 ];
 
                 // For collection-detail context, fetch the collection item for full card replacement
                 if ($context === 'collection-detail') {
                     $collectionId = $request->request->getString('collection_id');
+                    // Handle __system_collection__ marker - treat as null (system collection)
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
                     $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
                         $puzzleId,
                         $loggedPlayer->playerId,
-                        $collectionId !== '' ? $collectionId : null,
+                        $collectionIdForQuery,
                     );
 
                     $templateParams['item'] = $collectionItem;
-                    $templateParams['logged_user'] = $loggedPlayer;
                     $templateParams['collection_id'] = $collectionId;
                 } elseif ($context === 'unsolved-detail') {
-                    // For unsolved-detail context, fetch unsolved item for card replacement
-                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    // For unsolved-detail context: user is always owner (only owners can lend)
+                    // Fetch unsolved item for card replacement to show lent badge
+                    $templateParams['is_owner'] = true;
 
+                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
                     if ($unsolvedItem !== null) {
                         $templateParams['item'] = $unsolvedItem;
-                        $templateParams['logged_user'] = $loggedPlayer;
                     }
                 }
 

@@ -34,15 +34,8 @@
     }) }}
 {% elseif context|default('detail') == 'unsolved-detail' %}
     {# Unsolved puzzles page #}
-    {% if action in ['passed', 'returned'] %}
-        {# Pass/return on borrowed item: remove the card (user no longer has borrowed puzzle) #}
-        {{ include('_library_item_stream.html.twig', {
-            action: 'remove',
-            page_context: 'unsolved',
-            puzzle_id: puzzle_id,
-        }) }}
-    {% elseif item is defined %}
-        {# Lend action on collection item: replace the card to show lent badge #}
+    {% if is_owner|default(false) and item is defined %}
+        {# Owner's puzzle: replace card with updated badges (lent/returned) #}
         {{ include('_library_item_stream.html.twig', {
             action: 'replace',
             page_context: 'unsolved',
@@ -50,6 +43,13 @@
             puzzle_statuses: puzzle_statuses,
             logged_user: logged_user,
             isOwnProfile: true,
+        }) }}
+    {% else %}
+        {# Borrower returned/passed: remove card (user no longer has puzzle) #}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'remove',
+            page_context: 'unsolved',
+            puzzle_id: puzzle_id,
         }) }}
     {% endif %}
 {% else %}

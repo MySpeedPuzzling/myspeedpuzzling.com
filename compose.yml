@@ -84,3 +84,12 @@ services:
             MP_DATABASE: "/data/mailpit.db"
         volumes:
             - mailpit-data:/data
+
+    chrome:
+        image: ${SELENIUM_IMAGE:-seleniarm/standalone-chromium:latest}
+        shm_size: 2gb
+        ports:
+            - "4444:4444"
+            - "7900:7900"
+        environment:
+            - SE_NODE_MAX_SESSIONS=4

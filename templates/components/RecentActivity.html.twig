@@ -6,11 +6,9 @@
                     <tr class="{{ this.isOnProfile is same as false and logged_user.profile is not null and item.playerId is same as logged_user.profile.playerId ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'd-none' }}">
                         <td class="text-center" style="width: 90px;">
                             <div class="position-relative">
-                                {% if item.puzzleImage is not null%}
-                                    <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ item.puzzleImage|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                {% endif %}
+                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                    <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ item.puzzleImage|puzzle_image('puzzle_small') }}">
+                                </a>
 
                                 {% if logged_user.profile is not null and item.playerId is same as logged_user.profile.playerId %}
                                     <div class="dropdown position-absolute" style="left: -5px;top : -5px;">

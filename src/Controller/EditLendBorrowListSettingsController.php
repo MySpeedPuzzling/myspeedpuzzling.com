@@ -64,6 +64,8 @@ final class EditLendBorrowListSettingsController extends AbstractController
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
+        $returnTo = $request->query->getString('returnTo', 'library');
+
         $player = $this->getPlayerProfile->byId($playerId);
 
         $formData = EditLendBorrowListSettingsFormData::fromVisibility($player->lendBorrowListVisibility);
@@ -81,13 +83,21 @@ final class EditLendBorrowListSettingsController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('lend_borrow.flash.settings_updated'));
 
+            if ($returnTo === 'detail') {
+                return $this->redirectToRoute('lend_borrow_list_detail', ['playerId' => $playerId]);
+            }
+
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
+
+        $cancelUrl = $returnTo === 'detail'
+            ? $this->generateUrl('lend_borrow_list_detail', ['playerId' => $playerId])
+            : $this->generateUrl('puzzle_library', ['playerId' => $playerId]);
 
         return $this->render('lend-borrow/edit_settings.html.twig', [
             'form' => $form,
             'player' => $player,
-            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),
+            'cancelUrl' => $cancelUrl,
         ]);
     }
 }

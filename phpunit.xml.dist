@@ -12,6 +12,10 @@
     <testsuites>
         <testsuite name="Project Test Suite">
             <directory>tests</directory>
+            <exclude>tests/Panther</exclude>
+        </testsuite>
+        <testsuite name="Panther Test Suite">
+            <directory>tests/Panther</directory>
         </testsuite>
     </testsuites>
 

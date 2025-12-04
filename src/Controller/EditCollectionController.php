@@ -55,6 +55,7 @@ final class EditCollectionController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $returnTo = $request->query->getString('returnTo', 'library');
 
         $collection = $this->collectionRepository->get($collectionId);
 
@@ -86,16 +87,24 @@ final class EditCollectionController extends AbstractController
                 ),
             );
 
-            $this->addFlash('success', $this->translator->trans('collections.updated'));
+            $this->addFlash('success', $this->translator->trans('collections.flash.updated'));
+
+            if ($returnTo === 'detail') {
+                return $this->redirectToRoute('collection_detail', ['collectionId' => $collectionId]);
+            }
 
             return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }
+
+        $cancelUrl = $returnTo === 'detail'
+            ? $this->generateUrl('collection_detail', ['collectionId' => $collectionId])
+            : $this->generateUrl('puzzle_library', ['playerId' => $player->playerId]);
 
         return $this->render('collections/edit.html.twig', [
             'form' => $form,
             'collection' => $collectionOverview,
             'player' => $player,
-            'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $player->playerId]),
+            'cancelUrl' => $cancelUrl,
         ]);
     }
 }

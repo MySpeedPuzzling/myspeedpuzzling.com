@@ -93,17 +93,20 @@ final class MarkAsSoldSwappedController extends AbstractController
                 // For collection-detail context, fetch collection item for card replacement
                 if ($context === 'collection-detail') {
                     $collectionId = $request->request->getString('collection_id');
+                    // Handle __system_collection__ marker - treat as null (system collection)
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
                     $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
                     $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
                         $puzzleId,
                         $loggedPlayer->playerId,
-                        $collectionId !== '' ? $collectionId : null,
+                        $collectionIdForQuery,
                     );
 
                     $templateParams['item'] = $collectionItem;
-                    $templateParams['logged_user'] = $loggedPlayer;
                     $templateParams['puzzle_statuses'] = $puzzleStatuses;
                     $templateParams['collection_id'] = $collectionId;
+                    $templateParams['logged_user'] = $this->getUser();
                 }
 
                 return $this->render('sell-swap/_mark_sold_stream.html.twig', $templateParams);

@@ -50,6 +50,9 @@ function bootstrapDatabase(string $cacheFilePath): void
         'command' => 'doctrine:database:create',
     ]));
 
+    // Create PostgreSQL extensions required by queries (from migrations)
+    createPostgresExtensions();
+
     // Faster than running migrations
     $application->run(new ArrayInput([
         'command' => 'doctrine:schema:create',
@@ -101,6 +104,28 @@ function createPantherTemplateDatabase(): void
 
     // Mark as template for faster cloning
     $pdo->exec("UPDATE pg_database SET datistemplate = TRUE WHERE datname = '$templateDb'");
+}
+
+function createPostgresExtensions(): void
+{
+    $dbConfig = parseDatabaseUrl();
+
+    $dsn = sprintf(
+        'pgsql:host=%s;port=%d;dbname=%s',
+        $dbConfig['host'],
+        $dbConfig['port'],
+        $dbConfig['dbname']
+    );
+
+    $pdo = new PDO(
+        $dsn,
+        $dbConfig['user'],
+        $dbConfig['password'],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+
+    // Create extensions required by application queries (mirrors migrations)
+    $pdo->exec('CREATE EXTENSION IF NOT EXISTS unaccent');
 }
 
 /**

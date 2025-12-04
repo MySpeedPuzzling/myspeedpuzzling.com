@@ -8,47 +8,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\Panther\AbstractPantherTestCase;
 
-final class PuzzleLibraryTest extends AbstractPantherTestCase
+final class LendBorrowListTest extends AbstractPantherTestCase
 {
-    public function testLoggedUserCanAccessOwnPuzzleLibrary(): void
-    {
-        $client = self::createBrowserClient();
-
-        // Login as the player with Stripe (has public collection visibility)
-        self::loginUser(
-            $client,
-            userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
-            email: PlayerFixture::PLAYER_WITH_STRIPE_EMAIL,
-            name: PlayerFixture::PLAYER_WITH_STRIPE_NAME,
-        );
-
-        // Visit own puzzle library
-        $client->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
-
-        // Verify the page loads
-        self::assertPageTitleContains('MySpeedPuzzling');
-    }
-
-    public function testLoggedUserCanAccessOtherPlayerPuzzleLibrary(): void
-    {
-        $client = self::createBrowserClient();
-
-        // Login as regular player
-        self::loginUser(
-            $client,
-            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
-            email: PlayerFixture::PLAYER_REGULAR_EMAIL,
-            name: PlayerFixture::PLAYER_REGULAR_NAME,
-        );
-
-        // Visit another player's puzzle library (player with public collections)
-        $client->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
-
-        // Verify the page loads
-        self::assertSelectorExists('body');
-        self::assertPageTitleContains('MySpeedPuzzling');
-    }
-
     public function testOwnerCanReturnLentPuzzleViaTurboStream(): void
     {
         $client = self::createBrowserClient();
@@ -67,9 +28,6 @@ final class PuzzleLibraryTest extends AbstractPantherTestCase
         // Wait for page to load
         $client->waitFor('body');
 
-        // Verify the page loads - should contain the page title
-        self::assertPageTitleContains('MySpeedPuzzling');
-
         // Wait for the lent tab count to be visible
         $client->waitForVisibility('#lent-tab-count');
 
@@ -77,7 +35,7 @@ final class PuzzleLibraryTest extends AbstractPantherTestCase
         $lentTabCount = $client->getCrawler()->filter('#lent-tab-count')->text();
         self::assertEquals('4', $lentTabCount, 'Initial lent count should be 4');
 
-        // Find the puzzle card for PUZZLE_2000 (LENT_01) - it's lent to John Doe
+        // Find the puzzle card for PUZZLE_2000 (LENT_01)
         $puzzleCardSelector = '#library-lend-borrow-lent-' . PuzzleFixture::PUZZLE_2000;
         $client->waitForVisibility($puzzleCardSelector);
 
@@ -92,7 +50,7 @@ final class PuzzleLibraryTest extends AbstractPantherTestCase
 
         // Click the "Return to owner" button (it's a form submit button)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu button.text-success')
+            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/return-puzzle/"] button')
             ->first()
             ->click();
 

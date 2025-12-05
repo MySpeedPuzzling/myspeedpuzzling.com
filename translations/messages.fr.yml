@@ -842,6 +842,7 @@ collections:
     add_puzzle: "Ajouter puzzle à la collection"
     moving_from: "Déplacement depuis %collection%"
     private: "Privée"
+    change_to_public_hint: "Changer en publique pour partager"
     add_puzzle_here:
         button: "Ajouter un puzzle"
     add_puzzle_form:

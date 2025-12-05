@@ -893,6 +893,7 @@ collections:
         public: "Öffentlich"
         private: "Privat"
     public: "Öffentlich"
+    change_to_public_hint: "Auf öffentlich ändern zum Teilen"
     private_page:
         title: "Private Sammlung"
         message: "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."

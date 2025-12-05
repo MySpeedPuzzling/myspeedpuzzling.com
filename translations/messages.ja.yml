@@ -934,6 +934,7 @@ collections:
     private_collection_message: "%player%のコレクション「%collection%」は非公開で表示できません。"
     private: "プライベート"
     public: "公開"
+    change_to_public_hint: "共有するには公開に変更"
     puzzle_copied: "パズルがコレクションに正常にコピーされました。"
     remove: "削除"
     remove_from: "%collection%から削除"

@@ -17,9 +17,12 @@
             <h1 class="h3 mb-0 d-flex align-items-center">
                 <span><i class="bi bi-heart me-2"></i>{{ collection.name }}</span>
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
-                    <small class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2">
+                    <a href="{{ path('edit_wish_list', {playerId: player.playerId}) }}" class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2 text-decoration-underline">
                         <i class="{{ collection.visibility.value == 'public' ? 'ci-eye' : 'ci-locked' }} me-1"></i>{{ collection.visibility.value == 'public' ? 'collections.public'|trans : 'collections.private'|trans }}
-                    </small>
+                    </a>
+                    {% if collection.visibility.value != 'public' %}
+                        <small class="text-muted fs-xs">{{ 'collections.change_to_public_hint'|trans }}</small>
+                    {% endif %}
                 {% endif %}
             </h1>
             <p class="text-muted mb-0 small">

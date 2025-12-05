@@ -16,9 +16,15 @@
         <div>
             <h1 class="h3 mb-0 d-flex align-items-center">
                 <span><i class="bi bi-shop me-2"></i>{{ 'sell_swap_list.title'|trans }}</span>
-                <small class="fs-sm fw-normal text-primary ms-2">
-                    <i class="ci-eye me-1"></i>{{ 'collections.public'|trans }}
-                </small>
+                {% if isOwnProfile %}
+                    <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId}) }}" class="fs-sm fw-normal text-primary ms-2 text-decoration-underline">
+                        <i class="ci-eye me-1"></i>{{ 'collections.public'|trans }}
+                    </a>
+                {% else %}
+                    <small class="fs-sm fw-normal text-primary ms-2">
+                        <i class="ci-eye me-1"></i>{{ 'collections.public'|trans }}
+                    </small>
+                {% endif %}
             </h1>
             <p class="text-muted mb-0 small">
                 {% if not isOwnProfile %}

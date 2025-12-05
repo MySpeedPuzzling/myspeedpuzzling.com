@@ -901,6 +901,7 @@ collections:
         private: "Private"
     public: "Public"
     private: "Private"
+    change_to_public_hint: "Change to public for sharing"
     system_name: "Puzzle Collection"
     already_in_system: "Puzzle Already in Your Collection"
     already_in_system_message: "This puzzle is already in your Puzzle Collection. Want to organize your puzzles into multiple collections? Unlock this feature with membership!"

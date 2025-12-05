@@ -16,9 +16,21 @@
         <div>
             <h1 class="h3 mb-0 d-flex align-items-center">
                 <span><i class="bi bi-box-arrow-right me-2"></i>{{ 'lend_borrow.title'|trans }}</span>
-                <small class="fs-sm fw-normal {{ visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2">
-                    <i class="bi bi-{{ visibility.value == 'public' ? 'eye' : 'lock' }} me-1"></i>{{ visibility.value == 'public' ? 'collections.public'|trans : 'collections.private'|trans }}
-                </small>
+                {% if isOwnProfile and hasMembership %}
+                    <a href="{{ path('edit_lend_borrow_list_settings', {playerId: player.playerId}) }}" class="fs-sm fw-normal {{ visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2 text-decoration-underline">
+                        <i class="bi bi-{{ visibility.value == 'public' ? 'eye' : 'lock' }} me-1"></i>{{ visibility.value == 'public' ? 'collections.public'|trans : 'collections.private'|trans }}
+                    </a>
+                    {% if visibility.value != 'public' %}
+                        <small class="text-muted fs-xs">{{ 'collections.change_to_public_hint'|trans }}</small>
+                    {% endif %}
+                {% elseif isOwnProfile %}
+                    <small class="fs-sm fw-normal {{ visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2">
+                        <i class="bi bi-{{ visibility.value == 'public' ? 'eye' : 'lock' }} me-1"></i>{{ visibility.value == 'public' ? 'collections.public'|trans : 'collections.private'|trans }}
+                    </small>
+                    {% if visibility.value != 'public' %}
+                        <small class="text-muted fs-xs">{{ 'collections.change_to_public_hint'|trans }}</small>
+                    {% endif %}
+                {% endif %}
             </h1>
         </div>
 

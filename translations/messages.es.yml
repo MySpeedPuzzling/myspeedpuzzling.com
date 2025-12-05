@@ -852,6 +852,7 @@ collections:
     add_puzzle: "Añadir puzzle a la colección"
     moving_from: "Moviendo de %collection%"
     private: "Privada"
+    change_to_public_hint: "Cambiar a pública para compartir"
     added_on: "Añadido el %date%"
     already_in_system: "Puzzle ya en tu colección"
     already_in_system_message: "Este puzzle ya está en tu Colección de Puzzles. ¿Quieres organizar tus puzzles en múltiples colecciones? ¡Desbloquea esta función con la membresía!"

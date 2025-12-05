@@ -29,6 +29,7 @@ return static function (FrameworkConfig $framework): void {
     // Events that must run synchronously for immediate UI updates (Turbo Streams)
     $messenger->routing('SpeedPuzzling\Web\Events\PuzzleBorrowed')->senders(['sync']);
     $messenger->routing('SpeedPuzzling\Web\Events\PuzzleAddedToCollection')->senders(['sync']);
+    $messenger->routing('SpeedPuzzling\Web\Events\LendingTransferCompleted')->senders(['sync']);
     // All other events can run asynchronously
     $messenger->routing('SpeedPuzzling\Web\Events\*')->senders(['async']);
 };

@@ -57,8 +57,8 @@
                         <p class="mb-0">
                             <strong>{{ 'added_tracking_recap.group_puzzlers'|trans }}:</strong>
                             {% for player in tracked_puzzle.players %}
-                                {% if player.playerCode %}
-                                    <a href="{{ path('player_profile', {playerCode: player.playerCode}) }}">{{ player.playerName ?? player.playerCode }}</a>{% if not loop.last %}, {% endif %}
+                                {% if player.playerId %}
+                                    <a href="{{ path('player_profile', {playerId: player.playerId}) }}">{{ player.playerName ?? player.playerCode }}</a>{% if not loop.last %}, {% endif %}
                                 {% else %}
                                     {{ player.playerName }}{% if not loop.last %}, {% endif %}
                                 {% endif %}

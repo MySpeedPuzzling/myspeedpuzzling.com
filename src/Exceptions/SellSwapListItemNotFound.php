@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Exceptions;
 
-use Exception;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-final class SellSwapListItemNotFound extends Exception
+final class SellSwapListItemNotFound extends NotFoundHttpException
 {
 }

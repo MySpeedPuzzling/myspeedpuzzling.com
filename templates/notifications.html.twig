@@ -96,7 +96,11 @@
                                     {% endif %}
                                     <span class="ms-1">- {{ 'notifications.solved_puzzle'|trans({'%count%': notification.players is null ? 1 : notification.players|length }) }}</span>
                                     <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.puzzleId}) }}">{{ notification.manufacturerName }} {{ 'pieces_count'|trans({ '%count%': notification.piecesCount })|raw }}</a>
-                                    {{ 'notifications.solved_puzzle_with_time'|trans }} <span style="color: #000;">{{ notification.time|puzzlingTime }}</span>
+                                    {% if notification.time is not null %}
+                                        {{ 'notifications.solved_puzzle_with_time'|trans }} <span style="color: #000;">{{ notification.time|puzzlingTime }}</span>
+                                    {% else %}
+                                        <i class="bi bi-cup-hot text-muted"></i> <span class="text-muted">{{ 'badge.relax'|trans }}</span>
+                                    {% endif %}
                                 </td>
 
                                 <td class="" style="width: 80px;">

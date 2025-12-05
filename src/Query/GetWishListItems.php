@@ -105,4 +105,19 @@ SQL;
 
         return is_numeric($result) && (int) $result > 0;
     }
+
+    public function shouldRemoveOnCollectionAdd(string $playerId, string $puzzleId): bool
+    {
+        $query = <<<SQL
+SELECT remove_on_collection_add
+FROM wish_list_item
+WHERE player_id = :playerId AND puzzle_id = :puzzleId
+SQL;
+
+        $result = $this->database
+            ->executeQuery($query, ['playerId' => $playerId, 'puzzleId' => $puzzleId])
+            ->fetchOne();
+
+        return $result === true || $result === 1 || $result === '1' || $result === 't';
+    }
 }

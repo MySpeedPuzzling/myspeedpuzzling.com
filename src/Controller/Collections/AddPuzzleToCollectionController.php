@@ -106,6 +106,10 @@ final class AddPuzzleToCollectionController extends AbstractController
                 $collectionId = null;
             }
 
+            // Check if wishlist item should be removed BEFORE adding to collection
+            // (because the event handler will remove it after add)
+            $shouldRemoveFromWishlist = $this->getWishListItems->shouldRemoveOnCollectionAdd($loggedPlayer->playerId, $puzzleId);
+
             // Check if we need to create a new collection
             if ($collectionId !== null && Uuid::isValid($collectionId) === false) {
                 // Check if user has active membership to create collections
@@ -163,9 +167,13 @@ final class AddPuzzleToCollectionController extends AbstractController
                     'context' => $context,
                 ];
 
-                // For list context (from wishlist page), fetch remaining count
+                // For list context (from wishlist page), pass whether item was removed and fetch remaining count
                 if ($context === 'list') {
-                    $templateParams['remaining_count'] = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+                    $templateParams['should_remove_from_wishlist'] = $shouldRemoveFromWishlist;
+
+                    if ($shouldRemoveFromWishlist) {
+                        $templateParams['remaining_count'] = $this->getWishListItems->countByPlayerId($loggedPlayer->playerId);
+                    }
                 }
 
                 return $this->render('collections/_stream.html.twig', $templateParams);

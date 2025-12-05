@@ -15,25 +15,27 @@
 {{ include('_modal_close_stream.html.twig') }}
 
 {% if context|default('detail') == 'list' %}
-    {# Wishlist page: remove the item and update count #}
-    {{ include('_library_item_stream.html.twig', {
-        action: 'remove',
-        page_context: 'wishlist',
-        puzzle_id: puzzle_id,
-    }) }}
+    {# Wishlist page: only remove the item if removeOnCollectionAdd is true #}
+    {% if should_remove_from_wishlist|default(false) %}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'remove',
+            page_context: 'wishlist',
+            puzzle_id: puzzle_id,
+        }) }}
 
-    {# Update the count #}
-    <turbo-stream action="update" target="wishlist-count">
-        <template>{{ remaining_count }}</template>
-    </turbo-stream>
+        {# Update the count #}
+        <turbo-stream action="update" target="wishlist-count">
+            <template>{{ remaining_count }}</template>
+        </turbo-stream>
 
-    {# Show empty state if no items remaining #}
-    {% if remaining_count == 0 %}
-    <turbo-stream action="update" target="wishlist-list-container">
-        <template>
-            {{ include('wishlist/_empty_state.html.twig') }}
-        </template>
-    </turbo-stream>
+        {# Show empty state if no items remaining #}
+        {% if remaining_count == 0 %}
+        <turbo-stream action="update" target="wishlist-list-container">
+            <template>
+                {{ include('wishlist/_empty_state.html.twig') }}
+            </template>
+        </turbo-stream>
+        {% endif %}
     {% endif %}
 {% else %}
     {# Puzzle detail page: update badges and dropdown #}

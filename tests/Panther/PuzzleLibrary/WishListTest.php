@@ -221,4 +221,90 @@ final class WishListTest extends AbstractPantherTestCase
         $newCount = $client->getCrawler()->filter('#wishlist-count')->text();
         self::assertEquals('1', $newCount, 'Wishlist count should decrease to 1 after borrowing');
     }
+
+    public function testPuzzleWithoutAutoRemoveStaysInWishlistAfterAddingToCollection(): void
+    {
+        $client = self::createBrowserClient();
+
+        // Login as PLAYER_WITH_STRIPE - has membership and wishlist items
+        self::loginUser(
+            $client,
+            userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
+            email: PlayerFixture::PLAYER_WITH_STRIPE_EMAIL,
+            name: PlayerFixture::PLAYER_WITH_STRIPE_NAME,
+        );
+
+        // Visit wish list page
+        $client->request('GET', '/en/wish-list/' . PlayerFixture::PLAYER_WITH_STRIPE);
+
+        // Wait for page to load
+        $client->waitFor('body');
+
+        // Wait for the count to be visible
+        $client->waitForVisibility('#wishlist-count');
+
+        // Get initial count
+        $initialCount = $client->getCrawler()->filter('#wishlist-count')->text();
+        self::assertEquals('2', $initialCount, 'Initial wishlist count should be 2');
+
+        // Find the puzzle card for PUZZLE_3000 (WISHLIST_05 - has auto-remove DISABLED)
+        $puzzleCardSelector = '#library-wishlist-' . PuzzleFixture::PUZZLE_3000;
+        $client->waitForVisibility($puzzleCardSelector);
+
+        // Open the dropdown menu on the puzzle card
+        $client->getCrawler()
+            ->filter($puzzleCardSelector . ' .dropdown-toggle')
+            ->first()
+            ->click();
+
+        // Wait for dropdown to open
+        $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
+
+        // Click "Add to collection" link to open modal
+        $client->getCrawler()
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[href*="/collections/"][href*="/add"]')
+            ->first()
+            ->click();
+
+        // Wait for modal to open
+        $client->waitForVisibility('#modal-frame');
+
+        // The form has a tom-select input for collection selection
+        // PLAYER_WITH_STRIPE has COLLECTION_PUBLIC available
+        // We need to interact with tom-select to select the collection
+        // tom-select creates a div.ts-control that we click to open dropdown
+        $client->waitForVisibility('#modal-frame .ts-control');
+
+        // Click on the tom-select control to open dropdown
+        $client->getCrawler()
+            ->filter('#modal-frame .ts-control')
+            ->first()
+            ->click();
+
+        // Wait for dropdown options to appear
+        $client->waitForVisibility('.ts-dropdown .option');
+
+        // Click on the first available option (My Ravensburger Collection)
+        $client->getCrawler()
+            ->filter('.ts-dropdown .option')
+            ->first()
+            ->click();
+
+        // Submit the form
+        $client->getCrawler()
+            ->filter('#modal-frame button[type="submit"]')
+            ->first()
+            ->click();
+
+        // Wait for modal to close (form processed)
+        $client->waitForInvisibility('#modal-frame', timeoutInSecond: 2);
+
+        // Since PUZZLE_3000 has removeOnCollectionAdd: false, it should stay in wishlist
+        // The count should remain 2
+        $countAfterAdd = $client->getCrawler()->filter('#wishlist-count')->text();
+        self::assertEquals('2', $countAfterAdd, 'Wishlist count should remain 2 because auto-remove is disabled');
+
+        // Verify the card is still in the list
+        self::assertSelectorExists($puzzleCardSelector);
+    }
 }

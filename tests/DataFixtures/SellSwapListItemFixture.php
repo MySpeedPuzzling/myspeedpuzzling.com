@@ -1,0 +1,184 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Tests\DataFixtures;
+
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Common\DataFixtures\DependentFixtureInterface;
+use Doctrine\Persistence\ObjectManager;
+use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Entity\SellSwapListItem;
+use SpeedPuzzling\Web\Value\ListingType;
+use SpeedPuzzling\Web\Value\PuzzleCondition;
+
+final class SellSwapListItemFixture extends Fixture implements DependentFixtureInterface
+{
+    public const string SELLSWAP_01 = '018d000b-0000-0000-0000-000000000001';
+    public const string SELLSWAP_02 = '018d000b-0000-0000-0000-000000000002';
+    public const string SELLSWAP_03 = '018d000b-0000-0000-0000-000000000003';
+    public const string SELLSWAP_04 = '018d000b-0000-0000-0000-000000000004';
+    public const string SELLSWAP_05 = '018d000b-0000-0000-0000-000000000005';
+    public const string SELLSWAP_06 = '018d000b-0000-0000-0000-000000000006';
+    public const string SELLSWAP_07 = '018d000b-0000-0000-0000-000000000007';
+
+    public function __construct(
+        private readonly ClockInterface $clock,
+    ) {
+    }
+
+    public function load(ObjectManager $manager): void
+    {
+        // Only player5 has membership and can use sell/swap feature
+        $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
+
+        // Puzzles from player5's collection
+        $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
+        $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
+        $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
+        $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
+        $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
+        $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
+        $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
+
+        // Sell only, like new condition, with comment
+        $item01 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_01,
+            player: $player5,
+            puzzle: $puzzle500_01,
+            listingType: ListingType::Sell,
+            price: 25.00,
+            condition: PuzzleCondition::LikeNew,
+            comment: 'Perfect condition, only solved once',
+            daysAgo: 20,
+        );
+        $manager->persist($item01);
+        $this->addReference(self::SELLSWAP_01, $item01);
+
+        // Swap only, normal condition, no comment
+        $item02 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_02,
+            player: $player5,
+            puzzle: $puzzle500_02,
+            listingType: ListingType::Swap,
+            price: null,
+            condition: PuzzleCondition::Normal,
+            comment: null,
+            daysAgo: 18,
+        );
+        $manager->persist($item02);
+        $this->addReference(self::SELLSWAP_02, $item02);
+
+        // Both sell and swap, normal condition, with comment
+        $item03 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_03,
+            player: $player5,
+            puzzle: $puzzle1000_01,
+            listingType: ListingType::Both,
+            price: 45.00,
+            condition: PuzzleCondition::Normal,
+            comment: 'Open to offers',
+            daysAgo: 15,
+        );
+        $manager->persist($item03);
+        $this->addReference(self::SELLSWAP_03, $item03);
+
+        // Sell only, not so good condition, with comment
+        $item04 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_04,
+            player: $player5,
+            puzzle: $puzzle500_03,
+            listingType: ListingType::Sell,
+            price: 15.00,
+            condition: PuzzleCondition::NotSoGood,
+            comment: 'Some wear on box',
+            daysAgo: 10,
+        );
+        $manager->persist($item04);
+        $this->addReference(self::SELLSWAP_04, $item04);
+
+        // Swap only, like new condition, no comment
+        $item05 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_05,
+            player: $player5,
+            puzzle: $puzzle1000_02,
+            listingType: ListingType::Swap,
+            price: null,
+            condition: PuzzleCondition::LikeNew,
+            comment: null,
+            daysAgo: 5,
+        );
+        $manager->persist($item05);
+        $this->addReference(self::SELLSWAP_05, $item05);
+
+        // Both sell and swap, missing pieces condition, with comment
+        $item06 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_06,
+            player: $player5,
+            puzzle: $puzzle1500_01,
+            listingType: ListingType::Both,
+            price: 60.00,
+            condition: PuzzleCondition::MissingPieces,
+            comment: '2 pieces missing, otherwise good',
+            daysAgo: 2,
+        );
+        $manager->persist($item06);
+        $this->addReference(self::SELLSWAP_06, $item06);
+
+        // Sell only, for testing mark as sold on unsolved page (puzzle_1000_03 is unsolved)
+        $item07 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_07,
+            player: $player5,
+            puzzle: $puzzle1000_03,
+            listingType: ListingType::Sell,
+            price: 35.00,
+            condition: PuzzleCondition::Normal,
+            comment: null,
+            daysAgo: 1,
+        );
+        $manager->persist($item07);
+        $this->addReference(self::SELLSWAP_07, $item07);
+
+        $manager->flush();
+    }
+
+    /**
+     * @return array<class-string<Fixture>>
+     */
+    public function getDependencies(): array
+    {
+        return [
+            PlayerFixture::class,
+            PuzzleFixture::class,
+            CollectionItemFixture::class,
+            MembershipFixture::class,
+        ];
+    }
+
+    private function createSellSwapListItem(
+        string $id,
+        Player $player,
+        Puzzle $puzzle,
+        ListingType $listingType,
+        null|float $price,
+        PuzzleCondition $condition,
+        null|string $comment,
+        int $daysAgo,
+    ): SellSwapListItem {
+        $addedAt = $this->clock->now()->modify("-{$daysAgo} days");
+
+        return new SellSwapListItem(
+            id: Uuid::fromString($id),
+            player: $player,
+            puzzle: $puzzle,
+            listingType: $listingType,
+            price: $price,
+            condition: $condition,
+            comment: $comment,
+            addedAt: $addedAt,
+        );
+    }
+}

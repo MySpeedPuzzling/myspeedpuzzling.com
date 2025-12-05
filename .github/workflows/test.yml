@@ -2,6 +2,8 @@ name: Tests
 
 on:
     push:
+        branches:
+            - main
     pull_request:
 
 env:
@@ -36,7 +38,45 @@ jobs:
       -   run: composer install --no-scripts --no-progress
       -   run: npm install
       -   run: npm run dev
-      -   run: vendor/bin/phpunit
+      -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
+
+  panther-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+          image: postgres:16
+          env:
+              POSTGRES_PASSWORD: postgres
+              POSTGRES_DB: speedpuzzling
+          options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          ports:
+              - 5432:5432
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling?serverVersion=16&charset=utf8
+    steps:
+      -   uses: actions/checkout@v4
+      -   uses: actions/cache@v4
+          with:
+              path: vendor
+              key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+              restore-keys: |
+                  ${{ runner.os }}-composer-
+      -   uses: actions/cache@v4
+          with:
+              path: node_modules
+              key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+              restore-keys: |
+                  ${{ runner.os }}-npm-
+      -   uses: shivammathur/setup-php@v2
+          with:
+              php-version: '8.3'
+              extensions: pdo_pgsql, intl, redis, imagick, uuid
+      -   run: composer install --no-scripts --no-progress
+      -   run: npm install
+      -   run: npm run dev
+      -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+      -   name: Run Panther tests
+          run: vendor/bin/phpunit --testsuite "Panther Test Suite"
 
 
   phpstan:

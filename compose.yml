@@ -49,7 +49,7 @@ services:
             - redis-data:/data
 
     adminer:
-        image: adminer:4.8.0
+        image: adminer:5.4.1
         ports:
             - "8000:8080"
         environment:
@@ -84,3 +84,30 @@ services:
             MP_DATABASE: "/data/mailpit.db"
         volumes:
             - mailpit-data:/data
+
+    chrome:
+        image: ${SELENIUM_IMAGE:-seleniarm/standalone-chromium:latest}
+        shm_size: 2gb
+        ports:
+            - "4444:4444"
+            - "7900:7900"
+        environment:
+            - SE_NODE_MAX_SESSIONS=4
+
+    web-test:
+        image: ghcr.io/myspeedpuzzling/web-base:main
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - .:/app
+            - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
+        depends_on:
+            - postgres
+            - redis
+            - minio
+        ports:
+            - "8081:8080"
+        environment:
+            APP_ENV: test
+            # Skip migrations - test database is set up by PHPUnit bootstrap.php
+            SKIP_DATABASE_MIGRATIONS: "true"

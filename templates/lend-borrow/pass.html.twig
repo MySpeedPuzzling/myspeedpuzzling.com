@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'lend_borrow.pass.title'|trans }} - {{ puzzle.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card mx-auto" style="max-width: 500px;">
+        <div class="card-header">
+            <h5 class="mb-0">{{ 'lend_borrow.pass.title'|trans }}</h5>
+        </div>
+        <div class="card-body">
+            {% if not logged_user.profile.activeMembership %}
+                <div class="text-center py-3">
+                    <div class="mb-3">
+                        <i class="ci-locked fs-1 text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">{{ 'lend_borrow.membership_required.title'|trans }}</h5>
+                    <p class="text-muted small">{{ 'lend_borrow.membership_required.message'|trans }}</p>
+                    <a href="{{ path('membership') }}" class="btn btn-outline-primary">
+                        <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_button'|trans }}
+                    </a>
+                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.id}) }}" class="btn btn-secondary">
+                        {{ 'forms.cancel'|trans }}
+                    </a>
+                </div>
+            {% else %}
+                <p class="mb-3">{{ 'lend_borrow.pass.description'|trans({'%puzzle%': puzzle.name}) }}</p>
+                {{ include('lend-borrow/_pass_form.html.twig', {in_modal: false}) }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

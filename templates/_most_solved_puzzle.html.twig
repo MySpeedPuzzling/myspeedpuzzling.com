@@ -7,11 +7,9 @@
                 {% for most_solved_puzzle in most_solved_puzzles %}
                     <tr class="{{ show_limit is not null and loop.index > show_limit ? 'd-none' }}">
                         <td class="text-center">
-                            {% if most_solved_puzzle.puzzleImage is not null%}
-                                <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
-                                    <img class="rounded-2" style="max-width: 80px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}) }}" src="{{ most_solved_puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                                </a>
-                            {% endif %}
+                            <a href="{{ path('puzzle_detail', {puzzleId: most_solved_puzzle.puzzleId}) }}">
+                                <img class="rounded-2" style="max-width: 80px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}) }}" src="{{ most_solved_puzzle.puzzleImage|puzzle_image('puzzle_small') }}">
+                            </a>
                         </td>
 
                         <td class="d-none d-sm-table-cell">

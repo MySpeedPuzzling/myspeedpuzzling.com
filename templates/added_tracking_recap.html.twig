@@ -1,0 +1,80 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'added_tracking_recap.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h2">{{ 'added_tracking_recap.title'|trans }}</h1>
+
+    <div class="alert alert-success d-flex" role="alert">
+        <div class="alert-icon">
+            <i class="ci-check-circle"></i>
+        </div>
+        <div>
+            {{ 'flashes.tracking_added'|trans }}
+        </div>
+    </div>
+
+    <div class="my-4">
+        <div class="btn-group btn-group">
+            <a rel="nofollow" href="{{ path('puzzle_add') }}" class="btn btn-accent pe-2"><i class="ci-add"></i> {{ 'added_tracking_recap.add_another'|trans }}</a>
+            <button type="button" class="btn btn-accent dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+            </button>
+            <ul class="dropdown-menu shadow-custom">
+                <li><a class="dropdown-item" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: tracked_puzzle.puzzleId}) }}">{{ 'added_tracking_recap.the_same_puzzle'|trans }}</a></li>
+            </ul>
+        </div>
+
+        <a href="{{ path('puzzle_detail', {'puzzleId': tracked_puzzle.puzzleId}) }}" class="btn btn-accent btn">{{ 'added_tracking_recap.puzzle_detail'|trans }}</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                {% if tracked_puzzle.puzzleImage %}
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <img src="{{ tracked_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}" alt="{{ tracked_puzzle.puzzleName }}" class="img-fluid rounded">
+                    </div>
+                {% endif %}
+                <div class="col">
+                    <h3 class="card-title">{{ tracked_puzzle.puzzleName }}</h3>
+                    {% if tracked_puzzle.puzzleAlternativeName %}
+                        <p class="text-muted mb-2">{{ tracked_puzzle.puzzleAlternativeName }}</p>
+                    {% endif %}
+                    <p class="mb-2">
+                        <strong>{{ 'added_tracking_recap.manufacturer'|trans }}:</strong> {{ tracked_puzzle.manufacturerName }}<br>
+                        <strong>{{ 'added_tracking_recap.pieces'|trans }}:</strong> {{ tracked_puzzle.piecesCount }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>{{ 'forms.date_finished'|trans }}:</strong> {{ tracked_puzzle.finishedAt|format_date('medium') }}
+                    </p>
+                    {% if tracked_puzzle.comment %}
+                        <p class="mb-2">
+                            <strong>{{ 'forms.comment'|trans }}:</strong> {{ tracked_puzzle.comment }}
+                        </p>
+                    {% endif %}
+                    {% if tracked_puzzle.players %}
+                        <p class="mb-0">
+                            <strong>{{ 'added_tracking_recap.group_puzzlers'|trans }}:</strong>
+                            {% for player in tracked_puzzle.players %}
+                                {% if player.playerCode %}
+                                    <a href="{{ path('player_profile', {playerCode: player.playerCode}) }}">{{ player.playerName ?? player.playerCode }}</a>{% if not loop.last %}, {% endif %}
+                                {% else %}
+                                    {{ player.playerName }}{% if not loop.last %}, {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if tracked_puzzle.finishedPuzzlePhoto %}
+        <div class="mt-4">
+            <h4>{{ 'forms.finished_puzzle_photo'|trans }}</h4>
+            <img src="{{ tracked_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}" alt="{{ tracked_puzzle.puzzleName }}" class="img-fluid rounded">
+        </div>
+    {% endif %}
+
+{% endblock %}

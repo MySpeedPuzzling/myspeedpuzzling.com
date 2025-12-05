@@ -1,4 +1,5 @@
 <div
+    id="puzzle-list-item-{{ puzzle.puzzleId }}"
     class="position-relative col-12 col-lg-6"
     data-puzzle-filter-target="puzzleItem"
     data-pieces-count="{{ puzzle.piecesCount }}"
@@ -13,20 +14,17 @@
     <div class="card card-body shadow p-2 puzzle-list-item">
         <div class="d-flex">
             <div style="width: 90px;">
-                {% if puzzle.puzzleImage is not null%}
-                    <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                        <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
-                    </a>
-                {% endif %}
+                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                    <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}">
+                </a>
             </div>
 
             <div class="ps-2 flex-grow-1">
                 <div class="d-md-flex">
                     <div class="puzzle-name">
                         <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                            {{ highlight(puzzle.puzzleName, search) }}{% if puzzle.puzzleId in puzzles_solved_by_user %}<i class="ms-1 text-decoration-none ci-check-circle text-success"></i>{% endif %}
+                            {{ highlight(puzzle.puzzleName, search) }}
                         </a>
-
                         <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                     </div>
 
@@ -40,7 +38,7 @@
 
                 <div class="d-md-flex justify-content-between">
                     <div class="d-flex justify-content-between text-nowrap puzzle-times-info">
-                        <small>{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
+                        <small class="pe-0 pe-md-2">{{ 'puzzle_solved_times'|trans({'%count%': puzzle.solvedTimes})|capitalize|raw }}</small>
 
                         <br class="d-none d-md-block">
                         {% if ranking[puzzle.puzzleId] is defined %}
@@ -49,6 +47,13 @@
                     </div>
 
                     <div class="text-md-center">
+                        <span id="puzzle-badges-{{ puzzle.puzzleId }}">
+                            {{ include('puzzle/_badges.html.twig', {
+                                puzzle_id: puzzle.puzzleId,
+                                puzzle_statuses: puzzle_statuses
+                            }) }}
+                        </span>
+
                         {% for tag in tags[puzzle.puzzleId] ?? [] %}
                             <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
                         {% endfor %}
@@ -64,8 +69,8 @@
 
             <ul class="dropdown-menu">
                 <li>
-                    <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}">
-                        <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+                    <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
+                        <i class="ci-add me-1"></i> {{  'add_solving'|trans }}
                     </a>
                 </li>
                 <li>
@@ -73,6 +78,12 @@
                         <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
                     </a>
                 </li>
+                <li><hr class="dropdown-divider"></li>
+
+                {{ include('puzzle/_dropdown_actions.html.twig', {
+                    puzzle_id: puzzle.puzzleId,
+                    puzzle_statuses: puzzle_statuses
+                }) }}
             </ul>
         </div>
     </div>

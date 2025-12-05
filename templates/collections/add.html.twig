@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'collections.add_puzzle'|trans }} - {{ puzzle.puzzleName }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card mx-auto" style="max-width: 500px;">
+        <div class="card-header">
+            <h5 class="mb-0">{{ 'collections.add_puzzle'|trans }}</h5>
+        </div>
+        <div class="card-body">
+            {% if not has_active_membership and not has_available_collections %}
+                {# Non-member and puzzle already in system collection #}
+                <div class="alert alert-info mb-3">
+                    <h6 class="alert-heading mb-2">
+                        <i class="bi bi-check-circle me-2"></i>{{ 'collections.already_in_system'|trans }}
+                    </h6>
+                    <p class="mb-0">{{ 'collections.already_in_system_message'|trans }}</p>
+                </div>
+                <a href="{{ path('membership') }}" class="btn btn-outline-primary">
+                    <i class="ci-locked me-1"></i>{{ 'collections.membership_required.unlock_link'|trans }}
+                </a>
+                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-secondary">
+                    {{ 'forms.cancel'|trans }}
+                </a>
+            {% else %}
+                {{ include('collections/_add_form.html.twig', {in_modal: false}) }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

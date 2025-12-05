@@ -8,7 +8,7 @@ use SpeedPuzzling\Web\FormData\SearchPuzzleFormData;
 use SpeedPuzzling\Web\FormType\SearchPuzzleFormType;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PiecesFilter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -24,7 +24,7 @@ final class PuzzlesController extends AbstractController
 {
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
-        readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetTags $getTags,
@@ -49,11 +49,9 @@ final class PuzzlesController extends AbstractController
         $searchForm = $this->createForm(SearchPuzzleFormType::class, $searchData);
         $searchForm->handleRequest($request);
 
-        $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(
-            $user?->getUserIdentifier()
-        );
-
         $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
+
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($playerProfile?->playerId);
 
         $userRanking = [];
         if ($playerProfile !== null) {
@@ -105,7 +103,7 @@ final class PuzzlesController extends AbstractController
         return $this->render($templateName, [
             'puzzles' => $foundPuzzle,
             'total_puzzles_count' => $totalPuzzlesCount,
-            'puzzles_solved_by_user' => $userSolvedPuzzles,
+            'puzzle_statuses' => $puzzleStatuses,
             'ranking' => $userRanking,
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'search_form' => $searchForm,

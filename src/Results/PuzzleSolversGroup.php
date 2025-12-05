@@ -11,7 +11,7 @@ readonly final class PuzzleSolversGroup
 {
     public function __construct(
         public null|string $teamId,
-        public int $time,
+        public null|int $time,
         /** @var array<Puzzler> */
         public array $players,
         public DateTimeImmutable $finishedAt,

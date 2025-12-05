@@ -272,9 +272,10 @@ input[type="search"]::-webkit-search-results-decoration {
 
   .file-drop-icon {
     display: block;
-    margin-bottom: .75rem;
+    margin-bottom: 4px;
     color: $gray-500;
     font-size: $font-size-xl;
+    line-height: 100%;
   }
 
   .file-drop-preview {
@@ -289,7 +290,7 @@ input[type="search"]::-webkit-search-results-decoration {
   .file-drop-message {
     display: block;
     font-size: $font-size-sm;
-    margin-bottom: 1.25rem;
+    margin-bottom: 8px;
   }
 
   .btn {

@@ -7,12 +7,9 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
-use SpeedPuzzling\Web\Query\GetLastSolvedPuzzle;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
-use SpeedPuzzling\Web\Query\GetPuzzleCollection;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -28,10 +25,7 @@ final class PlayerProfileController extends AbstractController
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
-        readonly private GetLastSolvedPuzzle $getLastSolvedPuzzle,
-        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetBadges $getBadges,
-        readonly private GetPuzzleCollection $getPuzzleCollection,
     ) {
     }
 
@@ -56,22 +50,12 @@ final class PlayerProfileController extends AbstractController
             return $this->redirectToRoute('ladder');
         }
 
-        $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();
-        $loggedPlayerRanking = [];
-
-        if ($loggedPlayerProfile !== null) {
-            $loggedPlayerRanking = $this->getRanking->allForPlayer($loggedPlayerProfile->playerId);
-        }
-
         return $this->render('player_profile.html.twig', [
             'player' => $player,
-            'last_solved_puzzles' => $this->getLastSolvedPuzzle->forPlayer($player->playerId, 20),
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
-            'logged_player_ranking' => $loggedPlayerRanking,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
-            'puzzle_collections' => $this->getPuzzleCollection->forPlayer($player->playerId),
         ]);
     }
 }

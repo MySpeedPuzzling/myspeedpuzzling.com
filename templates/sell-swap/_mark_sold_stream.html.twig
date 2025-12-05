@@ -1,0 +1,77 @@
+{#
+    Stream for marking item as sold/swapped (removes from sell-swap list).
+
+    Parameters:
+    - puzzle_id: The puzzle ID
+    - message: Toast message
+    - context: 'detail' (puzzle detail page), 'list' (sell-swap list), or 'collection-detail'
+
+    For collection-detail context, additional parameters:
+    - item: CollectionItemOverview - full item data for card replacement
+    - logged_user: Current logged user
+    - puzzle_statuses: UserPuzzleStatuses
+    - collection_id: Current collection ID
+
+    For list context, additional parameters:
+    - remaining_count: Number of remaining items in the sell/swap list
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{% if context|default('detail') == 'collection-detail' %}
+    {# Collection detail page: remove the card (marking as sold removes from all collections) #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'collection',
+        puzzle_id: puzzle_id,
+    }) }}
+
+    {# Update the collection count #}
+    {% if remaining_count is defined %}
+    <turbo-stream action="update" target="collection-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+    {% endif %}
+{% elseif context|default('detail') == 'unsolved-detail' %}
+    {# Unsolved puzzles page: remove the item (sold = no longer owned) and update count #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'unsolved',
+        puzzle_id: puzzle_id,
+    }) }}
+
+    {# Update the unsolved count #}
+    <turbo-stream action="update" target="unsolved-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+{% elseif context|default('detail') == 'list' %}
+    {# Sell-swap list page: remove the item and update count #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'sell-swap',
+        puzzle_id: puzzle_id,
+    }) }}
+
+    {# Update the count #}
+    <turbo-stream action="update" target="sellswap-count">
+        <template>{{ remaining_count }}</template>
+    </turbo-stream>
+
+    {# Show empty state if no items remaining #}
+    {% if remaining_count == 0 %}
+    <turbo-stream action="update" target="sellswap-list-container">
+        <template>
+            {{ include('sell-swap/_empty_state.html.twig') }}
+        </template>
+    </turbo-stream>
+    {% endif %}
+{% else %}
+    {# Default/detail context: just remove the item #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'sell-swap',
+        puzzle_id: puzzle_id,
+    }) }}
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

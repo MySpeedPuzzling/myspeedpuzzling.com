@@ -166,8 +166,8 @@
                                                 <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
                                             </a>
 
-                                            {# Display rank for solo #}
-                                            {% if solved_puzzle[0].players is null %}
+                                            {# Display rank for solo (only if ranking exists - won't exist for relax-only puzzles) #}
+                                            {% if solved_puzzle[0].players is null and this.ranking[solved_puzzle[0].puzzleId] is defined %}
                                                 <br>
                                                 <small>Rank {{ this.ranking[solved_puzzle[0].puzzleId].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ this.ranking[solved_puzzle[0].puzzleId].totalPlayers }})</span></small><br>
                                             {% endif %}
@@ -199,16 +199,24 @@
 
                                     <td class="text-end text-nowrap with-ppm align-top">
                                         <span class="d-inline-block">
-                                            {{ puzzle.time|puzzlingTime }}
-                                            <br>
-                                            <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
-                                            <br>
-                                            <small>
-                                                <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
-                                                {% if puzzle.players is not null %}
-                                                    <br>({{ puzzle.players|length }}x {{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }})
-                                                {% endif %}
-                                            </small>
+                                            {% if puzzle.time is not null %}
+                                                {{ puzzle.time|puzzlingTime }}
+                                                <br>
+                                                <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
+                                                <br>
+                                                <small>
+                                                    <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
+                                                    {% if puzzle.players is not null %}
+                                                        <br>({{ puzzle.players|length }}x {{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }})
+                                                    {% endif %}
+                                                </small>
+                                            {% else %}
+                                                <span class="badge rounded-pill bg-secondary">
+                                                    <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
+                                                </span>
+                                                <br>
+                                                <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
+                                            {% endif %}
 
                                             {% if puzzle.firstAttempt %}
                                                 <br>

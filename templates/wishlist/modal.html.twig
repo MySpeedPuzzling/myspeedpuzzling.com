@@ -1,0 +1,10 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'wish_list.add.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {{ include('wishlist/_add_item_form.html.twig', {in_modal: true}) }}
+    </div>
+</turbo-frame>

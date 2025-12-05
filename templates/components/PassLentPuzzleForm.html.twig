@@ -1,0 +1,44 @@
+<div {{ attributes }}>
+    {% if this.isLoggedIn %}
+        {{ form_start(form, {
+            action: path('pass_puzzle', {lentPuzzleId: this.lentPuzzleId}),
+            attr: {'data-turbo': 'true'}
+        }) }}
+        <input type="hidden" name="context" value="{{ this.context }}">
+        <input type="hidden" name="tab" value="{{ this.tab }}">
+        <input type="hidden" name="collection_id" value="{{ this.collectionId }}">
+
+        <div class="mb-3" data-controller="favorite-player-select">
+            {{ form_label(form.newHolderCode) }}
+            <div class="input-group">
+                {{ form_widget(form.newHolderCode, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
+                <select class="form-select"
+                        data-favorite-player-select-target="select"
+                        data-action="change->favorite-player-select#selectChanged">
+                    <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+                    {% for favorite in this.favoritePlayers %}
+                        <option value="{{ favorite.playerCode }}">
+                            {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <small class="form-text text-muted">{{ 'lend_borrow.form.new_holder_code_help'|trans }}</small>
+        </div>
+
+        <div class="d-grid gap-2 d-sm-flex">
+            <button type="submit" class="btn btn-primary flex-grow-1" data-loading-text="{{ 'forms.saving'|trans }}">
+                <i class="bi bi-arrow-right-circle me-1"></i> {{ 'lend_borrow.pass.button'|trans }}
+            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+        </div>
+
+        {{ form_end(form) }}
+    {% else %}
+        <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ 'lend_borrow.login_required'|trans }}
+        </div>
+    {% endif %}
+</div>

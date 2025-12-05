@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'sell_swap_list.edit_item.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h3 class="mb-0">{{ 'sell_swap_list.edit_item.title'|trans }}</h3>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-4 p-2 bg-light rounded">
+                        {% if item.puzzle.image %}
+                            <img src="{{ item.puzzle.image|imagine_filter('puzzle_small') }}"
+                                 alt="{{ item.puzzle.name }}"
+                                 class="rounded me-3"
+                                 style="width: 60px; height: 60px; object-fit: cover;">
+                        {% endif %}
+                        <div>
+                            <strong>{{ item.puzzle.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ 'pieces_count'|trans({'%count%': item.puzzle.piecesCount})|raw }}</small>
+                        </div>
+                    </div>
+
+                    {{ form_start(form) }}
+
+                    <div data-controller="conditional-field" data-conditional-field-trigger-value="swap" data-conditional-field-hide-on-value="true">
+                        <div class="mb-3">
+                            {{ form_row(form.listingType, {
+                                attr: {'data-action': 'change->conditional-field#toggle'}
+                            }) }}
+                        </div>
+
+                        <div class="mb-3" data-conditional-field-target="conditionalElement">
+                            {{ form_row(form.price) }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_row(form.condition) }}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form_row(form.comment) }}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ cancelUrl }}" class="btn btn-secondary">
+                            {{ 'forms.cancel'|trans }}
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
+                        </button>
+                    </div>
+
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

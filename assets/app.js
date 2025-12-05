@@ -11,6 +11,7 @@ import 'bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
 
 import './feedback_modal.js'
+import './turbo-stream-actions.js'
 
 import zoomPlugin from 'chartjs-plugin-zoom';
 

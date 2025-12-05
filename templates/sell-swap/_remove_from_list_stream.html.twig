@@ -1,0 +1,30 @@
+{#
+    Stream for removing puzzle from sell-swap list (from list context).
+
+    Parameters:
+    - puzzle_id: The puzzle ID being removed
+    - remaining_count: Remaining items in sell-swap list
+    - message: Toast message
+#}
+
+{{ include('_library_item_stream.html.twig', {
+    action: 'remove',
+    page_context: 'sell-swap',
+    puzzle_id: puzzle_id,
+}) }}
+
+{# Update the count #}
+<turbo-stream action="update" target="sellswap-count">
+    <template>{{ remaining_count }}</template>
+</turbo-stream>
+
+{# Show empty state if no items remaining #}
+{% if remaining_count == 0 %}
+<turbo-stream action="update" target="sellswap-list-container">
+    <template>
+        {{ include('sell-swap/_empty_state.html.twig') }}
+    </template>
+</turbo-stream>
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

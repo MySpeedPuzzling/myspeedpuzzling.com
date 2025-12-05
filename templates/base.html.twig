@@ -106,7 +106,7 @@
         </script>
         {% endblock %}
     </head>
-    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search">
+    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search toast">
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
                 <div class="container">
@@ -219,7 +219,7 @@
                         {% if logged_user.profile is null %}
                             <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('my_profile') }}">
                                 <div class="navbar-tool-icon-box">
-                                    <i class="navbar-tool-icon ci-user"></i>
+                                    <i class="navbar-tool-icon ci-sign-in"></i>
                                 </div>
                                 <div class="navbar-tool-text ms-n3"><small>{{ 'menu.sign_in'|trans }}</small></div>
                             </a>
@@ -244,11 +244,6 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_collection' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_collection', {'playerId': logged_user.profile.playerId}) }}">
-                                            <i class="bi bi-collection me-1"></i> {{ 'menu.collection'|trans }}
-                                        </a>
-                                    </li>
-                                    <li>
                                         <a class="dropdown-item {% if currentRoute == 'player_favorite_puzzlers' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_favorite_puzzlers', {'playerId': logged_user.profile.playerId}) }}">
                                             <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                                         </a>
@@ -256,6 +251,11 @@
 
                                     <li><hr class="dropdown-divider"></li>
 
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'puzzle_library' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('puzzle_library', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-collection me-1"></i> {{ 'menu.puzzle_library'|trans }}
+                                        </a>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
                                             <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
@@ -271,11 +271,11 @@
                         {% endif %}
 
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('add_time') %}active{% endif %}" rel="nofollow" href="{{ path('add_time') }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('puzzle_add') %}active{% endif %}" rel="nofollow" href="{{ path('puzzle_add') }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-add"></i>
                             </div>
-                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.add_time'|trans }}</small></div>
+                            <div class="navbar-tool-text ms-n3"><small>{{ 'menu.puzzle_add'|trans }}</small></div>
                         </a>
 
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
@@ -399,7 +399,7 @@
                                     <a rel="nofollow" href="{{ path('my_profile') }}" class="widget-list-link">{{ (logged_user.profile is not null ? 'menu.my_profile' : 'menu.sign_in')|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a rel="nofollow" href="{{ path('add_time') }}" class="widget-list-link">{{ 'menu.add_time'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('puzzle_add') }}" class="widget-list-link">{{ 'footer.puzzle_add'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('stopwatch') }}" class="widget-list-link">{{ 'menu.stopwatch'|trans }}</a>
@@ -619,5 +619,21 @@
         </div>
 
         <div class="global-search-overlay" data-global-search-target="overlay"></div>
+
+        <!-- Toast Container -->
+        <div id="toast-container" class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>
+
+        <!-- Dynamic Modal (Turbo-powered) -->
+        <div id="dynamic-modal-container"
+             class="modal fade"
+             tabindex="-1"
+             data-controller="dynamic-modal">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <turbo-frame id="modal-frame" data-dynamic-modal-target="frame">
+                    </turbo-frame>
+                </div>
+            </div>
+        </div>
     </body>
 </html>

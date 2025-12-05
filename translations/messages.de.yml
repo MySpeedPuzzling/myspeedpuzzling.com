@@ -1,6 +1,6 @@
 menu:
     my_profile: "Mein Profil"
-    add_time: "Zeit hinzufügen"
+    puzzle_add: "Hinzufügen"
     stopwatch: "Stoppuhr"
     puzzles_overview: "Puzzle"
     ladder: "Bestenliste"
@@ -15,12 +15,17 @@ menu:
     membership: "Mitgliedschaft"
     search: "Suchen"
     statistics: "Statistiken"
-    collection: "Sammlung"
     favorite_puzzlers: "Lieblings-Puzzler"
     edit_profile: "Profil bearbeiten"
     change_player_code: "Spielercode ändern"
     profile: "Profil"
+    puzzle_library: "Puzzlebibliothek"
     events: "Veranstaltungen"
+
+form:
+    visibility: "Sichtbarkeit"
+    visibility_public: "Öffentlich"
+    visibility_private: "Privat"
 
 footer:
     created_with_love: "Mit Liebe für Puzzles und Code erstellt von %simona% und %jan%"
@@ -30,6 +35,7 @@ footer:
     speed_puzzling_players: "Speed Puzzling Spieler"
     latest_puzzle_times: "Neueste Puzzle-Zeiten"
     750_piece_puzzles: "750-teilige Puzzles"
+    puzzle_add: "Puzzle hinzufügen"
 
 puzzler_name: "Name"
 puzzler: "Puzzler"
@@ -37,10 +43,11 @@ puzzle: "Puzzle"
 time: "Zeit"
 pieces_count: "%count%&nbsp;Teile"
 show_more: "Mehr anzeigen"
+show_less: "Weniger anzeigen"
 puzzle_solved: "gelöst"
 puzzle_available: "verfügbar zum Ausleihen"
 puzzle_not_available: "nicht verfügbar"
-add_my_time: "Meine Zeit hinzufügen"
+add_solving: "Lösung hinzufügen"
 start_solving: "Lösung starten"
 show_times: "Zeiten anzeigen"
 fastest_time_short: "Top: %time%"
@@ -52,6 +59,7 @@ filtered_out_puzzlers_count_info: "Versteckt <strong>%count% Puzzler</strong> oh
 my_time: "Meine Zeit:"
 puzzle_solved_count: "Anzahl der Lösungen:"
 puzzle_solved_times: "%count%x gelöst"
+puzzle.relax_solvings_count: "%count%x im Relax-Modus gelöst"
 never_solved_puzzles: "Diese Puzzles hat noch niemand gelöst - sei der Erste!"
 show_more_solving_times: "Mehr (%count%x)"
 be_first_to_solve: "Diese Puzzles wurden noch nicht gelöst. Sei der Erste!"
@@ -72,9 +80,6 @@ any: "Beliebig"
 all_pieces: "Alle"
 solo_solved: "SOLO gelöst:"
 first_attempt: "1. Versuch"
-add_to_collection: "Zu meiner Sammlung hinzufügen"
-in_collection: "In meiner Sammlung"
-remove_from_collection: "Aus Sammlung entfernen"
 ranking_out_of: "von"
 wjpc_participant: "WJPC 2024 Teilnehmer (%name%)"
 share: "Teilen"
@@ -84,6 +89,9 @@ active_membership: "Aktive Mitgliedschaft"
 new_badge: "Neu"
 secret_puzzler_name: "Versteckter Puzzler"
 right_now: "Gerade jetzt"
+
+badge:
+    relax: "Relax"
 
 homepage:
     meta:
@@ -177,10 +185,10 @@ stopwatch:
         paused: "Pausiert"
         finished: "Puzzle fertiggestellt"
 
-add_time:
+puzzle_add:
     meta:
-        title: "Zeit hinzufügen"
-    title: "Zeit hinzufügen"
+        title: "Puzzle hinzufügen"
+    title: "Hinzufügen..."
     chosen_puzzle: "Ausgewähltes Puzzle:"
     choose_puzzle: "Wählen Sie ein Puzzle"
     puzzle_needed: "Du musst ein Puzzle aus der Liste auswählen oder ein neues hinzufügen"
@@ -194,12 +202,41 @@ add_time:
     add_puzzler: "Gruppen-Mitspieler hinzufügen"
     teamplayer: "Mitspieler"
     player_code_info: "Wählen Sie aus Favoriten oder geben Sie den Spielercode (beginnt mit #) ein. Wenn der Puzzler kein Konto auf myspeedpuzzling.com hat, geben Sie bitte seinen Namen ein."
-    choose_from_favorites: "- Aus Favoriten wählen -"
+    mode:
+        speed_puzzling: "Speed Puzzling"
+        relax: "Relax (keine Zeit)"
+        to_collection: "Puzzle zur Sammlung"
+    competition_result: "Wettbewerbsergebnis"
+    group_puzzling: "Puzzeln zu zweit/in Gruppe"
 
 forms:
+    choose_from_favorites: "- Aus Favoriten wählen -"
     drop_file: "Datei hierher ziehen und ablegen zum Hochladen"
     choose_file: "Oder Datei auswählen"
     save: "Speichern"
+    cancel: "Abbrechen"
+    close: "Schließen"
+    max_characters: "Maximal 500 Zeichen"
+    saving: "Speichern..."
+    removing: "Entfernen..."
+    add: "Hinzufügen"
+    back: "Zurück"
+    clear: "Löschen"
+    confirm: "Bestätigen"
+    continue: "Fortfahren"
+    create: "Erstellen"
+    delete: "Löschen"
+    edit: "Bearbeiten"
+    next: "Weiter"
+    "no": "Nein"
+    ok: "OK"
+    previous: "Zurück"
+    remove: "Entfernen"
+    reset: "Zurücksetzen"
+    search: "Suchen"
+    submit: "Absenden"
+    update: "Aktualisieren"
+    "yes": "Ja"
     required_field: "Dieses Feld ist erforderlich!"
     empty_group_error: "Sie können keine Gruppe nur mit sich selbst erstellen, das ist kein Gruppenpuzzeln :-)"
     too_high_ppm: "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
@@ -250,6 +287,18 @@ forms:
     global_search_placeholder: "Puzzle oder Spieler suchen..."
     private_profile: "Privates Profil"
     private_profile_help: "Ihr Name wird nirgendwo angezeigt und Zeiten werden anonym präsentiert."
+    add_puzzle_to_collection:
+        choose_collection: "- Sammlung wählen -"
+        collection: "Sammlung"
+        collection_help: "Wählen Sie eine vorhandene Sammlung oder geben Sie einen neuen Sammlungsnamen ein."
+        comment: "Kommentar"
+        comment_placeholder: "Optionaler Kommentar zu diesem Puzzle..."
+        puzzle_collection: "Puzzle-Sammlung (Standard)"
+        submit: "Zur Sammlung hinzufügen"
+    hours_short: "Std"
+    minutes_short: "Min"
+    seconds_short: "Sek"
+    time_required: "Bitte geben Sie die Zeit ein"
 
 puzzlers_comparison:
     meta:
@@ -402,6 +451,10 @@ puzzlers:
     no_matches_found: "Keine Übereinstimmungen gefunden"
     my_favorites: "Meine Favoriten"
     most_popular: "Beliebteste"
+    by_country: "Nach Land"
+    most_favorite: "Beliebteste Puzzler"
+    search_placeholder: "Nach Spielernamen oder Code suchen..."
+    total_players: "Spieler insgesamt"
 
 players_per_country:
     meta:
@@ -411,8 +464,12 @@ players_per_country:
 
 flashes:
     stopwatch_already_saved: "Diese Stoppuhren wurden bereits gespeichert."
+    collection_not_found: "Die gesuchte Sammlung existiert bei uns nicht!"
+    puzzle_removed_from_collection: "Puzzle wurde aus der Sammlung entfernt."
     puzzle_needs_approve: "Neu hinzugefügte Puzzles werden nach der Genehmigung durch einen Administrator öffentlich angezeigt - normalerweise innerhalb von 24 Stunden nach dem Hinzufügen."
     time_added: "Wir haben Ihre Puzzle-Zeit gespeichert."
+    puzzle_added_to_collection: "Puzzle wurde zur Sammlung hinzugefügt."
+    tracking_added: "Wir haben Ihre Puzzle-Verfolgung gespeichert."
     time_deleted: "Wir haben alle Beweise gelöscht. Niemand wird jemals erfahren, was gerade passiert ist!"
     profile_saved: "Profiländerungen gespeichert!"
     time_edited: "Bearbeitete Informationen wurden gespeichert."
@@ -423,8 +480,6 @@ flashes:
     can_not_favorite_yourself: "Sie können sich nicht selbst zu Ihrer Favoritenliste hinzufügen. Es ist klar, dass Sie Ihr eigener Lieblings-Puzzler sind!"
     player_already_in_favorites: "Dieser Puzzler ist bereits in Ihrer Favoritenliste, also werden wir ihn nicht noch einmal hinzufügen ;-)."
     player_not_in_favorites: "Hmm, wir konnten diesen Puzzler nicht in Ihren Favoriten finden, also können wir ihn nicht entfernen ;-)."
-    puzzle_added_to_collection: "Hallo,... Puzzle. Willkommen in meiner Sammlung!"
-    puzzle_removed_from_collection: "Auf Wiedersehen Puzzle..."
     competition_duplicate_connection: "Etwas stimmt nicht :-( Sie haben ein Wettbewerbs-Konto gewählt, das bereits mit einem MySpeedPuzzling-Profil verbunden ist. Keine Sorge, wir wurden automatisch benachrichtigt und werden überprüfen, was nicht stimmt."
     competition_connection_saved: "Schön! Wettbewerbs-Konto erfolgreich mit Ihrem MySpeedPuzzling-Profil verbunden!"
     membership_subscribed_successfully: "Ihre Mitgliedschaft ist jetzt aktiv!"
@@ -458,6 +513,7 @@ statistics:
     longest_streak: "Längste Serie"
     longest_streak_help: "Max. aufeinanderfolgende Tage mit Puzzeln"
     most_solved_brand: "Meist gelöste Marke"
+    all_brands: "Alle Marken"
     no_results: |
         Wir wissen, dass Sie es lieben, Puzzles zu lösen - Sie sind im Grunde ein Puzzle-Flüsterer. Aber für den ausgewählten Zeitraum... nichts. Null. Nada.<br> 
         Entweder haben Sie keine gelöst, oder Sie haben vergessen, sie zur Plattform hinzuzufügen (was noch puzzlender ist, ehrlich gesagt).<br>
@@ -482,6 +538,9 @@ dates:
 
 feedback:
     title: "Feedback senden"
+    message: "Nachricht"
+    send: "Senden"
+    thank_you: "Vielen Dank für Ihr Feedback!"
     success_msg: "Wir haben Ihr Feedback erhalten und schätzen es sehr! Wir werden Ihnen bald antworten."
 
 notifications:
@@ -489,6 +548,9 @@ notifications:
     solved_puzzle_with_time: "in"
     solved_puzzle: "löste Puzzle"
     no_notifications: "Sie haben bisher keine Benachrichtigungen. Abonnieren Sie einige Spieler, indem Sie sie zu Favoriten hinzufügen."
+    mark_all_as_read: "Alle als gelesen markieren"
+    mark_as_read: "Als gelesen markieren"
+    new_notification: "Neue Benachrichtigung"
 
 badges:
     title: "Abzeichen"
@@ -496,9 +558,6 @@ badges:
     badge:
         supporter: "Unterstützer"
 
-collection:
-    title: "Sammlung"
-    empty_info: "Diese Sammlung ist derzeit leer. Vielleicht ist es Zeit, das zu ändern? Schließlich liebt jeder Puzzles und das Sammeln von ihnen :-)."
 
 scan:
     meta:
@@ -547,6 +606,17 @@ global_search:
     no_player_found: "Kein Spieler gefunden :-("
     no_puzzle_found: "Kein Puzzle gefunden :-("
 
+added_tracking_recap:
+    meta:
+        title: "Puzzle verfolgt"
+    title: "Puzzle erfolgreich verfolgt!"
+    add_another: "Weiteres Puzzle verfolgen"
+    the_same_puzzle: "Gleiches Puzzle erneut verfolgen"
+    puzzle_detail: "Puzzle-Details anzeigen"
+    manufacturer: "Hersteller"
+    pieces: "Teile"
+    group_puzzlers: "Gepuzzelt mit"
+
 membership:
     meta:
         title: "Mitgliedschaft"
@@ -593,6 +663,7 @@ membership:
             <li>&hellip; und vieles mehr, das ist nur eine kleine Vorschau auf das, was wir für Sie vorbereiten!</li>
         </ul>
     members_exclusive_button: "Exklusiv für Mitglieder"
+    members_exclusive_short: "Mitglieder"
     modal:
         title: "Exklusive Funktion für Mitglieder"
         cta: "Mitglied werden"
@@ -744,3 +815,396 @@ blog:
             <p>Für jetzt stelle ich die Mail-Server-Arbeit beiseite, und ich weiß, dass sie "zur Seite" sein wird, auf einem separaten Server, weg von MSP. Einerseits war es interessant, unseren "Disaster Recovery"-Prozess zu testen - an einem Punkt war ich so verzweifelt, dass ich bereit war, diesen Server in der Hölle brennen zu lassen, alles auf einem neuen aufzubauen und einfach die DNS-Einträge zu aktualisieren... Zum Glück erwies sich das am Ende als unnötig.</p>
             <p>PS. Es ist wirklich "von selbst" kaputtgegangen, dank des Mail-Servers, nach einer Woche ohne menschliches Eingreifen... Das ist schon etwas...</p>
             <p>PS2. Sie sind mutig, wenn Sie den ganzen Weg bis hierher gelesen haben :-).</p>
+
+navigation:
+    home: "Startseite"
+
+compare_players:
+    comparison: "Vergleich"
+    head_to_head: "Direktvergleich"
+    select_players: "Spieler zum Vergleichen auswählen"
+    statistics: "Statistiken"
+    title: "Spielervergleich"
+
+contact:
+    email: "E-Mail"
+    message: "Nachricht"
+    send: "Senden"
+    thank_you: "Vielen Dank für Ihre Nachricht!"
+    title: "Kontakt"
+
+recent_activity:
+    latest_times: "Neueste Zeiten"
+    no_activity: "Keine kürzlichen Aktivitäten"
+    title: "Kürzliche Aktivitäten"
+
+collections:
+    meta:
+        title: "Puzzlebibliothek"
+    title: "Puzzlebibliothek"
+    title_other: "Puzzlebibliothek von %name%"
+    create:
+        button: "Sammlung erstellen"
+        title: "Neue Sammlung erstellen"
+        meta:
+            title: "Sammlung erstellen"
+        submit: "Erstellen"
+    edit:
+        button: "Bearbeiten"
+        title: "Sammlung %name% bearbeiten"
+        meta:
+            title: "Sammlung %name% bearbeiten"
+        submit: "Änderungen speichern"
+    delete:
+        button: "Löschen"
+        confirm:
+            title: "Sammlung löschen"
+            message: "Möchten Sie die Sammlung %name% wirklich löschen? Diese Aktion ist unwiderruflich und löscht auch alle Puzzles in dieser Sammlung."
+            button: "Sammlung löschen"
+    form:
+        name: "Name"
+        description: "Beschreibung"
+        visibility_help: "Öffentliche Sammlungen sind für alle Benutzer sichtbar, private nur für Sie."
+    flash:
+        created: "Sammlung wurde erfolgreich erstellt."
+        updated: "Sammlung wurde erfolgreich aktualisiert."
+        deleted: "Sammlung wurde erfolgreich gelöscht."
+        system_updated: "Sichtbarkeit der Puzzle-Sammlung wurde erfolgreich aktualisiert."
+        comment_updated: "Kommentar wurde erfolgreich aktualisiert."
+        membership_required: "Das Erstellen von Sammlungen ist eine Premium-Funktion. Holen Sie sich eine Mitgliedschaft, um Ihre Puzzles in unbegrenzten Sammlungen zu organisieren!"
+        puzzle_added: "Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
+        puzzle_removed: "Puzzle wurde aus der Sammlung entfernt."
+        login_required_add: "Sie müssen angemeldet sein, um Puzzles zu Sammlungen hinzuzufügen."
+        login_required_copy: "Sie müssen angemeldet sein, um Puzzles in Sammlungen zu kopieren."
+        login_required_move: "Sie müssen angemeldet sein, um Puzzles zwischen Sammlungen zu verschieben."
+        puzzle_moved: "Puzzle wurde erfolgreich in die Sammlung verschoben."
+    membership_required:
+        title: "Unbegrenzte Sammlungen freischalten"
+        message: "Erstellen Sie unbegrenzte Sammlungen, um Ihre Puzzles mit einer Mitgliedschaft zu organisieren!"
+        toast: "Das Erstellen von Sammlungen erfordert eine aktive Mitgliedschaft."
+        help_text: "Möchten Sie Puzzles in mehrere Sammlungen organisieren?"
+        unlock_link: "Mit Mitgliedschaft freischalten"
+    empty:
+        title: "Sie haben keine Sammlungen"
+        message: "Erstellen Sie Ihre erste Sammlung und beginnen Sie, Ihre Lieblings-Puzzles zu organisieren."
+        title_other: "Keine öffentlichen Sammlungen"
+        message_other: "%name% hat keine öffentlichen Sammlungen."
+    visibility:
+        public: "Öffentlich"
+        private: "Privat"
+    public: "Öffentlich"
+    private_page:
+        title: "Private Sammlung"
+        message: "Die Sammlung von %name% ist privat und kann nicht angezeigt werden."
+    system_name: "Puzzle-Sammlung"
+    already_in_system: "Puzzle bereits in Ihrer Sammlung"
+    already_in_system_message: "Dieses Puzzle ist bereits in Ihrer Puzzle-Sammlung. Möchten Sie Ihre Puzzles in mehrere Sammlungen organisieren? Schalten Sie diese Funktion mit einer Mitgliedschaft frei!"
+    add_to_collection: "Zur Sammlung hinzufügen"
+    add_puzzle_here:
+        button: "Puzzle hinzufügen"
+    add_puzzle_form:
+        title: "Puzzle zur Sammlung hinzufügen"
+        button: "Puzzle hinzufügen"
+        description: "Wählen Sie ein vorhandenes Puzzle aus oder fügen Sie ein neues zu Ihrer Sammlung hinzu."
+        submit: "Zur Sammlung hinzufügen"
+        success: "Das Puzzle wurde erfolgreich zur Sammlung hinzugefügt."
+    remove_from: "Aus %collection% entfernen"
+    remove: "Entfernen"
+    confirm_remove: "Sind Sie sicher, dass Sie dieses Puzzle aus der Sammlung entfernen möchten?"
+    items_count: "%count% Puzzles"
+    no_puzzles: "Keine Puzzles in dieser Sammlung"
+    no_puzzles_description: "Diese Sammlung ist leer. Fügen Sie einige Puzzles hinzu, um zu beginnen!"
+    added_on: "Hinzugefügt am %date%"
+    back_to_library: "Zurück zur Puzzle-Bibliothek"
+    select_collection_help: "Wählen Sie eine Sammlung oder lassen Sie das Feld leer, um es zu Ihrer Standard-Puzzle-Sammlung hinzuzufügen"
+    private_collection: "Private Sammlung"
+    private_collection_message: "Die Sammlung \"%collection%\" von %player% ist privat und kann nicht angezeigt werden."
+    collection_not_found: "Sammlung nicht gefunden"
+    edit_system:
+        title: "Puzzle-Sammlung bearbeiten"
+        meta:
+            title: "Puzzle-Sammlung bearbeiten"
+        submit: "Änderungen speichern"
+        info: "Sie können nur die Sichtbarkeit Ihrer Puzzle-Sammlung ändern. Name und Beschreibung können nicht geändert werden."
+    edit_comment:
+        title: "Kommentar bearbeiten"
+        meta:
+            title: "Kommentar bearbeiten - %name%"
+        submit: "Speichern"
+    remove_puzzle: "Aus Sammlung entfernen"
+    move_puzzle: "Puzzle in Sammlung verschieben"
+    copy_puzzle: "Puzzle in Sammlung kopieren"
+    move_to_collection: "In Sammlung verschieben"
+    copy_to_collection: "In Sammlung kopieren"
+    puzzle_copied: "Puzzle wurde erfolgreich in die Sammlung kopiert."
+    add_puzzle: "Puzzle zur Sammlung hinzufügen"
+    moving_from: "Verschieben von %collection%"
+    private: "Privat"
+    move_puzzle_submit: "Verschieben"
+    copy_puzzle_submit: "Kopieren"
+    no_move_target: "Keine verfügbaren Sammlungen"
+    no_move_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle verschoben werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
+    no_copy_target: "Keine verfügbaren Sammlungen"
+    no_copy_target_message: "Es gibt keine anderen Sammlungen, in die dieses Puzzle kopiert werden kann. Erstellen Sie eigene Sammlungen, um Ihre Puzzles zu organisieren."
+    comment_help: "Fügen Sie einen optionalen Kommentar zu diesem Puzzle in Ihrer Sammlung hinzu."
+
+unsolved_puzzles:
+    description: "Puzzles in deiner Sammlung, die du noch nicht gelöst hast"
+    description_other: "Puzzles, die %name% besitzt, aber noch nicht gelöst hat"
+    edit:
+        meta:
+            title: "Sichtbarkeit ungelöster Puzzles bearbeiten"
+        submit: "Änderungen speichern"
+        title: "Sichtbarkeit ungelöster Puzzles bearbeiten"
+    empty:
+        message: "Alle Puzzles in deiner Sammlung wurden gelöst!"
+        title: "Keine ungelösten Puzzles"
+    flash:
+        updated: "Die Sichtbarkeit der ungelösten Puzzles wurde erfolgreich aktualisiert."
+    form:
+        visibility_help: "Die öffentliche Liste ungelöster Puzzles ist für alle Benutzer sichtbar, privat nur für dich."
+    items_count: "%count% Puzzles"
+    meta:
+        title: "Ungelöste Puzzles"
+    name: "Ungelöste Puzzles"
+    private: "Private ungelöste Puzzles"
+    private_message: "Die Liste ungelöster Puzzles \"%collection%\" von %player% ist privat und kann nicht angezeigt werden."
+    title: "Ungelöste Puzzles"
+    title_other: "Ungelöste Puzzles von %name%"
+
+wish_list:
+    name: "Wunschliste"
+    meta:
+        title: "Wunschliste"
+    title: "Wunschliste"
+    title_other: "Wunschliste von %name%"
+    description: "Puzzles, die du bekommen möchtest"
+    description_other: "Puzzles, die %name% bekommen möchte"
+    items_count: "%count% Puzzles"
+    empty:
+        title: "Deine Wunschliste ist leer"
+        message: "Füge Puzzles hinzu, die du bekommen möchtest!"
+        title_other: "Leere Wunschliste"
+        message_other: "Die Wunschliste von %name% ist leer."
+    edit:
+        title: "Sichtbarkeit der Wunschliste bearbeiten"
+        meta:
+            title: "Sichtbarkeit der Wunschliste bearbeiten"
+        submit: "Änderungen speichern"
+    form:
+        visibility_help: "Die öffentliche Wunschliste ist für alle Benutzer sichtbar, privat nur für dich."
+        remove_on_add: "Automatisch von der Wunschliste entfernen"
+        remove_on_add_help: "Wenn aktiviert, wird dieses Puzzle automatisch von deiner Wunschliste entfernt, wenn du es zu einer Sammlung hinzufügst, eine Lösungszeit hinzufügst oder es ausleihst."
+    flash:
+        updated: "Die Sichtbarkeit der Wunschliste wurde erfolgreich aktualisiert."
+        added: "Puzzle wurde zu deiner Wunschliste hinzugefügt."
+        removed: "Puzzle wurde von deiner Wunschliste entfernt."
+        login_required: "Du musst angemeldet sein, um deine Wunschliste zu verwalten."
+    private: "Private Wunschliste"
+    private_message: "Die Wunschliste von %player% ist privat und kann nicht angezeigt werden."
+    add:
+        title: "Zur Wunschliste hinzufügen"
+        button: "Zur Wunschliste hinzufügen"
+        success: "Puzzle wurde zu deiner Wunschliste hinzugefügt."
+    remove:
+        button: "Von der Wunschliste entfernen"
+        success: "Puzzle wurde von deiner Wunschliste entfernt."
+    already_in_list: "Dieses Puzzle ist bereits auf deiner Wunschliste."
+    login_required: "Du musst angemeldet sein, um Puzzles zu deiner Wunschliste hinzuzufügen."
+    auto_remove_enabled: "Auto-Entfernen aktiviert"
+
+sell_swap_list:
+    name: "Verkauf/Tausch-Liste"
+    meta:
+        title: "Verkauf/Tausch-Liste"
+    title: "Verkauf/Tausch-Liste"
+    title_other: "Verkauf/Tausch-Liste von %name%"
+    description: "Puzzles zum Verkauf oder Tausch"
+    description_other: "Puzzles, die %name% verkauft oder tauscht"
+    items_count: "%count% Puzzles"
+    contact_notice: "Kontaktiere den Verkäufer direkt, um Kauf oder Tausch zu vereinbaren."
+    empty:
+        title: "Deine Verkauf/Tausch-Liste ist leer"
+        message: "Füge Puzzles hinzu, die du verkaufen oder tauschen möchtest!"
+        title_other: "Leere Verkauf/Tausch-Liste"
+        message_other: "Die Verkauf/Tausch-Liste von %name% ist leer."
+    edit_settings:
+        title: "Verkauf/Tausch-Listen-Einstellungen bearbeiten"
+        meta:
+            title: "Verkauf/Tausch-Listen-Einstellungen bearbeiten"
+        submit: "Änderungen speichern"
+    edit_item:
+        title: "Artikel bearbeiten"
+        meta:
+            title: "Verkaufs-/Tauschartikel bearbeiten"
+        submit: "Änderungen speichern"
+    settings:
+        title: "Verkauf/Tausch-Listen-Einstellungen"
+        info: "Konfiguriere deine Verkauf/Tausch-Listen-Einstellungen. Diese Informationen werden potenziellen Käufern angezeigt."
+        description: "Beschreibung"
+        description_placeholder: "Teile Käufern deine Verkaufsbedingungen, bevorzugte Zahlungsmethoden usw. mit."
+        description_help: "Teile Käufern deine Verkaufsbedingungen, bevorzugte Zahlungsmethoden usw. mit."
+        currency: "Währung"
+        currency_placeholder: "Währung auswählen..."
+        currency_custom: "Eigene Währung"
+        custom_currency: "Eigene Währung"
+        currency_custom_placeholder: "z.B. USD, GBP, CHF..."
+        custom_currency_placeholder: "z.B. USD, GBP, CHF..."
+        custom_currency_help: "Verwende dies, wenn deine Währung nicht in der obigen Liste enthalten ist."
+        shipping_info: "Versandinformationen"
+        shipping_info_placeholder: "Beschreibe deine Versandoptionen und -kosten..."
+        shipping_info_help: "Beschreibe deine Versandoptionen und -kosten..."
+        contact_info: "Kontaktinformationen"
+        contact_info_placeholder: "Wie sollen Käufer dich kontaktieren?"
+        contact_info_help: "Wie sollen Käufer dich kontaktieren?"
+        contact_info_warning: "Deine Kontaktinformationen werden öffentlich sichtbar sein. Teile nur das, womit du dich wohlfühlst."
+    form:
+        listing_type: "Angebotstyp"
+        price: "Preis"
+        price_help: "Leer lassen, wenn du den Preis besprechen möchtest oder nur für Tauschartikel. Du kannst deine Währung in den Verkauf/Tausch-Listen-Einstellungen festlegen."
+        condition: "Zustand"
+        condition_placeholder: "Zustand auswählen..."
+        comment: "Kommentar"
+        comment_placeholder: "Zusätzliche Details zu diesem Puzzle..."
+    listing_type:
+        swap: "Tausch"
+        sell: "Verkauf"
+        both: "Verkauf oder Tausch"
+    condition:
+        like_new: "Wie neu"
+        normal: "Normal"
+        not_so_good: "Nicht so gut"
+        missing_pieces: "Fehlende Teile"
+    filter:
+        all_types: "Alle Typen"
+        min_price: "Min. Preis"
+        max_price: "Max. Preis"
+    add:
+        title: "Zur Verkauf/Tausch-Liste hinzufügen"
+        button: "Zur Verkauf/Tausch-Liste hinzufügen"
+        success: "Puzzle wurde zu deiner Verkauf/Tausch-Liste hinzugefügt."
+    remove:
+        button: "Von der Verkauf/Tausch-Liste entfernen"
+        success: "Puzzle wurde von deiner Verkauf/Tausch-Liste entfernt."
+    already_in_list: "Dieses Puzzle ist bereits auf deiner Verkauf/Tausch-Liste."
+    login_required: "Du musst angemeldet sein, um deine Verkauf/Tausch-Liste zu verwalten."
+    membership_required:
+        title: "Nur für Mitglieder"
+        message: "Die Verkauf/Tausch-Liste ist ausschließlich für Mitglieder verfügbar."
+    mark_sold:
+        title: "Als verkauft/getauscht markieren"
+        button: "Als verkauft/getauscht markieren"
+        confirm: "Bestätigen"
+        warning: "Dies entfernt das Puzzle von deiner Verkauf/Tausch-Liste und allen deinen Sammlungen."
+        buyer_input: "Käufer"
+        buyer_input_help: "Gib den Spielercode des Käufers ein (z.B. #ABC123) oder den Namen. Leer lassen, falls unbekannt."
+        buyer_input_placeholder: "#ABC123 oder Name..."
+        success: "Puzzle wurde als verkauft/getauscht markiert und aus deinen Sammlungen entfernt."
+    back_to_list: "Zurück zur Verkauf/Tausch-Liste"
+    flash:
+        updated: "Verkauf/Tausch-Listen-Einstellungen wurden erfolgreich aktualisiert."
+        settings_updated: "Verkauf/Tausch-Listen-Einstellungen wurden erfolgreich aktualisiert."
+        item_updated: "Verkauf/Tausch-Listeneintrag wurde erfolgreich aktualisiert."
+        added: "Puzzle wurde zu deiner Verkauf/Tausch-Liste hinzugefügt."
+        removed: "Puzzle wurde von deiner Verkauf/Tausch-Liste entfernt."
+        login_required: "Du musst angemeldet sein, um deine Verkauf/Tausch-Liste zu verwalten."
+        validation_error: "Bitte behebe die Fehler und versuche es erneut."
+    history:
+        title: "Verkauft/Getauscht-Verlauf"
+        menu: "Verlauf"
+        button: "Verlauf"
+        empty: "Noch keine verkauften oder getauschten Artikel."
+        puzzle: "Puzzle"
+        type: "Typ"
+        price: "Preis"
+        buyer: "Käufer"
+        date: "Datum"
+        unknown_buyer: "Unbekannt"
+
+lend_borrow:
+    name: "Verleihen & Ausleihen"
+    title: "Verleihen & Ausleihen"
+    description: "Aktuell verliehene oder ausgeliehene Puzzles"
+    lent_count: "%count% verliehen"
+    borrowed_count: "%count% ausgeliehen"
+    tab:
+        lent: "Verliehen"
+        borrowed: "Ausgeliehen"
+    lent_to: "Verliehen an %name%"
+    borrowed_from: "Von %name%"
+    view_holder: "Aktuellen Besitzer anzeigen"
+    view_owner: "Eigentümer anzeigen"
+    lent:
+        empty:
+            title: "Keine verliehenen Puzzles"
+            message: "Du hast noch keine Puzzles verliehen. Verwende das Puzzle-Menü, um Puzzles an andere Spieler zu verleihen."
+            title_other: "Keine verliehenen Puzzles"
+            message_other: "%name% hat keine Puzzles verliehen."
+    borrowed:
+        empty:
+            title: "Keine ausgeliehenen Puzzles"
+            message: "Du hast keine ausgeliehenen Puzzles."
+            title_other: "Keine ausgeliehenen Puzzles"
+            message_other: "%name% hat keine Puzzles ausgeliehen."
+    form:
+        borrower_code: "Spielercode oder Name des Ausleihers"
+        borrower_code_help: "Für registrierte Benutzer verwende #code (z.B. #ABC123). Für nicht registrierte Personen gib einfach deren Namen ein."
+        borrower_code_placeholder: "#ABC123 oder Max Mustermann"
+        owner_code: "Spielercode oder Name des Eigentümers"
+        owner_code_help: "Für registrierte Benutzer verwende #code (z.B. #ABC123). Für nicht registrierte Personen gib einfach deren Namen ein."
+        owner_code_placeholder: "#ABC123 oder Max Mustermann"
+        notes: "Notizen"
+        notes_placeholder: "Optionale Notizen zu dieser Ausleihe..."
+        new_holder_code: "Spielercode oder Name des neuen Besitzers"
+        new_holder_code_help: "Für registrierte Benutzer verwende #code (z.B. #ABC123). Für nicht registrierte Personen gib einfach deren Namen ein."
+        new_holder_code_placeholder: "#ABC123 oder Max Mustermann"
+    lend:
+        title: "Puzzle verleihen"
+        button: "An Spieler verleihen"
+        description: "Verleihe dieses Puzzle an einen anderen Spieler. Er kann es weitergeben oder dir zurückgeben."
+    borrow:
+        title: "Als ausgeliehen markieren"
+        button: "Ausgeliehen von"
+        description: "Markiere dieses Puzzle als von einem anderen Spieler ausgeliehen."
+    pass:
+        title: "Puzzle weitergeben"
+        button: "An jemand anderen weitergeben"
+        description: "Gib %puzzle% an einen anderen Spieler weiter. Der Eigentümer kann es weiterhin nachverfolgen."
+    return:
+        title: "Puzzle zurückgeben"
+        button: "An Eigentümer zurückgeben"
+        confirm_message: "%puzzle% an seinen Eigentümer zurückgeben?"
+    membership_required:
+        title: "Nur für Mitglieder"
+        message: "Das Verleihen von Puzzles ist ausschließlich für Mitglieder verfügbar."
+    already_lent: "Dieses Puzzle ist bereits verliehen."
+    already_lent_short: "Bereits verliehen"
+    already_borrowed: "Dieses Puzzle ist bereits auf deiner Liste ausgeliehener Puzzles."
+    already_borrowed_short: "Bereits ausgeliehen"
+    login_required: "Du musst angemeldet sein, um deine Verleihliste zu verwalten."
+    edit_settings:
+        title: "Verleihen & Ausleihen-Einstellungen bearbeiten"
+        meta:
+            title: "Verleihen & Ausleihen-Einstellungen bearbeiten"
+        submit: "Änderungen speichern"
+    flash:
+        lent: "Puzzle wurde erfolgreich verliehen."
+        passed: "Puzzle wurde erfolgreich weitergegeben."
+        returned: "Puzzle wurde erfolgreich an den Eigentümer zurückgegeben."
+        borrowed: "Puzzle wurde als ausgeliehen markiert."
+        settings_updated: "Verleihen & Ausleihen-Einstellungen wurden erfolgreich aktualisiert."
+        login_required: "Du musst angemeldet sein, um deine Verleihliste zu verwalten."
+        validation_error: "Bitte behebe die Fehler und versuche es erneut."
+        player_not_found: "Spieler nicht gefunden. Bitte überprüfe den Spielercode."
+        cannot_lend_to_self: "Du kannst dir kein Puzzle selbst leihen."
+        cannot_borrow_from_self: "Du kannst dir kein Puzzle von dir selbst ausleihen."
+        cannot_pass_to_self: "Sie können ein Puzzle nicht an sich selbst weitergeben."
+
+status:
+    borrowed: "Geliehen"
+    collection: "In der Sammlung"
+    for_sale: "Zu verkaufen"
+    lent: "Verliehen"
+    solved: "Gelöst"
+    unsolved: "Ungelöst"
+    wishlist: "Wunschliste"

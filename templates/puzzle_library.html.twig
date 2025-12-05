@@ -1,0 +1,243 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'collections.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="d-md-flex justify-content-between align-items-start mb-4">
+        <h2>{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h2>
+        {% if isOwnProfile %}
+            <div class="d-flex gap-2">
+                <a href="{{ path('puzzle_add') }}?mode=collection" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-puzzle me-1"></i>{{ 'collections.add_puzzle_form.button'|trans }}
+                </a>
+                {% if logged_user.profile.activeMembership %}
+                    <a href="{{ path('create_collection') }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}
+                    </a>
+                {% else %}
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <i class="ci-locked me-1"></i>{{ 'collections.create.button'|trans }}
+                    </button>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if collections|length > 0 %}
+        <div class="row">
+            {% for collection in collections %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card shadow-lg border-start border-5 {% if collection.isLendBorrowList %} border-purple{% elseif collection.isSellSwapList %} border-success{% elseif collection.isWishList %} border-info{% elseif collection.isUnsolvedPuzzles %} border-warning{% elseif collection.isSystemCollection %} border-primary{% endif %}">
+                        <div class="card-header d-flex justify-content-between align-items-start px-3">
+                            <h5 class="card-title mb-0">
+                                {% if collection.isLendBorrowList %}
+                                    <a href="{{ path('lend_borrow_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        <i class="bi bi-box-arrow-right me-1"></i>{{ collection.name }}
+                                    </a>
+                                    {% if isOwnProfile and not logged_user.profile.activeMembership %}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-xs ms-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#membersExclusiveModal">
+                                            <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_short'|trans }}
+                                        </button>
+                                    {% endif %}
+                                {% elseif collection.isSellSwapList %}
+                                    <a href="{{ path('sell_swap_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        <i class="bi bi-shop me-1"></i>{{ collection.name }}
+                                    </a>
+                                    {% if isOwnProfile and not logged_user.profile.activeMembership %}
+                                        <button type="button"
+                                                class="btn btn-outline-secondary btn-xs ms-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#membersExclusiveModal">
+                                            <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_short'|trans }}
+                                        </button>
+                                    {% endif %}
+                                {% elseif collection.isWishList %}
+                                    <a href="{{ path('wish_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        <i class="bi bi-heart me-1"></i>{{ collection.name }}
+                                    </a>
+                                {% elseif collection.isUnsolvedPuzzles %}
+                                    <a href="{{ path('unsolved_puzzles_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        <i class="ci-time me-1"></i>{{ collection.name }}
+                                    </a>
+                                {% elseif collection.isSystemCollection %}
+                                    <a href="{{ path('system_collection_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        <i class="bi bi-collection me-1"></i>{{ collection.name }}
+                                    </a>
+                                {% else %}
+                                    <a href="{{ path('collection_detail', {collectionId: collection.collectionId}) }}" class="text-decoration-none">
+                                        <i class="bi bi-collection me-1"></i>{{ collection.name }}
+                                    </a>
+                                {% endif %}
+                            </h5>
+                            {% if isOwnProfile %}
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                            type="button" data-bs-toggle="dropdown">
+                                        <i class="ci-menu"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        {% if collection.collectionId %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_collection', {'collectionId': collection.collectionId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ collection.collectionId }}">
+                                                    <i class="bi bi-trash me-1"></i>{{ 'collections.delete.button'|trans }}
+                                                </button>
+                                            </li>
+                                        {% elseif collection.isLendBorrowList %}
+                                            {% if logged_user.profile.activeMembership %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('edit_lend_borrow_list_settings', {'playerId': player.playerId}) }}">
+                                                        <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                                        <i class="ci-locked me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                    </button>
+                                                </li>
+                                            {% endif %}
+                                        {% elseif collection.isSellSwapList %}
+                                            {% if logged_user.profile.activeMembership %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_settings', {'playerId': player.playerId}) }}">
+                                                        <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ path('sold_swapped_history', {'playerId': player.playerId}) }}">
+                                                        <i class="bi bi-clock-history me-1"></i>{{ 'sell_swap_list.history.menu'|trans }}
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                                        <i class="ci-locked me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                    </button>
+                                                </li>
+                                            {% endif %}
+                                        {% elseif collection.isWishList %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_wish_list', {'playerId': player.playerId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                        {% elseif collection.isUnsolvedPuzzles %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_unsolved_puzzles', {'playerId': player.playerId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_system_collection', {'playerId': player.playerId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                {% if isOwnProfile %}
+                                    <div class="{{ collection.isPublic() ? 'text-primary' }} small">
+                                        <i class="bi bi-{{ collection.isPublic() ? 'eye' : 'lock' }} me-1"></i>
+                                        {% if collection.isPublic() %}
+                                            {{ 'collections.visibility.public'|trans }}
+                                        {% else %}
+                                            {{ 'collections.visibility.private'|trans }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <div class="small">
+                                    <i class="bi bi-puzzle me-1"></i>
+                                    {% if collection.isLendBorrowList %}
+                                        {{ 'lend_borrow.lent_count'|trans({'%count%': collection.lentCount}) }}
+                                        <span class="text-muted">·</span>
+                                        {{ 'lend_borrow.borrowed_count'|trans({'%count%': collection.borrowedCount}) }}
+                                    {% else %}
+                                        {{ 'collections.items_count'|trans({'%count%': collection.itemCount}) }}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if collection.description %}
+                                <p class="card-text text-muted mb-0 mt-2 small">{{ collection.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-collection display-1 text-muted"></i>
+            </div>
+            {% if isOwnProfile %}
+                <h3 class="text-muted">{{ 'collections.empty.title'|trans }}</h3>
+                <p class="text-muted">{{ 'collections.empty.message'|trans }}</p>
+                {% if logged_user.profile.activeMembership %}
+                    <a href="{{ path('create_collection') }}" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>{{ 'collections.create.button'|trans }}
+                    </a>
+                {% else %}
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <i class="ci-locked me-1"></i>{{ 'collections.create.button'|trans }}
+                    </button>
+                {% endif %}
+            {% else %}
+                <h3 class="text-muted">{{ 'collections.empty.title_other'|trans }}</h3>
+                <p class="text-muted">{{ 'collections.empty.message_other'|trans({'%name%': player.playerName}) }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if isOwnProfile %}
+        {% for collection in collections %}
+            {% if collection.collectionId %}
+                <!-- Delete Confirmation Modal for {{ collection.name }} -->
+                <div class="modal fade" tabindex="-1" role="dialog" id="deleteModal{{ collection.collectionId }}">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">{{ 'collections.delete.confirm.title'|trans }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="fs-sm">{{ 'collections.delete.confirm.message'|trans({'%name%': collection.name}) }}</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                                <a data-turbo-prefetch="false" href="{{ path('delete_collection', {'collectionId': collection.collectionId}) }}" class="btn btn-danger btn-sm">{{ 'collections.delete.confirm.button'|trans }}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+{% endblock %}

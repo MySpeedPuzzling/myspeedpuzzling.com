@@ -3,12 +3,17 @@
     {{ form_start(solving_time_form, { 'attr': { 'data-controller': 'submit-prevention' } }) }}
         {{ form_errors(solving_time_form) }}
 
+        {# Hidden mode field - controlled by Stimulus (only for add form) #}
+        {% if solving_time_form.mode is defined %}
+            {{ form_widget(solving_time_form.mode, {'attr': {'data-puzzle-add-form-target': 'modeInput', 'class': 'd-none'}}) }}
+        {% endif %}
+
         <div class="row pb-4" {% if active_puzzle is null %}data-controller="time-form-autocomplete"{% endif %}>
-            <div class="col-lg-6 offset-lg-1 order-lg-2">
+            <div class="col-lg-6 order-lg-1">
 
                 {% if active_puzzle is not null %}
-                    <div>
-                        <h5>{{ 'add_time.chosen_puzzle'|trans }}</h5>
+                    <div class="card card-body shadow mb-3">
+                        <h5>{{ 'puzzle_add.chosen_puzzle'|trans }}</h5>
 
                         <div class="py-1 d-flex low-line-height">
                             {% if active_puzzle.puzzleImage is not null%}
@@ -30,119 +35,199 @@
                 {% endif %}
 
                 <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
-                    {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
+                    <div class="card card-body shadow mb-3">
+                        {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
-                    {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+                        {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
 
-                    <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
-                        <p>
-                            <small class="text-muted">{{ 'add_time.need_approve_info'|trans }}</small>
-                        </p>
+                        <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
+                            <p>
+                                <small class="text-muted">{{ 'puzzle_add.need_approve_info'|trans }}</small>
+                            </p>
 
-                        {{ form_row(solving_time_form.puzzlePiecesCount) }}
+                            {{ form_row(solving_time_form.puzzlePiecesCount) }}
 
-                        {{ form_row(solving_time_form.puzzleEan) }}
-                        {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
+                            {{ form_row(solving_time_form.puzzleEan) }}
+                            {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
 
-                        {{ form_label(solving_time_form.puzzlePhoto) }}
-                        {{ form_errors(solving_time_form.puzzlePhoto) }}
+                            {{ form_label(solving_time_form.puzzlePhoto) }}
+                            {{ form_errors(solving_time_form.puzzlePhoto) }}
 
-                        <div class="form-text mb-1 help-text">{{ 'forms.puzzle_photo_help'|trans }}</div>
-                        <div class="file-drop-area">
-                            <div class="file-drop-icon ci-cloud-upload"></div>
-                            <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
-                            {{ form_widget(solving_time_form.puzzlePhoto, {'attr': {'class': 'file-drop-input'}}) }}
-                            <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
+                            <div class="form-text mb-1 help-text">{{ 'forms.puzzle_photo_help'|trans }}</div>
+                            <div class="file-drop-area">
+                                <div class="file-drop-icon ci-cloud-upload"></div>
+                                <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
+                                {{ form_widget(solving_time_form.puzzlePhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                                <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-5 order-lg-1">
-                <div class="row">
-                    <div class="col-sm mb-3">
-                        {% if active_stopwatch is not null %}
-                            <span class="form-label">{{ 'add_time.time_from_stopwatch'|trans }}</span><br>
-                            <span class="h5 mt-2 d-inline-block">{{ active_stopwatch.totalSeconds|puzzlingTime }}</span>
-                        {% endif %}
+            <div class="col-lg-6 order-lg-2">
+                {# Time and date section (Speed + Relax, but time only for Speed) #}
+                <div class="card card-body shadow mb-3" data-puzzle-add-form-target="timeAndDateSection">
+                    <div class="row">
+                        {# Time field - Speed Puzzling only #}
+                        <div class="col-sm mb-3" data-puzzle-add-form-target="timeSection">
+                            {% if active_stopwatch is not null %}
+                                <span class="form-label">{{ 'puzzle_add.time_from_stopwatch'|trans }}</span><br>
+                                <span class="h5 mt-2 d-inline-block">{{ active_stopwatch.totalSeconds|puzzlingTime }}</span>
+                            {% endif %}
 
-                        <div style="{% if active_stopwatch is not null %}display: none;{% endif %}">
-                            {{ form_label(solving_time_form.time) }}
+                            <div style="{% if active_stopwatch is not null %}display: none;{% endif %}">
+                                <label class="form-label required">{{ 'time'|trans }}</label>
+                                <div class="d-flex align-items-center gap-1">
+                                    <div class="flex-grow-1">
+                                        {{ form_widget(solving_time_form.timeHours) }}
+                                        <div class="text-center text-muted small">{{ 'forms.hours_short'|trans }}</div>
+                                    </div>
+                                    <span class="fs-4 text-muted pb-3">:</span>
+                                    <div class="flex-grow-1">
+                                        {{ form_widget(solving_time_form.timeMinutes) }}
+                                        <div class="text-center text-muted small">{{ 'forms.minutes_short'|trans }}</div>
+                                    </div>
+                                    <span class="fs-4 text-muted pb-3">:</span>
+                                    <div class="flex-grow-1">
+                                        {{ form_widget(solving_time_form.timeSeconds) }}
+                                        <div class="text-center text-muted small">{{ 'forms.seconds_short'|trans }}</div>
+                                    </div>
+                                </div>
+                                {{ form_errors(solving_time_form.timeHours) }}
+                                {{ form_errors(solving_time_form.timeMinutes) }}
+                                {{ form_errors(solving_time_form.timeSeconds) }}
+                            </div>
+                        </div>
+
+                        {# Date field - Speed + Relax #}
+                        <div class="col-sm mb-3">
+                            {{ form_label(solving_time_form.finishedAt) }}
                             <div class="input-group">
-                                {{ form_widget(solving_time_form.time, {'attr': {'class': 'form-control rounded pe-5'}}) }}
-                                {% if solving_time_form.time.vars.valid %}
-                                    <i class="ci-time position-absolute top-50 end-0 translate-middle-y me-3"></i>
-                                {% endif %}
+                                {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
+                                <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
                             </div>
-                            {{ form_help(solving_time_form.time) }}
-                            {{ form_errors(solving_time_form.time) }}
+                            {{ form_help(solving_time_form.finishedAt) }}
+                            {{ form_errors(solving_time_form.finishedAt) }}
                         </div>
-
                     </div>
 
-                    <div class="col-sm mb-3">
-                        {{ form_label(solving_time_form.finishedAt) }}
-                        <div class="input-group">
-                            {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
-                            <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
-                        </div>
-                        {{ form_help(solving_time_form.finishedAt) }}
-                        {{ form_errors(solving_time_form.finishedAt) }}
+                    {# First attempt - Speed Puzzling only #}
+                    <div class="form-switch" data-puzzle-add-form-target="firstAttemptSection">
+                        {{ form_row(solving_time_form.firstAttempt) }}
                     </div>
                 </div>
 
-                <div class="form-switch">
-                    {{ form_row(solving_time_form.firstAttempt) }}
+                {# Group players section (Speed + Relax only) #}
+                <div data-puzzle-add-form-target="groupSection">
+                    {% set has_group_players = filled_group_players is defined and filled_group_players|length > 0 %}
+                    <div data-controller="toggle">
+                        <button type="button" class="btn btn-outline-primary w-100 mb-3 shadow {{ has_group_players ? 'hidden' }}" data-action="click->toggle#toggle click->add-copuzzler#addPuzzler" data-toggle-target-param="group">
+                            <i class="ci-add-user me-1"></i> {{ 'puzzle_add.group_puzzling'|trans }}
+                        </button>
+
+                        <div class="card card-body shadow mb-3 {{ not has_group_players ? 'hidden' }}" data-toggle-target="group">
+                            <div data-add-copuzzler-target="puzzlersGroup">
+                                {% for filled_group_player in filled_group_players %}
+                                    {{ include('_group_puzzler_input.html.twig', {
+                                        inputId: loop.index,
+                                        inputValue: filled_group_player,
+                                    }) }}
+                                {% endfor %}
+                            </div>
+
+                            <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary"><i class="ci-add-user"></i> {{ 'puzzle_add.add_puzzler'|trans }}</button>
+                        </div>
+                    </div>
                 </div>
 
-                <div data-add-copuzzler-target="puzzlersGroup">
-                    {% for filled_group_player in filled_group_players %}
-                        {{ include('_group_puzzler_input.html.twig', {
-                            inputId: loop.index,
-                            inputValue: filled_group_player,
-                        }) }}
-                    {% endfor %}
+                {# Competition section (Speed Puzzling only) #}
+                <div data-puzzle-add-form-target="competitionSection">
+                    {% set competition_filled = solving_time_form.competition.vars.value is not empty %}
+                    <div data-controller="toggle">
+                        <button type="button" class="btn btn-outline-accent shadow w-100 mb-3 {{ competition_filled ? 'hidden' }}" data-action="click->toggle#toggle" data-toggle-target-param="competition">
+                            <i class="bi-trophy me-1"></i> {{ 'puzzle_add.competition_result'|trans }}
+                        </button>
+
+                        <div class="card card-body shadow mb-3 {{ not competition_filled ? 'hidden' }}" data-toggle-target="competition">
+                            {{ form_label(solving_time_form.competition) }}
+                            {{ form_widget(solving_time_form.competition, {'attr': {'data-time-form-autocomplete-target': 'competition'}}) }}
+                            {{ form_help(solving_time_form.competition) }}
+                            {{ form_errors(solving_time_form.competition) }}
+                        </div>
+                    </div>
                 </div>
 
-                <button id="add-puzzler" data-action="click->add-copuzzler#addPuzzler" data-add-copuzzler-target="addPuzzlerBtn" type="button" class="btn btn-sm btn-outline-primary mb-3"><i class="ci-add"></i> {{ 'add_time.add_puzzler'|trans }}</button>
+                {# Comment and photo section (Speed + Relax only) #}
+                <div class="card card-body shadow mb-3" data-puzzle-add-form-target="commonSection">
+                    {{ form_row(solving_time_form.comment) }}
 
-                <div class="mb-3">
-                    {{ form_label(solving_time_form.competition, null, {
-                        'label_html': true,
-                        'label': ('forms.competition'|trans) ~ ' <span class="badge bg-primary ms-1">NEW</span>'
-                    }) }}
-                    {{ form_widget(solving_time_form.competition, {'attr': {'data-time-form-autocomplete-target': 'competition'}}) }}
-                    {{ form_help(solving_time_form.competition) }}
-                    {{ form_errors(solving_time_form.competition) }}
+                    {{ form_label(solving_time_form.finishedPuzzlesPhoto) }}
+                    {{ form_errors(solving_time_form.finishedPuzzlesPhoto) }}
+
+                    <div class="file-drop-area">
+                        <div class="file-drop-icon">
+                            {% if solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
+                                <div class="file-drop-preview img-thumbnail rounded">
+                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
+                                </div>
+                            {% endif %}
+                            <i class="ci-cloud-upload"></i>
+                        </div>
+
+                        <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
+                        {{ form_widget(solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
+                        <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
+                    </div>
                 </div>
 
-                {{ form_row(solving_time_form.comment) }}
+                {# Collection section (Collection mode only, not in edit form) #}
+                {% if solving_time_form.collection is defined %}
+                    <div class="card card-body shadow mb-3 d-none" data-puzzle-add-form-target="collectionSection">
+                        {% if not has_active_membership|default(true) %}
+                            {# Non-member: show locked input with system collection name #}
+                            <div class="mb-3">
+                                <label class="form-label">{{ 'forms.add_puzzle_to_collection.collection'|trans }}</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control"
+                                           value="{{ 'collections.system_name'|trans }}" disabled readonly>
+                                    <span class="input-group-text bg-light">
+                                        <i class="ci-locked"></i>
+                                    </span>
+                                </div>
+                                <small class="form-text text-muted">
+                                    {{ 'collections.membership_required.help_text'|trans }}
+                                    <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                                            data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                        <i class="ci-locked"></i> {{ 'collections.membership_required.unlock_link'|trans }}
+                                    </button>
+                                </small>
+                            </div>
+                            {# Hidden actual collection field with system collection pre-selected #}
+                            {{ form_row(solving_time_form.collection, {'row_attr': {'class': 'd-none'}}) }}
+                        {% else %}
+                            {# Member: show collection selector with autocomplete #}
+                            {{ form_row(solving_time_form.collection) }}
 
-                {{ form_label(solving_time_form.finishedPuzzlesPhoto) }}
-                {{ form_errors(solving_time_form.finishedPuzzlesPhoto) }}
-                <div class="file-drop-area">
-                    <div class="file-drop-icon">
-                        {% if solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
-                            <div class="file-drop-preview img-thumbnail rounded">
-                                <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
+                            <div data-puzzle-add-form-target="newCollectionFields" class="d-none">
+                                <div class="border rounded p-3 bg-light mb-3">
+                                    <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
+                                    {{ form_row(solving_time_form.collectionVisibility) }}
+                                    {{ form_row(solving_time_form.collectionDescription) }}
+                                </div>
                             </div>
                         {% endif %}
-                        <i class="ci-cloud-upload"></i>
+
+                        {{ form_row(solving_time_form.collectionComment) }}
                     </div>
-
-                    <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>
-                    {{ form_widget(solving_time_form.finishedPuzzlesPhoto, {'attr': {'class': 'file-drop-input'}}) }}
-                    <button type="button" class="file-drop-btn btn btn-outline-primary btn-sm">{{ 'forms.choose_file'|trans }}</button>
-                </div>
-
-                <button type="submit" name="submit" class="btn btn-primary mt-3" data-submit-prevention-target="submit">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    {{ 'forms.save'|trans }}
-                </button>
-
+                {% endif %}
             </div>
-
         </div>
+
+        <button type="submit" name="submit" class="btn btn-primary w-100" data-submit-prevention-target="submit">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            <i class="ci-check me-1"></i> {{ 'forms.save'|trans }}
+        </button>
     {{ form_end(solving_time_form) }}
 
     <div id="puzzler-input-template" data-add-copuzzler-target="puzzlerTemplate">

@@ -1,6 +1,6 @@
 <div data-puzzler class="mb-3">
     <label class="form-label required" {% if inputId is defined %}for="playerInput-{{ inputId }}"{% endif %}>
-        {{ 'add_time.teamplayer'|trans }}
+        {{ 'puzzle_add.teamplayer'|trans }}
         <span data-counter>{% if inputId is defined %}{{ inputId }}{% endif %}</span>
     </label>
 
@@ -10,7 +10,7 @@
         <input name="group_players[]" class="form-control {% if isInputInvalid %}is-invalid{% endif %}" type="text" value="{% if inputValue is defined %}{{ inputValue }}{% endif %}">
 
         <select class="form-select group-favorite-player-select" data-action="change->add-copuzzler#selectChanged">
-            <option value="">{{ 'add_time.choose_from_favorites'|trans }}</option>
+            <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
             {% for favorite_player in favorite_players %}
                 <option value="{{ favorite_player.playerCode }}">{{ favorite_player.playerName }}</option>
             {% endfor %}
@@ -23,5 +23,5 @@
     {% if isInputInvalid %}
         <div class="invalid-feedback d-block">{{ 'forms.required_field'|trans }}</div>
     {% endif %}
-    <div class="form-text">{{ 'add_time.player_code_info'|trans }}</div>
+    <div class="form-text">{{ 'puzzle_add.player_code_info'|trans }}</div>
 </div>

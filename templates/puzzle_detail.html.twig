@@ -8,22 +8,26 @@
 
         <div class="d-flex">
             <div class="flex-shrink-0 puzzle-detail-image text-center me-2 me-md-3">
-                {% if puzzle.puzzleImage is not null%}
-                    <div class="gallery">
+                <div class="gallery">
+                    {% if puzzle.puzzleImage is not null %}
                         <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
-                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}">
                         </a>
-                    </div>
-                {% endif %}
+                    {% else %}
+                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" class="rounded-2">
+                    {% endif %}
+                </div>
             </div>
 
             <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
                 <div class="me-md-4">
-                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }}
-                        {% if puzzle.puzzleId in puzzles_solved_by_user %}
-                            <i class="small text-decoration-none ci-check-circle text-success"></i>
-                        {% endif %}
-                    </h1>
+                    <h1 class="h4 mb-0">{{ puzzle.puzzleName }}</h1>
+                    <div class="mb-1" id="puzzle-badges-{{ puzzle.puzzleId }}">
+                        {{ include('puzzle/_badges.html.twig', {
+                            puzzle_id: puzzle.puzzleId,
+                            puzzle_statuses: puzzle_statuses,
+                        }) }}
+                    </div>
 
                     <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
                 </div>
@@ -56,8 +60,8 @@
 
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('add_time', {puzzleId: puzzle.puzzleId}) }}">
-                            <i class="ci-add me-1"></i> {{ 'add_my_time'|trans }}
+                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: puzzle.puzzleId}) }}">
+                            <i class="ci-add me-1"></i> {{  'add_solving'|trans }}
                         </a>
                     </li>
                     <li>
@@ -65,19 +69,18 @@
                             <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
                         </a>
                     </li>
-                    <li>
-                        {% if puzzle_collections[puzzle.puzzleId] ?? null %}
-                            <a class="dropdown-item text-danger" rel="nofollow" data-turbo-prefetch="false" href="{{ path('remove_puzzle_from_collection', {puzzleId: puzzle.puzzleId}) }}">
-                                <i class="bi-list-check me-1"></i> {{ 'remove_from_collection'|trans }}
-                            </a>
-                        {% else %}
-                            <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_puzzle_to_collection', {puzzleId: puzzle.puzzleId}) }}">
-                                <i class="bi-list me-1"></i> {{ 'add_to_collection'|trans }}
-                            </a>
-                        {% endif %}
-                    </li>
+
+                    {% if logged_user.profile is not null %}
+                        <li><hr class="dropdown-divider"></li>
+
+                        {{ include('puzzle/_dropdown_actions.html.twig', {
+                            puzzle_id: puzzle.puzzleId,
+                            puzzle_statuses: puzzle_statuses,
+                        }) }}
+                    {% endif %}
                 </ul>
             </div>
+
         </div>
 
     </div>

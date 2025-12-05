@@ -456,6 +456,10 @@ button[data-submit-prevention-target] {
     max-width: 320px;
 }
 
+.ts-control {
+    min-height: 46px;
+}
+
 .filters {
     .form-select {
         padding: 4px 25px 4px 6px;
@@ -481,6 +485,7 @@ button[data-submit-prevention-target] {
 
     .ts-control {
         padding: 4px 20px 4px 4px !important;
+        min-height: auto;
 
         .clear-button {
             right: 25px !important;
@@ -911,4 +916,33 @@ header {
     @media (min-width: 768px) {
         top: 101px;
     }
+}
+
+.toast-body {
+    color: #fff !important;
+    font-weight: bold;
+}
+
+.toast-container {
+    top: 100px;
+    right: 0;
+
+    @media (max-width: 767px) {
+        top: auto;
+        bottom: 15px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+    }
+}
+
+.shadow-primary {
+    box-shadow: 0 0 75px -10px rgba(254, 105, 106, .5) !important;
+}
+
+.collection-comment-truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }

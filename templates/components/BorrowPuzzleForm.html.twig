@@ -1,0 +1,69 @@
+<div {{ attributes }}>
+    {% if this.isLoggedIn %}
+        {% if not this.hasMembership %}
+            <div class="text-center py-3">
+                <div class="mb-3">
+                    <i class="ci-locked fs-1 text-muted"></i>
+                </div>
+                <h5 class="text-muted">{{ 'lend_borrow.membership_required.title'|trans }}</h5>
+                <p class="text-muted small">{{ 'lend_borrow.membership_required.message'|trans }}</p>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                    data-bs-dismiss="modal"
+                >
+                    <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_button'|trans }}
+                </button>
+            </div>
+        {% elseif this.isPuzzleAlreadyBorrowed %}
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-box-arrow-in-left me-2"></i>{{ 'lend_borrow.already_borrowed'|trans }}
+            </div>
+        {% else %}
+            {{ form_start(form, {
+                action: path('borrow_puzzle', {puzzleId: this.puzzleId}),
+                attr: {'data-turbo': 'true'}
+            }) }}
+            <input type="hidden" name="context" value="{{ this.context }}">
+
+            <div class="mb-3" data-controller="favorite-player-select">
+                {{ form_label(form.ownerCode) }}
+                <div class="input-group">
+                    {{ form_widget(form.ownerCode, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
+                    <select class="form-select"
+                            data-favorite-player-select-target="select"
+                            data-action="change->favorite-player-select#selectChanged">
+                        <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+                        {% for favorite in this.favoritePlayers %}
+                            <option value="{{ favorite.playerCode }}">
+                                {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <small class="form-text text-muted">{{ 'lend_borrow.form.owner_code_help'|trans }}</small>
+            </div>
+
+            <div class="mb-4">
+                {{ form_row(form.notes) }}
+            </div>
+
+            <div class="d-grid gap-2 d-sm-flex">
+                <button type="submit" class="btn btn-primary flex-grow-1" data-loading-text="{{ 'forms.saving'|trans }}">
+                    <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.borrow.button'|trans }}
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {{ 'forms.cancel'|trans }}
+                </button>
+            </div>
+
+            {{ form_end(form) }}
+        {% endif %}
+    {% else %}
+        <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ 'lend_borrow.login_required'|trans }}
+        </div>
+    {% endif %}
+</div>

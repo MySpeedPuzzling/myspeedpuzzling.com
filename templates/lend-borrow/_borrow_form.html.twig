@@ -1,0 +1,32 @@
+{{ form_start(form, {
+    action: path('borrow_puzzle', {puzzleId: puzzle.puzzleId}),
+    attr: in_modal ? {'data-turbo': 'true'} : {}
+}) }}
+
+<div class="mb-3">
+    {{ form_label(form.ownerCode) }}
+    {{ form_widget(form.ownerCode) }}
+    <small class="form-text text-muted">{{ 'lend_borrow.form.owner_code_help'|trans }}</small>
+    {{ form_errors(form.ownerCode) }}
+</div>
+
+<div class="mb-4">
+    {{ form_row(form.notes) }}
+</div>
+
+<div class="d-grid gap-2 d-sm-flex">
+    <button type="submit" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.borrow.button'|trans }}
+    </button>
+    {% if in_modal %}
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            {{ 'forms.cancel'|trans }}
+        </button>
+    {% else %}
+        <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-secondary">
+            {{ 'forms.cancel'|trans }}
+        </a>
+    {% endif %}
+</div>
+
+{{ form_end(form) }}

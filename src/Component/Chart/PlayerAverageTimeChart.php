@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component\Chart;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerChartData;
 use SpeedPuzzling\Web\Value\ChartTimePeriodType;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -39,6 +40,7 @@ final class PlayerAverageTimeChart
     public function __construct(
         readonly private ChartBuilderInterface $chartBuilder,
         readonly private GetPlayerChartData $getPlayerChartData,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -112,7 +114,7 @@ final class PlayerAverageTimeChart
     public function availableBrands(): array
     {
         $brandChoices = [
-            'all' => 'All brands',
+            'all' => $this->translator->trans('statistics.all_brands'),
         ];
 
         $playerId = $this->playerId;

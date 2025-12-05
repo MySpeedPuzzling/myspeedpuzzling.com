@@ -1,0 +1,58 @@
+{#
+    Stream for collection actions from puzzle detail page or wishlist page.
+    Updates badges and dropdown on the detail page, or removes item from wishlist.
+
+    Parameters:
+    - puzzle_id: The puzzle ID
+    - puzzle_statuses: UserPuzzleStatuses object
+    - message: Toast message
+    - context: 'detail' (puzzle detail page) or 'list' (wishlist page)
+
+    For list context (wishlist), additional parameters:
+    - remaining_count: Number of remaining items in wishlist
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{% if context|default('detail') == 'list' %}
+    {# Wishlist page: only remove the item if removeOnCollectionAdd is true #}
+    {% if should_remove_from_wishlist|default(false) %}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'remove',
+            page_context: 'wishlist',
+            puzzle_id: puzzle_id,
+        }) }}
+
+        {# Update the count #}
+        <turbo-stream action="update" target="wishlist-count">
+            <template>{{ remaining_count }}</template>
+        </turbo-stream>
+
+        {# Show empty state if no items remaining #}
+        {% if remaining_count == 0 %}
+        <turbo-stream action="update" target="wishlist-list-container">
+            <template>
+                {{ include('wishlist/_empty_state.html.twig') }}
+            </template>
+        </turbo-stream>
+        {% endif %}
+    {% endif %}
+{% else %}
+    {# Puzzle detail page: update badges and dropdown #}
+    <turbo-stream action="update" target="puzzle-badges-{{ puzzle_id }}">
+        <template>
+            {{ include('puzzle/_badges.html.twig', {
+                puzzle_id: puzzle_id,
+                puzzle_statuses: puzzle_statuses
+            }) }}
+        </template>
+    </turbo-stream>
+
+    {# Update dropdown actions on detail page #}
+    {{ include('puzzle/_dropdown_actions_stream.html.twig', {
+        puzzle_id: puzzle_id,
+        puzzle_statuses: puzzle_statuses,
+    }) }}
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

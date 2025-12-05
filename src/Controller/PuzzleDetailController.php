@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
-use SpeedPuzzling\Web\Query\GetPuzzleCollection;
+use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetTags;
-use SpeedPuzzling\Web\Query\GetUserSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,11 +22,11 @@ final class PuzzleDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetPuzzleOverview $getPuzzleOverview,
-        readonly private GetUserSolvedPuzzles $getUserSolvedPuzzles,
-        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
-        readonly private GetPuzzleCollection $getPuzzleCollection,
+        readonly private GetPuzzleCollections $getPuzzleCollections,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
 
@@ -62,23 +62,20 @@ final class PuzzleDetailController extends AbstractController
             return $this->redirectToRoute('puzzles');
         }
 
-        $userSolvedPuzzles = $this->getUserSolvedPuzzles->byUserId(
-            $user?->getUserIdentifier()
-        );
+        $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
+        $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
-
-        $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
         $puzzleCollections = [];
-
-        if ($playerProfile !== null) {
-            $puzzleCollections = $this->getPuzzleCollection->forPlayer($playerProfile->playerId);
+        if ($loggedPlayer !== null) {
+            $puzzleCollections = $this->getPuzzleCollections->byPlayerAndPuzzle($loggedPlayer->playerId, $puzzleId);
         }
 
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
-            'puzzles_solved_by_user' => $userSolvedPuzzles,
+            'puzzle_statuses' => $puzzleStatuses,
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
+            'logged_player' => $loggedPlayer,
         ]);
     }
 }

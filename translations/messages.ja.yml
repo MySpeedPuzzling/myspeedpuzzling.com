@@ -1,6 +1,6 @@
 menu:
     my_profile: "マイプロフィール"
-    add_time: "タイム追加"
+    puzzle_add: "追加"
     stopwatch: "ストップウォッチ"
     puzzles_overview: "パズル"
     ladder: "リーダーボード"
@@ -15,12 +15,20 @@ menu:
     membership: "メンバーシップ"
     search: "検索"
     statistics: "統計"
-    collection: "コレクション"
     favorite_puzzlers: "お気に入りプレイヤー"
     edit_profile: "プロフィール編集"
     change_player_code: "プレイヤーコード変更"
     profile: "プロフィール"
     events: "イベント"
+    puzzle_library: "パズルライブラリ"
+
+navigation:
+    home: "ホーム"
+
+form:
+    visibility: "表示設定"
+    visibility_public: "公開"
+    visibility_private: "非公開"
 
 footer:
     created_with_love: "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
@@ -30,6 +38,7 @@ footer:
     speed_puzzling_players: "スピードパズリングプレイヤー"
     latest_puzzle_times: "最新のパズルタイム"
     750_piece_puzzles: "750ピースパズル"
+    puzzle_add: "パズル追加"
 
 puzzler_name: "名前"
 puzzler: "パズラー"
@@ -37,10 +46,11 @@ puzzle: "パズル"
 time: "タイム"
 pieces_count: "%count%&nbsp;ピース"
 show_more: "もっと見る"
+show_less: "閉じる"
 puzzle_solved: "完了"
 puzzle_available: "貸出可能"
 puzzle_not_available: "貸出不可"
-add_my_time: "マイタイム追加"
+add_solving: "記録を追加"
 start_solving: "解き始める"
 show_times: "タイム表示"
 fastest_time_short: "最速: %time%"
@@ -52,6 +62,7 @@ filtered_out_puzzlers_count_info: "初回情報のない<strong>%count%人のパ
 my_time: "マイタイム:"
 puzzle_solved_count: "完了回数:"
 puzzle_solved_times: "%count%回完了"
+puzzle.relax_solvings_count: "リラックスモードで%count%回完成"
 never_solved_puzzles: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
 show_more_solving_times: "もっと見る (%count%回)"
 be_first_to_solve: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
@@ -72,9 +83,6 @@ any: "すべて"
 all_pieces: "すべて"
 solo_solved: "ソロ完了:"
 first_attempt: "初回"
-add_to_collection: "マイコレクションに追加"
-in_collection: "マイコレクション内"
-remove_from_collection: "コレクションから削除"
 ranking_out_of: "の"
 wjpc_participant: "WJPC 2024参加者 (%name%)"
 share: "シェア"
@@ -84,6 +92,9 @@ active_membership: "アクティブメンバーシップ"
 new_badge: "新着"
 secret_puzzler_name: "秘密のパズラー"
 right_now: "今すぐ"
+
+badge:
+    relax: "リラックス"
 
 homepage:
     meta:
@@ -176,10 +187,10 @@ stopwatch:
         paused: "一時停止"
         finished: "パズル完了"
 
-add_time:
+puzzle_add:
     meta:
-        title: "タイム追加"
-    title: "タイム追加"
+        title: "パズル追加"
+    title: "追加..."
     chosen_puzzle: "選択されたパズル:"
     choose_puzzle: "パズルを選択"
     puzzle_needed: "リストからパズルを選択するか、新しいものを追加する必要があります"
@@ -191,11 +202,17 @@ add_time:
     choose_manufacturer: "リストからメーカーを選択"
     time_from_stopwatch: "ストップウォッチからのタイム"
     add_puzzler: "グループ協力者を追加"
+    group_puzzling: "ペア/グループでパズル"
+    competition_result: "大会結果"
     teamplayer: "協力者"
     player_code_info: "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
-    choose_from_favorites: "- お気に入りから選択 -"
+    mode:
+        speed_puzzling: "スピードパズリング"
+        relax: "リラックス（タイムなし）"
+        to_collection: "コレクションに追加"
 
 forms:
+    choose_from_favorites: "- お気に入りから選択 -"
     drop_file: "ファイルをここにドラッグ＆ドロップしてアップロード"
     choose_file: "またはファイルを選択"
     save: "保存"
@@ -220,6 +237,17 @@ forms:
     no: "いいえ"
     ok: "OK"
     required_field: "この項目は必須です！"
+    max_characters: "最大500文字"
+    saving: "保存中..."
+    removing: "削除中..."
+    add_puzzle_to_collection:
+        choose_collection: "- コレクションを選択 -"
+        collection: "コレクション"
+        collection_help: "既存のコレクションを選択するか、新しいコレクション名を追加してください。"
+        comment: "コメント"
+        comment_placeholder: "このパズルについてのオプションコメント..."
+        puzzle_collection: "パズルコレクション（デフォルト）"
+        submit: "コレクションに追加"
     empty_group_error: "自分だけでグループを作成することはできません。それはグループパズルではありません :-)"
     too_high_ppm: "入力したタイムを確認してください。そんなに早くパズルを解くことは不可能です！ :-) タイムはHH:MM:SS形式で入力してください。入力したタイムは新世界記録になります！ :-)"
     unknown_error: "予期しないエラーが発生しました :(. 通知済みです。後でもう一度お試しください。"
@@ -234,6 +262,10 @@ forms:
     avatar: "アバター/写真"
     search_puzzler: "名前、プレイヤーコード、または一部..."
     time_format_placeholder: "HH:MM:SS"
+    time_required: "時間を入力してください"
+    hours_short: "時間"
+    minutes_short: "分"
+    seconds_short: "秒"
     comment: "追加情報"
     finished_puzzle_photo: "完成パズルの写真"
     add_new_puzzle: "新しいパズルを追加 - リストにありません"
@@ -291,6 +323,8 @@ notifications:
     mark_all_as_read: "すべて既読にする"
     no_notifications: "通知がありません"
     new_notification: "新しい通知"
+    solved_puzzle: "パズルを解きました"
+    solved_puzzle_with_time: "で"
 
 membership:
     meta:
@@ -338,6 +372,7 @@ membership:
             <li>&hellip; その他多数、これはあなたのために準備している機能のほんの一部です！</li>
         </ul>
     members_exclusive_button: "メンバー限定"
+    members_exclusive_short: "メンバー"
     modal:
         title: "メンバー限定機能"
         cta: "メンバーになる"
@@ -351,6 +386,7 @@ feedback:
     message: "メッセージ"
     send: "送信"
     thank_you: "フィードバックありがとうございます！"
+    success_msg: "フィードバックを受け取りました。大変感謝しております！近日中にご連絡いたします。"
 
 events:
     title: "イベント"
@@ -377,6 +413,10 @@ puzzlers:
     most_favorite: "最も人気のパズラー"
     by_country: "国別"
     total_players: "合計プレイヤー"
+    results_for: "の検索結果"
+    no_matches_found: "該当するものが見つかりません"
+    my_favorites: "お気に入り"
+    most_popular: "最も人気"
 
 contact:
     title: "お問い合わせ"
@@ -524,8 +564,12 @@ players_per_country:
 
 flashes:
     stopwatch_already_saved: "これらのストップウォッチは既に保存されています。"
+    collection_not_found: "お探しのコレクションは存在しません！"
+    puzzle_removed_from_collection: "パズルがコレクションから削除されました。"
+    puzzle_added_to_collection: "パズルがコレクションに追加されました。"
     puzzle_needs_approve: "最近追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
     time_added: "パズリングタイムを保存しました。"
+    tracking_added: "パズルの記録を保存しました。"
     time_deleted: "すべての証拠を削除しました。今起こったことを誰も知ることはありません！"
     profile_saved: "プロフィール変更が保存されました！"
     time_edited: "編集された情報が保存されました。"
@@ -536,8 +580,6 @@ flashes:
     can_not_favorite_yourself: "自分をお気に入りリストに追加することはできません。自分が自分のお気に入りパズラーであることは明らかです！"
     player_already_in_favorites: "このパズラーは既にお気に入りリストにいるので、再度追加しません ;-)。"
     player_not_in_favorites: "うーん、このパズラーはお気に入りにいないようなので、削除できません ;-)。"
-    puzzle_added_to_collection: "こんにちは...パズル。マイコレクションへようこそ！"
-    puzzle_removed_from_collection: "さようならパズル..."
     competition_duplicate_connection: "何か問題があります :-( 既に他のMySpeedPuzzlingプロフィールに接続されている競技会アカウントを選択しました。心配しないでください、自動的に通知されており、何が問題かを確認します。"
     competition_connection_saved: "素晴らしい！競技会アカウントがMySpeedPuzzlingプロフィールに正常に接続されました！"
     membership_subscribed_successfully: "メンバーシップがアクティブになりました！"
@@ -571,6 +613,7 @@ statistics:
     longest_streak: "最長連続記録"
     longest_streak_help: "連続でパズリングした最大日数"
     most_solved_brand: "最も解いたブランド"
+    all_brands: "すべてのブランド"
     no_results: |
         パズルを解くのが好きなことは分かっています—基本的にパズルウィスパラーですからね。しかし、選択した期間では...何もありません。ゼロ。皆無。ナダ。<br>
         何も解いていないか、プラットフォームに追加し忘れたか（正直、それはもっと困惑しますが）のいずれかです。<br>
@@ -599,9 +642,6 @@ badges:
     badge:
         supporter: "サポーター"
 
-collection:
-    title: "コレクション"
-    empty_info: "このコレクションは現在空です。変える時かもしれません？結局、誰もがパズルと保管することを愛していますから :-)"
 
 scan:
     meta:
@@ -636,6 +676,17 @@ added_time_recap:
     add_time: "新しいタイムを追加"
     the_same_puzzle: "同じパズルに"
     puzzle_detail: "結果"
+
+added_tracking_recap:
+    meta:
+        title: "パズル記録済み"
+    title: "パズルの記録が完了しました！"
+    add_another: "別のパズルを記録"
+    the_same_puzzle: "同じパズルをもう一度記録"
+    puzzle_detail: "パズル詳細を見る"
+    manufacturer: "メーカー"
+    pieces: "ピース"
+    group_puzzlers: "一緒にパズルした人"
 
 global_search:
     info: "新しい検索へようこそ！パズル名、ean、またはコードで検索。プレイヤーを名前またはコードで検索。フィードバックをお聞かせください。"
@@ -784,3 +835,374 @@ blog:
             <p>不要な詳細をいくつかスキップしました—その間に5分でDNSをCloudFlareプロキシに切り替え、停止についてのメッセージを表示するNode.jsワーカーを設定したことなど—空白ページがないように...</p>
             <p>今のところ、メールサーバーの作業は脇に置いておき、「脇に」、MSPから離れた別のサーバーに設置することを知っています。一方で、「災害復旧」プロセスをテストするのは興味深かったです—ある時点で、このサーバーを地獄で燃やし、新しいサーバーですべてを回転させ、DNSレコードを更新するだけでよいと準備していたほど絶望的でした...幸い、最終的にはそれは不要でした。</p>
             <p>PS. 人間の介入なしに1週間後、メールサーバーのおかげで本当に「自分で」壊れました...それはかなりのものです...</p>
+
+collections:
+    add_puzzle_here:
+        button: "パズルを追加"
+    add_puzzle_form:
+        title: "コレクションにパズルを追加"
+        button: "パズルを追加"
+        description: "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
+        submit: "コレクションに追加"
+        success: "パズルがコレクションに正常に追加されました。"
+    add_puzzle: "コレクションにパズルを追加"
+    add_to_collection: "コレクションに追加"
+    added_on: "%date%に追加"
+    already_in_system: "パズルは既にコレクションにあります"
+    already_in_system_message: "このパズルは既にパズルコレクションにあります。パズルを複数のコレクションに整理したいですか？メンバーシップでこの機能をアンロック！"
+    back_to_library: "パズルライブラリに戻る"
+    collection_not_found: "コレクションが見つかりません"
+    comment_help: "コレクション内のこのパズルについてオプションのコメントを追加してください。"
+    confirm_remove: "このパズルをコレクションから削除してもよろしいですか？"
+    copy_puzzle: "コレクションにパズルをコピー"
+    copy_puzzle_submit: "コピー"
+    copy_to_collection: "コレクションにコピー"
+    create:
+        button: "コレクションを作成"
+        meta:
+            title: "コレクションを作成"
+        submit: "作成"
+        title: "新しいコレクションを作成"
+    delete:
+        button: "削除"
+        confirm:
+            button: "コレクションを削除"
+            message: "コレクション%name%を本当に削除しますか？この操作は元に戻せず、このコレクション内のすべてのパズルも削除されます。"
+            title: "コレクションを削除"
+    edit:
+        button: "編集"
+        meta:
+            title: "コレクション%name%を編集"
+        submit: "変更を保存"
+        title: "コレクション%name%を編集"
+    edit_comment:
+        meta:
+            title: "コメントを編集 - %name%"
+        submit: "保存"
+        title: "コメントを編集"
+    edit_system:
+        info: "パズルコレクションの表示設定のみ変更できます。名前と説明は変更できません。"
+        meta:
+            title: "パズルコレクションを編集"
+        submit: "変更を保存"
+        title: "パズルコレクションを編集"
+    empty:
+        message: "最初のコレクションを作成して、お気に入りのパズルを整理しましょう。"
+        message_other: "%name%には公開コレクションがありません。"
+        title: "コレクションがありません"
+        title_other: "公開コレクションはありません"
+    flash:
+        comment_updated: "コメントが正常に更新されました。"
+        created: "コレクションが正常に作成されました。"
+        deleted: "コレクションが正常に削除されました。"
+        login_required_add: "コレクションにパズルを追加するにはログインが必要です。"
+        login_required_copy: "コレクションにパズルをコピーするにはログインが必要です。"
+        login_required_move: "コレクション間でパズルを移動するにはログインが必要です。"
+        membership_required: "コレクションの作成はプレミアム機能です。メンバーシップを取得して、無制限のコレクションでパズルを整理しましょう！"
+        puzzle_added: "パズルがコレクションに正常に追加されました。"
+        puzzle_removed: "パズルがコレクションから削除されました。"
+        system_updated: "パズルコレクションの表示設定が正常に更新されました。"
+        updated: "コレクションが正常に更新されました。"
+        puzzle_moved: "パズルがコレクションに正常に移動されました。"
+    form:
+        description: "説明"
+        name: "名前"
+        visibility_help: "公開コレクションはすべてのユーザーに表示され、非公開コレクションはあなただけに表示されます。"
+    items_count: "%count%個のパズル"
+    membership_required:
+        help_text: "パズルを複数のコレクションに整理したいですか？"
+        message: "メンバーシップで無制限のコレクションを作成してパズルを整理しましょう！"
+        title: "無制限のコレクションをアンロック"
+        toast: "コレクションの作成にはアクティブなメンバーシップが必要です。"
+        unlock_link: "メンバーシップでアンロック"
+    meta:
+        title: "パズルライブラリ"
+    move_puzzle: "コレクションにパズルを移動"
+    move_puzzle_submit: "移動"
+    move_to_collection: "コレクションに移動"
+    moving_from: "%collection%から移動中"
+    no_copy_target: "利用可能なコレクションがありません"
+    no_copy_target_message: "このパズルをコピーできる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
+    no_move_target: "利用可能なコレクションがありません"
+    no_move_target_message: "このパズルを移動できる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
+    no_puzzles: "このコレクションにパズルはありません"
+    no_puzzles_description: "このコレクションは空です。パズルを追加して始めましょう！"
+    private_page:
+        title: "プライベートコレクション"
+        message: "%name%のコレクションは非公開のため、閲覧できません。"
+    private_collection: "非公開コレクション"
+    private_collection_message: "%player%のコレクション「%collection%」は非公開で表示できません。"
+    private: "プライベート"
+    public: "公開"
+    puzzle_copied: "パズルがコレクションに正常にコピーされました。"
+    remove: "削除"
+    remove_from: "%collection%から削除"
+    remove_puzzle: "コレクションから削除"
+    select_collection_help: "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
+    system_name: "パズルコレクション"
+    title: "パズルライブラリ"
+    title_other: "%name%のパズルライブラリ"
+    visibility:
+        private: "非公開"
+        public: "公開"
+
+unsolved_puzzles:
+    description: "コレクションにあるがまだ完成していないパズル"
+    description_other: "%name%が所有しているがまだ完成していないパズル"
+    edit:
+        meta:
+            title: "未完成パズルの公開設定を編集"
+        submit: "変更を保存"
+        title: "未完成パズルの公開設定を編集"
+    empty:
+        message: "コレクション内のすべてのパズルが完成しました！"
+        title: "未完成のパズルはありません"
+    flash:
+        updated: "未完成パズルの公開設定が正常に更新されました。"
+    form:
+        visibility_help: "公開リストはすべてのユーザーに表示され、非公開リストはあなただけに表示されます。"
+    items_count: "%count%個のパズル"
+    meta:
+        title: "未完成のパズル"
+    name: "未完成のパズル"
+    private: "非公開の未完成パズル"
+    private_message: "%player%の未完成パズルリスト「%collection%」は非公開のため閲覧できません。"
+    title: "未完成のパズル"
+    title_other: "%name%の未完成のパズル"
+
+wish_list:
+    add:
+        button: "ウィッシュリストに追加"
+        success: "パズルがウィッシュリストに追加されました。"
+        title: "ウィッシュリストに追加"
+    already_in_list: "このパズルは既にウィッシュリストにあります。"
+    auto_remove_enabled: "自動削除有効"
+    description: "入手したいパズル"
+    description_other: "%name%が入手したいパズル"
+    edit:
+        meta:
+            title: "ウィッシュリストの表示設定を編集"
+        submit: "変更を保存"
+        title: "ウィッシュリストの表示設定を編集"
+    empty:
+        message: "ウィッシュリストにパズルを追加してください！"
+        message_other: "%name%のウィッシュリストは空です。"
+        title: "ウィッシュリストは空です"
+        title_other: "空のウィッシュリスト"
+    flash:
+        added: "パズルがウィッシュリストに追加されました。"
+        login_required: "ウィッシュリストを管理するにはログインが必要です。"
+        removed: "パズルがウィッシュリストから削除されました。"
+        updated: "ウィッシュリストの表示設定が正常に更新されました。"
+    form:
+        remove_on_add: "自動的にウィッシュリストから削除"
+        remove_on_add_help: "チェックすると、このパズルをコレクションに追加したり、解決タイムを追加したり、借りたりすると、ウィッシュリストから自動的に削除されます。"
+        visibility_help: "公開ウィッシュリストはすべてのユーザーに表示され、非公開はあなただけに表示されます。"
+    items_count: "%count%個のパズル"
+    login_required: "ウィッシュリストにパズルを追加するにはログインが必要です。"
+    meta:
+        title: "ウィッシュリスト"
+    name: "ウィッシュリスト"
+    private: "非公開ウィッシュリスト"
+    private_message: "%player%のウィッシュリストは非公開のため閲覧できません。"
+    remove:
+        button: "ウィッシュリストから削除"
+        success: "パズルがウィッシュリストから削除されました。"
+    title: "ウィッシュリスト"
+    title_other: "%name%のウィッシュリスト"
+
+sell_swap_list:
+    add:
+        button: "売買・交換リストに追加"
+        success: "パズルが売買・交換リストに追加されました。"
+        title: "売買・交換リストに追加"
+    already_in_list: "このパズルは既に売買・交換リストにあります。"
+    back_to_list: "売買・交換リストに戻る"
+    condition:
+        like_new: "新品同様"
+        missing_pieces: "ピース欠け"
+        normal: "普通"
+        not_so_good: "やや難あり"
+    contact_notice: "購入または交換の手配については、出品者に直接お問い合わせください。"
+    description: "販売または交換用のパズル"
+    description_other: "%name%が販売または交換しているパズル"
+    edit_item:
+        meta:
+            title: "売買・交換アイテムを編集"
+        submit: "変更を保存"
+        title: "アイテムを編集"
+    edit_settings:
+        meta:
+            title: "売買・交換リスト設定を編集"
+        submit: "変更を保存"
+        title: "売買・交換リスト設定を編集"
+    empty:
+        message: "売却または交換したいパズルを追加してください！"
+        message_other: "%name%の売買・交換リストは空です。"
+        title: "売買・交換リストは空です"
+        title_other: "空の売買・交換リスト"
+    filter:
+        all_types: "すべてのタイプ"
+        max_price: "最高価格"
+        min_price: "最低価格"
+    flash:
+        added: "パズルが売買・交換リストに追加されました。"
+        item_updated: "売買・交換リストのアイテムが正常に更新されました。"
+        login_required: "売買・交換リストを管理するにはログインが必要です。"
+        removed: "パズルが売買・交換リストから削除されました。"
+        settings_updated: "売買・交換リスト設定が正常に更新されました。"
+        updated: "売買・交換リスト設定が正常に更新されました。"
+        validation_error: "エラーを修正してもう一度お試しください。"
+    form:
+        comment: "コメント"
+        comment_placeholder: "このパズルに関する追加情報..."
+        condition: "状態"
+        condition_placeholder: "状態を選択..."
+        listing_type: "出品タイプ"
+        price: "価格"
+        price_help: "価格について相談したい場合や交換専用のアイテムの場合は空欄のままにしてください。通貨は売買・交換リスト設定で設定できます。"
+    history:
+        button: "履歴"
+        buyer: "購入者"
+        date: "日付"
+        empty: "まだ売却または交換したアイテムはありません。"
+        menu: "履歴"
+        price: "価格"
+        puzzle: "パズル"
+        title: "売却・交換済み履歴"
+        type: "タイプ"
+        unknown_buyer: "不明"
+    items_count: "%count%個のパズル"
+    listing_type:
+        both: "売却または交換"
+        sell: "売却"
+        swap: "交換"
+    login_required: "売買・交換リストを管理するにはログインが必要です。"
+    mark_sold:
+        button: "売却・交換済みにする"
+        buyer_input: "購入者"
+        buyer_input_help: "購入者のプレイヤーコード（例：#ABC123）または名前を入力してください。不明の場合は空欄のままにしてください。"
+        buyer_input_placeholder: "#ABC123 または名前..."
+        confirm: "確認"
+        success: "パズルは売却・交換済みとしてマークされ、コレクションから削除されました。"
+        title: "売却・交換済みにする"
+        warning: "これによりパズルは売買・交換リストとすべてのコレクションから削除されます。"
+    membership_required:
+        message: "売買・交換リストはメンバー限定で利用できます。"
+        title: "メンバー限定機能"
+    meta:
+        title: "売買・交換リスト"
+    name: "売買・交換リスト"
+    remove:
+        button: "売買・交換リストから削除"
+        success: "パズルが売買・交換リストから削除されました。"
+    settings:
+        contact_info: "連絡先情報"
+        contact_info_help: "購入者はどのように連絡すればよいですか？"
+        contact_info_placeholder: "購入者はどのように連絡すればよいですか？"
+        contact_info_warning: "連絡先情報は公開されます。快適に共有できる情報のみを記入してください。"
+        currency: "通貨"
+        currency_custom: "カスタム通貨"
+        currency_custom_placeholder: "例：USD、GBP、CHF..."
+        currency_placeholder: "通貨を選択..."
+        custom_currency: "カスタム通貨"
+        custom_currency_help: "リストに通貨がない場合はこちらを使用してください。"
+        custom_currency_placeholder: "例：USD、GBP、CHF..."
+        description: "説明"
+        description_help: "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
+        description_placeholder: "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
+        info: "売買・交換リスト設定を構成します。この情報は潜在的な購入者に表示されます。"
+        shipping_info: "配送情報"
+        shipping_info_help: "配送オプションと費用について説明してください..."
+        shipping_info_placeholder: "配送オプションと費用について説明してください..."
+        title: "売買・交換リスト設定"
+    title: "売買・交換リスト"
+    title_other: "%name%の売買・交換リスト"
+
+lend_borrow:
+    already_borrowed: "このパズルは既に借用リストにあります。"
+    already_borrowed_short: "借用済み"
+    already_lent: "このパズルは既に貸出中です。"
+    already_lent_short: "貸出済み"
+    borrow:
+        button: "借用元"
+        description: "このパズルを別のプレイヤーから借りたものとしてマークします。"
+        title: "借用としてマーク"
+    borrowed:
+        empty:
+            message: "借用中のパズルはありません。"
+            message_other: "%name%は借用中のパズルがありません。"
+            title: "借用中のパズルなし"
+            title_other: "借用中のパズルなし"
+    borrowed_count: "%count%個借用中"
+    borrowed_from: "%name%から"
+    description: "現在貸出中または借用中のパズル"
+    edit_settings:
+        meta:
+            title: "貸出・借用設定を編集"
+        submit: "変更を保存"
+        title: "貸出・借用設定を編集"
+    flash:
+        borrowed: "パズルが借用としてマークされました。"
+        cannot_borrow_from_self: "自分から自分へパズルを借りることはできません。"
+        cannot_lend_to_self: "自分から自分へパズルを貸すことはできません。"
+        cannot_pass_to_self: "自分自身にパズルを渡すことはできません。"
+        lent: "パズルが正常に貸し出されました。"
+        login_required: "貸出リストを管理するにはログインが必要です。"
+        passed: "パズルが正常に受け渡されました。"
+        player_not_found: "プレイヤーが見つかりません。プレイヤーコードを確認してください。"
+        returned: "パズルが正常に所有者に返却されました。"
+        settings_updated: "貸出・借用設定が正常に更新されました。"
+        validation_error: "エラーを修正してもう一度お試しください。"
+    form:
+        borrower_code: "借用者のプレイヤーコードまたは名前"
+        borrower_code_help: "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
+        borrower_code_placeholder: "#ABC123 または 田中太郎"
+        new_holder_code: "新しい保持者のプレイヤーコードまたは名前"
+        new_holder_code_help: "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
+        new_holder_code_placeholder: "#ABC123 または 田中太郎"
+        notes: "メモ"
+        notes_placeholder: "この貸出に関するオプションのメモ..."
+        owner_code: "所有者のプレイヤーコードまたは名前"
+        owner_code_help: "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
+        owner_code_placeholder: "#ABC123 または 田中太郎"
+    lend:
+        button: "プレイヤーに貸す"
+        description: "このパズルを別のプレイヤーに貸し出します。相手はさらに他の人に渡したり、あなたに返却したりできます。"
+        title: "パズルを貸す"
+    lent:
+        empty:
+            message: "まだパズルを貸し出していません。パズルメニューを使用して他のプレイヤーにパズルを貸し出してください。"
+            message_other: "%name%はパズルを貸し出していません。"
+            title: "貸出中のパズルなし"
+            title_other: "貸出中のパズルなし"
+    lent_count: "%count%個貸出中"
+    lent_to: "%name%に貸出中"
+    login_required: "貸出リストを管理するにはログインが必要です。"
+    membership_required:
+        message: "パズルの貸出はメンバー限定で利用できます。"
+        title: "メンバー限定機能"
+    name: "貸出・借用"
+    pass:
+        button: "他の人に渡す"
+        description: "%puzzle%を別のプレイヤーに渡します。所有者は引き続き追跡できます。"
+        title: "パズルを渡す"
+    return:
+        button: "所有者に返却"
+        confirm_message: "%puzzle%を所有者に返却しますか？"
+        title: "パズルを返却"
+    tab:
+        borrowed: "借用中"
+        lent: "貸出中"
+    title: "貸出・借用"
+    view_holder: "現在の保持者を表示"
+    view_owner: "所有者を表示"
+
+status:
+    borrowed: "借用中"
+    collection: "コレクション内"
+    for_sale: "販売中"
+    lent: "貸出中"
+    solved: "完成"
+    unsolved: "未完成"
+    wishlist: "ウィッシュリスト"

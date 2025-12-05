@@ -1,0 +1,42 @@
+<div {{ attributes }}>
+    {% if this.isLoggedIn %}
+        {{ form_start(form, {attr: {'data-action': 'live#action:prevent', 'data-live-action-param': 'save', 'data-model': 'norender|*'}}) }}
+
+        <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {{ 'sell_swap_list.mark_sold.warning'|trans }}
+        </div>
+
+        <div class="mb-4" data-controller="favorite-player-select">
+            {{ form_label(form.buyerInput) }}
+            <div class="input-group">
+                {{ form_widget(form.buyerInput, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
+                <select class="form-select"
+                        data-favorite-player-select-target="select"
+                        data-action="change->favorite-player-select#selectChanged">
+                    <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+                    {% for favorite in this.favoritePlayers %}
+                        <option value="{{ favorite.playerCode }}">
+                            {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2 d-sm-flex">
+            <button type="submit" class="btn btn-success flex-grow-1" data-loading-text="{{ 'forms.saving'|trans }}">
+                <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.confirm'|trans }}
+            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+        </div>
+
+        {{ form_end(form) }}
+    {% else %}
+        <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ 'sell_swap_list.login_required'|trans }}
+        </div>
+    {% endif %}
+</div>

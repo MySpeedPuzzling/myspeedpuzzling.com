@@ -1,0 +1,39 @@
+{#
+    Unified turbo stream for library item operations.
+
+    Parameters:
+    - action: 'remove' | 'replace' (required)
+    - page_context: The page context (collection, wishlist, sell-swap, unsolved, lend-borrow-lent, lend-borrow-borrowed)
+    - puzzle_id: Required for 'remove' action
+
+    For 'replace' action, pass all parameters needed by _puzzle_library_item.html.twig:
+    - item: Full item data object
+    - puzzle_statuses: UserPuzzleStatuses object (contains lent/borrowed/sellSwap status + names/types)
+    - logged_user: Current logged user
+    - isOwnProfile: boolean (default: true for own list actions)
+    - collection: Collection object (for collection context)
+    - settings: SellSwapListSettings (for sell-swap context)
+    - source_collection_id: For collection context
+    - currentCollectionId: For collection context
+#}
+
+{% if action == 'remove' %}
+<turbo-stream action="remove" target="library-{{ page_context }}-{{ puzzle_id }}"></turbo-stream>
+
+{% elseif action == 'replace' %}
+<turbo-stream action="replace" target="library-{{ page_context }}-{{ item.puzzleId }}">
+    <template>
+        {{ include('_puzzle_library_item.html.twig', {
+            item: item,
+            page_context: page_context,
+            puzzle_statuses: puzzle_statuses,
+            logged_user: logged_user,
+            isOwnProfile: isOwnProfile|default(true),
+            collection: collection|default(null),
+            settings: settings|default(null),
+            source_collection_id: source_collection_id|default(null),
+            currentCollectionId: currentCollectionId|default(null),
+        }) }}
+    </template>
+</turbo-stream>
+{% endif %}

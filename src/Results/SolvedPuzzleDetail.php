@@ -19,7 +19,7 @@ readonly final class SolvedPuzzleDetail
         public string $manufacturerName,
         public string $manufacturerId,
         public int $piecesCount,
-        public int $time,
+        public null|int $time,
         public null|string $puzzleImage,
         public null|string $comment,
         /** @var null|array<Puzzler> */
@@ -42,7 +42,7 @@ readonly final class SolvedPuzzleDetail
      *     manufacturer_name: string,
      *     manufacturer_id: string,
      *     puzzle_image: null|string,
-     *     time: int,
+     *     time: null|int,
      *     pieces_count: int,
      *     comment: null|string,
      *     players: null|string,

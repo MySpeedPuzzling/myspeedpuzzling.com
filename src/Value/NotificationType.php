@@ -7,4 +7,13 @@ namespace SpeedPuzzling\Web\Value;
 enum NotificationType: string
 {
     case SubscribedPlayerAddedTime = 'SubscribedPlayerAddedTime';
+
+    // Lending notifications
+    case PuzzleLentToYou = 'PuzzleLentToYou';
+    case PuzzleBorrowedFromYou = 'PuzzleBorrowedFromYou';
+    case PuzzleReturnedToYou = 'PuzzleReturnedToYou';
+    case PuzzleTakenBack = 'PuzzleTakenBack';
+    case PuzzlePassedToYou = 'PuzzlePassedToYou';
+    case PuzzlePassedFromYou = 'PuzzlePassedFromYou';
+    case YourPuzzleWasPassed = 'YourPuzzleWasPassed';
 }

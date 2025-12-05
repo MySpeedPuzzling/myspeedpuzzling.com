@@ -1,0 +1,166 @@
+<div {{ attributes.defaults({'data-controller': 'show-more-recent-activity'}) }}>
+    <div class="table-responsive custom-table-wrapper mt-4">
+        <table class="table table-striped custom-table table-hover mb-0">
+            <tbody>
+                {% for item in this.items %}
+                    <tr class="{{ this.isOnProfile is same as false and logged_user.profile is not null and item.playerId is same as logged_user.profile.playerId ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'd-none' }}">
+                        <td class="text-center" style="width: 90px;">
+                            <div class="position-relative">
+                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                    <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': item.manufacturerName ~ ' ' ~ item.puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ item.puzzleImage|puzzle_image('puzzle_small') }}">
+                                </a>
+
+                                {% if logged_user.profile is not null and item.playerId is same as logged_user.profile.playerId %}
+                                    <div class="dropdown position-absolute" style="left: -5px;top : -5px;">
+                                        <button class="btn btn-outline-primary btn-xs dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="ci-menu"></i>
+                                        </button>
+
+                                        <!-- Dropdown menu -->
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <button
+                                                    data-controller="share-image"
+                                                    data-share-image-title-value="{{ item.puzzleName }}"
+                                                    data-share-image-image-url-value="{{ path('result_image', {'timeId': item.id}) }}"
+                                                    data-action="click->share-image#shareImageAsset"
+                                                    class="dropdown-item"
+                                                >
+                                                    <i class="ci-share me-2"></i> {{ 'share'|trans }}
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_time', {'timeId': item.id}) }}">
+                                                    <i class="ci-edit me-2"></i> {{ 'edit'|trans }}
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item text-danger" href="{{ path('delete_time', {timeId: item.id}) }}">
+                                                    <i class="ci-trash me-2"></i> {{ 'delete'|trans }}
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <td class="d-none d-sm-table-cell">
+                            <a class="d-inline-block" style="line-height: 120%" href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                <span style="color: #111;">
+                                    {{ item.manufacturerName }}<br>
+                                    <small>{{ 'pieces_count'|trans({ '%count%': item.piecesCount })|raw }}</small>
+                                </span><br>
+
+                                <small class="puzzle-title mt-2">
+                                    {{ item.puzzleName }}
+                                </small>
+                            </a>
+                        </td>
+
+                        <td class="player-name">
+                            <p class="mt-0 mb-1 d-sm-none">
+                                <small>{{ item.manufacturerName }}</small><br>
+                                <small>{{ 'pieces_count'|trans({ '%count%': item.piecesCount })|raw }}</small>
+                            </p>
+
+                            <p class="mb-0 low-line-height">
+                                {% if item.players is null %}
+                                    {% if this.isOnProfile is same as false %}
+                                        {% if item.isPrivate %}
+                                            <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                            <i class="bi bi-incognito text-muted"></i>
+                                        {% else %}
+                                            <a class="player-name-item" href="{{ path('player_profile', {playerId: item.playerId}) }}">
+                                                <small>{{ item.playerName ?? ('#' ~ item.playerCode) }}</small>
+                                                {% if logged_user.profile is not null and item.playerId in logged_user.profile.favoritePlayers %}
+                                                    <i class="ci-star-filled text-warning"></i>
+                                                {% endif %}
+                                            </a>
+                                            {% if item.playerCountry is not null %}
+                                                <small class="shadow-custom fi fi-{{ item.playerCountry.name }}"></small>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% else %}
+                                    {% for puzzle_solver in item.players %}
+                                        {% if not loop.first %}
+                                            <br>
+                                        {% endif %}
+
+                                        {% if puzzle_solver.isPrivate %}
+                                            <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
+                                            <i class="bi bi-incognito text-muted"></i>
+                                        {% elseif puzzle_solver.playerId is not null %}
+                                            <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                                <small>{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
+                                                {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
+                                                    <i class="ci-star-filled text-warning"></i>
+                                                {% endif %}
+                                            </a>
+                                            {% if puzzle_solver.playerCountry is not null %}
+                                                <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
+                                            {% endif %}
+                                        {% else %}
+                                            <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </p>
+                        </td>
+
+                        <td class="with-ppm text-end">
+                            <small style="line-height: 105%;">{{ item.trackedAt|ago }}</small><br>
+
+                            {% if item.isSpeedMode %}
+                                <span class="badge rounded-pill bg-secondary">
+                                    <i class="bi bi-stopwatch"></i> {{ item.time|puzzlingTime }}
+                                </span>
+
+                                <br>
+                                <small class="text-nowrap">
+                                    <span class="text-muted">PPM</span> {{ ppm(item.time, item.piecesCount) }}
+                                    {% if item.players is not null %}
+                                        <br>({{ item.players|length }}x {{ ppm(item.time, item.piecesCount, item.players|length) }})
+                                    {% endif %}
+                                </small>
+
+                                {% if logged_user.profile is not null and item.playerId is not same as logged_user.profile.playerId %}
+                                    {% set ranking = this.ranking %}
+                                    {% if item.players is null and ranking[item.puzzleId] is defined %}
+                                        <br>
+                                        <small class="low-line-height d-inline-block">{{ 'my_time'|trans }} {{ ranking[item.puzzleId].time|puzzlingTime }}</small>
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if item.firstAttempt %}
+                                    <br>
+                                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                {% endif %}
+
+                                {% if item.competitionName %}
+                                    <br>
+                                    {% if item.competitionSlug %}
+                                        <a href="{{ path('event_detail', {'slug': item.competitionSlug}) }}">
+                                    {% endif %}
+                                    <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i> {{ item.competitionShortcut ?? item.competitionName }}</span>
+                                    {% if item.competitionSlug %}
+                                        </a>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <span class="badge rounded-pill bg-secondary">
+                                    <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if this.showLimit > 0 and this.items|length > this.showLimit %}
+        <button class="mt-3 btn btn-outline-primary btn-sm" data-action="click->show-more-recent-activity#revealRows" data-show-more-recent-activity-target="button">{{ 'show_more'|trans }}</button>
+    {% endif %}
+</div>

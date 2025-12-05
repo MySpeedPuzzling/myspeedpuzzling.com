@@ -1,0 +1,105 @@
+{# Move puzzle to collection form - used in both modal and full page #}
+{% set in_modal = in_modal|default(false) %}
+{% set context = context|default('') %}
+
+<div data-controller="puzzle-collection-form" data-puzzle-collection-form-system-id-value="{{ system_collection_id }}">
+    <p class="text-muted small mb-3">
+        {{ 'collections.moving_from'|trans({'%collection%': source_collection_name}) }}
+    </p>
+
+    {% set form_action = path('collection_move', {puzzleId: puzzle_id, sourceCollectionId: source_collection_id}) %}
+    {% if context %}
+        {% set form_action = form_action ~ '&context=' ~ context %}
+    {% endif %}
+
+    {{ form_start(form, {
+        'action': form_action,
+        'attr': {
+            'data-turbo': 'true',
+            'data-turbo-frame': in_modal ? 'modal-frame' : '_top'
+        }
+    }) }}
+        {% if not has_active_membership %}
+            {# Non-member: only show system collection as disabled #}
+            <div class="mb-3">
+                <label class="form-label">{{ 'forms.add_puzzle_to_collection.collection'|trans }}</label>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="{{ 'collections.system_name'|trans }}"
+                        disabled
+                        readonly
+                    >
+                    <span class="input-group-text bg-light">
+                        <i class="ci-locked"></i>
+                    </span>
+                </div>
+                <small class="form-text text-muted">
+                    {{ 'collections.membership_required.help_text'|trans }}
+                    <button
+                        type="button"
+                        class="btn btn-link btn-sm p-0 align-baseline"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                        {% if in_modal %}data-bs-dismiss="modal"{% endif %}
+                    >
+                        <i class="ci-locked"></i> {{ 'collections.membership_required.unlock_link'|trans }}
+                    </button>
+                </small>
+            </div>
+            {{ form_row(form.collection, {
+                'row_attr': {
+                    'class': 'd-none'
+                },
+                'attr': {
+                    'data-puzzle-collection-form-target': 'collection'
+                }
+            }) }}
+        {% else %}
+            {# Member: show collection selector with autocomplete #}
+            {{ form_row(form.collection, {
+                'attr': {
+                    'data-puzzle-collection-form-target': 'collection'
+                }
+            }) }}
+        {% endif %}
+
+        {# New collection fields - shown when creating a new collection #}
+        <div class="mb-3 d-none" data-puzzle-collection-form-target="newCollection">
+            <div class="border rounded p-3 bg-light shadow-lg">
+                <h6 class="mb-3">{{ 'collections.create.title'|trans }}</h6>
+
+                {{ form_row(form.collectionVisibility) }}
+
+                {{ form_row(form.collectionDescription) }}
+            </div>
+        </div>
+
+        {# Comment for the puzzle in collection #}
+        {{ form_row(form.comment, {
+            'attr': {
+                'rows': 2,
+                'maxlength': 500,
+                'placeholder': 'forms.add_puzzle_to_collection.comment_placeholder',
+            }
+        }) }}
+
+        <div>
+            <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+                {{ 'collections.move_puzzle_submit'|trans }}
+            </button>
+
+            {% if in_modal %}
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    {{ 'forms.cancel'|trans }}
+                </button>
+            {% else %}
+                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-secondary">
+                    {{ 'forms.cancel'|trans }}
+                </a>
+            {% endif %}
+        </div>
+
+    {{ form_end(form, {'render_rest': false}) }}
+</div>

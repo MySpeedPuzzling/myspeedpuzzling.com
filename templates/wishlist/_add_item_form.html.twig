@@ -1,0 +1,36 @@
+<form action="{{ path('wishlist_add', {puzzleId: puzzle.puzzleId}) }}"
+      method="post"
+      {{ in_modal ? 'data-turbo="true"' : '' }}>
+
+    <div class="mb-4">
+        <div class="form-check">
+            <input type="checkbox"
+                   class="form-check-input"
+                   id="removeOnCollectionAdd"
+                   name="removeOnCollectionAdd"
+                   value="1"
+                   checked>
+            <label class="form-check-label" for="removeOnCollectionAdd">
+                {{ 'wish_list.form.remove_on_add'|trans }}
+            </label>
+        </div>
+        <small class="form-text text-muted d-block mt-2">
+            {{ 'wish_list.form.remove_on_add_help'|trans }}
+        </small>
+    </div>
+
+    <div class="d-grid gap-2 d-sm-flex">
+        <button type="submit" class="btn btn-primary flex-grow-1">
+            <i class="bi bi-heart me-1"></i> {{ 'wish_list.add.button'|trans }}
+        </button>
+        {% if in_modal %}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+        {% else %}
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="btn btn-secondary">
+                {{ 'forms.cancel'|trans }}
+            </a>
+        {% endif %}
+    </div>
+</form>

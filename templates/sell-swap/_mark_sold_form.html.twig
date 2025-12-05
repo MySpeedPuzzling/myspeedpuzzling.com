@@ -1,0 +1,49 @@
+{{ form_start(form, {
+    'action': path('sellswap_mark_sold', {itemId: item_id}),
+    'attr': {
+        'data-turbo': 'true',
+        'data-turbo-frame': in_modal|default(false) ? 'modal-frame' : '_top'
+    }
+}) }}
+
+<input type="hidden" name="context" value="{{ context|default('detail') }}">
+<input type="hidden" name="collection_id" value="{{ collection_id|default('') }}">
+
+<div class="alert alert-warning mb-3">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    {{ 'sell_swap_list.mark_sold.warning'|trans }}
+</div>
+
+<div class="mb-4" data-controller="favorite-player-select">
+    {{ form_label(form.buyerInput) }}
+    <div class="input-group">
+        {{ form_widget(form.buyerInput, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
+        <select class="form-select"
+                data-favorite-player-select-target="select"
+                data-action="change->favorite-player-select#selectChanged">
+            <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+            {% for favorite in favorite_players %}
+                <option value="{{ favorite.playerCode }}">
+                    {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<div class="d-grid gap-2 d-sm-flex">
+    <button type="submit" class="btn btn-success flex-grow-1">
+        <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.confirm'|trans }}
+    </button>
+    {% if in_modal|default(false) %}
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            {{ 'forms.cancel'|trans }}
+        </button>
+    {% else %}
+        <a href="{{ path('sell_swap_list', {playerId: logged_user.profile.playerId}) }}" class="btn btn-secondary">
+            {{ 'forms.cancel'|trans }}
+        </a>
+    {% endif %}
+</div>
+
+{{ form_end(form) }}

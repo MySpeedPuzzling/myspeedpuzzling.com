@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\SellSwapListSettings;
 
 /**
  * @phpstan-type PlayerProfileRow array{
@@ -29,6 +31,11 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     membership_ends_at: null|string,
  *     is_admin: bool,
  *     is_private: bool,
+ *     puzzle_collection_visibility: string,
+ *     unsolved_puzzles_visibility: string,
+ *     wish_list_visibility: string,
+ *     lend_borrow_list_visibility: string,
+ *     sell_swap_list_settings: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -52,6 +59,11 @@ readonly final class PlayerProfile
         public null|string $locale,
         public null|DateTimeImmutable $membershipEndsAt,
         public bool $activeMembership,
+        public CollectionVisibility $puzzleCollectionVisibility,
+        public CollectionVisibility $unsolvedPuzzlesVisibility,
+        public CollectionVisibility $wishListVisibility,
+        public CollectionVisibility $lendBorrowListVisibility,
+        public null|SellSwapListSettings $sellSwapListSettings = null,
         public bool $isAdmin = false,
         public bool $isPrivate = false,
         public null|CountryCode $countryCode = null,
@@ -83,6 +95,23 @@ readonly final class PlayerProfile
             }
         }
 
+        $sellSwapListSettings = null;
+        if ($row['sell_swap_list_settings'] !== null) {
+            try {
+                /** @var array{description?: null|string, currency?: null|string, custom_currency?: null|string, shipping_info?: null|string, contact_info?: null|string} $settingsData */
+                $settingsData = Json::decode($row['sell_swap_list_settings'], true);
+                $sellSwapListSettings = new SellSwapListSettings(
+                    description: $settingsData['description'] ?? null,
+                    currency: $settingsData['currency'] ?? null,
+                    customCurrency: $settingsData['custom_currency'] ?? null,
+                    shippingInfo: $settingsData['shipping_info'] ?? null,
+                    contactInfo: $settingsData['contact_info'] ?? null,
+                );
+            } catch (JsonException) {
+                // Invalid JSON, keep null
+            }
+        }
+
         return new self(
             playerId: $row['player_id'],
             userId: $row['user_id'],
@@ -101,6 +130,11 @@ readonly final class PlayerProfile
             locale: $row['locale'],
             membershipEndsAt: $membershipEndsAt,
             activeMembership: $hasMembership,
+            puzzleCollectionVisibility: CollectionVisibility::from($row['puzzle_collection_visibility']),
+            unsolvedPuzzlesVisibility: CollectionVisibility::from($row['unsolved_puzzles_visibility']),
+            wishListVisibility: CollectionVisibility::from($row['wish_list_visibility']),
+            lendBorrowListVisibility: CollectionVisibility::from($row['lend_borrow_list_visibility']),
+            sellSwapListSettings: $sellSwapListSettings,
             isAdmin: $row['is_admin'],
             isPrivate: $row['is_private'],
             countryCode: $countryCode,

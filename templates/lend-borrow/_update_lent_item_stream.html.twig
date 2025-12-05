@@ -1,0 +1,22 @@
+{#
+    Stream for updating lent item (e.g., pass to new holder).
+
+    Parameters:
+    - item: LentPuzzleOverview - full item data for card replacement
+    - puzzle_statuses: UserPuzzleStatuses
+    - logged_user: Current logged user
+    - message: Toast message
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{{ include('_library_item_stream.html.twig', {
+    action: 'replace',
+    page_context: 'lend-borrow-lent',
+    item: item,
+    puzzle_statuses: puzzle_statuses,
+    logged_user: logged_user,
+    isOwnProfile: true,
+}) }}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

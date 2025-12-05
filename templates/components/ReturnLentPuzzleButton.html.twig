@@ -1,0 +1,10 @@
+<form action="{{ path('return_puzzle', {lentPuzzleId: this.lentPuzzleId}) }}"
+      method="post"
+      data-turbo="true"
+      class="d-inline">
+    <button type="submit"
+            class="btn btn-outline-success btn-sm"
+            data-loading-text="{{ 'forms.saving'|trans }}">
+        <i class="bi bi-box-arrow-in-left me-1"></i>{{ 'lend_borrow.return.button'|trans }}
+    </button>
+</form>

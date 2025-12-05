@@ -1,0 +1,58 @@
+{#
+    Stream for removing puzzle from lend-borrow list (from list context).
+
+    Parameters:
+    - puzzle_id: The puzzle ID being removed
+    - tab: 'lent' or 'borrowed'
+    - lent_count: Remaining items in lent tab
+    - borrowed_count: Remaining items in borrowed tab
+    - message: Toast message
+    - isOwnProfile: For empty state template
+    - player: For empty state template
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{# Remove the item from the appropriate tab #}
+{% if tab == 'lent' %}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'lend-borrow-lent',
+        puzzle_id: puzzle_id,
+    }) }}
+{% else %}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'remove',
+        page_context: 'lend-borrow-borrowed',
+        puzzle_id: puzzle_id,
+    }) }}
+{% endif %}
+
+{# Update the tab counts #}
+<turbo-stream action="update" target="lent-tab-count">
+    <template>{{ lent_count }}</template>
+</turbo-stream>
+
+<turbo-stream action="update" target="borrowed-tab-count">
+    <template>{{ borrowed_count }}</template>
+</turbo-stream>
+
+{# Show empty state for lent tab if needed #}
+{% if tab == 'lent' and lent_count == 0 %}
+<turbo-stream action="update" target="lent-list-container">
+    <template>
+        {{ include('lend-borrow/_lent_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
+    </template>
+</turbo-stream>
+{% endif %}
+
+{# Show empty state for borrowed tab if needed #}
+{% if tab == 'borrowed' and borrowed_count == 0 %}
+<turbo-stream action="update" target="borrowed-list-container">
+    <template>
+        {{ include('lend-borrow/_borrowed_empty_state.html.twig', {isOwnProfile: isOwnProfile, player: player}) }}
+    </template>
+</turbo-stream>
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

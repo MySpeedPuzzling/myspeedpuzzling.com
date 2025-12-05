@@ -1,0 +1,62 @@
+{#
+    Collection dropdown action - shows Add, Move, or Remove based on puzzle status.
+
+    Required variables: puzzle_id, puzzle_statuses
+    Optional variables: source_collection_id (for Move action on collection pages), context (for Turbo Stream response type)
+#}
+{% set source_collection_id = source_collection_id|default(null) %}
+{% set context = context|default('detail') %}
+{% set currentCollectionId = currentCollectionId|default(null) %}
+{% set collections_for_puzzle = puzzle_statuses.puzzleCollections[puzzle_id]|default({}) %}
+
+{% if collections_for_puzzle|length > 0 %}
+    {# Puzzle is in one or more collections - show add, move, and remove options #}
+    <li>
+        <a class="dropdown-item"
+           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}?context={{ context }}"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
+        </a>
+    </li>
+    {% if source_collection_id is not null %}
+        <li>
+            <a class="dropdown-item"
+               href="{{ path('collection_move', {puzzleId: puzzle_id, sourceCollectionId: source_collection_id, context: context}) }}"
+               data-turbo="true"
+               data-turbo-frame="modal-frame">
+                <i class="bi bi-arrow-right-square me-1"></i> {{ 'collections.move_to_collection'|trans }}
+            </a>
+        </li>
+    {% endif %}
+    {% for collection_id, collection_name in collections_for_puzzle %}
+        <li>
+            <form action="{{ path('collection_remove', {puzzleId: puzzle_id}) }}"
+                  method="post"
+                  class="d-inline w-100"
+                  data-turbo="true">
+                <input type="hidden" name="collectionId" value="{{ collection_id }}">
+                <input type="hidden" name="currentCollectionId" value="{{ currentCollectionId }}">
+                <input type="hidden" name="context" value="{{ context }}">
+                <button type="submit" class="dropdown-item text-danger w-100 text-start">
+                    <i class="bi bi-bookmark-dash me-1"></i>
+                    {% if collection_name == '__system_collection__' %}
+                        {{ 'collections.remove_from'|trans({'%collection%': 'collections.system_name'|trans}) }}
+                    {% else %}
+                        {{ 'collections.remove_from'|trans({'%collection%': collection_name}) }}
+                    {% endif %}
+                </button>
+            </form>
+        </li>
+    {% endfor %}
+{% else %}
+    {# Puzzle is not in any collection - show add option #}
+    <li>
+        <a class="dropdown-item"
+           href="{{ path('collection_add', {puzzleId: puzzle_id}) }}?context={{ context }}"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
+        </a>
+    </li>
+{% endif %}

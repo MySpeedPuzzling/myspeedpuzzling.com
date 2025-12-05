@@ -1,0 +1,309 @@
+{#
+    Unified puzzle library item card fragment.
+
+    Used across: collections, wishlist, sell-swap, unsolved puzzles, lend-borrow pages.
+
+    Required parameters:
+    - item: Puzzle/item data object with puzzleId, puzzleName, piecesCount, image, manufacturerName, etc.
+    - page_context: One of 'collection', 'wishlist', 'sell-swap', 'unsolved', 'lend-borrow-lent', 'lend-borrow-borrowed'
+    - puzzle_statuses: UserPuzzleStatuses object (contains lent/borrowed/sellSwap status + names/types)
+    - logged_user: Current logged user object
+
+    Optional parameters (context-specific):
+    - collection: Collection object (required for 'collection' context)
+    - isOwnProfile: boolean (default: false) - whether user is viewing their own profile
+    - settings: SellSwapListSettings object (for 'sell-swap' context, currency display)
+    - source_collection_id: For collection move action (collection context)
+    - currentCollectionId: Current collection being viewed (collection context)
+#}
+
+{# Set defaults for optional parameters #}
+{% set isOwnProfile = isOwnProfile|default(false) %}
+{% set settings = settings|default(null) %}
+{% set source_collection_id = source_collection_id|default(null) %}
+{% set currentCollectionId = currentCollectionId|default(null) %}
+
+{# Container ID follows pattern: library-{context}-{puzzleId} #}
+{% set container_id = 'library-' ~ page_context ~ '-' ~ item.puzzleId %}
+
+{# Determine puzzle statuses from centralized UserPuzzleStatuses #}
+{% set isLent = item.puzzleId in puzzle_statuses.lent %}
+{% set isBorrowed = item.puzzleId in puzzle_statuses.borrowed %}
+{% set isForSaleSwap = item.puzzleId in puzzle_statuses.sellSwap %}
+
+{# Determine dropdown context for puzzle/_dropdown_actions.html.twig #}
+{# - 'list' for list pages that remove items (wishlist, sell-swap, lend-borrow lists)
+   - 'collection-detail' for collection pages that replace items
+   - 'unsolved-detail' for unsolved puzzles page that replaces items #}
+{% if page_context == 'collection' %}
+    {% set dropdown_context = 'collection-detail' %}
+{% elseif page_context == 'unsolved' %}
+    {% set dropdown_context = 'unsolved-detail' %}
+{% else %}
+    {% set dropdown_context = 'list' %}
+{% endif %}
+
+{# Determine tab for lend-borrow contexts #}
+{% set tab = null %}
+{% if page_context == 'lend-borrow-lent' %}
+    {% set tab = 'lent' %}
+{% elseif page_context == 'lend-borrow-borrowed' %}
+    {% set tab = 'borrowed' %}
+{% endif %}
+
+{# Determine if should show solving actions in dropdown #}
+{% set show_solving_actions = page_context in ['collection', 'unsolved'] %}
+
+<div class="col-12 col-lg-6"
+     id="{{ container_id }}"
+     data-collection-items-target="item"
+     data-puzzle-id="{{ item.puzzleId }}"
+     data-collection-filter-target="item"
+     data-pieces-count="{{ item.piecesCount }}"
+     data-puzzle-name="{{ item.puzzleName }}"
+     data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+     data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
+     data-ean="{{ item.ean ?? '' }}"
+     data-manufacturer="{{ item.manufacturerName ?? '' }}"
+     {% if page_context == 'sell-swap' %}
+     data-listing-type="{{ item.listingType.value }}"
+     data-price="{{ item.price ?? '' }}"
+     {% endif %}>
+
+    <div class="card card-body shadow p-2 position-relative {{ isLent and page_context not in ['lend-borrow-lent', 'lend-borrow-borrowed'] ? 'puzzle-lent' }}">
+        <div class="d-flex">
+            {# Puzzle image #}
+            <div style="width: 60px;" class="flex-shrink-0">
+                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                    <img src="{{ item.image|puzzle_image('puzzle_small') }}"
+                         alt="{{ item.puzzleName }}"
+                         class="rounded"
+                         style="width: 60px; height: 60px; object-fit: cover;">
+                </a>
+            </div>
+
+            <div class="ps-2 flex-grow-1">
+                <div class="d-flex justify-content-between">
+                    <div class="pe-2">
+                        {# Puzzle name link #}
+                        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
+                           class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1">
+                            {{ item.puzzleName }}
+                        </a>
+                        <br>
+                        <small class="fw-bold">{{ 'pieces_count'|trans({'%count%': item.piecesCount})|raw }}</small>
+
+                        {# Manufacturer name #}
+                        <div class="fs-sm text-muted">
+                            {{ item.manufacturerName ?? '-' }}
+                        </div>
+
+                        {# Context-specific badges #}
+                        {% if page_context == 'lend-borrow-lent' %}
+                            <div class="mt-1">
+                                <span class="badge bg-purple">
+                                    <i class="bi bi-person me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': item.currentHolderName}) }}
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-calendar3 me-1"></i>{{ item.lentAt|format_date }}
+                                </span>
+                            </div>
+                        {% elseif page_context == 'lend-borrow-borrowed' %}
+                            <div class="mt-1">
+                                <span class="badge bg-info">
+                                    <i class="bi bi-person me-1"></i>{{ 'lend_borrow.borrowed_from'|trans({'%name%': item.ownerName}) }}
+                                </span>
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-calendar3 me-1"></i>{{ item.lentAt|format_date }}
+                                </span>
+                            </div>
+                        {% elseif page_context == 'sell-swap' %}
+                            <div class="mt-1">
+                                {% if item.listingType.value == 'swap' %}
+                                    <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
+                                {% elseif item.listingType.value == 'sell' %}
+                                    <span class="badge bg-success">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
+                                {% else %}
+                                    <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
+                                {% endif %}
+
+                                {% if item.price %}
+                                    <span class="badge bg-warning text-dark">{{ item.price }} {{ settings.customCurrency ?? settings.currency ?? '' }}</span>
+                                {% endif %}
+
+                                <span class="badge bg-secondary">
+                                    {% if item.condition.value == 'like_new' %}
+                                        {{ 'sell_swap_list.condition.like_new'|trans }}
+                                    {% elseif item.condition.value == 'normal' %}
+                                        {{ 'sell_swap_list.condition.normal'|trans }}
+                                    {% elseif item.condition.value == 'not_so_good' %}
+                                        {{ 'sell_swap_list.condition.not_so_good'|trans }}
+                                    {% else %}
+                                        {{ 'sell_swap_list.condition.missing_pieces'|trans }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% elseif page_context == 'wishlist' %}
+                            {% if item.removeOnCollectionAdd %}
+                                <small class="text-muted"><i class="bi bi-check me-1"></i>{{ 'wish_list.auto_remove_enabled'|trans }}</small>
+                            {% endif %}
+                        {% endif %}
+
+                        {# Notes/comment for lend-borrow and sell-swap #}
+                        {% if page_context in ['lend-borrow-lent', 'lend-borrow-borrowed'] and item.notes %}
+                            <div class="text-muted small mt-1">{{ item.notes }}</div>
+                        {% elseif page_context == 'sell-swap' and item.comment %}
+                            <div class="text-muted small mt-1">{{ item.comment }}</div>
+                        {% endif %}
+                    </div>
+
+                    {# Dropdown menu #}
+                    {% if isOwnProfile or (logged_user.profile is not null and page_context == 'collection' and logged_user.profile.playerId == collection.playerId) %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                                    type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed">
+                                <i class="ci-menu"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {# Solving actions for collection, unsolved, wishlist #}
+                                {% if show_solving_actions %}
+                                    <li>
+                                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: item.puzzleId}) }}">
+                                            <i class="ci-add me-1"></i> {{ 'add_solving'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: item.puzzleId}) }}">
+                                            <i class="ci-time me-1"></i> {{ 'start_solving'|trans }}
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+
+                                {# Context-specific menu items #}
+                                {% if page_context == 'collection' %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ path('edit_collection_item_comment', {collectionItemId: item.collectionItemId}) }}">
+                                            <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                                        </a>
+                                    </li>
+                                {% elseif page_context == 'lend-borrow-lent' %}
+                                    {% if item.currentHolderId %}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ path('player_profile', {playerId: item.currentHolderId}) }}">
+                                                <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_holder'|trans }}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    {{ include('lend-borrow/_dropdown_action.html.twig', {
+                                        puzzle_id: item.puzzleId,
+                                        puzzle_statuses: puzzle_statuses,
+                                        logged_user: logged_user,
+                                        context: dropdown_context,
+                                        tab: tab,
+                                    }) }}
+                                {% elseif page_context == 'lend-borrow-borrowed' %}
+                                    {% if item.ownerId %}
+                                        <li>
+                                            <a class="dropdown-item" href="{{ path('player_profile', {playerId: item.ownerId}) }}">
+                                                <i class="bi bi-person me-1"></i> {{ 'lend_borrow.view_owner'|trans }}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    {{ include('lend-borrow/_dropdown_action.html.twig', {
+                                        puzzle_id: item.puzzleId,
+                                        puzzle_statuses: puzzle_statuses,
+                                        logged_user: logged_user,
+                                        context: dropdown_context,
+                                        tab: tab,
+                                    }) }}
+                                {% elseif page_context == 'sell-swap' %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item.sellSwapListItemId}) }}">
+                                            <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-success"
+                                           href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}?context=list"
+                                           data-turbo="true"
+                                           data-turbo-frame="modal-frame">
+                                            <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}"
+                                              method="post"
+                                              data-turbo="true">
+                                            <input type="hidden" name="context" value="list">
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                {% endif %}
+
+                                {# Include shared dropdown actions (except for sell-swap and lend-borrow which have their own actions) #}
+                                {% if page_context not in ['sell-swap', 'lend-borrow-lent', 'lend-borrow-borrowed'] %}
+                                    {{ include('puzzle/_dropdown_actions.html.twig', {
+                                        puzzle_id: item.puzzleId,
+                                        puzzle_statuses: puzzle_statuses,
+                                        context: dropdown_context,
+                                        source_collection_id: source_collection_id,
+                                        currentCollectionId: currentCollectionId,
+                                        tab: tab,
+                                    }) }}
+                                {% endif %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Universal status badges - shown in all contexts except their native context #}
+                {# Lent badge: show everywhere except lend-borrow-lent page #}
+                {% if isLent and page_context != 'lend-borrow-lent' %}
+                    <div class="mt-1">
+                        <span class="badge bg-purple">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>{{ 'lend_borrow.lent_to'|trans({'%name%': puzzle_statuses.lentToNames[item.puzzleId] ?? ''}) }}
+                        </span>
+                    </div>
+                {% endif %}
+
+                {# Borrowed badge: show everywhere except lend-borrow-borrowed page #}
+                {% if isBorrowed and page_context != 'lend-borrow-borrowed' %}
+                    <div class="mt-1">
+                        <span class="badge bg-purple">
+                            <i class="bi bi-box-arrow-in-left me-1"></i>{{ 'lend_borrow.borrowed_from'|trans({'%name%': puzzle_statuses.borrowedFromNames[item.puzzleId] ?? ''}) }}
+                        </span>
+                    </div>
+                {% endif %}
+
+                {# Sell/Swap badge: show listing type everywhere except sell-swap page (which shows full details) #}
+                {% if isForSaleSwap and page_context != 'sell-swap' %}
+                    <div class="mt-1">
+                        {% set listingType = puzzle_statuses.sellSwapTypes[item.puzzleId] ?? '' %}
+                        {% if listingType == 'swap' %}
+                            <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
+                        {% elseif listingType == 'sell' %}
+                            <span class="badge bg-success">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
+                        {% else %}
+                            <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {# Expandable comment for collection context #}
+                {% if page_context == 'collection' and item.comment %}
+                    <div class="mt-1" data-controller="expandable-text"
+                         data-expandable-text-truncated-class="collection-comment-truncated">
+                        <em class="text-muted fs-sm collection-comment-truncated"
+                            data-expandable-text-target="text">{{ item.comment }}</em>
+                        <a href="#" class="fs-sm"
+                           data-expandable-text-target="toggle"
+                           data-action="click->expandable-text#expand:prevent">{{ 'show_more'|trans }}</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

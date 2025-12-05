@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -63,8 +64,22 @@ readonly final class EditPuzzleSolvingTimeHandler
 
         $finishedAt = $message->finishedAt ?? $solvingTime->finishedAt;
 
-        $seconds = SolvingTime::fromUserInput($message->time)->seconds;
-        assert($seconds !== null);
+        $seconds = null;
+        if ($message->time !== null) {
+            $solvingTimeValue = SolvingTime::fromUserInput($message->time);
+            $seconds = $solvingTimeValue->seconds;
+
+            $puzzlersCount = 1;
+            if ($group !== null) {
+                $puzzlersCount = count($group->puzzlers);
+            }
+
+            $ppm = $solvingTimeValue->calculatePpm($solvingTime->puzzle->piecesCount, $puzzlersCount);
+
+            if ($ppm >= 50) {
+                throw new SuspiciousPpm($solvingTimeValue, $ppm);
+            }
+        }
 
         $finishedPuzzlePhotoPath = $solvingTime->finishedPuzzlePhoto;
 

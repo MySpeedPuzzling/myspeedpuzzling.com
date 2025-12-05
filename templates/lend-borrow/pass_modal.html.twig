@@ -1,0 +1,11 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'lend_borrow.pass.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <p class="mb-3">{{ 'lend_borrow.pass.description'|trans({'%puzzle%': puzzle.name}) }}</p>
+        {{ component('PassLentPuzzleForm', {lentPuzzleId: lentPuzzleId, context: context|default('detail'), tab: tab|default(''), collectionId: collection_id|default('')}) }}
+    </div>
+</turbo-frame>

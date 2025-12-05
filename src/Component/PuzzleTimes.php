@@ -45,6 +45,9 @@ final class PuzzleTimes
     public int $soloTimesCount = 0;
     public int $duoTimesCount = 0;
     public int $groupTimesCount = 0;
+    public int $soloRelaxCount = 0;
+    public int $duoRelaxCount = 0;
+    public int $groupRelaxCount = 0;
 
     /** @var array<string, array<PuzzleSolver|PuzzleSolversGroup>> */
     public array $times = [];
@@ -195,6 +198,11 @@ final class PuzzleTimes
         $this->soloTimesCount = count($soloPuzzleSolversGrouped);
         $this->duoTimesCount = count($duoPuzzleSolversGrouped);
         $this->groupTimesCount = count($teamPuzzleSolversGrouped);
+
+        $relaxCounts = $this->getPuzzleSolvers->relaxCountsByPuzzleId($this->puzzleId);
+        $this->soloRelaxCount = $relaxCounts['solo'];
+        $this->duoRelaxCount = $relaxCounts['duo'];
+        $this->groupRelaxCount = $relaxCounts['team'];
     }
 
     /**

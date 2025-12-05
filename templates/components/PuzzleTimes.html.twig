@@ -1,4 +1,11 @@
 <div {{ attributes }} data-loading="addClass(opacity-50)">
+    {% set totalRelaxCount = this.soloRelaxCount + this.duoRelaxCount + this.groupRelaxCount %}
+    {% if totalRelaxCount > 0 %}
+        <small class="text-muted">
+            <i class="bi bi-cup-hot"></i> {{ 'puzzle.relax_solvings_count'|trans({'%count%': totalRelaxCount}) }}
+        </small>
+    {% endif %}
+
     <div class="puzzle-category-types mt-3 my-2">
         <button
             class="btn {{ this.category == 'solo' ? 'active' }} {{ this.soloTimesCount == 0 ? 'disabled'}}"

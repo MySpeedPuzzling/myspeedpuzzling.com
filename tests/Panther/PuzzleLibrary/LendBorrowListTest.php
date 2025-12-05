@@ -63,8 +63,9 @@ final class LendBorrowListTest extends AbstractPantherTestCase
             ->first()
             ->click();
 
-        // Wait for modal to open
+        // Wait for modal to open and form to load (LiveComponent renders asynchronously)
         $client->waitForVisibility('#modal-frame');
+        $client->waitForVisibility('#modal-frame form');
 
         // Fill in the form with existing player code (PLAYER_WITH_FAVORITES - Michael Johnson)
         $client->getCrawler()
@@ -108,8 +109,9 @@ final class LendBorrowListTest extends AbstractPantherTestCase
             ->first()
             ->click();
 
-        // Wait for modal to open
+        // Wait for modal to open and form to load (LiveComponent renders asynchronously)
         $client->waitForVisibility('#modal-frame');
+        $client->waitForVisibility('#modal-frame form');
 
         // Fill in the form with non-existing player name (plain text, no #)
         $client->getCrawler()
@@ -291,8 +293,9 @@ final class LendBorrowListTest extends AbstractPantherTestCase
             ->first()
             ->click();
 
-        // Wait for modal to open
+        // Wait for modal to open and form to load (LiveComponent renders asynchronously)
         $client->waitForVisibility('#modal-frame');
+        $client->waitForVisibility('#modal-frame form');
 
         // Fill in the form with the new holder input (existing player code or non-existing name)
         $client->getCrawler()

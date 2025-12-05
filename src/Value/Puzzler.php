@@ -61,7 +61,7 @@ readonly final class Puzzler
                 playerName: $data['player_name'],
                 playerCode: $playerCode !== null ? strtoupper($playerCode) : null,
                 playerCountry: CountryCode::fromCode($data['player_country']),
-                isPrivate: $data['is_private'] === null ? false : $data['is_private'],
+                isPrivate: $data['is_private'] ?? false,
             );
         }, $playersData);
 

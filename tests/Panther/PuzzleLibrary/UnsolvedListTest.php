@@ -549,7 +549,8 @@ final class UnsolvedListTest extends AbstractPantherTestCase
     {
         $client = self::createBrowserClient();
 
-        // Login as PLAYER_WITH_STRIPE (has borrowed PUZZLE_1500_02 from PLAYER_REGULAR)
+        // Login as PLAYER_WITH_STRIPE (has borrowed PUZZLE_3000 from PLAYER_REGULAR via LENT_06)
+        // Note: PUZZLE_3000 is unsolved by PLAYER_WITH_STRIPE, unlike PUZZLE_1500_02 which is solved
         self::loginUser(
             $client,
             userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
@@ -566,8 +567,8 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         // Get initial count
         $initialCount = (int) $client->getCrawler()->filter('#unsolved-count')->text();
 
-        // Find the puzzle card for PUZZLE_1500_02 (borrowed from PLAYER_REGULAR)
-        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_1500_02;
+        // Find the puzzle card for PUZZLE_3000 (borrowed from PLAYER_REGULAR via LENT_06)
+        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_3000;
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu
@@ -599,7 +600,8 @@ final class UnsolvedListTest extends AbstractPantherTestCase
     {
         $client = self::createBrowserClient();
 
-        // Login as PLAYER_WITH_STRIPE (has borrowed PUZZLE_1500_02 from PLAYER_REGULAR)
+        // Login as PLAYER_WITH_STRIPE (has borrowed PUZZLE_3000 from PLAYER_REGULAR via LENT_06)
+        // Note: PUZZLE_3000 is unsolved by PLAYER_WITH_STRIPE, unlike PUZZLE_1500_02 which is solved
         self::loginUser(
             $client,
             userId: PlayerFixture::PLAYER_WITH_STRIPE_USER_ID,
@@ -616,8 +618,8 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         // Get initial count
         $initialCount = (int) $client->getCrawler()->filter('#unsolved-count')->text();
 
-        // Find the puzzle card for PUZZLE_1500_02 (borrowed from PLAYER_REGULAR)
-        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_1500_02;
+        // Find the puzzle card for PUZZLE_3000 (borrowed from PLAYER_REGULAR via LENT_06)
+        $puzzleCardSelector = '#library-unsolved-' . PuzzleFixture::PUZZLE_3000;
         $client->waitForVisibility($puzzleCardSelector);
 
         // Open the dropdown menu

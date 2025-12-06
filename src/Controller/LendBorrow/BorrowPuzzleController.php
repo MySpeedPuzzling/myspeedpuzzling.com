@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\FormData\BorrowPuzzleFormData;
 use SpeedPuzzling\Web\FormType\BorrowPuzzleFormType;
 use SpeedPuzzling\Web\Message\BorrowPuzzleFromPlayer;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -36,6 +37,7 @@ final class BorrowPuzzleController extends AbstractController
         readonly private PlayerRepository $playerRepository,
         readonly private GetWishListItems $getWishListItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -144,6 +146,15 @@ final class BorrowPuzzleController extends AbstractController
                     $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
                     if ($unsolvedItem !== null) {
                         $templateParams['item'] = $unsolvedItem;
+                    }
+                } elseif ($context === 'solved-detail') {
+                    // For solved-detail context: user is owner (tracking borrow source)
+                    // Fetch solved item for card replacement with updated badges
+                    $templateParams['is_owner'] = true;
+
+                    $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    if ($solvedItem !== null) {
+                        $templateParams['item'] = $solvedItem;
                     }
                 }
 

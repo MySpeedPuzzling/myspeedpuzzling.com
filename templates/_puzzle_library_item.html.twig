@@ -30,6 +30,7 @@
 {% set isLent = item.puzzleId in puzzle_statuses.lent %}
 {% set isBorrowed = item.puzzleId in puzzle_statuses.borrowed %}
 {% set isForSaleSwap = item.puzzleId in puzzle_statuses.sellSwap %}
+{% set isOnWishlist = item.puzzleId in puzzle_statuses.wishlist %}
 
 {# Determine dropdown context for puzzle/_dropdown_actions.html.twig #}
 {# - 'list' for list pages that remove items (wishlist, sell-swap, lend-borrow lists)
@@ -39,6 +40,8 @@
     {% set dropdown_context = 'collection-detail' %}
 {% elseif page_context == 'unsolved' %}
     {% set dropdown_context = 'unsolved-detail' %}
+{% elseif page_context == 'solved' %}
+    {% set dropdown_context = 'solved-detail' %}
 {% else %}
     {% set dropdown_context = 'list' %}
 {% endif %}
@@ -289,6 +292,15 @@
                         {% else %}
                             <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
                         {% endif %}
+                    </div>
+                {% endif %}
+
+                {# Wishlist badge: show everywhere except wishlist page #}
+                {% if isOnWishlist and page_context != 'wishlist' %}
+                    <div class="mt-1">
+                        <span class="badge bg-danger">
+                            <i class="bi bi-heart-fill me-1"></i>{{ 'wish_list.on_wishlist'|trans }}
+                        </span>
                     </div>
                 {% endif %}
 

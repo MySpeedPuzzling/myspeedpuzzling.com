@@ -1010,6 +1010,7 @@ wish_list:
         login_required: "Du musst angemeldet sein, um deine Wunschliste zu verwalten."
     private: "Private Wunschliste"
     private_message: "Die Wunschliste von %player% ist privat und kann nicht angezeigt werden."
+    on_wishlist: "Auf der Wunschliste"
     add:
         title: "Zur Wunschliste hinzufügen"
         button: "Zur Wunschliste hinzufügen"

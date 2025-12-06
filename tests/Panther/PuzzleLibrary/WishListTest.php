@@ -33,7 +33,7 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('2', $initialCount, 'Initial wishlist count should be 2');
+        self::assertEquals('3', $initialCount, 'Initial wishlist count should be 3');
 
         // Find the puzzle card for PUZZLE_9000 (WISHLIST_04 - has auto-remove enabled)
         $puzzleCardSelector = '#library-wishlist-' . PuzzleFixture::PUZZLE_9000;
@@ -55,14 +55,14 @@ final class WishListTest extends AbstractPantherTestCase
             ->click();
 
         // Wait for Turbo Stream to process and update the count
-        $client->waitForElementToContain('#wishlist-count', '1', timeoutInSecond: 2);
+        $client->waitForElementToContain('#wishlist-count', '2', timeoutInSecond: 2);
 
         // Verify the card is removed from the list
         self::assertSelectorNotExists($puzzleCardSelector);
 
         // Verify the count is updated
         $newCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('1', $newCount, 'Wishlist count should decrease to 1 after removing');
+        self::assertEquals('2', $newCount, 'Wishlist count should decrease to 2 after removing');
     }
 
     public function testOwnerCanAddItemToCollectionViaTurboStream(): void
@@ -88,7 +88,7 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('2', $initialCount, 'Initial wishlist count should be 2');
+        self::assertEquals('3', $initialCount, 'Initial wishlist count should be 3');
 
         // Find the puzzle card for PUZZLE_9000 (WISHLIST_04 - has auto-remove enabled)
         $puzzleCardSelector = '#library-wishlist-' . PuzzleFixture::PUZZLE_9000;
@@ -141,14 +141,14 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Wait for Turbo Stream to process and update the count
         // Since PUZZLE_9000 has removeOnCollectionAdd: true, it should be auto-removed
-        $client->waitForElementToContain('#wishlist-count', '1', timeoutInSecond: 2);
+        $client->waitForElementToContain('#wishlist-count', '2', timeoutInSecond: 2);
 
         // Verify the card is removed from the list
         self::assertSelectorNotExists($puzzleCardSelector);
 
         // Verify the count is updated
         $newCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('1', $newCount, 'Wishlist count should decrease to 1 after adding to collection');
+        self::assertEquals('2', $newCount, 'Wishlist count should decrease to 2 after adding to collection');
     }
 
     public function testOwnerCanBorrowPuzzleViaTurboStream(): void
@@ -174,7 +174,7 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('2', $initialCount, 'Initial wishlist count should be 2');
+        self::assertEquals('3', $initialCount, 'Initial wishlist count should be 3');
 
         // Find the puzzle card for PUZZLE_9000 (WISHLIST_04 - has auto-remove enabled)
         $puzzleCardSelector = '#library-wishlist-' . PuzzleFixture::PUZZLE_9000;
@@ -212,14 +212,14 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Wait for Turbo Stream to process and update the count
         // Since PUZZLE_9000 has removeOnCollectionAdd: true, it should be auto-removed when borrowed
-        $client->waitForElementToContain('#wishlist-count', '1', timeoutInSecond: 2);
+        $client->waitForElementToContain('#wishlist-count', '2', timeoutInSecond: 2);
 
         // Verify the card is removed from the list
         self::assertSelectorNotExists($puzzleCardSelector);
 
         // Verify the count is updated
         $newCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('1', $newCount, 'Wishlist count should decrease to 1 after borrowing');
+        self::assertEquals('2', $newCount, 'Wishlist count should decrease to 2 after borrowing');
     }
 
     public function testPuzzleWithoutAutoRemoveStaysInWishlistAfterAddingToCollection(): void
@@ -245,7 +245,7 @@ final class WishListTest extends AbstractPantherTestCase
 
         // Get initial count
         $initialCount = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('2', $initialCount, 'Initial wishlist count should be 2');
+        self::assertEquals('3', $initialCount, 'Initial wishlist count should be 3');
 
         // Find the puzzle card for PUZZLE_3000 (WISHLIST_05 - has auto-remove DISABLED)
         $puzzleCardSelector = '#library-wishlist-' . PuzzleFixture::PUZZLE_3000;
@@ -300,9 +300,9 @@ final class WishListTest extends AbstractPantherTestCase
         $client->waitForInvisibility('#modal-frame', timeoutInSecond: 2);
 
         // Since PUZZLE_3000 has removeOnCollectionAdd: false, it should stay in wishlist
-        // The count should remain 2
+        // The count should remain 3
         $countAfterAdd = $client->getCrawler()->filter('#wishlist-count')->text();
-        self::assertEquals('2', $countAfterAdd, 'Wishlist count should remain 2 because auto-remove is disabled');
+        self::assertEquals('3', $countAfterAdd, 'Wishlist count should remain 3 because auto-remove is disabled');
 
         // Verify the card is still in the list
         self::assertSelectorExists($puzzleCardSelector);

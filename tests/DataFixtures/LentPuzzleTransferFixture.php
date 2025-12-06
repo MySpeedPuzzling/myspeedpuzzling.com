@@ -23,6 +23,7 @@ final class LentPuzzleTransferFixture extends Fixture implements DependentFixtur
     public const string TRANSFER_05 = '018d000d-0000-0000-0000-000000000005';
     public const string TRANSFER_06 = '018d000d-0000-0000-0000-000000000006';
     public const string TRANSFER_07 = '018d000d-0000-0000-0000-000000000007';
+    public const string TRANSFER_08 = '018d000d-0000-0000-0000-000000000008';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -40,6 +41,7 @@ final class LentPuzzleTransferFixture extends Fixture implements DependentFixtur
         $lent03 = $this->getReference(LentPuzzleFixture::LENT_03, LentPuzzle::class);
         $lent04 = $this->getReference(LentPuzzleFixture::LENT_04, LentPuzzle::class);
         $lent05 = $this->getReference(LentPuzzleFixture::LENT_05, LentPuzzle::class);
+        $lent06 = $this->getReference(LentPuzzleFixture::LENT_06, LentPuzzle::class);
 
         // LENT_01: Initial lend from owner (player5) to player1
         $transfer01 = $this->createLentPuzzleTransfer(
@@ -138,6 +140,20 @@ final class LentPuzzleTransferFixture extends Fixture implements DependentFixtur
         );
         $manager->persist($transfer07);
         $this->addReference(self::TRANSFER_07, $transfer07);
+
+        // LENT_06: Initial lend from owner (player1) to player5 (PLAYER_WITH_STRIPE)
+        $transfer08 = $this->createLentPuzzleTransfer(
+            id: self::TRANSFER_08,
+            lentPuzzle: $lent06,
+            fromPlayer: $player1,
+            fromPlayerName: null,
+            toPlayer: $player5,
+            toPlayerName: null,
+            transferType: TransferType::InitialLend,
+            daysAgo: 10,
+        );
+        $manager->persist($transfer08);
+        $this->addReference(self::TRANSFER_08, $transfer08);
 
         $manager->flush();
     }

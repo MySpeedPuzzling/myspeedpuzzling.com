@@ -1035,6 +1035,7 @@ wish_list:
         login_required: "You must be logged in to manage your wish list."
     private: "Private Wish List"
     private_message: "The wish list by %player% is private and cannot be viewed."
+    on_wishlist: "On Wish List"
     add:
         title: "Add to Wish List"
         button: "Add to Wish List"

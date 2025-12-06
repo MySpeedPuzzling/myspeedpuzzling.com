@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromSellSwapList;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -29,6 +30,7 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -109,6 +111,10 @@ final class RemovePuzzleFromSellSwapListController extends AbstractController
                 // For unsolved-detail context, fetch the unsolved puzzle item
                 $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
                 $templateParams['item'] = $unsolvedItem;
+            } elseif ($context === 'solved-detail') {
+                // For solved-detail context, fetch the solved puzzle item
+                $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                $templateParams['item'] = $solvedItem;
             }
 
             return $this->render('sell-swap/_stream.html.twig', $templateParams);

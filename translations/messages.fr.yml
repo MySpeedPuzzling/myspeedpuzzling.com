@@ -1010,6 +1010,7 @@ wish_list:
         login_required: "Vous devez être connecté pour gérer votre liste de souhaits."
     private: "Liste de souhaits privée"
     private_message: "La liste de souhaits de %player% est privée et ne peut pas être consultée."
+    on_wishlist: "Sur la liste de souhaits"
     add:
         title: "Ajouter à la liste de souhaits"
         button: "Ajouter à la liste de souhaits"

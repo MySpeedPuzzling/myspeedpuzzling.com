@@ -537,6 +537,78 @@ SQL;
     }
 
     /**
+     * Get a single solved puzzle by puzzle ID and player ID
+     *
+     * @throws PlayerNotFound
+     */
+    public function byPuzzleIdAndPlayerId(string $puzzleId, string $playerId): null|SolvedPuzzleOverview
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.identification_number AS puzzle_identification_number,
+    puzzle.ean AS ean,
+    puzzle.pieces_count,
+    manufacturer.name AS manufacturer_name,
+    puzzle.image,
+    puzzle_solving_time.finished_at
+FROM puzzle_solving_time
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+WHERE puzzle.id = :puzzleId
+  AND (
+    puzzle_solving_time.player_id = :playerId
+    OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+  )
+ORDER BY puzzle_solving_time.finished_at DESC
+LIMIT 1
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'puzzleId' => $puzzleId,
+                'playerId' => $playerId,
+            ])
+            ->fetchAssociative();
+
+        if ($data === false) {
+            return null;
+        }
+
+        /**
+         * @var array{
+         *     puzzle_id: string,
+         *     puzzle_name: string,
+         *     puzzle_alternative_name: null|string,
+         *     puzzle_identification_number: null|string,
+         *     ean: null|string,
+         *     pieces_count: int,
+         *     manufacturer_name: null|string,
+         *     image: null|string,
+         *     finished_at: string,
+         * } $data
+         */
+
+        return new SolvedPuzzleOverview(
+            puzzleId: $data['puzzle_id'],
+            puzzleName: $data['puzzle_name'],
+            puzzleAlternativeName: $data['puzzle_alternative_name'],
+            puzzleIdentificationNumber: $data['puzzle_identification_number'],
+            ean: $data['ean'],
+            piecesCount: $data['pieces_count'],
+            manufacturerName: $data['manufacturer_name'],
+            image: $data['image'],
+            finishedAt: new DateTimeImmutable($data['finished_at']),
+        );
+    }
+
+    /**
      * Get all solved puzzles for list display, ordered alphabetically by puzzle name
      *
      * @return array<SolvedPuzzleOverview>

@@ -1010,6 +1010,7 @@ wish_list:
         login_required: "Debes iniciar sesión para gestionar tu lista de deseos."
     private: "Lista de Deseos Privada"
     private_message: "La lista de deseos de %player% es privada y no se puede ver."
+    on_wishlist: "En la Lista de Deseos"
     add:
         title: "Añadir a Lista de Deseos"
         button: "Añadir a Lista de Deseos"

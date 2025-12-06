@@ -1,12 +1,12 @@
 {#
-    Stream for lend-borrow actions from puzzle detail page, collection detail, unsolved page, or wishlist page.
+    Stream for lend-borrow actions from puzzle detail page, collection detail, unsolved page, solved page, or wishlist page.
 
     Parameters:
     - puzzle_id: The puzzle ID
     - puzzle_statuses: UserPuzzleStatuses
     - action: 'lent', 'returned', 'passed', 'borrowed'
     - message: Toast message
-    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), 'unsolved-detail' (unsolved page), or 'list' (wishlist page)
+    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), 'unsolved-detail' (unsolved page), 'solved-detail' (solved page), or 'list' (wishlist page)
 
     For collection-detail context, additional parameters:
     - item: CollectionItemOverview - full item data for card replacement
@@ -15,6 +15,9 @@
 
     For unsolved-detail context (only for pass/return actions on borrowed puzzles):
     - The item is removed because after pass/return, user no longer has the borrowed puzzle
+
+    For solved-detail context:
+    - The item is always replaced because puzzles stay in solved list (based on solving time, not ownership)
 
     For list context (wishlist), additional parameters:
     - remaining_count: Number of remaining items in wishlist
@@ -82,6 +85,18 @@
             <template>{{ remaining_count }}</template>
         </turbo-stream>
         {% endif %}
+    {% endif %}
+{% elseif context|default('detail') == 'solved-detail' %}
+    {# Solved puzzles page: always replace card (puzzles stay based on solving time) #}
+    {% if item is defined %}
+        {{ include('_library_item_stream.html.twig', {
+            action: 'replace',
+            page_context: 'solved',
+            item: item,
+            puzzle_statuses: puzzle_statuses,
+            logged_user: logged_user,
+            isOwnProfile: true,
+        }) }}
     {% endif %}
 {% else %}
     {# Puzzle detail page: update badges and dropdown #}

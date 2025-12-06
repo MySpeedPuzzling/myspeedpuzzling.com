@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\FormType\LendPuzzleFormType;
 use SpeedPuzzling\Web\Message\LendPuzzleToPlayer;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -36,6 +37,7 @@ final class LendPuzzleController extends AbstractController
         readonly private PlayerRepository $playerRepository,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -158,6 +160,15 @@ final class LendPuzzleController extends AbstractController
                     $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
                     if ($unsolvedItem !== null) {
                         $templateParams['item'] = $unsolvedItem;
+                    }
+                } elseif ($context === 'solved-detail') {
+                    // For solved-detail context: user is always owner (only owners can lend)
+                    // Fetch solved item for card replacement to show lent badge
+                    $templateParams['is_owner'] = true;
+
+                    $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    if ($solvedItem !== null) {
+                        $templateParams['item'] = $solvedItem;
                     }
                 }
 

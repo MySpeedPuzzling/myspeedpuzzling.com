@@ -1013,6 +1013,7 @@ wish_list:
     name: "ウィッシュリスト"
     private: "非公開ウィッシュリスト"
     private_message: "%player%のウィッシュリストは非公開のため閲覧できません。"
+    on_wishlist: "ウィッシュリストに登録済み"
     remove:
         button: "ウィッシュリストから削除"
         success: "パズルがウィッシュリストから削除されました。"

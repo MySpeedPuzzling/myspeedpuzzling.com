@@ -1,11 +1,11 @@
 {#
-    Stream for sell-swap actions from puzzle detail page, collection detail, or unsolved page.
+    Stream for sell-swap actions from puzzle detail page, collection detail, unsolved page, or solved page.
 
     Parameters:
     - puzzle_id: The puzzle ID
     - puzzle_statuses: UserPuzzleStatuses object
     - message: Toast message
-    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), or 'unsolved-detail' (unsolved page)
+    - context: 'detail' (puzzle detail page), 'collection-detail' (collection page), 'unsolved-detail' (unsolved page), or 'solved-detail' (solved page)
 
     For collection-detail context, additional parameters:
     - item: CollectionItemOverview - full item data for card replacement
@@ -14,6 +14,10 @@
 
     For unsolved-detail context, additional parameters:
     - item: UnsolvedPuzzleItem - full item data for card replacement
+    - logged_user: Current logged user
+
+    For solved-detail context, additional parameters:
+    - item: SolvedPuzzleOverview - full item data for card replacement
     - logged_user: Current logged user
 #}
 
@@ -37,6 +41,16 @@
     {{ include('_library_item_stream.html.twig', {
         action: 'replace',
         page_context: 'unsolved',
+        item: item,
+        puzzle_statuses: puzzle_statuses,
+        logged_user: logged_user,
+        isOwnProfile: true,
+    }) }}
+{% elseif context|default('detail') == 'solved-detail' %}
+    {# Solved puzzles page: replace the whole card #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'replace',
+        page_context: 'solved',
         item: item,
         puzzle_statuses: puzzle_statuses,
         logged_user: logged_user,

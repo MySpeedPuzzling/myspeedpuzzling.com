@@ -44,6 +44,16 @@
     <turbo-stream action="update" target="unsolved-count">
         <template>{{ remaining_count }}</template>
     </turbo-stream>
+{% elseif context|default('detail') == 'solved-detail' %}
+    {# Solved puzzles page: replace the card (puzzle stays - based on solving time, not ownership) #}
+    {{ include('_library_item_stream.html.twig', {
+        action: 'replace',
+        page_context: 'solved',
+        item: item,
+        puzzle_statuses: puzzle_statuses,
+        logged_user: logged_user,
+        isOwnProfile: true,
+    }) }}
 {% elseif context|default('detail') == 'list' %}
     {# Sell-swap list page: remove the item and update count #}
     {{ include('_library_item_stream.html.twig', {

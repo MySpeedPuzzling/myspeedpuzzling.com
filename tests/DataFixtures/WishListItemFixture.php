@@ -21,6 +21,7 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
     public const string WISHLIST_04 = '018d000a-0000-0000-0000-000000000004';
     public const string WISHLIST_05 = '018d000a-0000-0000-0000-000000000005';
     public const string WISHLIST_06 = '018d000a-0000-0000-0000-000000000006';
+    public const string WISHLIST_07 = '018d000a-0000-0000-0000-000000000007';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -33,6 +34,7 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
         $player2 = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
+        $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
         $puzzle3000 = $this->getReference(PuzzleFixture::PUZZLE_3000, Puzzle::class);
         $puzzle4000 = $this->getReference(PuzzleFixture::PUZZLE_4000, Puzzle::class);
         $puzzle5000 = $this->getReference(PuzzleFixture::PUZZLE_5000, Puzzle::class);
@@ -90,6 +92,17 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
         );
         $manager->persist($item05);
         $this->addReference(self::WISHLIST_05, $item05);
+
+        // WISHLIST_07: PLAYER_WITH_STRIPE + PUZZLE_500_01 (a solved puzzle on wishlist for testing)
+        $item07 = $this->createWishListItem(
+            id: self::WISHLIST_07,
+            player: $player5,
+            puzzle: $puzzle500_01,
+            removeOnCollectionAdd: false,
+            daysAgo: 3,
+        );
+        $manager->persist($item07);
+        $this->addReference(self::WISHLIST_07, $item07);
 
         // Player2 (PLAYER_PRIVATE) wishlist item
         $item06 = $this->createWishListItem(

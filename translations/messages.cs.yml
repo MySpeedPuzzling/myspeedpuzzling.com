@@ -1085,6 +1085,7 @@ wish_list:
     already_in_list: "Toto puzzle je již ve vašem seznamu přání."
     private: "Soukromý seznam přání"
     private_message: "Seznam přání hráče %player% je soukromý a nelze jej zobrazit."
+    on_wishlist: "Na seznamu přání"
     auto_remove_enabled: "Automatické odebrání povoleno"
     edit:
         title: "Upravit viditelnost seznamu přání"

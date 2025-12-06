@@ -59,6 +59,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
     public const string TIME_38 = '018d0006-0000-0000-0000-000000000038';
     public const string TIME_39 = '018d0006-0000-0000-0000-000000000039';
     public const string TIME_40 = '018d0006-0000-0000-0000-000000000040';
+    public const string TIME_41 = '018d0006-0000-0000-0000-000000000041';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -78,6 +79,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
         $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
+        $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
         $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
         $puzzle2000 = $this->getReference(PuzzleFixture::PUZZLE_2000, Puzzle::class);
 
@@ -261,6 +263,39 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             $manager->persist($time);
             $this->addReference($timeData['id'], $time);
         }
+
+        // Team solving - TIME_41: Team solve for PUZZLE_1000_03
+        // PLAYER_PRIVATE is in the team but NOT the player_id owner - this tests team membership detection
+        $teamTime2 = $this->createPuzzleSolvingTime(
+            id: self::TIME_41,
+            player: $player1, // PLAYER_REGULAR is the owner
+            puzzle: $puzzle1000_03,
+            secondsToSolve: 4000,
+            daysAgo: 8,
+            verified: true,
+            firstAttempt: true,
+            team: new PuzzlersGroup(
+                teamId: 'team-002',
+                puzzlers: [
+                    new Puzzler(
+                        playerId: $player1->id->toString(),
+                        playerName: $player1->name,
+                        playerCode: $player1->code,
+                        playerCountry: null,
+                        isPrivate: false,
+                    ),
+                    new Puzzler(
+                        playerId: $player2->id->toString(),
+                        playerName: $player2->name,
+                        playerCode: $player2->code,
+                        playerCountry: null,
+                        isPrivate: false,
+                    ),
+                ],
+            ),
+        );
+        $manager->persist($teamTime2);
+        $this->addReference(self::TIME_41, $teamTime2);
 
         $manager->flush();
     }

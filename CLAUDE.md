@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` - Build production frontend assets
 
 ### Testing & Quality
-- `vendor/bin/phpunit` - Run PHP unit tests
+- `vendor/bin/phpunit --exclude-group panther` - Run PHP unit tests (excluding slow Panther browser tests)
+- `vendor/bin/phpunit` - Run all tests including Panther (only when explicitly asked)
 - `composer run phpstan` - Run PHPStan static analysis (max level)
 - `composer run cs` - Check coding standards with PHPCS
 - `composer run cs-fix` - Fix coding standards with PHPCBF

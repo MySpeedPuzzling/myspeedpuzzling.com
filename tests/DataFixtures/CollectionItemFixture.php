@@ -39,6 +39,7 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public const string ITEM_21 = '018d0009-0000-0000-0000-000000000021';
     public const string ITEM_22 = '018d0009-0000-0000-0000-000000000022';
     public const string ITEM_23 = '018d0009-0000-0000-0000-000000000023';
+    public const string ITEM_24 = '018d0009-0000-0000-0000-000000000024';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -48,6 +49,7 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public function load(ObjectManager $manager): void
     {
         $player1 = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
+        $player2 = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         $publicCollection = $this->getReference(CollectionFixture::COLLECTION_PUBLIC, Collection::class);
@@ -323,6 +325,19 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         );
         $manager->persist($item23);
         $this->addReference(self::ITEM_23, $item23);
+
+        // ITEM_24: PUZZLE_1000_03 in PLAYER_PRIVATE's system collection (null)
+        // Purpose: Test that team-solved puzzles don't show as unsolved
+        // PLAYER_PRIVATE solved PUZZLE_1000_03 as part of team-002 (TIME_41) but wasn't the player_id owner
+        $item24 = $this->createCollectionItem(
+            id: self::ITEM_24,
+            player: $player2,
+            puzzle: $puzzle1000_03,
+            collection: null,
+            daysAgo: 3,
+        );
+        $manager->persist($item24);
+        $this->addReference(self::ITEM_24, $item24);
 
         $manager->flush();
     }

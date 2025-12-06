@@ -34,10 +34,14 @@
         <div class="row">
             {% for collection in collections %}
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card shadow-lg border-start border-5 {% if collection.isLendBorrowList %} border-purple{% elseif collection.isSellSwapList %} border-success{% elseif collection.isWishList %} border-info{% elseif collection.isUnsolvedPuzzles %} border-warning{% elseif collection.isSystemCollection %} border-primary{% endif %}">
+                    <div class="card shadow-lg border-start border-5 {% if collection.isSolvedPuzzles %} border-teal{% elseif collection.isLendBorrowList %} border-purple{% elseif collection.isSellSwapList %} border-success{% elseif collection.isWishList %} border-info{% elseif collection.isUnsolvedPuzzles %} border-warning{% elseif collection.isSystemCollection %} border-primary{% endif %}">
                         <div class="card-header d-flex justify-content-between align-items-start px-3">
                             <h5 class="card-title mb-0">
-                                {% if collection.isLendBorrowList %}
+                                {% if collection.isSolvedPuzzles %}
+                                    <a href="{{ path('solved_puzzles_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
+                                        <i class="bi bi-check2-circle me-1"></i>{{ collection.name }}
+                                    </a>
+                                {% elseif collection.isLendBorrowList %}
                                     <a href="{{ path('lend_borrow_list_detail', {playerId: player.playerId}) }}" class="text-decoration-none">
                                         <i class="bi bi-box-arrow-right me-1"></i>{{ collection.name }}
                                     </a>
@@ -140,6 +144,12 @@
                                         {% elseif collection.isUnsolvedPuzzles %}
                                             <li>
                                                 <a class="dropdown-item" href="{{ path('edit_unsolved_puzzles', {'playerId': player.playerId}) }}">
+                                                    <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
+                                                </a>
+                                            </li>
+                                        {% elseif collection.isSolvedPuzzles %}
+                                            <li>
+                                                <a class="dropdown-item" href="{{ path('edit_solved_puzzles', {'playerId': player.playerId}) }}">
                                                     <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                 </a>
                                             </li>

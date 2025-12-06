@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
+use SpeedPuzzling\Web\Results\SolvedPuzzleOverview;
 
 readonly final class GetPlayerSolvedPuzzles
 {
@@ -505,6 +506,100 @@ SQL;
             $row['player_country'] = null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * Count distinct puzzles solved by player (solo or in team)
+     *
+     * @throws PlayerNotFound
+     */
+    public function countByPlayerId(string $playerId): int
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT COUNT(DISTINCT puzzle_id)
+FROM puzzle_solving_time
+WHERE
+    player_id = :playerId
+    OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+SQL;
+
+        /** @var int|false $result */
+        $result = $this->database->executeQuery($query, [
+            'playerId' => $playerId,
+        ])->fetchOne();
+
+        return $result !== false ? (int) $result : 0;
+    }
+
+    /**
+     * Get all solved puzzles for list display, ordered alphabetically by puzzle name
+     *
+     * @return array<SolvedPuzzleOverview>
+     * @throws PlayerNotFound
+     */
+    public function allByPlayerId(string $playerId): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT DISTINCT ON (puzzle.name, puzzle.id)
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    puzzle.identification_number AS puzzle_identification_number,
+    puzzle.ean AS ean,
+    puzzle.pieces_count,
+    manufacturer.name AS manufacturer_name,
+    puzzle.image,
+    puzzle_solving_time.finished_at
+FROM puzzle_solving_time
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+WHERE
+    puzzle_solving_time.player_id = :playerId
+    OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+ORDER BY puzzle.name ASC, puzzle.id, puzzle_solving_time.finished_at DESC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): SolvedPuzzleOverview {
+            /**
+             * @var array{
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     puzzle_identification_number: null|string,
+             *     ean: null|string,
+             *     pieces_count: int,
+             *     manufacturer_name: null|string,
+             *     image: null|string,
+             *     finished_at: string,
+             * } $row
+             */
+
+            return new SolvedPuzzleOverview(
+                puzzleId: $row['puzzle_id'],
+                puzzleName: $row['puzzle_name'],
+                puzzleAlternativeName: $row['puzzle_alternative_name'],
+                puzzleIdentificationNumber: $row['puzzle_identification_number'],
+                ean: $row['ean'],
+                piecesCount: $row['pieces_count'],
+                manufacturerName: $row['manufacturer_name'],
+                image: $row['image'],
+                finishedAt: new DateTimeImmutable($row['finished_at']),
+            );
         }, $data);
     }
 }

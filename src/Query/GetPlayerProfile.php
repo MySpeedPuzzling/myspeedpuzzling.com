@@ -53,6 +53,7 @@ SELECT
     unsolved_puzzles_visibility,
     wish_list_visibility,
     lend_borrow_list_visibility,
+    solved_puzzles_visibility,
     sell_swap_list_settings,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
@@ -104,6 +105,7 @@ SELECT
     unsolved_puzzles_visibility,
     wish_list_visibility,
     lend_borrow_list_visibility,
+    solved_puzzles_visibility,
     sell_swap_list_settings,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player

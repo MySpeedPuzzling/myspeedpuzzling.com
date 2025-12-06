@@ -9,8 +9,10 @@ use SpeedPuzzling\Web\FormType\MarkAsSoldSwappedFormType;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,6 +35,8 @@ final class MarkAsSoldSwappedController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
     ) {
     }
 
@@ -106,6 +110,13 @@ final class MarkAsSoldSwappedController extends AbstractController
                     // For unsolved-detail context: remove the card and update count
                     // When puzzle is marked as sold, user no longer owns it
                     $templateParams['remaining_count'] = $this->getUnsolvedPuzzles->countByPlayerId($loggedPlayer->playerId);
+                } elseif ($context === 'solved-detail') {
+                    // For solved-detail context: puzzle stays (based on solving time, not ownership)
+                    // Just update the card with new badges (sell/swap badge removed)
+                    $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+                    $templateParams['item'] = $solvedItem;
+                    $templateParams['puzzle_statuses'] = $puzzleStatuses;
                 } elseif ($context === 'list') {
                     // For list context, fetch remaining count to update the counter
                     $templateParams['remaining_count'] = $this->getSellSwapListItems->countByPlayerId($loggedPlayer->playerId);

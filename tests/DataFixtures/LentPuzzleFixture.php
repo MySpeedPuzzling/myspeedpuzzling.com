@@ -20,6 +20,7 @@ final class LentPuzzleFixture extends Fixture implements DependentFixtureInterfa
     public const string LENT_03 = '018d000c-0000-0000-0000-000000000003';
     public const string LENT_04 = '018d000c-0000-0000-0000-000000000004';
     public const string LENT_05 = '018d000c-0000-0000-0000-000000000005';
+    public const string LENT_06 = '018d000c-0000-0000-0000-000000000006';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -38,6 +39,7 @@ final class LentPuzzleFixture extends Fixture implements DependentFixtureInterfa
         $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
         $puzzle1500_02 = $this->getReference(PuzzleFixture::PUZZLE_1500_02, Puzzle::class);
         $puzzle2000 = $this->getReference(PuzzleFixture::PUZZLE_2000, Puzzle::class);
+        $puzzle3000 = $this->getReference(PuzzleFixture::PUZZLE_3000, Puzzle::class);
 
         // Lent to registered player, with notes
         $lent01 = $this->createLentPuzzle(
@@ -108,6 +110,21 @@ final class LentPuzzleFixture extends Fixture implements DependentFixtureInterfa
         );
         $manager->persist($lent05);
         $this->addReference(self::LENT_05, $lent05);
+
+        // PLAYER_REGULAR lends PUZZLE_3000 to PLAYER_WITH_STRIPE (for testing return/pass in unsolved list)
+        // Note: PUZZLE_3000 is NOT solved by PLAYER_WITH_STRIPE, so it appears in unsolved list
+        $lent06 = $this->createLentPuzzle(
+            id: self::LENT_06,
+            puzzle: $puzzle3000,
+            ownerPlayer: $player1,
+            ownerName: null,
+            currentHolderPlayer: $player5,
+            currentHolderName: null,
+            daysAgo: 10,
+            notes: null,
+        );
+        $manager->persist($lent06);
+        $this->addReference(self::LENT_06, $lent06);
 
         $manager->flush();
     }

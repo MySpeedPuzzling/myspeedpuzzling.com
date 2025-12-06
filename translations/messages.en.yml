@@ -937,7 +937,6 @@ collections:
     copy_puzzle: "Copy Puzzle to Collection"
     move_to_collection: "Move to collection"
     copy_to_collection: "Copy to collection"
-    puzzle_copied: "Puzzle successfully copied to collection."
     moving_from: "Moving from %collection%"
     move_puzzle_submit: "Move"
     copy_puzzle_submit: "Copy"
@@ -980,6 +979,32 @@ unsolved_puzzles:
     private: "Private Unsolved Puzzles"
     private_message: "The unsolved puzzles list \"%collection%\" by %player% is private and cannot be viewed."
 
+solved_puzzles:
+    name: "Solved Puzzles"
+    meta:
+        title: "Solved Puzzles"
+    title: "Solved Puzzles"
+    title_other: "Solved Puzzles of %name%"
+    description: "All puzzles you have completed"
+    description_other: "All puzzles %name% has completed"
+    items_count: "%count% puzzles"
+    empty:
+        title: "No solved puzzles"
+        message: "Start solving puzzles to see them here!"
+        title_other: "No solved puzzles"
+        message_other: "%name% hasn't solved any puzzles yet."
+    edit:
+        title: "Edit Solved Puzzles Visibility"
+        meta:
+            title: "Edit Solved Puzzles Visibility"
+        submit: "Save Changes"
+    form:
+        visibility_help: "Public solved puzzles list is visible to all users, private only to you."
+    flash:
+        updated: "Solved puzzles visibility was successfully updated."
+    private: "Private Solved Puzzles"
+    private_message: "The solved puzzles list \"%collection%\" by %player% is private and cannot be viewed."
+
 wish_list:
     name: "Wish List"
     meta:
@@ -1010,6 +1035,7 @@ wish_list:
         login_required: "You must be logged in to manage your wish list."
     private: "Private Wish List"
     private_message: "The wish list by %player% is private and cannot be viewed."
+    on_wishlist: "On Wish List"
     add:
         title: "Add to Wish List"
         button: "Add to Wish List"

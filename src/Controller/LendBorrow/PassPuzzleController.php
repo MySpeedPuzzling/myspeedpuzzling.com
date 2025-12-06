@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\PassLentPuzzle;
 use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\LentPuzzleRepository;
@@ -38,6 +39,7 @@ final class PassPuzzleController extends AbstractController
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -206,6 +208,15 @@ final class PassPuzzleController extends AbstractController
                     } else {
                         // Borrower passed or owner passed to self (return) - card will be removed, update count
                         $templateParams['remaining_count'] = $this->getUnsolvedPuzzles->countByPlayerId($loggedPlayer->playerId);
+                    }
+                } elseif ($context === 'solved-detail') {
+                    // For solved-detail: puzzles always stay (based on solving time, not ownership)
+                    // Just update the card with new badges
+                    $templateParams['is_owner'] = true; // Always replace, never remove
+
+                    $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    if ($solvedItem !== null) {
+                        $templateParams['item'] = $solvedItem;
                     }
                 }
 

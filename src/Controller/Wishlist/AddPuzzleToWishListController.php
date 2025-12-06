@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Wishlist;
 
 use SpeedPuzzling\Web\Message\AddPuzzleToWishList;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -27,6 +30,9 @@ final class AddPuzzleToWishListController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -68,12 +74,41 @@ final class AddPuzzleToWishListController extends AbstractController
                     $loggedPlayer->playerId
                 );
 
-                return $this->render('wishlist/_stream.html.twig', [
+                $context = $request->request->getString('context', 'detail');
+
+                $templateParams = [
                     'puzzle_id' => $puzzleId,
                     'puzzle_statuses' => $puzzleStatuses,
                     'action' => 'added',
                     'message' => $this->translator->trans('wish_list.add.success'),
-                ]);
+                    'context' => $context,
+                ];
+
+                // For collection-detail context, fetch the collection item for full card replacement
+                if ($context === 'collection-detail') {
+                    $collectionId = $request->request->getString('collection_id');
+                    // Handle __system_collection__ marker - treat as null (system collection)
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
+                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $collectionIdForQuery,
+                    );
+
+                    $templateParams['item'] = $collectionItem;
+                    $templateParams['collection_id'] = $collectionId;
+                } elseif ($context === 'unsolved-detail') {
+                    // For unsolved-detail context, fetch the unsolved puzzle item
+                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    $templateParams['item'] = $unsolvedItem;
+                } elseif ($context === 'solved-detail') {
+                    // For solved-detail context, fetch the solved puzzle item
+                    $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    $templateParams['item'] = $solvedItem;
+                }
+
+                return $this->render('wishlist/_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message

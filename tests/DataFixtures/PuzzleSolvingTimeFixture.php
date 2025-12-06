@@ -60,6 +60,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
     public const string TIME_39 = '018d0006-0000-0000-0000-000000000039';
     public const string TIME_40 = '018d0006-0000-0000-0000-000000000040';
     public const string TIME_41 = '018d0006-0000-0000-0000-000000000041';
+    public const string TIME_42 = '018d0006-0000-0000-0000-000000000042';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -81,6 +82,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
         $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
         $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
+        $puzzle1500_02 = $this->getReference(PuzzleFixture::PUZZLE_1500_02, Puzzle::class);
         $puzzle2000 = $this->getReference(PuzzleFixture::PUZZLE_2000, Puzzle::class);
 
         $wjpcCompetition = $this->getReference(CompetitionFixture::COMPETITION_WJPC_2024, Competition::class);
@@ -237,6 +239,10 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             // Additional variety
             ['id' => self::TIME_39, 'player' => $player5, 'puzzle' => $puzzle1000_01, 'seconds' => 4100, 'daysAgo' => 19, 'verified' => true],
             ['id' => self::TIME_40, 'player' => $player5, 'puzzle' => $puzzle1000_02, 'seconds' => 4650, 'daysAgo' => 17, 'verified' => true],
+
+            // PLAYER_WITH_STRIPE solving borrowed puzzle PUZZLE_1500_02 (borrowed from PLAYER_REGULAR via LENT_05)
+            // This enables testing return/pass borrowed puzzle scenarios in solved list
+            ['id' => self::TIME_42, 'player' => $player5, 'puzzle' => $puzzle1500_02, 'seconds' => 7000, 'daysAgo' => 5, 'verified' => true],
         ];
 
         foreach ($variedTimes as $timeData) {

@@ -19,6 +19,22 @@ $soft-purple: #9b8bb8;
     color: $soft-purple !important;
 }
 
+// Teal color for solved puzzles list (soft teal)
+$soft-teal: #5bc0de;
+
+.border-teal {
+    border-color: $soft-teal !important;
+}
+
+.bg-teal {
+    background-color: $soft-teal !important;
+    color: #fff !important;
+}
+
+.text-teal {
+    color: $soft-teal !important;
+}
+
 // Lent puzzle styling in collections - emphasize "not home" state
 .puzzle-lent {
     // Grayscale the puzzle image

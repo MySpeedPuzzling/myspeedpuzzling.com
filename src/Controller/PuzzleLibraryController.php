@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetBorrowedPuzzles;
 use SpeedPuzzling\Web\Query\GetLentPuzzles;
 use SpeedPuzzling\Web\Query\GetPlayerCollectionsWithCounts;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetWishListItems;
@@ -33,6 +34,7 @@ final class PuzzleLibraryController extends AbstractController
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetLentPuzzles $getLentPuzzles,
         readonly private GetBorrowedPuzzles $getBorrowedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
     ) {
@@ -71,6 +73,7 @@ final class PuzzleLibraryController extends AbstractController
             + $this->getBorrowedPuzzles->countUnsolvedByHolderId($player->playerId);
         $wishListCount = $this->getWishListItems->countByPlayerId($player->playerId);
         $sellSwapListCount = $this->getSellSwapListItems->countByPlayerId($player->playerId);
+        $solvedPuzzlesCount = $this->getPlayerSolvedPuzzles->countByPlayerId($player->playerId);
 
         // Add system collection if public or own profile
         if ($player->puzzleCollectionVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
@@ -96,6 +99,25 @@ final class PuzzleLibraryController extends AbstractController
                 itemCount: $unsolvedPuzzlesCount,
                 isSystemCollection: false,
                 isUnsolvedPuzzles: true,
+            ));
+        }
+
+
+        // Add solved puzzles list if public or own profile
+        if ($player->solvedPuzzlesVisibility === CollectionVisibility::Public || $isOwnProfile === true) {
+            array_unshift($collections, new CollectionOverviewWithCount(
+                collectionId: null,
+                name: $this->translator->trans('solved_puzzles.name'),
+                description: $this->translator->trans('solved_puzzles.description'),
+                visibility: $player->solvedPuzzlesVisibility,
+                createdAt: new DateTimeImmutable(),
+                itemCount: $solvedPuzzlesCount,
+                isSystemCollection: false,
+                isUnsolvedPuzzles: false,
+                isWishList: false,
+                isSellSwapList: false,
+                isLendBorrowList: false,
+                isSolvedPuzzles: true,
             ));
         }
 

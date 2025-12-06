@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Wishlist;
 
 use SpeedPuzzling\Web\Message\RemovePuzzleFromWishList;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\GetWishListItems;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -25,6 +28,9 @@ final class RemovePuzzleFromWishListController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private GetWishListItems $getWishListItems,
+        readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -73,15 +79,42 @@ final class RemovePuzzleFromWishListController extends AbstractController
                 ]);
             }
 
-            // Called from puzzle detail page - update badges and dropdown
+            // Called from puzzle detail page or other contexts - update badges and dropdown
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 
-            return $this->render('wishlist/_stream.html.twig', [
+            $templateParams = [
                 'puzzle_id' => $puzzleId,
                 'puzzle_statuses' => $puzzleStatuses,
                 'action' => 'removed',
                 'message' => $this->translator->trans('wish_list.remove.success'),
-            ]);
+                'context' => $context,
+            ];
+
+            // For collection-detail context, fetch the collection item for full card replacement
+            if ($context === 'collection-detail') {
+                $collectionId = $request->request->getString('collection_id');
+                // Handle __system_collection__ marker - treat as null (system collection)
+                $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
+                $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                    $puzzleId,
+                    $loggedPlayer->playerId,
+                    $collectionIdForQuery,
+                );
+
+                $templateParams['item'] = $collectionItem;
+                $templateParams['collection_id'] = $collectionId;
+            } elseif ($context === 'unsolved-detail') {
+                // For unsolved-detail context, fetch the unsolved puzzle item
+                $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                $templateParams['item'] = $unsolvedItem;
+            } elseif ($context === 'solved-detail') {
+                // For solved-detail context, fetch the solved puzzle item
+                $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                $templateParams['item'] = $solvedItem;
+            }
+
+            return $this->render('wishlist/_stream.html.twig', $templateParams);
         }
 
         // Non-Turbo request: redirect with flash message

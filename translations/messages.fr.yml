@@ -573,6 +573,14 @@ notifications:
     mark_all_as_read: "Tout marquer comme lu"
     mark_as_read: "Marquer comme lu"
     new_notification: "Nouvelle notification"
+    lending:
+        borrowed_from_you: "%borrower% a emprunté votre puzzle"
+        lent_to_you: "%owner% vous a prêté un puzzle"
+        passed_from_you: "Le puzzle a été transmis à %to%"
+        passed_to_you: "%from% vous a transmis un puzzle"
+        returned_to_you: "%holder% a rendu votre puzzle"
+        taken_back: "%owner% a repris le puzzle"
+        your_puzzle_passed: "Votre puzzle a été transmis de %from% à %to%"
 
 badges:
     title: "Badges"
@@ -937,7 +945,6 @@ collections:
     private_collection: "Collection privée"
     private_collection_message: "La collection \"%collection%\" de %player% est privée et ne peut pas être consultée."
     public: "Publique"
-    puzzle_copied: "Le puzzle a été copié dans la collection avec succès."
     remove: "Retirer"
     remove_from: "Retirer de %collection%"
     remove_puzzle: "Retirer de la collection"
@@ -1003,6 +1010,7 @@ wish_list:
         login_required: "Vous devez être connecté pour gérer votre liste de souhaits."
     private: "Liste de souhaits privée"
     private_message: "La liste de souhaits de %player% est privée et ne peut pas être consultée."
+    on_wishlist: "Sur la liste de souhaits"
     add:
         title: "Ajouter à la liste de souhaits"
         button: "Ajouter à la liste de souhaits"
@@ -1024,6 +1032,7 @@ sell_swap_list:
     description_other: "Puzzles que %name% vend ou échange"
     items_count: "%count% puzzles"
     contact_notice: "Contactez le vendeur directement pour organiser l'achat ou l'échange."
+    not_in_collection: "Ajouter d'abord à la collection"
     empty:
         title: "Votre liste vente/échange est vide"
         message: "Ajoutez des puzzles que vous souhaitez vendre ou échanger !"
@@ -1128,6 +1137,7 @@ lend_borrow:
     description: "Puzzles actuellement prêtés ou empruntés"
     lent_count: "%count% prêté(s)"
     borrowed_count: "%count% emprunté(s)"
+    not_in_collection: "Pas dans votre collection"
     tab:
         lent: "Prêtés"
         borrowed: "Empruntés"
@@ -1209,3 +1219,29 @@ status:
     solved: "Résolu"
     unsolved: "Non résolu"
     wishlist: "Liste de souhaits"
+
+solved_puzzles:
+    name: "Puzzles Résolus"
+    meta:
+        title: "Puzzles Résolus"
+    title: "Puzzles Résolus"
+    title_other: "Puzzles Résolus de %name%"
+    description: "Tous les puzzles que vous avez complétés"
+    description_other: "Tous les puzzles que %name% a complétés"
+    items_count: "%count% puzzles"
+    empty:
+        title: "Aucun puzzle résolu"
+        message: "Commencez à résoudre des puzzles pour les voir ici !"
+        title_other: "Aucun puzzle résolu"
+        message_other: "%name% n'a pas encore résolu de puzzle."
+    edit:
+        title: "Modifier la visibilité des puzzles résolus"
+        meta:
+            title: "Modifier la visibilité des puzzles résolus"
+        submit: "Enregistrer les modifications"
+    form:
+        visibility_help: "La liste publique des puzzles résolus est visible par tous, la liste privée uniquement par vous."
+    flash:
+        updated: "La visibilité des puzzles résolus a été mise à jour avec succès."
+    private: "Puzzles Résolus Privés"
+    private_message: "La liste des puzzles résolus \"%collection%\" de %player% est privée et ne peut pas être consultée."

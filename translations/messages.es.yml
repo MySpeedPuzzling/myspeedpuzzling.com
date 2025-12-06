@@ -573,6 +573,14 @@ notifications:
     mark_all_as_read: "Marcar todo como leído"
     mark_as_read: "Marcar como leído"
     new_notification: "Nueva notificación"
+    lending:
+        borrowed_from_you: "%borrower% tomó prestado tu puzzle"
+        lent_to_you: "%owner% te prestó un puzzle"
+        passed_from_you: "El puzzle fue pasado a %to%"
+        passed_to_you: "%from% te pasó un puzzle"
+        returned_to_you: "%holder% devolvió tu puzzle"
+        taken_back: "%owner% recuperó el puzzle"
+        your_puzzle_passed: "Tu puzzle fue pasado de %from% a %to%"
 
 badges:
     title: "Insignias"
@@ -937,7 +945,6 @@ collections:
     private_collection: "Colección privada"
     private_collection_message: "La colección \"%collection%\" de %player% es privada y no se puede ver."
     public: "Pública"
-    puzzle_copied: "El puzzle se ha copiado correctamente a la colección."
     remove: "Eliminar"
     remove_from: "Eliminar de %collection%"
     remove_puzzle: "Eliminar de la colección"
@@ -1003,6 +1010,7 @@ wish_list:
         login_required: "Debes iniciar sesión para gestionar tu lista de deseos."
     private: "Lista de Deseos Privada"
     private_message: "La lista de deseos de %player% es privada y no se puede ver."
+    on_wishlist: "En la Lista de Deseos"
     add:
         title: "Añadir a Lista de Deseos"
         button: "Añadir a Lista de Deseos"
@@ -1022,6 +1030,7 @@ sell_swap_list:
     title_other: "Lista de Venta/Intercambio de %name%"
     description: "Puzzles en venta o para intercambio"
     description_other: "Puzzles que %name% está vendiendo o intercambiando"
+    not_in_collection: "Añadir a la colección primero"
     items_count: "%count% puzzles"
     contact_notice: "Contacta al vendedor directamente para organizar la compra o intercambio."
     empty:
@@ -1126,6 +1135,7 @@ lend_borrow:
     name: "Préstamo y Devolución"
     title: "Préstamo y Devolución"
     description: "Puzzles actualmente prestados o tomados prestados"
+    not_in_collection: "No está en tu colección"
     lent_count: "%count% prestados"
     borrowed_count: "%count% tomados prestados"
     tab:
@@ -1209,3 +1219,29 @@ status:
     solved: "Resuelto"
     unsolved: "Sin resolver"
     wishlist: "Lista de deseos"
+
+solved_puzzles:
+    name: "Puzzles Resueltos"
+    meta:
+        title: "Puzzles Resueltos"
+    title: "Puzzles Resueltos"
+    title_other: "Puzzles Resueltos de %name%"
+    description: "Todos los puzzles que has completado"
+    description_other: "Todos los puzzles que %name% ha completado"
+    items_count: "%count% puzzles"
+    private: "Puzzles Resueltos Privados"
+    private_message: "La lista de puzzles resueltos \"%collection%\" de %player% es privada y no se puede ver."
+    empty:
+        title: "Sin puzzles resueltos"
+        message: "¡Empieza a resolver puzzles para verlos aquí!"
+        title_other: "Sin puzzles resueltos"
+        message_other: "%name% aún no ha resuelto ningún puzzle."
+    edit:
+        title: "Editar visibilidad de puzzles resueltos"
+        meta:
+            title: "Editar visibilidad de puzzles resueltos"
+        submit: "Guardar cambios"
+    form:
+        visibility_help: "La lista pública de puzzles resueltos es visible para todos, la privada solo para ti."
+    flash:
+        updated: "La visibilidad de los puzzles resueltos se actualizó correctamente."

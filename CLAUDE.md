@@ -92,7 +92,7 @@ For working with test fixtures, see `.claude/fixtures.md` for complete documenta
 - **Statistics & Charts**: Detailed analytics with Chart.js visualizations
 - **Social Features**: Player favorites, collections, and activity feeds
 - **Premium Membership**: Stripe-powered subscription management
-- **Multi-language**: Czech and English translations
+- **Multi-language**: When adding new features, always do it only in English unless explicitly asked to translate to other locales 
 
 ### Turbo Configuration
 - **IMPORTANT**: Turbo is globally disabled via `data-turbo="false"` on the `<html>` element in `base.html.twig`

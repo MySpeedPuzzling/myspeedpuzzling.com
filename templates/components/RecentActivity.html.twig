@@ -113,7 +113,7 @@
                             <small style="line-height: 105%;">{{ item.trackedAt|ago }}</small><br>
 
                             {% if item.isSpeedMode %}
-                                <span class="badge rounded-pill bg-secondary">
+                                <span class="badge rounded-pill bg-secondary fs-sm">
                                     <i class="bi bi-stopwatch"></i> {{ item.time|puzzlingTime }}
                                 </span>
 
@@ -149,7 +149,7 @@
                                     {% endif %}
                                 {% endif %}
                             {% else %}
-                                <span class="badge rounded-pill bg-secondary">
+                                <span class="badge rounded-pill bg-secondary fs-sm">
                                     <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
                                 </span>
                             {% endif %}

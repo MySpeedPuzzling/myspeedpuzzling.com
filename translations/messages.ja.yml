@@ -325,6 +325,14 @@ notifications:
     new_notification: "新しい通知"
     solved_puzzle: "パズルを解きました"
     solved_puzzle_with_time: "で"
+    lending:
+        borrowed_from_you: "%borrower%があなたのパズルを借りました"
+        lent_to_you: "%owner%があなたにパズルを貸しました"
+        passed_from_you: "パズルが%to%に渡されました"
+        passed_to_you: "%from%があなたにパズルを渡しました"
+        returned_to_you: "%holder%があなたのパズルを返却しました"
+        taken_back: "%owner%がパズルを取り戻しました"
+        your_puzzle_passed: "あなたのパズルが%from%から%to%に渡されました"
 
 membership:
     meta:
@@ -935,7 +943,6 @@ collections:
     private: "プライベート"
     public: "公開"
     change_to_public_hint: "共有するには公開に変更"
-    puzzle_copied: "パズルがコレクションに正常にコピーされました。"
     remove: "削除"
     remove_from: "%collection%から削除"
     remove_puzzle: "コレクションから削除"
@@ -1006,6 +1013,7 @@ wish_list:
     name: "ウィッシュリスト"
     private: "非公開ウィッシュリスト"
     private_message: "%player%のウィッシュリストは非公開のため閲覧できません。"
+    on_wishlist: "ウィッシュリストに登録済み"
     remove:
         button: "ウィッシュリストから削除"
         success: "パズルがウィッシュリストから削除されました。"
@@ -1027,6 +1035,7 @@ sell_swap_list:
     contact_notice: "購入または交換の手配については、出品者に直接お問い合わせください。"
     description: "販売または交換用のパズル"
     description_other: "%name%が販売または交換しているパズル"
+    not_in_collection: "まずコレクションに追加してください"
     edit_item:
         meta:
             title: "売買・交換アイテムを編集"
@@ -1138,6 +1147,7 @@ lend_borrow:
     borrowed_count: "%count%個借用中"
     borrowed_from: "%name%から"
     description: "現在貸出中または借用中のパズル"
+    not_in_collection: "コレクションにありません"
     edit_settings:
         meta:
             title: "貸出・借用設定を編集"
@@ -1198,6 +1208,32 @@ lend_borrow:
     title: "貸出・借用"
     view_holder: "現在の保持者を表示"
     view_owner: "所有者を表示"
+
+solved_puzzles:
+    description: "完成させたすべてのパズル"
+    description_other: "%name%が完成させたすべてのパズル"
+    edit:
+        meta:
+            title: "完成パズルの公開設定を編集"
+        submit: "変更を保存"
+        title: "完成パズルの公開設定を編集"
+    empty:
+        message: "パズルを完成させるとここに表示されます！"
+        message_other: "%name%はまだパズルを完成させていません。"
+        title: "完成パズルなし"
+        title_other: "完成パズルなし"
+    flash:
+        updated: "完成パズルの公開設定が正常に更新されました。"
+    form:
+        visibility_help: "公開の完成パズルリストはすべてのユーザーに表示され、非公開はあなただけに表示されます。"
+    items_count: "%count%個のパズル"
+    meta:
+        title: "完成パズル"
+    name: "完成パズル"
+    private: "非公開の完成パズル"
+    private_message: "%player%の完成パズルリスト「%collection%」は非公開のため閲覧できません。"
+    title: "完成パズル"
+    title_other: "%name%の完成パズル"
 
 status:
     borrowed: "借用中"

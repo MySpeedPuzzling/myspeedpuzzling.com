@@ -1006,6 +1006,7 @@ lend_borrow:
             message: "Nemáte žádná vypůjčená puzzle."
             title_other: "Žádná vypůjčená puzzle"
             message_other: "%name% si nevypůjčil/a žádná puzzle."
+    not_in_collection: "Není ve vaší sbírce"
     form:
         borrower_code: "Kód hráče nebo jméno příjemce"
         borrower_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
@@ -1084,6 +1085,7 @@ wish_list:
     already_in_list: "Toto puzzle je již ve vašem seznamu přání."
     private: "Soukromý seznam přání"
     private_message: "Seznam přání hráče %player% je soukromý a nelze jej zobrazit."
+    on_wishlist: "Na seznamu přání"
     auto_remove_enabled: "Automatické odebrání povoleno"
     edit:
         title: "Upravit viditelnost seznamu přání"
@@ -1123,6 +1125,7 @@ sell_swap_list:
         button: "Odebrat ze seznamu k prodeji/výměně"
         success: "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
     already_in_list: "Toto puzzle je již ve vašem seznamu k prodeji/výměně."
+    not_in_collection: "Nejdříve přidejte do sbírky"
     contact_notice: "Kontaktujte prodejce přímo pro domluvení nákupu nebo výměny."
     back_to_list: "Zpět na seznam k prodeji/výměně"
     membership_required:
@@ -1208,6 +1211,32 @@ sell_swap_list:
         item_updated: "Položka seznamu k prodeji/výměně byla úspěšně aktualizována."
         login_required: "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
         validation_error: "Opravte prosím chyby a zkuste to znovu."
+
+solved_puzzles:
+    meta:
+        title: "Složené puzzle"
+    name: "Složené puzzle"
+    title: "Složené puzzle"
+    title_other: "Složené puzzle uživatele %name%"
+    description: "Všechny puzzle, které jste dokončili"
+    description_other: "Všechny puzzle, které dokončil(a) %name%"
+    items_count: "%count% puzzle"
+    private: "Soukromé složené puzzle"
+    private_message: "Seznam složených puzzlí \"%collection%\" od %player% je soukromý a nelze jej zobrazit."
+    empty:
+        title: "Žádné složené puzzle"
+        message: "Začněte skládat puzzle a uvidíte je zde!"
+        title_other: "Žádné složené puzzle"
+        message_other: "%name% zatím žádné puzzle nesložil(a)."
+    edit:
+        meta:
+            title: "Upravit viditelnost složených puzzlí"
+        title: "Upravit viditelnost složených puzzlí"
+        submit: "Uložit změny"
+    form:
+        visibility_help: "Veřejný seznam složených puzzlí je viditelný pro všechny, soukromý pouze pro vás."
+    flash:
+        updated: "Viditelnost složených puzzlí byla úspěšně aktualizována."
 
 status:
     solved: "Složeno"

@@ -551,6 +551,14 @@ notifications:
     mark_all_as_read: "Alle als gelesen markieren"
     mark_as_read: "Als gelesen markieren"
     new_notification: "Neue Benachrichtigung"
+    lending:
+        borrowed_from_you: "%borrower% hat dein Puzzle ausgeliehen"
+        lent_to_you: "%owner% hat dir ein Puzzle geliehen"
+        passed_from_you: "Das Puzzle wurde an %to% weitergegeben"
+        passed_to_you: "%from% hat dir ein Puzzle weitergegeben"
+        returned_to_you: "%holder% hat dein Puzzle zurückgegeben"
+        taken_back: "%owner% hat das Puzzle zurückgenommen"
+        your_puzzle_passed: "Dein Puzzle wurde von %from% an %to% weitergegeben"
 
 badges:
     title: "Abzeichen"
@@ -937,7 +945,6 @@ collections:
     copy_puzzle: "Puzzle in Sammlung kopieren"
     move_to_collection: "In Sammlung verschieben"
     copy_to_collection: "In Sammlung kopieren"
-    puzzle_copied: "Puzzle wurde erfolgreich in die Sammlung kopiert."
     add_puzzle: "Puzzle zur Sammlung hinzufügen"
     moving_from: "Verschieben von %collection%"
     private: "Privat"
@@ -1089,6 +1096,7 @@ sell_swap_list:
         success: "Puzzle wurde von deiner Verkauf/Tausch-Liste entfernt."
     already_in_list: "Dieses Puzzle ist bereits auf deiner Verkauf/Tausch-Liste."
     login_required: "Du musst angemeldet sein, um deine Verkauf/Tausch-Liste zu verwalten."
+    not_in_collection: "Zuerst zur Sammlung hinzufügen"
     membership_required:
         title: "Nur für Mitglieder"
         message: "Die Verkauf/Tausch-Liste ist ausschließlich für Mitglieder verfügbar."
@@ -1183,6 +1191,7 @@ lend_borrow:
     already_borrowed: "Dieses Puzzle ist bereits auf deiner Liste ausgeliehener Puzzles."
     already_borrowed_short: "Bereits ausgeliehen"
     login_required: "Du musst angemeldet sein, um deine Verleihliste zu verwalten."
+    not_in_collection: "Nicht in deiner Sammlung"
     edit_settings:
         title: "Verleihen & Ausleihen-Einstellungen bearbeiten"
         meta:
@@ -1200,6 +1209,32 @@ lend_borrow:
         cannot_lend_to_self: "Du kannst dir kein Puzzle selbst leihen."
         cannot_borrow_from_self: "Du kannst dir kein Puzzle von dir selbst ausleihen."
         cannot_pass_to_self: "Sie können ein Puzzle nicht an sich selbst weitergeben."
+
+solved_puzzles:
+    name: "Gelöste Puzzles"
+    meta:
+        title: "Gelöste Puzzles"
+    title: "Gelöste Puzzles"
+    title_other: "Gelöste Puzzles von %name%"
+    description: "Alle Puzzles, die du gelöst hast"
+    description_other: "Alle Puzzles, die %name% gelöst hat"
+    items_count: "%count% Puzzles"
+    empty:
+        title: "Keine gelösten Puzzles"
+        message: "Löse Puzzles, um sie hier zu sehen!"
+        title_other: "Keine gelösten Puzzles"
+        message_other: "%name% hat noch keine Puzzles gelöst."
+    edit:
+        title: "Sichtbarkeit gelöster Puzzles bearbeiten"
+        meta:
+            title: "Sichtbarkeit gelöster Puzzles bearbeiten"
+        submit: "Änderungen speichern"
+    form:
+        visibility_help: "Öffentliche Liste gelöster Puzzles ist für alle sichtbar, privat nur für dich."
+    flash:
+        updated: "Sichtbarkeit der gelösten Puzzles wurde erfolgreich aktualisiert."
+    private: "Private gelöste Puzzles"
+    private_message: "Die Liste gelöster Puzzles \"%collection%\" von %player% ist privat und kann nicht eingesehen werden."
 
 status:
     borrowed: "Geliehen"

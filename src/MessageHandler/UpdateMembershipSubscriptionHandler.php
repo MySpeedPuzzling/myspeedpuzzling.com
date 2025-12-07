@@ -55,7 +55,11 @@ readonly final class UpdateMembershipSubscriptionHandler
             return;
         }
 
-        $billingPeriodEnd = DateTimeImmutable::createFromFormat('U', (string) $subscription->current_period_end);
+        // In Stripe API v2025+, current_period_end moved from Subscription to SubscriptionItem
+        $firstItem = $subscription->items->data[0] ?? null;
+        assert($firstItem !== null, 'Subscription must have at least one item');
+
+        $billingPeriodEnd = DateTimeImmutable::createFromFormat('U', (string) $firstItem->current_period_end);
         assert($billingPeriodEnd instanceof DateTimeImmutable);
 
         try {

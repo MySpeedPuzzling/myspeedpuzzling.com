@@ -55,7 +55,8 @@ readonly final class StripeWebhookHandler
                 $invoice = $event->data->object ?? null;
 
                 if ($invoice instanceof Invoice) {
-                    $subscriptionId = $invoice->subscription;
+                    // In Stripe API v2025+, subscription moved to parent->subscription_details->subscription
+                    $subscriptionId = $invoice->parent?->subscription_details->subscription ?? null;
 
                     if (is_string($subscriptionId)) {
                         $this->handlePaymentSucceeded($subscriptionId);
@@ -103,10 +104,12 @@ readonly final class StripeWebhookHandler
     private function handlePaymentFailed(Invoice $invoice): void
     {
         if ($invoice->attempt_count === 1) {
-            $stripeSubscriptionId = $invoice->subscription;
-            assert(is_string($stripeSubscriptionId));
+            // In Stripe API v2025+, subscription moved to parent->subscription_details->subscription
+            $stripeSubscriptionId = $invoice->parent?->subscription_details->subscription ?? null;
 
-            $this->messageBus->dispatch(new NotifyAboutFailedPayment($stripeSubscriptionId));
+            if (is_string($stripeSubscriptionId)) {
+                $this->messageBus->dispatch(new NotifyAboutFailedPayment($stripeSubscriptionId));
+            }
         }
     }
 }

@@ -182,6 +182,18 @@
             "phpcs.xml.dist"
         ]
     },
+    "stripe/stripe-php": {
+        "version": "19.0",
+        "recipe": {
+            "repo": "github.com/symfony/recipes-contrib",
+            "branch": "main",
+            "version": "19.0",
+            "ref": "d6829c693e3927a8972c7671d74a1a5c505712b0"
+        },
+        "files": [
+            "config/packages/stripe.yaml"
+        ]
+    },
     "symfony/console": {
         "version": "6.2",
         "recipe": {

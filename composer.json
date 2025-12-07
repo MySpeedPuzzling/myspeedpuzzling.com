@@ -12,16 +12,10 @@
             "email": "s.mikesova@icloud.com"
         }
     ],
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/janmikes/auth0-symfony"
-        }
-    ],
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": ">=8.3",
+        "php": ">=8.4",
         "ext-ctype": "*",
         "ext-iconv": "*",
         "ext-imagick": "*",
@@ -30,7 +24,8 @@
         "ext-redis": "*",
         "ext-simplexml": "*",
         "ext-uuid": "*",
-        "auth0/symfony": "dev-main",
+        "ext-pdo": "*",
+        "auth0/symfony": "^5.5",
         "doctrine/doctrine-bundle": "^2.4",
         "doctrine/doctrine-migrations-bundle": "^3.1",
         "doctrine/orm": "^3.0",
@@ -113,8 +108,7 @@
         "symfony/css-selector": "^7.0",
         "symfony/debug-bundle": "^7.0",
         "symfony/panther": "^2.3",
-        "symfony/web-profiler-bundle": "^7.0",
-        "ext-pdo": "*"
+        "symfony/web-profiler-bundle": "^7.0"
     },
     "autoload": {
         "psr-4": {
@@ -164,7 +158,8 @@
         "symfony/polyfill-php72": "*",
         "symfony/polyfill-php80": "*",
         "symfony/polyfill-php81": "*",
-        "symfony/polyfill-php82": "*"
+        "symfony/polyfill-php82": "*",
+        "symfony/polyfill-php83": "*"
     },
     "config": {
         "optimize-autoloader": true,
@@ -178,15 +173,6 @@
             "symfony/runtime": true,
             "php-http/discovery": false,
             "dealerdirect/phpcodesniffer-composer-installer": true
-        },
-        "audit": {
-            "ignore": [
-                "PKSA-9bp8-3bj8-8jj2",
-                "PKSA-1g87-trgd-pt11",
-                "PKSA-r19n-r8k1-m54h",
-                "PKSA-w6j7-c1kq-w6yb",
-                "PKSA-365x-2zjk-pt47"
-            ]
         }
     }
 }

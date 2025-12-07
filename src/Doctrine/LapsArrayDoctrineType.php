@@ -58,10 +58,6 @@ final class LapsArrayDoctrineType extends JsonType
         $data = [];
 
         foreach ($value as $lap) {
-            if (!is_a($lap, Lap::class)) {
-                throw InvalidType::new($value, self::NAME, [Lap::class]);
-            }
-
             $data[] = [
                 'start' => $lap->start->format('Y-m-d H:i:s'),
                 'end' => $lap->end?->format('Y-m-d H:i:s'),

@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-return static function (ContainerConfigurator $containerConfigurator): void {
-    $containerConfigurator->extension('framework', ['router' => ['strict_requirements' => null]]);
-};
+return App::config([
+    'framework' => [
+        'router' => [
+            'strict_requirements' => null,
+        ],
+    ],
+]);

@@ -2,21 +2,24 @@
 
 declare(strict_types=1);
 
-use Symfony\Config\FrameworkConfig;
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-return static function (FrameworkConfig $framework): void {
-    $cacheConfig = $framework->cache();
-
-    $cacheConfig->defaultRedisProvider('%env(REDIS_CACHE_DSN)%');
-
-    $cacheConfig->app('cache.adapter.redis');
-
-    $cacheConfig->pool('cache.flysystem.psr6')
-        ->adapters(['cache.app']);
-
-    $cacheConfig->pool('auth0_token_cache')
-        ->adapters(['cache.app']);
-
-    $cacheConfig->pool('auth0_management_token_cache')
-        ->adapters(['cache.app']);
-};
+return App::config([
+    'framework' => [
+        'cache' => [
+            'default_redis_provider' => '%env(REDIS_CACHE_DSN)%',
+            'app' => 'cache.adapter.redis',
+            'pools' => [
+                'cache.flysystem.psr6' => [
+                    'adapters' => ['cache.app'],
+                ],
+                'auth0_token_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
+                'auth0_management_token_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
+            ],
+        ],
+    ],
+]);

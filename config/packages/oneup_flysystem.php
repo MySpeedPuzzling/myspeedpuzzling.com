@@ -1,25 +1,37 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
+
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use AsyncAws\S3\S3Client;
 use League\Flysystem\Filesystem;
-use Symfony\Config\OneupFlysystemConfig;
 
-return static function (OneupFlysystemConfig $config): void {
-    $config->adapter('cached')
-        ->custom()
-        ->service('minio.cache.adapter');
-
-    $config->adapter('minio')
-        ->asyncAwsS3()
-            ->client(S3Client::class)
-            ->bucket('puzzle');
-
-    $config->filesystem('minio')
-        ->adapter('minio')
-        ->alias(Filesystem::class)
-        ->visibility('public')
-        ->directoryVisibility('public');
-
-    $config->filesystem('cached')
-        ->adapter('cached');
-};
+return App::config([
+    'oneup_flysystem' => [
+        'adapters' => [
+            'cached' => [
+                'custom' => [
+                    'service' => 'minio.cache.adapter',
+                ],
+            ],
+            'minio' => [
+                'async_aws_s3' => [
+                    'client' => S3Client::class,
+                    'bucket' => 'puzzle',
+                ],
+            ],
+        ],
+        'filesystems' => [
+            'minio' => [
+                'adapter' => 'minio',
+                'alias' => Filesystem::class,
+                'visibility' => 'public',
+                'directory_visibility' => 'public',
+            ],
+            'cached' => [
+                'adapter' => 'cached',
+            ],
+        ],
+    ],
+]);

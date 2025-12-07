@@ -13,6 +13,7 @@
     <exclude-pattern>public/</exclude-pattern>
     <exclude-pattern>node_modules/</exclude-pattern>
     <exclude-pattern>tests/bootstrap.php</exclude-pattern>
+    <exclude-pattern>config/reference.php</exclude-pattern>
 
     <rule ref="PSR12">
         <exclude name="Generic.Files.LineLength"/>

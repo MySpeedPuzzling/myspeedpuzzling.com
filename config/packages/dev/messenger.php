@@ -1,12 +1,18 @@
-<?php declare(strict_types=1);
+<?php
 
-use Liip\ImagineBundle\Message\WarmupCache;
+declare(strict_types=1);
+
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
-use Symfony\Config\FrameworkConfig;
 
-return static function (FrameworkConfig $framework): void {
-    $messenger = $framework->messenger();
-
-    $messenger->routing(SendEmailMessage::class)->senders(['sync']);
-    $messenger->routing('SpeedPuzzling\\Web\\Events\\*')->senders(['sync']);
-};
+return App::config([
+    'framework' => [
+        'messenger' => [
+            'routing' => [
+                SendEmailMessage::class => 'sync',
+                'SpeedPuzzling\\Web\\Events\\*' => 'sync',
+            ],
+        ],
+    ],
+]);

@@ -14,17 +14,16 @@ parameters:
         - bin
         - tests
         - config
-    scanDirectories:
-        - var/cache/dev/Symfony
     scanFiles:
         - vendor/symfony/dependency-injection/Loader/Configurator/ContainerConfigurator.php
     excludePaths:
         - tests/bootstrap.php
         - tests/object-manager.php
+        - tests/Panther
+        - config/reference.php
+        - config/packages
     symfony:
         containerXmlPath: var/cache/dev/SpeedPuzzling_Web_SymfonyApplicationKernelDevDebugContainer.xml
     doctrine:
         objectManagerLoader: tests/object-manager.php
     checkUninitializedProperties: true
-    ignoreErrors:
-        - "#^Call to an undefined method Symfony\\\\Config\\\\Framework\\\\Messenger#"

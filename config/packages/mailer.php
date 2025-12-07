@@ -1,11 +1,19 @@
-<?php declare(strict_types=1);
+<?php
 
-use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
+declare(strict_types=1);
 
-return static function (\Symfony\Config\FrameworkConfig $config) {
-    $config->mailer()->dsn(env('MAILER_DSN'));
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-    $config->mailer()->envelope()->sender('robot@speedpuzzling.cz');
-
-    $config->mailer()->header('From', 'MySpeedPuzzling <robot@speedpuzzling.cz>');
-};
+return App::config([
+    'framework' => [
+        'mailer' => [
+            'dsn' => '%env(MAILER_DSN)%',
+            'envelope' => [
+                'sender' => 'robot@speedpuzzling.cz',
+            ],
+            'headers' => [
+                'From' => 'MySpeedPuzzling <robot@speedpuzzling.cz>',
+            ],
+        ],
+    ],
+]);

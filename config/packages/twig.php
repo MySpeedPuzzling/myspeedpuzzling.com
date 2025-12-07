@@ -2,27 +2,25 @@
 
 declare(strict_types=1);
 
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
-return static function (\Symfony\Config\TwigConfig $twig): void {
-    $twig->formThemes(['bootstrap_5_layout.html.twig']);
-
-    $twig->date([
-        'timezone' => 'Europe/Prague',
-    ]);
-
-    $twig->global('ga_tracking')
-        ->value(env('GA_TRACKING'));
-
-    $twig->global('logged_user')
-        ->value(service(RetrieveLoggedUserProfile::class));
-
-    $twig->global('get_notifications')
-        ->value(service(GetNotifications::class));
-
-    $twig->path('%kernel.project_dir%/public/img', 'images');
-    $twig->path('%kernel.project_dir%/public/css', 'styles');
-};
+return App::config([
+    'twig' => [
+        'form_themes' => ['bootstrap_5_layout.html.twig'],
+        'date' => [
+            'timezone' => 'Europe/Prague',
+        ],
+        'globals' => [
+            'ga_tracking' => '%env(GA_TRACKING)%',
+            'logged_user' => '@' . RetrieveLoggedUserProfile::class,
+            'get_notifications' => '@' . GetNotifications::class,
+        ],
+        'paths' => [
+            '%kernel.project_dir%/public/img' => 'images',
+            '%kernel.project_dir%/public/css' => 'styles',
+        ],
+    ],
+]);

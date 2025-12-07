@@ -2,20 +2,18 @@
 
 declare(strict_types=1);
 
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
 use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
 use Monolog\Processor\PsrLogMessageProcessor;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\env;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
-return static function(ContainerConfigurator $configurator): void
-{
+return static function (ContainerConfigurator $configurator): void {
     $parameters = $configurator->parameters();
 
     # https://symfony.com/doc/current/performance.html#dump-the-service-container-into-a-single-file
@@ -95,7 +93,7 @@ return static function(ContainerConfigurator $configurator): void
         ]);
 
     $services->set('minio.cache.adapter')
-        ->class(Lustmored\Flysystem\Cache\CacheAdapter::class)
+        ->class(\Lustmored\Flysystem\Cache\CacheAdapter::class)
         ->args([
             '$adapter' => service('oneup_flysystem.minio_adapter'),
             '$cachePool' => service('cache.flysystem.psr6'),
@@ -110,4 +108,7 @@ return static function(ContainerConfigurator $configurator): void
         ->args([
             param('stripeWebhookSecret'),
         ]);
+
+    // PSR-18 HTTP Client for Auth0 SDK
+    $services->set('psr18.http_client', Psr18Client::class);
 };

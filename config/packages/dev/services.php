@@ -2,15 +2,17 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-return static function (ContainerConfigurator $configurator): void {
-    $services = $configurator->services();
-
-    $services->defaults()
-        ->autoconfigure()
-        ->autowire();
-
-    // Test controllers - only available in dev environment
-    $services->load('SpeedPuzzling\\Web\\Controller\\Test\\', __DIR__ . '/../../../src/Controller/Test/{*Controller.php}');
-};
+return App::config([
+    'services' => [
+        '_defaults' => [
+            'autoconfigure' => true,
+            'autowire' => true,
+        ],
+        // Test controllers - only available in dev environment
+        'SpeedPuzzling\\Web\\Controller\\Test\\' => [
+            'resource' => '../../../src/Controller/Test/{*Controller.php}',
+        ],
+    ],
+]);

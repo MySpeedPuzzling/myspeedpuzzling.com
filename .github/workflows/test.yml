@@ -12,7 +12,7 @@ env:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    container: ghcr.io/myspeedpuzzling/web-base:main
+    container: ghcr.io/myspeedpuzzling/web-base-php84:main
     services:
       postgres:
           image: postgres:16
@@ -69,7 +69,7 @@ jobs:
                   ${{ runner.os }}-npm-
       -   uses: shivammathur/setup-php@v2
           with:
-              php-version: '8.3'
+              php-version: '8.4'
               extensions: pdo_pgsql, intl, redis, imagick, uuid
       -   run: composer install --no-scripts --no-progress
       -   run: npm install
@@ -81,7 +81,7 @@ jobs:
 
   phpstan:
       runs-on: ubuntu-latest
-      container: ghcr.io/myspeedpuzzling/web-base:main
+      container: ghcr.io/myspeedpuzzling/web-base-php84:main
       steps:
         -   uses: actions/checkout@v4
         -   uses: actions/cache@v4
@@ -96,7 +96,7 @@ jobs:
 
   coding-standards:
       runs-on: ubuntu-latest
-      container: ghcr.io/myspeedpuzzling/web-base:main
+      container: ghcr.io/myspeedpuzzling/web-base-php84:main
       continue-on-error: true
       steps:
         -   uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
 
   migrations-up-to-date:
       runs-on: ubuntu-latest
-      container: ghcr.io/myspeedpuzzling/web-base:main
+      container: ghcr.io/myspeedpuzzling/web-base-php84:main
       services:
           postgres:
               image: postgres:16

@@ -71,9 +71,6 @@
             "config/packages/intervention_image.yaml"
         ]
     },
-    "knplabs/knp-time-bundle": {
-        "version": "v2.2.0"
-    },
     "liip/imagine-bundle": {
         "version": "2.12",
         "recipe": {
@@ -310,6 +307,18 @@
         },
         "files": [
             "src/Infrastructure/Symfony/Config/packages/monolog.yaml"
+        ]
+    },
+    "symfony/property-info": {
+        "version": "7.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "main",
+            "version": "7.3",
+            "ref": "dae70df71978ae9226ae915ffd5fad817f5ca1f7"
+        },
+        "files": [
+            "config/packages/property_info.yaml"
         ]
     },
     "symfony/routing": {

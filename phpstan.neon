@@ -21,6 +21,7 @@ parameters:
     excludePaths:
         - tests/bootstrap.php
         - tests/object-manager.php
+        - config/reference.php
     symfony:
         containerXmlPath: var/cache/dev/SpeedPuzzling_Web_SymfonyApplicationKernelDevDebugContainer.xml
     doctrine:

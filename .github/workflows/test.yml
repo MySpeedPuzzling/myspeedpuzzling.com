@@ -12,17 +12,15 @@ env:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    container: ghcr.io/myspeedpuzzling/web-base-php84:main
     services:
       postgres:
           image: postgres:16
           env:
               POSTGRES_PASSWORD: postgres
-              POSTGRES_DB: speedpuzzling_test
           options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
           ports:
               - 5432:5432
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/speedpuzzling_test?serverVersion=16&charset=utf8
     steps:
       -   uses: actions/checkout@v4
       -   uses: actions/cache@v4
@@ -37,14 +35,11 @@ jobs:
               key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
               restore-keys: |
                   ${{ runner.os }}-npm-
-      -   uses: shivammathur/setup-php@v2
-          with:
-              php-version: '8.4'
-              extensions: pdo_pgsql, intl, redis, imagick, uuid
       -   run: composer install --no-scripts --no-progress
       -   run: npm install
       -   run: npm run dev
-      -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
+      # Disable OPcache JIT to avoid segfault - same as local where Xdebug disables it
+      -   run: php -d opcache.jit=off -d opcache.jit_buffer_size=0 vendor/bin/phpunit --testsuite "Project Test Suite"
 
   panther-tests:
     runs-on: ubuntu-latest

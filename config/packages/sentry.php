@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use SpeedPuzzling\Web\Sentry\BeforeSendTransaction;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -28,8 +27,11 @@ return App::config([
             ],
             'traces_sample_rate' => '%env(float:SENTRY_TRACES_SAMPLE_RATE)%',
             'profiles_sample_rate' => '%env(float:SENTRY_PROFILES_SAMPLE_RATE)%',
-            // Debug logging for transaction investigation
-            'before_send_transaction' => BeforeSendTransaction::class,
+            'ignore_transactions' => [
+                // Symfony profiler/debug toolbar routes
+                '*/_wdt*',
+                '*/_profiler*',
+            ],
         ],
     ],
 ]);

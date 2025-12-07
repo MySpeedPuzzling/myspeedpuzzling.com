@@ -239,12 +239,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/JanMikes/auth0-symfony.git",
-                "reference": "e3bc34c6b9baf53c2e2d299c987b6efd74811e09"
+                "reference": "be7320b79ec85dbd2434c7709156b28a998b5b01"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/JanMikes/auth0-symfony/zipball/e3bc34c6b9baf53c2e2d299c987b6efd74811e09",
-                "reference": "e3bc34c6b9baf53c2e2d299c987b6efd74811e09",
+                "url": "https://api.github.com/repos/JanMikes/auth0-symfony/zipball/be7320b79ec85dbd2434c7709156b28a998b5b01",
+                "reference": "be7320b79ec85dbd2434c7709156b28a998b5b01",
                 "shasum": ""
             },
             "require": {
@@ -374,7 +374,7 @@
             "support": {
                 "source": "https://github.com/JanMikes/auth0-symfony/tree/main"
             },
-            "time": "2025-12-07T00:56:44+00:00"
+            "time": "2025-12-07T12:51:27+00:00"
         },
         {
             "name": "brick/math",

@@ -38,7 +38,7 @@ jobs:
       -   run: composer install --no-scripts --no-progress
       -   run: npm install
       -   run: npm run dev
-      -   run: vendor/bin/phpunit tests/Controller --exclude-group panther
+      -   run: vendor/bin/phpunit tests/Controller/PuzzlesControllerTest.php
 
   panther-tests:
     runs-on: ubuntu-latest

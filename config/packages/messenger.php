@@ -19,10 +19,7 @@ return static function (FrameworkConfig $framework): void {
         ->dsn('doctrine://default?queue_name=failed');
 
     $messenger->transport('async')
-        ->options([
-            'auto_setup' => false,
-        ])
-        ->dsn('%env(MESSENGER_TRANSPORT_DSN)%');
+        ->dsn('%env(MESSENGER_TRANSPORT_DSN)%?auto_setup=false');
 
     $messenger->routing(WarmupCache::class)->senders(['async']);
     $messenger->routing(SendEmailMessage::class)->senders(['async']);

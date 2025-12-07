@@ -189,6 +189,7 @@ SQL;
         $timesByPlayerId = [];
 
         foreach ($times as $time) {
+            /** @var array{player_id: string, average_time: null|int|float, fastest_time: null|int, solved_puzzle_count: int} $time */
             $timesByPlayerId[$time['player_id']] = $time;
         }
 

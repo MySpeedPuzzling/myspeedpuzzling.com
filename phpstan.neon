@@ -26,5 +26,3 @@ parameters:
     doctrine:
         objectManagerLoader: tests/object-manager.php
     checkUninitializedProperties: true
-    ignoreErrors:
-        - "#^Call to an undefined method Symfony\\\\Config\\\\Framework\\\\Messenger#"

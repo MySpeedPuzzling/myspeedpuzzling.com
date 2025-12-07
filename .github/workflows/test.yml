@@ -38,7 +38,7 @@ jobs:
       -   run: composer install --no-scripts --no-progress
       -   run: npm install
       -   run: npm run dev
-      -   run: php -d opcache.jit=off vendor/bin/phpunit --testsuite "Project Test Suite"
+      -   run: php -d opcache.enable_cli=0 vendor/bin/phpunit --testsuite "Project Test Suite"
 
   panther-tests:
     runs-on: ubuntu-latest

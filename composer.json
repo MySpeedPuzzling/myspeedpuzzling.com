@@ -12,6 +12,12 @@
             "email": "s.mikesova@icloud.com"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/janmikes/auth0-symfony"
+        }
+    ],
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
@@ -25,7 +31,7 @@
         "ext-simplexml": "*",
         "ext-uuid": "*",
         "ext-pdo": "*",
-        "auth0/symfony": "^5.5",
+        "auth0/symfony": "dev-main",
         "doctrine/doctrine-bundle": "^2.4",
         "doctrine/doctrine-migrations-bundle": "^3.1",
         "doctrine/orm": "^3.0",

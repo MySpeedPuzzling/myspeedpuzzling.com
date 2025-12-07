@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d815cc2d4cd329f55b2225e02a956290",
+    "content-hash": "e7077e2b223ded2ee85a08f8bdc1ad83",
     "packages": [
         {
             "name": "async-aws/core",
@@ -235,16 +235,16 @@
         },
         {
             "name": "auth0/symfony",
-            "version": "5.5.0",
+            "version": "dev-main",
             "source": {
                 "type": "git",
-                "url": "https://github.com/auth0/symfony.git",
-                "reference": "f780bbf8b47132588b79a20ed81251807c40ec29"
+                "url": "https://github.com/JanMikes/auth0-symfony.git",
+                "reference": "e3bc34c6b9baf53c2e2d299c987b6efd74811e09"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/auth0/symfony/zipball/f780bbf8b47132588b79a20ed81251807c40ec29",
-                "reference": "f780bbf8b47132588b79a20ed81251807c40ec29",
+                "url": "https://api.github.com/repos/JanMikes/auth0-symfony/zipball/e3bc34c6b9baf53c2e2d299c987b6efd74811e09",
+                "reference": "e3bc34c6b9baf53c2e2d299c987b6efd74811e09",
                 "shasum": ""
             },
             "require": {
@@ -275,19 +275,20 @@
                 "psr/cache-implementation": "(PSR-6 Cache) Improve performance by avoiding making redundant network requests.",
                 "psr/event-dispatcher-implementation": "(PSR-14 Event Dispatcher) Observe and react to events when they occur."
             },
+            "default-branch": true,
             "type": "symfony-bundle",
             "extra": {
                 "merge-plugin": {
+                    "ignore-duplicates": false,
                     "include": [
                         "composer.local.json"
                     ],
-                    "recurse": true,
-                    "replace": true,
                     "merge-dev": true,
                     "merge-extra": false,
-                    "merge-scripts": false,
                     "merge-extra-deep": false,
-                    "ignore-duplicates": false
+                    "merge-scripts": false,
+                    "recurse": true,
+                    "replace": true
                 }
             },
             "autoload": {
@@ -295,7 +296,52 @@
                     "Auth0\\Symfony\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "Auth0\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "pest": [
+                    "@putenv XDEBUG_MODE=coverage",
+                    "@php vendor/bin/pest --colors=always --strict-global-state --fail-on-risky --fail-on-warning --coverage --strict-coverage --compact"
+                ],
+                "pest:ci": [
+                    "@pest:fast --order-by=random --no-progress"
+                ],
+                "pest:fast": [
+                    "@pest --parallel"
+                ],
+                "phpcs": [
+                    "@putenv PHP_CS_FIXER_IGNORE_ENV=1",
+                    "@php vendor/bin/php-cs-fixer fix --dry-run --diff"
+                ],
+                "phpcs:fix": [
+                    "@php vendor/bin/php-cs-fixer fix"
+                ],
+                "phpstan": [
+                    "@php vendor/bin/phpstan analyze"
+                ],
+                "psalm": [
+                    "@php vendor/bin/psalm"
+                ],
+                "psalm:fix": [
+                    "@php vendor/bin/psalter --issues=all"
+                ],
+                "rector": [
+                    "@php vendor/bin/rector process src --dry-run"
+                ],
+                "rector:fix": [
+                    "@php vendor/bin/rector process src"
+                ],
+                "test": [
+                    "@pest",
+                    "@phpstan",
+                    "@psalm",
+                    "@rector",
+                    "@phpcs"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -309,27 +355,26 @@
             "description": "Symfony SDK for Auth0 Authentication and Management APIs.",
             "homepage": "https://github.com/auth0/symfony",
             "keywords": [
-                "Authentication",
-                "JSON Web Token",
-                "JWK",
-                "OpenId",
                 "api",
                 "auth",
                 "auth0",
+                "authentication",
                 "authorization",
                 "json web key",
+                "json web token",
+                "jwk",
                 "jwt",
                 "login",
                 "oauth",
+                "openid",
                 "protect",
                 "secure",
                 "symfony"
             ],
             "support": {
-                "issues": "https://github.com/auth0/symfony/issues",
-                "source": "https://github.com/auth0/symfony/tree/5.5.0"
+                "source": "https://github.com/JanMikes/auth0-symfony/tree/main"
             },
-            "time": "2025-10-01T11:48:51+00:00"
+            "time": "2025-12-07T00:56:44+00:00"
         },
         {
             "name": "brick/math",
@@ -15542,6 +15587,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
+        "auth0/symfony": 20,
         "roave/security-advisories": 20
     },
     "prefer-stable": true,

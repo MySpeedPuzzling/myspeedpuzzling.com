@@ -79,12 +79,13 @@ class Stopwatch
     public function pause(DateTimeImmutable $now): void
     {
         $lap = $this->getLastLap();
+        $lastKey = array_key_last($this->laps);
 
-        if ($this->status !== StopwatchStatus::Running || $lap === null) {
+        if ($this->status !== StopwatchStatus::Running || $lap === null || $lastKey === null) {
             throw new StopwatchCouldNotBePaused();
         }
 
-        $this->laps[array_key_last($this->laps)] = $lap->finish($now);
+        $this->laps[$lastKey] = $lap->finish($now);
         $this->status = StopwatchStatus::Paused;
     }
 

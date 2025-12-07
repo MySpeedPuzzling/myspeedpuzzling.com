@@ -59,7 +59,8 @@ final class CompetitionConnectionController extends AbstractController
 
         $playersMapping = $this->getCompetitionParticipants->mappingToPlayers($competition->id->toString());
         $participantsMapping = $this->getCompetitionParticipants->mappingForPairing($competition->id->toString());
-        $data->participant = $participantsMapping[$playersMapping[$player->playerId] ?? null] ?? null;
+        $participantName = $playersMapping[$player->playerId] ?? null;
+        $data->participant = $participantName !== null ? ($participantsMapping[$participantName] ?? null) : null;
 
         $form = $this->createForm(CompetitionConnectionFormType::class, $data, [
             'competition' => $competition,

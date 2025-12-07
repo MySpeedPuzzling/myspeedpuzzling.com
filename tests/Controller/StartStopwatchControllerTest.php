@@ -17,11 +17,11 @@ final class StartStopwatchControllerTest extends WebTestCase
         $this->assertResponseRedirects();
     }
 
-    public function testLoggedInUserCanAccessPage(): void
+    public function testLoggedInUserIsRedirectedToStopwatch(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->request('GET', '/en/start-stopwatch');
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseRedirects();
     }
 }

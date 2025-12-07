@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\DataFixtures;
 
-use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
@@ -13,8 +12,6 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\Stopwatch;
-use SpeedPuzzling\Web\Value\Lap;
-use SpeedPuzzling\Web\Value\StopwatchStatus;
 
 final class StopwatchFixture extends Fixture implements DependentFixtureInterface
 {

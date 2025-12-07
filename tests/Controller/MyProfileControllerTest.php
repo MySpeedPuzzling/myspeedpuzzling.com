@@ -17,11 +17,11 @@ final class MyProfileControllerTest extends WebTestCase
         $this->assertResponseRedirects();
     }
 
-    public function testLoggedInUserCanAccessPage(): void
+    public function testLoggedInUserIsRedirectedToPlayerProfile(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $browser->request('GET', '/en/my-profile');
-        $this->assertResponseIsSuccessful();
+        $this->assertResponseRedirects('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
     }
 }

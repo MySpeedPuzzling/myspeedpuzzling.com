@@ -26,12 +26,17 @@ readonly final class CreatePlayerStripeCustomerHandler
     {
         $player = $this->playerRepository->get($message->playerId);
 
-        $customer = $this->stripeClient->customers->create([
-            'email' => $player->email,
+        $params = [
             'metadata' => [
                 'player_id' => $player->id->toString(),
             ],
-        ]);
+        ];
+
+        if ($player->email !== null) {
+            $params['email'] = $player->email;
+        }
+
+        $customer = $this->stripeClient->customers->create($params);
 
         $player->updateStripeCustomerId($customer->id);
     }

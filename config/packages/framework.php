@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
-return static function (ContainerConfigurator $containerConfigurator): void {
-    $containerConfigurator->extension('framework', [
+return App::config([
+    'framework' => [
         'secret' => '%env(APP_SECRET)%',
         'http_method_override' => false,
         'csrf_protection' => true,
@@ -23,5 +24,5 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],
         'trusted_proxies' => '127.0.0.1,REMOTE_ADDR',
-    ]);
-};
+    ],
+]);

@@ -1,12 +1,17 @@
-<?php declare(strict_types=1);
+<?php
 
-use Symfony\Config\NelmioCorsConfig;
+declare(strict_types=1);
 
-return static function (NelmioCorsConfig $corsConfig): void {
-    $corsConfig->defaults()
-        ->allowOrigin(['*'])
-        ->allowHeaders(['*'])
-        ->allowMethods(['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'])
-        ->skipSameAsOrigin(true)
-        ->maxAge(3600);
-};
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
+
+return App::config([
+    'nelmio_cors' => [
+        'defaults' => [
+            'allow_origin' => ['*'],
+            'allow_headers' => ['*'],
+            'allow_methods' => ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'],
+            'skip_same_as_origin' => true,
+            'max_age' => 3600,
+        ],
+    ],
+]);

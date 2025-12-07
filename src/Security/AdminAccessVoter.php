@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Security;
 
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
@@ -25,7 +26,7 @@ final class AdminAccessVoter extends Voter
         return $attribute === self::ADMIN_ACCESS;
     }
 
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
+    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, null|Vote $vote = null): bool
     {
         if ($attribute !== self::ADMIN_ACCESS) {
             return false;

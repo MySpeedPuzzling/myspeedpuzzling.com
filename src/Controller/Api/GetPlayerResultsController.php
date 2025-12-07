@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Api;
 
-use Knp\Bundle\TimeBundle\DateTimeFormatter;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Services\RelativeTimeFormatter;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
@@ -21,7 +21,7 @@ final class GetPlayerResultsController extends AbstractController
     public function __construct(
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private PuzzlingTimeFormatter $puzzlingTimeFormatter,
-        readonly private DateTimeFormatter $dateTimeFormatter,
+        readonly private RelativeTimeFormatter $relativeTimeFormatter,
     ) {
     }
 
@@ -84,7 +84,7 @@ final class GetPlayerResultsController extends AbstractController
             'puzzle_brand' => $result->manufacturerName,
             'finished_at' => $result->finishedAt->format(DATE_ATOM),
             'finished_at_alt_format' => $result->finishedAt->format('d/m/Y'),
-            'finished_at_ago' => $this->dateTimeFormatter->formatDiff($result->finishedAt),
+            'finished_at_ago' => $this->relativeTimeFormatter->formatDiff($result->finishedAt),
             'solved_times' => $result->solvedTimes,
         ];
 

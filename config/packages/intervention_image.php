@@ -2,15 +2,17 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-return static function (ContainerConfigurator $containerConfigurator): void {
-    $containerConfigurator->extension('intervention_image', [
-        'driver' => Intervention\Image\Drivers\Imagick\Driver::class,
+use Intervention\Image\Drivers\Imagick\Driver;
+
+return App::config([
+    'intervention_image' => [
+        'driver' => Driver::class,
         'options' => [
             'autoOrientation' => true,
             'decodeAnimation' => false,
             'blendingColor' => 'ffffff',
-        ]
-    ]);
-};
+        ],
+    ],
+]);

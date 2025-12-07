@@ -6,8 +6,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 return App::config([
     'framework' => [
-        'assets' => [
-            'json_manifest_path' => '%kernel.project_dir%/public/build/manifest.json',
-        ],
+        'lock' => '%env(LOCK_DSN)%',
     ],
 ]);

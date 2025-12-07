@@ -7,8 +7,6 @@
         <ini name="display_errors" value="1"/>
         <ini name="error_reporting" value="-1"/>
         <server name="APP_ENV" value="test" force="true"/>
-        <server name="PANTHER_APP_ENV" value="test" force="true"/>
-        <server name="PANTHER_ERROR_SCREENSHOT_DIR" value="./var/panther-screenshots"/>
     </php>
 
     <testsuites>
@@ -16,18 +14,17 @@
             <directory>tests</directory>
             <exclude>tests/Panther</exclude>
         </testsuite>
+        <!-- Panther Test Suite temporarily disabled - symfony/panther not yet compatible with Symfony 8
         <testsuite name="Panther Test Suite">
             <directory>tests/Panther</directory>
         </testsuite>
+        -->
     </testsuites>
 
     <extensions>
-        <!-- DAMA only works for unit/functional tests, not Panther E2E tests (separate DB connection) -->
-        <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension">
-            <parameter name="excludeTestSuites" value="Panther Test Suite"/>
-        </bootstrap>
-
-        <!-- Panther database isolation - creates unique DB per test from template -->
+        <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
+        <!-- Panther extension temporarily disabled - symfony/panther not yet compatible with Symfony 8
         <bootstrap class="SpeedPuzzling\Web\Tests\Panther\Extension\PantherDatabaseExtension"/>
+        -->
     </extensions>
 </phpunit>

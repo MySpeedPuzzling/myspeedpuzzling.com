@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-return static function (ContainerConfigurator $containerConfigurator): void {
-    $containerConfigurator->extension('auth0', [
+return App::config([
+    'auth0' => [
         'sdk' => [
             'domain' => '%env(trim:string:AUTH0_DOMAIN)%',
             'client_id' => '%env(trim:string:AUTH0_CLIENT_ID)%',
@@ -14,6 +14,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'scopes' => ['openid', 'profile', 'email', 'offline_access'],
             'token_cache' => 'auth0_token_cache',
             'management_token_cache' => 'auth0_management_token_cache',
+            'http_client' => 'psr18.http_client',
         ],
         'authenticator' => [
             'routes' => [
@@ -24,5 +25,5 @@ return static function (ContainerConfigurator $containerConfigurator): void {
                 'logout' => '%env(string:AUTH0_ROUTE_LOGOUT)%',
             ],
         ],
-    ]);
-};
+    ],
+]);

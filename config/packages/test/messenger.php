@@ -1,12 +1,17 @@
-<?php declare(strict_types=1);
+<?php
 
-use Liip\ImagineBundle\Message\WarmupCache;
-use Symfony\Component\Mailer\Messenger\SendEmailMessage;
-use Symfony\Config\FrameworkConfig;
+declare(strict_types=1);
 
-return static function (FrameworkConfig $framework): void {
-    $messenger = $framework->messenger();
+namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-    $messenger->transport('async')
-        ->dsn('in-memory://');
-};
+return App::config([
+    'framework' => [
+        'messenger' => [
+            'transports' => [
+                'async' => [
+                    'dsn' => 'in-memory://',
+                ],
+            ],
+        ],
+    ],
+]);

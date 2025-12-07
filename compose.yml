@@ -5,7 +5,7 @@ volumes:
 
 services:
     web:
-        image: ghcr.io/myspeedpuzzling/web-base-php84:main
+        image: ghcr.io/myspeedpuzzling/web-base-php85:main
         restart: unless-stopped
         tty: true
         volumes:
@@ -34,7 +34,7 @@ services:
             - "5432:5432"
 
     js-watch:
-        image: ghcr.io/myspeedpuzzling/web-base-php84:main
+        image: ghcr.io/myspeedpuzzling/web-base-php85:main
         volumes:
             - .:/app
         restart: unless-stopped
@@ -95,7 +95,7 @@ services:
             - SE_NODE_MAX_SESSIONS=4
 
     web-test:
-        image: ghcr.io/myspeedpuzzling/web-base-php84:main
+        image: ghcr.io/myspeedpuzzling/web-base-php85:main
         restart: unless-stopped
         tty: true
         volumes:

@@ -13,6 +13,12 @@ return App::config([
                 'level' => 'debug',
                 'channels' => ['!event'],
             ],
+            'stdout' => [
+                'type' => 'stream',
+                'path' => 'php://stdout',
+                'level' => 'notice',
+                'channels' => ['!event', '!doctrine'],
+            ],
             'console' => [
                 'type' => 'console',
                 'process_psr_3_messages' => false,

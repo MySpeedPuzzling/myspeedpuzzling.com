@@ -7,6 +7,7 @@
         <ini name="display_errors" value="1"/>
         <ini name="error_reporting" value="-1"/>
         <server name="APP_ENV" value="test" force="true"/>
+        <server name="STRIPE_API_KEY" value="sk_test_fake_key_for_testing" force="true"/>
     </php>
 
     <testsuites>

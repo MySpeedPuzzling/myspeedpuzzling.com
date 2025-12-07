@@ -94,7 +94,7 @@
                 </div>
             </div>
 
-            <input type="hidden" name="sortBy" value="{{ app.request.get('sortBy', 'most-solved') }}">
+            <input type="hidden" name="sortBy" value="{{ app.request.query.get('sortBy', 'most-solved') }}">
 
             {{ form_rest(search_form) }}
         </form>

@@ -306,6 +306,7 @@ final class PuzzleAddFormType extends AbstractType
             'class' => CollectionVisibility::class,
             'label' => 'form.visibility',
             'required' => false,
+            'empty_data' => CollectionVisibility::Private,
             'choice_label' => fn(CollectionVisibility $visibility) => match ($visibility) {
                 CollectionVisibility::Private => 'form.visibility_private',
                 CollectionVisibility::Public => 'form.visibility_public',

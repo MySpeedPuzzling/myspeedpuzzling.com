@@ -1129,6 +1129,17 @@ sell_swap_list:
     title: "売買・交換リスト"
     title_other: "%name%の売買・交換リスト"
 
+puzzler_offers:
+    badge: "%count%件のオファー"
+    title: "パズラーのオファー"
+    meta:
+        description: "%count%人のパズラーが%brand% %puzzle%の販売または交換を提供しています"
+    column:
+        player: "プレイヤー"
+        type: "タイプ"
+        price: "価格"
+        condition: "状態"
+
 lend_borrow:
     already_borrowed: "このパズルは既に借用リストにあります。"
     already_borrowed_short: "借用済み"

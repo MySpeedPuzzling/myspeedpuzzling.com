@@ -981,6 +981,17 @@ unsolved_puzzles:
     title: "Nesložené puzzle"
     title_other: "Nesložené puzzle uživatele %name%"
 
+puzzler_offers:
+    badge: "%count% nabídek"
+    title: "Nabídky puzzlerů"
+    meta:
+        description: "%count% puzzlerů nabízí %brand% %puzzle% k prodeji nebo výměně"
+    column:
+        player: "Hráč"
+        type: "Typ"
+        price: "Cena"
+        condition: "Stav"
+
 lend_borrow:
     name: "Půjčování"
     title: "Půjčování"

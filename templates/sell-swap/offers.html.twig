@@ -1,0 +1,117 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzler_offers.title'|trans }} - {{ puzzle.manufacturerName }} {{ puzzle.puzzleName }}{% endblock %}
+{% block meta_description %}{{ 'puzzler_offers.meta.description'|trans({ '%puzzle%': puzzle.puzzleName, '%brand%': puzzle.manufacturerName, '%count%': offers|length }) }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex mb-4">
+        <div class="flex-shrink-0 puzzle-detail-image text-center me-2 me-md-3">
+            <div class="gallery">
+                {% if puzzle.puzzleImage is not null %}
+                    <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
+                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}">
+                    </a>
+                {% else %}
+                    <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" class="rounded-2">
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex-wrap flex-grow-1 d-md-flex flex-sm-grow-0 me-1 me-sm-3 me-md-4">
+            <div class="me-md-4">
+                <h1 class="h4 mb-0">{{ puzzle.puzzleName }}</h1>
+                <div class="mb-1">
+                    <span class="badge bg-danger badge-shadow rounded-pill">
+                        <i class="bi bi-shop me-1"></i>
+                        {{ 'puzzler_offers.badge'|trans({'%count%': offers|length}) }}
+                    </span>
+                </div>
+
+                <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+            </div>
+            <div>
+                <div class="fs-sm manufacturer-name">
+                    {{ puzzle.manufacturerName }}
+                    {% if puzzle.puzzleIdentificationNumber is not null %}
+                        <br class="d-none d-md-block"><small class="text-muted">{{ puzzle.puzzleIdentificationNumber }}</small>
+                    {% endif %}
+                </div>
+
+                {% if puzzle.puzzleEan %}
+                    <small class="text-muted"><i class="bi-upc-scan"></i> {{ puzzle.puzzleEan }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-lg">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-shop me-2"></i>{{ 'puzzler_offers.title'|trans }}
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-3">{{ 'puzzler_offers.column.player'|trans }}</th>
+                            <th>{{ 'puzzler_offers.column.type'|trans }}</th>
+                            <th>{{ 'puzzler_offers.column.price'|trans }}</th>
+                            <th>{{ 'puzzler_offers.column.condition'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for offer in offers %}
+                            <tr>
+                                <td class="ps-3">
+                                    <a href="{{ path('sell_swap_list_detail', {playerId: offer.playerId}) }}" class="text-decoration-none">
+                                        <div class="d-flex align-items-center">
+                                            {% if offer.playerAvatar %}
+                                                <img src="{{ offer.playerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                            {% else %}
+                                                <span class="rounded-circle bg-primary text-white me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 14px;">
+                                                    {{ (offer.playerName ?? offer.playerCode)|slice(0, 1)|upper }}
+                                                </span>
+                                            {% endif %}
+                                            <small>{{ offer.playerName ?? offer.playerCode }}</small>
+                                        </div>
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if offer.listingType.value == 'swap' %}
+                                        <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
+                                    {% elseif offer.listingType.value == 'sell' %}
+                                        <span class="badge bg-success">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if offer.price %}
+                                        <span class="badge bg-warning text-dark">{{ offer.price }} {{ offer.customCurrency ?? offer.currency ?? '' }}</span>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {% if offer.condition.value == 'like_new' %}
+                                            {{ 'sell_swap_list.condition.like_new'|trans }}
+                                        {% elseif offer.condition.value == 'normal' %}
+                                            {{ 'sell_swap_list.condition.normal'|trans }}
+                                        {% elseif offer.condition.value == 'not_so_good' %}
+                                            {{ 'sell_swap_list.condition.not_so_good'|trans }}
+                                        {% else %}
+                                            {{ 'sell_swap_list.condition.missing_pieces'|trans }}
+                                        {% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}

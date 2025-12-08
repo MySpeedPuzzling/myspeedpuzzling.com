@@ -1131,6 +1131,17 @@ sell_swap_list:
         date: "Datum"
         unknown_buyer: "Unbekannt"
 
+puzzler_offers:
+    badge: "%count% Angebote"
+    title: "Puzzler-Angebote"
+    meta:
+        description: "%count% Puzzler bieten %brand% %puzzle% zum Verkauf oder Tausch an"
+    column:
+        player: "Spieler"
+        type: "Typ"
+        price: "Preis"
+        condition: "Zustand"
+
 lend_borrow:
     name: "Verleihen & Ausleihen"
     title: "Verleihen & Ausleihen"

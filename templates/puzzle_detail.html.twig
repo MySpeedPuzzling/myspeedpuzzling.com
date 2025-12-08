@@ -27,6 +27,13 @@
                             puzzle_id: puzzle.puzzleId,
                             puzzle_statuses: puzzle_statuses,
                         }) }}
+                        {% if offers_count > 0 %}
+                            <a href="{{ path('puzzler_offers', {puzzleId: puzzle.puzzleId}) }}"
+                               class="mt-1 badge bg-danger badge-shadow rounded-pill text-white link-light">
+                                <i class="bi bi-shop me-1"></i>
+                                {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
+                            </a>
+                        {% endif %}
                     </div>
 
                     <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>

@@ -21,6 +21,7 @@ menu:
     profile: "Profile"
     puzzle_library: "Puzzle library"
     events: "Events"
+    export_data: "Export data"
 
 form:
     visibility: "Visibility"
@@ -343,6 +344,28 @@ error:
     500:
         title: "Unknown error"
         message: "Something went wrong - we've been notified and will fix it as soon as possible"
+
+export:
+    page_title: "Export Data"
+    heading: "Export Your Data"
+    feedback_message: "This is a new feature! We would appreciate your feedback."
+    feedback_link: "Send us feedback"
+    description: "Download all your puzzle solving times in your preferred format. Your data belongs to you."
+    format:
+        json: "Download JSON"
+        xlsx: "Download Excel (XLSX)"
+        csv: "Download CSV"
+        xml: "Download XML"
+    data_included: "What's included in the export?"
+    data:
+        time_id: "Time record ID"
+        puzzle_info: "Puzzle name, brand, and piece count"
+        solving_time: "Solving time (seconds and formatted HH:MM:SS)"
+        dates: "Finished date and tracked date"
+        type: "Solving type (solo, duo, or team)"
+        team_members: "Team members (if group solving)"
+        photo_url: "Finished puzzle photo URL"
+        comment: "Your comment"
 
 events:
     title: "Events"

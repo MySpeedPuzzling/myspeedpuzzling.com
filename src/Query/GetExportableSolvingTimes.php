@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Query;
+
+use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Results\ExportableSolvingTime;
+
+readonly final class GetExportableSolvingTimes
+{
+    public function __construct(
+        private Connection $database,
+        private string $uploadedAssetsBaseUrl,
+    ) {
+    }
+
+    /**
+     * @return array<ExportableSolvingTime>
+     * @throws PlayerNotFound
+     */
+    public function byPlayerId(string $playerId): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+SELECT
+    pst.id AS time_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    manufacturer.name AS brand_name,
+    puzzle.pieces_count,
+    pst.seconds_to_solve,
+    pst.finished_at,
+    pst.tracked_at,
+    pst.first_attempt,
+    pst.finished_puzzle_photo,
+    pst.comment,
+    pst.team,
+    CASE
+        WHEN pst.team IS NULL THEN 'solo'
+        WHEN json_array_length(pst.team -> 'puzzlers') = 2 THEN 'duo'
+        ELSE 'team'
+    END AS solving_type
+FROM puzzle_solving_time pst
+INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+WHERE
+    pst.player_id = :playerId
+    OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+ORDER BY pst.finished_at DESC
+SQL;
+
+        /**
+         * @var array<array{
+         *     time_id: string,
+         *     puzzle_id: string,
+         *     puzzle_name: string,
+         *     brand_name: string,
+         *     pieces_count: int,
+         *     seconds_to_solve: null|int,
+         *     finished_at: string,
+         *     tracked_at: string,
+         *     first_attempt: bool,
+         *     finished_puzzle_photo: null|string,
+         *     comment: null|string,
+         *     team: null|string,
+         *     solving_type: string,
+         * }> $data
+         */
+        $data = $this->database
+            ->executeQuery($query, ['playerId' => $playerId])
+            ->fetchAllAssociative();
+
+        return array_map(
+            fn(array $row): ExportableSolvingTime => ExportableSolvingTime::fromDatabaseRow($row, $this->uploadedAssetsBaseUrl),
+            $data,
+        );
+    }
+}

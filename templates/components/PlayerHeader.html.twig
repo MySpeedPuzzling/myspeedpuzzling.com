@@ -68,6 +68,9 @@
                 <a href="{{ path('edit_profile', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'edit_profile' %}active{% endif %}">
                     <i class="me-1 ci-edit"></i> {{ 'menu.edit_profile'|trans }}
                 </a>
+                <a href="{{ path('export_puzzler_data', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'export_puzzler_data' %}active{% endif %}">
+                    <i class="me-1 bi bi-download"></i> {{ 'menu.export_data'|trans }}
+                </a>
             {% endif %}
         </div>
     </div>

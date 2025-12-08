@@ -262,6 +262,11 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item {% if currentRoute == 'export_puzzler_data' %}active{% endif %}" href="{{ path('export_puzzler_data', {'playerId': logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-download me-1"></i> {{ 'menu.export_data'|trans }}
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item text-danger" href="{{ path('logout') }}">
                                             <i class="bi bi-box-arrow-right me-2"></i>{{ 'my_profile.logout'|trans }}
                                         </a>

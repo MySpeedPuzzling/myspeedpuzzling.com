@@ -21,6 +21,7 @@ menu:
     profile: "Profil"
     puzzle_library: "Puzzle knihovna"
     events: "Eventy"
+    export_data: "Export dat"
 
 form:
     visibility: "Viditelnost"
@@ -345,6 +346,28 @@ error:
     500:
         title: "Neznámá chyba"
         message: "Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji"
+
+export:
+    page_title: "Export dat"
+    heading: "Export tvých dat"
+    feedback_message: "Toto je nová funkce! Budeme rádi za tvou zpětnou vazbu."
+    feedback_link: "Pošli nám zpětnou vazbu"
+    description: "Stáhni si všechny své časy skládání puzzlí ve formátu dle tvého výběru. Tvá data patří tobě."
+    format:
+        json: "Stáhnout JSON"
+        xlsx: "Stáhnout Excel"
+        csv: "Stáhnout CSV"
+        xml: "Stáhnout XML"
+    data_included: "Co je zahrnuto v exportu?"
+    data:
+        result_id: "ID výsledku"
+        puzzle_info: "Název puzzle, značka a počet dílků"
+        solving_time: "Čas skládání (sekundy a formát HH:MM:SS)"
+        dates: "Datum dokončení a datum záznamu"
+        type: "Typ skládání (sólo, duo nebo tým)"
+        team_members: "Členové týmu (při skupinovém skládání)"
+        photo_url: "URL fotky složeného puzzle"
+        comment: "Tvůj komentář"
 
 events:
     title: "Události"

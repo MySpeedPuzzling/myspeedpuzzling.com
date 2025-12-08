@@ -21,6 +21,7 @@ menu:
     profile: "Perfil"
     events: "Eventos"
     puzzle_library: "Biblioteca de puzzles"
+    export_data: "Exportar datos"
 
 navigation:
     home: "Inicio"
@@ -379,6 +380,28 @@ edit_profile:
 puzzle_detail:
     meta:
         description: "Explora el rompecabezas %brand% %puzzle% (%pieces% piezas) en My Speed Puzzling. Rastrea el progreso, compara tiempos y conquista rompecabezas con nuestra comunidad. ¡Comienza tu frenesí de resolución de speed puzzling hoy!"
+
+export:
+    page_title: "Exportar Datos"
+    heading: "Exporta Tus Datos"
+    feedback_message: "¡Esta es una nueva función! Agradeceríamos tu opinión."
+    feedback_link: "Envíanos tus comentarios"
+    description: "Descarga todos tus tiempos de resolución de puzzles en tu formato preferido. Tus datos te pertenecen."
+    format:
+        json: "Descargar JSON"
+        xlsx: "Descargar Excel"
+        csv: "Descargar CSV"
+        xml: "Descargar XML"
+    data_included: "¿Qué incluye la exportación?"
+    data:
+        result_id: "ID del resultado"
+        puzzle_info: "Nombre del puzzle, marca y cantidad de piezas"
+        solving_time: "Tiempo de resolución (segundos y formato HH:MM:SS)"
+        dates: "Fecha de finalización y fecha de registro"
+        type: "Tipo de resolución (solo, dúo o equipo)"
+        team_members: "Miembros del equipo (si es resolución en grupo)"
+        photo_url: "URL de la foto del puzzle terminado"
+        comment: "Tu comentario"
 
 events:
     title: "Eventos"

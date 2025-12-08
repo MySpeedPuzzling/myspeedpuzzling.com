@@ -21,6 +21,7 @@ menu:
     profile: "Profil"
     puzzle_library: "Puzzlebibliothek"
     events: "Veranstaltungen"
+    export_data: "Daten exportieren"
 
 form:
     visibility: "Sichtbarkeit"
@@ -326,6 +327,28 @@ error:
     500:
         title: "Unbekannter Fehler"
         message: "Etwas ist schief gelaufen - wir wurden benachrichtigt und werden es so schnell wie möglich beheben"
+
+export:
+    page_title: "Daten exportieren"
+    heading: "Exportiere deine Daten"
+    feedback_message: "Dies ist eine neue Funktion! Wir würden uns über dein Feedback freuen."
+    feedback_link: "Sende uns Feedback"
+    description: "Lade alle deine Puzzle-Lösungszeiten in deinem bevorzugten Format herunter. Deine Daten gehören dir."
+    format:
+        json: "JSON herunterladen"
+        xlsx: "Excel herunterladen"
+        csv: "CSV herunterladen"
+        xml: "XML herunterladen"
+    data_included: "Was ist im Export enthalten?"
+    data:
+        result_id: "Ergebnis-ID"
+        puzzle_info: "Puzzlename, Marke und Teileanzahl"
+        solving_time: "Lösungszeit (Sekunden und Format HH:MM:SS)"
+        dates: "Abschlussdatum und Aufzeichnungsdatum"
+        type: "Lösungstyp (Solo, Duo oder Team)"
+        team_members: "Teammitglieder (bei Gruppenlösung)"
+        photo_url: "URL des fertigen Puzzle-Fotos"
+        comment: "Dein Kommentar"
 
 events:
     title: "Veranstaltungen"

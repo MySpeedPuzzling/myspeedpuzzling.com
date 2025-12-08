@@ -21,6 +21,7 @@ menu:
     profile: "プロフィール"
     events: "イベント"
     puzzle_library: "パズルライブラリ"
+    export_data: "データエクスポート"
 
 navigation:
     home: "ホーム"
@@ -395,6 +396,28 @@ feedback:
     send: "送信"
     thank_you: "フィードバックありがとうございます！"
     success_msg: "フィードバックを受け取りました。大変感謝しております！近日中にご連絡いたします。"
+
+export:
+    page_title: "データエクスポート"
+    heading: "あなたのデータをエクスポート"
+    feedback_message: "これは新機能です！ご意見をお聞かせください。"
+    feedback_link: "フィードバックを送信"
+    description: "お好みの形式でパズル完成タイムをダウンロードできます。あなたのデータはあなたのものです。"
+    format:
+        json: "JSONをダウンロード"
+        xlsx: "Excelをダウンロード"
+        csv: "CSVをダウンロード"
+        xml: "XMLをダウンロード"
+    data_included: "エクスポートに含まれるデータ"
+    data:
+        result_id: "結果ID"
+        puzzle_info: "パズル名、ブランド、ピース数"
+        solving_time: "完成時間（秒とHH:MM:SS形式）"
+        dates: "完成日と記録日"
+        type: "完成タイプ（ソロ、デュオ、チーム）"
+        team_members: "チームメンバー（グループ完成の場合）"
+        photo_url: "完成パズル写真のURL"
+        comment: "コメント"
 
 events:
     title: "イベント"

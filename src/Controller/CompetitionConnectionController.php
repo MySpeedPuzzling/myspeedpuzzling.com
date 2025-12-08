@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\FormType\CompetitionConnectionFormType;
 use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -46,7 +47,7 @@ final class CompetitionConnectionController extends AbstractController
     )]
     public function __invoke(
         #[CurrentUser] UserInterface $user,
-        Competition $competition,
+        #[MapEntity(mapping: ['slug' => 'slug'])] Competition $competition,
         Request $request,
     ): Response {
         $player = $this->retrieveLoggedUserProfile->getProfile();

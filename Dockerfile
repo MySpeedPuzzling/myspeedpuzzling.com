@@ -1,4 +1,4 @@
-FROM ghcr.io/myspeedpuzzling/web-base-php84:main
+FROM ghcr.io/myspeedpuzzling/web-base-php85:main
 
 ENV APP_ENV="prod" \
     APP_DEBUG=0 \

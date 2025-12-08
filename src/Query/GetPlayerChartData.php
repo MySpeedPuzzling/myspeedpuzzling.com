@@ -100,7 +100,7 @@ INNER JOIN puzzle p ON pst.puzzle_id = p.id
 WHERE 
     pst.player_id = :playerId
     AND p.pieces_count = :pieces
-    AND pst.time IS NOT NULL
+    AND pst.seconds_to_solve IS NOT NULL
 SQL;
 
         if ($brandId !== null) {

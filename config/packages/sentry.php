@@ -13,7 +13,7 @@ return App::config([
         'tracing' => [
             'enabled' => true,
         ],
-        'register_error_listener' => false,
+        'register_error_listener' => true,
         'messenger' => [
             'enabled' => true,
             'capture_soft_fails' => true,

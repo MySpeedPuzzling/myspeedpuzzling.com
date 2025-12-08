@@ -10,10 +10,16 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PlayerRanking;
 
-readonly final class GetRanking
+final class GetRanking
 {
+    /** @var array<string, array<string, PlayerRanking>> */
+    private array $allForPlayerCache = [];
+
+    /** @var array<string, PlayerRanking> */
+    private array $ofPuzzleForPlayerCache = [];
+
     public function __construct(
-        private Connection $database,
+        private readonly Connection $database,
     ) {
     }
 
@@ -25,6 +31,10 @@ readonly final class GetRanking
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
+        }
+
+        if (isset($this->allForPlayerCache[$playerId])) {
+            return $this->allForPlayerCache[$playerId];
         }
 
         $query = <<<SQL
@@ -110,6 +120,8 @@ SQL;
             $ranking[$row['puzzle_id']] = PlayerRanking::fromDatabaseRow($row);
         }
 
+        $this->allForPlayerCache[$playerId] = $ranking;
+
         return $ranking;
     }
 
@@ -125,6 +137,12 @@ SQL;
 
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
+        }
+
+        $cacheKey = $puzzleId . '_' . $playerId;
+
+        if (isset($this->ofPuzzleForPlayerCache[$cacheKey])) {
+            return $this->ofPuzzleForPlayerCache[$cacheKey];
         }
 
         $query = <<<SQL
@@ -192,6 +210,9 @@ SQL;
             ])
             ->fetchAssociative();
 
-        return PlayerRanking::fromDatabaseRow($row);
+        $ranking = PlayerRanking::fromDatabaseRow($row);
+        $this->ofPuzzleForPlayerCache[$cacheKey] = $ranking;
+
+        return $ranking;
     }
 }

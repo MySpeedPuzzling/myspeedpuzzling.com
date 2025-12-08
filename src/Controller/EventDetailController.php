@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -36,8 +37,10 @@ final class EventDetailController extends AbstractController
         ],
         name: 'event_detail',
     )]
-    public function __invoke(Competition $competition, #[CurrentUser] null|UserInterface $user): Response
-    {
+    public function __invoke(
+        #[MapEntity(mapping: ['slug' => 'slug'])] Competition $competition,
+        #[CurrentUser] null|UserInterface $user,
+    ): Response {
         $competitionEvent = $this->getCompetitionEvents->byId($competition->id->toString());
         $puzzles = [];
 

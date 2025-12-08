@@ -40,12 +40,25 @@ SELECT
     pst.first_attempt,
     pst.finished_puzzle_photo,
     pst.comment,
-    pst.team,
     CASE
         WHEN pst.team IS NULL THEN 'solo'
         WHEN json_array_length(pst.team -> 'puzzlers') = 2 THEN 'duo'
         ELSE 'team'
-    END AS solving_type
+    END AS solving_type,
+    (
+        SELECT string_agg(
+            COALESCE(
+                p.name,
+                player_elem.player ->> 'player_name',
+                CASE WHEN p.code IS NOT NULL THEN '#' || UPPER(p.code) ELSE NULL END
+            ),
+            ', '
+            ORDER BY player_elem.ordinality
+        )
+        FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
+        LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
+        WHERE COALESCE(p.name, player_elem.player ->> 'player_name', p.code) IS NOT NULL
+    ) AS team_members
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
@@ -68,8 +81,8 @@ SQL;
          *     first_attempt: bool,
          *     finished_puzzle_photo: null|string,
          *     comment: null|string,
-         *     team: null|string,
          *     solving_type: string,
+         *     team_members: null|string,
          * }> $data
          */
         $data = $this->database

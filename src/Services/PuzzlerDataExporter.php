@@ -15,7 +15,7 @@ use SpeedPuzzling\Web\Value\ExportFormat;
 readonly final class PuzzlerDataExporter
 {
     private const array HEADERS = [
-        'time_id',
+        'result_id',
         'puzzle_id',
         'puzzle_name',
         'brand_name',

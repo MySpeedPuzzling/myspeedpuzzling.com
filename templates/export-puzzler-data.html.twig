@@ -5,72 +5,70 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-body p-4 p-md-5">
-                    <h1 class="h3 mb-4">
-                        <i class="bi bi-download me-2"></i>
-                        {{ 'export.heading'|trans }}
-                    </h1>
+    <h1 class="h3 mb-4">
+        <i class="bi bi-download me-2"></i>
+        {{ 'export.heading'|trans }}
+    </h1>
 
-                    <div class="alert alert-info mb-4">
-                        <i class="bi bi-info-circle me-2"></i>
-                        {{ 'export.feedback_message'|trans }}
-                        <a href="{{ path('feedback', {'url': app.request.uri}) }}" data-turbo-frame="feedbackForm" class="alert-link">
-                            {{ 'export.feedback_link'|trans }}
-                        </a>
-                    </div>
+    <div class="alert alert-info mb-4">
+        <i class="bi bi-info-circle me-2"></i>
+        {{ 'export.feedback_message'|trans }}
+        <a data-turbo="true" href="{{ path('feedback', {'url': app.request.uri}) }}" data-turbo-frame="feedbackForm" class="alert-link">
+            {{ 'export.feedback_link'|trans }}
+        </a>
+    </div>
 
-                    <p class="text-muted mb-4">
-                        {{ 'export.description'|trans }}
-                    </p>
+    <div class="row">
+        <div class="col-md-7 col-lg-8">
+            <p class="text-muted mb-4">
+                {{ 'export.description'|trans }}
+            </p>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'json'}) }}"
-                               class="btn btn-outline-primary w-100 py-3">
-                                <i class="bi bi-filetype-json fs-4 d-block mb-2"></i>
-                                {{ 'export.format.json'|trans }}
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xlsx'}) }}"
-                               class="btn btn-outline-success w-100 py-3">
-                                <i class="bi bi-file-earmark-excel fs-4 d-block mb-2"></i>
-                                {{ 'export.format.xlsx'|trans }}
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'csv'}) }}"
-                               class="btn btn-outline-secondary w-100 py-3">
-                                <i class="bi bi-filetype-csv fs-4 d-block mb-2"></i>
-                                {{ 'export.format.csv'|trans }}
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xml'}) }}"
-                               class="btn btn-outline-warning w-100 py-3">
-                                <i class="bi bi-filetype-xml fs-4 d-block mb-2"></i>
-                                {{ 'export.format.xml'|trans }}
-                            </a>
-                        </div>
-                    </div>
-
-                    <hr class="my-4">
-
-                    <h5 class="mb-3">{{ 'export.data_included'|trans }}</h5>
-                    <ul class="list-unstyled text-muted small">
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.time_id'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.puzzle_info'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.solving_time'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.dates'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.type'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.team_members'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.photo_url'|trans }}</li>
-                        <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.comment'|trans }}</li>
-                    </ul>
+            <div class="row g-3">
+                <div class="col-6">
+                    <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'json'}) }}"
+                       class="btn btn-outline-primary w-100 py-3">
+                        <i class="bi bi-filetype-json fs-4 d-block mb-2"></i>
+                        {{ 'export.format.json'|trans }}
+                    </a>
                 </div>
+                <div class="col-6">
+                    <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xlsx'}) }}"
+                       class="btn btn-outline-success w-100 py-3">
+                        <i class="bi bi-file-earmark-excel fs-4 d-block mb-2"></i>
+                        {{ 'export.format.xlsx'|trans }}
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'csv'}) }}"
+                       class="btn btn-outline-secondary w-100 py-3">
+                        <i class="bi bi-filetype-csv fs-4 d-block mb-2"></i>
+                        {{ 'export.format.csv'|trans }}
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a href="{{ path('export_puzzler_data_download', {playerId: player.playerId, format: 'xml'}) }}"
+                       class="btn btn-outline-warning w-100 py-3">
+                        <i class="bi bi-filetype-xml fs-4 d-block mb-2"></i>
+                        {{ 'export.format.xml'|trans }}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5 col-lg-4 mt-4 mt-sm-0">
+            <div class="card card-body shadow">
+                <h5 class="mb-3">{{ 'export.data_included'|trans }}</h5>
+                <ul class="list-unstyled text-muted small">
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.result_id'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.puzzle_info'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.solving_time'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.dates'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.type'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.team_members'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.photo_url'|trans }}</li>
+                    <li><i class="bi bi-check me-2 text-success"></i>{{ 'export.data.comment'|trans }}</li>
+                </ul>
             </div>
         </div>
     </div>

@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName }} - {{ 'menu.profile'|trans }}{% endblock %}
+{% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - {{ 'menu.profile'|trans }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />

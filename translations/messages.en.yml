@@ -353,12 +353,12 @@ export:
     description: "Download all your puzzle solving times in your preferred format. Your data belongs to you."
     format:
         json: "Download JSON"
-        xlsx: "Download Excel (XLSX)"
+        xlsx: "Download Excel"
         csv: "Download CSV"
         xml: "Download XML"
     data_included: "What's included in the export?"
     data:
-        time_id: "Time record ID"
+        result_id: "Result ID"
         puzzle_info: "Puzzle name, brand, and piece count"
         solving_time: "Solving time (seconds and formatted HH:MM:SS)"
         dates: "Finished date and tracked date"

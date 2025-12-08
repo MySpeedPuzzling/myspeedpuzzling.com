@@ -61,7 +61,7 @@ final class PuzzlerDataExporterTest extends TestCase
         $data = $this->createSampleData();
         $result = $this->exporter->export($data, ExportFormat::Csv);
 
-        $this->assertStringContainsString('time_id', $result);
+        $this->assertStringContainsString('result_id', $result);
         $this->assertStringContainsString('puzzle_name', $result);
         $this->assertStringContainsString('brand_name', $result);
         $this->assertStringContainsString('pieces_count', $result);

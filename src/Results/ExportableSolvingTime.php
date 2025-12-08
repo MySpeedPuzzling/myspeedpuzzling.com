@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
-use Nette\Utils\Json;
 
 readonly final class ExportableSolvingTime
 {
@@ -40,13 +39,12 @@ readonly final class ExportableSolvingTime
      *     first_attempt: bool,
      *     finished_puzzle_photo: null|string,
      *     comment: null|string,
-     *     team: null|string,
      *     solving_type: string,
+     *     team_members: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row, string $baseUrl): self
     {
-        $teamMembers = self::extractTeamMembers($row['team']);
         $photoUrl = $row['finished_puzzle_photo'] !== null
             ? $baseUrl . '/' . $row['finished_puzzle_photo']
             : null;
@@ -63,7 +61,7 @@ readonly final class ExportableSolvingTime
             trackedAt: new DateTimeImmutable($row['tracked_at']),
             type: $row['solving_type'],
             firstAttempt: $row['first_attempt'],
-            teamMembers: $teamMembers,
+            teamMembers: $row['team_members'] ?? '',
             finishedPuzzlePhotoUrl: $photoUrl,
             comment: $row['comment'],
         );
@@ -82,45 +80,13 @@ readonly final class ExportableSolvingTime
         return sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
     }
 
-    private static function extractTeamMembers(null|string $teamJson): string
-    {
-        if ($teamJson === null) {
-            return '';
-        }
-
-        /**
-         * @var array{
-         *     team_id?: null|string,
-         *     puzzlers: array<array{
-         *         player_id: null|string,
-         *         player_name: null|string,
-         *         player_code?: null|string,
-         *     }>
-         * } $team
-         */
-        $team = Json::decode($teamJson, true);
-
-        $names = [];
-        foreach ($team['puzzlers'] as $puzzler) {
-            if ($puzzler['player_name'] !== null) {
-                $names[] = $puzzler['player_name'];
-            } elseif (isset($puzzler['player_code'])) {
-                $names[] = '#' . strtoupper($puzzler['player_code']);
-            } else {
-                $names[] = 'Unknown';
-            }
-        }
-
-        return implode(', ', $names);
-    }
-
     /**
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
         return [
-            'time_id' => $this->timeId,
+            'result_id' => $this->timeId,
             'puzzle_id' => $this->puzzleId,
             'puzzle_name' => $this->puzzleName,
             'brand_name' => $this->brandName,

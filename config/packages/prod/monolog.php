@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sentry\Monolog\BreadcrumbHandler;
+use Sentry\Monolog\Handler;
+
 return App::config([
     'monolog' => [
         'handlers' => [
@@ -26,12 +29,17 @@ return App::config([
             ],
             'sentry' => [
                 'type' => 'service',
-                'id' => 'Sentry\\Monolog\\Handler',
+                'id' => Handler::class,
             ],
             'console' => [
                 'type' => 'console',
                 'process_psr_3_messages' => false,
                 'channels' => ['!event', '!doctrine'],
+            ],
+            'sentry_breadcrumbs' => [
+                'type' => 'service',
+                'id' => BreadcrumbHandler::class,
+                'level' => 'info',
             ],
         ],
     ],

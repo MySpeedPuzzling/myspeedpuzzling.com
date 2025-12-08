@@ -25,8 +25,8 @@ return App::config([
                 AccessDeniedException::class,
                 NotFoundHttpException::class,
             ],
-            'traces_sample_rate' => '%env(float:SENTRY_TRACES_SAMPLE_RATE)%',
-            'profiles_sample_rate' => '%env(float:SENTRY_PROFILES_SAMPLE_RATE)%',
+            'traces_sampler' => 'sentry.traces_sampler',
+            'profiles_sample_rate' => 1.0, // Profile all traced requests (sampling controlled by traces_sampler)
             'ignore_transactions' => [
                 // Symfony profiler/debug toolbar routes
                 '*/_wdt*',

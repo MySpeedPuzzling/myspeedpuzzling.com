@@ -184,13 +184,13 @@
                                                         <i class="bi bi-incognito text-muted"></i>
                                                     {% elseif puzzle_solver.playerId is not null %}
                                                         <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
-                                                            <small>{{ puzzle_solver.playerName }}</small>
+                                                            <small>{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                                         </a>
                                                         {% if puzzle_solver.playerCountry is not null %}
                                                             <small class="shadow-custom fi fi-{{ puzzle_solver.playerCountry.name }}"></small>
                                                         {% endif %}
                                                     {% else %}
-                                                        <small class="player-name-item">{{ puzzle_solver.playerName }}</small>
+                                                        <small class="player-name-item">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                                     {% endif %}
                                                 {% endfor %}
                                             </p>

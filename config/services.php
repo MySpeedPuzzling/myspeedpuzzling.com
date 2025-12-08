@@ -11,7 +11,6 @@ use Monolog\Processor\PsrLogMessageProcessor;
 use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
 use Sentry\Monolog\Handler as SentryMonologHandler;
 use Sentry\State\HubInterface;
-use SpeedPuzzling\Web\Services\DebugToolbarListener;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
@@ -141,8 +140,4 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set('sentry.traces_sampler', \Closure::class)
         ->factory([service(SentryTracesSampler::class), '__invoke']);
-
-    // Debug Toolbar Listener for production profiler trigger
-    $services->set(DebugToolbarListener::class)
-        ->arg('$profilingSecret', env('PROFILING_TRIGGER_SECRET'));
 };

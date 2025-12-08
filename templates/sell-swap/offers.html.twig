@@ -74,7 +74,7 @@
                                                     {{ (offer.playerName ?? offer.playerCode)|slice(0, 1)|upper }}
                                                 </span>
                                             {% endif %}
-                                            <small>{{ offer.playerName ?? offer.playerCode }}</small>
+                                            <small>{{ offer.playerName ?? offer.playerCode }}</small>{% if offer.playerCountry %}<small class="shadow-custom fi fi-{{ offer.playerCountry }} ms-1"></small>{% endif %}
                                         </div>
                                     </a>
                                 </td>

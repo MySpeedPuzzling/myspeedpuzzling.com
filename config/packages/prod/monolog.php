@@ -10,15 +10,23 @@ return App::config([
             'main' => [
                 'type' => 'fingers_crossed',
                 'action_level' => 'warning',
-                'handler' => 'nested',
+                'handler' => 'grouped',
                 'excluded_http_codes' => [404, 405],
                 'buffer_size' => 50,
+            ],
+            'grouped' => [
+                'type' => 'group',
+                'members' => ['nested', 'sentry'],
             ],
             'nested' => [
                 'type' => 'stream',
                 'path' => 'php://stderr',
                 'level' => 'debug',
                 'formatter' => 'monolog.formatter.json',
+            ],
+            'sentry' => [
+                'type' => 'service',
+                'id' => 'Sentry\\Monolog\\Handler',
             ],
             'console' => [
                 'type' => 'console',

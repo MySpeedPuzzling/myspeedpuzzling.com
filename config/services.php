@@ -6,7 +6,10 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
+use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
+use Sentry\Monolog\Handler as SentryMonologHandler;
+use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
@@ -111,4 +114,13 @@ return static function (ContainerConfigurator $configurator): void {
 
     // PSR-18 HTTP Client for Auth0 SDK
     $services->set('psr18.http_client', Psr18Client::class);
+
+    // Sentry Monolog Handler for error reporting
+    $services->set(SentryMonologHandler::class)
+        ->args([
+            service(HubInterface::class),
+            Level::Error,
+            true,
+            true,
+        ]);
 };

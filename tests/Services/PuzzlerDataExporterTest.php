@@ -37,6 +37,7 @@ final class PuzzlerDataExporterTest extends TestCase
                 trackedAt: new DateTimeImmutable('2024-01-15 10:00:00'),
                 type: 'solo',
                 firstAttempt: true,
+                playersCount: 1,
                 teamMembers: '',
                 finishedPuzzlePhotoUrl: 'https://example.com/photo.jpg',
                 comment: 'Great puzzle!',
@@ -65,6 +66,7 @@ final class PuzzlerDataExporterTest extends TestCase
         $this->assertStringContainsString('puzzle_name', $result);
         $this->assertStringContainsString('brand_name', $result);
         $this->assertStringContainsString('pieces_count', $result);
+        $this->assertStringContainsString('players_count', $result);
     }
 
     public function testXmlExportIsValidXml(): void

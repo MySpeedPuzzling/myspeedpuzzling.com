@@ -20,6 +20,7 @@ readonly final class ExportableSolvingTime
         public DateTimeImmutable $trackedAt,
         public string $type,
         public bool $firstAttempt,
+        public int $playersCount,
         public string $teamMembers,
         public null|string $finishedPuzzlePhotoUrl,
         public null|string $comment,
@@ -40,6 +41,7 @@ readonly final class ExportableSolvingTime
      *     finished_puzzle_photo: null|string,
      *     comment: null|string,
      *     solving_type: string,
+     *     players_count: int,
      *     team_members: null|string,
      * } $row
      */
@@ -61,6 +63,7 @@ readonly final class ExportableSolvingTime
             trackedAt: new DateTimeImmutable($row['tracked_at']),
             type: $row['solving_type'],
             firstAttempt: $row['first_attempt'],
+            playersCount: $row['players_count'],
             teamMembers: $row['team_members'] ?? '',
             finishedPuzzlePhotoUrl: $photoUrl,
             comment: $row['comment'],
@@ -97,6 +100,7 @@ readonly final class ExportableSolvingTime
             'tracked_at' => $this->trackedAt->format('Y-m-d H:i:s'),
             'type' => $this->type,
             'first_attempt' => $this->firstAttempt,
+            'players_count' => $this->playersCount,
             'team_members' => $this->teamMembers,
             'finished_puzzle_photo_url' => $this->finishedPuzzlePhotoUrl,
             'comment' => $this->comment,

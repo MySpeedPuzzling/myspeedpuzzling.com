@@ -26,6 +26,7 @@ readonly final class PuzzlerDataExporter
         'tracked_at',
         'type',
         'first_attempt',
+        'players_count',
         'team_members',
         'finished_puzzle_photo_url',
         'comment',

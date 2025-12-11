@@ -36,24 +36,26 @@ readonly final class PerCategoryStatistics
 
             $totalPieces += $piecesCount;
 
-            if (!isset($piecesGroups[$piecesCount])) {
-                $piecesGroups[$piecesCount] = [];
-            }
+            if ($time !== null) {
+                if (!isset($piecesGroups[$piecesCount])) {
+                    $piecesGroups[$piecesCount] = [];
+                }
 
-            $piecesGroups[$piecesCount][] = $time;
+                $piecesGroups[$piecesCount][] = $time;
+
+                // Grouping time spent per day
+                if (!isset($timePerDay[$finishedDate])) {
+                    $timePerDay[$finishedDate] = 0;
+                }
+
+                $timePerDay[$finishedDate] += $time;
+            }
 
             if (!isset($countPerManufacturer[$manufacturerName])) {
                 $countPerManufacturer[$manufacturerName] = 0;
             }
 
             $countPerManufacturer[$manufacturerName]++;
-
-            // Grouping time spent per day
-            if (!isset($timePerDay[$finishedDate])) {
-                $timePerDay[$finishedDate] = 0;
-            }
-
-            $timePerDay[$finishedDate] += $time;
         }
 
         // Creating PiecesStatistics objects

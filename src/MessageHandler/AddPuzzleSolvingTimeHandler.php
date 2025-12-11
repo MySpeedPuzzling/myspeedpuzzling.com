@@ -69,7 +69,7 @@ readonly final class AddPuzzleSolvingTimeHandler
 
         $ppm = $solvingTime->calculatePpm($puzzle->piecesCount, $puzzlersCount);
 
-        if ($ppm >= 50) {
+        if ($ppm >= 100) {
             throw new SuspiciousPpm($solvingTime, $ppm);
         }
 

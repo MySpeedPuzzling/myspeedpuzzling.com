@@ -72,6 +72,7 @@ HTML;
             $results[] = [
                 'value' => $puzzle->puzzleId,
                 'text' => $html,
+                'piecesCount' => $puzzle->piecesCount,
             ];
         }
 

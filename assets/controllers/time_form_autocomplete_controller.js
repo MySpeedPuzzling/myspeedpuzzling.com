@@ -111,14 +111,34 @@ export default class extends Controller {
         if (value) {
             if (this.uuidRegex.test(value)) {
                 this.newPuzzleTarget.classList.add('d-none');
+
+                // Dispatch event with pieces count for PPM validation
+                const option = this.puzzleTarget.tomselect.options[value];
+                if (option && option.piecesCount) {
+                    this.dispatchPiecesCountEvent(option.piecesCount);
+                }
             } else {
                 this.newPuzzleTarget.classList.remove('d-none');
+                // New puzzle - pieces count will come from input field
+                this.dispatchPiecesCountEvent(0);
             }
         } else {
             this.newPuzzleTarget.classList.add('d-none');
+            this.dispatchPiecesCountEvent(0);
         }
 
         this.puzzleTarget.tomselect.blur();
+    }
+
+    dispatchPiecesCountEvent(piecesCount) {
+        // Dispatch to parent form for PPM validator to listen
+        const form = this.element.closest('form');
+        if (form) {
+            form.dispatchEvent(new CustomEvent('ppm:piecesCountUpdated', {
+                detail: { piecesCount: piecesCount },
+                bubbles: true
+            }));
+        }
     }
 
     onCompetitionValueChanged(value) {

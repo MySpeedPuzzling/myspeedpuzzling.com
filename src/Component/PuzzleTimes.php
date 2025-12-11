@@ -37,6 +37,9 @@ final class PuzzleTimes
     public bool $onlyFirstTries = false;
 
     #[LiveProp(writable: true)]
+    public bool $onlyFavoritePlayers = false;
+
+    #[LiveProp(writable: true)]
     public null|string $country = null;
 
     public null|int $myRank = null;
@@ -166,6 +169,21 @@ final class PuzzleTimes
             }
         }
 
+        if ($this->onlyFavoritePlayers === true && $loggedProfile !== null) {
+            $favoritePlayers = $loggedProfile->favoritePlayers;
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterByFavoritePlayers($soloPuzzleSolversGrouped, $favoritePlayers);
+            $duoPuzzleSolversGrouped = $this->puzzlesSorter->filterByFavoritePlayers($duoPuzzleSolversGrouped, $favoritePlayers);
+            $teamPuzzleSolversGrouped = $this->puzzlesSorter->filterByFavoritePlayers($teamPuzzleSolversGrouped, $favoritePlayers);
+
+            if ($this->category === 'group') {
+                $this->times = $teamPuzzleSolversGrouped;
+            } elseif ($this->category === 'duo') {
+                $this->times = $duoPuzzleSolversGrouped;
+            } else {
+                $this->times = $soloPuzzleSolversGrouped;
+            }
+        }
+
         $myRank = null;
         $myTime = null;
         $totalTime = 0;
@@ -228,6 +246,10 @@ final class PuzzleTimes
         $count = 0;
 
         if ($this->onlyFirstTries !== false) {
+            $count++;
+        }
+
+        if ($this->onlyFavoritePlayers !== false) {
             $count++;
         }
 

@@ -258,6 +258,37 @@ readonly final class PuzzlesSorter
     /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
      * @param array<string, non-empty-array<T>> $groupedSolvers
+     * @param array<string> $favoritePlayers
+     * @return array<string, non-empty-array<T>>
+     */
+    public function filterByFavoritePlayers(array $groupedSolvers, array $favoritePlayers): array
+    {
+        if ($favoritePlayers === []) {
+            return $groupedSolvers;
+        }
+
+        return array_filter(
+            array: $groupedSolvers,
+            callback: function (array $grouped) use ($favoritePlayers): bool {
+                if ($grouped[0] instanceof PuzzleSolversGroup) {
+                    foreach ($grouped[0]->players as $player) {
+                        if ($player->playerId !== null && in_array($player->playerId, $favoritePlayers, true)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                // PuzzleSolver case
+                return in_array($grouped[0]->playerId, $favoritePlayers, true);
+            }
+        );
+    }
+
+    /**
+     * @template T of PuzzleSolver|PuzzleSolversGroup
+     * @param array<string, non-empty-array<T>> $groupedSolvers
      * @return array<string, non-empty-array<T>>
      */
     public function filterOutPrivateProfiles(array $groupedSolvers, null|string $loggedPlayerId): array

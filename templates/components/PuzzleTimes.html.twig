@@ -85,6 +85,19 @@
                             </div>
                         {% endif %}
 
+                        {% if logged_user.profile.favoritePlayers|length > 0 %}
+                            <div class="form-check form-switch my-3">
+                                <input
+                                    data-model="onlyFavoritePlayers"
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    role="switch"
+                                    id="only-favorite-players"
+                                    {{ this.onlyFavoritePlayers ? 'checked' }}>
+                                <label for="only-favorite-players" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_favorite_players_filter'|trans }}</label>
+                            </div>
+                        {% endif %}
+
                         {% if this.availableCountries|length > 1 %}
                             <div class="my-3">
                                 <select

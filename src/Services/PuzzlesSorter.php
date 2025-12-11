@@ -208,6 +208,164 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * Calculate PPM (pieces per minute) for a solved puzzle.
+     * Returns null if time is null.
+     */
+    private static function calculatePpm(SolvedPuzzle $puzzle): null|float
+    {
+        if ($puzzle->time === null || $puzzle->time === 0) {
+            return null;
+        }
+
+        return ($puzzle->piecesCount * 60) / $puzzle->time;
+    }
+
+    /**
+     * Compare two PPMs in descending order (highest PPM first, nulls at end).
+     * Higher PPM = faster solver.
+     */
+    private static function comparePpmDescending(null|float $a, null|float $b): int
+    {
+        if ($a === null && $b === null) {
+            return 0;
+        }
+        if ($a === null) {
+            return 1; // null goes to end
+        }
+        if ($b === null) {
+            return -1; // null goes to end
+        }
+
+        return $b <=> $a;
+    }
+
+    /**
+     * Compare two PPMs in ascending order (lowest PPM first, nulls at end).
+     */
+    private static function comparePpmAscending(null|float $a, null|float $b): int
+    {
+        if ($a === null && $b === null) {
+            return 0;
+        }
+        if ($a === null) {
+            return 1; // null goes to end
+        }
+        if ($b === null) {
+            return -1; // null goes to end
+        }
+
+        return $a <=> $b;
+    }
+
+    /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    public function sortByFastestPpm(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
+            $ppmA = self::calculatePpm($a);
+            $ppmB = self::calculatePpm($b);
+
+            $ppmComparison = self::comparePpmDescending($ppmA, $ppmB);
+
+            if ($ppmComparison !== 0) {
+                return $ppmComparison;
+            }
+
+            return $a->finishedAt <=> $b->finishedAt;
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    public function sortBySlowestPpm(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
+            $ppmA = self::calculatePpm($a);
+            $ppmB = self::calculatePpm($b);
+
+            return self::comparePpmAscending($ppmA, $ppmB);
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedByFastestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    {
+        // 1) Sort times within groups by PPM
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortByFastestPpm($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by first result's PPM
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            $ppmA = self::calculatePpm($a);
+            $ppmB = self::calculatePpm($b);
+
+            $ppmComparison = self::comparePpmDescending($ppmA, $ppmB);
+
+            if ($ppmComparison !== 0) {
+                return $ppmComparison;
+            }
+
+            return $a->finishedAt <=> $b->finishedAt;
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
+     * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function sortGroupedBySlowestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    {
+        // 1) Sort times within groups by PPM (slowest first)
+        foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
+            $groupedSolvedPuzzles[$index] = $this->sortBySlowestPpm($solvedPuzzle);
+
+            if ($onlyFirstTries === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            }
+        }
+
+        // 2) Sort groups by first result's PPM (lowest first)
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB): int {
+            /** @var non-empty-array<SolvedPuzzle> $groupedA */
+            /** @var non-empty-array<SolvedPuzzle> $groupedB */
+
+            $a = $groupedA[array_key_first($groupedA)];
+            $b = $groupedB[array_key_first($groupedB)];
+
+            $ppmA = self::calculatePpm($a);
+            $ppmB = self::calculatePpm($b);
+
+            return self::comparePpmAscending($ppmA, $ppmB);
+        });
+
+        return $groupedSolvedPuzzles;
+    }
+
+    /**
      * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
      * @param array<string, non-empty-array<T>> $groupedSolvers
      * @return array<string, non-empty-array<T>>

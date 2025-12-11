@@ -154,6 +154,17 @@ filters:
     only_available: "Solo disponibles para préstamo"
     only_with_time: "Solo con tiempo ingresado"
     no_puzzle_matches_filters: "Ningún puzzle coincide con los filtros especificados"
+    only_relax: "Solo puzzles relajados"
+    date_range: "Rango de fechas"
+    date_from: "Desde"
+    date_to: "Hasta"
+    time_filter: "Filtro de tiempo"
+    faster_than: "Más rápido que"
+    slower_than: "Más lento que"
+    minutes: "min"
+    reset: "Restablecer filtros"
+    all_manufacturers: "Todos los fabricantes"
+    all_pieces: "Todas las piezas"
 
 sorting:
     sort_by: "Ordenar por"
@@ -165,6 +176,8 @@ sorting:
     least_solved: "Menos resueltos"
     a_z: "Nombre A-Z"
     z_a: "Nombre Z-A"
+    fastest_ppm: "PPM más rápido"
+    slowest_ppm: "PPM más lento"
 
 puzzle_overview:
     meta:

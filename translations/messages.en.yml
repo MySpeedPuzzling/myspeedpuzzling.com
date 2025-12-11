@@ -151,6 +151,17 @@ filters:
     only_available: "Only available for loan"
     only_with_time: "Only with entered time"
     no_puzzle_matches_filters: "No puzzles match the specified filters"
+    only_relax: "Relax puzzles only"
+    date_range: "Date range"
+    date_from: "From"
+    date_to: "To"
+    time_filter: "Time filter"
+    faster_than: "Faster than"
+    slower_than: "Slower than"
+    minutes: "min"
+    reset: "Reset filters"
+    all_manufacturers: "All manufacturers"
+    all_pieces: "All pieces"
 
 sorting:
     sort_by: "Sort by"
@@ -162,6 +173,8 @@ sorting:
     least_solved: "Least solved"
     a_z: "Name A-Z"
     z_a: "Name Z-A"
+    fastest_ppm: "Fastest PPM"
+    slowest_ppm: "Slowest PPM"
 puzzle_overview:
     meta:
         title: "Speed Puzzling Database"

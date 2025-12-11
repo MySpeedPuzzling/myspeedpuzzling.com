@@ -154,6 +154,17 @@ filters:
     only_available: "Seulement disponibles à l'emprunt"
     only_with_time: "Seulement avec temps saisi"
     no_puzzle_matches_filters: "Aucun puzzle ne correspond aux filtres spécifiés"
+    only_relax: "Puzzles détente uniquement"
+    date_range: "Période"
+    date_from: "Du"
+    date_to: "Au"
+    time_filter: "Filtre de temps"
+    faster_than: "Plus rapide que"
+    slower_than: "Plus lent que"
+    minutes: "min"
+    reset: "Réinitialiser les filtres"
+    all_manufacturers: "Tous les fabricants"
+    all_pieces: "Toutes les pièces"
 
 sorting:
     sort_by: "Trier par"
@@ -165,6 +176,8 @@ sorting:
     least_solved: "Moins résolus"
     a_z: "Nom A-Z"
     z_a: "Nom Z-A"
+    fastest_ppm: "PPM le plus rapide"
+    slowest_ppm: "PPM le plus lent"
 
 puzzle_overview:
     meta:

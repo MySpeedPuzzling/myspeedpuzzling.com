@@ -11,3 +11,8 @@
     padding-left: 2.5rem;
   }
 }
+
+// Fix height alignment in small input groups
+.input-group-sm > .input-group-text {
+  padding: .25rem .5rem;
+}

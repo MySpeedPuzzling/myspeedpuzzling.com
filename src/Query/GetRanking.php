@@ -15,7 +15,7 @@ final class GetRanking
     /** @var array<string, array<string, PlayerRanking>> */
     private array $allForPlayerCache = [];
 
-    /** @var array<string, PlayerRanking> */
+    /** @var array<string, null|PlayerRanking> */
     private array $ofPuzzleForPlayerCache = [];
 
     public function __construct(
@@ -129,7 +129,7 @@ SQL;
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
      */
-    public function ofPuzzleForPlayer(string $puzzleId, string $playerId): PlayerRanking
+    public function ofPuzzleForPlayer(string $puzzleId, string $playerId): null|PlayerRanking
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
@@ -190,7 +190,7 @@ ORDER BY rank
 SQL;
 
         /**
-         * @var array{
+         * @var false|array{
          *     player_id: string,
          *     rank: int,
          *     total_players: int,
@@ -209,6 +209,12 @@ SQL;
                 'puzzleId' => $puzzleId,
             ])
             ->fetchAssociative();
+
+        if ($row === false) {
+            $this->ofPuzzleForPlayerCache[$cacheKey] = null;
+
+            return null;
+        }
 
         $ranking = PlayerRanking::fromDatabaseRow($row);
         $this->ofPuzzleForPlayerCache[$cacheKey] = $ranking;

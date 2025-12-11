@@ -51,7 +51,7 @@ readonly final class GetResultImage
         if ($solvingTime->players === null) {
             $ranking = $this->getRanking->ofPuzzleForPlayer($solvingTime->puzzleId, $player->playerId);
 
-            if ($ranking->totalPlayers > 2) {
+            if ($ranking !== null && $ranking->totalPlayers > 2) {
                 $rankingText = sprintf('Rank %s of %s', $ranking->rank, $ranking->totalPlayers);
             }
         } else {

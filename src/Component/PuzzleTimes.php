@@ -171,6 +171,12 @@ final class PuzzleTimes
 
         if ($this->onlyFavoritePlayers === true && $loggedProfile !== null) {
             $favoritePlayers = $loggedProfile->favoritePlayers;
+
+            // Include logged user in their own favorites filter
+            if ($loggedPlayerId !== null) {
+                $favoritePlayers[] = $loggedPlayerId;
+            }
+
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterByFavoritePlayers($soloPuzzleSolversGrouped, $favoritePlayers);
             $duoPuzzleSolversGrouped = $this->puzzlesSorter->filterByFavoritePlayers($duoPuzzleSolversGrouped, $favoritePlayers);
             $teamPuzzleSolversGrouped = $this->puzzlesSorter->filterByFavoritePlayers($teamPuzzleSolversGrouped, $favoritePlayers);

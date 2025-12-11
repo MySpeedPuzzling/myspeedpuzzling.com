@@ -152,6 +152,17 @@ filters:
     only_available: "Pouze k zapůjčení"
     only_with_time: "Pouze se zadaným časem"
     no_puzzle_matches_filters: "Žádné puzzle neodpovídají zadaným filtrům"
+    only_relax: "Pouze relax skládání"
+    date_range: "Období"
+    date_from: "Od"
+    date_to: "Do"
+    time_filter: "Filtr času"
+    faster_than: "Rychlejší než"
+    slower_than: "Pomalejší než"
+    minutes: "min"
+    reset: "Resetovat filtry"
+    all_manufacturers: "Všichni výrobci"
+    all_pieces: "Všechny dílky"
 
 sorting:
     sort_by: "Řadit podle"
@@ -163,6 +174,8 @@ sorting:
     least_solved: "Nejméně skládané"
     a_z: "Název A-Z"
     z_a: "Název Z-A"
+    fastest_ppm: "Nejrychlejší PPM"
+    slowest_ppm: "Nejpomalejší PPM"
 
 puzzle_overview:
     meta:

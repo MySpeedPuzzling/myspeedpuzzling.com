@@ -153,6 +153,17 @@ filters:
     only_available: "貸出可能のみ"
     only_with_time: "タイム入力済みのみ"
     no_puzzle_matches_filters: "指定されたフィルターに一致するパズルがありません"
+    only_relax: "リラックスパズルのみ"
+    date_range: "期間"
+    date_from: "開始日"
+    date_to: "終了日"
+    time_filter: "タイムフィルター"
+    faster_than: "より速い"
+    slower_than: "より遅い"
+    minutes: "分"
+    reset: "フィルターをリセット"
+    all_manufacturers: "すべてのメーカー"
+    all_pieces: "すべてのピース数"
 
 sorting:
     sort_by: "並び順"
@@ -164,6 +175,8 @@ sorting:
     least_solved: "最少解決"
     a_z: "名前 A-Z"
     z_a: "名前 Z-A"
+    fastest_ppm: "最速PPM"
+    slowest_ppm: "最遅PPM"
 
 puzzle_overview:
     meta:

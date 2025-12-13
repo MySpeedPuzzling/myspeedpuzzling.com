@@ -1,4 +1,10 @@
-<div data-controller="add-copuzzler">
+<div data-controller="add-copuzzler image-editor"
+     data-image-editor-title-value="{{ 'image_editor.title'|trans }}"
+     data-image-editor-rotate-left-value="{{ 'image_editor.rotate_left'|trans }}"
+     data-image-editor-rotate-right-value="{{ 'image_editor.rotate_right'|trans }}"
+     data-image-editor-cancel-value="{{ 'forms.cancel'|trans }}"
+     data-image-editor-apply-value="{{ 'image_editor.apply'|trans }}"
+     data-image-editor-edit-value="{{ 'forms.edit'|trans }}">
 
     {{ form_start(solving_time_form, { 'attr': {
         'data-controller': 'submit-prevention ppm-validator',

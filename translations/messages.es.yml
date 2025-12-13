@@ -1302,3 +1302,9 @@ solved_puzzles:
         visibility_help: "La lista pública de puzzles resueltos es visible para todos, la privada solo para ti."
     flash:
         updated: "La visibilidad de los puzzles resueltos se actualizó correctamente."
+
+image_editor:
+    title: "Editar imagen"
+    rotate_left: "Girar a la izquierda"
+    rotate_right: "Girar a la derecha"
+    apply: "Aplicar"

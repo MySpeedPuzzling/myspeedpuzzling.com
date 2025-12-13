@@ -132,7 +132,7 @@ export default class extends Controller {
         this.destroyCropper();
 
         this.cropper = new Cropper(this.imageElement, {
-            viewMode: 1,
+            viewMode: 0,
             dragMode: 'crop',
             autoCropArea: 1,
             responsive: true,
@@ -156,15 +156,38 @@ export default class extends Controller {
     }
 
     rotateLeft() {
-        if (this.cropper) {
-            this.cropper.rotate(-90);
-        }
+        this.rotate(-90);
     }
 
     rotateRight() {
-        if (this.cropper) {
-            this.cropper.rotate(90);
+        this.rotate(90);
+    }
+
+    rotate(degrees) {
+        if (!this.cropper) {
+            return;
         }
+
+        this.cropper.rotate(degrees);
+        setTimeout(() => this.centerImageAndFitCropBox(), 50);
+    }
+
+    centerImageAndFitCropBox() {
+        const containerData = this.cropper.getContainerData();
+        const canvasData = this.cropper.getCanvasData();
+
+        const left = (containerData.width - canvasData.width) / 2;
+        const top = (containerData.height - canvasData.height) / 2;
+
+        this.cropper.setCanvasData({ left, top });
+
+        const newCanvasData = this.cropper.getCanvasData();
+        this.cropper.setCropBoxData({
+            left: newCanvasData.left,
+            top: newCanvasData.top,
+            width: newCanvasData.width,
+            height: newCanvasData.height
+        });
     }
 
     apply() {

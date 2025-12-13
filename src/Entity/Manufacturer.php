@@ -31,6 +31,8 @@ class Manufacturer
         public null|DateTimeImmutable $addedAt = null,
         #[Column(nullable: true)]
         public null|string $logo = null,
+        #[Column(nullable: true)]
+        public null|string $eanPrefix = null,
     ) {
     }
 }

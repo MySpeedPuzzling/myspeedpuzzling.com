@@ -142,6 +142,13 @@ export default class extends Controller {
                             if (count >= 10) {
                                 this.inputTarget.value = code;
                                 this.inputTarget.dispatchEvent(new Event('change', {bubbles: true}));
+
+                                // Dispatch custom event for other controllers to listen
+                                this.element.dispatchEvent(new CustomEvent('barcode-scanner:scanned', {
+                                    detail: { code: code },
+                                    bubbles: true
+                                }));
+
                                 // Remove all entries for this code, leaving other codes in the buffer.
                                 this.scanBuffer = [];
                                 this.stopScanning();

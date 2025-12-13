@@ -254,6 +254,49 @@ SQL;
     }
 
     /**
+     * Search for a puzzle by EAN code.
+     * Handles comma-separated EANs and strips leading/trailing zeros.
+     *
+     * @return array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}|null
+     */
+    public function byEan(string $ean): null|array
+    {
+        // Strip leading/trailing zeros for flexible matching
+        $eanSearch = trim($ean, '0');
+
+        if ($eanSearch === '') {
+            return null;
+        }
+
+        $query = <<<SQL
+SELECT
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.image AS puzzle_image,
+    puzzle.pieces_count,
+    manufacturer.id AS manufacturer_id,
+    manufacturer.name AS manufacturer_name
+FROM puzzle
+INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+WHERE puzzle.ean LIKE :eanPattern
+LIMIT 1
+SQL;
+
+        $row = $this->database
+            ->executeQuery($query, [
+                'eanPattern' => '%' . $eanSearch . '%',
+            ])
+            ->fetchAssociative();
+
+        if ($row === false) {
+            return null;
+        }
+
+        /** @var array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string} $row */
+        return $row;
+    }
+
+    /**
      * @return array<AutocompletePuzzle>
      */
     public function byBrandId(string $brandId): array

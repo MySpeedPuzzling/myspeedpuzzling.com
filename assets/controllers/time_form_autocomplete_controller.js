@@ -1,7 +1,13 @@
 import { Controller } from '@hotwired/stimulus';
+import * as bootstrap from 'bootstrap';
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle'];
+    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput'];
+
+    static values = {
+        eanSearchUrl: String,
+        notFoundMessage: String,
+    };
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -12,6 +18,7 @@ export default class extends Controller {
         this._onCompetitionConnect = this._onCompetitionConnect.bind(this);
         this._onBrandConnect = this._onBrandConnect.bind(this);
         this._onPuzzleConnect = this._onPuzzleConnect.bind(this);
+        this._handleBarcodeScanned = this._handleBarcodeScanned.bind(this);
     }
 
     connect() {
@@ -21,6 +28,9 @@ export default class extends Controller {
         this.brandTarget.addEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.addEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
         this.competitionTarget.addEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
+
+        // Listen for barcode scanner events
+        document.addEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
     }
 
     disconnect() {
@@ -28,6 +38,7 @@ export default class extends Controller {
         this.brandTarget.removeEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.removeEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
         this.competitionTarget.removeEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
+        document.removeEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
     }
 
     _onBrandConnect(event) {
@@ -153,7 +164,7 @@ export default class extends Controller {
         const fetchUrl = this.brandTarget.getAttribute('data-fetch-url');
 
         if (this.uuidRegex.test(brandValue)) {
-            fetch(`${fetchUrl}?brand=${brandValue}`)
+            return fetch(`${fetchUrl}?brand=${brandValue}`)
                 .then(response => {
                     if (response.status === 404) {
                         this.onNewBrandCreated();
@@ -183,11 +194,14 @@ export default class extends Controller {
 
                         this.initialPuzzleValue = '';
                     }
+                    return data;
                 })
                 .catch(error => {
                     console.error('There has been a problem with your fetch operation:', error);
                 });
         }
+
+        return Promise.resolve(null);
     }
 
     updatePuzzleSelectValues(data, openDropdown) {
@@ -231,5 +245,112 @@ export default class extends Controller {
     removeDiacritics(str) {
         // normalize and remove "diacritics" characters (e.g. é, ü, etc.)
         return str.normalize('NFD').replace(/\p{M}/gu, '');
+    }
+
+    // === Barcode Scanner Methods ===
+
+    openScanner(event) {
+        event.preventDefault();
+
+        if (!this.hasScannerModalTarget) {
+            console.error('Scanner modal target not found');
+            return;
+        }
+
+        // Hide any previous messages
+        if (this.hasScannerMessageTarget) {
+            this.scannerMessageTarget.classList.add('d-none');
+        }
+
+        // Open the modal
+        const modal = new bootstrap.Modal(this.scannerModalTarget);
+        modal.show();
+
+        // Start the scanner (barcode-scanner controller will handle this via toggle button click)
+        const toggleButton = this.scannerModalTarget.querySelector('[data-barcode-scanner-target="toggleButton"]');
+        if (toggleButton && !toggleButton.classList.contains('active')) {
+            toggleButton.click();
+        }
+    }
+
+    _handleBarcodeScanned(event) {
+        // Only handle if the scanner modal is open
+        if (!this.hasScannerModalTarget) {
+            return;
+        }
+
+        const modalInstance = bootstrap.Modal.getInstance(this.scannerModalTarget);
+        if (!modalInstance || !this.scannerModalTarget.classList.contains('show')) {
+            return;
+        }
+
+        const { code } = event.detail;
+        this._searchPuzzleByEan(code);
+    }
+
+    async _searchPuzzleByEan(ean) {
+        if (!this.hasEanSearchUrlValue) {
+            console.error('EAN search URL not configured');
+            return;
+        }
+
+        const url = this.eanSearchUrlValue.replace('__EAN__', encodeURIComponent(ean));
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Close the scanner modal
+            const modalInstance = bootstrap.Modal.getInstance(this.scannerModalTarget);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+
+            if (data.found) {
+                this._handlePuzzleFound(data.puzzle, data.brand);
+            } else {
+                this._handlePuzzleNotFound(ean);
+            }
+        } catch (error) {
+            console.error('Error searching puzzle by EAN:', error);
+        }
+    }
+
+    _handlePuzzleFound(puzzle, brand) {
+        const brandTom = this.brandTarget.tomselect;
+        const puzzleTom = this.puzzleTarget.tomselect;
+
+        // Add brand option if not exists, then select it
+        if (!brandTom.getOption(brand.id)) {
+            brandTom.addOption({ value: brand.id, text: brand.name });
+        }
+        brandTom.setValue(brand.id);
+
+        // Fetch puzzles for this brand, then select the scanned puzzle
+        this.fetchPuzzleOptions(brand.id, false).then(() => {
+            // Wait for options to be loaded
+            setTimeout(() => {
+                if (puzzleTom.getOption(puzzle.id)) {
+                    puzzleTom.setValue(puzzle.id);
+                }
+            }, 100);
+        });
+    }
+
+    _handlePuzzleNotFound(ean) {
+        // Show new puzzle fields
+        this.newPuzzleTarget.classList.remove('d-none');
+
+        // Prefill EAN field
+        if (this.hasEanInputTarget) {
+            this.eanInputTarget.value = ean;
+        }
+
+        // Show "not found" message
+        if (this.hasScannerMessageTarget && this.hasNotFoundMessageValue) {
+            const message = this.notFoundMessageValue.replace('%ean%', ean);
+            this.scannerMessageTarget.textContent = message;
+            this.scannerMessageTarget.classList.remove('d-none');
+        }
     }
 }

@@ -76,7 +76,7 @@ readonly final class EditPuzzleSolvingTimeHandler
 
             $ppm = $solvingTimeValue->calculatePpm($solvingTime->puzzle->piecesCount, $puzzlersCount);
 
-            if ($ppm >= 50) {
+            if ($ppm >= 100) {
                 throw new SuspiciousPpm($solvingTimeValue, $ppm);
             }
         }

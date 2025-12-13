@@ -116,15 +116,19 @@ export default class extends Controller {
                 const option = this.puzzleTarget.tomselect.options[value];
                 if (option && option.piecesCount) {
                     this.dispatchPiecesCountEvent(option.piecesCount);
+                } else {
+                    // Existing puzzle but no pieces count data
+                    this.dispatchPiecesCountEvent(null);
                 }
             } else {
                 this.newPuzzleTarget.classList.remove('d-none');
                 // New puzzle - pieces count will come from input field
-                this.dispatchPiecesCountEvent(0);
+                this.dispatchPiecesCountEvent(null);
             }
         } else {
             this.newPuzzleTarget.classList.add('d-none');
-            this.dispatchPiecesCountEvent(0);
+            // No puzzle selected - clear pieces count
+            this.dispatchPiecesCountEvent(null);
         }
 
         this.puzzleTarget.tomselect.blur();

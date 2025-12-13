@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { Modal } from 'bootstrap';
 
 /**
  * PPM (Pieces Per Minute) Validator Controller
@@ -16,6 +17,7 @@ export default class extends Controller {
         'groupPlayers',
         'modal',
         'warningMessage',
+        'timeDisplay',
         'modeInput',
     ];
 
@@ -26,6 +28,9 @@ export default class extends Controller {
         tooSlowMaxPieces: { type: Number, default: 1100 },
         warningTooFast: { type: String, default: 'Your pace seems very fast. Please double-check your time and confirm it is correct.' },
         warningTooSlow: { type: String, default: 'Your solving time seems quite long. Please verify your time is correct.' },
+        labelHours: { type: String, default: 'hours' },
+        labelMinutes: { type: String, default: 'minutes' },
+        labelSeconds: { type: String, default: 'seconds' },
         confirmed: { type: Boolean, default: false },
     };
 
@@ -88,22 +93,24 @@ export default class extends Controller {
     }
 
     getPiecesCount() {
-        // Priority 1: Selected puzzle from autocomplete (stored by event)
-        if (this.selectedPiecesCount && this.selectedPiecesCount > 0) {
-            return this.selectedPiecesCount;
-        }
-
-        // Priority 2: Active puzzle passed from server
-        if (this.activePuzzlePiecesValue > 0) {
-            return this.activePuzzlePiecesValue;
-        }
-
-        // Priority 3: New puzzle pieces count input (when creating new puzzle)
+        // Priority 1: New puzzle pieces count input (when creating new puzzle)
+        // Check this first because if user is creating a new puzzle, this is the source of truth
         if (this.hasPuzzlePiecesCountTarget && this.puzzlePiecesCountTarget.value) {
             const value = parseInt(this.puzzlePiecesCountTarget.value, 10);
             if (!isNaN(value) && value > 0) {
                 return value;
             }
+        }
+
+        // Priority 2: Selected puzzle from autocomplete (stored by event)
+        // Only use if it's a valid positive number (not null/undefined)
+        if (typeof this.selectedPiecesCount === 'number' && this.selectedPiecesCount > 0) {
+            return this.selectedPiecesCount;
+        }
+
+        // Priority 3: Active puzzle passed from server (edit form case)
+        if (this.activePuzzlePiecesValue > 0) {
+            return this.activePuzzlePiecesValue;
         }
 
         return 0;
@@ -176,19 +183,64 @@ export default class extends Controller {
             return;
         }
 
+        // Display the entered time
+        if (this.hasTimeDisplayTarget) {
+            const hours = this.hasTimeHoursTarget ? parseInt(this.timeHoursTarget.value, 10) || 0 : 0;
+            const minutes = this.hasTimeMinutesTarget ? parseInt(this.timeMinutesTarget.value, 10) || 0 : 0;
+            const seconds = this.hasTimeSecondsTarget ? parseInt(this.timeSecondsTarget.value, 10) || 0 : 0;
+
+            this.timeDisplayTarget.innerHTML = this.buildTimeDisplayHtml(hours, minutes, seconds);
+        }
+
         // Build warning message
         const messages = warnings.map(w => w.message);
         this.warningMessageTarget.innerHTML = messages.join('<br><br>');
 
         // Show the modal
-        const modal = window.bootstrap.Modal.getOrCreateInstance(this.modalTarget);
+        const modal = Modal.getOrCreateInstance(this.modalTarget);
         modal.show();
+    }
+
+    buildTimeDisplayHtml(hours, minutes, seconds) {
+        const parts = [];
+
+        if (hours > 0) {
+            parts.push(`
+                <div class="text-center">
+                    <div class="display-5 fw-bold text-primary">${hours}</div>
+                    <div class="small text-muted">${this.labelHoursValue}</div>
+                </div>
+            `);
+            parts.push('<div class="display-5 text-muted mx-1 align-self-start pt-1">:</div>');
+        }
+
+        parts.push(`
+            <div class="text-center">
+                <div class="display-5 fw-bold text-primary">${minutes}</div>
+                <div class="small text-muted">${this.labelMinutesValue}</div>
+            </div>
+        `);
+
+        parts.push('<div class="display-5 text-muted mx-1 align-self-start pt-1">:</div>');
+
+        parts.push(`
+            <div class="text-center">
+                <div class="display-5 fw-bold text-primary">${seconds}</div>
+                <div class="small text-muted">${this.labelSecondsValue}</div>
+            </div>
+        `);
+
+        return `
+            <div class="d-flex justify-content-center align-items-start">
+                ${parts.join('')}
+            </div>
+        `;
     }
 
     confirmSubmit() {
         // Close modal
         if (this.hasModalTarget) {
-            const modal = window.bootstrap.Modal.getInstance(this.modalTarget);
+            const modal = Modal.getInstance(this.modalTarget);
             if (modal) {
                 modal.hide();
             }
@@ -200,12 +252,33 @@ export default class extends Controller {
     }
 
     cancelSubmit() {
-        // Just close the modal
+        // Close the modal
         if (this.hasModalTarget) {
-            const modal = window.bootstrap.Modal.getInstance(this.modalTarget);
+            const modal = Modal.getInstance(this.modalTarget);
             if (modal) {
                 modal.hide();
             }
+        }
+
+        // Reset submit prevention controller so user can submit again
+        this.resetSubmitPrevention();
+    }
+
+    resetSubmitPrevention() {
+        // Find submit button and re-enable it
+        const submitButton = this.element.querySelector('[data-submit-prevention-target="submit"]');
+        if (submitButton) {
+            submitButton.removeAttribute('disabled');
+            submitButton.classList.remove('is-loading');
+        }
+
+        // Reset the submit prevention controller's state via Stimulus
+        const submitPreventionController = this.application.getControllerForElementAndIdentifier(
+            this.element,
+            'submit-prevention'
+        );
+        if (submitPreventionController) {
+            submitPreventionController.isSubmittingValue = false;
         }
     }
 }

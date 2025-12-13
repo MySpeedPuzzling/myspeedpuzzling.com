@@ -5,6 +5,9 @@
         'data-ppm-validator-active-puzzle-pieces-value': active_puzzle is defined and active_puzzle is not null ? active_puzzle.piecesCount : 0,
         'data-ppm-validator-warning-too-fast-value': 'forms.ppm_warning_too_fast'|trans,
         'data-ppm-validator-warning-too-slow-value': 'forms.ppm_warning_too_slow'|trans,
+        'data-ppm-validator-label-hours-value': 'forms.hours'|trans,
+        'data-ppm-validator-label-minutes-value': 'forms.minutes'|trans,
+        'data-ppm-validator-label-seconds-value': 'forms.seconds'|trans,
     } }) }}
         {{ form_errors(solving_time_form) }}
 
@@ -238,18 +241,25 @@
         <div class="modal fade" tabindex="-1" role="dialog" data-ppm-validator-target="modal">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">{{ 'forms.ppm_warning_title'|trans }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header border-0 pb-2 flex-column align-items-center text-center">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <div class="text-warning mb-2">
+                            <i class="ci-time" style="font-size: 2.5rem;"></i>
+                        </div>
+                        <h5 class="modal-title mb-1">{{ 'forms.ppm_warning_title'|trans }}</h5>
+                        <small class="text-muted">{{ 'forms.ppm_entered_time'|trans }}:</small>
                     </div>
-                    <div class="modal-body">
-                        <p data-ppm-validator-target="warningMessage"></p>
+                    <div class="modal-body pt-2">
+                        <div class="text-center mb-4" data-ppm-validator-target="timeDisplay"></div>
+                        <p class="text-muted text-center mb-0" data-ppm-validator-target="warningMessage"></p>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-action="click->ppm-validator#cancelSubmit" data-bs-dismiss="modal">
+                    <div class="modal-footer border-0 pt-0 justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary" data-action="click->ppm-validator#cancelSubmit" data-bs-dismiss="modal">
+                            <i class="ci-edit me-1"></i>
                             {{ 'forms.ppm_cancel_button'|trans }}
                         </button>
                         <button type="button" class="btn btn-primary" data-action="click->ppm-validator#confirmSubmit">
+                            <i class="ci-check me-1"></i>
                             {{ 'forms.ppm_confirm_button'|trans }}
                         </button>
                     </div>

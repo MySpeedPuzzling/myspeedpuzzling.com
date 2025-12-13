@@ -1303,3 +1303,9 @@ status:
     borrowed: "Půjčeno"
     lent: "Půjčeno"
     for_sale: "Na prodej"
+
+image_editor:
+    title: "Upravit obrázek"
+    rotate_left: "Otočit doleva"
+    rotate_right: "Otočit doprava"
+    apply: "Použít"

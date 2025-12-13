@@ -1302,3 +1302,9 @@ solved_puzzles:
         updated: "La visibilité des puzzles résolus a été mise à jour avec succès."
     private: "Puzzles Résolus Privés"
     private_message: "La liste des puzzles résolus \"%collection%\" de %player% est privée et ne peut pas être consultée."
+
+image_editor:
+    title: "Modifier l'image"
+    rotate_left: "Pivoter à gauche"
+    rotate_right: "Pivoter à droite"
+    apply: "Appliquer"

@@ -1300,3 +1300,9 @@ status:
     solved: "完成"
     unsolved: "未完成"
     wishlist: "ウィッシュリスト"
+
+image_editor:
+    title: "画像を編集"
+    rotate_left: "左に回転"
+    rotate_right: "右に回転"
+    apply: "適用"

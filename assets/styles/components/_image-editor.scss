@@ -1,0 +1,62 @@
+//
+// Image Editor Component
+// --------------------------------------------------
+
+.image-editor-container {
+    width: 100%;
+    height: 400px;
+    background-color: $gray-900;
+    overflow: hidden;
+
+    @include media-breakpoint-up(md) {
+        height: 500px;
+    }
+}
+
+.image-editor-image {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+// Edit button in file drop area
+.file-drop-edit-btn {
+    position: relative;
+    z-index: 3;
+    margin-left: 0.5rem;
+}
+
+// Cropper.js customizations
+.cropper-view-box {
+    outline: 2px solid $primary;
+    outline-color: $primary;
+}
+
+.cropper-line {
+    background-color: $primary;
+}
+
+.cropper-point {
+    background-color: $primary;
+    height: 10px;
+    width: 10px;
+    opacity: 1;
+}
+
+.cropper-point.point-e,
+.cropper-point.point-w {
+    margin-top: -5px;
+}
+
+.cropper-point.point-n,
+.cropper-point.point-s {
+    margin-left: -5px;
+}
+
+.cropper-point.point-ne,
+.cropper-point.point-nw,
+.cropper-point.point-se,
+.cropper-point.point-sw {
+    height: 12px;
+    width: 12px;
+}

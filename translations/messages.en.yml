@@ -1301,3 +1301,9 @@ status:
     borrowed: "Borrowed"
     lent: "Lent"
     for_sale: "For Sale"
+
+image_editor:
+    title: "Edit Image"
+    rotate_left: "Rotate Left"
+    rotate_right: "Rotate Right"
+    apply: "Apply"

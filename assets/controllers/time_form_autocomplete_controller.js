@@ -7,12 +7,15 @@ export default class extends Controller {
     static values = {
         eanSearchUrl: String,
         notFoundMessage: String,
+        multipleBrandsMessage: String,
+        multiplePuzzlesMessage: String,
     };
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
     initialBrandValue = '';
     initialPuzzleValue = '';
+    _puzzleOptionsFetchPromise = null; // Track the current fetch promise for puzzle options
 
     initialize() {
         this._onCompetitionConnect = this._onCompetitionConnect.bind(this);
@@ -164,7 +167,8 @@ export default class extends Controller {
         const fetchUrl = this.brandTarget.getAttribute('data-fetch-url');
 
         if (this.uuidRegex.test(brandValue)) {
-            return fetch(`${fetchUrl}?brand=${brandValue}`)
+            // Store the promise so it can be awaited by barcode scan handler
+            this._puzzleOptionsFetchPromise = fetch(`${fetchUrl}?brand=${brandValue}`)
                 .then(response => {
                     if (response.status === 404) {
                         this.onNewBrandCreated();
@@ -198,7 +202,12 @@ export default class extends Controller {
                 })
                 .catch(error => {
                     console.error('There has been a problem with your fetch operation:', error);
+                })
+                .finally(() => {
+                    this._puzzleOptionsFetchPromise = null;
                 });
+
+            return this._puzzleOptionsFetchPromise;
         }
 
         return Promise.resolve(null);
@@ -306,38 +315,66 @@ export default class extends Controller {
                 modalInstance.hide();
             }
 
-            if (data.found) {
-                this._handlePuzzleFound(data.puzzle, data.brand);
+            // Handle response based on number of puzzles and brands found
+            if (data.puzzles.length === 1) {
+                // Single puzzle found - auto-select
+                this._handlePuzzleFound(data.puzzles[0], data.brands[0]);
+            } else if (data.puzzles.length > 1) {
+                // Multiple puzzles found - let user choose from dropdown
+                this._handleMultiplePuzzlesFound(data.puzzles, data.brands, ean);
+            } else if (data.brands.length === 1) {
+                // No puzzle but single brand found - auto-select brand
+                this._handlePuzzleNotFound(ean, data.brands[0]);
+            } else if (data.brands.length > 1) {
+                // No puzzle but multiple brands found - let user choose from dropdown
+                this._handleMultipleBrandsFound(data.brands, ean);
             } else {
-                this._handlePuzzleNotFound(ean);
+                // Nothing found - show new puzzle form
+                this._handlePuzzleNotFound(ean, null);
             }
         } catch (error) {
             console.error('Error searching puzzle by EAN:', error);
         }
     }
 
-    _handlePuzzleFound(puzzle, brand) {
+    async _handlePuzzleFound(puzzle, brand) {
         const brandTom = this.brandTarget.tomselect;
         const puzzleTom = this.puzzleTarget.tomselect;
 
-        // Add brand option if not exists, then select it
+        // Add brand option if not exists
         if (!brandTom.getOption(brand.id)) {
             brandTom.addOption({ value: brand.id, text: brand.name });
         }
+
+        // Set brand value - this triggers fetchPuzzleOptions via onBrandValueChanged
         brandTom.setValue(brand.id);
 
-        // Fetch puzzles for this brand, then select the scanned puzzle
-        this.fetchPuzzleOptions(brand.id, false).then(() => {
-            // Wait for options to be loaded
-            setTimeout(() => {
-                if (puzzleTom.getOption(puzzle.id)) {
-                    puzzleTom.setValue(puzzle.id);
-                }
-            }, 100);
-        });
+        // Wait for puzzle options to be loaded
+        if (this._puzzleOptionsFetchPromise) {
+            await this._puzzleOptionsFetchPromise;
+        }
+
+        // Small delay to ensure Tom Select has finished processing the options
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Select the puzzle using setValue (works with options data, not DOM)
+        puzzleTom.setValue(puzzle.id);
     }
 
-    _handlePuzzleNotFound(ean) {
+    _handlePuzzleNotFound(ean, brand) {
+        // If brand was matched by EAN prefix, auto-select it
+        if (brand) {
+            const brandTom = this.brandTarget.tomselect;
+
+            // Add brand option if not exists, then select it
+            if (!brandTom.getOption(brand.id)) {
+                brandTom.addOption({ value: brand.id, text: brand.name });
+            }
+
+            // Setting brand value triggers the normal flow
+            brandTom.setValue(brand.id);
+        }
+
         // Show new puzzle fields
         this.newPuzzleTarget.classList.remove('d-none');
 
@@ -349,6 +386,62 @@ export default class extends Controller {
         // Show "not found" message
         if (this.hasScannerMessageTarget && this.hasNotFoundMessageValue) {
             const message = this.notFoundMessageValue.replace('%ean%', ean);
+            this.scannerMessageTarget.textContent = message;
+            this.scannerMessageTarget.classList.remove('d-none');
+        }
+    }
+
+    async _handleMultiplePuzzlesFound(puzzles, brands, ean) {
+        const brandTom = this.brandTarget.tomselect;
+        const puzzleTom = this.puzzleTarget.tomselect;
+        const brand = brands[0];
+
+        // Add brand option if not exists, then select it
+        if (!brandTom.getOption(brand.id)) {
+            brandTom.addOption({ value: brand.id, text: brand.name });
+        }
+        brandTom.setValue(brand.id);
+
+        // Wait for puzzle options to be loaded
+        if (this._puzzleOptionsFetchPromise) {
+            await this._puzzleOptionsFetchPromise;
+        }
+
+        // Small delay to ensure Tom Select has finished processing
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Open dropdown and set search text to EAN so user sees matching puzzles
+        puzzleTom.focus();
+        puzzleTom.setTextboxValue(ean);
+        puzzleTom.refreshOptions(true);
+
+        // Show message about multiple puzzles
+        if (this.hasScannerMessageTarget && this.hasMultiplePuzzlesMessageValue) {
+            const message = this.multiplePuzzlesMessageValue.replace('%ean%', ean);
+            this.scannerMessageTarget.textContent = message;
+            this.scannerMessageTarget.classList.remove('d-none');
+        }
+    }
+
+    _handleMultipleBrandsFound(brands, ean) {
+        const brandTom = this.brandTarget.tomselect;
+
+        // Extract EAN prefix (first 7 digits after stripping leading zeros)
+        const eanPrefix = ean.replace(/^0+/, '').substring(0, 7);
+
+        // Open dropdown and set search text to EAN prefix so user sees matching brands
+        brandTom.focus();
+        brandTom.setTextboxValue(eanPrefix);
+        brandTom.refreshOptions(true);
+
+        // Prefill EAN field
+        if (this.hasEanInputTarget) {
+            this.eanInputTarget.value = ean;
+        }
+
+        // Show message about multiple brands
+        if (this.hasScannerMessageTarget && this.hasMultipleBrandsMessageValue) {
+            const message = this.multipleBrandsMessageValue.replace('%ean%', ean);
             this.scannerMessageTarget.textContent = message;
             this.scannerMessageTarget.classList.remove('d-none');
         }

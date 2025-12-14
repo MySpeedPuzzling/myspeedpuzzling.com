@@ -62,9 +62,30 @@ final class PuzzleAddFormType extends AbstractType
 
         $brandChoices = [];
         foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId, $extraManufacturerId) as $manufacturer) {
+            $img = '';
+            if ($manufacturer->manufacturerLogo !== null) {
+                $img = <<<HTML
+<img alt="Logo" class="img-fluid rounded-2"
+    style="max-width: 40px; max-height: 40px;"
+    src="{$this->cacheManager->getBrowserPath($manufacturer->manufacturerLogo, 'puzzle_small')}"
+/>
+HTML;
+            }
+
+            $eanPrefixHtml = $manufacturer->manufacturerEanPrefix !== null
+                ? " <small class=\"text-muted\">{$manufacturer->manufacturerEanPrefix}</small>"
+                : '';
+
+            $html = <<<HTML
+<div class="py-1 d-flex low-line-height align-items-center">
+    <div class="icon me-2">{$img}</div>
+    <div class="pe-1">{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount}){$eanPrefixHtml}</div>
+</div>
+HTML;
+
             $brandChoices[] = [
                 'value' => $manufacturer->manufacturerId,
-                'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
+                'text' => $html,
             ];
         }
 
@@ -84,6 +105,7 @@ final class PuzzleAddFormType extends AbstractType
             'required' => true,
             'autocomplete' => true,
             'empty_data' => '',
+            'options_as_html' => true,
             'tom_select_options' => [
                 'create' => true,
                 'persist' => false,

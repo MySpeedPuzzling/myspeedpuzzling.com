@@ -27,6 +27,8 @@
              data-controller="time-form-autocomplete"
              data-time-form-autocomplete-ean-search-url-value="{{ path('puzzle_by_ean_search', {ean: '__EAN__'}) }}"
              data-time-form-autocomplete-not-found-message-value="{{ 'scan.puzzle_form.not_found'|trans }}"
+             data-time-form-autocomplete-multiple-brands-message-value="{{ 'scan.puzzle_form.multiple_brands'|trans }}"
+             data-time-form-autocomplete-multiple-puzzles-message-value="{{ 'scan.puzzle_form.multiple_puzzles'|trans }}"
              {% endif %}>
             <div class="col-lg-6 order-lg-1">
 
@@ -55,6 +57,8 @@
 
                 <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
                     <div class="card card-body shadow mb-3">
+                        <div data-time-form-autocomplete-target="scannerMessage" class="alert alert-warning d-none small mb-3"></div>
+
                         {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
                         {{ form_label(solving_time_form.puzzle) }}
@@ -279,8 +283,8 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body p-0">
-                                <div data-barcode-scanner-target="wrapper" class="position-relative bg-dark">
-                                    <div class="spinner-border text-light position-absolute top-50 start-50 translate-middle" role="status">
+                                <div data-barcode-scanner-target="wrapper" class="modal-barcode-scan position-relative">
+                                    <div class="spinner spinner-border text-primary" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
                                     <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
@@ -302,8 +306,6 @@
                                         </button>
                                     </div>
                                 </div>
-
-                                <div data-time-form-autocomplete-target="scannerMessage" class="alert alert-info m-3 d-none small"></div>
 
                                 <p class="text-muted small px-3 py-2 mb-0">{{ 'scan.instructions'|trans }}</p>
                             </div>

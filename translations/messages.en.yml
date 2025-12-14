@@ -639,7 +639,9 @@ scan:
     instructions: "Point your camera to the EAN (barcode) on the box and try your luck - if the puzzle is in database, we will find it ;-)."
     not_found: "Unfortunately puzzle with EAN %code% are not in our database. Feel free to track time and add them, we will be grateful for that."
     puzzle_form:
-        not_found: "Puzzle with EAN %ean% not found in database"
+        not_found: "Puzzle with EAN %ean% not found. Try searching by name, or add it as a new puzzle."
+        multiple_brands: "Multiple brands found for EAN %ean%. Please select one from the dropdown."
+        multiple_puzzles: "Multiple puzzles found for EAN %ean%. Please select one from the dropdown."
 
 wjpc2024:
     meta:

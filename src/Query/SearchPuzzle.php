@@ -254,18 +254,18 @@ SQL;
     }
 
     /**
-     * Search for a puzzle by EAN code.
+     * Search for all puzzles by EAN code.
      * Handles comma-separated EANs and strips leading/trailing zeros.
      *
-     * @return array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}|null
+     * @return array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}>
      */
-    public function byEan(string $ean): null|array
+    public function allByEan(string $ean): array
     {
         // Strip leading/trailing zeros for flexible matching
         $eanSearch = trim($ean, '0');
 
         if ($eanSearch === '') {
-            return null;
+            return [];
         }
 
         $query = <<<SQL
@@ -273,27 +273,23 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.image AS puzzle_image,
+    puzzle.ean AS puzzle_ean,
     puzzle.pieces_count,
     manufacturer.id AS manufacturer_id,
     manufacturer.name AS manufacturer_name
 FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE puzzle.ean LIKE :eanPattern
-LIMIT 1
 SQL;
 
-        $row = $this->database
+        /** @var array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}> $rows */
+        $rows = $this->database
             ->executeQuery($query, [
                 'eanPattern' => '%' . $eanSearch . '%',
             ])
-            ->fetchAssociative();
+            ->fetchAllAssociative();
 
-        if ($row === false) {
-            return null;
-        }
-
-        /** @var array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string} $row */
-        return $row;
+        return $rows;
     }
 
     /**

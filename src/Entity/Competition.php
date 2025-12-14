@@ -42,8 +42,8 @@ class Competition
         public string $location,
         #[Column]
         public string $locationCountryCode,
-        #[Column(type: Types::DATETIME_IMMUTABLE)]
-        public DateTimeImmutable $dateFrom,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $dateFrom,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $dateTo,
         #[ManyToOne]

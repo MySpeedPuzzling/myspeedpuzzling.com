@@ -17,7 +17,9 @@
                             <h5 class="mb-1">{{ event.name }}</h5>
                             <small class="text-success">LIVE</small>
                         </div>
-                        <small>{{ event.dateFrom|date('d.m.Y') }}{% if event.dateTo %} - {{ event.dateTo|date('d.m.Y') }}{% endif %}</small>
+                        {% if event.dateFrom %}
+                            <small>{{ event.dateFrom|date('d.m.Y') }}{% if event.dateTo %} - {{ event.dateTo|date('d.m.Y') }}{% endif %}</small>
+                        {% endif %}
                     </a>
                 {% endfor %}
             </div>

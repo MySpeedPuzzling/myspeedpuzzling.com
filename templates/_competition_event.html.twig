@@ -20,15 +20,17 @@
 
                         {{ event.location }}
 
-                        <div class="mt-1">
-                            <i class="ci-calendar me-2 ps-1"></i>
-                            {% if event.dateTo and event.dateFrom != event.dateTo %}
-                                {{ event.dateFrom|date('d.') }}-{{ event.dateTo|date('d.m.') }}
-                            {% else %}
-                                {{ event.dateFrom|date('d.m.') }}
-                            {% endif %}
-                            <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
-                        </div>
+                        {% if event.dateFrom %}
+                            <div class="mt-1">
+                                <i class="ci-calendar me-2 ps-1"></i>
+                                {% if event.dateTo and event.dateFrom != event.dateTo %}
+                                    {{ event.dateFrom|date('d.') }}-{{ event.dateTo|date('d.m.') }}
+                                {% else %}
+                                    {{ event.dateFrom|date('d.m.') }}
+                                {% endif %}
+                                <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
+                            </div>
+                        {% endif %}
                     </div>
 
                     {% if event.link or event.registrationLink or event.resultsLink %}

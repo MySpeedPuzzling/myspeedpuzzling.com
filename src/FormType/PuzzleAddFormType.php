@@ -404,10 +404,14 @@ final class PuzzleAddFormType extends AbstractType
 HTML;
             }
 
-            $date = $competition->dateFrom->format('d.m.Y');
+            $date = '';
 
-            if ($competition->dateTo !== null) {
-                $date .= ' - ' . $competition->dateTo->format('d.m.Y');
+            if ($competition->dateFrom !== null) {
+                $date = $competition->dateFrom->format('d.m.Y');
+
+                if ($competition->dateTo !== null) {
+                    $date .= ' - ' . $competition->dateTo->format('d.m.Y');
+                }
             }
 
             $location = '';

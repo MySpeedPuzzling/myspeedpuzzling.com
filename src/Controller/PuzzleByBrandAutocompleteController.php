@@ -56,6 +56,10 @@ HTML;
 HTML;
             }
 
+            $eanHtml = $puzzle->puzzleEan !== null
+                ? "<small class=\"text-muted ms-2\">EAN: {$puzzle->puzzleEan}</small>"
+                : '';
+
             $html = <<<HTML
 <div class="py-1 d-flex low-line-height">
     <div class="icon me-2">{$img}</div>
@@ -64,7 +68,7 @@ HTML;
             <span class="h6">{$puzzleName}</span>
             <small class="text-muted">{$puzzle->puzzleIdentificationNumber}</small>
         </div>
-        <div class="description"><small>{$puzzle->piecesCount} pieces</small></div>
+        <div class="description"><small>{$puzzle->piecesCount} pieces</small>{$eanHtml}</div>
     </div>
 </div>
 HTML;

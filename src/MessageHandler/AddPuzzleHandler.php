@@ -83,7 +83,7 @@ readonly final class AddPuzzleHandler
             addedByUser: $player,
             addedAt: $now,
             identificationNumber: $message->puzzleIdentificationNumber,
-            ean: $message->puzzleEan,
+            ean: $message->puzzleEan !== null ? (ltrim($message->puzzleEan, '0') ?: null) : null,
         );
 
         $this->entityManager->persist($puzzle);

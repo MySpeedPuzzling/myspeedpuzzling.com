@@ -699,6 +699,32 @@ canvas {
     }
 }
 
+.modal-barcode-scan {
+    background: #fff;
+    padding: 5px;
+    border-radius: 8px;
+    min-height: 200px;
+
+    .spinner {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        margin-left: -16px;
+        margin-top: -16px;
+        z-index: 19;
+    }
+
+    video {
+        position: relative;
+        z-index: 20;
+        border-radius: 5px;
+    }
+
+    canvas {
+        z-index: 30;
+    }
+}
+
 .global-search-results {
     z-index: 20;
     width: 100%;

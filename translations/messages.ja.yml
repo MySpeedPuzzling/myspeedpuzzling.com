@@ -236,6 +236,7 @@ forms:
     reset: "リセット"
     search: "検索"
     clear: "クリア"
+    add_new_brand: "新しいブランドを追加："
     confirm: "確認"
     delete: "削除"
     edit: "編集"
@@ -704,6 +705,11 @@ scan:
     beta_info: "これは新しい機能で、まだテスト中で改善に取り組んでいます。フィードバックをいただけると非常にありがたいです！"
     instructions: "カメラをボックスのEAN（バーコード）に向けて運試しをしてください - パズルがデータベースにあれば見つけます ;-)"
     not_found: "残念ながら、EAN %code%のパズルはデータベースにありません。タイムを記録して追加してください、感謝いたします。"
+    puzzle_ean_barcode: "パズルのEANバーコードをスキャン"
+    puzzle_form:
+        not_found: "EAN %ean% のパズルが見つかりません。名前で検索するか、新しいパズルとして追加してください。"
+        multiple_brands: "EAN %ean% に複数のブランドが見つかりました。ドロップダウンから選択してください。"
+        multiple_puzzles: "EAN %ean% に複数のパズルが見つかりました。ドロップダウンから選択してください。"
 
 wjpc2024:
     meta:

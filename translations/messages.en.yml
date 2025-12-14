@@ -234,6 +234,7 @@ forms:
     add: "Add"
     back: "Back"
     clear: "Clear"
+    add_new_brand: "Add new brand:"
     confirm: "Confirm"
     continue: "Continue"
     create: "Create"
@@ -281,7 +282,7 @@ forms:
     seconds_short: "sec"
     comment: "Additional info"
     finished_puzzle_photo: "Photo of completed puzzles"
-    add_new_puzzle: "Add new puzzle - not in the list"
+    add_new_puzzle: "Add new puzzle:"
     puzzle: "Puzzle"
     puzzle_help: "Choose existing puzzle (search by name, brand code, pieces) or add the new puzzle name when not found."
     brand: "Brand"
@@ -638,6 +639,11 @@ scan:
     beta_info: "This is fresh new feature, we are still testing it and working on improvements. We will be very grateful for any feedback!"
     instructions: "Point your camera to the EAN (barcode) on the box and try your luck - if the puzzle is in database, we will find it ;-)."
     not_found: "Unfortunately puzzle with EAN %code% are not in our database. Feel free to track time and add them, we will be grateful for that."
+    puzzle_ean_barcode: "Scan puzzle EAN barcode"
+    puzzle_form:
+        not_found: "Puzzle with EAN %ean% not found. Try searching by name, or add it as a new puzzle."
+        multiple_brands: "Multiple brands found for EAN %ean%. Please select one from the dropdown."
+        multiple_puzzles: "Multiple puzzles found for EAN %ean%. Please select one from the dropdown."
 
 wjpc2024:
     meta:

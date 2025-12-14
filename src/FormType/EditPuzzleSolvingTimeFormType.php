@@ -8,7 +8,7 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
-use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
@@ -36,7 +36,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class EditPuzzleSolvingTimeFormType extends AbstractType
 {
     public function __construct(
-        readonly private GetManufacturers $getManufacturers,
+        readonly private BrandChoicesBuilder $brandChoicesBuilder,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
@@ -60,13 +60,7 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
 
         $extraManufacturerId = $activePuzzle?->manufacturerId;
 
-        $brandChoices = [];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId, $extraManufacturerId) as $manufacturer) {
-            $brandChoices[] = [
-                'value' => $manufacturer->manufacturerId,
-                'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
-            ];
-        }
+        $brandChoices = $this->brandChoicesBuilder->build($userProfile->playerId, $extraManufacturerId);
 
         // Mode field (hidden, controlled by JS) - only Speed and Relax modes for editing
         $builder->add('mode', EnumType::class, [
@@ -83,6 +77,7 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             'help' => 'forms.brand_help',
             'required' => true,
             'autocomplete' => true,
+            'options_as_html' => true,
             'empty_data' => '',
             'tom_select_options' => [
                 'create' => true,
@@ -91,6 +86,7 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
+                'searchField' => ['text', 'eanPrefix'],
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),

@@ -228,6 +228,7 @@ puzzle_add:
     group_puzzling: "Puzzle en duo/groupe"
 
 forms:
+    add_new_brand: "Ajouter une nouvelle marque :"
     choose_from_favorites: "- Choisir parmi les favoris -"
     drop_file: "Glissez-déposez un fichier ici pour l'uploader"
     choose_file: "Ou sélectionnez un fichier"
@@ -642,6 +643,11 @@ scan:
     beta_info: "C'est une nouvelle fonctionnalité fraîche, nous la testons encore et travaillons sur des améliorations. Nous serions très reconnaissants pour tous les commentaires !"
     instructions: "Pointez votre caméra vers l'EAN (code-barres) sur la boîte et tentez votre chance - si le puzzle est dans la base de données, nous le trouverons ;-)."
     not_found: "Malheureusement, le puzzle avec EAN %code% n'est pas dans notre base de données. N'hésitez pas à suivre le temps et à les ajouter, nous en serions reconnaissants."
+    puzzle_ean_barcode: "Scanner le code-barres EAN du puzzle"
+    puzzle_form:
+        multiple_brands: "Plusieurs marques trouvées pour l'EAN %ean%. Veuillez en sélectionner une dans la liste."
+        multiple_puzzles: "Plusieurs puzzles trouvés pour l'EAN %ean%. Veuillez en sélectionner un dans la liste."
+        not_found: "Puzzle avec l'EAN %ean% non trouvé. Essayez de rechercher par nom ou ajoutez-le comme nouveau puzzle."
 
 wjpc2024:
     meta:

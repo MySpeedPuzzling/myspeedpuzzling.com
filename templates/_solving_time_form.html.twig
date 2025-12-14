@@ -22,7 +22,16 @@
             {{ form_widget(solving_time_form.mode, {'attr': {'data-puzzle-add-form-target': 'modeInput', 'data-ppm-validator-target': 'modeInput', 'class': 'd-none'}}) }}
         {% endif %}
 
-        <div class="row pb-4" {% if active_puzzle is null %}data-controller="time-form-autocomplete"{% endif %}>
+        <div class="row pb-4"
+             {% if active_puzzle is null %}
+             data-controller="time-form-autocomplete"
+             data-time-form-autocomplete-ean-search-url-value="{{ path('puzzle_by_ean_search', {ean: '__EAN__'}) }}"
+             data-time-form-autocomplete-not-found-message-value="{{ 'scan.puzzle_form.not_found'|trans }}"
+             data-time-form-autocomplete-multiple-brands-message-value="{{ 'scan.puzzle_form.multiple_brands'|trans }}"
+             data-time-form-autocomplete-multiple-puzzles-message-value="{{ 'scan.puzzle_form.multiple_puzzles'|trans }}"
+             data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
+             data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
+             {% endif %}>
             <div class="col-lg-6 order-lg-1">
 
                 {% if active_puzzle is not null %}
@@ -50,6 +59,15 @@
 
                 <div {% if active_puzzle is not null %}style="display: none;"{% endif %}>
                     <div class="card card-body shadow mb-3">
+                        <div data-time-form-autocomplete-target="scannerMessage" class="alert alert-warning d-none small mb-3"></div>
+
+                        {% if active_puzzle is null %}
+                            <button type="button" class="btn btn-primary w-100 mb-3"
+                                    data-action="click->time-form-autocomplete#openScanner">
+                                <i class="bi-upc-scan me-2"></i>{{ 'scan.puzzle_ean_barcode'|trans }}
+                            </button>
+                        {% endif %}
+
                         {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
                         {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
@@ -61,7 +79,19 @@
 
                             {{ form_row(solving_time_form.puzzlePiecesCount, {'attr': {'data-ppm-validator-target': 'puzzlePiecesCount'}}) }}
 
-                            {{ form_row(solving_time_form.puzzleEan) }}
+                            {{ form_label(solving_time_form.puzzleEan) }}
+                            <div class="input-group mb-3">
+                                {{ form_widget(solving_time_form.puzzleEan, {'attr': {'data-time-form-autocomplete-target': 'eanInput'}}) }}
+                                {% if active_puzzle is null %}
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            data-action="click->time-form-autocomplete#openScanner"
+                                            title="{{ 'scan.title'|trans }}">
+                                        <i class="bi-upc-scan"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                            {{ form_errors(solving_time_form.puzzleEan) }}
+                            {{ form_help(solving_time_form.puzzleEan) }}
                             {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
 
                             {{ form_label(solving_time_form.puzzlePhoto) }}
@@ -236,6 +266,62 @@
                     </div>
                 {% endif %}
             </div>
+
+            {# Barcode Scanner Modal - must be inside the time-form-autocomplete controller scope #}
+            {% if active_puzzle is null %}
+                <div class="modal fade"
+                     tabindex="-1"
+                     role="dialog"
+                     data-time-form-autocomplete-target="scannerModal"
+                     data-controller="barcode-scanner"
+                     id="barcodeScannerModal">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">{{ 'scan.title'|trans }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-0">
+                                <div data-barcode-scanner-target="wrapper" class="modal-barcode-scan position-relative">
+                                    <div class="spinner spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <video class="w-100 d-block" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+                                    <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></canvas>
+
+                                    <div data-barcode-scanner-target="zoomContainer" class="d-none position-absolute bottom-0 start-50 translate-middle-x mb-3 bg-white rounded-pill px-3 py-2 shadow-sm">
+                                        <span data-barcode-scanner-target="zoomValue" class="me-2 small">Zoom 1x</span>
+                                        <button type="button"
+                                                data-action="click->barcode-scanner#zoomOut"
+                                                data-barcode-scanner-target="zoomOut"
+                                                class="btn btn-sm btn-outline-secondary rounded-circle p-1 me-1">
+                                            <i class="bi-dash"></i>
+                                        </button>
+                                        <button type="button"
+                                                data-action="click->barcode-scanner#zoomIn"
+                                                data-barcode-scanner-target="zoomIn"
+                                                class="btn btn-sm btn-outline-secondary rounded-circle p-1">
+                                            <i class="bi-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <p class="text-muted small px-3 py-2 mb-0">{{ 'scan.instructions'|trans }}</p>
+                            </div>
+                            <div class="modal-footer justify-content-center d-none">
+                                <button type="button"
+                                        class="btn btn-outline-secondary d-none"
+                                        data-barcode-scanner-target="toggleButton"
+                                        data-action="click->barcode-scanner#toggle">
+                                    {{ 'scan.title'|trans }}
+                                </button>
+                            </div>
+                            {# Hidden input for barcode scanner controller #}
+                            <input type="hidden" data-barcode-scanner-target="input">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
 
         <button type="submit" name="submit" class="btn btn-primary w-100" data-submit-prevention-target="submit">

@@ -8,7 +8,7 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleAddFormData;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
-use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
@@ -37,7 +37,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class PuzzleAddFormType extends AbstractType
 {
     public function __construct(
-        readonly private GetManufacturers $getManufacturers,
+        readonly private BrandChoicesBuilder $brandChoicesBuilder,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
@@ -60,13 +60,7 @@ final class PuzzleAddFormType extends AbstractType
 
         $extraManufacturerId = $activePuzzle?->manufacturerId;
 
-        $brandChoices = [];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId, $extraManufacturerId) as $manufacturer) {
-            $brandChoices[] = [
-                'value' => $manufacturer->manufacturerId,
-                'text' => "{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount})",
-            ];
-        }
+        $brandChoices = $this->brandChoicesBuilder->build($userProfile->playerId, $extraManufacturerId);
 
         // Mode field (hidden, controlled by JS)
         $builder->add('mode', EnumType::class, [
@@ -84,6 +78,7 @@ final class PuzzleAddFormType extends AbstractType
             'required' => true,
             'autocomplete' => true,
             'empty_data' => '',
+            'options_as_html' => true,
             'tom_select_options' => [
                 'create' => true,
                 'persist' => false,
@@ -91,6 +86,7 @@ final class PuzzleAddFormType extends AbstractType
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
+                'searchField' => ['text', 'eanPrefix'],
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),

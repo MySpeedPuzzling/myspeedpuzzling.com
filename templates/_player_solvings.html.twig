@@ -2,7 +2,7 @@
     <table class="table table-striped table-hover mb-0">
         <tbody>
             {% for solved_puzzle in solved_puzzles %}
-                <tr>
+                <tr class="{{ if solved_puzzle[0].suspicious ? 'table-warning' }}">
                     <td class="text-center" style="width: 90px;">
                         {% if solved_puzzle[0].puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
@@ -124,7 +124,7 @@
 
                                             {% if puzzle.suspicious %}
                                                 <br>
-                                                <span class="badge rounded-pill bg-warning text-dark">
+                                                <span class="badge rounded-pill bg-warning">
                                                     <i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}
                                                 </span>
                                             {% endif %}

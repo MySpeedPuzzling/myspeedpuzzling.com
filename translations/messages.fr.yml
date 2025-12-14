@@ -97,6 +97,7 @@ right_now: "En ce moment"
 
 badge:
     relax: "Relax"
+    suspicious: "Vérification requise"
 
 homepage:
     meta:

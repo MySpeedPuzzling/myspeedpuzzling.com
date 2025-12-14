@@ -184,7 +184,8 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    puzzle_solving_time.suspicious
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
     INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -252,6 +253,7 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     suspicious: bool,
              * } $row
              */
 
@@ -322,7 +324,8 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    pst.suspicious
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
@@ -370,6 +373,7 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     suspicious: bool,
              * } $row
              */
 
@@ -447,7 +451,8 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    pst.suspicious
 FROM filtered_pst_ids fids
 INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
@@ -495,6 +500,7 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     suspicious: bool,
              * } $row
              */
 

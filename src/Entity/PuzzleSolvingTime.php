@@ -60,6 +60,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         public null|int $missingPieces = null,
         #[Column(nullable: true)]
         public null|bool $qualified = null,
+        #[Column(options: ['default' => false])]
+        public bool $suspicious = false,
     ) {
         $this->recordThat(
             new PuzzleSolved($this->id),

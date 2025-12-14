@@ -94,6 +94,7 @@ right_now: "Právě teď"
 
 badge:
     relax: "Relax"
+    suspicious: "Vyžaduje ověření"
 
 homepage:
     meta:

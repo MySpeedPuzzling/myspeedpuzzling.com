@@ -122,6 +122,13 @@
                                                 <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
                                             {% endif %}
 
+                                            {% if puzzle.suspicious %}
+                                                <br>
+                                                <span class="badge rounded-pill bg-warning text-dark">
+                                                    <i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}
+                                                </span>
+                                            {% endif %}
+
                                             {% if puzzle.competitionName %}
                                                 <br>
                                                 {% if puzzle.competitionSlug %}

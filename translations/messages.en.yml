@@ -94,6 +94,7 @@ right_now: "Right now"
 
 badge:
     relax: "Relax"
+    suspicious: "Verification needed"
 
 homepage:
     meta:

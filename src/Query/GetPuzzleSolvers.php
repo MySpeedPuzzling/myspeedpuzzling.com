@@ -48,6 +48,7 @@ LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.team IS NULL
     AND puzzle_solving_time.seconds_to_solve IS NOT NULL
+    AND puzzle_solving_time.suspicious = false
 ORDER BY seconds_to_solve ASC
 SQL;
 
@@ -122,6 +123,7 @@ WHERE
     AND pst.team IS NOT NULL
     AND pst.seconds_to_solve IS NOT NULL
     AND json_array_length(team -> 'puzzlers') = 2
+    AND pst.suspicious = false
 GROUP BY
     pst.id, time, competition.id
 ORDER BY time ASC
@@ -197,6 +199,7 @@ WHERE
     AND pst.team IS NOT NULL
     AND pst.seconds_to_solve IS NOT NULL
     AND json_array_length(team -> 'puzzlers') > 2
+    AND pst.suspicious = false
 GROUP BY
     pst.id, time, competition.id
 ORDER BY time ASC

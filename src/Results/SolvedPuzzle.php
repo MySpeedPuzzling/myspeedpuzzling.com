@@ -38,6 +38,7 @@ readonly final class SolvedPuzzle
         public null|string $competitionShortcut,
         public null|string $competitionName,
         public null|string $competitionSlug,
+        public bool $suspicious = false,
     ) {
     }
 
@@ -69,6 +70,7 @@ readonly final class SolvedPuzzle
      *     competition_name: null|string,
      *     competition_shortcut: null|string,
      *     competition_slug: null|string,
+     *     suspicious?: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -110,6 +112,7 @@ readonly final class SolvedPuzzle
             competitionShortcut: $row['competition_shortcut'],
             competitionName: $row['competition_name'],
             competitionSlug: $row['competition_slug'],
+            suspicious: $row['suspicious'] ?? false,
         );
     }
 }

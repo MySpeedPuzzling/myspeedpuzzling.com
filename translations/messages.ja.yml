@@ -97,6 +97,7 @@ right_now: "今すぐ"
 
 badge:
     relax: "リラックス"
+    suspicious: "確認が必要"
 
 homepage:
     meta:

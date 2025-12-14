@@ -9,6 +9,8 @@ export default class extends Controller {
         notFoundMessage: String,
         multipleBrandsMessage: String,
         multiplePuzzlesMessage: String,
+        addNewBrandMessage: String,
+        addNewPuzzleMessage: String,
     };
 
     uuidRegex= /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,8 +47,9 @@ export default class extends Controller {
     }
 
     _onBrandConnect(event) {
+        const addNewBrandMessage = this.addNewBrandMessageValue || 'Add new brand:';
         event.detail.options.render.option_create = function (data, escape) {
-            return '<div class="create py-2"><i class="ci-add small"></i> Add new brand: <strong>' + escape(data.input) + '</strong></div>';
+            return '<div class="create py-2"><i class="ci-add small"></i> ' + addNewBrandMessage + ' <strong>' + escape(data.input) + '</strong></div>';
         };
 
         event.detail.options.onChange = (value) => {
@@ -81,8 +84,9 @@ export default class extends Controller {
     }
 
     _onPuzzleConnect(event) {
+        const addNewPuzzleMessage = this.addNewPuzzleMessageValue || 'Add new puzzle:';
         event.detail.options.render.option_create = function(data, escape) {
-            return '<div class="create py-2"><i class="ci-add small"></i> Add new puzzle: <strong>' + escape(data.input) + '</strong></div>';
+            return '<div class="create py-2"><i class="ci-add small"></i> ' + addNewPuzzleMessage + ' <strong>' + escape(data.input) + '</strong></div>';
         };
 
         event.detail.options.onChange = (value) => {
@@ -410,38 +414,54 @@ export default class extends Controller {
         // Small delay to ensure Tom Select has finished processing
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        // Open dropdown and set search text to EAN so user sees matching puzzles
-        puzzleTom.focus();
-        puzzleTom.setTextboxValue(ean);
-        puzzleTom.refreshOptions(true);
-
-        // Show message about multiple puzzles
-        if (this.hasScannerMessageTarget && this.hasMultiplePuzzlesMessageValue) {
-            const message = this.multiplePuzzlesMessageValue.replace('%ean%', ean);
-            this.scannerMessageTarget.textContent = message;
-            this.scannerMessageTarget.classList.remove('d-none');
-        }
+        const matchingPuzzleIds = new Set(puzzles.map(p => p.id));
+        this._filterOptionsTemporarily(puzzleTom, matchingPuzzleIds, this.multiplePuzzlesMessageValue, ean);
     }
 
     _handleMultipleBrandsFound(brands, ean) {
         const brandTom = this.brandTarget.tomselect;
+        const matchingBrandIds = new Set(brands.map(b => b.id));
+        this._filterOptionsTemporarily(brandTom, matchingBrandIds, this.multipleBrandsMessageValue, ean);
+    }
 
-        // Extract EAN prefix (first 7 digits after stripping leading zeros)
-        const eanPrefix = ean.replace(/^0+/, '').substring(0, 7);
+    _filterOptionsTemporarily(tomSelect, matchingIds, messageValue, ean) {
+        // Save all options to restore later
+        const allOptions = { ...tomSelect.options };
 
-        // Open dropdown and set search text to EAN prefix so user sees matching brands
-        brandTom.focus();
-        brandTom.setTextboxValue(eanPrefix);
-        brandTom.refreshOptions(true);
+        // Temporarily remove non-matching options
+        Object.keys(tomSelect.options).forEach(key => {
+            if (!matchingIds.has(key)) {
+                tomSelect.removeOption(key, true); // silent = true
+            }
+        });
+
+        // Open dropdown with only matching options
+        tomSelect.focus();
+        tomSelect.refreshOptions(true);
+
+        // Restore all options when user selects or types
+        const restoreOptions = () => {
+            tomSelect.off('change', restoreOptions);
+            tomSelect.off('type', restoreOptions);
+
+            Object.entries(allOptions).forEach(([key, option]) => {
+                if (!tomSelect.options[key]) {
+                    tomSelect.addOption(option, true); // silent = true
+                }
+            });
+        };
+
+        tomSelect.on('change', restoreOptions);
+        tomSelect.on('type', restoreOptions);
 
         // Prefill EAN field
         if (this.hasEanInputTarget) {
             this.eanInputTarget.value = ean;
         }
 
-        // Show message about multiple brands
-        if (this.hasScannerMessageTarget && this.hasMultipleBrandsMessageValue) {
-            const message = this.multipleBrandsMessageValue.replace('%ean%', ean);
+        // Show message
+        if (this.hasScannerMessageTarget && messageValue) {
+            const message = messageValue.replace('%ean%', ean);
             this.scannerMessageTarget.textContent = message;
             this.scannerMessageTarget.classList.remove('d-none');
         }

@@ -29,6 +29,8 @@
              data-time-form-autocomplete-not-found-message-value="{{ 'scan.puzzle_form.not_found'|trans }}"
              data-time-form-autocomplete-multiple-brands-message-value="{{ 'scan.puzzle_form.multiple_brands'|trans }}"
              data-time-form-autocomplete-multiple-puzzles-message-value="{{ 'scan.puzzle_form.multiple_puzzles'|trans }}"
+             data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
+             data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}"
              {% endif %}>
             <div class="col-lg-6 order-lg-1">
 
@@ -59,20 +61,16 @@
                     <div class="card card-body shadow mb-3">
                         <div data-time-form-autocomplete-target="scannerMessage" class="alert alert-warning d-none small mb-3"></div>
 
+                        {% if active_puzzle is null %}
+                            <button type="button" class="btn btn-primary w-100 mb-3"
+                                    data-action="click->time-form-autocomplete#openScanner">
+                                <i class="bi-upc-scan me-2"></i>{{ 'scan.puzzle_ean_barcode'|trans }}
+                            </button>
+                        {% endif %}
+
                         {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
-                        {{ form_label(solving_time_form.puzzle) }}
-                        <div class="input-group mb-3">
-                            {{ form_widget(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
-                            {% if active_puzzle is null %}
-                                <button type="button" class="btn btn-outline-secondary"
-                                        data-action="click->time-form-autocomplete#openScanner"
-                                        title="{{ 'scan.title'|trans }}">
-                                    <i class="bi-upc-scan"></i>
-                                </button>
-                            {% endif %}
-                        </div>
-                        {{ form_errors(solving_time_form.puzzle) }}
+                        {{ form_row(solving_time_form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
 
                         <div data-time-form-autocomplete-target="newPuzzle" class="{{ hide_new_puzzle|default(false) ? 'd-none' }}">
                             <p>
@@ -93,6 +91,7 @@
                                 {% endif %}
                             </div>
                             {{ form_errors(solving_time_form.puzzleEan) }}
+                            {{ form_help(solving_time_form.puzzleEan) }}
                             {{ form_row(solving_time_form.puzzleIdentificationNumber) }}
 
                             {{ form_label(solving_time_form.puzzlePhoto) }}
@@ -276,7 +275,7 @@
                      data-time-form-autocomplete-target="scannerModal"
                      data-controller="barcode-scanner"
                      id="barcodeScannerModal">
-                    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down" role="document">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title">{{ 'scan.title'|trans }}</h5>

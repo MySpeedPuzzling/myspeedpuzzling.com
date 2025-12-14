@@ -234,6 +234,7 @@ forms:
     save: "Uložit"
     cancel: "Zrušit"
     close: "Zavřít"
+    add_new_brand: "Přidat novou značku:"
     max_characters: "Maximálně 500 znaků"
     required_field: "Toto pole je povinné!"
     empty_group_error: "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
@@ -637,7 +638,11 @@ scan:
     beta_info: "Toto je úplně nová funkce, kterou stále ještě ladíme. Budeme velmi vděční za váš feedback."
     instructions: "Namiřte vaší kameru na EAN (čárový kód) na krabic a zkuste své štěstí - pokud jsou puzzle v naší databázi, najdeme je ;-)."
     not_found: "Bohužel puzzle s EAN %code% u nás nejsou. Budeme velmi vděční, pokud k nám přidáte svůj čas s těmito puzzlemi."
-
+    puzzle_ean_barcode: "Naskenovat EAN kód puzzle"
+    puzzle_form:
+        not_found: "Puzzle s EAN %ean% nebylo nalezeno. Zkuste hledat podle názvu nebo přidejte nové puzzle."
+        multiple_brands: "Pro EAN %ean% bylo nalezeno více značek. Vyberte jednu z nabídky."
+        multiple_puzzles: "Pro EAN %ean% bylo nalezeno více puzzlí. Vyberte jedno z nabídky."
 
 wjpc2024:
     meta:

@@ -255,7 +255,7 @@ SQL;
 
     /**
      * Search for all puzzles by EAN code.
-     * Handles comma-separated EANs and strips leading/trailing zeros.
+     * Strips leading zeros for flexible matching.
      *
      * @return array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}>
      */

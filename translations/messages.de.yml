@@ -237,6 +237,7 @@ forms:
     add: "Hinzufügen"
     back: "Zurück"
     clear: "Löschen"
+    add_new_brand: "Neue Marke hinzufügen:"
     confirm: "Bestätigen"
     continue: "Fortfahren"
     create: "Erstellen"
@@ -620,6 +621,11 @@ scan:
     beta_info: "Das ist eine brandneue Funktion, wir testen sie noch und arbeiten an Verbesserungen. Wir wären sehr dankbar für jegliches Feedback!"
     instructions: "Richten Sie Ihre Kamera auf den EAN (Barcode) auf der Schachtel und versuchen Sie Ihr Glück - wenn das Puzzle in der Datenbank ist, werden wir es finden ;-)."
     not_found: "Leider ist das Puzzle mit EAN %code% nicht in unserer Datenbank. Fühlen Sie sich frei, die Zeit zu verfolgen und es hinzuzufügen, wir wären dafür dankbar."
+    puzzle_ean_barcode: "Puzzle-EAN-Barcode scannen"
+    puzzle_form:
+        multiple_brands: "Mehrere Marken für EAN %ean% gefunden. Bitte wählen Sie eine aus der Liste."
+        multiple_puzzles: "Mehrere Puzzles für EAN %ean% gefunden. Bitte wählen Sie eines aus der Liste."
+        not_found: "Puzzle mit EAN %ean% nicht gefunden. Versuchen Sie, nach Namen zu suchen, oder fügen Sie es als neues Puzzle hinzu."
 
 wjpc2024:
     meta:

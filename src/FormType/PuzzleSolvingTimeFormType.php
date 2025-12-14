@@ -8,7 +8,7 @@ use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\PuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
-use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\Form\AbstractType;
@@ -34,7 +34,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class PuzzleSolvingTimeFormType extends AbstractType
 {
     public function __construct(
-        readonly private GetManufacturers $getManufacturers,
+        readonly private BrandChoicesBuilder $brandChoicesBuilder,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
@@ -58,34 +58,7 @@ final class PuzzleSolvingTimeFormType extends AbstractType
 
         $extraManufacturerId = $activePuzzle?->manufacturerId;
 
-        $brandChoices = [];
-        foreach ($this->getManufacturers->onlyApprovedOrAddedByPlayer($userProfile->playerId, $extraManufacturerId) as $manufacturer) {
-            $img = '';
-            if ($manufacturer->manufacturerLogo !== null) {
-                $img = <<<HTML
-<img alt="Logo" class="img-fluid rounded-2"
-    style="max-width: 40px; max-height: 40px;"
-    src="{$this->cacheManager->getBrowserPath($manufacturer->manufacturerLogo, 'puzzle_small')}"
-/>
-HTML;
-            }
-
-            $eanPrefixHtml = $manufacturer->manufacturerEanPrefix !== null
-                ? " <small class=\"text-muted\">{$manufacturer->manufacturerEanPrefix}</small>"
-                : '';
-
-            $html = <<<HTML
-<div class="py-1 d-flex low-line-height align-items-center">
-    <div class="icon me-2">{$img}</div>
-    <div class="pe-1">{$manufacturer->manufacturerName} ({$manufacturer->puzzlesCount}){$eanPrefixHtml}</div>
-</div>
-HTML;
-
-            $brandChoices[] = [
-                'value' => $manufacturer->manufacturerId,
-                'text' => $html,
-            ];
-        }
+        $brandChoices = $this->brandChoicesBuilder->build($userProfile->playerId, $extraManufacturerId);
 
         $builder->add('brand', TextType::class, [
             'label' => 'forms.brand',
@@ -101,6 +74,7 @@ HTML;
                 'options' => $brandChoices,
                 'closeAfterSelect' => true,
                 'createOnBlur' => true,
+                'searchField' => ['text', 'eanPrefix'],
             ],
             'attr' => [
                 'data-fetch-url' => $this->urlGenerator->generate('puzzle_by_brand_autocomplete'),

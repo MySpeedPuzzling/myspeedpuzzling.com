@@ -104,9 +104,6 @@ final class EditProfileFormType extends AbstractType
         $builder->add('avatar', FileType::class, [
             'label' => 'forms.avatar',
             'required' => false,
-            'attr' => [
-                'accept' => 'image/*',
-            ],
             'constraints' => [
                 new Image(
                     maxSize: '2m',

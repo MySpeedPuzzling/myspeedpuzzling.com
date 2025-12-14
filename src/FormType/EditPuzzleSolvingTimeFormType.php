@@ -185,6 +185,9 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
         $builder->add('finishedPuzzlesPhoto', FileType::class, [
             'label' => 'forms.finished_puzzle_photo',
             'required' => false,
+            'attr' => [
+                'accept' => 'image/*',
+            ],
             'constraints' => [
                 new Image(
                     maxSize: '10m',
@@ -212,6 +215,9 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             'label' => 'forms.puzzle_box_photo',
             'required' => false,
             'label_attr' => ['class' => 'required'],
+            'attr' => [
+                'accept' => 'image/*',
+            ],
             'constraints' => [
                 new Image(
                     maxSize: '10m',

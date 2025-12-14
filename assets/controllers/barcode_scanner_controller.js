@@ -28,7 +28,13 @@ export default class extends Controller {
         this.videoTrack = null;
         this.zoomCapabilities = null;
 
-        window.addEventListener('barcode-scan:close', () => this.stopScanning());
+        this._boundStopScanning = () => this.stopScanning();
+        window.addEventListener('barcode-scan:close', this._boundStopScanning);
+    }
+
+    disconnect() {
+        this.stopScanning();
+        window.removeEventListener('barcode-scan:close', this._boundStopScanning);
     }
 
     toggle(event) {
@@ -175,15 +181,28 @@ export default class extends Controller {
         this.wrapperTarget.classList.add('d-none');
         this.toggleButtonTarget.classList.remove('active');
 
+        // Stop all tracks and release the stream
         const stream = this.videoTarget.srcObject;
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
         }
 
+        // Fully release video element resources
+        this.videoTarget.pause();
         this.videoTarget.srcObject = null;
+        this.videoTarget.load(); // Forces browser to release video memory
 
+        // Clear canvas and reset dimensions to release memory
         const ctx = this.overlayTarget.getContext('2d');
         ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+        this.overlayTarget.width = 0;
+        this.overlayTarget.height = 0;
+
+        // Clear references to allow garbage collection
+        this.videoTrack = null;
+        this.zoomCapabilities = null;
+        this.scanBuffer = [];
+        this.zoomSupported = false;
     }
 
     zoomIn() {

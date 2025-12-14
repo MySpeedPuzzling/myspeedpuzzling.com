@@ -279,6 +279,11 @@ export default class extends Controller {
         const modal = new bootstrap.Modal(this.scannerModalTarget);
         modal.show();
 
+        // Stop camera when modal is closed (by any means: X button, Escape, clicking outside)
+        this.scannerModalTarget.addEventListener('hidden.bs.modal', () => {
+            window.dispatchEvent(new CustomEvent('barcode-scan:close'));
+        }, { once: true });
+
         // Start the scanner (barcode-scanner controller will handle this via toggle button click)
         const toggleButton = this.scannerModalTarget.querySelector('[data-barcode-scanner-target="toggleButton"]');
         if (toggleButton && !toggleButton.classList.contains('active')) {

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Launcher icon background -->
+    <color name="ic_launcher_background">#1E88E5</color>
+
     <!-- Primary colors - matching web app brand -->
     <color name="primary">#1E88E5</color>
     <color name="primary_dark">#1565C0</color>

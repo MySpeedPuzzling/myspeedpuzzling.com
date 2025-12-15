@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Events\MembershipSubscriptionCancelled;
 use SpeedPuzzling\Web\Events\MembershipStarted;
 use SpeedPuzzling\Web\Events\MembershipSubscriptionRenewed;
 use SpeedPuzzling\Web\Events\MembershipTrialEnded;
+use SpeedPuzzling\Web\Value\Platform;
 use Stripe\Subscription;
 
 #[Entity]
@@ -41,8 +42,35 @@ class Membership implements EntityWithEvents
         public null|DateTimeImmutable $billingPeriodEndsAt = null,
         #[Column(nullable: true)]
         public null|DateTimeImmutable $endsAt = null,
+        #[Column(length: 10, options: ['default' => 'web'])]
+        private string $platform = 'web',
     ) {
         $this->recordThat(new MembershipStarted($this->id));
+    }
+
+    public function getPlatform(): Platform
+    {
+        return Platform::from($this->platform);
+    }
+
+    public function setPlatform(Platform $platform): void
+    {
+        $this->platform = $platform->value;
+    }
+
+    public function isManagedByAppStore(): bool
+    {
+        return $this->getPlatform() === Platform::Ios;
+    }
+
+    public function isManagedByPlayStore(): bool
+    {
+        return $this->getPlatform() === Platform::Android;
+    }
+
+    public function isManagedByStripe(): bool
+    {
+        return $this->getPlatform() === Platform::Web;
     }
 
     public function updateStripeSubscription(

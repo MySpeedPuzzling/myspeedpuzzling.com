@@ -718,6 +718,12 @@ membership:
     price_per_month: "150 Kč / měsíc"
     price_per_year: "1500 Kč / rok"
     billing_portal_info: "Na platebním portále můžete měnit platební své údaje, zrušit členství, stáhnout faktury nebo účtenky."
+    manage_in_app_store: "Spravovat v App Store"
+    manage_in_play_store: "Spravovat v Play Store"
+    manage_subscription_ios_info: "Spravujte své předplatné v Nastavení vašeho iPhonu/iPadu pod Apple ID > Předplatné."
+    manage_subscription_android_info: "Spravujte své předplatné v Google Play Store pod Platby a předplatná."
+    purchase_via_app_store: "Platba bude zpracována přes Apple App Store."
+    purchase_via_play_store: "Platba bude zpracována přes Google Play Store."
     full_description: |
         <ul>
             <li>Velký dík za podporu vývoje platformy</li>

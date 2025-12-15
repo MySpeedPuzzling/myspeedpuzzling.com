@@ -1,0 +1,46 @@
+// Native app platform-specific styles
+// These classes are applied via JavaScript in app.js
+
+// Hide elements in native apps
+.native-app {
+    .web-only {
+        display: none !important;
+    }
+}
+
+// Hide elements on web
+html:not(.native-app) {
+    .native-only {
+        display: none !important;
+    }
+}
+
+// Platform-specific visibility classes
+.platform-web {
+    .ios-only,
+    .android-only {
+        display: none !important;
+    }
+}
+
+.platform-ios {
+    .web-only,
+    .android-only {
+        display: none !important;
+    }
+}
+
+.platform-android {
+    .web-only,
+    .ios-only {
+        display: none !important;
+    }
+}
+
+// Native app layout adjustments
+// Remove extra padding from main since native apps have their own navigation
+.native-app {
+    main {
+        padding-top: 15px;
+    }
+}

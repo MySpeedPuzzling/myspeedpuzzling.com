@@ -1,0 +1,105 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [main, mobile-app]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('ios/Package.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Resolve Swift packages
+        run: swift package resolve
+
+      - name: Build for iOS Simulator
+        run: |
+          xcodebuild build \
+            -scheme MySpeedPuzzling \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.2' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      - name: Run tests
+        run: |
+          xcodebuild test \
+            -scheme MySpeedPuzzling \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.2' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+        continue-on-error: true
+
+  archive:
+    runs-on: macos-14
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_15.2.app
+
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('ios/Package.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Resolve Swift packages
+        run: swift package resolve
+
+      # Note: For actual App Store deployment, you would need to:
+      # 1. Set up code signing certificates and provisioning profiles
+      # 2. Use fastlane or manual xcodebuild archive commands
+      # 3. Upload to App Store Connect using xcrun altool or fastlane deliver
+
+      - name: Archive for distribution (dry run)
+        run: |
+          echo "Archive step placeholder"
+          echo "In production, this would:"
+          echo "1. Import signing certificates from secrets"
+          echo "2. Build and archive the app"
+          echo "3. Export IPA for App Store"
+          echo "4. Upload to App Store Connect"

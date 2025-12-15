@@ -701,6 +701,12 @@ membership:
     price_per_month: "€6 / Monat"
     price_per_year: "€60 / Jahr"
     billing_portal_info: "Im Zahlungsportal können Sie Ihre Zahlungsdetails aktualisieren, Ihre Mitgliedschaft kündigen oder Rechnungen oder Belege herunterladen."
+    manage_in_app_store: "Im App Store verwalten"
+    manage_in_play_store: "Im Play Store verwalten"
+    manage_subscription_ios_info: "Verwalten Sie Ihr Abonnement in den Einstellungen Ihres iPhones/iPads unter Apple-ID > Abonnements."
+    manage_subscription_android_info: "Verwalten Sie Ihr Abonnement im Google Play Store unter Zahlungen und Abos."
+    purchase_via_app_store: "Zahlung wird über den Apple App Store abgewickelt."
+    purchase_via_play_store: "Zahlung wird über den Google Play Store abgewickelt."
     full_description: |
         <ul>
             <li>Ein großes Dankeschön für die Unterstützung der Plattform-Entwicklung</li>

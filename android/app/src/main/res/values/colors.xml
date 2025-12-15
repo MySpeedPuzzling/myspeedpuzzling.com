@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors - matching web app brand -->
+    <color name="primary">#1E88E5</color>
+    <color name="primary_dark">#1565C0</color>
+    <color name="primary_light">#42A5F5</color>
+
+    <!-- Secondary colors -->
+    <color name="secondary">#FF6F00</color>
+    <color name="secondary_dark">#E65100</color>
+    <color name="secondary_light">#FFA726</color>
+
+    <!-- Background colors -->
+    <color name="background">#FFFFFF</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+</resources>

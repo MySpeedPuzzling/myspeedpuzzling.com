@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Top-left corner -->
+    <item
+        android:width="30dp"
+        android:height="4dp"
+        android:gravity="top|start">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+    <item
+        android:width="4dp"
+        android:height="30dp"
+        android:gravity="top|start">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+
+    <!-- Top-right corner -->
+    <item
+        android:width="30dp"
+        android:height="4dp"
+        android:gravity="top|end">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+    <item
+        android:width="4dp"
+        android:height="30dp"
+        android:gravity="top|end">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+
+    <!-- Bottom-left corner -->
+    <item
+        android:width="30dp"
+        android:height="4dp"
+        android:gravity="bottom|start">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+    <item
+        android:width="4dp"
+        android:height="30dp"
+        android:gravity="bottom|start">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+
+    <!-- Bottom-right corner -->
+    <item
+        android:width="30dp"
+        android:height="4dp"
+        android:gravity="bottom|end">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+    <item
+        android:width="4dp"
+        android:height="30dp"
+        android:gravity="bottom|end">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+</layer-list>

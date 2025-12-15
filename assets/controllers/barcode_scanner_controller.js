@@ -30,11 +30,19 @@ export default class extends Controller {
 
         this._boundStopScanning = () => this.stopScanning();
         window.addEventListener('barcode-scan:close', this._boundStopScanning);
+
+        // Set up native scanner callbacks for iOS/Android apps
+        window.onNativeScanResult = (code) => this.handleNativeScanResult(code);
+        window.onNativeScanCancelled = () => this.handleNativeScanCancelled();
     }
 
     disconnect() {
         this.stopScanning();
         window.removeEventListener('barcode-scan:close', this._boundStopScanning);
+
+        // Clean up native scanner callbacks
+        delete window.onNativeScanResult;
+        delete window.onNativeScanCancelled;
     }
 
     toggle(event) {
@@ -48,6 +56,12 @@ export default class extends Controller {
     }
 
     initCamera() {
+        // Check if we're in a native app - use native scanner instead
+        if (window.isNativeApp) {
+            this.openNativeScanner();
+            return;
+        }
+
         this.wrapperTarget.classList.remove('d-none');
         this.toggleButtonTarget.classList.add('active');
         this.scanBuffer = [];
@@ -247,5 +261,123 @@ export default class extends Controller {
         } else {
             this.zoomOutTarget.classList.remove('disabled');
         }
+    }
+
+    // --- Native App Scanner Bridge Methods ---
+
+    /**
+     * Opens the native barcode scanner for iOS or Android apps.
+     * The native app will call onNativeScanResult() or onNativeScanCancelled() callbacks.
+     */
+    openNativeScanner() {
+        this.toggleButtonTarget.classList.add('active');
+
+        if (this.inputTarget.value !== '') {
+            this.inputTarget.value = '';
+        }
+
+        if (this.hasResultsTarget) {
+            this.resultsTarget.classList.add('d-none');
+        }
+
+        if (window.nativePlatform === 'ios') {
+            // iOS: Use WKScriptMessageHandler bridge
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.scanner) {
+                window.webkit.messageHandlers.scanner.postMessage({ action: 'open' });
+            } else {
+                console.error('iOS scanner bridge not available');
+                // Fallback to web scanner if bridge not available
+                this.initWebScanner();
+            }
+        } else if (window.nativePlatform === 'android') {
+            // Android: Use JavascriptInterface bridge
+            if (window.AndroidScanner && typeof window.AndroidScanner.openScanner === 'function') {
+                window.AndroidScanner.openScanner();
+            } else {
+                console.error('Android scanner bridge not available');
+                // Fallback to web scanner if bridge not available
+                this.initWebScanner();
+            }
+        }
+    }
+
+    /**
+     * Fallback method to use web scanner when native bridge is not available.
+     */
+    initWebScanner() {
+        this.wrapperTarget.classList.remove('d-none');
+        this.scanBuffer = [];
+        this.lastPushTime = 0;
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+            .then(stream => {
+                this.videoTarget.srcObject = stream;
+                this.videoTarget.play();
+                this.scanning = true;
+
+                this.videoTarget.addEventListener('loadedmetadata', () => {
+                    this.overlayTarget.width = this.videoTarget.videoWidth;
+                    this.overlayTarget.height = this.videoTarget.videoHeight;
+                }, { once: true });
+
+                // Zoom setup for fallback
+                const videoTrack = stream.getVideoTracks()[0];
+                const capabilities = videoTrack.getCapabilities();
+                if (capabilities.zoom) {
+                    this.zoomSupported = true;
+                    this.videoTrack = videoTrack;
+                    this.zoomCapabilities = capabilities.zoom;
+                    const defaultZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2));
+                    videoTrack.applyConstraints({ advanced: [{ zoom: defaultZoom }] })
+                        .then(() => {
+                            this.currentZoom = defaultZoom;
+                            if (this.hasZoomContainerTarget) {
+                                this.zoomContainerTarget.classList.remove('d-none');
+                                this.updateZoomUI();
+                            }
+                        })
+                        .catch(err => console.error('Failed to apply zoom constraint:', err));
+                } else if (this.hasZoomContainerTarget) {
+                    this.zoomContainerTarget.classList.add('d-none');
+                }
+
+                this.scanLoop();
+            })
+            .catch(error => {
+                console.error('Error accessing the camera:', error);
+            });
+    }
+
+    /**
+     * Callback for successful native barcode scan.
+     * Called by native iOS/Android code when a barcode is detected.
+     */
+    handleNativeScanResult(code) {
+        this.toggleButtonTarget.classList.remove('active');
+
+        // Set the input value
+        this.inputTarget.value = code;
+        this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+
+        // Dispatch custom event for other controllers to listen (e.g., time_form_autocomplete_controller)
+        this.element.dispatchEvent(new CustomEvent('barcode-scanner:scanned', {
+            detail: { code: code },
+            bubbles: true
+        }));
+
+        if (this.hasResultsTarget) {
+            this.resultsTarget.classList.remove('d-none');
+        }
+    }
+
+    /**
+     * Callback for cancelled native barcode scan.
+     * Called by native iOS/Android code when user cancels the scanner.
+     */
+    handleNativeScanCancelled() {
+        this.toggleButtonTarget.classList.remove('active');
+
+        // Dispatch close event for other controllers
+        window.dispatchEvent(new CustomEvent('barcode-scan:close'));
     }
 }

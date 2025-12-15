@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- Camera Preview -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/preview_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Scan Overlay -->
+    <View
+        android:id="@+id/overlay_top"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        app:layout_constraintBottom_toTopOf="@id/scan_area"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/overlay_bottom"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scan_area" />
+
+    <View
+        android:id="@+id/overlay_left"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        app:layout_constraintBottom_toTopOf="@id/overlay_bottom"
+        app:layout_constraintEnd_toStartOf="@id/scan_area"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/overlay_top" />
+
+    <View
+        android:id="@+id/overlay_right"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#80000000"
+        app:layout_constraintBottom_toTopOf="@id/overlay_bottom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/scan_area"
+        app:layout_constraintTop_toBottomOf="@id/overlay_top" />
+
+    <!-- Scan Area Frame -->
+    <FrameLayout
+        android:id="@+id/scan_area"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:background="@drawable/scan_frame"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Instructions -->
+    <TextView
+        android:id="@+id/instructions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/scan_barcode_instructions"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/scan_area" />
+
+    <!-- Cancel Button -->
+    <Button
+        android:id="@+id/cancel_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="32dp"
+        android:paddingHorizontal="32dp"
+        android:text="@string/cancel"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

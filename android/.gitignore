@@ -1,0 +1,55 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio
+*.iml
+.idea/
+*.hprof
+
+# Local configuration
+local.properties
+secrets.properties
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services
+google-services.json
+
+# Proguard
+proguard/
+
+# Log Files
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Kotlin
+.kotlin/
+
+# Caches
+.cxx/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Generated files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Native
+obj/

@@ -45,8 +45,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.5
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
@@ -95,8 +95,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.5
 
       - name: Build release APK (unsigned)
         run: ./gradlew assembleRelease --no-daemon

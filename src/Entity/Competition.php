@@ -40,14 +40,16 @@ class Competition
         public null|string $resultsLink,
         #[Column]
         public string $location,
-        #[Column]
-        public string $locationCountryCode,
+        #[Column(nullable: true)]
+        public null|string $locationCountryCode,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $dateFrom,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $dateTo,
         #[ManyToOne]
         public null|Tag $tag,
+        #[Column(options: ['default' => false])]
+        public bool $isOnline = false,
     ) {
     }
 }

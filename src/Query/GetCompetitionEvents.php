@@ -52,6 +52,7 @@ readonly final class GetCompetitionEvents
 SELECT *
 FROM competition
 WHERE COALESCE(date_to, date_from)::date < :date::date
+    OR date_from IS NULL
 ORDER BY date_from DESC;
 SQL;
         $date = $this->clock->now();

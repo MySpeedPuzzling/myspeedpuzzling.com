@@ -1,45 +1,24 @@
 package com.myspeedpuzzling.app
 
 import android.os.Bundle
-import android.webkit.WebView
-import androidx.appcompat.app.AppCompatActivity
-import com.myspeedpuzzling.billing.BillingBridge
-import com.myspeedpuzzling.features.BarcodeScannerBridge
-import dev.hotwire.turbo.activities.TurboActivity
-import dev.hotwire.turbo.delegates.TurboActivityDelegate
+import android.view.View
+import androidx.activity.enableEdgeToEdge
+import dev.hotwire.navigation.activities.HotwireActivity
+import dev.hotwire.navigation.navigator.NavigatorConfiguration
 
-class MainActivity : AppCompatActivity(), TurboActivity {
-    override lateinit var delegate: TurboActivityDelegate
-
-    private lateinit var scannerBridge: BarcodeScannerBridge
-    private lateinit var billingBridge: BillingBridge
-
-    companion object {
-        private const val BASE_URL = "https://myspeedpuzzling.com"
-    }
+class MainActivity : HotwireActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        // Initialize Turbo delegate
-        delegate = TurboActivityDelegate(this, R.id.main_nav_host)
-
-        // Initialize bridges
-        scannerBridge = BarcodeScannerBridge(this)
-        billingBridge = BillingBridge(this)
-
-        // Configure WebView
-        setupWebView()
     }
 
-    private fun setupWebView() {
-        // The WebView setup will be done through Turbo's navigation
-        // JavaScript bridges are added in TurboWebFragment
-    }
-
-    override fun onDestroy() {
-        billingBridge.destroy()
-        super.onDestroy()
-    }
+    override fun navigatorConfigurations() = listOf(
+        NavigatorConfiguration(
+            name = "main",
+            startLocation = "https://myspeedpuzzling.com",
+            navigatorHostId = R.id.main_nav_host
+        )
+    )
 }

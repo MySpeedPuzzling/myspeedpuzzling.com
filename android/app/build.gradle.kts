@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.myspeedpuzzling.app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.myspeedpuzzling.app"
-        minSdk = 26
-        targetSdk = 34
+        minSdk = 28
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -41,12 +41,14 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
 dependencies {
     // Hotwire Native Android
-    implementation("dev.hotwire:turbo:7.1.3")
+    implementation("dev.hotwire:core:1.2.4")
+    implementation("dev.hotwire:navigation-fragments:1.2.4")
 
     // AndroidX
     implementation("androidx.core:core-ktx:1.12.0")

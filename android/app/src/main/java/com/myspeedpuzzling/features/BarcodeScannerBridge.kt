@@ -1,103 +1,63 @@
 package com.myspeedpuzzling.features
 
-import android.Manifest
-import android.app.Activity
+import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
+import java.lang.ref.WeakReference
 
 /**
  * JavaScript bridge for native barcode scanning on Android.
  * Receives messages from web JavaScript and triggers native scanner.
  */
-class BarcodeScannerBridge(private val activity: Activity) {
-    private var webView: WebView? = null
-
-    fun setWebView(webView: WebView) {
-        this.webView = webView
-    }
-
-    @JavascriptInterface
-    fun openScanner() {
-        activity.runOnUiThread {
-            if (checkCameraPermission()) {
-                launchScanner()
-            } else {
-                requestCameraPermission()
-            }
-        }
-    }
-
-    private fun checkCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            activity,
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun requestCameraPermission() {
-        if (activity is AppCompatActivity) {
-            // For modern permission handling, the activity should register for result
-            // This is a simplified version - in production, use ActivityResultLauncher
-            activity.requestPermissions(
-                arrayOf(Manifest.permission.CAMERA),
-                CAMERA_PERMISSION_REQUEST
-            )
-        }
-    }
-
-    private fun launchScanner() {
-        val intent = Intent(activity, BarcodeScannerActivity::class.java)
-        activity.startActivityForResult(intent, SCANNER_REQUEST_CODE)
-    }
-
-    fun handleActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == SCANNER_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK) {
-                val barcode = data?.getStringExtra(RESULT_BARCODE)
-                if (barcode != null) {
-                    sendScanResult(barcode)
-                } else {
-                    sendScanCancelled()
-                }
-            } else {
-                sendScanCancelled()
-            }
-        }
-    }
-
-    fun handlePermissionResult(requestCode: Int, grantResults: IntArray) {
-        if (requestCode == CAMERA_PERMISSION_REQUEST) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                launchScanner()
-            } else {
-                sendScanCancelled()
-            }
-        }
-    }
-
-    private fun sendScanResult(code: String) {
-        val escapedCode = code.replace("'", "\\'")
-        val js = "window.onNativeScanResult && window.onNativeScanResult('$escapedCode')"
-        webView?.post {
-            webView?.evaluateJavascript(js, null)
-        }
-    }
-
-    private fun sendScanCancelled() {
-        val js = "window.onNativeScanCancelled && window.onNativeScanCancelled()"
-        webView?.post {
-            webView?.evaluateJavascript(js, null)
-        }
-    }
+class BarcodeScannerBridge(context: Context) {
+    private val contextRef = WeakReference(context)
+    private var webViewRef: WeakReference<WebView>? = null
 
     companion object {
         const val SCANNER_REQUEST_CODE = 1001
         const val RESULT_BARCODE = "barcode"
-        private const val CAMERA_PERMISSION_REQUEST = 1002
+
+        // Static reference for callbacks from scanner activity
+        private var currentBridge: WeakReference<BarcodeScannerBridge>? = null
+
+        fun onScanResult(barcode: String) {
+            currentBridge?.get()?.sendScanResult(barcode)
+        }
+
+        fun onScanCancelled() {
+            currentBridge?.get()?.sendScanCancelled()
+        }
+    }
+
+    fun setWebView(webView: WebView) {
+        this.webViewRef = WeakReference(webView)
+    }
+
+    @JavascriptInterface
+    fun openScanner() {
+        val context = contextRef.get() ?: return
+        currentBridge = WeakReference(this)
+
+        val intent = Intent(context, BarcodeScannerActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+
+    private fun sendScanResult(code: String) {
+        val webView = webViewRef?.get() ?: return
+        val escapedCode = code.replace("'", "\\'")
+        val js = "window.onNativeScanResult && window.onNativeScanResult('$escapedCode')"
+        webView.post {
+            webView.evaluateJavascript(js, null)
+        }
+    }
+
+    private fun sendScanCancelled() {
+        val webView = webViewRef?.get() ?: return
+        val js = "window.onNativeScanCancelled && window.onNativeScanCancelled()"
+        webView.post {
+            webView.evaluateJavascript(js, null)
+        }
     }
 }

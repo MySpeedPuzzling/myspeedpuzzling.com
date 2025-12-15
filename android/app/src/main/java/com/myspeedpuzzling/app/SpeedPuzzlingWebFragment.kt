@@ -4,39 +4,58 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.View
 import android.webkit.WebView
-import dev.hotwire.turbo.fragments.TurboWebFragment
-import dev.hotwire.turbo.nav.TurboNavGraphDestination
+import dev.hotwire.navigation.destinations.HotwireDestinationDeepLink
+import dev.hotwire.navigation.fragments.HotwireWebFragment
 import com.myspeedpuzzling.billing.BillingBridge
 import com.myspeedpuzzling.features.BarcodeScannerBridge
 
-@TurboNavGraphDestination(uri = "turbo://fragment/web")
-class WebFragment : TurboWebFragment() {
+@HotwireDestinationDeepLink(uri = "hotwire://fragment/web")
+class SpeedPuzzlingWebFragment : HotwireWebFragment() {
     private var scannerBridge: BarcodeScannerBridge? = null
     private var billingBridge: BillingBridge? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        setupJavaScriptBridges()
+
+        // Use post to ensure the view hierarchy is fully initialized
+        view.post {
+            setupJavaScriptBridges()
+        }
     }
 
-    @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+    @SuppressLint("JavascriptInterface")
     private fun setupJavaScriptBridges() {
-        val webView = turboWebView ?: return
-        val activity = requireActivity()
+        // Try to find the WebView in the fragment's view hierarchy
+        val webView = findWebView(view) ?: return
+        val context = requireContext()
 
-        // Initialize bridges
-        scannerBridge = BarcodeScannerBridge(activity).also { bridge ->
+        // Initialize scanner bridge
+        scannerBridge = BarcodeScannerBridge(context).also { bridge ->
             bridge.setWebView(webView)
             webView.addJavascriptInterface(bridge, "AndroidScanner")
         }
 
-        billingBridge = BillingBridge(activity).also { bridge ->
+        // Initialize billing bridge
+        billingBridge = BillingBridge(context).also { bridge ->
             bridge.setWebView(webView)
             webView.addJavascriptInterface(bridge, "AndroidBilling")
         }
 
-        // Inject JavaScript helpers
+        // Inject JavaScript helpers when page loads
         injectNativeHelpers(webView)
+    }
+
+    private fun findWebView(view: View?): WebView? {
+        if (view == null) return null
+        if (view is WebView) return view
+
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                val found = findWebView(view.getChildAt(i))
+                if (found != null) return found
+            }
+        }
+        return null
     }
 
     private fun injectNativeHelpers(webView: WebView) {

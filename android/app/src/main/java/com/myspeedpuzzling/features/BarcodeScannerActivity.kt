@@ -1,18 +1,17 @@
 package com.myspeedpuzzling.features
 
-import android.app.Activity
-import android.content.Intent
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Size
-import android.view.View
 import android.widget.Button
-import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -30,6 +29,10 @@ class BarcodeScannerActivity : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private var hasScanned = false
 
+    companion object {
+        private const val CAMERA_PERMISSION_REQUEST = 1001
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_barcode_scanner)
@@ -38,13 +41,42 @@ class BarcodeScannerActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         setupCancelButton()
-        startCamera()
+        checkCameraPermission()
     }
 
     private fun setupCancelButton() {
         findViewById<Button>(R.id.cancel_button).setOnClickListener {
-            setResult(Activity.RESULT_CANCELED)
+            BarcodeScannerBridge.onScanCancelled()
             finish()
+        }
+    }
+
+    private fun checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CAMERA),
+                CAMERA_PERMISSION_REQUEST
+            )
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CAMERA_PERMISSION_REQUEST) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startCamera()
+            } else {
+                BarcodeScannerBridge.onScanCancelled()
+                finish()
+            }
         }
     }
 
@@ -94,13 +126,15 @@ class BarcodeScannerActivity : AppCompatActivity() {
             // Haptic feedback
             previewView.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
 
-            // Return result
-            val intent = Intent().apply {
-                putExtra(BarcodeScannerBridge.RESULT_BARCODE, barcode)
-            }
-            setResult(Activity.RESULT_OK, intent)
+            // Send result via static callback
+            BarcodeScannerBridge.onScanResult(barcode)
             finish()
         }
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        BarcodeScannerBridge.onScanCancelled()
     }
 
     override fun onDestroy() {

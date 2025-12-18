@@ -43,34 +43,24 @@ class Membership implements EntityWithEvents
         #[Column(nullable: true)]
         public null|DateTimeImmutable $endsAt = null,
         #[Column(length: 10, options: ['default' => 'web'])]
-        private string $platform = 'web',
+        public Platform $platform = Platform::Web,
     ) {
         $this->recordThat(new MembershipStarted($this->id));
     }
 
-    public function getPlatform(): Platform
-    {
-        return Platform::from($this->platform);
-    }
-
-    public function setPlatform(Platform $platform): void
-    {
-        $this->platform = $platform->value;
-    }
-
     public function isManagedByAppStore(): bool
     {
-        return $this->getPlatform() === Platform::Ios;
+        return $this->platform === Platform::Ios;
     }
 
     public function isManagedByPlayStore(): bool
     {
-        return $this->getPlatform() === Platform::Android;
+        return $this->platform === Platform::Android;
     }
 
     public function isManagedByStripe(): bool
     {
-        return $this->getPlatform() === Platform::Web;
+        return $this->platform === Platform::Web;
     }
 
     public function updateStripeSubscription(

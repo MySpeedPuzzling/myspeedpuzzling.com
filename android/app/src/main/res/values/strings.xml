@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">My Speed Puzzling</string>
+    <string name="cancel">Cancel</string>
+    <string name="scan_barcode_instructions">Point at the barcode on the puzzle box</string>
+</resources>

@@ -47,11 +47,27 @@
                             {% endif %}
 
                             <p class="mb-1">
-                                <a data-turbo-prefetch="false" class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
+                                {% if is_web() %}
+                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary" href="{{ path('billing_portal') }}">{{ 'membership.payment_portal_button'|trans }}</a>
+                                {% elseif is_ios() %}
+                                    <a class="btn btn-outline-primary" href="itms-apps://apps.apple.com/account/subscriptions">
+                                        <i class="bi bi-apple me-1"></i> {{ 'membership.manage_in_app_store'|trans }}
+                                    </a>
+                                {% elseif is_android() %}
+                                    <a class="btn btn-outline-primary" href="https://play.google.com/store/account/subscriptions">
+                                        <i class="bi bi-google-play me-1"></i> {{ 'membership.manage_in_play_store'|trans }}
+                                    </a>
+                                {% endif %}
                             </p>
 
                             <p class="text-muted small mb-0">
-                                {{ 'membership.billing_portal_info'|trans }}
+                                {% if is_web() %}
+                                    {{ 'membership.billing_portal_info'|trans }}
+                                {% elseif is_ios() %}
+                                    {{ 'membership.manage_subscription_ios_info'|trans }}
+                                {% elseif is_android() %}
+                                    {{ 'membership.manage_subscription_android_info'|trans }}
+                                {% endif %}
                             </p>
                         {% else %}
                             {% if membership and membership.endsAt and membership.endsAt < now %}
@@ -62,25 +78,67 @@
 
                             <h4>{{ 'membership.choose_your_subscription'|trans }}</h4>
 
-                            <div class="d-flex mt-2 text-center justify-content-center">
-                                <p class="my-1 mx-1">
-                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
-                                        <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                                        <br>{{ 'membership.price_per_month'|trans }}
-                                    </a>
-                                </p>
+                            {% if is_web() %}
+                                <div class="d-flex mt-2 text-center justify-content-center">
+                                    <p class="my-1 mx-1">
+                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
+                                            <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                                            <br>{{ 'membership.price_per_month'|trans }}
+                                        </a>
+                                    </p>
 
-                                <p class="my-1 mx-1">
-                                    <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership', {'period': 'yearly'}) }}">
-                                        <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                                        <br>{{ 'membership.price_per_year'|trans }}
-                                    </a>
-                                </p>
-                            </div>
+                                    <p class="my-1 mx-1">
+                                        <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership', {'period': 'yearly'}) }}">
+                                            <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                                            <br>{{ 'membership.price_per_year'|trans }}
+                                        </a>
+                                    </p>
+                                </div>
 
-                            <p class="text-center mb-0">
-                                <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>
-                            </p>
+                                <p class="text-center mb-0">
+                                    <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>
+                                </p>
+                            {% elseif is_ios() %}
+                                <div class="d-flex mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="ios">
+                                    <p class="my-1 mx-1">
+                                        <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.monthly">
+                                            <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                                            <br>{{ 'membership.price_per_month'|trans }}
+                                        </button>
+                                    </p>
+
+                                    <p class="my-1 mx-1">
+                                        <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.yearly">
+                                            <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                                            <br>{{ 'membership.price_per_year'|trans }}
+                                        </button>
+                                    </p>
+                                </div>
+
+                                <p class="text-center mb-0">
+                                    <small class="text-muted">{{ 'membership.purchase_via_app_store'|trans }}</small>
+                                </p>
+                            {% elseif is_android() %}
+                                <div class="d-flex mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="android">
+                                    <p class="my-1 mx-1">
+                                        <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_monthly">
+                                            <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
+                                            <br>{{ 'membership.price_per_month'|trans }}
+                                        </button>
+                                    </p>
+
+                                    <p class="my-1 mx-1">
+                                        <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_yearly">
+                                            <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
+                                            <br>{{ 'membership.price_per_year'|trans }}
+                                        </button>
+                                    </p>
+                                </div>
+
+                                <p class="text-center mb-0">
+                                    <small class="text-muted">{{ 'membership.purchase_via_play_store'|trans }}</small>
+                                </p>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

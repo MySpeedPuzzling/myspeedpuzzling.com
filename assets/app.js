@@ -1,3 +1,24 @@
+// Platform detection for native apps (must run before anything else)
+(function() {
+    const userAgent = navigator.userAgent || '';
+
+    if (userAgent.includes('Turbo Native iOS') || userAgent.includes('MySpeedPuzzling iOS')) {
+        window.nativePlatform = 'ios';
+    } else if (userAgent.includes('Turbo Native Android') || userAgent.includes('MySpeedPuzzling Android')) {
+        window.nativePlatform = 'android';
+    } else {
+        window.nativePlatform = 'web';
+    }
+
+    window.isNativeApp = window.nativePlatform !== 'web';
+
+    // Add classes to document root for CSS targeting
+    document.documentElement.classList.add('platform-' + window.nativePlatform);
+    if (window.isNativeApp) {
+        document.documentElement.classList.add('native-app');
+    }
+})();
+
 import './styles/app.scss';
 
 // start the Stimulus application

@@ -383,6 +383,12 @@ membership:
     price_per_month: "€6 / 月"
     price_per_year: "€60 / 年"
     billing_portal_info: "支払いポータルでは、支払い詳細の更新、メンバーシップのキャンセル、請求書や領収書のダウンロードができます。"
+    manage_in_app_store: "App Storeで管理"
+    manage_in_play_store: "Play Storeで管理"
+    manage_subscription_ios_info: "iPhone/iPadの設定アプリでApple ID > サブスクリプションからサブスクリプションを管理できます。"
+    manage_subscription_android_info: "Google Play Storeの支払いと定期購入からサブスクリプションを管理できます。"
+    purchase_via_app_store: "お支払いはApple App Store経由で処理されます。"
+    purchase_via_play_store: "お支払いはGoogle Play Store経由で処理されます。"
     full_description: |
         <ul>
             <li>プラットフォーム開発をサポートしてくださることへの大きな感謝</li>

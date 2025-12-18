@@ -107,6 +107,7 @@
         {% endblock %}
     </head>
     <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search toast">
+        {% if is_web() %}
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
                 <div class="container">
@@ -349,6 +350,7 @@
                 </div>
             </div>
         </header>
+        {% endif %}
 
         {#
         <div class="competition-panel-info">
@@ -379,6 +381,7 @@
             {% endblock %}
         </main>
 
+        {% if is_web() %}
         <footer class="bg-secondary mt-4">
             <div class="container pt-4 pb-3">
                 <div class="row">
@@ -554,6 +557,7 @@
                 </div>
             {% endif %}
         </footer>
+        {% endif %}
 
         <div class="modal fade" tabindex="-1" role="dialog" id="feedbackModal">
             <div class="modal-dialog modal-dialog-centered" role="document">

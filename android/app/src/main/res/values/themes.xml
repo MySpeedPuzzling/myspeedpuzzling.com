@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base application theme -->
+    <style name="Theme.MySpeedPuzzling" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryVariant">@color/primary_dark</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorSecondaryVariant">@color/secondary_dark</item>
+        <item name="colorOnSecondary">@android:color/white</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+
+        <!-- Window background -->
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
+
+    <!-- Scanner theme with full-screen -->
+    <style name="Theme.MySpeedPuzzling.Scanner">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+    </style>
+</resources>

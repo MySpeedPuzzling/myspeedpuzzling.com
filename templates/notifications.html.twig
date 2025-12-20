@@ -18,7 +18,63 @@
                 <tbody>
                     {% for notification in notifications %}
                         <tr class="{{ notification.readAt is null ? 'table-active-player' }}">
-                            {% if notification.isLendingNotification %}
+                            {% if notification.isChangeRequestNotification %}
+                                {# Puzzle change request notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi bi-pencil-square fs-3 {{ notification.notificationType.value == 'PuzzleChangeRequestApproved' ? 'text-success' : 'text-danger' }}"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+
+                                    {% if notification.notificationType.value == 'PuzzleChangeRequestApproved' %}
+                                        <span class="text-success">{{ 'notifications.puzzle_report.change_approved'|trans }}</span>
+                                    {% else %}
+                                        <span class="text-danger">{{ 'notifications.puzzle_report.change_rejected'|trans }}</span>
+                                        {% if notification.changeRequestRejectionReason %}
+                                            <br><small class="text-muted">{{ notification.changeRequestRejectionReason }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                    -
+                                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.changeRequestPuzzleId}) }}">{{ notification.changeRequestPuzzleName }}</a>
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if notification.changeRequestPuzzleImage is not null %}
+                                        <a href="{{ path('puzzle_detail', {puzzleId: notification.changeRequestPuzzleId}) }}">
+                                            <img alt="{{ notification.changeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.changeRequestPuzzleImage|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            {% elseif notification.isMergeRequestNotification %}
+                                {# Puzzle merge request notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi bi-files fs-3 {{ notification.notificationType.value == 'PuzzleMergeRequestApproved' ? 'text-success' : 'text-danger' }}"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+
+                                    {% if notification.notificationType.value == 'PuzzleMergeRequestApproved' %}
+                                        <span class="text-success">{{ 'notifications.puzzle_report.merge_approved'|trans }}</span>
+                                    {% else %}
+                                        <span class="text-danger">{{ 'notifications.puzzle_report.merge_rejected'|trans }}</span>
+                                        {% if notification.mergeRequestRejectionReason %}
+                                            <br><small class="text-muted">{{ notification.mergeRequestRejectionReason }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                    -
+                                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.mergeRequestPuzzleId}) }}">{{ notification.mergeRequestPuzzleName }}</a>
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if notification.mergeRequestPuzzleImage is not null %}
+                                        <a href="{{ path('puzzle_detail', {puzzleId: notification.mergeRequestPuzzleId}) }}">
+                                            <img alt="{{ notification.mergeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.mergeRequestPuzzleImage|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            {% elseif notification.isLendingNotification %}
                                 {# Lending notification #}
                                 <td class="text-center" style="width: 60px;">
                                     <i class="bi bi-arrow-left-right fs-3 text-primary"></i>

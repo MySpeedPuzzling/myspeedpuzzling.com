@@ -1,0 +1,232 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Change Request - {{ request.puzzleName }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <a href="{{ path('admin_puzzle_change_requests') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> Back to list
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h1 class="h4 mb-0">Change Request</h1>
+                    {% if request.status.value == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% elseif request.status.value == 'approved' %}
+                        <span class="badge bg-success">Approved</span>
+                    {% else %}
+                        <span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                </div>
+
+                <div class="card-body">
+                    {# Puzzle info header #}
+                    <div class="d-flex align-items-center mb-4 p-3 bg-light rounded">
+                        {% if request.puzzleImage %}
+                            <img src="{{ request.puzzleImage|puzzle_image('puzzle_small') }}"
+                                 alt="{{ request.puzzleName }}"
+                                 class="me-3 rounded"
+                                 style="max-height: 80px;">
+                        {% endif %}
+                        <div>
+                            <h5 class="mb-1">
+                                <a href="{{ path('puzzle_detail', {puzzleId: request.puzzleId}) }}" target="_blank">
+                                    {{ request.puzzleName }}
+                                </a>
+                            </h5>
+                            <p class="mb-0 text-muted">
+                                {{ request.puzzleManufacturerName }} - {{ request.puzzlePiecesCount }} pieces
+                            </p>
+                        </div>
+                    </div>
+
+                    {# Changes comparison #}
+                    <h5 class="mb-3">Proposed Changes</h5>
+                    <table class="table table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 20%;">Field</th>
+                                <th style="width: 40%;">Original</th>
+                                <th style="width: 40%;">Proposed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if request.hasNameChange() %}
+                                <tr>
+                                    <td><strong>Name</strong></td>
+                                    <td>{{ request.originalName }}</td>
+                                    <td class="table-warning">{{ request.proposedName }}</td>
+                                </tr>
+                            {% endif %}
+
+                            {% if request.hasManufacturerChange() %}
+                                <tr>
+                                    <td><strong>Manufacturer</strong></td>
+                                    <td>{{ request.originalManufacturerName|default('Not set') }}</td>
+                                    <td class="table-warning">{{ request.proposedManufacturerName }}</td>
+                                </tr>
+                            {% endif %}
+
+                            {% if request.hasPiecesCountChange() %}
+                                <tr>
+                                    <td><strong>Pieces</strong></td>
+                                    <td>{{ request.originalPiecesCount }}</td>
+                                    <td class="table-warning">{{ request.proposedPiecesCount }}</td>
+                                </tr>
+                            {% endif %}
+
+                            {% if request.hasEanChange() %}
+                                <tr>
+                                    <td><strong>EAN</strong></td>
+                                    <td>{{ request.originalEan|default('Not set') }}</td>
+                                    <td class="table-warning">{{ request.proposedEan }}</td>
+                                </tr>
+                            {% endif %}
+
+                            {% if request.hasIdentificationNumberChange() %}
+                                <tr>
+                                    <td><strong>Brand Code</strong></td>
+                                    <td>{{ request.originalIdentificationNumber|default('Not set') }}</td>
+                                    <td class="table-warning">{{ request.proposedIdentificationNumber }}</td>
+                                </tr>
+                            {% endif %}
+
+                            {% if request.hasImageChange() %}
+                                <tr>
+                                    <td><strong>Image</strong></td>
+                                    <td>
+                                        {% if request.originalImage %}
+                                            <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
+                                                 alt="Original"
+                                                 class="img-thumbnail"
+                                                 style="max-height: 100px;">
+                                        {% else %}
+                                            <span class="text-muted">No image</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="table-warning">
+                                        <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
+                                             alt="Proposed"
+                                             class="img-thumbnail"
+                                             style="max-height: 100px;">
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+
+                    {% if not request.hasAnyChange() %}
+                        <div class="alert alert-info">
+                            No changes were proposed. The user may have submitted the form without modifications.
+                        </div>
+                    {% endif %}
+
+                    {# Rejection reason if rejected #}
+                    {% if request.status.value == 'rejected' and request.rejectionReason %}
+                        <div class="alert alert-danger mt-4">
+                            <strong>Rejection Reason:</strong><br>
+                            {{ request.rejectionReason }}
+                        </div>
+                    {% endif %}
+
+                    {# Action buttons for pending requests #}
+                    {% if request.status.value == 'pending' %}
+                        <hr class="my-4">
+                        <div class="d-flex gap-2">
+                            <form action="{{ path('admin_approve_puzzle_change_request', {id: request.id}) }}"
+                                  method="post"
+                                  class="d-inline">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-lg me-1"></i> Approve Changes
+                                </button>
+                            </form>
+
+                            <button type="button"
+                                    class="btn btn-danger"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#rejectModal">
+                                <i class="bi bi-x-lg me-1"></i> Reject
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            {# Reporter info #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Reporter</h5>
+                </div>
+                <div class="card-body">
+                    {% if request.reporterName %}
+                        <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
+                            {{ request.reporterName }}
+                        </a>
+                        {% if request.reporterCode %}
+                            <span class="text-muted">#{{ request.reporterCode }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">Unknown user</span>
+                    {% endif %}
+                    <br>
+                    <small class="text-muted">Submitted: {{ request.submittedAt|date('Y-m-d H:i') }}</small>
+                </div>
+            </div>
+
+            {# Review info if reviewed #}
+            {% if request.reviewedAt %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Review</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if request.reviewerName %}
+                            Reviewed by: {{ request.reviewerName }}
+                        {% endif %}
+                        <br>
+                        <small class="text-muted">{{ request.reviewedAt|date('Y-m-d H:i') }}</small>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# Reject Modal #}
+{% if request.status.value == 'pending' %}
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ path('admin_reject_puzzle_change_request', {id: request.id}) }}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Change Request</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejectionReason" class="form-label">Rejection Reason</label>
+                        <textarea class="form-control"
+                                  id="rejectionReason"
+                                  name="rejection_reason"
+                                  rows="3"
+                                  required
+                                  placeholder="Explain why this change request is being rejected..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

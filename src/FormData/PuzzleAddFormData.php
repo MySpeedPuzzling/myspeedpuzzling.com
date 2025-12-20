@@ -26,7 +26,7 @@ final class PuzzleAddFormData
 
     // New puzzle fields (all modes when creating new)
     #[Positive]
-    #[Range(min: 10, max: 25000)]
+    #[Range(min: 10, max: 99999)]
     public null|int $puzzlePiecesCount = null;
 
     public null|UploadedFile $puzzlePhoto = null;
@@ -39,7 +39,7 @@ final class PuzzleAddFormData
 
     // Speed Puzzling specific - time as separate fields
     #[PositiveOrZero]
-    #[Range(max: 99)]
+    #[Range(max: 999)]
     public int $timeHours = 0;
 
     #[PositiveOrZero]

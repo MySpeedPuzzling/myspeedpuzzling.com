@@ -1,0 +1,12 @@
+{#
+    Stream for puzzle report actions.
+    Closes modal and shows toast.
+
+    Parameters:
+    - puzzle_id: The puzzle ID
+    - message: Toast message
+#}
+
+{{ include('_modal_close_stream.html.twig') }}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

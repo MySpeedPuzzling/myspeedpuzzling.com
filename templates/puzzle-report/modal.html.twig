@@ -1,0 +1,37 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'puzzle_report.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {# Tabs #}
+        <div class="btn-group w-100 mb-3" role="tablist">
+            <button type="button"
+                    class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm {{ active_tab == 'propose' ? 'active' : '' }}"
+                    id="propose-tab" data-bs-toggle="tab" data-bs-target="#propose-pane" role="tab">
+                <i class="bi bi-pencil-square"></i>
+                <small>{{ 'puzzle_report.tab.propose_changes'|trans }}</small>
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-primary py-2 px-3 d-flex flex-column align-items-center lh-sm {{ active_tab == 'report' ? 'active' : '' }}"
+                    id="report-tab" data-bs-toggle="tab" data-bs-target="#report-pane" role="tab">
+                <i class="bi bi-files"></i>
+                <small>{{ 'puzzle_report.tab.report_duplicate'|trans }}</small>
+            </button>
+        </div>
+
+        <div class="tab-content">
+            {# Propose Changes Tab #}
+            <div class="tab-pane fade {{ active_tab == 'propose' ? 'show active' : '' }}" id="propose-pane" role="tabpanel">
+                {{ include('puzzle-report/_propose_changes_form.html.twig', {in_modal: true}) }}
+            </div>
+
+            {# Report Duplicate Tab #}
+            <div class="tab-pane fade {{ active_tab == 'report' ? 'show active' : '' }}" id="report-pane" role="tabpanel">
+                {{ include('puzzle-report/_report_duplicate_form.html.twig', {in_modal: true}) }}
+            </div>
+        </div>
+    </div>
+</turbo-frame>

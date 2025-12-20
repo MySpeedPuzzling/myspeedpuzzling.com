@@ -43,6 +43,14 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|LentPuzzleTransfer $targetTransfer = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|PuzzleChangeRequest $targetChangeRequest = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|PuzzleMergeRequest $targetMergeRequest = null,
     ) {
     }
 }

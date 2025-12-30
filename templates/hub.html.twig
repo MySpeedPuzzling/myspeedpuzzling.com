@@ -59,56 +59,7 @@
         </div>
 
         <div class="col-lg-6">
-            <h3 class="h4 mt-5 mb-0">{{ 'hub.most_solved_puzzle'|trans }}</h3>
-
-            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#most-solved-puzzle-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                        <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
-                        </div>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#most-solved-puzzle-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                        <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
-                        </div>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#most-solved-puzzle-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                        <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
-                        </div>
-                    </a>
-                </li>
-            </ul>
-
-            <div class="tab-content">
-                <div class="tab-pane fade show active" id="most-solved-puzzle-this-month" role="tabpanel">
-                    {{ include('_most_solved_puzzle.html.twig', {
-                        'most_solved_puzzles': this_month_most_solved_puzzle,
-                        show_limit: 4,
-                    }) }}
-                </div>
-
-                <div class="tab-pane fade" id="most-solved-puzzle-last-month" role="tabpanel">
-                    {{ include('_most_solved_puzzle.html.twig', {
-                        'most_solved_puzzles': last_month_most_solved_puzzle,
-                        show_limit: 4,
-                    }) }}
-                </div>
-
-                <div class="tab-pane fade" id="most-solved-puzzle-all-time" role="tabpanel">
-                    {{ include('_most_solved_puzzle.html.twig', {
-                        'most_solved_puzzles': all_time_most_solved_puzzle,
-                        show_limit: 4,
-                    }) }}
-                </div>
-            </div>
+            <twig:MostSolvedPuzzles loading="lazy" :showLimit="4" />
         </div>
 
         <div class="col-lg-6">

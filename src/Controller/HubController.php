@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Query\GetMostSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetStatistics;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,7 +13,6 @@ final class HubController extends AbstractController
 {
     public function __construct(
         readonly private GetStatistics $getStatistics,
-        readonly private GetMostSolvedPuzzles $getMostSolvedPuzzles,
     ) {
     }
 
@@ -43,9 +41,6 @@ final class HubController extends AbstractController
         }
 
         return $this->render('hub.html.twig', [
-            'this_month_most_solved_puzzle' => $this->getMostSolvedPuzzles->topInMonth(20, $thisMonth, $thisYear),
-            'last_month_most_solved_puzzle' => $this->getMostSolvedPuzzles->topInMonth(20, $lastMonth, $lastYear),
-            'all_time_most_solved_puzzle' => $this->getMostSolvedPuzzles->top(20),
             'this_month_global_statistics' => $this->getStatistics->globallyInMonth($thisMonth, $thisYear),
             'last_month_global_statistics' => $this->getStatistics->globallyInMonth($lastMonth, $lastYear),
             'all_time_global_statistics' => $this->getStatistics->globally(),

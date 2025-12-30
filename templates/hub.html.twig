@@ -63,53 +63,7 @@
         </div>
 
         <div class="col-lg-6">
-            <h3 class="h4 mt-5 mb-0">{{ 'hub.statistics'|trans }}</h3>
-
-            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
-                <li class="nav-item">
-                    <a class="nav-link active" href="#statistics-this-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                        <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
-                        </div>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#statistics-last-month" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                        <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
-                        </div>
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="#statistics-all-time" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
-                        <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
-                        </div>
-                    </a>
-                </li>
-            </ul>
-
-            <div class="tab-content mb-3">
-                <div class="tab-pane fade show active" id="statistics-this-month" role="tabpanel">
-                    {{ include('_puzzle_statistics.html.twig', {
-                        'puzzle_statistics': this_month_global_statistics,
-                    }) }}
-                </div>
-
-                <div class="tab-pane fade" id="statistics-last-month" role="tabpanel">
-                    {{ include('_puzzle_statistics.html.twig', {
-                        'puzzle_statistics': last_month_global_statistics,
-                    }) }}
-                </div>
-
-                <div class="tab-pane fade" id="statistics-all-time" role="tabpanel">
-                    {{ include('_puzzle_statistics.html.twig', {
-                        'puzzle_statistics': all_time_global_statistics,
-                    }) }}
-                </div>
-            </div>
+            <twig:GlobalStatistics loading="lazy" />
         </div>
     </div>
 {% endblock %}

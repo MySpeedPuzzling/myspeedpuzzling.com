@@ -164,3 +164,48 @@
         <button class="mt-3 btn btn-outline-primary btn-sm" data-action="click->show-more-recent-activity#revealRows" data-show-more-recent-activity-target="button">{{ 'show_more'|trans }}</button>
     {% endif %}
 </div>
+
+{% macro placeholder(props) %}
+    <div class="table-responsive custom-table-wrapper mt-4">
+        <table class="table table-striped custom-table table-hover mb-0 placeholder-glow">
+            <tbody>
+                {% set rowCount = props.showLimit > 0 ? props.showLimit : props.limit|default(5) %}
+                {% for i in 1..rowCount %}
+                    <tr>
+                        <td class="text-center" style="width: 90px;">
+                            <div class="position-relative">
+                                <span class="rounded-2 d-inline-block" style="width: 80px; height: 58px; background: #e9ecef;"></span>
+                            </div>
+                        </td>
+
+                        <td class="d-none d-sm-table-cell">
+                            <span class="d-inline-block" style="line-height: 120%;">
+                                <span style="color: #111;">
+                                    <span class="placeholder" style="width: 85px;"></span><br>
+                                    <small><span class="placeholder placeholder-sm" style="width: 55px;"></span></small>
+                                </span><br>
+                                <small class="puzzle-title mt-2"><span class="placeholder placeholder-sm" style="width: 110px;"></span></small>
+                            </span>
+                        </td>
+
+                        <td class="player-name">
+                            <p class="mt-0 mb-1 d-sm-none">
+                                <small><span class="placeholder placeholder-sm" style="width: 65px;"></span></small><br>
+                                <small><span class="placeholder placeholder-sm" style="width: 45px;"></span></small>
+                            </p>
+                            <p class="mb-0 low-line-height">
+                                <small><span class="placeholder" style="width: 95px;"></span></small>
+                            </p>
+                        </td>
+
+                        <td class="with-ppm text-end">
+                            <small style="line-height: 105%;"><span class="placeholder placeholder-sm" style="width: 55px;"></span></small><br>
+                            <span class="placeholder placeholder" style="width: 75px;">&nbsp;</span><br>
+                            <small class="text-nowrap"><span class="placeholder placeholder-sm" style="width: 50px;"></span></small>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}

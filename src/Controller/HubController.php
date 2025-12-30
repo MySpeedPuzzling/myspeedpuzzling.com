@@ -10,8 +10,6 @@ use SpeedPuzzling\Web\Query\GetStatistics;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class HubController extends AbstractController
 {
@@ -33,7 +31,7 @@ final class HubController extends AbstractController
         ],
         name: 'hub',
     )]
-    public function __invoke(#[CurrentUser] null|UserInterface $user): Response
+    public function __invoke(): Response
     {
         $thisMonth = (int) date("m");
         $thisYear = (int) date("Y");

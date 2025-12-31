@@ -6,8 +6,9 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\UserPuzzleStatuses;
+use Symfony\Contracts\Service\ResetInterface;
 
-final class GetUserPuzzleStatuses
+final class GetUserPuzzleStatuses implements ResetInterface
 {
     /** @var array<string, UserPuzzleStatuses> */
     private array $cache = [];
@@ -15,6 +16,11 @@ final class GetUserPuzzleStatuses
     public function __construct(
         private readonly Connection $database,
     ) {
+    }
+
+    public function reset(): void
+    {
+        $this->cache = [];
     }
 
     public function byPlayerId(null|string $playerId): UserPuzzleStatuses

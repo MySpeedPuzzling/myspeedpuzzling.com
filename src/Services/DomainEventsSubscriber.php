@@ -12,12 +12,13 @@ use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
 use SpeedPuzzling\Web\Entity\EntityWithEvents;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 #[AsDoctrineListener(event: Events::postPersist)]
 #[AsDoctrineListener(event: Events::postUpdate)]
 #[AsDoctrineListener(event: Events::postRemove)]
 #[AsDoctrineListener(event: Events::postFlush)]
-final class DomainEventsSubscriber
+final class DomainEventsSubscriber implements ResetInterface
 {
     /** @var array<EntityWithEvents> */
     private array $entities = [];
@@ -25,6 +26,11 @@ final class DomainEventsSubscriber
     public function __construct(
         readonly private MessageBusInterface $messageBus,
     ) {
+    }
+
+    public function reset(): void
+    {
+        $this->entities = [];
     }
 
     public function postPersist(PostPersistEventArgs $eventArgs): void

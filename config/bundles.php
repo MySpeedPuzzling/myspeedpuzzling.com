@@ -26,4 +26,5 @@ return [
     Symfony\UX\LiveComponent\LiveComponentBundle::class => ['all' => true],
     Symfony\UX\Chartjs\ChartjsBundle::class => ['all' => true],
     Symfony\UX\Icons\UXIconsBundle::class => ['all' => true],
+    Symfony\Bundle\MercureBundle\MercureBundle::class => ['all' => true],
 ];

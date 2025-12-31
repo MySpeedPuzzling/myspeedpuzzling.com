@@ -961,7 +961,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         enable_native_lazy_objects?: bool, // Deprecated: The "enable_native_lazy_objects" option is deprecated and will be removed in DoctrineBundle 4.0, as native lazy objects are now always enabled. // Default: true
  *         controller_resolver?: bool|array{
  *             enabled?: bool, // Default: true
- *             auto_mapping?: bool, // Deprecated: The "auto_mapping" option is deprecated and will be removed in DoctrineBundle 4.0, as it only accepts `false` since 3.0. // Set to true to enable using route placeholders as lookup criteria when the primary key doesn't match the argument name // Default: false
+ *             auto_mapping?: bool, // Deprecated: The "doctrine.orm.controller_resolver.auto_mapping.auto_mapping" option is deprecated and will be removed in DoctrineBundle 4.0, as it only accepts `false` since 3.0. // Set to true to enable using route placeholders as lookup criteria when the primary key doesn't match the argument name // Default: false
  *             evict_cache?: bool, // Set to true to fetch the entity from the database instead of using the cache, if any // Default: false
  *         },
  *         entity_managers?: array<string, array{ // Default: []
@@ -1875,6 +1875,27 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     },
  *     ignore_not_found?: bool, // Ignore error when an icon is not found. Set to 'true' to fail silently. // Default: false
  * }
+ * @psalm-type MercureConfig = array{
+ *     hubs?: array<string, array{ // Default: []
+ *         url?: scalar|null, // URL of the hub's publish endpoint
+ *         public_url?: scalar|null, // URL of the hub's public endpoint // Default: null
+ *         jwt?: string|array{ // JSON Web Token configuration.
+ *             value?: scalar|null, // JSON Web Token to use to publish to this hub.
+ *             provider?: scalar|null, // The ID of a service to call to provide the JSON Web Token.
+ *             factory?: scalar|null, // The ID of a service to call to create the JSON Web Token.
+ *             publish?: list<scalar|null>,
+ *             subscribe?: list<scalar|null>,
+ *             secret?: scalar|null, // The JWT Secret to use.
+ *             passphrase?: scalar|null, // The JWT secret passphrase. // Default: ""
+ *             algorithm?: scalar|null, // The algorithm to use to sign the JWT // Default: "hmac.sha256"
+ *         },
+ *         jwt_provider?: scalar|null, // Deprecated: The child node "jwt_provider" at path "mercure.hubs..jwt_provider" is deprecated, use "jwt.provider" instead. // The ID of a service to call to generate the JSON Web Token.
+ *         bus?: scalar|null, // Name of the Messenger bus where the handler for this hub must be registered. Default to the default bus if Messenger is enabled.
+ *     }>,
+ *     default_hub?: scalar|null,
+ *     default_cookie_lifetime?: int, // Default lifetime of the cookie containing the JWT, in seconds. Defaults to the value of "framework.session.cookie_lifetime". // Default: null
+ *     enable_profiler?: bool, // Deprecated: The child node "enable_profiler" at path "mercure.enable_profiler" is deprecated. // Enable Symfony Web Profiler integration.
+ * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
  *     parameters?: ParametersConfig,
@@ -1899,6 +1920,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     twig_component?: TwigComponentConfig,
  *     live_component?: LiveComponentConfig,
  *     ux_icons?: UxIconsConfig,
+ *     mercure?: MercureConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1924,6 +1946,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         twig_component?: TwigComponentConfig,
  *         live_component?: LiveComponentConfig,
  *         ux_icons?: UxIconsConfig,
+ *         mercure?: MercureConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1950,6 +1973,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         twig_component?: TwigComponentConfig,
  *         live_component?: LiveComponentConfig,
  *         ux_icons?: UxIconsConfig,
+ *         mercure?: MercureConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

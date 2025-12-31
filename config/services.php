@@ -13,6 +13,7 @@ use Sentry\Monolog\Handler as SentryMonologHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
+use SpeedPuzzling\Web\Services\SentryTransactionNameEnhancer;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
 use Symfony\Component\HttpClient\Psr18Client;
@@ -140,4 +141,7 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set('sentry.traces_sampler', \Closure::class)
         ->factory([service(SentryTracesSampler::class), '__invoke']);
+
+    $services->set('sentry.before_send_transaction', \Closure::class)
+        ->factory([service(SentryTransactionNameEnhancer::class), '__invoke']);
 };

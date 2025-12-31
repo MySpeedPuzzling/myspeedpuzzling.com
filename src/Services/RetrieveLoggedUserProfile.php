@@ -12,8 +12,9 @@ use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
-final class RetrieveLoggedUserProfile
+final class RetrieveLoggedUserProfile implements ResetInterface
 {
     private bool $populated = false;
 
@@ -63,5 +64,11 @@ final class RetrieveLoggedUserProfile
         }
 
         return $this->foundProfile;
+    }
+
+    public function reset(): void
+    {
+        $this->populated = false;
+        $this->foundProfile = null;
     }
 }

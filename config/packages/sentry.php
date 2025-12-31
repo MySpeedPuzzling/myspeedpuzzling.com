@@ -26,6 +26,7 @@ return App::config([
                 NotFoundHttpException::class,
             ],
             'traces_sampler' => 'sentry.traces_sampler',
+            'before_send_transaction' => 'sentry.before_send_transaction',
             'profiles_sample_rate' => 1.0, // Profile all traced requests (sampling controlled by traces_sampler)
             'ignore_transactions' => [
                 // Symfony profiler/debug toolbar routes

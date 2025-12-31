@@ -27,7 +27,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Architecture
 
 ### Tech Stack
-- **Backend**: Symfony 7 with PHP 8.3+
+- **Backend**: Symfony 8 with PHP 8.5
+- **Runtime**: FrankenPHP in Worker mode (long-running PHP processes)
+- **Realtime**: Mercure for server-sent events (realtime updates)
 - **Database**: PostgreSQL with Doctrine ORM
 - **Frontend**: Symfony UX (Stimulus, Turbo, Live Components), Bootstrap 5, Chart.js
 - **Assets**: Webpack Encore with Sass/SCSS
@@ -35,6 +37,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **File Storage**: S3-compatible (MinIO in development)
 - **Payments**: Stripe integration
 - **Containerization**: Docker with custom base image
+
+### FrankenPHP Worker Mode
+Since we use FrankenPHP in worker mode, PHP processes persist between requests. Services that cache data in instance properties **must implement `ResetInterface`** to clear state between requests:
+
+```php
+use Symfony\Contracts\Service\ResetInterface;
+
+final class MyService implements ResetInterface
+{
+    private array $cache = [];
+
+    public function reset(): void
+    {
+        $this->cache = [];
+    }
+}
+```
+
+Symfony automatically calls `reset()` between requests. Without this, cached data from one user's request could leak to another user's request.
 
 ### Application Structure
 

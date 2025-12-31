@@ -11,9 +11,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            {{ include('_ladder.html.twig', {
-                puzzle_solving_times: fastest_players_500_pieces
-            }) }}
+            <twig:LadderTable loading="lazy" type="solo" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_solo_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
@@ -23,9 +21,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.solo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            {{ include('_ladder.html.twig', {
-                puzzle_solving_times: fastest_players_1000_pieces
-            }) }}
+            <twig:LadderTable loading="lazy" type="solo" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_solo_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
@@ -37,9 +33,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            {{ include('_ladder.html.twig', {
-                puzzle_solving_times: fastest_pairs_500_pieces
-            }) }}
+            <twig:LadderTable loading="lazy" type="pairs" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_pairs_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
@@ -49,9 +43,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.duo'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            {{ include('_ladder.html.twig', {
-                puzzle_solving_times: fastest_pairs_1000_pieces
-            }) }}
+            <twig:LadderTable loading="lazy" type="pairs" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_pairs_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
@@ -63,9 +55,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            {{ include('_ladder.html.twig', {
-                puzzle_solving_times: fastest_groups_500_pieces
-            }) }}
+            <twig:LadderTable loading="lazy" type="groups" :piecesCount="500" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_groups_500_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>
@@ -75,9 +65,7 @@
         <div class="col">
             <h2 class="h4 mt-4">{{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }} <span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 10</span></h2>
 
-            {{ include('_ladder.html.twig', {
-                puzzle_solving_times: fastest_groups_1000_pieces
-            }) }}
+            <twig:LadderTable loading="lazy" type="groups" :piecesCount="1000" :limit="10" :countryCode="active_country ? active_country.name : null" />
 
             <p class="mb-3">
                 <a href="{{ path('ladder_groups_1000_pieces' ~ (active_country ? '_country' : ''), {countryCode: active_country ? active_country.name : null}) }}" class="btn btn-outline-primary btn-sm">{{ 'show_more'|trans }}</a>

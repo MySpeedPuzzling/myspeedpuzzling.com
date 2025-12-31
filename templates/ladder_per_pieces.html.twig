@@ -20,6 +20,8 @@
 
 {% block content %}
     {% set currentLadder = app.request.attributes.get('_route') %}
+    {% set type = currentLadder starts with 'ladder_solo' ? 'solo' : (currentLadder starts with 'ladder_pairs' ? 'pairs' : 'groups') %}
+    {% set pieces = currentLadder matches '/1000/' ? 1000 : 500 %}
 
     <h1 class="mb-4">{{ 'ladder.title'|trans }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
 
@@ -27,7 +29,5 @@
 
     {{ include('_ladder_dropdown_countries.html.twig') }}
 
-    {{ include('_ladder.html.twig', {
-        puzzle_solving_times: solved_puzzle_times
-    }) }}
+    <twig:LadderTable loading="lazy" :type="type" :piecesCount="pieces" :limit="100" :countryCode="active_country ? active_country.name : null" />
 {% endblock %}

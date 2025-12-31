@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use SpeedPuzzling\Web\Results\PiecesFilter;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\UX\Turbo\TurboBundle;
 
 final class PuzzlesController extends AbstractController
@@ -28,6 +31,7 @@ final class PuzzlesController extends AbstractController
         readonly private GetRanking $getRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetTags $getTags,
+        readonly private CacheInterface $cache,
     ) {
     }
 
@@ -58,30 +62,36 @@ final class PuzzlesController extends AbstractController
             $userRanking = $this->getRanking->allForPlayer($playerProfile->playerId);
         }
 
-        $totalPuzzlesCount = $this->searchPuzzle->countByUserInput(
-            $searchData->brand,
-            $searchData->search,
-            PiecesFilter::fromUserInput($searchData->pieces),
-            $searchData->tag,
-        );
+        $rawOffset = $request->query->get('offset');
+        $offset = 0;
 
-        /** @var null|int $offset */
-        $offset = $request->query->get('offset');
-        if (is_numeric($offset)) {
-            $offset = max(0, (int) $offset);
-            $offset = min($offset, $totalPuzzlesCount);
-        } else {
-            $offset = 0;
+        if (is_numeric($rawOffset)) {
+            $offset = max(0, (int) $rawOffset);
         }
 
-        $foundPuzzle = $this->searchPuzzle->byUserInput(
-            $searchData->brand,
-            $searchData->search,
-            PiecesFilter::fromUserInput($searchData->pieces),
-            $searchData->tag,
-            $searchData->sortBy,
-            $offset,
-        );
+        if ($this->isDefaultSearch($searchData, $offset)) {
+            $cached = $this->getInitialPuzzlesFromCache();
+            $foundPuzzle = $cached['puzzles'];
+            $totalPuzzlesCount = $cached['count'];
+        } else {
+            $totalPuzzlesCount = $this->searchPuzzle->countByUserInput(
+                $searchData->brand,
+                $searchData->search,
+                PiecesFilter::fromUserInput($searchData->pieces),
+                $searchData->tag,
+            );
+
+            $offset = min($offset, $totalPuzzlesCount);
+
+            $foundPuzzle = $this->searchPuzzle->byUserInput(
+                $searchData->brand,
+                $searchData->search,
+                PiecesFilter::fromUserInput($searchData->pieces),
+                $searchData->tag,
+                $searchData->sortBy,
+                $offset,
+            );
+        }
 
         $templateName = 'puzzles.html.twig';
 
@@ -113,5 +123,32 @@ final class PuzzlesController extends AbstractController
             'remaining' => max($totalPuzzlesCount - $limit - $offset, 0),
             'using_search' => $usingSearch,
         ]);
+    }
+
+    private function isDefaultSearch(SearchPuzzleFormData $searchData, int $offset): bool
+    {
+        return $searchData->brand === null
+            && $searchData->search === null
+            && $searchData->tag === null
+            && $searchData->pieces === null
+            && $searchData->sortBy === 'most-solved'
+            && $offset === 0;
+    }
+
+    /**
+     * @return array{puzzles: array<PuzzleOverview>, count: int}
+     */
+    private function getInitialPuzzlesFromCache(): array
+    {
+        return $this->cache->get('initial_puzzles_v1', function (ItemInterface $item): array {
+            $item->expiresAfter(3600);
+
+            $pieces = PiecesFilter::fromUserInput(null);
+
+            return [
+                'puzzles' => $this->searchPuzzle->byUserInput(null, null, $pieces, null, 'most-solved', 0),
+                'count' => $this->searchPuzzle->countByUserInput(null, null, $pieces, null),
+            ];
+        });
     }
 }

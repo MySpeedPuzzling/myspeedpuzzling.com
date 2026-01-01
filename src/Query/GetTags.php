@@ -104,11 +104,15 @@ SQL;
         foreach ($results as $row) {
             /**
              * @var array{
-             *     puzzle_id: string,
+             *     puzzle_id: null|string,
              *     tag_id: string,
              *     name: string,
              * } $row
              */
+
+            if ($row['puzzle_id'] === null) {
+                continue;
+            }
 
             $data[$row['puzzle_id']][] = PuzzleTag::fromDatabaseRow($row);
         }

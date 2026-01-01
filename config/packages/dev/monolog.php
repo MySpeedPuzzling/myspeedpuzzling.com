@@ -14,7 +14,12 @@ return App::config([
                 'type' => 'stream',
                 'path' => '%kernel.logs_dir%/%kernel.environment%.log',
                 'level' => 'debug',
-                'channels' => ['!event'],
+                'channels' => ['!event', '!php'],
+            ],
+            'deprecation' => [
+                'type' => 'stream',
+                'path' => 'php://stdout',
+                'channels' => ['php'],
             ],
             'stdout' => [
                 'type' => 'stream',

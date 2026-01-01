@@ -69,14 +69,16 @@
                                 <small>{{ 'solo_solved'|trans }}</small> {{ most_active_player.solvedPuzzlesCount }}&times;<br>
 
                                 <small class="text-muted">
-                                    {{ 'pieces_count'|trans({'%count%': most_active_player.totalPiecesCount|format_number([], 'decimal', 'default', 'cs')})|raw }}<br>
-
-                                    {% if most_active_player.totalSeconds|daysElapsed > 0 %}
-                                        {{ most_active_player.totalSeconds|daysElapsed }}d
+                                    {{ 'pieces_count'|trans({'%count%': most_active_player.totalPiecesCount|format_number([], 'decimal', 'default', 'cs')})|raw }}
+                                    {% if most_active_player.totalSeconds is not null %}
+                                        <br>
+                                        {% if most_active_player.totalSeconds|daysElapsed > 0 %}
+                                            {{ most_active_player.totalSeconds|daysElapsed }}d
+                                        {% endif %}
+                                        {{ most_active_player.totalSeconds|hoursElapsed(false) }}h
+                                        {{ most_active_player.totalSeconds|minutesElapsed }}m
+                                        {{ most_active_player.totalSeconds|secondsElapsed }}s
                                     {% endif %}
-                                    {{ most_active_player.totalSeconds|hoursElapsed(false) }}h
-                                    {{ most_active_player.totalSeconds|minutesElapsed }}m
-                                    {{ most_active_player.totalSeconds|secondsElapsed }}s
                                 </small>
                             </td>
                         </tr>

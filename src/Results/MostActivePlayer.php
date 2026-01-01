@@ -14,7 +14,7 @@ readonly final class MostActivePlayer
         public null|CountryCode $playerCountry,
         public int $solvedPuzzlesCount,
         public int $totalPiecesCount,
-        public int $totalSeconds,
+        public null|int $totalSeconds,
         public bool $isPrivate,
     ) {
     }
@@ -26,7 +26,7 @@ readonly final class MostActivePlayer
      *     player_country: null|string,
      *     solved_puzzles_count: int,
      *     total_pieces_count: int,
-     *     total_seconds: int,
+     *     total_seconds: null|int,
      *     is_private: bool,
      * } $row
      */

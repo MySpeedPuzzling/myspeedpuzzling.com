@@ -269,7 +269,7 @@ forms:
     too_high_ppm: "入力したタイムを確認してください。そんなに早くパズルを解くことは不可能です！ :-) タイムはHH:MM:SS形式で入力してください。入力したタイムは新世界記録になります！ :-)"
     ppm_warning_title: "タイムを確認してください"
     ppm_warning_too_fast: "ペースがとても速いようです！タイムが正しく入力されているか確認してください。"
-    ppm_warning_too_slow: "解答時間がかなり長いようです。タイムが正しいか確認してください。"
+    ppm_warning_too_slow: "念のため確認です - 時間を正しく入力しましたか？時間と分が入れ替わることがあります。"
     ppm_confirm_button: "はい、タイムは正しいです"
     ppm_cancel_button: "確認させてください"
     ppm_entered_time: "入力したタイム"

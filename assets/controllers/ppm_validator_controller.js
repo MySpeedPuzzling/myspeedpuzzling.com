@@ -246,6 +246,9 @@ export default class extends Controller {
             }
         }
 
+        // Reset submit prevention so the new submit isn't blocked
+        this.resetSubmitPrevention();
+
         // Mark as confirmed and submit
         this.confirmedValue = true;
         this.element.requestSubmit();

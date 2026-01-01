@@ -259,7 +259,7 @@ forms:
     too_high_ppm: "Bitte überprüfen Sie die eingegebene Zeit, es ist unmöglich, das Puzzle so schnell zu lösen! :-) Die Zeit sollte im Format HH:MM:SS eingegeben werden. Die von Ihnen eingegebene Zeit wäre ein neuer Weltrekord! :-)"
     ppm_warning_title: "Bitte überprüfen Sie Ihre Zeit"
     ppm_warning_too_fast: "Ihre Zeit scheint sehr schnell zu sein! Bitte überprüfen Sie, ob Sie die Zeit richtig eingegeben haben."
-    ppm_warning_too_slow: "Ihre Lösungszeit scheint ziemlich lang zu sein. Bitte überprüfen Sie, ob Ihre Zeit korrekt ist."
+    ppm_warning_too_slow: "Kurze Kontrolle - haben Sie die Zeit richtig eingegeben? Manchmal werden Stunden und Minuten vertauscht."
     ppm_confirm_button: "Ja, die Zeit ist korrekt"
     ppm_cancel_button: "Lass mich nachsehen"
     ppm_entered_time: "Sie haben eingegeben"

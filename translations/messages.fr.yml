@@ -274,7 +274,7 @@ forms:
     too_high_ppm: "Veuillez vérifier le temps que vous avez saisi, il n'est pas possible de résoudre le puzzle si rapidement ! :-) Le temps doit être saisi au format HH:MM:SS. Le temps que vous avez saisi serait un nouveau record du monde ! :-)"
     ppm_warning_title: "Veuillez vérifier votre temps"
     ppm_warning_too_fast: "Votre rythme semble très rapide ! Veuillez vérifier que vous avez saisi le temps correctement."
-    ppm_warning_too_slow: "Votre temps de résolution semble assez long. Veuillez vérifier que votre temps est correct."
+    ppm_warning_too_slow: "Petite vérification - avez-vous entré le temps correctement ? Parfois les heures et les minutes peuvent être confondues."
     ppm_confirm_button: "Oui, le temps est correct"
     ppm_cancel_button: "Laissez-moi vérifier"
     ppm_entered_time: "Vous avez saisi"

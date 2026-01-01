@@ -32,7 +32,9 @@ final class AddToSellSwapListFormType extends AbstractType
                 'sell_swap_list.listing_type.swap' => ListingType::Swap,
                 'sell_swap_list.listing_type.sell' => ListingType::Sell,
                 'sell_swap_list.listing_type.both' => ListingType::Both,
+                'sell_swap_list.listing_type.free' => ListingType::Free,
             ],
+            'choice_value' => static fn (null|ListingType $choice): null|string => $choice?->value,
         ]);
 
         $builder->add('price', NumberType::class, [

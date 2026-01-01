@@ -1146,6 +1146,7 @@ sell_swap_list:
         both: "売却または交換"
         sell: "売却"
         swap: "交換"
+        free: "無料で差し上げます"
     login_required: "売買・交換リストを管理するにはログインが必要です。"
     mark_sold:
         button: "売却・交換済みにする"

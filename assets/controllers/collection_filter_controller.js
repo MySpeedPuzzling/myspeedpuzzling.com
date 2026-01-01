@@ -144,8 +144,8 @@ export default class extends Controller {
         // Listing type filter (sell-swap)
         if (listingType && listingType !== 'all') {
             const itemListingType = item.dataset.listingType;
-            // 'both' matches both swap and sell filters
-            if (itemListingType !== listingType && itemListingType !== 'both') {
+            // 'both' matches swap and sell filters (but not 'free')
+            if (itemListingType !== listingType && !(itemListingType === 'both' && (listingType === 'swap' || listingType === 'sell'))) {
                 return false;
             }
         }

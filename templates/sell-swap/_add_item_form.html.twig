@@ -6,11 +6,9 @@
 <input type="hidden" name="context" value="{{ context|default('detail') }}">
 <input type="hidden" name="collection_id" value="{{ collection_id|default('') }}">
 
-<div data-controller="conditional-field" data-conditional-field-trigger-value="swap" data-conditional-field-hide-on-value="true">
+<div data-controller="conditional-field" data-conditional-field-trigger-value="swap,free" data-conditional-field-hide-on-value="true">
     <div class="mb-3">
-        {{ form_row(form.listingType, {
-            attr: {'data-action': 'change->conditional-field#toggle'}
-        }) }}
+        {{ form_row(form.listingType) }}
     </div>
 
     <div class="mb-3" data-conditional-field-target="conditionalElement">

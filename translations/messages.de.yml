@@ -1138,6 +1138,7 @@ sell_swap_list:
         swap: "Tausch"
         sell: "Verkauf"
         both: "Verkauf oder Tausch"
+        free: "Kostenlos abzugeben"
     condition:
         like_new: "Wie neu"
         normal: "Normal"

@@ -9,6 +9,13 @@ export default class extends Controller {
 
     connect() {
         this._updateVisibility();
+
+        // Listen for changes on radio buttons and selects within this controller
+        this.element.addEventListener('change', (event) => {
+            if (event.target.matches('input[type="radio"], select')) {
+                this._updateVisibility(event.target.value);
+            }
+        });
     }
 
     toggle(event) {
@@ -33,7 +40,8 @@ export default class extends Controller {
             }
         }
 
-        const matches = value === this.triggerValue;
+        const triggerValues = this.triggerValue.split(',').map(v => v.trim());
+        const matches = triggerValues.includes(value);
         const shouldShow = this.hideOnValue ? !matches : matches;
 
         if (shouldShow) {

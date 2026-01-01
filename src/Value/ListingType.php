@@ -9,4 +9,5 @@ enum ListingType: string
     case Swap = 'swap';
     case Sell = 'sell';
     case Both = 'both';
+    case Free = 'free';
 }

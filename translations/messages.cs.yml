@@ -1205,6 +1205,7 @@ sell_swap_list:
         sell: "Prodej"
         swap: "Výměna"
         both: "Prodej i výměna"
+        free: "Zdarma k odběru"
     condition:
         like_new: "Jako nové"
         normal: "Normální"

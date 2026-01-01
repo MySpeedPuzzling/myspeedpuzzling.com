@@ -83,6 +83,8 @@
                                         <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
                                     {% elseif offer.listingType.value == 'sell' %}
                                         <span class="badge bg-success">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
+                                    {% elseif offer.listingType.value == 'free' %}
+                                        <span class="badge bg-danger">{{ 'sell_swap_list.listing_type.free'|trans }}</span>
                                     {% else %}
                                         <span class="badge bg-primary">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
                                     {% endif %}

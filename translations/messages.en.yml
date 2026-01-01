@@ -1163,6 +1163,7 @@ sell_swap_list:
         swap: "Swap"
         sell: "Sell"
         both: "Either Sell or Swap"
+        free: "Give Away for Free"
     condition:
         like_new: "Like New"
         normal: "Normal"

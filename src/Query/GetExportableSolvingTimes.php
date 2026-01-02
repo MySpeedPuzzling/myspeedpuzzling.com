@@ -40,15 +40,8 @@ SELECT
     pst.first_attempt,
     pst.finished_puzzle_photo,
     pst.comment,
-    CASE
-        WHEN pst.team IS NULL THEN 'solo'
-        WHEN json_array_length(pst.team -> 'puzzlers') = 2 THEN 'duo'
-        ELSE 'team'
-    END AS solving_type,
-    CASE
-        WHEN pst.team IS NULL THEN 1
-        ELSE json_array_length(pst.team -> 'puzzlers')
-    END AS players_count,
+    pst.puzzling_type AS solving_type,
+    pst.puzzlers_count AS players_count,
     (
         SELECT string_agg(
             COALESCE(

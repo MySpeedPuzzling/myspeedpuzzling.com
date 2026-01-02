@@ -64,9 +64,8 @@ WITH player_data AS (
     LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     WHERE puzzle.pieces_count = :piecesCount
-        AND puzzle_solving_time.team IS NOT NULL
+        AND puzzle_solving_time.puzzling_type = 'duo'
         AND seconds_to_solve > 0
-        AND json_array_length(team -> 'puzzlers') = 2
         AND puzzle_solving_time.suspicious = false
     GROUP BY puzzle.id, player.id, manufacturer.id, puzzle_solving_time.id, competition.id
 )

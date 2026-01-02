@@ -46,7 +46,7 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
-    AND puzzle_solving_time.team IS NULL
+    AND puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.seconds_to_solve IS NOT NULL
     AND puzzle_solving_time.suspicious = false
 ORDER BY seconds_to_solve ASC
@@ -120,9 +120,8 @@ FROM
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     pst.puzzle_id = :puzzleId
-    AND pst.team IS NOT NULL
+    AND pst.puzzling_type = 'duo'
     AND pst.seconds_to_solve IS NOT NULL
-    AND json_array_length(team -> 'puzzlers') = 2
     AND pst.suspicious = false
 GROUP BY
     pst.id, time, competition.id
@@ -196,9 +195,8 @@ FROM
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     pst.puzzle_id = :puzzleId
-    AND pst.team IS NOT NULL
+    AND pst.puzzling_type = 'team'
     AND pst.seconds_to_solve IS NOT NULL
-    AND json_array_length(team -> 'puzzlers') > 2
     AND pst.suspicious = false
 GROUP BY
     pst.id, time, competition.id
@@ -245,9 +243,9 @@ SQL;
 
         $query = <<<SQL
 SELECT
-    COUNT(*) FILTER (WHERE team IS NULL) AS solo_count,
-    COUNT(*) FILTER (WHERE team IS NOT NULL AND json_array_length(team -> 'puzzlers') = 2) AS duo_count,
-    COUNT(*) FILTER (WHERE team IS NOT NULL AND json_array_length(team -> 'puzzlers') > 2) AS team_count
+    COUNT(*) FILTER (WHERE puzzling_type = 'solo') AS solo_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'duo') AS duo_count,
+    COUNT(*) FILTER (WHERE puzzling_type = 'team') AS team_count
 FROM puzzle_solving_time
 WHERE puzzle_id = :puzzleId
     AND seconds_to_solve IS NULL

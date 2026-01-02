@@ -160,28 +160,16 @@ SELECT
     m.id AS manufacturer_id,
     pb.puzzle_ean,
     pb.puzzle_identification_number,
-    COUNT(pst.id) AS solved_times,
-    AVG(CASE WHEN pst.team IS NULL THEN pst.seconds_to_solve END) AS average_time_solo,
-    MIN(CASE WHEN pst.team IS NULL THEN pst.seconds_to_solve END) AS fastest_time_solo,
-    AVG(CASE WHEN json_array_length(pst.team->'puzzlers') = 2 THEN pst.seconds_to_solve END) AS average_time_duo,
-    MIN(CASE WHEN json_array_length(pst.team->'puzzlers') = 2 THEN pst.seconds_to_solve END) AS fastest_time_duo,
-    AVG(CASE WHEN json_array_length(pst.team->'puzzlers') > 2 THEN pst.seconds_to_solve END) AS average_time_team,
-    MIN(CASE WHEN json_array_length(pst.team->'puzzlers') > 2 THEN pst.seconds_to_solve END) AS fastest_time_team
+    COALESCE(ps.solved_times_count, 0) AS solved_times,
+    ps.average_time_solo,
+    ps.fastest_time_solo,
+    ps.average_time_duo,
+    ps.fastest_time_duo,
+    ps.average_time_team,
+    ps.fastest_time_team
 FROM puzzle_base pb
-LEFT JOIN puzzle_solving_time pst ON pst.puzzle_id = pb.puzzle_id
+LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = pb.puzzle_id
 INNER JOIN manufacturer m ON pb.manufacturer_id = m.id
-GROUP BY pb.puzzle_id,
-         pb.puzzle_name,
-         pb.puzzle_image,
-         pb.puzzle_alternative_name,
-         pb.pieces_count,
-         pb.is_available,
-         pb.puzzle_approved,
-         pb.puzzle_ean,
-         pb.puzzle_identification_number,
-         m.name,
-         m.id,
-         pb.match_score
 SQL;
         if ($sortBy === 'most-solved') {
             $query .= ' ORDER BY solved_times DESC, pb.match_score DESC, pb.puzzle_name, m.name ';

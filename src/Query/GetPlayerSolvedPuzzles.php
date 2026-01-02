@@ -157,7 +157,7 @@ WITH solved_counts AS (
         puzzle_id,
         COUNT(id) AS solved_times
     FROM puzzle_solving_time
-    WHERE team IS NULL
+    WHERE puzzling_type = 'solo'
       AND player_id = :playerId
     GROUP BY puzzle_id
 )
@@ -194,7 +194,7 @@ FROM puzzle_solving_time
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
 WHERE
     puzzle_solving_time.player_id = :playerId
-    AND puzzle_solving_time.team IS NULL
+    AND puzzle_solving_time.puzzling_type = 'solo'
 SQL;
 
         if ($onlyFirstTries === true) {
@@ -281,7 +281,7 @@ WITH filtered_pst_ids AS (
     FROM puzzle_solving_time
     WHERE
         (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-        AND json_array_length(team -> 'puzzlers') = 2
+        AND puzzling_type = 'duo'
 SQL;
 
         if ($dateFrom !== null) {
@@ -408,7 +408,7 @@ WITH filtered_pst_ids AS (
     FROM puzzle_solving_time
     WHERE
         (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-        AND json_array_length(team -> 'puzzlers') > 2
+        AND puzzling_type = 'team'
 SQL;
 
         if ($dateFrom !== null) {

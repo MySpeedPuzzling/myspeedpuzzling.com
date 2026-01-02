@@ -30,7 +30,7 @@ WITH FastestTimes AS (
         FROM puzzle_solving_time pst
         INNER JOIN puzzle p ON p.id = pst.puzzle_id
         INNER JOIN player pl ON pl.id = pst.player_id
-        WHERE pst.team IS NULL
+        WHERE pst.puzzling_type = 'solo'
           AND p.pieces_count = :piecesCount
           AND pst.seconds_to_solve > 0
           AND pl.is_private = false

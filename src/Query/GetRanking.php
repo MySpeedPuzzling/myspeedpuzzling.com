@@ -45,7 +45,7 @@ WITH PlayerPuzzles AS (
         puzzle_solving_time
     WHERE
         player_id = :playerId AND
-        team IS NULL
+        puzzling_type = 'solo'
 ),
 BestTimes AS (
     SELECT
@@ -56,7 +56,7 @@ BestTimes AS (
         puzzle_solving_time pst
         INNER JOIN PlayerPuzzles pp ON pst.puzzle_id = pp.puzzle_id
     WHERE
-        pst.team IS NULL
+        pst.puzzling_type = 'solo'
         AND pst.seconds_to_solve IS NOT NULL
     GROUP BY
         pst.puzzle_id, pst.player_id
@@ -153,7 +153,7 @@ WITH BestTimes AS (
         MIN(seconds_to_solve) as best_time
     FROM
         puzzle_solving_time
-    WHERE team IS NULL
+    WHERE puzzling_type = 'solo'
         AND puzzle_id = :puzzleId
         AND seconds_to_solve IS NOT NULL
     GROUP BY

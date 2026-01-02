@@ -155,7 +155,7 @@ INNER JOIN
     puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE
     puzzle_solving_time.player_id IN (:playerIds)
-    AND puzzle_solving_time.team IS NULL
+    AND puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle.pieces_count = 500
 SQL;
 

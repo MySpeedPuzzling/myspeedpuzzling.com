@@ -33,7 +33,7 @@ SELECT
     COALESCE(COUNT(puzzle_solving_time.id), 0) AS solved_puzzles_count,
     COALESCE(SUM(puzzle.pieces_count), 0) AS total_pieces
 FROM player
-LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id AND puzzle_solving_time.team IS NULL
+LEFT JOIN puzzle_solving_time ON puzzle_solving_time.player_id = player.id AND puzzle_solving_time.puzzling_type = 'solo'
 LEFT JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 WHERE
     player.id = :playerId
@@ -84,8 +84,7 @@ LEFT JOIN puzzle_solving_time ON EXISTS (
         SELECT 1
         FROM json_array_elements(puzzle_solving_time.team->'puzzlers') AS team_player
         WHERE (team_player->>'player_id')::UUID = player.id
-            AND puzzle_solving_time.team IS NOT NULL
-            AND json_array_length(team -> 'puzzlers') = 2
+            AND puzzle_solving_time.puzzling_type = 'duo'
     )
 LEFT JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE
@@ -137,8 +136,7 @@ LEFT JOIN puzzle_solving_time ON EXISTS (
         SELECT 1
         FROM json_array_elements(puzzle_solving_time.team->'puzzlers') AS team_player
         WHERE (team_player->>'player_id')::UUID = player.id
-            AND puzzle_solving_time.team IS NOT NULL
-            AND json_array_length(team -> 'puzzlers') > 2
+            AND puzzle_solving_time.puzzling_type = 'team'
     )
 LEFT JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE

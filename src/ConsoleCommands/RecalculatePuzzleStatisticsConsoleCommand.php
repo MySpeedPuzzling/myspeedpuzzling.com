@@ -44,17 +44,17 @@ final class RecalculatePuzzleStatisticsConsoleCommand extends Command
 
                 COUNT(*) FILTER (WHERE puzzling_type = 'solo'),
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo'),
-                AVG(seconds_to_solve)::int FILTER (WHERE puzzling_type = 'solo'),
+                (AVG(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo'))::int,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo'),
 
                 COUNT(*) FILTER (WHERE puzzling_type = 'duo'),
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo'),
-                AVG(seconds_to_solve)::int FILTER (WHERE puzzling_type = 'duo'),
+                (AVG(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo'))::int,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo'),
 
                 COUNT(*) FILTER (WHERE puzzling_type = 'team'),
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'team'),
-                AVG(seconds_to_solve)::int FILTER (WHERE puzzling_type = 'team'),
+                (AVG(seconds_to_solve) FILTER (WHERE puzzling_type = 'team'))::int,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'team')
             FROM puzzle_solving_time
             GROUP BY puzzle_id

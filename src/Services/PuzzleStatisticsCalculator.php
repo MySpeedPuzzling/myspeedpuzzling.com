@@ -28,19 +28,19 @@ readonly final class PuzzleStatisticsCalculator
                 -- Solo
                 COUNT(*) FILTER (WHERE puzzling_type = 'solo') AS solo_count,
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo') AS fastest_time_solo,
-                AVG(seconds_to_solve)::int FILTER (WHERE puzzling_type = 'solo') AS average_time_solo,
+                (AVG(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo'))::int AS average_time_solo,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'solo') AS slowest_time_solo,
 
                 -- Duo
                 COUNT(*) FILTER (WHERE puzzling_type = 'duo') AS duo_count,
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo') AS fastest_time_duo,
-                AVG(seconds_to_solve)::int FILTER (WHERE puzzling_type = 'duo') AS average_time_duo,
+                (AVG(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo'))::int AS average_time_duo,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'duo') AS slowest_time_duo,
 
                 -- Team
                 COUNT(*) FILTER (WHERE puzzling_type = 'team') AS team_count,
                 MIN(seconds_to_solve) FILTER (WHERE puzzling_type = 'team') AS fastest_time_team,
-                AVG(seconds_to_solve)::int FILTER (WHERE puzzling_type = 'team') AS average_time_team,
+                (AVG(seconds_to_solve) FILTER (WHERE puzzling_type = 'team'))::int AS average_time_team,
                 MAX(seconds_to_solve) FILTER (WHERE puzzling_type = 'team') AS slowest_time_team
             FROM puzzle_solving_time
             WHERE puzzle_id = :puzzleId

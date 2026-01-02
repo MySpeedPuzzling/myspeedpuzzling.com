@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Doctrine;
 
+use Doctrine\DBAL\Schema\PrimaryKeyConstraint;
 use Doctrine\DBAL\Schema\SchemaException;
 use Doctrine\Migrations\DependencyFactory;
 use Doctrine\Migrations\Metadata\Storage\TableMetadataStorageConfiguration;
@@ -40,6 +41,10 @@ readonly final class FixDoctrineMigrationTableSchema
         $table->addColumn($this->configuration->getExecutedAtColumnName(), 'datetime', ['notnull' => false]);
         $table->addColumn($this->configuration->getExecutionTimeColumnName(), 'integer', ['notnull' => false]);
 
-        $table->setPrimaryKey([$this->configuration->getVersionColumnName()]);
+        $table->addPrimaryKeyConstraint(
+            PrimaryKeyConstraint::editor()
+                ->setUnquotedColumnNames($this->configuration->getVersionColumnName())
+                ->create()
+        );
     }
 }

@@ -126,6 +126,15 @@ function createPostgresExtensions(): void
 
     // Create extensions required by application queries (mirrors migrations)
     $pdo->exec('CREATE EXTENSION IF NOT EXISTS unaccent');
+    $pdo->exec('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+
+    // Create immutable wrapper for unaccent (required for index expressions)
+    $pdo->exec("
+        CREATE OR REPLACE FUNCTION immutable_unaccent(text)
+        RETURNS text AS \$\$
+            SELECT unaccent('unaccent', \$1)
+        \$\$ LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+    ");
 }
 
 /**

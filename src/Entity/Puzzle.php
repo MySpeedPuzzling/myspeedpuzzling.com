@@ -8,12 +8,16 @@ use DateTimeImmutable;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 #[Entity]
+#[Index(columns: ['pieces_count'])]
+#[Index(columns: ['identification_number'])]
+#[Index(columns: ['ean'])]
 class Puzzle
 {
     public function __construct(

@@ -38,16 +38,16 @@ SELECT
 FROM puzzle
 LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 WHERE
-    manufacturer_id = COALESCE(:brandId, manufacturer_id)
-    AND pieces_count >= COALESCE(:minPieces, pieces_count)
-    AND pieces_count <= COALESCE(:maxPieces, pieces_count)
+    (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
+    AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
+    AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
     AND (
-        LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery)
-        OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery)
-        OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-        OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-        OR identification_number LIKE :searchFullLikeQuery
-        OR ean LIKE :eanSearchFullLikeQuery
+        puzzle.alternative_name ILIKE :searchFullLikeQuery
+        OR puzzle.name ILIKE :searchFullLikeQuery
+        OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
+        OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
+        OR identification_number ILIKE :searchFullLikeQuery
+        OR ean ILIKE :eanSearchFullLikeQuery
    )
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
 SQL;
@@ -96,7 +96,7 @@ SQL;
 
         $query = <<<SQL
 WITH puzzle_base AS (
-    SELECT
+    SELECT DISTINCT ON (puzzle.id)
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
         puzzle.image AS puzzle_image,
@@ -108,43 +108,43 @@ WITH puzzle_base AS (
         puzzle.ean AS puzzle_ean,
         puzzle.identification_number AS puzzle_identification_number,
         CASE
-            WHEN LOWER(puzzle.alternative_name) = LOWER(:searchQuery)
-              OR LOWER(puzzle.name) = LOWER(:searchQuery)
+            WHEN puzzle.alternative_name ILIKE :searchQuery
+              OR puzzle.name ILIKE :searchQuery
               OR puzzle.identification_number = :searchQuery
               OR puzzle.ean = :eanSearchQuery THEN 7
-            WHEN LOWER(unaccent(puzzle.alternative_name)) = LOWER(unaccent(:searchQuery))
-              OR LOWER(unaccent(puzzle.name)) = LOWER(unaccent(:searchQuery)) THEN 6
-            WHEN puzzle.identification_number LIKE :searchEndLikeQuery
-              OR puzzle.identification_number LIKE :searchStartLikeQuery
-              OR puzzle.ean LIKE :eanSearchEndLikeQuery
-              OR puzzle.ean LIKE :eanSearchStartLikeQuery THEN 5
-            WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchEndLikeQuery)
-              OR LOWER(puzzle.alternative_name) LIKE LOWER(:searchStartLikeQuery)
-              OR LOWER(puzzle.name) LIKE LOWER(:searchEndLikeQuery)
-              OR LOWER(puzzle.name) LIKE LOWER(:searchStartLikeQuery) THEN 4
-            WHEN LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchEndLikeQuery))
-              OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchStartLikeQuery))
-              OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchEndLikeQuery))
-              OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchStartLikeQuery)) THEN 3
-            WHEN puzzle.identification_number LIKE :searchFullLikeQuery
-              OR puzzle.ean LIKE :eanSearchFullLikeQuery THEN 2
-            WHEN LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery)
-              OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery) THEN 1
+            WHEN immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchQuery)
+              OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchQuery) THEN 6
+            WHEN puzzle.identification_number ILIKE :searchEndLikeQuery
+              OR puzzle.identification_number ILIKE :searchStartLikeQuery
+              OR puzzle.ean ILIKE :eanSearchEndLikeQuery
+              OR puzzle.ean ILIKE :eanSearchStartLikeQuery THEN 5
+            WHEN puzzle.alternative_name ILIKE :searchEndLikeQuery
+              OR puzzle.alternative_name ILIKE :searchStartLikeQuery
+              OR puzzle.name ILIKE :searchEndLikeQuery
+              OR puzzle.name ILIKE :searchStartLikeQuery THEN 4
+            WHEN immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchEndLikeQuery)
+              OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchStartLikeQuery)
+              OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchEndLikeQuery)
+              OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchStartLikeQuery) THEN 3
+            WHEN puzzle.identification_number ILIKE :searchFullLikeQuery
+              OR puzzle.ean ILIKE :eanSearchFullLikeQuery THEN 2
+            WHEN puzzle.alternative_name ILIKE :searchFullLikeQuery
+              OR puzzle.name ILIKE :searchFullLikeQuery THEN 1
             ELSE 0
         END AS match_score
     FROM puzzle
     LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
     WHERE
-        manufacturer_id = COALESCE(:brandId, manufacturer_id)
-        AND pieces_count >= COALESCE(:minPieces, pieces_count)
-        AND pieces_count <= COALESCE(:maxPieces, pieces_count)
+        (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
+        AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
+        AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
         AND (
-            LOWER(puzzle.alternative_name) LIKE LOWER(:searchFullLikeQuery)
-            OR LOWER(puzzle.name) LIKE LOWER(:searchFullLikeQuery)
-            OR LOWER(unaccent(puzzle.alternative_name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-            OR LOWER(unaccent(puzzle.name)) LIKE LOWER(unaccent(:searchFullLikeQuery))
-            OR puzzle.identification_number LIKE :searchFullLikeQuery
-            OR puzzle.ean LIKE :eanSearchFullLikeQuery
+            puzzle.alternative_name ILIKE :searchFullLikeQuery
+            OR puzzle.name ILIKE :searchFullLikeQuery
+            OR immutable_unaccent(puzzle.alternative_name) ILIKE immutable_unaccent(:searchFullLikeQuery)
+            OR immutable_unaccent(puzzle.name) ILIKE immutable_unaccent(:searchFullLikeQuery)
+            OR puzzle.identification_number ILIKE :searchFullLikeQuery
+            OR puzzle.ean ILIKE :eanSearchFullLikeQuery
         )
         AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
 )

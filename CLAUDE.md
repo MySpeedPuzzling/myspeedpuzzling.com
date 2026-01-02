@@ -24,6 +24,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Adminer available at localhost:8000
 - Migrations are in `migrations/` directory
 
+### Custom Database Indexes
+Indexes that Doctrine cannot manage (e.g., GIN trigram indexes, expression indexes) are handled via a custom `SchemaManagerFactory`:
+1. **Named with `custom_` prefix** - e.g., `custom_puzzle_name_trgm`
+2. **Created in migrations** - add them manually to migration files
+3. **Mirrored in `tests/bootstrap.php`** - The `createPostgresExtensions()` function must create any required extensions/functions
+4. **Automatically ignored by Doctrine** - `CustomIndexFilteringSchemaManagerFactory` filters out `custom_*` indexes during schema introspection, so Doctrine will NOT generate `DROP INDEX` statements for them
+
+Example custom index (from `Version20260102200000.php`):
+```sql
+-- GIN trigram index for ILIKE with wildcards
+CREATE INDEX custom_puzzle_name_trgm ON puzzle USING GIN (name gin_trgm_ops);
+```
+
+The `immutable_unaccent()` function is a custom wrapper around PostgreSQL's `unaccent()` that is marked IMMUTABLE (required for index expressions). Use it in queries that should leverage accent-insensitive trigram indexes.
+
 ## Architecture
 
 ### Tech Stack

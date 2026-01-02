@@ -68,6 +68,11 @@ SQL;
      */
     public function topInMonth(int $limit, int $month, int $year): array
     {
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = $month === 12
+            ? sprintf('%04d-01-01', $year + 1)
+            : sprintf('%04d-%02d-01', $year, $month + 1);
+
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
@@ -82,8 +87,8 @@ SELECT
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-WHERE EXTRACT(MONTH FROM puzzle_solving_time.tracked_at) = :month
-  AND EXTRACT(YEAR FROM puzzle_solving_time.tracked_at) = :year
+WHERE puzzle_solving_time.tracked_at >= :startDate
+  AND puzzle_solving_time.tracked_at < :endDate
 GROUP BY puzzle.id, manufacturer.id
 ORDER BY solved_times DESC
 LIMIT :howManyPuzzles
@@ -92,8 +97,8 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'howManyPuzzles' => $limit,
-                'month' => $month,
-                'year' => $year,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
             ])
             ->fetchAllAssociative();
 

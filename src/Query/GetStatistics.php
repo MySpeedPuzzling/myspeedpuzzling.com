@@ -41,6 +41,11 @@ SQL;
 
     public function globallyInMonth(int $month, int $year): GlobalStatistics
     {
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = $month === 12
+            ? sprintf('%04d-01-01', $year + 1)
+            : sprintf('%04d-%02d-01', $year, $month + 1);
+
         $query = <<<SQL
 SELECT
     SUM(puzzle_solving_time.seconds_to_solve) AS total_seconds,
@@ -48,8 +53,8 @@ SELECT
     SUM(puzzle.pieces_count) AS total_pieces
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-WHERE EXTRACT(MONTH FROM puzzle_solving_time.tracked_at) = :month
-    AND EXTRACT(YEAR FROM puzzle_solving_time.tracked_at) = :year
+WHERE puzzle_solving_time.tracked_at >= :startDate
+    AND puzzle_solving_time.tracked_at < :endDate
 SQL;
 
         /**
@@ -61,8 +66,8 @@ SQL;
          */
         $row = $this->database
             ->executeQuery($query, [
-                'month' => $month,
-                'year' => $year,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
             ])
             ->fetchAssociative();
 

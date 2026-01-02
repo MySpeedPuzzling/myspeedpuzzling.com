@@ -23,7 +23,7 @@ SELECT
     p.country AS player_country,
     p.code AS player_code,
     is_private,
-    COUNT(DISTINCT subquery.puzzle_id || '-' || subquery.player_id) as solved_puzzles_count
+    COUNT(DISTINCT (subquery.puzzle_id, subquery.player_id)) as solved_puzzles_count
 FROM (
     SELECT
         pst.id as puzzle_id,
@@ -31,14 +31,14 @@ FROM (
     FROM
         puzzle_solving_time pst
 
-    UNION
+    UNION ALL
 
     SELECT
         pst.id as puzzle_id,
-        (json_array_elements_text(pst.team->'puzzlers')::json->>'player_id')::uuid as player_id
+        (elem.player ->> 'player_id')::uuid as player_id
     FROM
         puzzle_solving_time pst
-        CROSS JOIN LATERAL json_array_elements(pst.team->'puzzlers')
+        CROSS JOIN LATERAL json_array_elements(pst.team -> 'puzzlers') AS elem(player)
     WHERE
         pst.team IS NOT NULL
 ) as subquery
@@ -101,6 +101,11 @@ SQL;
      */
     public function mostActiveSoloPlayersInMonth(int $limit, int $month, int $year): array
     {
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = $month === 12
+            ? sprintf('%04d-01-01', $year + 1)
+            : sprintf('%04d-%02d-01', $year, $month + 1);
+
         $query = <<<SQL
 SELECT
     player.id AS player_id,
@@ -115,8 +120,8 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE puzzle_solving_time.puzzling_type = 'solo'
-    AND EXTRACT(MONTH FROM puzzle_solving_time.tracked_at) = :month
-    AND EXTRACT(YEAR FROM puzzle_solving_time.tracked_at) = :year
+    AND puzzle_solving_time.tracked_at >= :startDate
+    AND puzzle_solving_time.tracked_at < :endDate
 GROUP BY player.id
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit
@@ -125,8 +130,8 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'limit' => $limit,
-                'month' => $month,
-                'year' => $year,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
             ])
             ->fetchAllAssociative();
 

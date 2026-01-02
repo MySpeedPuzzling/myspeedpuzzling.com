@@ -21,7 +21,18 @@ readonly final class GetFastestPairs
     public function perPiecesCount(int $piecesCount, int $howManyPlayers, null|CountryCode $countryCode): array
     {
         $query = <<<SQL
-WITH player_data AS (
+WITH candidate_times AS (
+    SELECT pst.id
+    FROM puzzle_solving_time pst
+    INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+    WHERE puzzle.pieces_count = :piecesCount
+        AND pst.puzzling_type = 'duo'
+        AND pst.seconds_to_solve > 0
+        AND pst.suspicious = false
+    ORDER BY pst.seconds_to_solve ASC
+    LIMIT 500
+),
+player_data AS (
     SELECT
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
@@ -32,15 +43,15 @@ WITH player_data AS (
         tracked_at,
         finished_at,
         finished_puzzle_photo,
-        puzzle_solving_time.seconds_to_solve AS time,
+        pst.seconds_to_solve AS time,
         player.name AS player_name,
         player.code AS player_code,
         player.country AS player_country,
         player.id AS player_id,
         manufacturer.name AS manufacturer_name,
         puzzle.identification_number AS puzzle_identification_number,
-        puzzle_solving_time.id AS time_id,
-        puzzle_solving_time.team ->> 'team_id' AS team_id,
+        pst.id AS time_id,
+        pst.team ->> 'team_id' AS team_id,
         first_attempt,
         player.is_private,
         competition.id AS competition_id,
@@ -56,18 +67,15 @@ WITH player_data AS (
                 'is_private', p.is_private
             ) ORDER BY player_elem.ordinality
         ) AS players
-    FROM puzzle_solving_time
-    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
-    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    FROM candidate_times ct
+    INNER JOIN puzzle_solving_time pst ON pst.id = ct.id
+    INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+    INNER JOIN player ON pst.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-    LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id,
-    LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
+    LEFT JOIN competition ON pst.competition_id = competition.id,
+    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-    WHERE puzzle.pieces_count = :piecesCount
-        AND puzzle_solving_time.puzzling_type = 'duo'
-        AND seconds_to_solve > 0
-        AND puzzle_solving_time.suspicious = false
-    GROUP BY puzzle.id, player.id, manufacturer.id, puzzle_solving_time.id, competition.id
+    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id
 )
 SELECT *
 FROM player_data

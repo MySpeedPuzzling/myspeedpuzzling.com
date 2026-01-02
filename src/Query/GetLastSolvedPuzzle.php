@@ -13,7 +13,6 @@ readonly final class GetLastSolvedPuzzle
 {
     public function __construct(
         private Connection $database,
-        private GetTeamPlayers $getTeamPlayers,
     ) {
     }
 
@@ -52,7 +51,18 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
+        (SELECT JSON_AGG(JSON_BUILD_OBJECT(
+            'player_id', elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
+            'player_code', p.code,
+            'player_country', p.country,
+            'is_private', p.is_private
+        ) ORDER BY elem.ordinality)
+        FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID)
+    ELSE NULL END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -71,13 +81,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        // TODO: optimize, filter out rows without teams
-        /** @var array<string> $timeIds */
-        $timeIds = array_column($data, 'time_id');
-
-        $players = $this->getTeamPlayers->byIds($timeIds);
-
-        return array_map(static function (array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -104,10 +108,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     players: null|string,
              * } $row
              */
-
-            $row['players'] = $players[$row['time_id']] ?? null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);
@@ -143,7 +146,18 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
+        (SELECT JSON_AGG(JSON_BUILD_OBJECT(
+            'player_id', elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
+            'player_code', p.code,
+            'player_country', p.country,
+            'is_private', p.is_private
+        ) ORDER BY elem.ordinality)
+        FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID)
+    ELSE NULL END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
@@ -160,14 +174,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-
-        // TODO: optimize, filter out rows without teams
-        /** @var array<string> $timeIds */
-        $timeIds = array_column($data, 'time_id');
-
-        $players = $this->getTeamPlayers->byIds($timeIds);
-
-        return array_map(static function (array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -194,10 +201,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     players: null|string,
              * } $row
              */
-
-            $row['players'] = $players[$row['time_id']] ?? null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);
@@ -257,7 +263,18 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    CASE WHEN pst.team IS NOT NULL THEN
+        (SELECT JSON_AGG(JSON_BUILD_OBJECT(
+            'player_id', elem.player ->> 'player_id',
+            'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
+            'player_code', p.code,
+            'player_country', p.country,
+            'is_private', p.is_private
+        ) ORDER BY elem.ordinality)
+        FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID)
+    ELSE NULL END AS players
 FROM
     filtered_puzzle_solving_time fpt
 INNER JOIN puzzle_solving_time pst ON pst.id = fpt.id
@@ -276,13 +293,7 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        // TODO: optimize, filter out rows without teams
-        /** @var array<string> $timeIds */
-        $timeIds = array_column($data, 'time_id');
-
-        $players = $this->getTeamPlayers->byIds($timeIds);
-
-        return array_map(static function (array $row) use ($players): SolvedPuzzle {
+        return array_map(static function (array $row): SolvedPuzzle {
             /**
              * @var array{
              *     time_id: string,
@@ -309,10 +320,9 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     players: null|string,
              * } $row
              */
-
-            $row['players'] = $players[$row['time_id']] ?? null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);

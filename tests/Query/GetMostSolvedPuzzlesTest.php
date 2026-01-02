@@ -85,7 +85,7 @@ final class GetMostSolvedPuzzlesTest extends KernelTestCase
         }
     }
 
-    public function testPuzzle500_01HasMostSolves(): void
+    public function testPuzzle500Pieces01HasMostSolves(): void
     {
         // PUZZLE_500_01 has the most solving times in fixtures
         $puzzles = $this->query->top(1);

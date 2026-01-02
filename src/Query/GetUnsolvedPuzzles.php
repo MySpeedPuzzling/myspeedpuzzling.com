@@ -34,18 +34,18 @@ SELECT
 FROM collection_item ci
 JOIN puzzle p ON ci.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
-LEFT JOIN puzzle_solving_time pst ON (
-    pst.puzzle_id = ci.puzzle_id
-    AND (
+WHERE ci.player_id = :playerId
+  AND NOT EXISTS (
+    SELECT 1 FROM puzzle_solving_time pst
+    WHERE pst.puzzle_id = ci.puzzle_id
+      AND (
         pst.player_id = ci.player_id
         OR (pst.team IS NOT NULL AND EXISTS (
             SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
             WHERE puzzler ->> 'player_id' = ci.player_id::text
         ))
-    )
-)
-WHERE ci.player_id = :playerId
-  AND pst.id IS NULL
+      )
+  )
 GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, p.image, m.name
 ORDER BY added_at DESC
 SQL;
@@ -91,18 +91,18 @@ SQL;
         $query = <<<SQL
 SELECT COUNT(DISTINCT ci.puzzle_id) as item_count
 FROM collection_item ci
-LEFT JOIN puzzle_solving_time pst ON (
-    pst.puzzle_id = ci.puzzle_id
-    AND (
+WHERE ci.player_id = :playerId
+  AND NOT EXISTS (
+    SELECT 1 FROM puzzle_solving_time pst
+    WHERE pst.puzzle_id = ci.puzzle_id
+      AND (
         pst.player_id = ci.player_id
         OR (pst.team IS NOT NULL AND EXISTS (
             SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
             WHERE puzzler ->> 'player_id' = ci.player_id::text
         ))
-    )
-)
-WHERE ci.player_id = :playerId
-  AND pst.id IS NULL
+      )
+  )
 SQL;
 
         $result = $this->database
@@ -128,19 +128,19 @@ SELECT
 FROM collection_item ci
 JOIN puzzle p ON ci.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
-LEFT JOIN puzzle_solving_time pst ON (
-    pst.puzzle_id = ci.puzzle_id
-    AND (
+WHERE ci.player_id = :playerId
+  AND ci.puzzle_id = :puzzleId
+  AND NOT EXISTS (
+    SELECT 1 FROM puzzle_solving_time pst
+    WHERE pst.puzzle_id = ci.puzzle_id
+      AND (
         pst.player_id = ci.player_id
         OR (pst.team IS NOT NULL AND EXISTS (
             SELECT 1 FROM json_array_elements(pst.team -> 'puzzlers') AS puzzler
             WHERE puzzler ->> 'player_id' = ci.player_id::text
         ))
-    )
-)
-WHERE ci.player_id = :playerId
-  AND ci.puzzle_id = :puzzleId
-  AND pst.id IS NULL
+      )
+  )
 GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, p.image, m.name
 SQL;
 

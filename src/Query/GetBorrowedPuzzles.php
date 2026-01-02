@@ -140,13 +140,13 @@ FROM lent_puzzle lp
 JOIN puzzle p ON lp.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 LEFT JOIN player owner ON lp.owner_player_id = owner.id
-LEFT JOIN puzzle_solving_time pst ON (
-    pst.player_id = :holderId
-    AND pst.puzzle_id = p.id
-)
 WHERE lp.current_holder_player_id = :holderId
 AND (lp.owner_player_id IS NULL OR lp.owner_player_id != :holderId)
-AND pst.id IS NULL
+AND NOT EXISTS (
+    SELECT 1 FROM puzzle_solving_time pst
+    WHERE pst.player_id = :holderId
+      AND pst.puzzle_id = p.id
+)
 ORDER BY lp.lent_at DESC
 SQL;
 
@@ -194,13 +194,13 @@ SQL;
 SELECT COUNT(*) as item_count
 FROM lent_puzzle lp
 JOIN puzzle p ON lp.puzzle_id = p.id
-LEFT JOIN puzzle_solving_time pst ON (
-    pst.player_id = :holderId
-    AND pst.puzzle_id = p.id
-)
 WHERE lp.current_holder_player_id = :holderId
 AND (lp.owner_player_id IS NULL OR lp.owner_player_id != :holderId)
-AND pst.id IS NULL
+AND NOT EXISTS (
+    SELECT 1 FROM puzzle_solving_time pst
+    WHERE pst.player_id = :holderId
+      AND pst.puzzle_id = p.id
+)
 SQL;
 
         $result = $this->database

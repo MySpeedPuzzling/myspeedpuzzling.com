@@ -11,6 +11,7 @@ use Monolog\Processor\PsrLogMessageProcessor;
 use Sentry\Monolog\BreadcrumbHandler as SentryBreadcrumbHandler;
 use Sentry\Monolog\Handler as SentryMonologHandler;
 use Sentry\State\HubInterface;
+use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\SentryTransactionNameEnhancer;
@@ -86,6 +87,12 @@ return static function (ContainerConfigurator $configurator): void {
         ->autoconfigure(false)
         ->arg('$dependencyFactory', service('doctrine.migrations.dependency_factory'))
         ->tag('doctrine.event_listener', ['event' => 'postGenerateSchema']);
+
+    // Custom RegexSchemaAssetFilter to avoid DBAL deprecation warning
+    // Replaces the built-in schema_filter config with same regex pattern
+    $services->set(RegexSchemaAssetFilter::class)
+        ->args(['~^(?!tmp_|custom_)~'])
+        ->tag('doctrine.dbal.schema_filter');
 
     $services->set(S3Client::class)
         ->args([

@@ -20,7 +20,8 @@ return App::config([
                 PuzzlersGroupDoctrineType::NAME => PuzzlersGroupDoctrineType::class,
                 SellSwapListSettingsDoctrineType::NAME => SellSwapListSettingsDoctrineType::class,
             ],
-            'schema_filter' => '~^(?!tmp_|custom_)~',
+            // Note: schema_filter removed - using custom RegexSchemaAssetFilter service instead
+            // to avoid DBAL deprecation warning (see src/Doctrine/RegexSchemaAssetFilter.php)
             'schema_manager_factory' => CustomIndexFilteringSchemaManagerFactory::class,
         ],
         'orm' => [

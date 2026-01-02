@@ -7,15 +7,19 @@ namespace SpeedPuzzling\Web\Events;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 
-readonly final class PuzzleSolvingTimeDeleted
+readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEventInterface
 {
     public function __construct(
         public UuidInterface $puzzleId,
     ) {
     }
 
-    public static function fromEntity(PuzzleSolvingTime $entity): self
+    public static function fromEntity(object $entity): static
     {
+        if (!$entity instanceof PuzzleSolvingTime) {
+            throw new \InvalidArgumentException('Expected PuzzleSolvingTime entity');
+        }
+
         return new self($entity->puzzle->id);
     }
 }

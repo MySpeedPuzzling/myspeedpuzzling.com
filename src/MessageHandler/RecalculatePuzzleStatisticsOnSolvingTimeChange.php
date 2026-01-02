@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\PuzzleStatistics;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
@@ -22,7 +21,6 @@ readonly final class RecalculatePuzzleStatisticsOnSolvingTimeChange
         private PuzzleRepository $puzzleRepository,
         private PuzzleStatisticsRepository $statisticsRepository,
         private PuzzleStatisticsCalculator $calculator,
-        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -37,8 +35,9 @@ readonly final class RecalculatePuzzleStatisticsOnSolvingTimeChange
 
         if ($statistics === null) {
             $puzzle = $this->puzzleRepository->get($puzzleId->toString());
+
             $statistics = new PuzzleStatistics($puzzle);
-            $this->entityManager->persist($statistics);
+            $this->statisticsRepository->save($statistics);
         }
 
         $data = $this->calculator->calculateForPuzzle($puzzleId);

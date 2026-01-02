@@ -19,62 +19,75 @@ use SpeedPuzzling\Web\Value\PuzzleStatisticsData;
 class PuzzleStatistics
 {
     // Total
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
     public int $solvedTimesCount = 0;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $fastestTime = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $averageTime = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $slowestTime = null;
 
-    // Solo
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
     public int $solvedTimesSoloCount = 0;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $fastestTimeSolo = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $averageTimeSolo = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $slowestTimeSolo = null;
 
-    // Duo
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
     public int $solvedTimesDuoCount = 0;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $fastestTimeDuo = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $averageTimeDuo = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $slowestTimeDuo = null;
 
-    // Team
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(options: ['default' => 0])]
     public int $solvedTimesTeamCount = 0;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $fastestTimeTeam = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $averageTimeTeam = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|int $slowestTimeTeam = null;
 
     public function __construct(
         #[Id]
         #[Immutable]
-        #[OneToOne(targetEntity: Puzzle::class)]
-        #[JoinColumn(name: 'puzzle_id', referencedColumnName: 'id', onDelete: 'CASCADE')]
+        #[OneToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
         public Puzzle $puzzle,
     ) {
     }

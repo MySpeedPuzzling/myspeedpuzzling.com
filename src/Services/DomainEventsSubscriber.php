@@ -13,6 +13,7 @@ use Doctrine\ORM\Events;
 use ReflectionClass;
 use SpeedPuzzling\Web\Attribute\DeleteDomainEvent;
 use SpeedPuzzling\Web\Entity\EntityWithEvents;
+use SpeedPuzzling\Web\Events\DeleteDomainEventInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -25,7 +26,7 @@ final class DomainEventsSubscriber implements ResetInterface
     /** @var array<EntityWithEvents> */
     private array $entities = [];
 
-    /** @var array<object> */
+    /** @var array<DeleteDomainEventInterface> */
     private array $deleteEvents = [];
 
     public function __construct(
@@ -81,11 +82,11 @@ final class DomainEventsSubscriber implements ResetInterface
         }
 
         $deleteEventAttribute = $attributes[0]->newInstance();
+
+        /** @var class-string<DeleteDomainEventInterface> $eventClass */
         $eventClass = $deleteEventAttribute->eventClass;
 
-        /** @var object $event */
-        $event = $eventClass::fromEntity($entity);
-        $this->deleteEvents[] = $event;
+        $this->deleteEvents[] = $eventClass::fromEntity($entity);
     }
 
     private function dispatchEvents(): void

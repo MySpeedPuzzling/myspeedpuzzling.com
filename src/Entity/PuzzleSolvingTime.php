@@ -35,7 +35,7 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(type: Types::SMALLINT, options: ['default' => 1])]
     public int $puzzlersCount;
 
-    #[Column(type: Types::STRING, length: 10, enumType: PuzzlingType::class, options: ['default' => 'solo'])]
+    #[Column(options: ['default' => PuzzlingType::Solo->value])]
     public PuzzlingType $puzzlingType;
 
     public function __construct(

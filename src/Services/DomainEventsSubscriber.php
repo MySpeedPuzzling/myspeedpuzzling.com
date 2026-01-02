@@ -10,6 +10,8 @@ use Doctrine\ORM\Event\PostPersistEventArgs;
 use Doctrine\ORM\Event\PostRemoveEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
+use ReflectionClass;
+use SpeedPuzzling\Web\Attribute\DeleteDomainEvent;
 use SpeedPuzzling\Web\Entity\EntityWithEvents;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -23,6 +25,9 @@ final class DomainEventsSubscriber implements ResetInterface
     /** @var array<EntityWithEvents> */
     private array $entities = [];
 
+    /** @var array<object> */
+    private array $deleteEvents = [];
+
     public function __construct(
         readonly private MessageBusInterface $messageBus,
     ) {
@@ -31,6 +36,7 @@ final class DomainEventsSubscriber implements ResetInterface
     public function reset(): void
     {
         $this->entities = [];
+        $this->deleteEvents = [];
     }
 
     public function postPersist(PostPersistEventArgs $eventArgs): void
@@ -46,6 +52,7 @@ final class DomainEventsSubscriber implements ResetInterface
     public function postRemove(PostRemoveEventArgs $eventArgs): void
     {
         $this->collectEventsFromEntity($eventArgs);
+        $this->collectDeleteEvents($eventArgs);
     }
 
     public function postFlush(PostFlushEventArgs $eventArgs): void
@@ -63,15 +70,40 @@ final class DomainEventsSubscriber implements ResetInterface
         }
     }
 
+    private function collectDeleteEvents(PostRemoveEventArgs $eventArgs): void
+    {
+        $entity = $eventArgs->getObject();
+        $reflection = new ReflectionClass($entity);
+        $attributes = $reflection->getAttributes(DeleteDomainEvent::class);
+
+        if (count($attributes) === 0) {
+            return;
+        }
+
+        $deleteEventAttribute = $attributes[0]->newInstance();
+        $eventClass = $deleteEventAttribute->eventClass;
+
+        /** @var object $event */
+        $event = $eventClass::fromEntity($entity);
+        $this->deleteEvents[] = $event;
+    }
+
     private function dispatchEvents(): void
     {
         $entities = $this->entities;
         $this->entities = [];
 
+        $deleteEvents = $this->deleteEvents;
+        $this->deleteEvents = [];
+
         foreach ($entities as $entity) {
             foreach ($entity->popEvents() as $event) {
                 $this->messageBus->dispatch($event);
             }
+        }
+
+        foreach ($deleteEvents as $event) {
+            $this->messageBus->dispatch($event);
         }
     }
 }

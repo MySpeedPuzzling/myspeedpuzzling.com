@@ -15,15 +15,28 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Attribute\DeleteDomainEvent;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
+use SpeedPuzzling\Web\Value\PuzzlingType;
 
 #[Entity]
-#[Index(columns: ["tracked_at"])]
+#[Index(columns: ['tracked_at'])]
+#[Index(columns: ['puzzlers_count'])]
+#[Index(columns: ['puzzling_type'])]
+#[DeleteDomainEvent(PuzzleSolvingTimeDeleted::class)]
 class PuzzleSolvingTime implements EntityWithEvents
 {
     use HasEvents;
+
+    #[Column(type: Types::SMALLINT, options: ['default' => 1])]
+    public int $puzzlersCount;
+
+    #[Column(type: Types::STRING, length: 10, enumType: PuzzlingType::class, options: ['default' => 'solo'])]
+    public PuzzlingType $puzzlingType;
 
     public function __construct(
         #[Id]
@@ -63,8 +76,11 @@ class PuzzleSolvingTime implements EntityWithEvents
         #[Column(options: ['default' => false])]
         public bool $suspicious = false,
     ) {
+        $this->puzzlersCount = $this->calculatePuzzlersCount();
+        $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+
         $this->recordThat(
-            new PuzzleSolved($this->id),
+            new PuzzleSolved($this->id, $this->puzzle->id),
         );
     }
 
@@ -84,5 +100,21 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->finishedPuzzlePhoto = $finishedPuzzlePhoto;
         $this->firstAttempt = $firstAttempt;
         $this->competition = $competition;
+
+        $this->puzzlersCount = $this->calculatePuzzlersCount();
+        $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
+        );
+    }
+
+    private function calculatePuzzlersCount(): int
+    {
+        if ($this->team === null) {
+            return 1;
+        }
+
+        return count($this->team->puzzlers);
     }
 }

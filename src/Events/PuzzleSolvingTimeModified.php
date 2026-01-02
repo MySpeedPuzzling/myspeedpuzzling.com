@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Events;
 
 use Ramsey\Uuid\UuidInterface;
 
-readonly final class PuzzleSolved
+readonly final class PuzzleSolvingTimeModified
 {
     public function __construct(
         public UuidInterface $puzzleSolvingTimeId,

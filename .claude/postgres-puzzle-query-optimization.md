@@ -47,8 +47,8 @@ SET
     END;
 
 -- Index for filtering
-CREATE INDEX idx_pst_puzzling_type ON puzzle_solving_time (puzzling_type);
-CREATE INDEX idx_pst_puzzle_type ON puzzle_solving_time (puzzle_id, puzzling_type);
+CREATE INDEX custom_pst_puzzling_type ON puzzle_solving_time (puzzling_type);
+CREATE INDEX custom_pst_puzzle_type ON puzzle_solving_time (puzzle_id, puzzling_type);
 ```
 
 ### 1.2 PuzzlingType Enum
@@ -772,7 +772,7 @@ CREATE INDEX idx_puzzle_ean ON puzzle (ean) WHERE ean IS NOT NULL;
 CREATE INDEX idx_puzzle_identification ON puzzle (identification_number) WHERE identification_number IS NOT NULL;
 
 -- For puzzle_solving_time
-CREATE INDEX idx_pst_puzzle_id ON puzzle_solving_time (puzzle_id);
+CREATE INDEX custom_pst_puzzle_id ON puzzle_solving_time (puzzle_id);
 ```
 
 ---

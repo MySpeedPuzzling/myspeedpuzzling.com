@@ -167,9 +167,9 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_alt_name_unaccent_trgm ON puzzle USING GIN (immutable_unaccent(alternative_name) gin_trgm_ops)');
 
     // Query optimization composite indexes (Version20260102230000)
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_pst_player_puzzle_type ON puzzle_solving_time (player_id, puzzle_id, puzzling_type)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_pst_tracked_at_type ON puzzle_solving_time (tracked_at, puzzling_type)');
-    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_pst_type_time_valid ON puzzle_solving_time (puzzling_type, seconds_to_solve) WHERE seconds_to_solve IS NOT NULL AND suspicious = false');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_player_puzzle_type ON puzzle_solving_time (player_id, puzzle_id, puzzling_type)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_tracked_at_type ON puzzle_solving_time (tracked_at, puzzling_type)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_type_time_valid ON puzzle_solving_time (puzzling_type, seconds_to_solve) WHERE seconds_to_solve IS NOT NULL AND suspicious = false');
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_team_puzzlers_gin ON puzzle_solving_time USING GIN ((team::jsonb->'puzzlers') jsonb_path_ops) WHERE team IS NOT NULL");
 }
 

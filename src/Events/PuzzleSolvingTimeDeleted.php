@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Events;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 
-readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEventInterface
+readonly final class PuzzleSolvingTimeDeleted implements DeleteDomainEvent
 {
     public function __construct(
         public UuidInterface $puzzleId,

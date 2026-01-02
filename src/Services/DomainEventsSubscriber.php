@@ -11,9 +11,9 @@ use Doctrine\ORM\Event\PostRemoveEventArgs;
 use Doctrine\ORM\Event\PostUpdateEventArgs;
 use Doctrine\ORM\Events;
 use ReflectionClass;
-use SpeedPuzzling\Web\Attribute\DeleteDomainEvent;
+use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Entity\EntityWithEvents;
-use SpeedPuzzling\Web\Events\DeleteDomainEventInterface;
+use SpeedPuzzling\Web\Events\DeleteDomainEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -26,7 +26,7 @@ final class DomainEventsSubscriber implements ResetInterface
     /** @var array<EntityWithEvents> */
     private array $entities = [];
 
-    /** @var array<DeleteDomainEventInterface> */
+    /** @var array<DeleteDomainEvent> */
     private array $deleteEvents = [];
 
     public function __construct(
@@ -75,7 +75,7 @@ final class DomainEventsSubscriber implements ResetInterface
     {
         $entity = $eventArgs->getObject();
         $reflection = new ReflectionClass($entity);
-        $attributes = $reflection->getAttributes(DeleteDomainEvent::class);
+        $attributes = $reflection->getAttributes(HasDeleteDomainEvent::class);
 
         if (count($attributes) === 0) {
             return;
@@ -83,7 +83,7 @@ final class DomainEventsSubscriber implements ResetInterface
 
         $deleteEventAttribute = $attributes[0]->newInstance();
 
-        /** @var class-string<DeleteDomainEventInterface> $eventClass */
+        /** @var class-string<DeleteDomainEvent> $eventClass */
         $eventClass = $deleteEventAttribute->eventClass;
 
         $this->deleteEvents[] = $eventClass::fromEntity($entity);

@@ -15,7 +15,7 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\Attribute\DeleteDomainEvent;
+use SpeedPuzzling\Web\Attribute\HasDeleteDomainEvent;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
 use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
@@ -27,7 +27,7 @@ use SpeedPuzzling\Web\Value\PuzzlingType;
 #[Index(columns: ['tracked_at'])]
 #[Index(columns: ['puzzlers_count'])]
 #[Index(columns: ['puzzling_type'])]
-#[DeleteDomainEvent(PuzzleSolvingTimeDeleted::class)]
+#[HasDeleteDomainEvent(PuzzleSolvingTimeDeleted::class)]
 class PuzzleSolvingTime implements EntityWithEvents
 {
     use HasEvents;

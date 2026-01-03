@@ -9,8 +9,9 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PlayerRanking;
+use Symfony\Contracts\Service\ResetInterface;
 
-final class GetRanking
+final class GetRanking implements ResetInterface
 {
     /** @var array<string, array<string, PlayerRanking>> */
     private array $allForPlayerCache = [];
@@ -220,5 +221,11 @@ SQL;
         $this->ofPuzzleForPlayerCache[$cacheKey] = $ranking;
 
         return $ranking;
+    }
+
+    public function reset(): void
+    {
+        $this->allForPlayerCache = [];
+        $this->ofPuzzleForPlayerCache = [];
     }
 }

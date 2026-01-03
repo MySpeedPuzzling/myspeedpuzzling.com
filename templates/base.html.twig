@@ -121,7 +121,9 @@
         </script>
         {% endblock %}
     </head>
-    <body class="lang-{{ app.request.locale }}" data-controller="gallery file-drop-area datepicker global-search toast">
+    <body class="lang-{{ app.request.locale }}"
+          data-controller="gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
+          {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         {% if is_web() %}
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
@@ -589,17 +591,6 @@
                 </div>
             </div>
         </div>
-
-        {% if ga_tracking is not empty %}
-            <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_tracking }}"></script>
-            <script>
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-
-                gtag('config', '{{ ga_tracking }}');
-            </script>
-        {% endif %}
 
         {% if false %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">

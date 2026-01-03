@@ -8,7 +8,9 @@
 {% endblock %}
 
 {% block robots %}
-    {% if using_search %}
+    {# LiveComponent handles URL params - check if any filter is applied via URL #}
+    {% set hasFilters = app.request.query.get('search') or app.request.query.get('brand') or app.request.query.get('pieces') or app.request.query.get('tag') %}
+    {% if hasFilters %}
         <meta name="robots" content="noindex, nofollow">
     {% else %}
         <meta name="robots" content="index, follow">
@@ -43,62 +45,5 @@
 {% block content %}
     <h1 class="mb-2">{{ 'puzzle_overview.title'|trans }}</h1>
 
-    <div data-controller="puzzle-search">
-        <form action="{{ path('puzzles') }}" method="get"
-              data-puzzle-search-target="form"
-              data-turbo-frame="search-results"
-              data-turbo="true"
-              class="filters"
-        >
-            <div class="row gx-2">
-                <div class="col-sm-6 col-lg-3 mb-2">
-                    {{ form_errors(search_form.search) }}
-                    {{ form_widget(search_form.search) }}
-                </div>
-
-                <div class="col-6 col-md-3 col-lg-2 mb-2">
-                    {{ form_errors(search_form.brand) }}
-                    {{ form_widget(search_form.brand) }}
-                </div>
-
-                <div class="col-6 col-md-3 col-lg-2 mb-2">
-                    {{ form_errors(search_form.tag) }}
-                    {{ form_widget(search_form.tag) }}
-                </div>
-
-                <div class="col-sm-6 col-lg-4">
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-any" name="{{ field_name(search_form.pieces) }}" value="" {% if form_data.pieces is empty %}checked{% endif %}>
-                        <label for="pieces-any" class="form-option-label">{{ 'all_pieces'|trans }}</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-1-499" value="1-499" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1-499' %}checked{% endif %}>
-                        <label for="pieces-1-499" class="form-option-label">1-499</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-500" value="500" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '500' %}checked{% endif %}>
-                        <label for="pieces-500" class="form-option-label">500</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-501-999" value="501-999" name="{{ field_name(search_form.pieces) }}"{% if form_data.pieces is same as '501-999' %}checked{% endif %}>
-                        <label for="pieces-501-999" class="form-option-label">501-999</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-1000" value="1000" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1000' %}checked{% endif %}>
-                        <label for="pieces-1000" class="form-option-label">1000</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-1001" value="1001+" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1001+' %}checked{% endif %}>
-                        <label for="pieces-1001" class="form-option-label">1001+</label>
-                    </div>
-                </div>
-            </div>
-
-            <input type="hidden" name="sortBy" value="{{ app.request.query.get('sortBy', 'most-solved') }}">
-
-            {{ form_rest(search_form) }}
-        </form>
-
-        {{ include('_puzzle_search_results.html.twig') }}
-    </div>
+    {{ component('PuzzleSearch') }}
 {% endblock %}

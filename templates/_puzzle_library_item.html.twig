@@ -78,10 +78,14 @@
             {# Puzzle image #}
             <div style="width: 60px;" class="flex-shrink-0">
                 <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
-                    <img src="{{ item.image|puzzle_image('puzzle_small') }}"
-                         alt="{{ item.puzzleName }}"
-                         class="rounded"
-                         style="width: 60px; height: 60px; object-fit: cover;">
+                    {{ lazy_puzzle_image(
+                            item.image,
+                            'puzzle_small',
+                            item.puzzleName,
+                            999,
+                            60,
+                            'rounded'
+                        ) }}
                 </a>
             </div>
 

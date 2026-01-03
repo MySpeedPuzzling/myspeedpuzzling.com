@@ -49,7 +49,14 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.lendingPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.lendingPuzzleId}) }}">
-                                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': notification.lendingManufacturerName ~ ' ' ~ notification.lendingPuzzleName}) }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.lendingPuzzleImage|imagine_filter('puzzle_small') }}">
+                                            {{ lazy_puzzle_image(
+                                                notification.lendingPuzzleImage,
+                                                'puzzle_small',
+                                                'puzzle_img_alt'|trans({'%puzzle%': notification.lendingManufacturerName ~ ' ' ~ notification.lendingPuzzleName}),
+                                                loop.index,
+                                                60,
+                                                'rounded-2'
+                                            ) }}
                                         </a>
                                     {% endif %}
                                 </td>
@@ -106,7 +113,14 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.puzzleImage is not null%}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.puzzleId}) }}">
-                                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}) }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.puzzleImage|imagine_filter('puzzle_small') }}">
+                                            {{ lazy_puzzle_image(
+                                                notification.puzzleImage,
+                                                'puzzle_small',
+                                                'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}),
+                                                loop.index,
+                                                60,
+                                                'rounded-2'
+                                            ) }}
                                         </a>
                                     {% endif %}
                                 </td>

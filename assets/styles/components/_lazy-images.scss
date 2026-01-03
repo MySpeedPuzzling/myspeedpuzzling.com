@@ -1,0 +1,32 @@
+//
+// Lazy Loading Images
+// --------------------------------------------------
+
+// Wrapper with fixed dimensions - contains the image
+.lazy-img-wrapper {
+  display: inline-flex;
+  align-items: flex-start;      // Align to top
+  justify-content: center;      // Center horizontally
+  background-color: #e9ecef;    // Placeholder background
+
+  // Size variants
+  &.lazy-img-40 { max-width: 40px; max-height: 40px; }
+  &.lazy-img-50 { max-width: 50px; max-height: 50px; }
+  &.lazy-img-60 { max-width: 60px; max-height: 60px; }
+  &.lazy-img-80 { max-width: 80px; max-height: 80px; }
+  &.lazy-img-90 { max-width: 90px; max-height: 90px; }
+  &.lazy-img-100 { max-width: 100px; max-height: 100px; }
+}
+
+// Image inside wrapper
+.lazy-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;          // Preserve aspect ratio
+  opacity: 0;
+  transition: opacity 0.25s ease-in-out;
+
+  &.loaded {
+    opacity: 1;
+  }
+}

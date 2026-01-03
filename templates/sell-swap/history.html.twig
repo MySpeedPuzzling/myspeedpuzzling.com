@@ -38,10 +38,14 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         {% if item.image %}
-                                            <img src="{{ item.image|imagine_filter('puzzle_small') }}"
-                                                 alt="{{ item.puzzleName }}"
-                                                 class="rounded me-2"
-                                                 style="width: 40px; height: 40px; object-fit: cover;">
+                                            {{ lazy_puzzle_image(
+                                                item.image,
+                                                'puzzle_small',
+                                                item.puzzleName,
+                                                loop.index,
+                                                40,
+                                                'rounded me-2'
+                                            ) }}
                                         {% endif %}
                                         <div>
                                             <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">

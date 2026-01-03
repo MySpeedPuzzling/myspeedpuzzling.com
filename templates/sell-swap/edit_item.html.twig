@@ -12,10 +12,14 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-4 p-2 bg-light rounded">
                         {% if item.puzzle.image %}
-                            <img src="{{ item.puzzle.image|imagine_filter('puzzle_small') }}"
-                                 alt="{{ item.puzzle.name }}"
-                                 class="rounded me-3"
-                                 style="width: 60px; height: 60px; object-fit: cover;">
+                            {{ lazy_puzzle_image(
+                                item.puzzle.image,
+                                'puzzle_small',
+                                item.puzzle.name,
+                                1,
+                                60,
+                                'rounded me-3'
+                            ) }}
                         {% endif %}
                         <div>
                             <strong>{{ item.puzzle.name }}</strong>

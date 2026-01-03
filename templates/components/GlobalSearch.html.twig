@@ -67,7 +67,14 @@
                             <div style="width: 90px;" class="text-center">
                                 {% if puzzle.puzzleImage is not null%}
                                     <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 90px;max-height: 80px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|imagine_filter('puzzle_small') }}">
+                                        {{ lazy_puzzle_image(
+                                            puzzle.puzzleImage,
+                                            'puzzle_small',
+                                            'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
+                                            loop.index,
+                                            90,
+                                            'rounded-2'
+                                        ) }}
                                     </a>
                                 {% endif %}
                             </div>

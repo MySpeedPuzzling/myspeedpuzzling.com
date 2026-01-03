@@ -6,7 +6,14 @@
                     <td class="text-center" style="width: 90px;">
                         {% if solved_puzzle[0].puzzleImage is not null%}
                             <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
-                                <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 80px;max-height: 80px;" src="{{ solved_puzzle[0].puzzleImage|imagine_filter('puzzle_small') }}">
+                                {{ lazy_puzzle_image(
+                                    solved_puzzle[0].puzzleImage,
+                                    'puzzle_small',
+                                    'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}),
+                                    loop.index,
+                                    80,
+                                    'rounded-2'
+                                ) }}
                             </a>
                         {% endif %}
 

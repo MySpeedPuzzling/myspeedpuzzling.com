@@ -15,7 +15,14 @@
         <div class="d-flex">
             <div style="width: 90px;">
                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                    <img class="rounded-2" style="max-width: 90px;max-height: 90px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}">
+                    {{ lazy_puzzle_image(
+                        puzzle.puzzleImage,
+                        'puzzle_small',
+                        'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
+                        999,
+                        90,
+                        'rounded-2'
+                    ) }}
                 </a>
             </div>
 

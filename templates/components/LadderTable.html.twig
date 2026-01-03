@@ -9,7 +9,14 @@
                     </td>
                     <td class="text-center low-line-height" style="width: 90px;">
                         <a href="{{ path('puzzle_detail', {puzzleId: solving_time.puzzleId}) }}">
-                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}) }}" class="rounded-2 mt-1" style="max-width: 80px;max-height: 80px;" src="{{ solving_time.puzzleImage|puzzle_image('puzzle_small') }}">
+                            {{ lazy_puzzle_image(
+                                solving_time.puzzleImage,
+                                'puzzle_small',
+                                'puzzle_img_alt'|trans({'%puzzle%': solving_time.manufacturerName ~ ' ' ~ solving_time.puzzleName}),
+                                loop.index,
+                                80,
+                                'rounded-2 mt-1'
+                            ) }}
                         </a>
                     </td>
 

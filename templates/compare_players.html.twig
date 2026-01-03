@@ -60,7 +60,14 @@
                             <td>
                                 {% if comparison.puzzleImage is not null%}
                                     <a href="{{ path('puzzle_detail', {puzzleId: comparison.puzzleId}) }}">
-                                        <img class="rounded-2" style="max-width: 100px;max-height: 100px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': comparison.manufacturerName ~ ' ' ~ comparison.puzzleName}) }}" src="{{ comparison.puzzleImage|imagine_filter('puzzle_small') }}">
+                                        {{ lazy_puzzle_image(
+                                            comparison.puzzleImage,
+                                            'puzzle_small',
+                                            'puzzle_img_alt'|trans({'%puzzle%': comparison.manufacturerName ~ ' ' ~ comparison.puzzleName}),
+                                            loop.index,
+                                            100,
+                                            'rounded-2'
+                                        ) }}
                                     </a>
                                 {% endif %}
                             </td>

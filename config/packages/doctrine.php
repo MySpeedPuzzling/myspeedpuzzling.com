@@ -14,6 +14,8 @@ return App::config([
     'doctrine' => [
         'dbal' => [
             'url' => '%env(resolve:DATABASE_URL)%',
+            // Close idle connections after 5 minutes to prevent stale connection hangs in FrankenPHP worker mode
+            'idle_connection_ttl' => 300,
             'types' => [
                 'uuid' => UuidType::class,
                 LapsArrayDoctrineType::NAME => LapsArrayDoctrineType::class,

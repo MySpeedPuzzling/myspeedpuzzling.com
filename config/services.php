@@ -148,7 +148,4 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set('sentry.traces_sampler', \Closure::class)
         ->factory([service(SentryTracesSampler::class), '__invoke']);
-
-    $services->set('sentry.before_send_transaction', \Closure::class)
-        ->factory([service(SentryTransactionNameEnhancer::class), '__invoke']);
 };

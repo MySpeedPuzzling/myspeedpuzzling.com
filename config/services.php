@@ -49,6 +49,11 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(PdoSessionHandler::class)
         ->args([
             env('DATABASE_URL'),
+            [
+                // Disable session locking to allow concurrent requests (Live Components, AJAX)
+                // Without this, concurrent requests for the same session block each other
+                'lock_mode' => PdoSessionHandler::LOCK_NONE,
+            ],
         ]);
 
     $services->set(PsrLogMessageProcessor::class)

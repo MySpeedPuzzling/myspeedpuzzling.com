@@ -76,7 +76,7 @@
                 };
 
                 if ('requestIdleCallback' in window) {
-                    requestIdleCallback(initPolyfill, { timeout: 5000 });
+                    requestIdleCallback(initPolyfill, { timeout: 2000 });
                 } else {
                     window.addEventListener('load', function() {
                         setTimeout(initPolyfill, 100);

@@ -23,6 +23,11 @@ menu:
     events: "Events"
     export_data: "Export data"
 
+accessibility:
+    toggle_navigation: "Toggle navigation"
+    barcode_scanner: "Scan barcode"
+    notifications_count: "Notifications (%count%)"
+
 form:
     visibility: "Visibility"
     visibility_public: "Public"

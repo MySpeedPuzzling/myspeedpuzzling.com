@@ -23,6 +23,11 @@ menu:
     events: "Veranstaltungen"
     export_data: "Daten exportieren"
 
+accessibility:
+    toggle_navigation: "Navigation umschalten"
+    barcode_scanner: "Barcode scannen"
+    notifications_count: "Benachrichtigungen (%count%)"
+
 form:
     visibility: "Sichtbarkeit"
     visibility_public: "Öffentlich"

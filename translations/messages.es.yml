@@ -23,6 +23,11 @@ menu:
     puzzle_library: "Biblioteca de puzzles"
     export_data: "Exportar datos"
 
+accessibility:
+    toggle_navigation: "Alternar navegación"
+    barcode_scanner: "Escanear código de barras"
+    notifications_count: "Notificaciones (%count%)"
+
 navigation:
     home: "Inicio"
 

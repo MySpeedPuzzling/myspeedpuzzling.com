@@ -124,3 +124,14 @@ $soft-teal: #5bc0de;
         }
     }
 }
+
+// Accessibility: Improve text-muted contrast for WCAG AA compliance
+// Original $gray-600 (#7d879c) has ~4:1 ratio, this achieves ~6:1
+.text-muted {
+    color: #5a6370 !important;
+}
+
+// Accessibility: Make links distinguishable in muted text sections
+.text-muted a:not(.btn) {
+    text-decoration: underline;
+}

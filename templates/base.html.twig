@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <title>{%- block title -%}{%- endblock -%}{% if app.request.pathInfo != path('homepage') %} | MySpeedPuzzling{% endif %}</title>
 
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <meta name="description" content="{%- block meta_description -%}{%- endblock -%}{% if block('meta_description') is empty %}{{ 'homepage.meta.description'|trans }}{% endif %}">
         <meta name="keywords" content="{%- block meta_keywords -%}{%- endblock -%}{% if block('meta_keywords') is empty %}{% set currentPageKey = app.request.attributes.get('_route') %}{% if currentPageKey == 'homepage' %}{{ 'homepage.meta.keywords'|trans }}{% elseif currentPageKey == 'hub' %}{{ 'hub.meta.keywords'|trans }}{% elseif currentPageKey == 'puzzles' %}{{ 'puzzle_overview.meta.keywords'|trans }}{% elseif currentPageKey == 'ladder' %}{{ 'ladder.meta.keywords'|trans }}{% elseif currentPageKey == 'players' %}{{ 'puzzlers.meta.keywords'|trans }}{% elseif currentPageKey == 'events' %}{{ 'events.meta.keywords'|trans }}{% elseif currentPageKey == 'faq' %}{{ 'faq.meta.keywords'|trans }}{% else %}speed puzzling, puzzle times, jigsaw puzzles, speedpuzzling{% endif %}{% endif %}">
@@ -227,25 +227,25 @@
 
                     <!-- Toolbar -->
                     <div class="navbar-toolbar d-flex align-items-center order-lg-3 ms-lg-3">
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#" aria-label="{{ 'menu.search'|trans }}">
                             <div class="navbar-tool-icon-box">
-                                <i class="navbar-tool-icon ci-search"></i>
+                                <i class="navbar-tool-icon ci-search" aria-hidden="true"></i>
                             </div>
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.search'|trans }}</small></div>
                         </a>
 
                         {% if logged_user.profile is null %}
-                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('my_profile') }}">
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('my_profile') }}" aria-label="{{ 'menu.sign_in'|trans }}">
                                 <div class="navbar-tool-icon-box">
-                                    <i class="navbar-tool-icon ci-sign-in"></i>
+                                    <i class="navbar-tool-icon ci-sign-in" aria-hidden="true"></i>
                                 </div>
                                 <div class="navbar-tool-text ms-n3"><small>{{ 'menu.sign_in'|trans }}</small></div>
                             </a>
                         {% else %}
                             <div class="navbar-tool dropdown ms-1 ms-lg-0 me-n1 me-lg-2">
-                                <a class="dropdown-toggle navbar-tool" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <a class="dropdown-toggle navbar-tool" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
                                     <div class="navbar-tool-icon-box">
-                                        <i class="navbar-tool-icon ci-user"></i>
+                                        <i class="navbar-tool-icon ci-user" aria-hidden="true"></i>
                                     </div>
                                     <div class="navbar-tool-text ms-n3 no-caret"><small>{{ 'menu.my_profile'|trans }}</small></div>
                                 </a>
@@ -294,23 +294,23 @@
                         {% endif %}
 
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('puzzle_add') %}active{% endif %}" rel="nofollow" href="{{ path('puzzle_add') }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('puzzle_add') %}active{% endif %}" rel="nofollow" href="{{ path('puzzle_add') }}" aria-label="{{ 'menu.puzzle_add'|trans }}">
                             <div class="navbar-tool-icon-box">
-                                <i class="navbar-tool-icon ci-add"></i>
+                                <i class="navbar-tool-icon ci-add" aria-hidden="true"></i>
                             </div>
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.puzzle_add'|trans }}</small></div>
                         </a>
 
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
                             <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}">
-                                <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}">{{ notifications_count }}</span>
-                                <i class="navbar-tool-icon ci-bell"></i>
+                                <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}" aria-hidden="true">{{ notifications_count }}</span>
+                                <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
                             </div>
                         </a>
 
-                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-expanded="false">
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-expanded="false" aria-controls="navbarCollapse" aria-label="{{ 'accessibility.toggle_navigation'|trans }}">
                             <span class="toggler-bar"></span>
                             <span class="toggler-bar"></span>
                             <span class="toggler-bar"></span>
@@ -451,8 +451,8 @@
                     <div class="col-sm-6 mt-2 mt-sm-0">
                         <div class="fs-xs text-muted text-center text-sm-end">
                             <p class="fs-md mb-2">
-                                <a href="https://www.instagram.com/myspeedpuzzling/" target="_bkank"><i class="bi-instagram"></i></a>
-                                <a class="ms-2" href="https://github.com/MySpeedPuzzling/myspeedpuzzling.com" target="_blank"><i class="bi-github"></i></a>
+                                <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank" rel="noopener" aria-label="Instagram"><i class="bi-instagram" aria-hidden="true"></i></a>
+                                <a class="ms-2" href="https://github.com/MySpeedPuzzling/myspeedpuzzling.com" target="_blank" rel="noopener" aria-label="GitHub"><i class="bi-github" aria-hidden="true"></i></a>
                             </p>
                             {{ 'footer.created_with_love'|trans({'%simona%': '<a href="mailto:simona@speedpuzzling.cz">Simona&nbsp;Mikešová</a>', '%jan%': '<a href="https://janmikes.cz">Jan&nbsp;Mikeš</a>' })|raw }}
                         </div>

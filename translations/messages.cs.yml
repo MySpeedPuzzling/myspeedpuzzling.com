@@ -23,6 +23,11 @@ menu:
     events: "Eventy"
     export_data: "Export dat"
 
+accessibility:
+    toggle_navigation: "Přepnout navigaci"
+    barcode_scanner: "Skenovat čárový kód"
+    notifications_count: "Oznámení (%count%)"
+
 form:
     visibility: "Viditelnost"
     visibility_public: "Veřejná"

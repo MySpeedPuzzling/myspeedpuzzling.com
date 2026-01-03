@@ -23,6 +23,11 @@ menu:
     puzzle_library: "パズルライブラリ"
     export_data: "データエクスポート"
 
+accessibility:
+    toggle_navigation: "ナビゲーション切替"
+    barcode_scanner: "バーコードスキャン"
+    notifications_count: "通知 (%count%)"
+
 navigation:
     home: "ホーム"
 

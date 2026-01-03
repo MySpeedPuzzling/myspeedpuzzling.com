@@ -47,6 +47,17 @@ readonly final class PlayerNotification
         public null|string $lendingPuzzleImage = null,
         public null|string $lendingManufacturerName = null,
         public null|int $lendingPiecesCount = null,
+        // Puzzle report notification fields
+        public null|string $changeRequestId = null,
+        public null|string $changeRequestPuzzleId = null,
+        public null|string $changeRequestPuzzleName = null,
+        public null|string $changeRequestPuzzleImage = null,
+        public null|string $changeRequestRejectionReason = null,
+        public null|string $mergeRequestId = null,
+        public null|string $mergeRequestPuzzleId = null,
+        public null|string $mergeRequestPuzzleName = null,
+        public null|string $mergeRequestPuzzleImage = null,
+        public null|string $mergeRequestRejectionReason = null,
     ) {
     }
 
@@ -132,6 +143,17 @@ readonly final class PlayerNotification
             lendingPuzzleImage: is_string($lendingPuzzleImage) ? $lendingPuzzleImage : null,
             lendingManufacturerName: is_string($lendingManufacturerName) ? $lendingManufacturerName : null,
             lendingPiecesCount: isset($row['lending_pieces_count']) && is_numeric($row['lending_pieces_count']) ? (int) $row['lending_pieces_count'] : null,
+            // Puzzle report fields
+            changeRequestId: is_string($row['change_request_id'] ?? null) ? $row['change_request_id'] : null,
+            changeRequestPuzzleId: is_string($row['change_request_puzzle_id'] ?? null) ? $row['change_request_puzzle_id'] : null,
+            changeRequestPuzzleName: is_string($row['change_request_puzzle_name'] ?? null) ? $row['change_request_puzzle_name'] : null,
+            changeRequestPuzzleImage: is_string($row['change_request_puzzle_image'] ?? null) ? $row['change_request_puzzle_image'] : null,
+            changeRequestRejectionReason: is_string($row['change_request_rejection_reason'] ?? null) ? $row['change_request_rejection_reason'] : null,
+            mergeRequestId: is_string($row['merge_request_id'] ?? null) ? $row['merge_request_id'] : null,
+            mergeRequestPuzzleId: is_string($row['merge_request_puzzle_id'] ?? null) ? $row['merge_request_puzzle_id'] : null,
+            mergeRequestPuzzleName: is_string($row['merge_request_puzzle_name'] ?? null) ? $row['merge_request_puzzle_name'] : null,
+            mergeRequestPuzzleImage: is_string($row['merge_request_puzzle_image'] ?? null) ? $row['merge_request_puzzle_image'] : null,
+            mergeRequestRejectionReason: is_string($row['merge_request_rejection_reason'] ?? null) ? $row['merge_request_rejection_reason'] : null,
         );
     }
 
@@ -143,5 +165,15 @@ readonly final class PlayerNotification
     public function isPuzzleSolvingNotification(): bool
     {
         return $this->targetPlayerId !== null;
+    }
+
+    public function isChangeRequestNotification(): bool
+    {
+        return $this->changeRequestId !== null;
+    }
+
+    public function isMergeRequestNotification(): bool
+    {
+        return $this->mergeRequestId !== null;
     }
 }

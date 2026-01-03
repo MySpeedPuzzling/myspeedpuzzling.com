@@ -1,0 +1,124 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Puzzle Change Requests{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h3 mb-4">
+        Puzzle Change Requests
+        {% if pending_count > 0 %}
+            <span class="badge bg-warning text-dark">{{ pending_count }} pending</span>
+        {% endif %}
+    </h1>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'pending' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_change_requests', {tab: 'pending'}) }}">
+                Pending
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'approved' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_change_requests', {tab: 'approved'}) }}">
+                Approved
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'rejected' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_change_requests', {tab: 'rejected'}) }}">
+                Rejected
+            </a>
+        </li>
+    </ul>
+
+    {% if requests is empty %}
+        <div class="alert alert-info">
+            No {{ active_tab }} change requests.
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Puzzle</th>
+                        <th>Reporter</th>
+                        <th>Submitted</th>
+                        <th>Changes</th>
+                        {% if active_tab != 'pending' %}
+                            <th>Reviewed</th>
+                        {% endif %}
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in requests %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if request.puzzleImage %}
+                                        <img src="{{ request.puzzleImage|puzzle_image('puzzle_small') }}"
+                                             alt="{{ request.puzzleName }}"
+                                             class="me-2 rounded"
+                                             style="max-height: 40px;">
+                                    {% endif %}
+                                    <div>
+                                        <a href="{{ path('puzzle_detail', {puzzleId: request.puzzleId}) }}"
+                                           target="_blank">
+                                            {{ request.puzzleName }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ request.puzzleManufacturerName }} - {{ request.puzzlePiecesCount }} pcs
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if request.reporterName %}
+                                    <a href="{{ path('player_profile', {playerId: request.reporterId}) }}"
+                                       target="_blank">
+                                        {{ request.reporterName }}
+                                    </a>
+                                    {% if request.reporterCode %}
+                                        <br><small class="text-muted">#{{ request.reporterCode }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ request.submittedAt|date('Y-m-d H:i') }}
+                            </td>
+                            <td>
+                                {% if request.hasNameChange() %}<span class="badge bg-secondary me-1">Name</span>{% endif %}
+                                {% if request.hasManufacturerChange() %}<span class="badge bg-secondary me-1">Manufacturer</span>{% endif %}
+                                {% if request.hasPiecesCountChange() %}<span class="badge bg-secondary me-1">Pieces</span>{% endif %}
+                                {% if request.hasEanChange() %}<span class="badge bg-secondary me-1">EAN</span>{% endif %}
+                                {% if request.hasIdentificationNumberChange() %}<span class="badge bg-secondary me-1">Brand Code</span>{% endif %}
+                                {% if request.hasImageChange() %}<span class="badge bg-secondary me-1">Image</span>{% endif %}
+                            </td>
+                            {% if active_tab != 'pending' %}
+                                <td>
+                                    {% if request.reviewedAt %}
+                                        {{ request.reviewedAt|date('Y-m-d H:i') }}
+                                        {% if request.reviewerName %}
+                                            <br><small class="text-muted">by {{ request.reviewerName }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            <td class="text-end">
+                                <a href="{{ path('admin_puzzle_change_request_detail', {id: request.id}) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

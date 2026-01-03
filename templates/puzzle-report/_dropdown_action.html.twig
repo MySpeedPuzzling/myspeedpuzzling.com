@@ -1,0 +1,15 @@
+{#
+    Puzzle report dropdown action - shows "Propose changes" link.
+    Visible to all users; redirects to login if not authenticated.
+
+    Required variables: puzzle_id
+#}
+<li>
+    <a class="dropdown-item"
+       href="{{ path('puzzle_propose_changes', {puzzleId: puzzle_id}) }}"
+       rel="nofollow"
+       data-turbo="true"
+       data-turbo-frame="modal-frame">
+        <i class="bi bi-pencil-square me-1"></i> {{ 'puzzle_report.dropdown.propose_changes'|trans }}
+    </a>
+</li>

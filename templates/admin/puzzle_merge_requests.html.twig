@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Puzzle Merge Requests{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h3 mb-4">
+        Puzzle Merge Requests
+        {% if pending_count > 0 %}
+            <span class="badge bg-warning text-dark">{{ pending_count }} pending</span>
+        {% endif %}
+    </h1>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'pending' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_merge_requests', {tab: 'pending'}) }}">
+                Pending
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'approved' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_merge_requests', {tab: 'approved'}) }}">
+                Approved
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'rejected' ? 'active' : '' }}"
+               href="{{ path('admin_puzzle_merge_requests', {tab: 'rejected'}) }}">
+                Rejected
+            </a>
+        </li>
+    </ul>
+
+    {% if requests is empty %}
+        <div class="alert alert-info">
+            No {{ active_tab }} merge requests.
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Source Puzzle</th>
+                        <th>Reporter</th>
+                        <th>Submitted</th>
+                        <th>Duplicates</th>
+                        {% if active_tab != 'pending' %}
+                            <th>Reviewed</th>
+                        {% endif %}
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in requests %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if request.sourcePuzzleImage %}
+                                        <img src="{{ request.sourcePuzzleImage|puzzle_image('puzzle_small') }}"
+                                             alt="{{ request.sourcePuzzleName }}"
+                                             class="me-2 rounded"
+                                             style="max-height: 40px;">
+                                    {% endif %}
+                                    <div>
+                                        <a href="{{ path('puzzle_detail', {puzzleId: request.sourcePuzzleId}) }}"
+                                           target="_blank">
+                                            {{ request.sourcePuzzleName }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ request.sourcePuzzleManufacturerName }} - {{ request.sourcePuzzlePiecesCount }} pcs
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if request.reporterName %}
+                                    <a href="{{ path('player_profile', {playerId: request.reporterId}) }}"
+                                       target="_blank">
+                                        {{ request.reporterName }}
+                                    </a>
+                                    {% if request.reporterCode %}
+                                        <br><small class="text-muted">#{{ request.reporterCode }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ request.submittedAt|date('Y-m-d H:i') }}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ request.duplicateCount }} puzzles</span>
+                            </td>
+                            {% if active_tab != 'pending' %}
+                                <td>
+                                    {% if request.reviewedAt %}
+                                        {{ request.reviewedAt|date('Y-m-d H:i') }}
+                                        {% if request.reviewerName %}
+                                            <br><small class="text-muted">by {{ request.reviewerName }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            <td class="text-end">
+                                <a href="{{ path('admin_puzzle_merge_request_detail', {id: request.id}) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

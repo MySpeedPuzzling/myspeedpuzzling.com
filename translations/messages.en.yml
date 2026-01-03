@@ -630,6 +630,11 @@ notifications:
         passed_to_you: "%from% passed you a puzzle"
         passed_from_you: "Puzzle was passed to %to%"
         your_puzzle_passed: "Your puzzle was passed from %from% to %to%"
+    puzzle_report:
+        change_approved: "Your proposed changes were approved"
+        change_rejected: "Your proposed changes were rejected"
+        merge_approved: "Your duplicate report was approved and puzzles were merged"
+        merge_rejected: "Your duplicate report was rejected"
 
 badges:
     title: "Badges"
@@ -1326,3 +1331,48 @@ image_editor:
     rotate_left: "Rotate Left"
     rotate_right: "Rotate Right"
     apply: "Apply"
+
+puzzle_report:
+    title: "Propose Puzzle Changes"
+    back_to_puzzle: "Back to puzzle"
+    dropdown:
+        propose_changes: "Propose changes"
+    tab:
+        propose_changes: "Propose Changes"
+        report_duplicate: "Report Duplicate"
+    propose_changes:
+        description: "Suggest corrections or improvements to this puzzle's information. All changes will be reviewed by an admin."
+    report_duplicate:
+        description: "Report that this puzzle is a duplicate of another puzzle. An admin will review and merge the records if confirmed."
+        max_puzzles_info: "You can report up to %max% puzzles as duplicates at once."
+    form:
+        name: "Puzzle Name"
+        name_help: "Enter the correct name as shown on the puzzle box. Use comma to separate multiple names."
+        manufacturer: "Manufacturer"
+        manufacturer_placeholder: "Search for manufacturer..."
+        pieces_count: "Pieces Count"
+        pieces_count_help: "Enter the correct number of pieces."
+        ean: "EAN / Barcode"
+        ean_help: "The barcode number on the puzzle box (usually 13 digits)."
+        identification_number: "Brand Code / SKU"
+        identification_number_help: "The manufacturer's product code (e.g., 19432 for Ravensburger puzzles)."
+        photo: "New Photo"
+        photo_help_toggle: "Tips for a good photo"
+        photo_help_title: "Photo Guidelines:"
+        photo_help_1: "Use the image from the puzzle box, not the completed puzzle."
+        photo_help_2: "Ensure good lighting and focus."
+        photo_help_3: "Crop to show just the puzzle image, not the entire box."
+        current_image: "Current Image"
+        submit_changes: "Submit Changes"
+        submit_duplicate: "Report as Duplicate"
+        duplicate_urls: "Duplicate Puzzle URLs"
+        duplicate_urls_help: "Paste the URLs of duplicate puzzles (one per line). Maximum 4 additional puzzles."
+        duplicate_urls_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
+        or_search_by_manufacturer: "Or search by manufacturer to find duplicates:"
+        selected_manufacturer: "Search by Manufacturer"
+        selected_manufacturer_placeholder: "Select manufacturer to browse puzzles..."
+    flash:
+        changes_submitted: "Your proposed changes have been submitted for review. Thank you!"
+        duplicate_reported: "Your duplicate report has been submitted for review. Thank you!"
+        validation_error: "Please fix the errors and try again."
+        login_required: "Please log in to propose changes."

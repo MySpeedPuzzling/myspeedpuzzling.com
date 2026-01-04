@@ -35,6 +35,10 @@ final class ReportDuplicatePuzzleController extends AbstractController
         path: [
             'cs' => '/puzzle/{puzzleId}/nahlasit-duplikat',
             'en' => '/en/puzzle/{puzzleId}/report-duplicate',
+            'es' => '/es/puzzle/{puzzleId}/reportar-duplicado',
+            'ja' => '/ja/puzzle/{puzzleId}/report-duplicate',
+            'fr' => '/fr/puzzle/{puzzleId}/signaler-doublon',
+            'de' => '/de/puzzle/{puzzleId}/duplikat-melden',
         ],
         name: 'puzzle_report_duplicate',
         methods: ['POST'],

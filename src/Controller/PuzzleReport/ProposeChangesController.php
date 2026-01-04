@@ -37,6 +37,10 @@ final class ProposeChangesController extends AbstractController
         path: [
             'cs' => '/puzzle/{puzzleId}/navrhnout-zmeny',
             'en' => '/en/puzzle/{puzzleId}/propose-changes',
+            'es' => '/es/puzzle/{puzzleId}/proponer-cambios',
+            'ja' => '/ja/puzzle/{puzzleId}/propose-changes',
+            'fr' => '/fr/puzzle/{puzzleId}/proposer-changements',
+            'de' => '/de/puzzle/{puzzleId}/aenderungen-vorschlagen',
         ],
         name: 'puzzle_propose_changes',
         methods: ['GET', 'POST'],

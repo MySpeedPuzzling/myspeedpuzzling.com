@@ -61,6 +61,8 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
     public const string TIME_40 = '018d0006-0000-0000-0000-000000000040';
     public const string TIME_41 = '018d0006-0000-0000-0000-000000000041';
     public const string TIME_42 = '018d0006-0000-0000-0000-000000000042';
+    public const string TIME_43 = '018d0006-0000-0000-0000-000000000043';
+    public const string TIME_44 = '018d0006-0000-0000-0000-000000000044';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -78,6 +80,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
         $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
+        $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
         $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
         $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
@@ -302,6 +305,32 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         );
         $manager->persist($teamTime2);
         $this->addReference(self::TIME_41, $teamTime2);
+
+        // PUZZLE_500_05: Solving times for merge testing
+        // These records should be migrated to survivor puzzle during merge
+        $time43 = $this->createPuzzleSolvingTime(
+            id: self::TIME_43,
+            player: $player3, // PLAYER_ADMIN
+            puzzle: $puzzle500_05,
+            secondsToSolve: 2200,
+            daysAgo: 14,
+            verified: true,
+            firstAttempt: true,
+        );
+        $manager->persist($time43);
+        $this->addReference(self::TIME_43, $time43);
+
+        $time44 = $this->createPuzzleSolvingTime(
+            id: self::TIME_44,
+            player: $player2, // PLAYER_PRIVATE
+            puzzle: $puzzle500_05,
+            secondsToSolve: 2500,
+            daysAgo: 12,
+            verified: true,
+            firstAttempt: true,
+        );
+        $manager->persist($time44);
+        $this->addReference(self::TIME_44, $time44);
 
         $manager->flush();
     }

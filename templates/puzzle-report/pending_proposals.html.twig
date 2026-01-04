@@ -31,12 +31,12 @@
                                 {% if proposal.type == 'change_request' %}
                                     <a href="{{ path('admin_puzzle_change_request_detail', {id: proposal.id}) }}"
                                        class="btn btn-sm btn-outline-primary">
-                                        {{ 'pending_proposals.view_details'|trans }}
+                                        {{ 'pending_proposals.go_to_admin'|trans }}
                                     </a>
                                 {% else %}
                                     <a href="{{ path('admin_puzzle_merge_request_detail', {id: proposal.id}) }}"
                                        class="btn btn-sm btn-outline-primary">
-                                        {{ 'pending_proposals.view_details'|trans }}
+                                        {{ 'pending_proposals.go_to_admin'|trans }}
                                     </a>
                                 {% endif %}
                             </div>

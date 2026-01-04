@@ -364,6 +364,11 @@ notifications:
         returned_to_you: "%holder%があなたのパズルを返却しました"
         taken_back: "%owner%がパズルを取り戻しました"
         your_puzzle_passed: "あなたのパズルが%from%から%to%に渡されました"
+    puzzle_report:
+        change_approved: "提案された変更が承認されました"
+        change_rejected: "提案された変更が却下されました"
+        merge_approved: "重複報告が承認され、パズルが統合されました"
+        merge_rejected: "重複報告が却下されました"
 
 membership:
     meta:
@@ -1325,3 +1330,79 @@ image_editor:
     rotate_left: "左に回転"
     rotate_right: "右に回転"
     apply: "適用"
+
+admin:
+    puzzle_change_request:
+        approved: "変更リクエストが承認され、パズルが更新されました。"
+        rejected: "変更リクエストが却下されました。"
+        rejection_reason_required: "却下理由は必須です。"
+    puzzle_merge_request:
+        approved: "統合リクエストが承認されました。パズルが統合されました。"
+        rejected: "統合リクエストが却下されました。"
+        rejection_reason_required: "却下理由は必須です。"
+        validation_failed: "統合先パズル、名前、ピース数は必須です。"
+
+pending_proposals:
+    badge: "保留中の提案"
+    go_to_admin: "管理画面へ"
+    no_proposals: "このパズルに対する保留中の提案はありません。"
+    reported_by: "報告者"
+    title: "保留中の提案"
+    type:
+        change_request: "変更リクエスト"
+        merge_request: "統合リクエスト"
+
+puzzle_report:
+    back_to_puzzle: "パズルに戻る"
+    dropdown:
+        propose_changes: "変更を提案"
+    flash:
+        changes_submitted: "提案された変更がレビューのために送信されました。ありがとうございます！"
+        duplicate_reported: "重複報告がレビューのために送信されました。ありがとうございます！"
+        login_required: "変更を提案するにはログインしてください。"
+        no_valid_duplicates: "パズルを自身の重複として報告することはできません。別のパズルを選択してください。"
+        pending_proposal_exists: "このパズルに対する提案はすでにレビュー待ちです。"
+        validation_error: "エラーを修正して再試行してください。"
+    form:
+        current_image: "現在の画像"
+        duplicate_url: "重複パズルのURL"
+        duplicate_url_help: "重複パズルのURLを貼り付けてください。"
+        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
+        ean: "EAN / バーコード"
+        ean_help: "パズルボックスのバーコード番号（通常13桁）。"
+        identification_number: "ブランドコード / SKU"
+        identification_number_help: "メーカーの製品コード（例：Ravensburgerパズルの19432）。"
+        manufacturer: "メーカー"
+        manufacturer_placeholder: "メーカーを検索..."
+        name: "パズル名"
+        name_help: "パズルボックスに記載されている正しい名前を入力してください。複数の名前はカンマで区切ってください。"
+        or: "または"
+        photo: "新しい写真"
+        photo_example_ok: "OK"
+        photo_example_perfect: "完璧"
+        photo_example_wrong: "不可"
+        photo_help_1: "完成したパズルではなく、パズルボックスの画像を使用してください。"
+        photo_help_2: "良好な照明とピントを確保してください。"
+        photo_help_3: "ボックス全体ではなく、パズルの画像のみを切り抜いてください。"
+        photo_help_4: "マルチパックの場合、1つのパズルの画像のみを選択してください。"
+        photo_help_title: "写真ガイドライン："
+        photo_help_toggle: "良い写真のヒント"
+        pieces_count: "ピース数"
+        pieces_count_help: "正しいピース数を入力してください。"
+        search_manufacturer: "メーカーで検索"
+        search_manufacturer_placeholder: "メーカーを選択してパズルを閲覧..."
+        select_duplicate_error: "重複パズルを選択するか、パズルのURLを入力してください。"
+        select_manufacturer_first: "最初にメーカーを選択"
+        select_puzzle: "パズルを選択"
+        select_puzzle_placeholder: "パズルを検索..."
+        submit_changes: "変更を送信"
+        submit_duplicate: "重複として報告"
+    propose_changes:
+        description: "このパズルの情報の修正や改善を提案してください。すべての変更は管理者によってレビューされます。"
+    report_duplicate:
+        description: "このパズルが別のパズルの重複であることを報告してください。管理者が確認し、確認された場合はレコードを統合します。"
+        max_puzzles_info: "一度に最大%max%件のパズルを重複として報告できます。"
+    tab:
+        propose_changes: "変更を提案"
+        report_duplicate: "重複を報告"
+    title: "パズルの変更を提案"

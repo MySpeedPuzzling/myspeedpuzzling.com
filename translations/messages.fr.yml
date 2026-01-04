@@ -634,6 +634,11 @@ notifications:
         returned_to_you: "%holder% a rendu votre puzzle"
         taken_back: "%owner% a repris le puzzle"
         your_puzzle_passed: "Votre puzzle a été transmis de %from% à %to%"
+    puzzle_report:
+        change_approved: "Vos modifications proposées ont été approuvées"
+        change_rejected: "Vos modifications proposées ont été rejetées"
+        merge_approved: "Votre signalement de doublon a été approuvé et les puzzles ont été fusionnés"
+        merge_rejected: "Votre signalement de doublon a été rejeté"
 
 badges:
     title: "Badges"
@@ -1327,3 +1332,79 @@ image_editor:
     rotate_left: "Pivoter à gauche"
     rotate_right: "Pivoter à droite"
     apply: "Appliquer"
+
+admin:
+    puzzle_change_request:
+        approved: "La demande de modification a été approuvée et le puzzle mis à jour."
+        rejected: "La demande de modification a été rejetée."
+        rejection_reason_required: "Le motif de rejet est requis."
+    puzzle_merge_request:
+        approved: "La demande de fusion a été approuvée. Les puzzles ont été fusionnés."
+        rejected: "La demande de fusion a été rejetée."
+        rejection_reason_required: "Le motif de rejet est requis."
+        validation_failed: "Le puzzle cible, le nom et le nombre de pièces sont requis."
+
+pending_proposals:
+    badge: "Proposition en attente"
+    go_to_admin: "Aller à l'administration"
+    no_proposals: "Aucune proposition en attente pour ce puzzle."
+    reported_by: "Signalé par"
+    title: "Propositions en attente"
+    type:
+        change_request: "Demande de modification"
+        merge_request: "Demande de fusion"
+
+puzzle_report:
+    back_to_puzzle: "Retour au puzzle"
+    dropdown:
+        propose_changes: "Proposer des modifications"
+    flash:
+        changes_submitted: "Vos modifications proposées ont été soumises pour examen. Merci !"
+        duplicate_reported: "Votre signalement de doublon a été soumis pour examen. Merci !"
+        login_required: "Veuillez vous connecter pour proposer des modifications."
+        no_valid_duplicates: "Vous ne pouvez pas signaler un puzzle comme doublon de lui-même. Veuillez sélectionner un puzzle différent."
+        pending_proposal_exists: "Une proposition pour ce puzzle est déjà en attente d'examen."
+        validation_error: "Veuillez corriger les erreurs et réessayer."
+    form:
+        current_image: "Image actuelle"
+        duplicate_url: "URL du puzzle en doublon"
+        duplicate_url_help: "Collez l'URL du puzzle en doublon."
+        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
+        ean: "EAN / Code-barres"
+        ean_help: "Le numéro du code-barres sur la boîte du puzzle (généralement 13 chiffres)."
+        identification_number: "Code marque / SKU"
+        identification_number_help: "Le code produit du fabricant (ex. 19432 pour les puzzles Ravensburger)."
+        manufacturer: "Fabricant"
+        manufacturer_placeholder: "Rechercher un fabricant..."
+        name: "Nom du puzzle"
+        name_help: "Entrez le nom correct tel qu'affiché sur la boîte du puzzle. Utilisez une virgule pour séparer plusieurs noms."
+        or: "ou"
+        photo: "Nouvelle photo"
+        photo_example_ok: "OK"
+        photo_example_perfect: "Parfait"
+        photo_example_wrong: "Incorrect"
+        photo_help_1: "Utilisez l'image de la boîte du puzzle, pas le puzzle terminé."
+        photo_help_2: "Assurez un bon éclairage et une bonne mise au point."
+        photo_help_3: "Recadrez pour montrer uniquement l'image du puzzle, pas la boîte entière."
+        photo_help_4: "Pour les multipacks, choisissez uniquement l'image d'un puzzle."
+        photo_help_title: "Conseils photo :"
+        photo_help_toggle: "Conseils pour une bonne photo"
+        pieces_count: "Nombre de pièces"
+        pieces_count_help: "Entrez le nombre correct de pièces."
+        search_manufacturer: "Rechercher par fabricant"
+        search_manufacturer_placeholder: "Sélectionnez un fabricant pour parcourir les puzzles..."
+        select_duplicate_error: "Veuillez sélectionner un puzzle en doublon ou entrer une URL de puzzle."
+        select_manufacturer_first: "Sélectionnez d'abord un fabricant"
+        select_puzzle: "Sélectionner un puzzle"
+        select_puzzle_placeholder: "Rechercher un puzzle..."
+        submit_changes: "Soumettre les modifications"
+        submit_duplicate: "Signaler comme doublon"
+    propose_changes:
+        description: "Suggérez des corrections ou des améliorations aux informations de ce puzzle. Toutes les modifications seront examinées par un administrateur."
+    report_duplicate:
+        description: "Signalez que ce puzzle est un doublon d'un autre puzzle. Un administrateur examinera et fusionnera les entrées si confirmé."
+        max_puzzles_info: "Vous pouvez signaler jusqu'à %max% puzzles comme doublons à la fois."
+    tab:
+        propose_changes: "Proposer des modifications"
+        report_duplicate: "Signaler un doublon"
+    title: "Proposer des modifications au puzzle"

@@ -40,6 +40,8 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public const string ITEM_22 = '018d0009-0000-0000-0000-000000000022';
     public const string ITEM_23 = '018d0009-0000-0000-0000-000000000023';
     public const string ITEM_24 = '018d0009-0000-0000-0000-000000000024';
+    public const string ITEM_25 = '018d0009-0000-0000-0000-000000000025';
+    public const string ITEM_26 = '018d0009-0000-0000-0000-000000000026';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -50,6 +52,7 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     {
         $player1 = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
         $player2 = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
+        $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         $publicCollection = $this->getReference(CollectionFixture::COLLECTION_PUBLIC, Collection::class);
@@ -61,6 +64,7 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
         $puzzle500_04 = $this->getReference(PuzzleFixture::PUZZLE_500_04, Puzzle::class);
+        $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
         $puzzle1000_02 = $this->getReference(PuzzleFixture::PUZZLE_1000_02, Puzzle::class);
         $puzzle1000_03 = $this->getReference(PuzzleFixture::PUZZLE_1000_03, Puzzle::class);
@@ -338,6 +342,28 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         );
         $manager->persist($item24);
         $this->addReference(self::ITEM_24, $item24);
+
+        // ITEM_25 & ITEM_26: PUZZLE_500_05 for merge testing
+        // These items should be migrated to survivor puzzle during merge
+        $item25 = $this->createCollectionItem(
+            id: self::ITEM_25,
+            player: $player3, // PLAYER_ADMIN
+            puzzle: $puzzle500_05,
+            collection: null,
+            daysAgo: 8,
+        );
+        $manager->persist($item25);
+        $this->addReference(self::ITEM_25, $item25);
+
+        $item26 = $this->createCollectionItem(
+            id: self::ITEM_26,
+            player: $player2, // PLAYER_PRIVATE
+            puzzle: $puzzle500_05,
+            collection: null,
+            daysAgo: 6,
+        );
+        $manager->persist($item26);
+        $this->addReference(self::ITEM_26, $item26);
 
         $manager->flush();
     }

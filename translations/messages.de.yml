@@ -612,6 +612,11 @@ notifications:
         returned_to_you: "%holder% hat dein Puzzle zurückgegeben"
         taken_back: "%owner% hat das Puzzle zurückgenommen"
         your_puzzle_passed: "Dein Puzzle wurde von %from% an %to% weitergegeben"
+    puzzle_report:
+        change_approved: "Deine vorgeschlagenen Änderungen wurden genehmigt"
+        change_rejected: "Deine vorgeschlagenen Änderungen wurden abgelehnt"
+        merge_approved: "Deine Duplikat-Meldung wurde genehmigt und die Puzzles wurden zusammengeführt"
+        merge_rejected: "Deine Duplikat-Meldung wurde abgelehnt"
 
 badges:
     title: "Abzeichen"
@@ -1327,3 +1332,79 @@ image_editor:
     rotate_left: "Nach links drehen"
     rotate_right: "Nach rechts drehen"
     apply: "Anwenden"
+
+admin:
+    puzzle_change_request:
+        approved: "Änderungsanfrage wurde genehmigt und das Puzzle aktualisiert."
+        rejected: "Änderungsanfrage wurde abgelehnt."
+        rejection_reason_required: "Ablehnungsgrund ist erforderlich."
+    puzzle_merge_request:
+        approved: "Zusammenführungsanfrage wurde genehmigt. Die Puzzles wurden zusammengeführt."
+        rejected: "Zusammenführungsanfrage wurde abgelehnt."
+        rejection_reason_required: "Ablehnungsgrund ist erforderlich."
+        validation_failed: "Ziel-Puzzle, Name und Teileanzahl sind erforderlich."
+
+pending_proposals:
+    badge: "Ausstehender Vorschlag"
+    go_to_admin: "Zur Verwaltung"
+    no_proposals: "Keine ausstehenden Vorschläge für dieses Puzzle."
+    reported_by: "Gemeldet von"
+    title: "Ausstehende Vorschläge"
+    type:
+        change_request: "Änderungsanfrage"
+        merge_request: "Zusammenführungsanfrage"
+
+puzzle_report:
+    back_to_puzzle: "Zurück zum Puzzle"
+    dropdown:
+        propose_changes: "Änderungen vorschlagen"
+    flash:
+        changes_submitted: "Deine vorgeschlagenen Änderungen wurden zur Überprüfung eingereicht. Danke!"
+        duplicate_reported: "Deine Duplikat-Meldung wurde zur Überprüfung eingereicht. Danke!"
+        login_required: "Bitte melde dich an, um Änderungen vorzuschlagen."
+        no_valid_duplicates: "Du kannst ein Puzzle nicht als Duplikat von sich selbst melden. Bitte wähle ein anderes Puzzle."
+        pending_proposal_exists: "Ein Vorschlag für dieses Puzzle wartet bereits auf Überprüfung."
+        validation_error: "Bitte behebe die Fehler und versuche es erneut."
+    form:
+        current_image: "Aktuelles Bild"
+        duplicate_url: "Duplikat-Puzzle-URL"
+        duplicate_url_help: "Füge die URL des Duplikat-Puzzles ein."
+        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
+        ean: "EAN / Barcode"
+        ean_help: "Die Barcode-Nummer auf der Puzzle-Schachtel (normalerweise 13 Ziffern)."
+        identification_number: "Markencode / SKU"
+        identification_number_help: "Der Produktcode des Herstellers (z.B. 19432 für Ravensburger-Puzzles)."
+        manufacturer: "Hersteller"
+        manufacturer_placeholder: "Hersteller suchen..."
+        name: "Puzzle-Name"
+        name_help: "Gib den korrekten Namen wie auf der Puzzle-Schachtel ein. Verwende Kommas für mehrere Namen."
+        or: "oder"
+        photo: "Neues Foto"
+        photo_example_ok: "OK"
+        photo_example_perfect: "Perfekt"
+        photo_example_wrong: "Falsch"
+        photo_help_1: "Verwende das Bild von der Puzzle-Schachtel, nicht das fertige Puzzle."
+        photo_help_2: "Achte auf gute Beleuchtung und Schärfe."
+        photo_help_3: "Schneide das Bild zu, um nur das Puzzle-Bild zu zeigen, nicht die ganze Schachtel."
+        photo_help_4: "Bei Multipacks wähle nur das Bild eines Puzzles."
+        photo_help_title: "Foto-Richtlinien:"
+        photo_help_toggle: "Tipps für ein gutes Foto"
+        pieces_count: "Teileanzahl"
+        pieces_count_help: "Gib die korrekte Teileanzahl ein."
+        search_manufacturer: "Nach Hersteller suchen"
+        search_manufacturer_placeholder: "Hersteller auswählen, um Puzzles zu durchsuchen..."
+        select_duplicate_error: "Bitte wähle ein Duplikat-Puzzle oder gib eine Puzzle-URL ein."
+        select_manufacturer_first: "Zuerst Hersteller auswählen"
+        select_puzzle: "Puzzle auswählen"
+        select_puzzle_placeholder: "Puzzle suchen..."
+        submit_changes: "Änderungen einreichen"
+        submit_duplicate: "Als Duplikat melden"
+    propose_changes:
+        description: "Schlage Korrekturen oder Verbesserungen für die Informationen dieses Puzzles vor. Alle Änderungen werden von einem Administrator überprüft."
+    report_duplicate:
+        description: "Melde, dass dieses Puzzle ein Duplikat eines anderen Puzzles ist. Ein Administrator wird prüfen und die Einträge zusammenführen, falls bestätigt."
+        max_puzzles_info: "Du kannst bis zu %max% Puzzles gleichzeitig als Duplikate melden."
+    tab:
+        propose_changes: "Änderungen vorschlagen"
+        report_duplicate: "Duplikat melden"
+    title: "Puzzle-Änderungen vorschlagen"

@@ -51,8 +51,18 @@ final class ProposeChangesController extends AbstractController
 
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
 
-        // Check for existing pending proposals
+        // Check for existing pending proposals - show them instead of the form
         if ($this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId)) {
+            $proposals = $this->getPendingPuzzleProposals->forPuzzle($puzzleId);
+
+            // Handle Turbo Frame request - show pending proposals modal
+            if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
+                return $this->render('puzzle-report/pending_proposals_modal.html.twig', [
+                    'puzzle' => $puzzle,
+                    'proposals' => $proposals,
+                ]);
+            }
+
             $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.pending_proposal_exists'));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);

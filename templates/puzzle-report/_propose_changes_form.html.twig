@@ -41,7 +41,23 @@
                     <li>{{ 'puzzle_report.form.photo_help_1'|trans }}</li>
                     <li>{{ 'puzzle_report.form.photo_help_2'|trans }}</li>
                     <li>{{ 'puzzle_report.form.photo_help_3'|trans }}</li>
+                    <li>{{ 'puzzle_report.form.photo_help_4'|trans }}</li>
                 </ul>
+
+                <div class="d-flex gap-2 mt-3">
+                    <div class="position-relative">
+                        <img src="{{ asset('img/example-image-not-ok.jpg') }}" alt="Wrong example" class="rounded" style="max-height: 80px;">
+                        <span class="badge bg-danger position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_wrong'|trans }}</span>
+                    </div>
+                    <div class="position-relative">
+                        <img src="{{ asset('img/example-image-ok.jpg') }}" alt="OK example" class="rounded" style="max-height: 80px;">
+                        <span class="badge bg-primary position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_ok'|trans }}</span>
+                    </div>
+                    <div class="position-relative">
+                        <img src="{{ asset('img/example-image-perfect.jpg') }}" alt="Perfect example" class="rounded" style="max-height: 80px;">
+                        <span class="badge bg-success position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_perfect'|trans }}</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

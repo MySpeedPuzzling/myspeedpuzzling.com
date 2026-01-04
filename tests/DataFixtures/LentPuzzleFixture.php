@@ -21,6 +21,7 @@ final class LentPuzzleFixture extends Fixture implements DependentFixtureInterfa
     public const string LENT_04 = '018d000c-0000-0000-0000-000000000004';
     public const string LENT_05 = '018d000c-0000-0000-0000-000000000005';
     public const string LENT_06 = '018d000c-0000-0000-0000-000000000006';
+    public const string LENT_07 = '018d000c-0000-0000-0000-000000000007';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -30,11 +31,13 @@ final class LentPuzzleFixture extends Fixture implements DependentFixtureInterfa
     public function load(ObjectManager $manager): void
     {
         $player1 = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
+        $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player4 = $this->getReference(PlayerFixture::PLAYER_WITH_FAVORITES, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         // Puzzles from player5's collection
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
+        $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
         $puzzle1500_01 = $this->getReference(PuzzleFixture::PUZZLE_1500_01, Puzzle::class);
         $puzzle1500_02 = $this->getReference(PuzzleFixture::PUZZLE_1500_02, Puzzle::class);
@@ -125,6 +128,21 @@ final class LentPuzzleFixture extends Fixture implements DependentFixtureInterfa
         );
         $manager->persist($lent06);
         $this->addReference(self::LENT_06, $lent06);
+
+        // LENT_07: PLAYER_REGULAR lends PUZZLE_500_05 to PLAYER_ADMIN (for merge testing)
+        // This record should be migrated to survivor puzzle during merge
+        $lent07 = $this->createLentPuzzle(
+            id: self::LENT_07,
+            puzzle: $puzzle500_05,
+            ownerPlayer: $player1,
+            ownerName: null,
+            currentHolderPlayer: $player3,
+            currentHolderName: null,
+            daysAgo: 8,
+            notes: 'Merge test puzzle',
+        );
+        $manager->persist($lent07);
+        $this->addReference(self::LENT_07, $lent07);
 
         $manager->flush();
     }

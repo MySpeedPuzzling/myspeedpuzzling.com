@@ -56,7 +56,7 @@
                 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-4">
                     {% for puzzle in puzzles %}
                         <div class="col">
-                            <div class="card shadow h-100 {{ loop.first ? 'border-primary' : '' }}">
+                            <div class="card shadow h-100 border-primary">
                                 {% if puzzle.puzzleImage %}
                                     <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}"
                                          class="card-img-top"
@@ -99,7 +99,7 @@
 
                     <p class="text-muted small mb-4">
                         Configure the merged puzzle data below. Values are auto-filled from the reported puzzles.
-                        The puzzle with the most solving times will automatically become the survivor.
+                        The puzzle with the most solving times will automatically become the survivor (keeping the id and URL address).
                     </p>
 
                     <form action="{{ path('admin_approve_puzzle_merge_request', {id: request.id}) }}"

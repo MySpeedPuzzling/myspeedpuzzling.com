@@ -75,6 +75,11 @@ export default class extends Controller {
     };
 
     open() {
+        // Don't open modal if frame is empty (e.g., stream response cleared it)
+        if (this.frameTarget.innerHTML.trim() === '') {
+            clearTimeout(this.openTimeout);
+            return;
+        }
         this.modal.show();
         document.body.classList.add('modal-open');
     }

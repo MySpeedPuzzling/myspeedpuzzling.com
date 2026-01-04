@@ -22,6 +22,7 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
     public const string WISHLIST_05 = '018d000a-0000-0000-0000-000000000005';
     public const string WISHLIST_06 = '018d000a-0000-0000-0000-000000000006';
     public const string WISHLIST_07 = '018d000a-0000-0000-0000-000000000007';
+    public const string WISHLIST_08 = '018d000a-0000-0000-0000-000000000008';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -32,9 +33,11 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
     {
         $player1 = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
         $player2 = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
+        $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
+        $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle3000 = $this->getReference(PuzzleFixture::PUZZLE_3000, Puzzle::class);
         $puzzle4000 = $this->getReference(PuzzleFixture::PUZZLE_4000, Puzzle::class);
         $puzzle5000 = $this->getReference(PuzzleFixture::PUZZLE_5000, Puzzle::class);
@@ -114,6 +117,19 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
         );
         $manager->persist($item06);
         $this->addReference(self::WISHLIST_06, $item06);
+
+        // WISHLIST_08: PLAYER_REGULAR + PUZZLE_500_05 (for merge testing)
+        // Using PLAYER_REGULAR who doesn't have PUZZLE_500_05 in collection (avoids auto-removal)
+        // This item should be migrated to survivor puzzle during merge
+        $item08 = $this->createWishListItem(
+            id: self::WISHLIST_08,
+            player: $player1,
+            puzzle: $puzzle500_05,
+            removeOnCollectionAdd: true,
+            daysAgo: 7,
+        );
+        $manager->persist($item08);
+        $this->addReference(self::WISHLIST_08, $item08);
 
         $manager->flush();
     }

@@ -8,6 +8,9 @@ use DateTimeImmutable;
 
 readonly final class PendingPuzzleProposal
 {
+    /**
+     * @param array<MergePuzzleInfo> $mergePuzzles
+     */
     public function __construct(
         public string $id,
         public string $type,
@@ -15,13 +18,15 @@ readonly final class PendingPuzzleProposal
         public null|string $reporterName,
         public null|string $reporterCode,
         public string $summary,
+        public array $mergePuzzles = [],
     ) {
     }
 
     /**
      * @param array<string, mixed> $row
+     * @param array<MergePuzzleInfo> $mergePuzzles
      */
-    public static function fromDatabaseRow(array $row): self
+    public static function fromDatabaseRow(array $row, array $mergePuzzles = []): self
     {
         $id = $row['id'];
         assert(is_string($id));
@@ -39,6 +44,7 @@ readonly final class PendingPuzzleProposal
             reporterName: is_string($row['reporter_name']) ? $row['reporter_name'] : null,
             reporterCode: is_string($row['reporter_code']) ? $row['reporter_code'] : null,
             summary: $summary,
+            mergePuzzles: $mergePuzzles,
         );
     }
 }

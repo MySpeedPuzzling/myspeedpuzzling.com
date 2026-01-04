@@ -43,6 +43,8 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
     public const string ITEM_25 = '018d0009-0000-0000-0000-000000000025';
     public const string ITEM_26 = '018d0009-0000-0000-0000-000000000026';
     public const string ITEM_27 = '018d0009-0000-0000-0000-000000000027';
+    public const string ITEM_28 = '018d0009-0000-0000-0000-000000000028';
+    public const string ITEM_29 = '018d0009-0000-0000-0000-000000000029';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -378,6 +380,32 @@ final class CollectionItemFixture extends Fixture implements DependentFixtureInt
         );
         $manager->persist($item27);
         $this->addReference(self::ITEM_27, $item27);
+
+        // ITEM_28: PLAYER_ADMIN + PUZZLE_500_04 + null (system collection)
+        // Creates deduplication scenario for null collection with ITEM_25
+        // When merging PUZZLE_500_05 into PUZZLE_500_04, ITEM_25 should be REMOVED (not migrated)
+        $item28 = $this->createCollectionItem(
+            id: self::ITEM_28,
+            player: $player3, // PLAYER_ADMIN
+            puzzle: $puzzle500_04,
+            collection: null,
+            daysAgo: 3,
+        );
+        $manager->persist($item28);
+        $this->addReference(self::ITEM_28, $item28);
+
+        // ITEM_29: PLAYER_PRIVATE + PUZZLE_500_04 + null (system collection)
+        // Creates deduplication scenario for null collection with ITEM_26
+        // When merging PUZZLE_500_05 into PUZZLE_500_04, ITEM_26 should be REMOVED (not migrated)
+        $item29 = $this->createCollectionItem(
+            id: self::ITEM_29,
+            player: $player2, // PLAYER_PRIVATE
+            puzzle: $puzzle500_04,
+            collection: null,
+            daysAgo: 2,
+        );
+        $manager->persist($item29);
+        $this->addReference(self::ITEM_29, $item29);
 
         $manager->flush();
     }

@@ -90,6 +90,10 @@ SELECT
     source_p.pieces_count as source_puzzle_pieces_count,
     source_p.image as source_puzzle_image,
     source_m.name as source_puzzle_manufacturer_name,
+    survivor_p.name as survivor_puzzle_name,
+    survivor_p.pieces_count as survivor_puzzle_pieces_count,
+    survivor_p.image as survivor_puzzle_image,
+    survivor_m.name as survivor_puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
     reporter.code as reporter_code,
@@ -98,6 +102,8 @@ SELECT
 FROM puzzle_merge_request pmr
 LEFT JOIN puzzle source_p ON source_p.id = pmr.source_puzzle_id
 LEFT JOIN manufacturer source_m ON source_m.id = source_p.manufacturer_id
+LEFT JOIN puzzle survivor_p ON survivor_p.id = pmr.survivor_puzzle_id
+LEFT JOIN manufacturer survivor_m ON survivor_m.id = survivor_p.manufacturer_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pmr.reviewed_by_id
 WHERE pmr.id = :id
@@ -135,6 +141,10 @@ SELECT
     source_p.pieces_count as source_puzzle_pieces_count,
     source_p.image as source_puzzle_image,
     source_m.name as source_puzzle_manufacturer_name,
+    survivor_p.name as survivor_puzzle_name,
+    survivor_p.pieces_count as survivor_puzzle_pieces_count,
+    survivor_p.image as survivor_puzzle_image,
+    survivor_m.name as survivor_puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
     reporter.code as reporter_code,
@@ -143,6 +153,8 @@ SELECT
 FROM puzzle_merge_request pmr
 LEFT JOIN puzzle source_p ON source_p.id = pmr.source_puzzle_id
 LEFT JOIN manufacturer source_m ON source_m.id = source_p.manufacturer_id
+LEFT JOIN puzzle survivor_p ON survivor_p.id = pmr.survivor_puzzle_id
+LEFT JOIN manufacturer survivor_m ON survivor_m.id = survivor_p.manufacturer_id
 LEFT JOIN player reporter ON reporter.id = pmr.reporter_id
 LEFT JOIN player reviewer ON reviewer.id = pmr.reviewed_by_id
 WHERE pmr.status = :status

@@ -59,21 +59,34 @@
                         {% for request in requests %}
                             <tr>
                                 <td>
+                                    {% set puzzleImage = request.survivorPuzzleImage ?? request.sourcePuzzleImage %}
+                                    {% set puzzleName = request.survivorPuzzleName ?? request.sourcePuzzleName %}
+                                    {% set puzzlePiecesCount = request.survivorPuzzlePiecesCount ?? request.sourcePuzzlePiecesCount %}
+                                    {% set puzzleManufacturerName = request.survivorPuzzleManufacturerName ?? request.sourcePuzzleManufacturerName %}
                                     <div class="d-flex align-items-start align-items-md-center">
-                                        {% if request.sourcePuzzleImage %}
-                                            <img src="{{ request.sourcePuzzleImage|puzzle_image('puzzle_small') }}"
-                                                 alt="{{ request.sourcePuzzleName }}"
+                                        {% if puzzleImage %}
+                                            <img src="{{ puzzleImage|puzzle_image('puzzle_small') }}"
+                                                 alt="{{ puzzleName }}"
                                                  class="me-2 rounded flex-shrink-0"
                                                  style="max-height: 40px;">
                                         {% endif %}
                                         <div class="min-w-0">
-                                            <a href="{{ path('puzzle_detail', {puzzleId: request.sourcePuzzleId}) }}"
-                                               target="_blank">
-                                                {{ request.sourcePuzzleName }}
-                                            </a>
+                                            {% if request.finalMergedPuzzleId %}
+                                                <a href="{{ path('puzzle_detail', {puzzleId: request.finalMergedPuzzleId}) }}"
+                                                   target="_blank">
+                                                    {{ puzzleName }}
+                                                </a>
+                                            {% elseif request.sourcePuzzleId %}
+                                                <a href="{{ path('puzzle_detail', {puzzleId: request.sourcePuzzleId}) }}"
+                                                   target="_blank">
+                                                    {{ puzzleName }}
+                                                </a>
+                                            {% else %}
+                                                {{ puzzleName }}
+                                            {% endif %}
                                             <br>
                                             <small class="text-muted">
-                                                {{ request.sourcePuzzleManufacturerName }} - {{ request.sourcePuzzlePiecesCount }} pcs
+                                                {{ puzzleManufacturerName }} - {{ puzzlePiecesCount }} pcs
                                             </small>
                                         </div>
                                     </div>

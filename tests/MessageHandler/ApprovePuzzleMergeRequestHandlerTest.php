@@ -108,6 +108,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         self::assertCount(2, $duplicateSolvingTimes, 'Expected 2 solving times for duplicate puzzle');
 
         // Collection items - expect 3 for duplicate (ITEM_25, ITEM_26, ITEM_27)
+        // Note: ITEM_25 + ITEM_26 are in null collection, ITEM_27 is in COLLECTION_PUBLIC
         $duplicateCollectionItems = $this->entityManager->getRepository(CollectionItem::class)
             ->findBy(['puzzle' => $duplicatePuzzle]);
         self::assertCount(3, $duplicateCollectionItems, 'Expected 3 collection items for duplicate puzzle');
@@ -139,7 +140,7 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
 
         $initialSurvivorCollectionItems = $this->entityManager->getRepository(CollectionItem::class)
             ->findBy(['puzzle' => $survivorPuzzle]);
-        self::assertCount(1, $initialSurvivorCollectionItems, 'Expected 1 collection item for survivor puzzle initially (ITEM_21)');
+        self::assertCount(3, $initialSurvivorCollectionItems, 'Expected 3 collection items for survivor puzzle initially (ITEM_21, ITEM_28, ITEM_29)');
 
         // --- PERFORM MERGE ---
         $mergeRequestId = Uuid::uuid7()->toString();
@@ -192,10 +193,13 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
             'Expected 2 solving times to be migrated to survivor puzzle',
         );
 
-        // Collection items - survivor should have 3 total (1 original + 2 migrated)
+        // Collection items - survivor should have 3 total
+        // All 3 original survivor items stay, all 3 duplicates are deduplicated (removed)
+        // ITEM_21 stays, ITEM_28 stays, ITEM_29 stays
+        // ITEM_27 deduplicated with ITEM_21, ITEM_25 deduplicated with ITEM_28, ITEM_26 deduplicated with ITEM_29
         $survivorCollectionItems = $this->entityManager->getRepository(CollectionItem::class)
             ->findBy(['puzzle' => $survivorPuzzle]);
-        self::assertCount(3, $survivorCollectionItems, 'Expected 3 collection items after merge (1 original + 2 migrated)');
+        self::assertCount(3, $survivorCollectionItems, 'Expected 3 collection items after merge (all deduplicated)');
 
         // Wishlist items - survivor should have 1 (migrated)
         $survivorWishlistItems = $this->entityManager->getRepository(WishListItem::class)
@@ -246,6 +250,19 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
         $stripeCollectionItemsForDuplicate = $this->entityManager->getRepository(CollectionItem::class)
             ->findBy(['player' => $stripePlayerReference, 'puzzle' => $duplicatePuzzle, 'collection' => $publicCollectionReference]);
         self::assertCount(1, $stripeCollectionItemsForDuplicate, 'PLAYER_WITH_STRIPE should have duplicate puzzle in COLLECTION_PUBLIC');
+
+        // CollectionItem: PLAYER_ADMIN has BOTH puzzles in null collection (ITEM_28 + ITEM_25)
+        $adminPlayerReference = $this->entityManager
+            ->getRepository(\SpeedPuzzling\Web\Entity\Player::class)
+            ->find(PlayerFixture::PLAYER_ADMIN);
+
+        $adminCollectionItemsForSurvivor = $this->entityManager->getRepository(CollectionItem::class)
+            ->findBy(['player' => $adminPlayerReference, 'puzzle' => $survivorPuzzle, 'collection' => null]);
+        self::assertCount(1, $adminCollectionItemsForSurvivor, 'PLAYER_ADMIN should have survivor puzzle in null collection');
+
+        $adminCollectionItemsForDuplicate = $this->entityManager->getRepository(CollectionItem::class)
+            ->findBy(['player' => $adminPlayerReference, 'puzzle' => $duplicatePuzzle, 'collection' => null]);
+        self::assertCount(1, $adminCollectionItemsForDuplicate, 'PLAYER_ADMIN should have duplicate puzzle in null collection');
 
         // WishListItem: PLAYER_REGULAR has BOTH puzzles on wishlist (WISHLIST_08 + WISHLIST_09)
         $regularPlayerReference = $this->entityManager
@@ -328,10 +345,15 @@ final class ApprovePuzzleMergeRequestHandlerTest extends KernelTestCase
 
         // --- AFTER MERGE: Assert deduplication happened ---
 
-        // CollectionItem: PLAYER_WITH_STRIPE should have ONLY 1 item for survivor in COLLECTION_PUBLIC (not 2)
+        // CollectionItem (named collection): PLAYER_WITH_STRIPE should have ONLY 1 item for survivor in COLLECTION_PUBLIC (not 2)
         $stripeCollectionItemsAfter = $this->entityManager->getRepository(CollectionItem::class)
             ->findBy(['player' => $stripePlayerReference, 'puzzle' => $survivorPuzzle, 'collection' => $publicCollectionReference]);
-        self::assertCount(1, $stripeCollectionItemsAfter, 'PLAYER_WITH_STRIPE should have exactly 1 collection item for survivor puzzle (deduplication)');
+        self::assertCount(1, $stripeCollectionItemsAfter, 'PLAYER_WITH_STRIPE should have exactly 1 collection item for survivor puzzle in named collection (deduplication)');
+
+        // CollectionItem (null/system collection): PLAYER_ADMIN should have ONLY 1 item for survivor in null collection (not 2)
+        $adminCollectionItemsAfter = $this->entityManager->getRepository(CollectionItem::class)
+            ->findBy(['player' => $adminPlayerReference, 'puzzle' => $survivorPuzzle, 'collection' => null]);
+        self::assertCount(1, $adminCollectionItemsAfter, 'PLAYER_ADMIN should have exactly 1 collection item for survivor puzzle in null collection (deduplication)');
 
         // WishListItem: PLAYER_REGULAR should have ONLY 1 item for survivor (not 2)
         $regularWishlistAfter = $this->entityManager->getRepository(WishListItem::class)

@@ -75,7 +75,5 @@ readonly final class ApprovePuzzleChangeRequestHandler
             targetChangeRequest: $changeRequest,
         );
         $this->entityManager->persist($notification);
-
-        $this->entityManager->flush();
     }
 }

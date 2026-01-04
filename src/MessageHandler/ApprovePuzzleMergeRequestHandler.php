@@ -105,8 +105,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         // Migrate all puzzle-related records from merged puzzles to survivor
         $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
 
-        // Mark merge request as approved BEFORE deleting puzzles
-        // (because sourcePuzzle has CASCADE delete which would delete the merge request)
+        // Mark merge request as approved (this records PuzzleMergeApproved event for puzzle deletion)
         $mergeRequest->approve(
             reviewedBy: $reviewer,
             reviewedAt: $this->clock->now(),
@@ -129,20 +128,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $this->entityManager->persist($notification);
         }
 
-        // Flush to persist migrations, approval status, and notification before deleting puzzles
-        $this->entityManager->flush();
+        // Puzzle deletions are handled by PuzzleMergeApproved event (recorded in approve() method)
+        // This ensures migrations are flushed first, then deletions happen in a separate transaction
 
-        // Delete merged puzzles (not the survivor)
-        // Note: PuzzleStatistics will be CASCADE deleted with the puzzle
-        // Note: This may CASCADE delete the merge request if sourcePuzzle is among deleted puzzles
-        foreach ($puzzlesToMerge as $puzzleToMerge) {
-            $this->entityManager->remove($puzzleToMerge);
-        }
-
-        // Flush deletions - statistics will be recalculated via PuzzleSolvingTimeModified events
-        $this->entityManager->flush();
-
-        $this->logger->info('Puzzle merge completed: {mergedCount} puzzles merged into survivor', [
+        $this->logger->info('Puzzle merge approved: {mergedCount} puzzles will be merged into survivor', [
             'mergeRequestId' => $message->mergeRequestId,
             'survivorPuzzleId' => $message->survivorPuzzleId,
             'mergedCount' => count($puzzlesToMerge),

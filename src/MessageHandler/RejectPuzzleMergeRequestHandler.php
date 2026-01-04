@@ -49,7 +49,5 @@ readonly final class RejectPuzzleMergeRequestHandler
             );
             $this->entityManager->persist($notification);
         }
-
-        $this->entityManager->flush();
     }
 }

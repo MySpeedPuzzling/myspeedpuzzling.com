@@ -38,6 +38,8 @@ return App::config([
                 'SpeedPuzzling\Web\Events\PuzzleSolved' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted' => 'sync',
+                // Events that must run synchronously for proper transaction ordering
+                'SpeedPuzzling\Web\Events\PuzzleMergeApproved' => 'sync',
                 // All other events can run asynchronously
                 'SpeedPuzzling\Web\Events\*' => 'async',
             ],

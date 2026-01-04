@@ -14,11 +14,14 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\PuzzleMergeApproved;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 #[Entity]
-class PuzzleMergeRequest
+class PuzzleMergeRequest implements EntityWithEvents
 {
+    use HasEvents;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: 'string', enumType: PuzzleReportStatus::class)]
     public PuzzleReportStatus $status = PuzzleReportStatus::Pending;
@@ -98,6 +101,12 @@ class PuzzleMergeRequest
         $this->reviewedAt = $reviewedAt;
         $this->survivorPuzzleId = $survivorPuzzleId;
         $this->mergedPuzzleIds = $mergedPuzzleIds;
+
+        $this->recordThat(new PuzzleMergeApproved(
+            mergeRequestId: $this->id,
+            survivorPuzzleId: $survivorPuzzleId,
+            puzzleIdsToDelete: $mergedPuzzleIds,
+        ));
     }
 
     public function reject(Player $reviewedBy, DateTimeImmutable $reviewedAt, string $reason): void

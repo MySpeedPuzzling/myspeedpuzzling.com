@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\FormType\ProposePuzzleChangesFormType;
 use SpeedPuzzling\Web\FormType\ReportDuplicatePuzzleFormType;
 use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
+use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,7 @@ final class ProposeChangesController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly GetPendingPuzzleProposals $getPendingPuzzleProposals,
     ) {
     }
 
@@ -49,6 +51,13 @@ final class ProposeChangesController extends AbstractController
         assert($loggedPlayer !== null);
 
         $puzzle = $this->getPuzzleOverview->byId($puzzleId);
+
+        // Check for existing pending proposals
+        if ($this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId)) {
+            $this->addFlash('warning', $this->translator->trans('puzzle_report.flash.pending_proposal_exists'));
+
+            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+        }
 
         // Pre-populate propose changes form with existing values
         $proposeFormData = new ProposePuzzleChangesFormData();
@@ -142,13 +151,19 @@ final class ProposeChangesController extends AbstractController
             'active_tab' => $activeTab,
         ];
 
+        // Determine if form has validation errors (for proper Turbo handling)
+        $hasErrors = ($proposeForm->isSubmitted() && !$proposeForm->isValid())
+            || ($reportForm->isSubmitted() && !$reportForm->isValid());
+
+        $statusCode = $hasErrors ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK;
+
         // Turbo Frame request - return frame content only
         if ($request->headers->get('Turbo-Frame') === 'modal-frame') {
-            return $this->render('puzzle-report/modal.html.twig', $templateParams);
+            return $this->render('puzzle-report/modal.html.twig', $templateParams, new Response('', $statusCode));
         }
 
         // Non-Turbo request: return full page for progressive enhancement
-        return $this->render('puzzle-report/propose_changes.html.twig', $templateParams);
+        return $this->render('puzzle-report/propose_changes.html.twig', $templateParams, new Response('', $statusCode));
     }
 
     /**
@@ -158,24 +173,23 @@ final class ProposeChangesController extends AbstractController
     {
         $ids = $formData->duplicatePuzzleIds;
 
-        // Parse URLs from text area
-        if ($formData->duplicatePuzzleUrls !== null && $formData->duplicatePuzzleUrls !== '') {
-            $lines = preg_split('/[\r\n,]+/', $formData->duplicatePuzzleUrls);
-            if ($lines !== false) {
-                foreach ($lines as $line) {
-                    $line = trim($line);
-                    if ($line === '') {
-                        continue;
-                    }
+        // Add puzzle ID from dropdown selection
+        if ($formData->selectedPuzzleId !== null && $formData->selectedPuzzleId !== '') {
+            if (Uuid::isValid($formData->selectedPuzzleId)) {
+                $ids[] = $formData->selectedPuzzleId;
+            }
+        }
 
-                    // Try to extract puzzle ID from URL
-                    if (preg_match('/puzzle\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i', $line, $matches)) {
-                        $ids[] = $matches[1];
-                    } elseif (Uuid::isValid($line)) {
-                        // Direct UUID
-                        $ids[] = $line;
-                    }
-                }
+        // Parse URL from single text input
+        if ($formData->duplicatePuzzleUrl !== null && $formData->duplicatePuzzleUrl !== '') {
+            $line = trim($formData->duplicatePuzzleUrl);
+
+            // Try to extract puzzle ID from URL
+            if (preg_match('/puzzle\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i', $line, $matches)) {
+                $ids[] = $matches[1];
+            } elseif (Uuid::isValid($line)) {
+                // Direct UUID
+                $ids[] = $line;
             }
         }
 

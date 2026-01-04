@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleChangeRequestOverview
@@ -66,30 +65,30 @@ readonly final class PuzzleChangeRequestOverview
         assert(is_string($reporterId));
 
         return new self(
-            id: Uuid::fromBytes($id)->toString(),
+            id: $id,
             status: PuzzleReportStatus::from($status),
             submittedAt: new DateTimeImmutable($submittedAt),
             reviewedAt: $reviewedAt !== null ? new DateTimeImmutable($reviewedAt) : null,
             rejectionReason: is_string($row['rejection_reason']) ? $row['rejection_reason'] : null,
-            puzzleId: Uuid::fromBytes($puzzleId)->toString(),
+            puzzleId: $puzzleId,
             puzzleName: $puzzleName,
             puzzlePiecesCount: $puzzlePiecesCount,
             puzzleImage: is_string($row['puzzle_image']) ? $row['puzzle_image'] : null,
             puzzleManufacturerName: is_string($row['puzzle_manufacturer_name']) ? $row['puzzle_manufacturer_name'] : null,
-            reporterId: Uuid::fromBytes($reporterId)->toString(),
+            reporterId: $reporterId,
             reporterName: is_string($row['reporter_name']) ? $row['reporter_name'] : null,
             reporterCode: is_string($row['reporter_code']) ? $row['reporter_code'] : null,
-            reviewerId: is_string($row['reviewer_id']) ? Uuid::fromBytes($row['reviewer_id'])->toString() : null,
+            reviewerId: is_string($row['reviewer_id']) ? $row['reviewer_id'] : null,
             reviewerName: is_string($row['reviewer_name']) ? $row['reviewer_name'] : null,
             proposedName: is_string($row['proposed_name']) ? $row['proposed_name'] : null,
-            proposedManufacturerId: is_string($row['proposed_manufacturer_id']) ? Uuid::fromBytes($row['proposed_manufacturer_id'])->toString() : null,
+            proposedManufacturerId: is_string($row['proposed_manufacturer_id']) ? $row['proposed_manufacturer_id'] : null,
             proposedManufacturerName: is_string($row['proposed_manufacturer_name']) ? $row['proposed_manufacturer_name'] : null,
             proposedPiecesCount: is_int($row['proposed_pieces_count']) ? $row['proposed_pieces_count'] : null,
             proposedEan: is_string($row['proposed_ean']) ? $row['proposed_ean'] : null,
             proposedIdentificationNumber: is_string($row['proposed_identification_number']) ? $row['proposed_identification_number'] : null,
             proposedImage: is_string($row['proposed_image']) ? $row['proposed_image'] : null,
             originalName: is_string($row['original_name']) ? $row['original_name'] : null,
-            originalManufacturerId: is_string($row['original_manufacturer_id']) ? Uuid::fromBytes($row['original_manufacturer_id'])->toString() : null,
+            originalManufacturerId: is_string($row['original_manufacturer_id']) ? $row['original_manufacturer_id'] : null,
             originalManufacturerName: is_string($row['original_manufacturer_name']) ? $row['original_manufacturer_name'] : null,
             originalPiecesCount: is_int($row['original_pieces_count']) ? $row['original_pieces_count'] : null,
             originalEan: is_string($row['original_ean']) ? $row['original_ean'] : null,

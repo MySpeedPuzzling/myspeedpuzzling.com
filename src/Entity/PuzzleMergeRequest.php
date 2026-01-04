@@ -49,20 +49,26 @@ class PuzzleMergeRequest
     #[Column(type: Types::JSON, options: ['default' => '[]'])]
     public array $mergedPuzzleIds = [];
 
+    // Store source puzzle name for display even after puzzle is deleted
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: 'string', length: 255, nullable: true)]
+    public null|string $sourcePuzzleName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        // The puzzle from which the report was initiated
-        #[Immutable]
+        // The puzzle from which the report was initiated (nullable for audit trail - SET NULL when puzzle deleted)
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
-        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public Puzzle $sourcePuzzle,
-        #[Immutable]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Puzzle $sourcePuzzle,
+        // Reporter player (nullable for audit trail - SET NULL when player deleted)
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[ManyToOne]
-        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public Player $reporter,
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Player $reporter,
         #[Immutable]
         #[Column]
         public DateTimeImmutable $submittedAt,
@@ -74,6 +80,8 @@ class PuzzleMergeRequest
         #[Column(type: Types::JSON)]
         public array $reportedDuplicatePuzzleIds = [],
     ) {
+        // Store puzzle name for display even after puzzle is deleted
+        $this->sourcePuzzleName = $sourcePuzzle?->name;
     }
 
     /**

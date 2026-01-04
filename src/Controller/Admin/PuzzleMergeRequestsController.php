@@ -41,7 +41,7 @@ final class PuzzleMergeRequestsController extends AbstractController
         return $this->render('admin/puzzle_merge_requests.html.twig', [
             'requests' => $requests,
             'active_tab' => $tab,
-            'pending_count' => count($this->getPuzzleMergeRequests->allPending()),
+            'counts' => $this->getPuzzleMergeRequests->countByStatus(),
         ]);
     }
 }

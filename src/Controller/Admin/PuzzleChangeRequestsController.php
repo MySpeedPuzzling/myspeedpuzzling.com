@@ -41,7 +41,7 @@ final class PuzzleChangeRequestsController extends AbstractController
         return $this->render('admin/puzzle_change_requests.html.twig', [
             'requests' => $requests,
             'active_tab' => $tab,
-            'pending_count' => count($this->getPuzzleChangeRequests->allPending()),
+            'counts' => $this->getPuzzleChangeRequests->countByStatus(),
         ]);
     }
 }

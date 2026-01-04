@@ -7,8 +7,15 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CollectionItem;
+use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\Notification;
+use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\PuzzleStatistics;
+use SpeedPuzzling\Web\Entity\SellSwapListItem;
+use SpeedPuzzling\Web\Entity\SoldSwappedItem;
+use SpeedPuzzling\Web\Entity\WishListItem;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
@@ -18,6 +25,8 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Repository\PuzzleStatisticsRepository;
+use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -31,6 +40,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private ManufacturerRepository $manufacturerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private PuzzleStatisticsRepository $statisticsRepository,
+        private PuzzleStatisticsCalculator $statisticsCalculator,
     ) {
     }
 
@@ -91,24 +102,11 @@ readonly final class ApprovePuzzleMergeRequestHandler
             }
         }
 
-        // Migrate solving times from merged puzzles to survivor
-        $solvingTimeRepository = $this->entityManager->getRepository(PuzzleSolvingTime::class);
-        foreach ($puzzlesToMerge as $puzzleToMerge) {
-            $solvingTimes = $solvingTimeRepository->findBy(['puzzle' => $puzzleToMerge]);
-            foreach ($solvingTimes as $solvingTime) {
-                $solvingTime->puzzle = $survivorPuzzle;
-            }
-        }
+        // Migrate all puzzle-related records from merged puzzles to survivor
+        $this->migrateRecordsToSurvivor($puzzlesToMerge, $survivorPuzzle);
 
-        // Flush to persist solving time migrations before deleting puzzles
-        $this->entityManager->flush();
-
-        // Delete merged puzzles (not the survivor)
-        foreach ($puzzlesToMerge as $puzzleToMerge) {
-            $this->entityManager->remove($puzzleToMerge);
-        }
-
-        // Mark merge request as approved
+        // Mark merge request as approved BEFORE deleting puzzles
+        // (because sourcePuzzle has CASCADE delete which would delete the merge request)
         $mergeRequest->approve(
             reviewedBy: $reviewer,
             reviewedAt: $this->clock->now(),
@@ -119,16 +117,89 @@ readonly final class ApprovePuzzleMergeRequestHandler
             ),
         );
 
-        // Create notification for reporter
-        $notification = new Notification(
-            id: Uuid::uuid7(),
-            player: $mergeRequest->reporter,
-            type: NotificationType::PuzzleMergeRequestApproved,
-            notifiedAt: $this->clock->now(),
-            targetMergeRequest: $mergeRequest,
-        );
-        $this->entityManager->persist($notification);
+        // Create notification for reporter (if reporter still exists)
+        if ($mergeRequest->reporter !== null) {
+            $notification = new Notification(
+                id: Uuid::uuid7(),
+                player: $mergeRequest->reporter,
+                type: NotificationType::PuzzleMergeRequestApproved,
+                notifiedAt: $this->clock->now(),
+                targetMergeRequest: $mergeRequest,
+            );
+            $this->entityManager->persist($notification);
+        }
 
+        // Flush to persist migrations, approval status, and notification before deleting puzzles
         $this->entityManager->flush();
+
+        // Delete merged puzzles (not the survivor)
+        // Note: PuzzleStatistics will be CASCADE deleted with the puzzle
+        // Note: This may CASCADE delete the merge request if sourcePuzzle is among deleted puzzles
+        foreach ($puzzlesToMerge as $puzzleToMerge) {
+            $this->entityManager->remove($puzzleToMerge);
+        }
+
+        // Flush deletions before recalculating statistics
+        $this->entityManager->flush();
+
+        // Recalculate survivor's statistics (now includes migrated solving times)
+        $this->recalculateSurvivorStatistics($survivorPuzzle);
+    }
+
+    /**
+     * @param array<Puzzle> $puzzlesToMerge
+     */
+    private function migrateRecordsToSurvivor(array $puzzlesToMerge, Puzzle $survivorPuzzle): void
+    {
+        foreach ($puzzlesToMerge as $puzzleToMerge) {
+            // Migrate solving times
+            $solvingTimes = $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($solvingTimes as $solvingTime) {
+                $solvingTime->puzzle = $survivorPuzzle;
+            }
+
+            // Migrate collection items
+            $collectionItems = $this->entityManager->getRepository(CollectionItem::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($collectionItems as $item) {
+                $item->puzzle = $survivorPuzzle;
+            }
+
+            // Migrate wish list items
+            $wishListItems = $this->entityManager->getRepository(WishListItem::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($wishListItems as $item) {
+                $item->puzzle = $survivorPuzzle;
+            }
+
+            // Migrate sell/swap list items
+            $sellSwapItems = $this->entityManager->getRepository(SellSwapListItem::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($sellSwapItems as $item) {
+                $item->puzzle = $survivorPuzzle;
+            }
+
+            // Migrate lent puzzles
+            $lentPuzzles = $this->entityManager->getRepository(LentPuzzle::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($lentPuzzles as $item) {
+                $item->puzzle = $survivorPuzzle;
+            }
+
+            // Migrate sold/swapped items (historical records)
+            $soldSwappedItems = $this->entityManager->getRepository(SoldSwappedItem::class)->findBy(['puzzle' => $puzzleToMerge]);
+            foreach ($soldSwappedItems as $item) {
+                $item->puzzle = $survivorPuzzle;
+            }
+        }
+    }
+
+    private function recalculateSurvivorStatistics(Puzzle $survivorPuzzle): void
+    {
+        $statistics = $this->statisticsRepository->findByPuzzleId($survivorPuzzle->id);
+
+        if ($statistics === null) {
+            $statistics = new PuzzleStatistics($survivorPuzzle);
+            $this->statisticsRepository->save($statistics);
+        }
+
+        $data = $this->statisticsCalculator->calculateForPuzzle($survivorPuzzle->id);
+        $statistics->update($data);
     }
 }

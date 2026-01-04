@@ -69,17 +69,25 @@ final class PuzzleMergeRequestDetailController extends AbstractController
      */
     private function collectMergedData(array $puzzles): array
     {
-        $names = [];
         $eans = [];
         $identificationNumbers = [];
         $pieceCounts = [];
         $images = [];
         $manufacturers = [];
 
+        // First pass: find the survivor puzzle (the one with most solving times)
+        $survivorPuzzle = null;
+        $maxSolvedTimes = -1;
+
         foreach ($puzzles as $puzzle) {
-            if ($puzzle->puzzleName !== '') {
-                $names[] = $puzzle->puzzleName;
+            if ($puzzle->solvedTimes > $maxSolvedTimes) {
+                $maxSolvedTimes = $puzzle->solvedTimes;
+                $survivorPuzzle = $puzzle;
             }
+        }
+
+        // Second pass: collect all values for merging
+        foreach ($puzzles as $puzzle) {
             if ($puzzle->puzzleEan !== null && $puzzle->puzzleEan !== '') {
                 $eans[] = $puzzle->puzzleEan;
             }
@@ -94,14 +102,15 @@ final class PuzzleMergeRequestDetailController extends AbstractController
         }
 
         return [
-            'name' => $names[0] ?? '',
+            'name' => $survivorPuzzle !== null ? $survivorPuzzle->puzzleName : '',
             'ean' => implode(', ', array_unique($eans)),
             'identification_number' => implode(', ', array_unique($identificationNumbers)),
             'pieces_counts' => array_values($pieceCounts),
-            'pieces_count' => count($pieceCounts) === 1 ? array_values($pieceCounts)[0] : null,
+            'pieces_count' => $survivorPuzzle?->piecesCount,
             'images' => $images,
             'manufacturers' => $manufacturers,
-            'manufacturer_id' => count($manufacturers) === 1 ? array_key_first($manufacturers) : null,
+            'manufacturer_id' => $survivorPuzzle?->manufacturerId,
+            'survivor_puzzle_id' => $survivorPuzzle?->puzzleId,
         ];
     }
 }

@@ -34,6 +34,15 @@
                                 {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
                             </a>
                         {% endif %}
+                        {% if has_pending_proposals %}
+                            <a href="{{ path('puzzle_pending_proposals', {puzzleId: puzzle.puzzleId}) }}"
+                               class="mt-1 badge bg-warning text-dark rounded-pill"
+                               data-turbo="true"
+                               data-turbo-frame="modal-frame">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                {{ 'pending_proposals.badge'|trans }}
+                            </a>
+                        {% endif %}
                     </div>
 
                     <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>

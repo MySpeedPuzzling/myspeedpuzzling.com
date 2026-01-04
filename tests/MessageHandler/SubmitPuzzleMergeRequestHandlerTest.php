@@ -46,6 +46,7 @@ final class SubmitPuzzleMergeRequestHandlerTest extends KernelTestCase
 
         // Verify the merge request was created with correct values
         self::assertSame(PuzzleReportStatus::Pending, $mergeRequest->status);
+        self::assertNotNull($mergeRequest->sourcePuzzle);
         self::assertSame(PuzzleFixture::PUZZLE_1000_01, $mergeRequest->sourcePuzzle->id->toString());
         self::assertNull($mergeRequest->reviewedAt);
         self::assertNull($mergeRequest->reviewedBy);

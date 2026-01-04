@@ -38,15 +38,17 @@ readonly final class RejectPuzzleMergeRequestHandler
 
         $mergeRequest->reject($reviewer, $this->clock->now(), $message->rejectionReason);
 
-        // Create notification for reporter
-        $notification = new Notification(
-            id: Uuid::uuid7(),
-            player: $mergeRequest->reporter,
-            type: NotificationType::PuzzleMergeRequestRejected,
-            notifiedAt: $this->clock->now(),
-            targetMergeRequest: $mergeRequest,
-        );
-        $this->entityManager->persist($notification);
+        // Create notification for reporter (if reporter still exists)
+        if ($mergeRequest->reporter !== null) {
+            $notification = new Notification(
+                id: Uuid::uuid7(),
+                player: $mergeRequest->reporter,
+                type: NotificationType::PuzzleMergeRequestRejected,
+                notifiedAt: $this->clock->now(),
+                targetMergeRequest: $mergeRequest,
+            );
+            $this->entityManager->persist($notification);
+        }
 
         $this->entityManager->flush();
     }

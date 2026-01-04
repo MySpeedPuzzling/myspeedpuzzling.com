@@ -4,19 +4,34 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
-use Symfony\Component\Validator\Constraints\Count;
+use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
+#[Callback('validateHasDuplicate')]
 final class ReportDuplicatePuzzleFormData
 {
     /**
      * @var array<string>
      */
-    #[Count(min: 1, max: 4, minMessage: 'Please select at least one duplicate puzzle.', maxMessage: 'You can report at most 4 duplicate puzzles (5 total including the current one).')]
     public array $duplicatePuzzleIds = [];
 
-    #[Length(max: 1000)]
-    public null|string $duplicatePuzzleUrls = null;
+    #[Length(max: 500)]
+    public null|string $duplicatePuzzleUrl = null;
 
     public null|string $selectedManufacturerId = null;
+
+    public null|string $selectedPuzzleId = null;
+
+    public function validateHasDuplicate(ExecutionContextInterface $context): void
+    {
+        $hasSelectedPuzzle = $this->selectedPuzzleId !== null && $this->selectedPuzzleId !== '';
+        $hasUrl = $this->duplicatePuzzleUrl !== null && $this->duplicatePuzzleUrl !== '';
+
+        if (!$hasSelectedPuzzle && !$hasUrl) {
+            $context->buildViolation('Please select a duplicate puzzle or enter a puzzle URL.')
+                ->atPath('selectedPuzzleId')
+                ->addViolation();
+        }
+    }
 }

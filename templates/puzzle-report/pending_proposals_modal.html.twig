@@ -1,0 +1,44 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'pending_proposals.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if proposals is empty %}
+            <p class="text-muted mb-0">{{ 'pending_proposals.no_proposals'|trans }}</p>
+        {% else %}
+            {% for proposal in proposals %}
+                <div class="border rounded p-3 {% if not loop.last %}mb-2{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-{{ proposal.type == 'change_request' ? 'info' : 'warning' }} text-{{ proposal.type == 'change_request' ? 'white' : 'dark' }}">
+                            {{ ('pending_proposals.type.' ~ proposal.type)|trans }}
+                        </span>
+                        <small class="text-muted">{{ proposal.submittedAt|date('M j, Y') }}</small>
+                    </div>
+                    <p class="mb-1"><strong>{{ proposal.summary }}</strong></p>
+                    {% if proposal.reporterName %}
+                        <small class="text-muted">
+                            {{ 'pending_proposals.reported_by'|trans }}: {{ proposal.reporterName }}
+                        </small>
+                    {% endif %}
+                    {% if is_granted('ADMIN_ACCESS') %}
+                        <div class="mt-2">
+                            {% if proposal.type == 'change_request' %}
+                                <a href="{{ path('admin_puzzle_change_request_detail', {id: proposal.id}) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    {{ 'pending_proposals.view_details'|trans }}
+                                </a>
+                            {% else %}
+                                <a href="{{ path('admin_puzzle_merge_request_detail', {id: proposal.id}) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    {{ 'pending_proposals.view_details'|trans }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</turbo-frame>

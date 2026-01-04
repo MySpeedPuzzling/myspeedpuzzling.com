@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
@@ -14,6 +13,39 @@ readonly final class GetPuzzleChangeRequests
     public function __construct(
         private Connection $database,
     ) {
+    }
+
+    /**
+     * @return array{pending: int, approved: int, rejected: int}
+     */
+    public function countByStatus(): array
+    {
+        $query = <<<SQL
+SELECT
+    COUNT(*) FILTER (WHERE status = 'pending') as pending,
+    COUNT(*) FILTER (WHERE status = 'approved') as approved,
+    COUNT(*) FILTER (WHERE status = 'rejected') as rejected
+FROM puzzle_change_request
+SQL;
+
+        $row = $this->database->fetchAssociative($query);
+
+        if ($row === false) {
+            return ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+        }
+
+        /** @var int $pending */
+        $pending = $row['pending'];
+        /** @var int $approved */
+        $approved = $row['approved'];
+        /** @var int $rejected */
+        $rejected = $row['rejected'];
+
+        return [
+            'pending' => $pending,
+            'approved' => $approved,
+            'rejected' => $rejected,
+        ];
     }
 
     /**
@@ -84,7 +116,7 @@ WHERE pcr.id = :id
 SQL;
 
         $row = $this->database->fetchAssociative($query, [
-            'id' => Uuid::fromString($id)->getBytes(),
+            'id' => $id,
         ]);
 
         if ($row === false) {

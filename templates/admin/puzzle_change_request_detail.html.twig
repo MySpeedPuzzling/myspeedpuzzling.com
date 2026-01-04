@@ -3,7 +3,6 @@
 {% block title %}Change Request - {{ request.puzzleName }}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
     <div class="mb-3">
         <a href="{{ path('admin_puzzle_change_requests') }}" class="btn btn-sm btn-outline-secondary">
             <i class="ci-arrow-left me-1"></i> Back to list
@@ -12,7 +11,7 @@
 
     <div class="row">
         <div class="col-lg-8">
-            <div class="card mb-4">
+            <div class="card shadow mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h1 class="h4 mb-0">Change Request</h1>
                     {% if request.status.value == 'pending' %}
@@ -47,7 +46,8 @@
 
                     {# Changes comparison #}
                     <h5 class="mb-3">Proposed Changes</h5>
-                    <table class="table table-bordered">
+                    <div class="table-responsive">
+                    <table class="table table-bordered mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th style="width: 20%;">Field</th>
@@ -119,6 +119,7 @@
                             {% endif %}
                         </tbody>
                     </table>
+                    </div>
 
                     {% if not request.hasAnyChange() %}
                         <div class="alert alert-info">
@@ -160,7 +161,7 @@
 
         <div class="col-lg-4">
             {# Reporter info #}
-            <div class="card mb-4">
+            <div class="card shadow mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">Reporter</h5>
                 </div>
@@ -176,13 +177,13 @@
                         <span class="text-muted">Unknown user</span>
                     {% endif %}
                     <br>
-                    <small class="text-muted">Submitted: {{ request.submittedAt|date('Y-m-d H:i') }}</small>
+                    <small class="text-muted">Submitted: {{ request.submittedAt|ago }}</small>
                 </div>
             </div>
 
             {# Review info if reviewed #}
             {% if request.reviewedAt %}
-                <div class="card">
+                <div class="card shadow">
                     <div class="card-header">
                         <h5 class="mb-0">Review</h5>
                     </div>
@@ -191,13 +192,12 @@
                             Reviewed by: {{ request.reviewerName }}
                         {% endif %}
                         <br>
-                        <small class="text-muted">{{ request.reviewedAt|date('Y-m-d H:i') }}</small>
+                        <small class="text-muted">{{ request.reviewedAt|ago }}</small>
                     </div>
                 </div>
             {% endif %}
         </div>
     </div>
-</div>
 
 {# Reject Modal #}
 {% if request.status.value == 'pending' %}

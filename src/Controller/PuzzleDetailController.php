@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
@@ -29,6 +30,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetPuzzleCollections $getPuzzleCollections,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetPendingPuzzleProposals $getPendingPuzzleProposals,
     ) {
     }
 
@@ -79,6 +81,7 @@ final class PuzzleDetailController extends AbstractController
             'puzzle_collections' => $puzzleCollections,
             'logged_player' => $loggedPlayer,
             'offers_count' => $this->getSellSwapListItems->countByPuzzleId($puzzleId),
+            'has_pending_proposals' => $this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId),
         ]);
     }
 }

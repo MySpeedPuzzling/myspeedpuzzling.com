@@ -23,6 +23,7 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
     public const string WISHLIST_06 = '018d000a-0000-0000-0000-000000000006';
     public const string WISHLIST_07 = '018d000a-0000-0000-0000-000000000007';
     public const string WISHLIST_08 = '018d000a-0000-0000-0000-000000000008';
+    public const string WISHLIST_09 = '018d000a-0000-0000-0000-000000000009';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -37,6 +38,7 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
+        $puzzle500_04 = $this->getReference(PuzzleFixture::PUZZLE_500_04, Puzzle::class);
         $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle3000 = $this->getReference(PuzzleFixture::PUZZLE_3000, Puzzle::class);
         $puzzle4000 = $this->getReference(PuzzleFixture::PUZZLE_4000, Puzzle::class);
@@ -130,6 +132,19 @@ final class WishListItemFixture extends Fixture implements DependentFixtureInter
         );
         $manager->persist($item08);
         $this->addReference(self::WISHLIST_08, $item08);
+
+        // WISHLIST_09: PLAYER_REGULAR + PUZZLE_500_04 (for merge deduplication testing)
+        // Creates deduplication scenario with WISHLIST_08 (same player has both puzzles on wishlist)
+        // When merging PUZZLE_500_05 into PUZZLE_500_04, WISHLIST_08 should be REMOVED (not migrated)
+        $item09 = $this->createWishListItem(
+            id: self::WISHLIST_09,
+            player: $player1,
+            puzzle: $puzzle500_04,
+            removeOnCollectionAdd: true,
+            daysAgo: 5,
+        );
+        $manager->persist($item09);
+        $this->addReference(self::WISHLIST_09, $item09);
 
         $manager->flush();
     }

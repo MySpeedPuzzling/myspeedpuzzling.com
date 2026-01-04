@@ -25,6 +25,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
     public const string SELLSWAP_06 = '018d000b-0000-0000-0000-000000000006';
     public const string SELLSWAP_07 = '018d000b-0000-0000-0000-000000000007';
     public const string SELLSWAP_08 = '018d000b-0000-0000-0000-000000000008';
+    public const string SELLSWAP_09 = '018d000b-0000-0000-0000-000000000009';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -39,6 +40,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
 
         // Puzzles from player5's collection
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
+        $puzzle500_04 = $this->getReference(PuzzleFixture::PUZZLE_500_04, Puzzle::class);
         $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
@@ -159,6 +161,22 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         );
         $manager->persist($item08);
         $this->addReference(self::SELLSWAP_08, $item08);
+
+        // SELLSWAP_09: PLAYER_ADMIN selling PUZZLE_500_04 (for merge deduplication testing)
+        // Creates deduplication scenario with SELLSWAP_08 (same player has both puzzles on sell/swap)
+        // When merging PUZZLE_500_05 into PUZZLE_500_04, SELLSWAP_08 should be REMOVED (not migrated)
+        $item09 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_09,
+            player: $player3,
+            puzzle: $puzzle500_04,
+            listingType: ListingType::Swap,
+            price: null,
+            condition: PuzzleCondition::LikeNew,
+            comment: null,
+            daysAgo: 7,
+        );
+        $manager->persist($item09);
+        $this->addReference(self::SELLSWAP_09, $item09);
 
         $manager->flush();
     }

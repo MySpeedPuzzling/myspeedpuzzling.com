@@ -176,31 +176,68 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 $solvingTime->puzzle = $survivorPuzzle;
             }
 
-            // Migrate collection items
+            // Migrate collection items (unique on collection_id + player_id + puzzle_id)
             $collectionItems = $this->entityManager->getRepository(CollectionItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($collectionItems as $item) {
-                $item->puzzle = $survivorPuzzle;
+                // Check if player already has survivor puzzle in the same collection
+                $existingItem = $this->entityManager->getRepository(CollectionItem::class)->findOneBy([
+                    'collection' => $item->collection,
+                    'player' => $item->player,
+                    'puzzle' => $survivorPuzzle,
+                ]);
+                if ($existingItem !== null) {
+                    $this->entityManager->remove($item);
+                } else {
+                    $item->puzzle = $survivorPuzzle;
+                }
             }
 
-            // Migrate wish list items
+            // Migrate wish list items (unique on player_id + puzzle_id)
             $wishListItems = $this->entityManager->getRepository(WishListItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($wishListItems as $item) {
-                $item->puzzle = $survivorPuzzle;
+                // Check if player already has survivor puzzle in their wish list
+                $existingItem = $this->entityManager->getRepository(WishListItem::class)->findOneBy([
+                    'player' => $item->player,
+                    'puzzle' => $survivorPuzzle,
+                ]);
+                if ($existingItem !== null) {
+                    $this->entityManager->remove($item);
+                } else {
+                    $item->puzzle = $survivorPuzzle;
+                }
             }
 
-            // Migrate sell/swap list items
+            // Migrate sell/swap list items (unique on player_id + puzzle_id)
             $sellSwapItems = $this->entityManager->getRepository(SellSwapListItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($sellSwapItems as $item) {
-                $item->puzzle = $survivorPuzzle;
+                // Check if player already has survivor puzzle in their sell/swap list
+                $existingItem = $this->entityManager->getRepository(SellSwapListItem::class)->findOneBy([
+                    'player' => $item->player,
+                    'puzzle' => $survivorPuzzle,
+                ]);
+                if ($existingItem !== null) {
+                    $this->entityManager->remove($item);
+                } else {
+                    $item->puzzle = $survivorPuzzle;
+                }
             }
 
-            // Migrate lent puzzles
+            // Migrate lent puzzles (unique on owner_player_id + puzzle_id)
             $lentPuzzles = $this->entityManager->getRepository(LentPuzzle::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($lentPuzzles as $item) {
-                $item->puzzle = $survivorPuzzle;
+                // Check if owner already has survivor puzzle in lent puzzles
+                $existingItem = $this->entityManager->getRepository(LentPuzzle::class)->findOneBy([
+                    'ownerPlayer' => $item->ownerPlayer,
+                    'puzzle' => $survivorPuzzle,
+                ]);
+                if ($existingItem !== null) {
+                    $this->entityManager->remove($item);
+                } else {
+                    $item->puzzle = $survivorPuzzle;
+                }
             }
 
-            // Migrate sold/swapped items (historical records)
+            // Migrate sold/swapped items (historical records - no unique constraint)
             $soldSwappedItems = $this->entityManager->getRepository(SoldSwappedItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($soldSwappedItems as $item) {
                 $item->puzzle = $survivorPuzzle;

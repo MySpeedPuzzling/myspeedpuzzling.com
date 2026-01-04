@@ -137,6 +137,17 @@
 
                                 <ul class="dropdown-menu">
                                     <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_change_requests' %}active{% endif %}" href="{{ path('admin_puzzle_change_requests') }}">
+                                            Puzzle Change Requests
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_merge_requests' %}active{% endif %}" href="{{ path('admin_puzzle_merge_requests') }}">
+                                            Puzzle Merge Requests
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
                                         <a class="dropdown-item pb-1" href="{{ path('admin_import_competition_puzzlers') }}">
                                             Import competition puzzlers
                                         </a>

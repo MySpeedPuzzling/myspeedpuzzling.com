@@ -16,4 +16,10 @@ enum NotificationType: string
     case PuzzlePassedToYou = 'PuzzlePassedToYou';
     case PuzzlePassedFromYou = 'PuzzlePassedFromYou';
     case YourPuzzleWasPassed = 'YourPuzzleWasPassed';
+
+    // Puzzle report notifications
+    case PuzzleChangeRequestApproved = 'PuzzleChangeRequestApproved';
+    case PuzzleChangeRequestRejected = 'PuzzleChangeRequestRejected';
+    case PuzzleMergeRequestApproved = 'PuzzleMergeRequestApproved';
+    case PuzzleMergeRequestRejected = 'PuzzleMergeRequestRejected';
 }

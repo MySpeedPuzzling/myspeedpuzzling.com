@@ -629,6 +629,11 @@ notifications:
         passed_to_you: "%from% vám předal puzzle"
         passed_from_you: "Puzzle bylo předáno hráči %to%"
         your_puzzle_passed: "Vaše puzzle bylo předáno od %from% hráči %to%"
+    puzzle_report:
+        change_approved: "Vaše navrhované změny byly schváleny"
+        change_rejected: "Vaše navrhované změny byly zamítnuty"
+        merge_approved: "Váš report duplikátu byl schválen a puzzle byla sloučena"
+        merge_rejected: "Váš report duplikátu byl zamítnut"
 
 badges:
     title: "Odznaky"
@@ -1327,3 +1332,79 @@ image_editor:
     rotate_left: "Otočit doleva"
     rotate_right: "Otočit doprava"
     apply: "Použít"
+
+admin:
+    puzzle_change_request:
+        approved: "Žádost o změnu byla schválena a puzzle aktualizováno."
+        rejected: "Žádost o změnu byla zamítnuta."
+        rejection_reason_required: "Důvod zamítnutí je povinný."
+    puzzle_merge_request:
+        approved: "Žádost o sloučení byla schválena. Puzzle byla sloučena."
+        rejected: "Žádost o sloučení byla zamítnuta."
+        rejection_reason_required: "Důvod zamítnutí je povinný."
+        validation_failed: "Je vyžadováno cílové puzzle, název a počet dílků."
+
+pending_proposals:
+    badge: "Čekající návrh"
+    go_to_admin: "Přejít do administrace"
+    no_proposals: "Žádné čekající návrhy pro toto puzzle."
+    reported_by: "Nahlásil"
+    title: "Čekající návrhy"
+    type:
+        change_request: "Žádost o změnu"
+        merge_request: "Žádost o sloučení"
+
+puzzle_report:
+    back_to_puzzle: "Zpět na puzzle"
+    dropdown:
+        propose_changes: "Navrhnout změny"
+    flash:
+        changes_submitted: "Vaše navrhované změny byly odeslány ke kontrole. Děkujeme!"
+        duplicate_reported: "Váš report duplikátu byl odeslán ke kontrole. Děkujeme!"
+        login_required: "Pro návrh změn se prosím přihlaste."
+        no_valid_duplicates: "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
+        pending_proposal_exists: "Návrh pro toto puzzle již čeká na kontrolu."
+        validation_error: "Opravte prosím chyby a zkuste to znovu."
+    form:
+        current_image: "Aktuální obrázek"
+        duplicate_url: "URL duplikovaného puzzle"
+        duplicate_url_help: "Vložte URL duplikovaného puzzle."
+        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
+        ean: "EAN / Čárový kód"
+        ean_help: "Číslo čárového kódu na krabici puzzle (obvykle 13 číslic)."
+        identification_number: "Kód značky / SKU"
+        identification_number_help: "Kód produktu výrobce (např. 19432 pro puzzle Ravensburger)."
+        manufacturer: "Výrobce"
+        manufacturer_placeholder: "Hledat výrobce..."
+        name: "Název puzzle"
+        name_help: "Zadejte správný název podle krabice puzzle. Pro více názvů použijte čárku."
+        or: "nebo"
+        photo: "Nová fotka"
+        photo_example_ok: "OK"
+        photo_example_perfect: "Perfektní"
+        photo_example_wrong: "Špatně"
+        photo_help_1: "Použijte obrázek z krabice puzzle, ne složené puzzle."
+        photo_help_2: "Zajistěte dobré osvětlení a ostrost."
+        photo_help_3: "Ořízněte pouze na obrázek puzzle, ne celou krabici."
+        photo_help_4: "U multipacků vyberte pouze obrázek jednoho puzzle."
+        photo_help_title: "Pokyny pro fotografii:"
+        photo_help_toggle: "Tipy pro dobrou fotografii"
+        pieces_count: "Počet dílků"
+        pieces_count_help: "Zadejte správný počet dílků."
+        search_manufacturer: "Hledat podle výrobce"
+        search_manufacturer_placeholder: "Vyberte výrobce pro procházení puzzle..."
+        select_duplicate_error: "Vyberte prosím duplikované puzzle nebo zadejte URL puzzle."
+        select_manufacturer_first: "Nejprve vyberte výrobce"
+        select_puzzle: "Vybrat puzzle"
+        select_puzzle_placeholder: "Hledat puzzle..."
+        submit_changes: "Odeslat změny"
+        submit_duplicate: "Nahlásit jako duplikát"
+    propose_changes:
+        description: "Navrhněte opravy nebo vylepšení informací o tomto puzzle. Všechny změny budou zkontrolovány administrátorem."
+    report_duplicate:
+        description: "Nahlaste, že toto puzzle je duplikátem jiného puzzle. Administrátor zkontroluje a sloučí záznamy, pokud se potvrdí."
+        max_puzzles_info: "Můžete najednou nahlásit až %max% puzzle jako duplikáty."
+    tab:
+        propose_changes: "Navrhnout změny"
+        report_duplicate: "Nahlásit duplikát"
+    title: "Navrhnout změny puzzle"

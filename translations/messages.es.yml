@@ -634,6 +634,11 @@ notifications:
         returned_to_you: "%holder% devolvió tu puzzle"
         taken_back: "%owner% recuperó el puzzle"
         your_puzzle_passed: "Tu puzzle fue pasado de %from% a %to%"
+    puzzle_report:
+        change_approved: "Tus cambios propuestos fueron aprobados"
+        change_rejected: "Tus cambios propuestos fueron rechazados"
+        merge_approved: "Tu reporte de duplicado fue aprobado y los puzzles fueron fusionados"
+        merge_rejected: "Tu reporte de duplicado fue rechazado"
 
 badges:
     title: "Insignias"
@@ -1327,3 +1332,79 @@ image_editor:
     rotate_left: "Girar a la izquierda"
     rotate_right: "Girar a la derecha"
     apply: "Aplicar"
+
+admin:
+    puzzle_change_request:
+        approved: "La solicitud de cambio ha sido aprobada y el puzzle actualizado."
+        rejected: "La solicitud de cambio ha sido rechazada."
+        rejection_reason_required: "Se requiere un motivo de rechazo."
+    puzzle_merge_request:
+        approved: "La solicitud de fusión ha sido aprobada. Los puzzles han sido fusionados."
+        rejected: "La solicitud de fusión ha sido rechazada."
+        rejection_reason_required: "Se requiere un motivo de rechazo."
+        validation_failed: "Se requiere el puzzle objetivo, nombre y cantidad de piezas."
+
+pending_proposals:
+    badge: "Propuesta Pendiente"
+    go_to_admin: "Ir a administración"
+    no_proposals: "No hay propuestas pendientes para este puzzle."
+    reported_by: "Reportado por"
+    title: "Propuestas Pendientes"
+    type:
+        change_request: "Solicitud de Cambio"
+        merge_request: "Solicitud de Fusión"
+
+puzzle_report:
+    back_to_puzzle: "Volver al puzzle"
+    dropdown:
+        propose_changes: "Proponer cambios"
+    flash:
+        changes_submitted: "Tus cambios propuestos han sido enviados para revisión. ¡Gracias!"
+        duplicate_reported: "Tu reporte de duplicado ha sido enviado para revisión. ¡Gracias!"
+        login_required: "Por favor inicia sesión para proponer cambios."
+        no_valid_duplicates: "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
+        pending_proposal_exists: "Ya existe una propuesta pendiente de revisión para este puzzle."
+        validation_error: "Por favor corrige los errores e intenta de nuevo."
+    form:
+        current_image: "Imagen Actual"
+        duplicate_url: "URL del Puzzle Duplicado"
+        duplicate_url_help: "Pega la URL del puzzle duplicado."
+        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
+        ean: "EAN / Código de barras"
+        ean_help: "El número del código de barras en la caja del puzzle (normalmente 13 dígitos)."
+        identification_number: "Código de Marca / SKU"
+        identification_number_help: "El código de producto del fabricante (ej. 19432 para puzzles Ravensburger)."
+        manufacturer: "Fabricante"
+        manufacturer_placeholder: "Buscar fabricante..."
+        name: "Nombre del Puzzle"
+        name_help: "Introduce el nombre correcto como aparece en la caja del puzzle. Usa coma para separar múltiples nombres."
+        or: "o"
+        photo: "Nueva Foto"
+        photo_example_ok: "OK"
+        photo_example_perfect: "Perfecto"
+        photo_example_wrong: "Incorrecto"
+        photo_help_1: "Usa la imagen de la caja del puzzle, no el puzzle completado."
+        photo_help_2: "Asegura buena iluminación y enfoque."
+        photo_help_3: "Recorta para mostrar solo la imagen del puzzle, no la caja completa."
+        photo_help_4: "Para multipacks, elige solo la imagen de un puzzle."
+        photo_help_title: "Guía para la foto:"
+        photo_help_toggle: "Consejos para una buena foto"
+        pieces_count: "Cantidad de Piezas"
+        pieces_count_help: "Introduce el número correcto de piezas."
+        search_manufacturer: "Buscar por Fabricante"
+        search_manufacturer_placeholder: "Selecciona fabricante para explorar puzzles..."
+        select_duplicate_error: "Por favor selecciona un puzzle duplicado o introduce una URL de puzzle."
+        select_manufacturer_first: "Primero selecciona un fabricante"
+        select_puzzle: "Seleccionar Puzzle"
+        select_puzzle_placeholder: "Buscar puzzle..."
+        submit_changes: "Enviar Cambios"
+        submit_duplicate: "Reportar como Duplicado"
+    propose_changes:
+        description: "Sugiere correcciones o mejoras a la información de este puzzle. Todos los cambios serán revisados por un administrador."
+    report_duplicate:
+        description: "Reporta que este puzzle es un duplicado de otro puzzle. Un administrador revisará y fusionará los registros si se confirma."
+        max_puzzles_info: "Puedes reportar hasta %max% puzzles como duplicados a la vez."
+    tab:
+        propose_changes: "Proponer Cambios"
+        report_duplicate: "Reportar Duplicado"
+    title: "Proponer Cambios al Puzzle"

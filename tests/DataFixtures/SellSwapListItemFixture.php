@@ -24,6 +24,8 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
     public const string SELLSWAP_05 = '018d000b-0000-0000-0000-000000000005';
     public const string SELLSWAP_06 = '018d000b-0000-0000-0000-000000000006';
     public const string SELLSWAP_07 = '018d000b-0000-0000-0000-000000000007';
+    public const string SELLSWAP_08 = '018d000b-0000-0000-0000-000000000008';
+    public const string SELLSWAP_09 = '018d000b-0000-0000-0000-000000000009';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -32,11 +34,14 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
 
     public function load(ObjectManager $manager): void
     {
-        // Only player5 has membership and can use sell/swap feature
+        // Players with membership who can use sell/swap feature
+        $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
 
         // Puzzles from player5's collection
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
+        $puzzle500_04 = $this->getReference(PuzzleFixture::PUZZLE_500_04, Puzzle::class);
+        $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
         $puzzle500_02 = $this->getReference(PuzzleFixture::PUZZLE_500_02, Puzzle::class);
         $puzzle500_03 = $this->getReference(PuzzleFixture::PUZZLE_500_03, Puzzle::class);
         $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
@@ -141,6 +146,37 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         );
         $manager->persist($item07);
         $this->addReference(self::SELLSWAP_07, $item07);
+
+        // SELLSWAP_08: PLAYER_ADMIN selling PUZZLE_500_05 (for merge testing)
+        // This item should be migrated to survivor puzzle during merge
+        $item08 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_08,
+            player: $player3,
+            puzzle: $puzzle500_05,
+            listingType: ListingType::Sell,
+            price: 20.00,
+            condition: PuzzleCondition::Normal,
+            comment: null,
+            daysAgo: 9,
+        );
+        $manager->persist($item08);
+        $this->addReference(self::SELLSWAP_08, $item08);
+
+        // SELLSWAP_09: PLAYER_ADMIN selling PUZZLE_500_04 (for merge deduplication testing)
+        // Creates deduplication scenario with SELLSWAP_08 (same player has both puzzles on sell/swap)
+        // When merging PUZZLE_500_05 into PUZZLE_500_04, SELLSWAP_08 should be REMOVED (not migrated)
+        $item09 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_09,
+            player: $player3,
+            puzzle: $puzzle500_04,
+            listingType: ListingType::Swap,
+            price: null,
+            condition: PuzzleCondition::LikeNew,
+            comment: null,
+            daysAgo: 7,
+        );
+        $manager->persist($item09);
+        $this->addReference(self::SELLSWAP_09, $item09);
 
         $manager->flush();
     }

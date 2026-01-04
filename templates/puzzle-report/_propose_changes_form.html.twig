@@ -1,0 +1,93 @@
+{# Propose puzzle changes form - used in both modal and full page #}
+{% set in_modal = in_modal|default(false) %}
+
+{{ form_start(propose_form, {
+    'action': path('puzzle_propose_changes', {puzzleId: puzzle_id}),
+    'attr': {
+        'data-turbo': 'true',
+        'data-turbo-frame': in_modal ? 'modal-frame' : '_top',
+        'enctype': 'multipart/form-data'
+    }
+}) }}
+
+    <p class="text-muted small mb-3">
+        {{ 'puzzle_report.propose_changes.description'|trans }}
+    </p>
+
+    {{ form_row(propose_form.name) }}
+
+    {{ form_row(propose_form.manufacturerId) }}
+
+    {{ form_row(propose_form.piecesCount) }}
+
+    {{ form_row(propose_form.ean) }}
+
+    {{ form_row(propose_form.identificationNumber) }}
+
+    {# Photo upload with collapsible help #}
+    <div class="mb-3">
+        {{ form_label(propose_form.photo) }}
+        {{ form_widget(propose_form.photo, {'attr': {'class': 'form-control'}}) }}
+        {{ form_errors(propose_form.photo) }}
+
+        <button type="button" class="btn btn-link btn-sm p-0 mt-1" data-bs-toggle="collapse" data-bs-target="#photoHelp">
+            <i class="bi bi-question-circle me-1"></i>{{ 'puzzle_report.form.photo_help_toggle'|trans }}
+        </button>
+
+        <div class="collapse mt-2" id="photoHelp">
+            <div class="card card-body bg-light small">
+                <strong>{{ 'puzzle_report.form.photo_help_title'|trans }}</strong>
+                <ul class="mb-0 mt-2">
+                    <li>{{ 'puzzle_report.form.photo_help_1'|trans }}</li>
+                    <li>{{ 'puzzle_report.form.photo_help_2'|trans }}</li>
+                    <li>{{ 'puzzle_report.form.photo_help_3'|trans }}</li>
+                    <li>{{ 'puzzle_report.form.photo_help_4'|trans }}</li>
+                </ul>
+
+                <div class="d-flex gap-2 mt-3">
+                    <div class="position-relative">
+                        <img src="{{ asset('img/example-image-not-ok.jpg') }}" alt="Wrong example" class="rounded" style="max-height: 80px;">
+                        <span class="badge bg-danger position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_wrong'|trans }}</span>
+                    </div>
+                    <div class="position-relative">
+                        <img src="{{ asset('img/example-image-ok.jpg') }}" alt="OK example" class="rounded" style="max-height: 80px;">
+                        <span class="badge bg-info position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_ok'|trans }}</span>
+                    </div>
+                    <div class="position-relative">
+                        <img src="{{ asset('img/example-image-perfect.jpg') }}" alt="Perfect example" class="rounded" style="max-height: 80px;">
+                        <span class="badge bg-success position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_perfect'|trans }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if puzzle.puzzleImage is not null %}
+        <div class="mb-3">
+            <label class="form-label">{{ 'puzzle_report.form.current_image'|trans }}</label>
+            <div>
+                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
+                     alt="{{ puzzle.puzzleName }}"
+                     class="img-thumbnail"
+                     style="max-height: 100px;">
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary" data-loading-text="{{ 'forms.saving'|trans }}">
+            {{ 'puzzle_report.form.submit_changes'|trans }}
+        </button>
+
+        {% if in_modal %}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+        {% else %}
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-secondary">
+                {{ 'forms.cancel'|trans }}
+            </a>
+        {% endif %}
+    </div>
+
+{{ form_end(propose_form) }}

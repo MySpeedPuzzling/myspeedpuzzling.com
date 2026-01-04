@@ -1,0 +1,72 @@
+{# Report duplicate puzzle form - used in both modal and full page #}
+{% set in_modal = in_modal|default(false) %}
+
+{{ form_start(report_form, {
+    'action': path('puzzle_report_duplicate', {puzzleId: puzzle_id}),
+    'attr': {
+        'data-turbo': 'true',
+        'data-turbo-frame': in_modal ? 'modal-frame' : '_top',
+        'data-controller': 'report-duplicate-form',
+        'data-report-duplicate-form-current-puzzle-id-value': puzzle_id
+    }
+}) }}
+
+    <p class="text-muted small mb-3">
+        {{ 'puzzle_report.report_duplicate.description'|trans }}
+    </p>
+
+    {# Display validation errors #}
+    {% if not report_form.vars.valid and report_form.vars.submitted %}
+        <div class="alert alert-danger small">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            {{ 'puzzle_report.form.select_duplicate_error'|trans }}
+        </div>
+    {% endif %}
+
+    {# Current puzzle info #}
+    <div class="card mb-3">
+        <div class="card-body p-2 d-flex align-items-center">
+            {% if puzzle.puzzleImage is not null %}
+                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}"
+                     alt="{{ puzzle.puzzleName }}"
+                     class="me-2 rounded"
+                     style="max-height: 50px;">
+            {% endif %}
+            <div>
+                <strong>{{ puzzle.puzzleName }}</strong>
+                <br>
+                <small class="text-muted">{{ puzzle.manufacturerName }} - {{ 'pieces_count'|trans({'%count%': puzzle.piecesCount})|raw }}</small>
+            </div>
+        </div>
+    </div>
+
+    {{ form_row(report_form.selectedManufacturerId) }}
+
+    {{ form_row(report_form.selectedPuzzleId) }}
+
+    {# Visual OR separator #}
+    <div class="d-flex align-items-center my-4">
+        <hr class="flex-grow-1 m-0">
+        <span class="px-3 text-muted fw-medium small text-uppercase">{{ 'puzzle_report.form.or'|trans }}</span>
+        <hr class="flex-grow-1 m-0">
+    </div>
+
+    {{ form_row(report_form.duplicatePuzzleUrl) }}
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-warning" data-loading-text="{{ 'forms.saving'|trans }}">
+            {{ 'puzzle_report.form.submit_duplicate'|trans }}
+        </button>
+
+        {% if in_modal %}
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+        {% else %}
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-secondary">
+                {{ 'forms.cancel'|trans }}
+            </a>
+        {% endif %}
+    </div>
+
+{{ form_end(report_form) }}

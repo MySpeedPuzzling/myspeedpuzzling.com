@@ -35,6 +35,9 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | `LENT_03` | PUZZLE_1000_01 (1000 pcs) | PLAYER_WITH_STRIPE | - | **Returned** | "Returned in good condition" |
 | `LENT_04` | PUZZLE_500_03 (500 pcs) | PLAYER_WITH_STRIPE | PLAYER_WITH_FAVORITES | Active (passed) | "For testing purposes" |
 | `LENT_05` | PUZZLE_1500_02 (1500 pcs) | PLAYER_REGULAR | PLAYER_WITH_STRIPE | Active | - |
+| `LENT_06` | PUZZLE_3000 (3000 pcs) | PLAYER_REGULAR | PLAYER_WITH_STRIPE | Active | - |
+| `LENT_07` | PUZZLE_500_05 (500 pcs) | PLAYER_REGULAR | PLAYER_ADMIN | Active | "Merge test puzzle" |
+| `LENT_08` | PUZZLE_500_04 (500 pcs) | PLAYER_REGULAR | PLAYER_WITH_FAVORITES | Active | "Deduplication test puzzle" |
 
 ### Transfer History
 
@@ -65,7 +68,7 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 ### Collection Items Distribution
 
-**COLLECTION_PUBLIC** (PLAYER_WITH_STRIPE): PUZZLE_500_01, PUZZLE_500_02, PUZZLE_1000_01, PUZZLE_1000_03, PUZZLE_1000_05, PUZZLE_300, PUZZLE_500_04
+**COLLECTION_PUBLIC** (PLAYER_WITH_STRIPE): PUZZLE_500_01, PUZZLE_500_02, PUZZLE_1000_01, PUZZLE_1000_03, PUZZLE_1000_05, PUZZLE_300, PUZZLE_500_04, PUZZLE_500_05
 
 **COLLECTION_PRIVATE** (PLAYER_REGULAR): PUZZLE_1500_01, PUZZLE_2000, PUZZLE_3000, PUZZLE_1500_02
 
@@ -105,13 +108,15 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | `SELLSWAP_05` | PUZZLE_1000_02 | Swap | - | LikeNew |
 | `SELLSWAP_06` | PUZZLE_1500_01 | Both | 60.00 | MissingPieces |
 | `SELLSWAP_07` | PUZZLE_1000_03 | Sell | 35.00 | Normal |
+| `SELLSWAP_08` | PUZZLE_500_05 | Sell | 20.00 | Normal | (PLAYER_ADMIN)
+| `SELLSWAP_09` | PUZZLE_500_04 | Swap | - | LikeNew | (PLAYER_ADMIN)
 
 ## Wishlists
 
 | Player | Puzzles |
 |--------|---------|
-| PLAYER_REGULAR | PUZZLE_4000, PUZZLE_5000, PUZZLE_6000 |
-| PLAYER_WITH_STRIPE | PUZZLE_9000, PUZZLE_3000 |
+| PLAYER_REGULAR | PUZZLE_4000, PUZZLE_5000, PUZZLE_6000, PUZZLE_500_05, PUZZLE_500_04 |
+| PLAYER_WITH_STRIPE | PUZZLE_9000, PUZZLE_3000, PUZZLE_500_01 |
 | PLAYER_PRIVATE | PUZZLE_4000 |
 
 ## Puzzles (20 total)
@@ -214,3 +219,29 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 | Multiple collections | PLAYER_WITH_STRIPE (2), PLAYER_REGULAR (2) |
 | Puzzle in 3 collections | PLAYER_WITH_STRIPE: PUZZLE_500_02 (system + PUBLIC + STRIPE_TREFL) |
 | Borrowed + in collection | PLAYER_WITH_STRIPE: PUZZLE_1500_02 (borrowed + in system collection) |
+
+## Puzzle Merge Testing
+
+PUZZLE_500_04 (survivor) and PUZZLE_500_05 (duplicate) are set up for puzzle merge testing:
+
+### Deduplication Scenarios
+These scenarios test that when a player has BOTH puzzles, only the survivor entry is kept:
+
+| Entity Type | Player | Survivor Entry | Duplicate Entry | After Merge |
+|-------------|--------|----------------|-----------------|-------------|
+| CollectionItem | PLAYER_WITH_STRIPE | ITEM_21 (PUBLIC) | ITEM_27 (PUBLIC) | ITEM_27 removed |
+| WishListItem | PLAYER_REGULAR | WISHLIST_09 | WISHLIST_08 | WISHLIST_08 removed |
+| SellSwapListItem | PLAYER_ADMIN | SELLSWAP_09 | SELLSWAP_08 | SELLSWAP_08 removed |
+| LentPuzzle | PLAYER_REGULAR | LENT_08 | LENT_07 | LENT_07 removed |
+
+### Migration Scenarios
+These entries migrate from duplicate to survivor (no deduplication needed):
+
+| Entity Type | Entry | Player |
+|-------------|-------|--------|
+| CollectionItem | ITEM_25 | PLAYER_ADMIN |
+| CollectionItem | ITEM_26 | PLAYER_PRIVATE |
+| PuzzleSolvingTime | TIME_43 | (all solving times migrate) |
+| PuzzleSolvingTime | TIME_44 | (all solving times migrate) |
+| SoldSwappedItem | SOLD_01 | (all historical records migrate) |
+| SoldSwappedItem | SOLD_02 | (all historical records migrate) |

@@ -109,6 +109,15 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
     }
 
+    public function migrateToPuzzle(Puzzle $newPuzzle): void
+    {
+        $this->puzzle = $newPuzzle;
+
+        $this->recordThat(
+            new PuzzleSolvingTimeModified($this->id, $newPuzzle->id),
+        );
+    }
+
     private function calculatePuzzlersCount(): int
     {
         if ($this->team === null) {

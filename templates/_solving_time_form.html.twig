@@ -98,6 +98,38 @@
                             {{ form_errors(solving_time_form.puzzlePhoto) }}
 
                             <div class="form-text mb-1 help-text">{{ 'forms.puzzle_photo_help'|trans }}</div>
+
+                            <button type="button" class="btn btn-link btn-sm p-0 mb-2" data-bs-toggle="collapse" data-bs-target="#photoHelp">
+                                <i class="bi bi-question-circle me-1"></i>{{ 'puzzle_report.form.photo_help_toggle'|trans }}
+                            </button>
+
+                            <div class="collapse mt-2 mb-2" id="photoHelp">
+                                <div class="card card-body bg-light small">
+                                    <strong>{{ 'puzzle_report.form.photo_help_title'|trans }}</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li>{{ 'puzzle_report.form.photo_help_1'|trans }}</li>
+                                        <li>{{ 'puzzle_report.form.photo_help_2'|trans }}</li>
+                                        <li>{{ 'puzzle_report.form.photo_help_3'|trans }}</li>
+                                        <li>{{ 'puzzle_report.form.photo_help_4'|trans }}</li>
+                                    </ul>
+
+                                    <div class="d-flex gap-2 mt-3">
+                                        <div class="position-relative">
+                                            <img src="{{ asset('img/example-image-not-ok.jpg') }}" alt="Wrong example" class="rounded" style="max-height: 80px;">
+                                            <span class="badge bg-danger position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_wrong'|trans }}</span>
+                                        </div>
+                                        <div class="position-relative">
+                                            <img src="{{ asset('img/example-image-ok.jpg') }}" alt="OK example" class="rounded" style="max-height: 80px;">
+                                            <span class="badge bg-info position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_ok'|trans }}</span>
+                                        </div>
+                                        <div class="position-relative">
+                                            <img src="{{ asset('img/example-image-perfect.jpg') }}" alt="Perfect example" class="rounded" style="max-height: 80px;">
+                                            <span class="badge bg-success position-absolute top-0 end-0 m-1">{{ 'puzzle_report.form.photo_example_perfect'|trans }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="file-drop-area">
                                 <div class="file-drop-icon ci-cloud-upload"></div>
                                 <span class="file-drop-message">{{ 'forms.drop_file'|trans }}</span>

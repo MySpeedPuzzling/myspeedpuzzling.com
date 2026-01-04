@@ -12,7 +12,10 @@ return App::config([
         'messenger' => [
             'buses' => [
                 'command_bus' => [
-                    'middleware' => ['doctrine_transaction'],
+                    'middleware' => [
+                        'SpeedPuzzling\Web\Services\MessengerMiddleware\ClearEntityManagerMiddleware',
+                        'doctrine_transaction',
+                    ],
                 ],
             ],
             'failure_transport' => 'failed',
@@ -34,6 +37,12 @@ return App::config([
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',
                 'SpeedPuzzling\Web\Events\LendingTransferCompleted' => 'sync',
+                // Events that must run synchronously for statistics recalculation
+                'SpeedPuzzling\Web\Events\PuzzleSolved' => 'sync',
+                'SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified' => 'sync',
+                'SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted' => 'sync',
+                // Events that must run synchronously for proper transaction ordering
+                'SpeedPuzzling\Web\Events\PuzzleMergeApproved' => 'sync',
                 // All other events can run asynchronously
                 'SpeedPuzzling\Web\Events\*' => 'async',
             ],

@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
-use SpeedPuzzling\Web\Entity\PuzzleStatistics;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
 use SpeedPuzzling\Web\Entity\WishListItem;
@@ -25,8 +24,6 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
-use SpeedPuzzling\Web\Repository\PuzzleStatisticsRepository;
-use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -41,8 +38,6 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private ManufacturerRepository $manufacturerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
-        private PuzzleStatisticsRepository $statisticsRepository,
-        private PuzzleStatisticsCalculator $statisticsCalculator,
         private LoggerInterface $logger,
     ) {
     }
@@ -82,13 +77,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
         $survivorPuzzle->name = $message->mergedName;
         $survivorPuzzle->piecesCount = $message->mergedPiecesCount;
 
-        if ($message->mergedEan !== null && $message->mergedEan !== '') {
-            $survivorPuzzle->ean = $message->mergedEan;
-        }
-
-        if ($message->mergedIdentificationNumber !== null && $message->mergedIdentificationNumber !== '') {
-            $survivorPuzzle->identificationNumber = $message->mergedIdentificationNumber;
-        }
+        $survivorPuzzle->updateProductIdentifiers(
+            ean: ($message->mergedEan !== null && $message->mergedEan !== '') ? $message->mergedEan : $survivorPuzzle->ean,
+            identificationNumber: ($message->mergedIdentificationNumber !== null && $message->mergedIdentificationNumber !== '') ? $message->mergedIdentificationNumber : $survivorPuzzle->identificationNumber,
+        );
 
         if ($message->mergedManufacturerId !== null) {
             $manufacturer = $this->manufacturerRepository->get($message->mergedManufacturerId);
@@ -147,11 +139,8 @@ readonly final class ApprovePuzzleMergeRequestHandler
             $this->entityManager->remove($puzzleToMerge);
         }
 
-        // Flush deletions before recalculating statistics
+        // Flush deletions - statistics will be recalculated via PuzzleSolvingTimeModified events
         $this->entityManager->flush();
-
-        // Recalculate survivor's statistics (now includes migrated solving times)
-        $this->recalculateSurvivorStatistics($survivorPuzzle);
 
         $this->logger->info('Puzzle merge completed: {mergedCount} puzzles merged into survivor', [
             'mergeRequestId' => $message->mergeRequestId,
@@ -170,10 +159,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
     private function migrateRecordsToSurvivor(array $puzzlesToMerge, Puzzle $survivorPuzzle): void
     {
         foreach ($puzzlesToMerge as $puzzleToMerge) {
-            // Migrate solving times
+            // Migrate solving times (records PuzzleSolvingTimeModified event which triggers statistics recalculation)
             $solvingTimes = $this->entityManager->getRepository(PuzzleSolvingTime::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($solvingTimes as $solvingTime) {
-                $solvingTime->puzzle = $survivorPuzzle;
+                $solvingTime->migrateToPuzzle($survivorPuzzle);
             }
 
             // Migrate collection items (unique on collection_id + player_id + puzzle_id)
@@ -243,18 +232,5 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 $item->puzzle = $survivorPuzzle;
             }
         }
-    }
-
-    private function recalculateSurvivorStatistics(Puzzle $survivorPuzzle): void
-    {
-        $statistics = $this->statisticsRepository->findByPuzzleId($survivorPuzzle->id);
-
-        if ($statistics === null) {
-            $statistics = new PuzzleStatistics($survivorPuzzle);
-            $this->statisticsRepository->save($statistics);
-        }
-
-        $data = $this->statisticsCalculator->calculateForPuzzle($survivorPuzzle->id);
-        $statistics->update($data);
     }
 }

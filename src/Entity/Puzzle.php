@@ -54,4 +54,10 @@ class Puzzle
         public bool $isAvailable = false,
     ) {
     }
+
+    public function updateProductIdentifiers(null|string $ean, null|string $identificationNumber): void
+    {
+        $this->ean = $ean;
+        $this->identificationNumber = $identificationNumber;
+    }
 }

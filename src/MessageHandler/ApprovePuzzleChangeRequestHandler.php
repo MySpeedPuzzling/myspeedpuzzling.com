@@ -54,13 +54,10 @@ readonly final class ApprovePuzzleChangeRequestHandler
             $puzzle->piecesCount = $changeRequest->proposedPiecesCount;
         }
 
-        if ($changeRequest->proposedEan !== null) {
-            $puzzle->ean = $changeRequest->proposedEan;
-        }
-
-        if ($changeRequest->proposedIdentificationNumber !== null) {
-            $puzzle->identificationNumber = $changeRequest->proposedIdentificationNumber;
-        }
+        $puzzle->updateProductIdentifiers(
+            ean: $changeRequest->proposedEan ?? $puzzle->ean,
+            identificationNumber: $changeRequest->proposedIdentificationNumber ?? $puzzle->identificationNumber,
+        );
 
         if ($changeRequest->proposedImage !== null) {
             $puzzle->image = $changeRequest->proposedImage;

@@ -34,6 +34,10 @@ return App::config([
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',
                 'SpeedPuzzling\Web\Events\LendingTransferCompleted' => 'sync',
+                // Events that must run synchronously for statistics recalculation
+                'SpeedPuzzling\Web\Events\PuzzleSolved' => 'sync',
+                'SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified' => 'sync',
+                'SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted' => 'sync',
                 // All other events can run asynchronously
                 'SpeedPuzzling\Web\Events\*' => 'async',
             ],

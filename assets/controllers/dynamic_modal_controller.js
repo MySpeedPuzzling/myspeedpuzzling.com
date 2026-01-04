@@ -5,7 +5,7 @@ import { Modal } from 'bootstrap';
  * Dynamic Modal Controller
  *
  * Handles a global modal that loads content dynamically via Turbo Frames.
- * Opens automatically when the turbo-frame starts fetching content,
+ * Opens automatically when frame content is loaded (turbo:frame-load event),
  * closes automatically when the frame becomes empty.
  *
  * Usage:
@@ -18,7 +18,7 @@ export default class extends Controller {
 
     modal = null;
     observer = null;
-    openTimeout = null;
+    pendingOpen = false;
 
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
@@ -27,8 +27,11 @@ export default class extends Controller {
             focus: false
         });
 
-        // Open modal when frame starts fetching content
+        // Track when a fetch starts (we want to open modal when content arrives)
         this.frameTarget.addEventListener('turbo:before-fetch-request', this.handleBeforeFetch);
+
+        // Open modal when content arrives
+        this.frameTarget.addEventListener('turbo:frame-load', this.handleFrameLoad);
 
         // Watch for frame becoming empty (close trigger)
         this.observer = new MutationObserver(this.handleMutation);
@@ -43,18 +46,23 @@ export default class extends Controller {
 
     disconnect() {
         this.frameTarget.removeEventListener('turbo:before-fetch-request', this.handleBeforeFetch);
+        this.frameTarget.removeEventListener('turbo:frame-load', this.handleFrameLoad);
         this.observer?.disconnect();
         document.removeEventListener('keydown', this.handleKeydown);
         document.removeEventListener('modal:close', this.handleClose);
-        clearTimeout(this.openTimeout);
     }
 
     handleBeforeFetch = () => {
-        // Delay modal opening to allow content to load first
-        clearTimeout(this.openTimeout);
-        this.openTimeout = setTimeout(() => {
+        // Mark that we want to open the modal when content arrives
+        this.pendingOpen = true;
+    };
+
+    handleFrameLoad = () => {
+        // Content has arrived - open modal if we were waiting for it
+        if (this.pendingOpen) {
+            this.pendingOpen = false;
             this.open();
-        }, 150);
+        }
     };
 
     handleMutation = () => {
@@ -75,9 +83,8 @@ export default class extends Controller {
     };
 
     open() {
-        // Don't open modal if frame is empty (e.g., stream response cleared it)
+        // Don't open modal if frame is empty (safety check for edge cases)
         if (this.frameTarget.innerHTML.trim() === '') {
-            clearTimeout(this.openTimeout);
             return;
         }
         this.modal.show();
@@ -85,7 +92,7 @@ export default class extends Controller {
     }
 
     close() {
-        clearTimeout(this.openTimeout);
+        this.pendingOpen = false;
         this.modal.hide();
         document.body.classList.remove('modal-open');
         this.frameTarget.innerHTML = '';

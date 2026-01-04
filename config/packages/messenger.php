@@ -12,7 +12,10 @@ return App::config([
         'messenger' => [
             'buses' => [
                 'command_bus' => [
-                    'middleware' => ['doctrine_transaction'],
+                    'middleware' => [
+                        'SpeedPuzzling\Web\Services\MessengerMiddleware\ClearEntityManagerMiddleware',
+                        'doctrine_transaction',
+                    ],
                 ],
             ],
             'failure_transport' => 'failed',

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Events;
 
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Services\MessengerMiddleware\RequiresFreshEntityManagerState;
 
-readonly final class PuzzleMergeApproved
+readonly final class PuzzleMergeApproved implements RequiresFreshEntityManagerState
 {
     /**
      * @param array<string> $puzzleIdsToDelete

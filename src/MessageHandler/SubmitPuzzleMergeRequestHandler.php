@@ -41,6 +41,11 @@ readonly final class SubmitPuzzleMergeRequestHandler
             $message->duplicatePuzzleIds,
         ));
 
+        // Validate that there's at least one actual duplicate (not just source itself)
+        if (count($allPuzzleIds) < 2) {
+            throw new \InvalidArgumentException('At least one duplicate puzzle different from the source is required.');
+        }
+
         $mergeRequest = new PuzzleMergeRequest(
             id: Uuid::fromString($message->mergeRequestId),
             sourcePuzzle: $sourcePuzzle,

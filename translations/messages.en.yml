@@ -1381,6 +1381,18 @@ puzzle_report:
         validation_error: "Please fix the errors and try again."
         login_required: "Please log in to propose changes."
         pending_proposal_exists: "A proposal for this puzzle is already pending review."
+        no_valid_duplicates: "You cannot report a puzzle as a duplicate of itself. Please select a different puzzle."
+
+admin:
+    puzzle_change_request:
+        approved: "Change request has been approved and puzzle updated."
+        rejected: "Change request has been rejected."
+        rejection_reason_required: "Rejection reason is required."
+    puzzle_merge_request:
+        approved: "Merge request has been approved. Puzzles have been merged."
+        rejected: "Merge request has been rejected."
+        rejection_reason_required: "Rejection reason is required."
+        validation_failed: "Survivor puzzle, name, and pieces count are required."
 
 pending_proposals:
     badge: "Pending Proposal"

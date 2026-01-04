@@ -2,7 +2,7 @@
 {% set in_modal = in_modal|default(false) %}
 
 {{ form_start(report_form, {
-    'action': path('puzzle_propose_changes', {puzzleId: puzzle_id}) ~ '?tab=report',
+    'action': path('puzzle_report_duplicate', {puzzleId: puzzle_id}),
     'attr': {
         'data-turbo': 'true',
         'data-turbo-frame': in_modal ? 'modal-frame' : '_top',

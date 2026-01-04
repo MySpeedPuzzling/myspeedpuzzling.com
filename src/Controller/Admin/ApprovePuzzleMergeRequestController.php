@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
-use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -13,14 +12,15 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ApprovePuzzleMergeRequestController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -31,7 +31,6 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
     public function __invoke(
-        #[CurrentUser] User $user,
         Request $request,
         string $id,
     ): Response {
@@ -50,7 +49,7 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
         $selectedImagePuzzleId = $request->request->getString('selected_image_puzzle_id');
 
         if ($survivorPuzzleId === '' || $mergedName === '' || $mergedPiecesCount === 0) {
-            $this->addFlash('error', 'Survivor puzzle, name, and pieces count are required.');
+            $this->addFlash('error', $this->translator->trans('admin.puzzle_merge_request.validation_failed'));
             return $this->redirectToRoute('admin_puzzle_merge_request_detail', ['id' => $id]);
         }
 
@@ -68,7 +67,7 @@ final class ApprovePuzzleMergeRequestController extends AbstractController
             ),
         );
 
-        $this->addFlash('success', 'Merge request has been approved. Puzzles have been merged.');
+        $this->addFlash('success', $this->translator->trans('admin.puzzle_merge_request.approved'));
 
         return $this->redirectToRoute('admin_puzzle_merge_requests');
     }

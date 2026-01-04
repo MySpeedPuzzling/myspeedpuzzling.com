@@ -28,6 +28,7 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Repository\PuzzleStatisticsRepository;
 use SpeedPuzzling\Web\Services\PuzzleStatisticsCalculator;
 use SpeedPuzzling\Web\Value\NotificationType;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -42,6 +43,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private ClockInterface $clock,
         private PuzzleStatisticsRepository $statisticsRepository,
         private PuzzleStatisticsCalculator $statisticsCalculator,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -69,7 +71,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
             try {
                 $puzzlesToMerge[] = $this->puzzleRepository->get($puzzleId);
             } catch (PuzzleNotFound) {
-                // Puzzle might already be deleted, skip
+                $this->logger->debug('Puzzle {puzzleId} not found during merge, already deleted', [
+                    'puzzleId' => $puzzleId,
+                    'mergeRequestId' => $message->mergeRequestId,
+                ]);
             }
         }
 
@@ -98,7 +103,10 @@ readonly final class ApprovePuzzleMergeRequestHandler
                     $survivorPuzzle->image = $imagePuzzle->image;
                 }
             } catch (PuzzleNotFound) {
-                // Image puzzle not found, keep survivor's image
+                $this->logger->debug('Image puzzle {puzzleId} not found, keeping survivor image', [
+                    'puzzleId' => $message->selectedImagePuzzleId,
+                    'survivorPuzzleId' => $message->survivorPuzzleId,
+                ]);
             }
         }
 
@@ -144,6 +152,16 @@ readonly final class ApprovePuzzleMergeRequestHandler
 
         // Recalculate survivor's statistics (now includes migrated solving times)
         $this->recalculateSurvivorStatistics($survivorPuzzle);
+
+        $this->logger->info('Puzzle merge completed: {mergedCount} puzzles merged into survivor', [
+            'mergeRequestId' => $message->mergeRequestId,
+            'survivorPuzzleId' => $message->survivorPuzzleId,
+            'mergedCount' => count($puzzlesToMerge),
+            'mergedPuzzleIds' => array_map(
+                static fn($puzzle) => $puzzle->id->toString(),
+                $puzzlesToMerge,
+            ),
+        ]);
     }
 
     /**

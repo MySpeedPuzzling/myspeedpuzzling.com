@@ -78,7 +78,7 @@ final class CreateCollectionController extends AbstractController
                 ),
             );
 
-            $this->addFlash('success', $this->translator->trans('collections.created'));
+            $this->addFlash('success', $this->translator->trans('collections.flash.created'));
 
             return $this->redirectToRoute('puzzle_library', ['playerId' => $player->playerId]);
         }

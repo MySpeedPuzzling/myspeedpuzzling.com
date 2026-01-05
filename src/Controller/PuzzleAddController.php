@@ -134,10 +134,24 @@ final class PuzzleAddController extends AbstractController
             $initialMode = 'relax';
         }
 
-        // For non-members in collection mode, force system collection
+        // Get player collections for form options (include system collection)
         $hasActiveMembership = $userProfile->activeMembership;
-        if ($data->mode === PuzzleAddMode::Collection && $hasActiveMembership === false) {
+        $collections = [];
+        $systemCollectionName = $this->translator->trans('collections.system_name');
+        $collections[$systemCollectionName] = Collection::SYSTEM_ID;
+
+        foreach ($this->getPlayerCollections->byPlayerId($userProfile->playerId) as $collection) {
+            if ($collection->collectionId !== null) {
+                $collections[$collection->name] = $collection->collectionId;
+            }
+        }
+
+        // For non-members, force system collection
+        if ($hasActiveMembership === false) {
             $data->collection = Collection::SYSTEM_ID;
+        } elseif (count($collections) === 1 && $data->collection === null) {
+            // Pre-fill if only one collection is available (saves a click)
+            $data->collection = array_first($collections);
         }
 
         /** @var array<string> $groupPlayers */
@@ -148,17 +162,6 @@ final class PuzzleAddController extends AbstractController
             if (trim($groupPlayer) === '') {
                 $isGroupPuzzlersValid = false;
                 break;
-            }
-        }
-
-        // Get player collections for form options (include system collection)
-        $collections = [];
-        $systemCollectionName = $this->translator->trans('collections.system_name');
-        $collections[$systemCollectionName] = Collection::SYSTEM_ID;
-
-        foreach ($this->getPlayerCollections->byPlayerId($userProfile->playerId) as $collection) {
-            if ($collection->collectionId !== null) {
-                $collections[$collection->name] = $collection->collectionId;
             }
         }
 

@@ -88,6 +88,17 @@ export default class extends Controller {
             return;
         }
 
+        const tomselect = this.collectionTarget.tomselect;
+
+        // Auto-select if only one option is available and nothing is selected
+        if (tomselect && !this.collectionTarget.value) {
+            const optionKeys = Object.keys(tomselect.options);
+            if (optionKeys.length === 1) {
+                tomselect.setValue(optionKeys[0]);
+                return; // Value is now set, no need for further checks
+            }
+        }
+
         const currentValue = this.collectionTarget.value;
         if (currentValue && !this.uuidRegex.test(currentValue) && currentValue !== this.systemIdValue) {
             // If there's an initial value that's not a UUID or system collection, show new collection fields

@@ -23,6 +23,10 @@ final class PendingProposalsModalController extends AbstractController
         path: [
             'cs' => '/puzzle/{puzzleId}/cekajici-navrhy',
             'en' => '/en/puzzle/{puzzleId}/pending-proposals',
+            'es' => '/es/puzzle/{puzzleId}/propuestas-pendientes',
+            'ja' => '/ja/puzzle/{puzzleId}/pending-proposals',
+            'fr' => '/fr/puzzle/{puzzleId}/propositions-en-attente',
+            'de' => '/de/puzzle/{puzzleId}/ausstehende-vorschlaege',
         ],
         name: 'puzzle_pending_proposals',
         methods: ['GET'],

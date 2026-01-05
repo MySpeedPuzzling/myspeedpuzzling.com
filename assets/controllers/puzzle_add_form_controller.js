@@ -15,6 +15,7 @@ export default class extends Controller {
         'commonSection',       // Comment, photo (Speed + Relax)
         'collectionSection',   // Collection fields (Collection only)
         'newCollectionFields', // New collection name/visibility (Collection, when creating new)
+        'collectionInput',     // The collection tom-select input
     ];
 
     static values = {
@@ -30,6 +31,8 @@ export default class extends Controller {
             const collectionInput = this.collectionSectionTarget.querySelector('input[type="text"], select');
             if (collectionInput) {
                 collectionInput.addEventListener('change', this.handleCollectionChange.bind(this));
+                // Listen for tom-select initialization to auto-select single option
+                collectionInput.addEventListener('autocomplete:connect', this._autoSelectSingleOption.bind(this));
             }
         }
     }
@@ -100,5 +103,17 @@ export default class extends Controller {
     isUuid(value) {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         return uuidRegex.test(value);
+    }
+
+    _autoSelectSingleOption(event) {
+        const tomselect = event.target.tomselect;
+        if (!tomselect || event.target.value) {
+            return; // Already has value or no tomselect
+        }
+
+        const optionKeys = Object.keys(tomselect.options);
+        if (optionKeys.length === 1) {
+            tomselect.setValue(optionKeys[0]);
+        }
     }
 }

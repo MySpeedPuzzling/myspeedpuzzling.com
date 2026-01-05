@@ -87,6 +87,9 @@ final class AddPuzzleToCollectionController extends AbstractController
         // Set default collection to system collection for users without membership
         if ($hasActiveMembership === false) {
             $formData->collection = Collection::SYSTEM_ID;
+        } elseif (count($collectionChoices) === 1) {
+            // Pre-fill if only one collection is available (saves a click)
+            $formData->collection = array_first($collectionChoices);
         }
 
         $form = $this->createForm(CollectionPuzzleActionFormType::class, $formData, [

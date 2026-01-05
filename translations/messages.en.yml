@@ -1336,9 +1336,10 @@ puzzle_report:
     title: "Propose Puzzle Changes"
     back_to_puzzle: "Back to puzzle"
     dropdown:
-        propose_changes: "Propose changes"
+        suggest_change: "Suggest a change"
+        suggest_change_description: "Missing/incorrect data or duplicate?"
     tab:
-        propose_changes: "Propose Changes"
+        suggestions: "Suggestions"
         report_duplicate: "Report Duplicate"
     propose_changes:
         description: "Suggest corrections or improvements to this puzzle's information. All changes will be reviewed by an admin."

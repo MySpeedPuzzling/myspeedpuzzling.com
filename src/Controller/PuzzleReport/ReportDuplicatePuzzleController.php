@@ -98,8 +98,8 @@ final class ReportDuplicatePuzzleController extends AbstractController
             $this->addFlash('error', $this->translator->trans('puzzle_report.flash.no_valid_duplicates'));
         }
 
-        // On validation error, redirect back to the propose changes page with report tab active
-        return $this->redirectToRoute('puzzle_propose_changes', [
+        // On validation error, redirect back to the suggest change page with report tab active
+        return $this->redirectToRoute('puzzle_suggest_change', [
             'puzzleId' => $puzzleId,
             'tab' => 'report',
         ]);

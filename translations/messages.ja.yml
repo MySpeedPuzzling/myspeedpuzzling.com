@@ -1355,7 +1355,8 @@ pending_proposals:
 puzzle_report:
     back_to_puzzle: "パズルに戻る"
     dropdown:
-        propose_changes: "変更を提案"
+        suggest_change: "変更を提案"
+        suggest_change_description: "不足/誤ったデータまたは重複？"
     flash:
         changes_submitted: "提案された変更がレビューのために送信されました。ありがとうございます！"
         duplicate_reported: "重複報告がレビューのために送信されました。ありがとうございます！"
@@ -1406,6 +1407,6 @@ puzzle_report:
         description: "このパズルが別のパズルの重複であることを報告してください。管理者が確認し、確認された場合はレコードを統合します。"
         max_puzzles_info: "一度に最大%max%件のパズルを重複として報告できます。"
     tab:
-        propose_changes: "変更を提案"
+        suggestions: "提案"
         report_duplicate: "重複を報告"
     title: "パズルの変更を提案"

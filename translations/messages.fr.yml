@@ -1357,7 +1357,8 @@ pending_proposals:
 puzzle_report:
     back_to_puzzle: "Retour au puzzle"
     dropdown:
-        propose_changes: "Proposer des modifications"
+        suggest_change: "Suggérer une modification"
+        suggest_change_description: "Données manquantes/incorrectes ou doublon ?"
     flash:
         changes_submitted: "Vos modifications proposées ont été soumises pour examen. Merci !"
         duplicate_reported: "Votre signalement de doublon a été soumis pour examen. Merci !"
@@ -1408,6 +1409,6 @@ puzzle_report:
         description: "Signalez que ce puzzle est un doublon d'un autre puzzle. Un administrateur examinera et fusionnera les entrées si confirmé."
         max_puzzles_info: "Vous pouvez signaler jusqu'à %max% puzzles comme doublons à la fois."
     tab:
-        propose_changes: "Proposer des modifications"
+        suggestions: "Suggestions"
         report_duplicate: "Signaler un doublon"
     title: "Proposer des modifications au puzzle"

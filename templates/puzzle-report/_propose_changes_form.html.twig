@@ -2,7 +2,7 @@
 {% set in_modal = in_modal|default(false) %}
 
 {{ form_start(propose_form, {
-    'action': path('puzzle_propose_changes', {puzzleId: puzzle_id}),
+    'action': path('puzzle_suggest_change', {puzzleId: puzzle_id}),
     'attr': {
         'data-turbo': 'true',
         'data-turbo-frame': in_modal ? 'modal-frame' : '_top',

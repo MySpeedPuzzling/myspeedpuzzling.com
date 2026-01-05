@@ -1357,7 +1357,8 @@ pending_proposals:
 puzzle_report:
     back_to_puzzle: "Zpět na puzzle"
     dropdown:
-        propose_changes: "Navrhnout změny"
+        suggest_change: "Navrhnout změnu"
+        suggest_change_description: "Chybějící/nesprávné údaje nebo duplikát?"
     flash:
         changes_submitted: "Vaše navrhované změny byly odeslány ke kontrole. Děkujeme!"
         duplicate_reported: "Váš report duplikátu byl odeslán ke kontrole. Děkujeme!"
@@ -1408,6 +1409,6 @@ puzzle_report:
         description: "Nahlaste, že toto puzzle je duplikátem jiného puzzle. Administrátor zkontroluje a sloučí záznamy, pokud se potvrdí."
         max_puzzles_info: "Můžete najednou nahlásit až %max% puzzle jako duplikáty."
     tab:
-        propose_changes: "Navrhnout změny"
+        suggestions: "Návrhy"
         report_duplicate: "Nahlásit duplikát"
     title: "Navrhnout změny puzzle"

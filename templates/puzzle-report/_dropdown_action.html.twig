@@ -1,16 +1,19 @@
 {#
-    Puzzle report dropdown action - shows "Propose changes" link.
+    Puzzle report dropdown action - shows "Suggest a change" link.
     Visible to all users; redirects to login if not authenticated.
 
     Required variables: puzzle_id
 #}
 <li>
     <a class="dropdown-item d-flex justify-content-between align-items-center"
-       href="{{ path('puzzle_propose_changes', {puzzleId: puzzle_id}) }}"
+       href="{{ path('puzzle_suggest_change', {puzzleId: puzzle_id}) }}"
        rel="nofollow"
        data-turbo="true"
        data-turbo-frame="modal-frame">
-        <span><i class="bi bi-pencil-square me-1"></i> {{ 'puzzle_report.dropdown.propose_changes'|trans }}</span>
+        <span>
+            <i class="bi bi-pencil-square me-1"></i> {{ 'puzzle_report.dropdown.suggest_change'|trans }}
+            <small class="d-block text-muted">{{ 'puzzle_report.dropdown.suggest_change_description'|trans }}</small>
+        </span>
         <span class="badge bg-primary ms-2">{{ 'new_badge'|trans }}</span>
     </a>
 </li>

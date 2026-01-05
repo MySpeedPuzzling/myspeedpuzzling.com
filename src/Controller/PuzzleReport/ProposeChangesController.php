@@ -35,14 +35,14 @@ final class ProposeChangesController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/puzzle/{puzzleId}/navrhnout-zmeny',
-            'en' => '/en/puzzle/{puzzleId}/propose-changes',
-            'es' => '/es/puzzle/{puzzleId}/proponer-cambios',
-            'ja' => '/ja/puzzle/{puzzleId}/propose-changes',
-            'fr' => '/fr/puzzle/{puzzleId}/proposer-changements',
-            'de' => '/de/puzzle/{puzzleId}/aenderungen-vorschlagen',
+            'cs' => '/puzzle/{puzzleId}/navrhnout-zmenu',
+            'en' => '/en/puzzle/{puzzleId}/suggest-change',
+            'es' => '/es/puzzle/{puzzleId}/sugerir-cambio',
+            'ja' => '/ja/puzzle/{puzzleId}/suggest-change',
+            'fr' => '/fr/puzzle/{puzzleId}/suggerer-modification',
+            'de' => '/de/puzzle/{puzzleId}/aenderung-vorschlagen',
         ],
-        name: 'puzzle_propose_changes',
+        name: 'puzzle_suggest_change',
         methods: ['GET', 'POST'],
     )]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]

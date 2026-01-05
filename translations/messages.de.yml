@@ -1357,7 +1357,8 @@ pending_proposals:
 puzzle_report:
     back_to_puzzle: "Zurück zum Puzzle"
     dropdown:
-        propose_changes: "Änderungen vorschlagen"
+        suggest_change: "Änderung vorschlagen"
+        suggest_change_description: "Fehlende/falsche Daten oder Duplikat?"
     flash:
         changes_submitted: "Deine vorgeschlagenen Änderungen wurden zur Überprüfung eingereicht. Danke!"
         duplicate_reported: "Deine Duplikat-Meldung wurde zur Überprüfung eingereicht. Danke!"
@@ -1408,6 +1409,6 @@ puzzle_report:
         description: "Melde, dass dieses Puzzle ein Duplikat eines anderen Puzzles ist. Ein Administrator wird prüfen und die Einträge zusammenführen, falls bestätigt."
         max_puzzles_info: "Du kannst bis zu %max% Puzzles gleichzeitig als Duplikate melden."
     tab:
-        propose_changes: "Änderungen vorschlagen"
+        suggestions: "Vorschläge"
         report_duplicate: "Duplikat melden"
     title: "Puzzle-Änderungen vorschlagen"

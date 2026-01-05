@@ -635,8 +635,8 @@ notifications:
         taken_back: "%owner% recuperó el puzzle"
         your_puzzle_passed: "Tu puzzle fue pasado de %from% a %to%"
     puzzle_report:
-        change_approved: "Tus cambios propuestos fueron aprobados"
-        change_rejected: "Tus cambios propuestos fueron rechazados"
+        change_approved: "Tus cambios sugeridos fueron aprobados"
+        change_rejected: "Tus cambios sugeridos fueron rechazados"
         merge_approved: "Tu reporte de duplicado fue aprobado y los puzzles fueron fusionados"
         merge_rejected: "Tu reporte de duplicado fue rechazado"
 
@@ -1360,9 +1360,9 @@ puzzle_report:
         suggest_change: "Sugerir un cambio"
         suggest_change_description: "¿Datos faltantes/incorrectos o duplicado?"
     flash:
-        changes_submitted: "Tus cambios propuestos han sido enviados para revisión. ¡Gracias!"
+        changes_submitted: "Tus cambios sugeridos han sido enviados para revisión. ¡Gracias!"
         duplicate_reported: "Tu reporte de duplicado ha sido enviado para revisión. ¡Gracias!"
-        login_required: "Por favor inicia sesión para proponer cambios."
+        login_required: "Por favor inicia sesión para sugerir cambios."
         no_valid_duplicates: "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
         pending_proposal_exists: "Ya existe una propuesta pendiente de revisión para este puzzle."
         validation_error: "Por favor corrige los errores e intenta de nuevo."
@@ -1411,4 +1411,4 @@ puzzle_report:
     tab:
         suggestions: "Sugerencias"
         report_duplicate: "Reportar Duplicado"
-    title: "Proponer Cambios al Puzzle"
+    title: "Sugerir un Cambio al Puzzle"

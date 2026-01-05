@@ -613,8 +613,8 @@ notifications:
         taken_back: "%owner% hat das Puzzle zurückgenommen"
         your_puzzle_passed: "Dein Puzzle wurde von %from% an %to% weitergegeben"
     puzzle_report:
-        change_approved: "Deine vorgeschlagenen Änderungen wurden genehmigt"
-        change_rejected: "Deine vorgeschlagenen Änderungen wurden abgelehnt"
+        change_approved: "Deine vorgeschlagene Änderung wurde genehmigt"
+        change_rejected: "Deine vorgeschlagene Änderung wurde abgelehnt"
         merge_approved: "Deine Duplikat-Meldung wurde genehmigt und die Puzzles wurden zusammengeführt"
         merge_rejected: "Deine Duplikat-Meldung wurde abgelehnt"
 
@@ -1360,9 +1360,9 @@ puzzle_report:
         suggest_change: "Änderung vorschlagen"
         suggest_change_description: "Fehlende/falsche Daten oder Duplikat?"
     flash:
-        changes_submitted: "Deine vorgeschlagenen Änderungen wurden zur Überprüfung eingereicht. Danke!"
+        changes_submitted: "Deine vorgeschlagene Änderung wurde zur Überprüfung eingereicht. Danke!"
         duplicate_reported: "Deine Duplikat-Meldung wurde zur Überprüfung eingereicht. Danke!"
-        login_required: "Bitte melde dich an, um Änderungen vorzuschlagen."
+        login_required: "Bitte melde dich an, um eine Änderung vorzuschlagen."
         no_valid_duplicates: "Du kannst ein Puzzle nicht als Duplikat von sich selbst melden. Bitte wähle ein anderes Puzzle."
         pending_proposal_exists: "Ein Vorschlag für dieses Puzzle wartet bereits auf Überprüfung."
         validation_error: "Bitte behebe die Fehler und versuche es erneut."
@@ -1411,4 +1411,4 @@ puzzle_report:
     tab:
         suggestions: "Vorschläge"
         report_duplicate: "Duplikat melden"
-    title: "Puzzle-Änderungen vorschlagen"
+    title: "Puzzle-Änderung vorschlagen"

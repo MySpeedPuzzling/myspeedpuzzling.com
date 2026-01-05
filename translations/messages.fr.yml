@@ -635,8 +635,8 @@ notifications:
         taken_back: "%owner% a repris le puzzle"
         your_puzzle_passed: "Votre puzzle a été transmis de %from% à %to%"
     puzzle_report:
-        change_approved: "Vos modifications proposées ont été approuvées"
-        change_rejected: "Vos modifications proposées ont été rejetées"
+        change_approved: "Vos modifications suggérées ont été approuvées"
+        change_rejected: "Vos modifications suggérées ont été rejetées"
         merge_approved: "Votre signalement de doublon a été approuvé et les puzzles ont été fusionnés"
         merge_rejected: "Votre signalement de doublon a été rejeté"
 
@@ -1360,9 +1360,9 @@ puzzle_report:
         suggest_change: "Suggérer une modification"
         suggest_change_description: "Données manquantes/incorrectes ou doublon ?"
     flash:
-        changes_submitted: "Vos modifications proposées ont été soumises pour examen. Merci !"
+        changes_submitted: "Vos modifications suggérées ont été soumises pour examen. Merci !"
         duplicate_reported: "Votre signalement de doublon a été soumis pour examen. Merci !"
-        login_required: "Veuillez vous connecter pour proposer des modifications."
+        login_required: "Veuillez vous connecter pour suggérer des modifications."
         no_valid_duplicates: "Vous ne pouvez pas signaler un puzzle comme doublon de lui-même. Veuillez sélectionner un puzzle différent."
         pending_proposal_exists: "Une proposition pour ce puzzle est déjà en attente d'examen."
         validation_error: "Veuillez corriger les erreurs et réessayer."
@@ -1411,4 +1411,4 @@ puzzle_report:
     tab:
         suggestions: "Suggestions"
         report_duplicate: "Signaler un doublon"
-    title: "Proposer des modifications au puzzle"
+    title: "Suggérer une modification au puzzle"

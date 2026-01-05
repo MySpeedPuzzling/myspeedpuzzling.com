@@ -631,8 +631,8 @@ notifications:
         passed_from_you: "Puzzle was passed to %to%"
         your_puzzle_passed: "Your puzzle was passed from %from% to %to%"
     puzzle_report:
-        change_approved: "Your proposed changes were approved"
-        change_rejected: "Your proposed changes were rejected"
+        change_approved: "Your suggested changes were approved"
+        change_rejected: "Your suggested changes were rejected"
         merge_approved: "Your duplicate report was approved and puzzles were merged"
         merge_rejected: "Your duplicate report was rejected"
 
@@ -1333,7 +1333,7 @@ image_editor:
     apply: "Apply"
 
 puzzle_report:
-    title: "Propose Puzzle Changes"
+    title: "Suggest Puzzle Changes"
     back_to_puzzle: "Back to puzzle"
     dropdown:
         suggest_change: "Suggest a change"
@@ -1384,10 +1384,10 @@ puzzle_report:
         select_manufacturer_first: "Select manufacturer first"
         select_duplicate_error: "Please select a duplicate puzzle or enter a puzzle URL."
     flash:
-        changes_submitted: "Your proposed changes have been submitted for review. Thank you!"
+        changes_submitted: "Your suggested changes have been submitted for review. Thank you!"
         duplicate_reported: "Your duplicate report has been submitted for review. Thank you!"
         validation_error: "Please fix the errors and try again."
-        login_required: "Please log in to propose changes."
+        login_required: "Please log in to suggest changes."
         pending_proposal_exists: "A proposal for this puzzle is already pending review."
         no_valid_duplicates: "You cannot report a puzzle as a duplicate of itself. Please select a different puzzle."
 

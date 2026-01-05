@@ -155,7 +155,7 @@ final class RemovePuzzleFromCollectionController extends AbstractController
         }
 
         // Non-Turbo request: redirect with flash message
-        $this->addFlash('success', $this->translator->trans('collections.puzzle_removed'));
+        $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_removed'));
 
         return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
     }

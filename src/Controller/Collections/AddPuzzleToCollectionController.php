@@ -183,7 +183,7 @@ final class AddPuzzleToCollectionController extends AbstractController
             }
 
             // Non-Turbo request: redirect with flash message
-            $this->addFlash('success', $this->translator->trans('collections.puzzle_added'));
+            $this->addFlash('success', $this->translator->trans('collections.flash.puzzle_added'));
 
             return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
         }

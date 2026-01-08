@@ -117,6 +117,11 @@ class PuzzleMergeRequest implements EntityWithEvents
         $this->rejectionReason = $reason;
     }
 
+    public function clearSourcePuzzleReference(): void
+    {
+        $this->sourcePuzzle = null;
+    }
+
     public function getDuplicateCount(): int
     {
         return count($this->reportedDuplicatePuzzleIds);

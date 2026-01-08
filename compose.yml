@@ -36,6 +36,11 @@ services:
             - postgres-data:/var/lib/postgresql/data
         ports:
             - "5432:5432"
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U postgres"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
     js-watch:
         image: ghcr.io/myspeedpuzzling/web-base-php85:main
@@ -117,6 +122,16 @@ services:
             MERCURE_PUBLISHER_JWT_KEY: "dummy-local-secret"
             MERCURE_SUBSCRIBER_JWT_KEY: "dummy-local-secret"
 
+    listmonk-init:
+        image: postgres:16.0
+        environment:
+            PGPASSWORD: postgres
+        command: >
+            sh -c "psql -h postgres -U postgres -tc \"SELECT 1 FROM pg_database WHERE datname = 'listmonk'\" | grep -q 1 || psql -h postgres -U postgres -c \"CREATE DATABASE listmonk\""
+        depends_on:
+            postgres:
+                condition: service_healthy
+
     listmonk:
         image: listmonk/listmonk:latest
         restart: unless-stopped
@@ -129,5 +144,7 @@ services:
             - ./.docker/listmonk/entrypoint.sh:/listmonk/entrypoint.sh
         entrypoint: ["/bin/sh", "/listmonk/entrypoint.sh"]
         depends_on:
-            - postgres
-            - mailer
+            listmonk-init:
+                condition: service_completed_successfully
+            mailer:
+                condition: service_started

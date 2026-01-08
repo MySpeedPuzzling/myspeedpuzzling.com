@@ -116,6 +116,17 @@ readonly final class ApprovePuzzleMergeRequestHandler
             ),
         );
 
+        // Clear source puzzle reference if it will be deleted
+        // This prevents stale entity references during event processing
+        if ($mergeRequest->sourcePuzzle !== null) {
+            foreach ($puzzlesToMerge as $puzzleToMerge) {
+                if ($puzzleToMerge->id->equals($mergeRequest->sourcePuzzle->id)) {
+                    $mergeRequest->clearSourcePuzzleReference();
+                    break;
+                }
+            }
+        }
+
         // Create notification for reporter (if reporter still exists)
         if ($mergeRequest->reporter !== null) {
             $notification = new Notification(

@@ -1,0 +1,26 @@
+[app]
+address = "0.0.0.0:9000"
+admin_username = "admin"
+admin_password = "admin"
+
+[db]
+host = "postgres"
+port = 5432
+user = "postgres"
+password = "postgres"
+database = "listmonk"
+ssl_mode = "disable"
+max_open = 25
+max_idle = 25
+max_lifetime = "300s"
+
+[smtp]
+enabled = true
+host = "mailer"
+port = 1025
+auth_protocol = "none"
+tls_type = "none"
+max_conns = 10
+idle_timeout = "15s"
+wait_timeout = "5s"
+max_msg_retries = 2

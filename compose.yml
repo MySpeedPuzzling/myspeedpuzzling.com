@@ -138,11 +138,32 @@ services:
         ports:
             - "9000:9000"
         environment:
-            - TZ=Europe/Prague
-        volumes:
-            - ./.docker/listmonk/config.toml:/listmonk/config.toml
-            - ./.docker/listmonk/entrypoint.sh:/listmonk/entrypoint.sh
-        entrypoint: ["/bin/sh", "/listmonk/entrypoint.sh"]
+            TZ: Europe/Prague
+            LISTMONK_app__address: 0.0.0.0:9000
+            LISTMONK_app__admin_username: admin
+            LISTMONK_app__admin_password: admin
+            LISTMONK_db__host: postgres
+            LISTMONK_db__port: 5432
+            LISTMONK_db__user: postgres
+            LISTMONK_db__password: postgres
+            LISTMONK_db__database: listmonk
+            LISTMONK_db__ssl_mode: disable
+            LISTMONK_db__max_open: 25
+            LISTMONK_db__max_idle: 25
+            LISTMONK_db__max_lifetime: 300s
+            LISTMONK_smtp__enabled: true
+            LISTMONK_smtp__host: mailer
+            LISTMONK_smtp__port: 1025
+            LISTMONK_smtp__auth_protocol: none
+            LISTMONK_smtp__tls_type: none
+            LISTMONK_smtp__max_conns: 10
+            LISTMONK_smtp__idle_timeout: 15s
+            LISTMONK_smtp__wait_timeout: 5s
+            LISTMONK_smtp__max_msg_retries: 2
+        command: >
+            sh -c "./listmonk --install --idempotent --yes --config '' &&
+                   ./listmonk --upgrade --yes --config '' &&
+                   ./listmonk --config ''"
         depends_on:
             listmonk-init:
                 condition: service_completed_successfully

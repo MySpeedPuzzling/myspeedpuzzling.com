@@ -14,6 +14,8 @@ return App::config([
             'enabled' => true,
         ],
         'register_error_listener' => false,
+        // Use Monolog logger so Sentry SDK errors (like HTTP failures) are logged instead of silently swallowed
+        'logger' => 'monolog.logger',
         'messenger' => [
             'enabled' => true,
             'capture_soft_fails' => true,

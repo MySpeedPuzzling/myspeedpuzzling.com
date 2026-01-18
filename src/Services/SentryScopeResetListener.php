@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Log\LoggerInterface;
 use Sentry\State\HubInterface;
 use Sentry\State\Scope;
 use Sentry\Tracing\PropagationContext;
@@ -23,6 +24,7 @@ final readonly class SentryScopeResetListener
 {
     public function __construct(
         private HubInterface $hub,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -30,6 +32,11 @@ final readonly class SentryScopeResetListener
     {
         if ($event->isMainRequest() === false) {
             return;
+        }
+
+        // Verify Sentry client is available (critical for FrankenPHP worker mode)
+        if ($this->hub->getClient() === null) {
+            $this->logger->error('Sentry client is null at request start - error tracking will not work');
         }
 
         $this->hub->configureScope(static function (Scope $scope): void {

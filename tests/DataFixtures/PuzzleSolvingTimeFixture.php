@@ -375,6 +375,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             comment: $comment,
             finishedPuzzlePhoto: null,
             firstAttempt: $firstAttempt,
+            unboxed: false,
             competitionRound: $competitionRound,
             competition: $competition,
             missingPieces: $missingPieces,

@@ -107,6 +107,21 @@
                         </label>
                     </div>
 
+                    {# Unboxed filter #}
+                    <div class="form-check form-switch mb-3">
+                        <input
+                            data-model="onlyUnboxed"
+                            type="checkbox"
+                            class="form-check-input"
+                            role="switch"
+                            id="only-unboxed"
+                            {{ this.onlyUnboxed ? 'checked' }}
+                            {{ not isMember ? 'disabled' }}>
+                        <label for="only-unboxed" class="form-check-label" onclick="arguments[0].stopPropagation()">
+                            <i class="bi bi-box-seam"></i> {{ 'only_unboxed_filter'|trans }}
+                        </label>
+                    </div>
+
                     {# Date range filter #}
                     <div class="mb-3" data-controller="datepicker">
                         <div class="row g-2">

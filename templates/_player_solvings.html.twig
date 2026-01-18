@@ -129,6 +129,11 @@
                                                 <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
                                             {% endif %}
 
+                                            {% if puzzle.unboxed %}
+                                                <br>
+                                                <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
+                                            {% endif %}
+
                                             {% if puzzle.suspicious %}
                                                 <br>
                                                 <span class="badge rounded-pill bg-warning">

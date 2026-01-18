@@ -22,6 +22,7 @@ readonly final class EditPuzzleSolvingTime
         public null|DateTimeImmutable $finishedAt,
         public null|UploadedFile $finishedPuzzlesPhoto,
         public bool $firstAttempt,
+        public bool $unboxed,
     ) {
     }
 
@@ -40,6 +41,7 @@ readonly final class EditPuzzleSolvingTime
             finishedAt: $formData->finishedAt,
             finishedPuzzlesPhoto: $formData->finishedPuzzlesPhoto,
             firstAttempt: $formData->firstAttempt,
+            unboxed: $formData->unboxed,
         );
     }
 }

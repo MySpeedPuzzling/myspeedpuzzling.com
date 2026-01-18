@@ -192,6 +192,11 @@
                     <div class="form-switch" data-puzzle-add-form-target="firstAttemptSection">
                         {{ form_row(solving_time_form.firstAttempt) }}
                     </div>
+
+                    {# Unboxed - Speed Puzzling only #}
+                    <div class="form-switch" data-puzzle-add-form-target="unboxedSection">
+                        {{ form_row(solving_time_form.unboxed) }}
+                    </div>
                 </div>
 
                 {# Group players section (Speed + Relax only) #}

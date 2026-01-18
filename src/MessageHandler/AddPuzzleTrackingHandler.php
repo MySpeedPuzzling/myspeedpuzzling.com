@@ -76,6 +76,7 @@ readonly final class AddPuzzleTrackingHandler
             comment: $message->comment,
             finishedPuzzlePhoto: $finishedPuzzlePhotoPath,
             firstAttempt: false,
+            unboxed: false,
         );
 
         $this->entityManager->persist($solvingTime);

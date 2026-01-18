@@ -215,6 +215,12 @@ final class PuzzleAddFormType extends AbstractType
             'help' => 'forms.first_attempt_help',
         ]);
 
+        $builder->add('unboxed', CheckboxType::class, [
+            'label' => 'forms.unboxed',
+            'required' => false,
+            'help' => 'forms.unboxed_help',
+        ]);
+
         // Common fields (Speed & Relax)
         $builder->add('finishedAt', DateType::class, [
             'label' => 'forms.date_finished',

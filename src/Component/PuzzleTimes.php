@@ -37,6 +37,9 @@ final class PuzzleTimes
     public bool $onlyFirstTries = false;
 
     #[LiveProp(writable: true)]
+    public bool $onlyUnboxed = false;
+
+    #[LiveProp(writable: true)]
     public bool $onlyFavoritePlayers = false;
 
     #[LiveProp(writable: true)]
@@ -88,6 +91,7 @@ final class PuzzleTimes
 
         if ($this->category !== 'solo') {
             $this->onlyFirstTries = false;
+            $this->onlyUnboxed = false;
         }
 
         $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
@@ -95,10 +99,18 @@ final class PuzzleTimes
         if ($this->onlyFirstTries === true) {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
-            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
         } else {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFastest($soloPuzzleSolvers);
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
+        }
+
+        // Apply filters: when both are checked, use combined filter (AND logic)
+        if ($this->onlyFirstTries === true && $this->onlyUnboxed === true) {
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterByFirstAttemptAndUnboxedGrouped($soloPuzzleSolversGrouped);
+        } elseif ($this->onlyFirstTries === true) {
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
+        } elseif ($this->onlyUnboxed === true) {
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonUnboxedGrouped($soloPuzzleSolversGrouped);
         }
 
         $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
@@ -252,6 +264,10 @@ final class PuzzleTimes
         $count = 0;
 
         if ($this->onlyFirstTries !== false) {
+            $count++;
+        }
+
+        if ($this->onlyUnboxed !== false) {
             $count++;
         }
 

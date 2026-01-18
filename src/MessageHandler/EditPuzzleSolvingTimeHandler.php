@@ -108,6 +108,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             $finishedAt,
             $finishedPuzzlePhotoPath,
             $message->firstAttempt,
+            $message->unboxed,
             competition: $competition,
         );
     }

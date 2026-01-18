@@ -270,6 +270,7 @@ final class PuzzleAddController extends AbstractController
                 groupPlayers: $groupPlayers,
                 finishedAt: $data->finishedAt,
                 firstAttempt: $data->firstAttempt,
+                unboxed: $data->unboxed,
             ),
         );
 

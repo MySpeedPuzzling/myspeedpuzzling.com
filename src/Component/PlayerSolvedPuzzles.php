@@ -34,6 +34,9 @@ final class PlayerSolvedPuzzles
     public bool $onlyFirstTries = false;
 
     #[LiveProp(writable: true)]
+    public bool $onlyUnboxed = false;
+
+    #[LiveProp(writable: true)]
     public string $sortBy = 'fastest';
 
     #[LiveProp(writable: true)]
@@ -123,6 +126,7 @@ final class PlayerSolvedPuzzles
         $this->searchQuery = null;
         $this->onlyRelax = false;
         $this->onlyFirstTries = false;
+        $this->onlyUnboxed = false;
         $this->dateFrom = null;
         $this->dateTo = null;
         $this->speedValue = null;
@@ -142,6 +146,7 @@ final class PlayerSolvedPuzzles
 
         if ($this->category !== 'solo') {
             $this->onlyFirstTries = false;
+            $this->onlyUnboxed = false;
         }
 
         $this->ranking = $this->getRanking->allForPlayer($this->playerId);
@@ -162,6 +167,11 @@ final class PlayerSolvedPuzzles
         // Only apply first tries filter if user has membership (members exclusive filter)
         if ($this->onlyFirstTries === true && $this->hasMembership()) {
             $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloSolvedPuzzlesGrouped);
+        }
+
+        // Only apply unboxed filter if user has membership (members exclusive filter)
+        if ($this->onlyUnboxed === true && $this->hasMembership()) {
+            $soloSolvedPuzzlesGrouped = $this->puzzlesSorter->filterOutNonUnboxedGrouped($soloSolvedPuzzlesGrouped);
         }
 
         // Apply sorting
@@ -430,6 +440,10 @@ final class PlayerSolvedPuzzles
         // MEMBERS EXCLUSIVE FILTERS - only count if user has membership
         if ($isMember) {
             if ($this->onlyFirstTries !== false) {
+                $count++;
+            }
+
+            if ($this->onlyUnboxed !== false) {
                 $count++;
             }
 

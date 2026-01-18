@@ -76,6 +76,8 @@ final class PuzzleAddFormData
 
     public bool $firstAttempt = false;
 
+    public bool $unboxed = false;
+
     // Speed Puzzling & Relax common fields
     public null|DateTimeImmutable $finishedAt;
 

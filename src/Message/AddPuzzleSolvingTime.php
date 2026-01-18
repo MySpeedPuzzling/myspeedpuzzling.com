@@ -23,6 +23,7 @@ readonly final class AddPuzzleSolvingTime
         public array $groupPlayers,
         public null|DateTimeImmutable $finishedAt,
         public bool $firstAttempt,
+        public bool $unboxed,
     ) {
     }
 
@@ -45,6 +46,7 @@ readonly final class AddPuzzleSolvingTime
             groupPlayers: $groupPlayers,
             finishedAt: $data->finishedAt,
             firstAttempt: $data->firstAttempt,
+            unboxed: $data->unboxed,
         );
     }
 }

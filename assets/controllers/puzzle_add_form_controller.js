@@ -10,6 +10,7 @@ export default class extends Controller {
         'timeAndDateSection',  // Card with time + date (Speed + Relax)
         'timeSection',         // Time field only (Speed only)
         'firstAttemptSection', // First attempt checkbox (Speed only)
+        'unboxedSection',      // Unboxed checkbox (Speed only)
         'groupSection',        // Group players (Speed + Relax)
         'competitionSection',  // Competition (Speed only)
         'commonSection',       // Comment, photo (Speed + Relax)
@@ -67,6 +68,11 @@ export default class extends Controller {
         // First attempt checkbox (Speed only)
         if (this.hasFirstAttemptSectionTarget) {
             this.firstAttemptSectionTarget.classList.toggle('d-none', !isSpeed);
+        }
+
+        // Unboxed checkbox (Speed only)
+        if (this.hasUnboxedSectionTarget) {
+            this.unboxedSectionTarget.classList.toggle('d-none', !isSpeed);
         }
 
         // Group section (Speed + Relax)

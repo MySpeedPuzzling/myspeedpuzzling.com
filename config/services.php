@@ -14,7 +14,6 @@ use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
-use SpeedPuzzling\Web\Services\SentryTransactionNameEnhancer;
 use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
 use Symfony\Component\HttpClient\Psr18Client;

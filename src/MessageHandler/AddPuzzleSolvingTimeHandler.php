@@ -103,6 +103,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             $message->comment,
             $finishedPuzzlePhotoPath,
             $message->firstAttempt,
+            $message->unboxed,
             competition: $competition,
         );
 

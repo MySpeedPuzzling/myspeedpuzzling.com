@@ -37,6 +37,7 @@ final class PuzzlerDataExporterTest extends TestCase
                 trackedAt: new DateTimeImmutable('2024-01-15 10:00:00'),
                 type: 'solo',
                 firstAttempt: true,
+                unboxed: false,
                 playersCount: 1,
                 teamMembers: '',
                 finishedPuzzlePhotoUrl: 'https://example.com/photo.jpg',

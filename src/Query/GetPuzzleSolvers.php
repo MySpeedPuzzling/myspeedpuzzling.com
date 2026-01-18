@@ -37,6 +37,7 @@ SELECT
     puzzle_solving_time.seconds_to_solve AS time,
     finished_at,
     first_attempt,
+    unboxed,
     is_private,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
@@ -69,6 +70,7 @@ SQL;
              *     time: int,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     unboxed: bool,
              *     is_private: bool,
              *     competition_id: null|string,
              *     competition_shortcut: null|string,
@@ -100,6 +102,7 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     finished_at,
     first_attempt,
+    pst.unboxed,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -116,7 +119,7 @@ SELECT
 FROM
     puzzle_solving_time pst
     LEFT JOIN competition ON competition.id = pst.competition_id,
-    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) 
+    LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
 WHERE
     pst.puzzle_id = :puzzleId
@@ -145,6 +148,7 @@ SQL;
              *     players: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     unboxed: bool,
              *     competition_id: null|string,
              *     competition_shortcut: null|string,
              *     competition_name: null|string,
@@ -175,6 +179,7 @@ SELECT
     pst.team ->> 'team_id' AS team_id,
     finished_at,
     first_attempt,
+    pst.unboxed,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -220,6 +225,7 @@ SQL;
              *     players: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     unboxed: bool,
              *     competition_id: null|string,
              *     competition_shortcut: null|string,
              *     competition_name: null|string,

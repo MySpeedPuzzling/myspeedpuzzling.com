@@ -78,6 +78,7 @@ SELECT
     finished_at,
     finished_puzzle_photo,
     first_attempt,
+    puzzle_solving_time.unboxed,
     competition.id AS competition_id,
     CASE
         WHEN puzzle_solving_time.team IS NOT NULL THEN
@@ -121,6 +122,7 @@ SQL;
          *     finished_at: string,
          *     finished_puzzle_photo: string,
          *     first_attempt: bool,
+         *     unboxed: bool,
          *     competition_id: null|string,
          * } $row
          */
@@ -180,6 +182,7 @@ SELECT
     manufacturer.name AS manufacturer_name,
     puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
     first_attempt,
+    puzzle_solving_time.unboxed,
     solved_counts.solved_times AS solved_times,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
@@ -248,6 +251,7 @@ SQL;
              *     puzzle_identification_number: null|string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     unboxed: bool,
              *     solved_times: int,
              *     competition_id: null|string,
              *     competition_name: null|string,
@@ -321,6 +325,7 @@ SELECT
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
     first_attempt,
+    pst.unboxed,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -369,6 +374,7 @@ SQL;
              *     tracked_at: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     unboxed: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
@@ -448,6 +454,7 @@ SELECT
     manufacturer.name AS manufacturer_name,
     pst.team ->> 'team_id' AS team_id,
     first_attempt,
+    pst.unboxed,
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
@@ -496,6 +503,7 @@ SQL;
              *     tracked_at: string,
              *     finished_at: string,
              *     first_attempt: bool,
+             *     unboxed: bool,
              *     competition_id: null|string,
              *     competition_name: null|string,
              *     competition_shortcut: null|string,

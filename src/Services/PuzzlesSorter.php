@@ -387,6 +387,27 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
+     * @param array<string, non-empty-array<T>> $groupedSolvers
+     * @return array<string, non-empty-array<T>>
+     */
+    public function filterOutNonUnboxedGrouped(array $groupedSolvers): array
+    {
+        return array_filter(
+            array: $groupedSolvers,
+            callback: function (array $grouped): bool {
+                foreach ($grouped as $solvedPuzzle) {
+                    if ($solvedPuzzle->unboxed === true) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+        );
+    }
+
+    /**
      * @template T of PuzzleSolver|PuzzleSolversGroup
      * @param array<string, non-empty-array<T>> $groupedSolvers
      * @return array<string, non-empty-array<T>>

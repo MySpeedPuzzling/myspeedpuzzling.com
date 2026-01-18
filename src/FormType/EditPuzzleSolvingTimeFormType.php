@@ -115,6 +115,12 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
             'help' => 'forms.first_attempt_help',
         ]);
 
+        $builder->add('unboxed', CheckboxType::class, [
+            'label' => 'forms.unboxed',
+            'required' => false,
+            'help' => 'forms.unboxed_help',
+        ]);
+
         $builder->add('puzzle', TextType::class, [
             'label' => 'forms.puzzle',
             'help' => 'forms.puzzle_help',

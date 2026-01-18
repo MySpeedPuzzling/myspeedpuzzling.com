@@ -99,13 +99,17 @@ final class PuzzleTimes
         if ($this->onlyFirstTries === true) {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
-            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
         } else {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFastest($soloPuzzleSolvers);
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($soloPuzzleSolvers);
         }
 
-        if ($this->onlyUnboxed === true) {
+        // Apply filters: when both are checked, use combined filter (AND logic)
+        if ($this->onlyFirstTries === true && $this->onlyUnboxed === true) {
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterByFirstAttemptAndUnboxedGrouped($soloPuzzleSolversGrouped);
+        } elseif ($this->onlyFirstTries === true) {
+            $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonFirstTriesGrouped($soloPuzzleSolversGrouped);
+        } elseif ($this->onlyUnboxed === true) {
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonUnboxedGrouped($soloPuzzleSolversGrouped);
         }
 

@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Claim Voucher{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-6 col-md-8">
+                <h1 class="h2">Claim Voucher</h1>
+
+                {% if success %}
+                    <div class="alert alert-success">
+                        <i class="ci-check-circle me-2"></i>
+                        Voucher claimed successfully! Your membership has been extended.
+                    </div>
+
+                    <a href="{{ path('membership') }}" class="btn btn-primary">
+                        View Membership Status
+                    </a>
+                {% else %}
+                    <p>Enter your voucher code to claim free membership months.</p>
+
+                    {% for flash_message in app.flashes('danger') %}
+                        <div class="alert alert-danger">
+                            <i class="ci-close-circle me-2"></i>
+                            {{ flash_message }}
+                        </div>
+                    {% endfor %}
+
+                    <div class="card shadow my-4">
+                        <div class="card-body">
+                            {{ form_start(form) }}
+                                <div class="mb-3">
+                                    {{ form_label(form.code) }}
+                                    {{ form_widget(form.code, {'attr': {'class': 'form-control text-uppercase'}}) }}
+                                    {{ form_errors(form.code) }}
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">
+                                    Claim Voucher
+                                </button>
+                            {{ form_end(form) }}
+                        </div>
+                    </div>
+
+                    <p class="text-muted small">
+                        <a href="{{ path('membership') }}">Back to Membership</a>
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="col-lg-5 offset-lg-1 col-md-4 text-center">
+                <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="Mascot">
+            </div>
+        </div>
+    </div>
+{% endblock %}

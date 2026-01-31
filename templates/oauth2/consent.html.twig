@@ -1,0 +1,59 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Authorize {{ client.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Authorization Request</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        <strong>{{ client.name }}</strong> wants to access your MySpeedPuzzling account.
+                    </p>
+
+                    <p>Logged in as: <strong>{{ player.name ?? player.code }}</strong></p>
+
+                    <hr>
+
+                    <h6>This application is requesting access to:</h6>
+                    <ul class="list-group list-group-flush mb-4">
+                        {% for scope in scopes %}
+                            <li class="list-group-item">
+                                {% if scope == 'profile:read' %}
+                                    View your profile information (name, avatar, country)
+                                {% elseif scope == 'results:read' %}
+                                    View your puzzle solving results
+                                {% elseif scope == 'statistics:read' %}
+                                    View your statistics
+                                {% elseif scope == 'collections:read' %}
+                                    View your puzzle collections
+                                {% else %}
+                                    {{ scope }}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <form method="post">
+                        <div class="d-grid gap-2">
+                            <button type="submit" name="consent" value="approve" class="btn btn-success btn-lg">
+                                Authorize
+                            </button>
+                            <button type="submit" name="consent" value="deny" class="btn btn-outline-danger">
+                                Deny
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted small">
+                    You can revoke access at any time from your account settings.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

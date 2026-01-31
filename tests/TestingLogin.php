@@ -10,7 +10,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 readonly final class TestingLogin
 {
-    public static function asPlayer(KernelBrowser $browser, string $playerId): void
+    public static function asPlayer(KernelBrowser $browser, string $playerId, string $firewall = 'main'): void
     {
         $container = $browser->getContainer();
 
@@ -25,6 +25,6 @@ readonly final class TestingLogin
             'email_verified' => true,
         ]);
 
-        $browser->loginUser($auth0User);
+        $browser->loginUser($auth0User, $firewall);
     }
 }

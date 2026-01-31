@@ -1190,6 +1190,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *             provider?: scalar|null,
  *             user?: scalar|null, // Default: "REMOTE_USER"
  *         },
+ *         oauth2?: array<mixed>,
  *         login_link?: array{
  *             check_route: scalar|null, // Route that will validate the login link - e.g. "app_login_link_verify".
  *             check_post_only?: scalar|null, // If true, only HTTP POST requests to "check_route" will be handled by the authenticator. // Default: false
@@ -1877,8 +1878,8 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  * }
  * @psalm-type MercureConfig = array{
  *     hubs?: array<string, array{ // Default: []
- *         url?: scalar|null, // URL of the hub's publish endpoint // Default: null
- *         public_url?: scalar|null, // URL of the hub's public endpoint
+ *         url?: scalar|null, // URL of the hub's publish endpoint
+ *         public_url?: scalar|null, // URL of the hub's public endpoint // Default: null
  *         jwt?: string|array{ // JSON Web Token configuration.
  *             value?: scalar|null, // JSON Web Token to use to publish to this hub.
  *             provider?: scalar|null, // The ID of a service to call to provide the JSON Web Token.
@@ -1895,6 +1896,52 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     default_hub?: scalar|null,
  *     default_cookie_lifetime?: int, // Default lifetime of the cookie containing the JWT, in seconds. Defaults to the value of "framework.session.cookie_lifetime". // Default: null
  *     enable_profiler?: bool, // Deprecated: The child node "enable_profiler" at path "mercure.enable_profiler" is deprecated. // Enable Symfony Web Profiler integration.
+ * }
+ * @psalm-type LeagueOauth2ServerConfig = array{
+ *     authorization_server: array{
+ *         private_key: scalar|null, // Full path to the private key file. How to generate a private key: https://oauth2.thephpleague.com/installation/#generating-public-and-private-keys
+ *         private_key_passphrase?: scalar|null, // Passphrase of the private key, if any // Default: null
+ *         encryption_key: scalar|null, // The plain string or the ascii safe string used to create a Defuse\Crypto\Key to be used as an encryption key. How to generate an encryption key: https://oauth2.thephpleague.com/installation/#string-password
+ *         encryption_key_type?: scalar|null, // The type of value of 'encryption_key' Should be either 'plain' or 'defuse' // Default: "plain"
+ *         access_token_ttl?: scalar|null, // How long the issued access token should be valid for. The value should be a valid interval: http://php.net/manual/en/dateinterval.construct.php#refsect1-dateinterval.construct-parameters // Default: "PT1H"
+ *         refresh_token_ttl?: scalar|null, // How long the issued refresh token should be valid for. The value should be a valid interval: http://php.net/manual/en/dateinterval.construct.php#refsect1-dateinterval.construct-parameters // Default: "P1M"
+ *         auth_code_ttl?: scalar|null, // How long the issued auth code should be valid for. The value should be a valid interval: http://php.net/manual/en/dateinterval.construct.php#refsect1-dateinterval.construct-parameters // Default: "PT10M"
+ *         enable_client_credentials_grant?: bool, // Whether to enable the client credentials grant // Default: true
+ *         enable_password_grant?: bool, // Whether to enable the password grant // Default: true
+ *         enable_refresh_token_grant?: bool, // Whether to enable the refresh token grant // Default: true
+ *         enable_auth_code_grant?: bool, // Whether to enable the authorization code grant // Default: true
+ *         require_code_challenge_for_public_clients?: bool, // Whether to require code challenge for public clients for the auth code grant // Default: true
+ *         enable_implicit_grant?: bool, // Whether to enable the implicit grant // Default: true
+ *         persist_access_token?: bool, // Whether to enable access token saving to persistence layer // Default: true
+ *         response_type_class?: scalar|null, // Define a custom ResponseType // Default: null
+ *         revoke_refresh_tokens?: bool, // Whether to revoke refresh tokens after they were used for all grant types // Default: true
+ *     },
+ *     resource_server: array{
+ *         public_key: scalar|null, // Full path to the public key file How to generate a public key: https://oauth2.thephpleague.com/installation/#generating-public-and-private-keys
+ *         jwt_leeway?: scalar|null, // The leeway in seconds to allow for clock skew in JWT verification. Default PT0S (no leeway). // Default: null
+ *     },
+ *     scopes: array{
+ *         available: list<scalar|null>,
+ *         default: list<scalar|null>,
+ *     },
+ *     persistence: array{ // Configures different persistence methods that can be used by the bundle for saving client and token data. Only one persistence method can be configured at a time.
+ *         doctrine?: array{
+ *             entity_manager?: scalar|null, // Name of the entity manager that you wish to use for managing clients and tokens. // Default: "default"
+ *             table_prefix?: scalar|null, // Table name prefix. // Default: "oauth2_"
+ *         },
+ *         in_memory?: scalar|null,
+ *         custom?: array{
+ *             access_token_manager: scalar|null, // Service id of the custom access token manager
+ *             authorization_code_manager: scalar|null, // Service id of the custom authorization code manager
+ *             client_manager: scalar|null, // Service id of the custom client manager
+ *             refresh_token_manager: scalar|null, // Service id of the custom refresh token manager
+ *             credentials_revoker: scalar|null, // Service id of the custom credentials revoker
+ *         },
+ *     },
+ *     client?: array{
+ *         classname?: scalar|null, // Set a custom client class. Must be a League\Bundle\OAuth2ServerBundle\Model\AbstractClient // Default: "League\\Bundle\\OAuth2ServerBundle\\Model\\Client"
+ *     },
+ *     role_prefix?: scalar|null, // Set a custom prefix that replaces the default 'ROLE_OAUTH2_' role prefix // Default: "ROLE_OAUTH2_"
  * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,
@@ -1921,6 +1968,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *     live_component?: LiveComponentConfig,
  *     ux_icons?: UxIconsConfig,
  *     mercure?: MercureConfig,
+ *     league_oauth2_server?: LeagueOauth2ServerConfig,
  *     "when@dev"?: array{
  *         imports?: ImportsConfig,
  *         parameters?: ParametersConfig,
@@ -1947,6 +1995,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         live_component?: LiveComponentConfig,
  *         ux_icons?: UxIconsConfig,
  *         mercure?: MercureConfig,
+ *         league_oauth2_server?: LeagueOauth2ServerConfig,
  *     },
  *     "when@test"?: array{
  *         imports?: ImportsConfig,
@@ -1974,6 +2023,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         live_component?: LiveComponentConfig,
  *         ux_icons?: UxIconsConfig,
  *         mercure?: MercureConfig,
+ *         league_oauth2_server?: LeagueOauth2ServerConfig,
  *     },
  *     ...<string, ExtensionType|array{ // extra keys must follow the when@%env% pattern or match an extension alias
  *         imports?: ImportsConfig,

@@ -153,6 +153,8 @@ SQL;
             throw new PlayerNotFound();
         }
 
+        $this->assertPlayerExists($playerId);
+
         $query = <<<SQL
 WITH solved_counts AS (
     SELECT
@@ -278,6 +280,8 @@ SQL;
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
+
+        $this->assertPlayerExists($playerId);
 
         $query = <<<SQL
 WITH filtered_pst_ids AS (
@@ -407,6 +411,8 @@ SQL;
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
+
+        $this->assertPlayerExists($playerId);
 
         $query = <<<SQL
 WITH filtered_pst_ids AS (
@@ -687,5 +693,20 @@ SQL;
                 finishedAt: new DateTimeImmutable($row['finished_at']),
             );
         }, $data);
+    }
+
+    /**
+     * @throws PlayerNotFound
+     */
+    private function assertPlayerExists(string $playerId): void
+    {
+        $exists = $this->database->executeQuery(
+            'SELECT 1 FROM player WHERE id = :playerId',
+            ['playerId' => $playerId],
+        )->fetchOne();
+
+        if ($exists === false) {
+            throw new PlayerNotFound();
+        }
     }
 }

@@ -78,7 +78,7 @@ WITH player_times AS (
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_type = 'duo'
       AND pst.team IS NOT NULL
-      AND (pst.team->'puzzlers')::jsonb @> jsonb_build_array(jsonb_build_object('player_id', :playerId))
+      AND (pst.team->'puzzlers')::jsonb @> jsonb_build_array(jsonb_build_object('player_id', :playerId::text))
 )
 SELECT
     player.id AS player_id,
@@ -132,7 +132,7 @@ WITH player_times AS (
     FROM puzzle_solving_time pst
     WHERE pst.puzzling_type = 'team'
       AND pst.team IS NOT NULL
-      AND (pst.team->'puzzlers')::jsonb @> jsonb_build_array(jsonb_build_object('player_id', :playerId))
+      AND (pst.team->'puzzlers')::jsonb @> jsonb_build_array(jsonb_build_object('player_id', :playerId::text))
 )
 SELECT
     player.id AS player_id,

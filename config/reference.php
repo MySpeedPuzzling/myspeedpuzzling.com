@@ -1877,8 +1877,8 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  * }
  * @psalm-type MercureConfig = array{
  *     hubs?: array<string, array{ // Default: []
- *         url?: scalar|null, // URL of the hub's publish endpoint // Default: null
- *         public_url?: scalar|null, // URL of the hub's public endpoint
+ *         url?: scalar|null, // URL of the hub's publish endpoint
+ *         public_url?: scalar|null, // URL of the hub's public endpoint // Default: null
  *         jwt?: string|array{ // JSON Web Token configuration.
  *             value?: scalar|null, // JSON Web Token to use to publish to this hub.
  *             provider?: scalar|null, // The ID of a service to call to provide the JSON Web Token.

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetAllVouchers;
 use SpeedPuzzling\Web\Tests\DataFixtures\VoucherFixture;
+use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetAllVouchersTest extends KernelTestCase
@@ -53,7 +54,14 @@ final class GetAllVouchersTest extends KernelTestCase
 
         foreach ($vouchers as $voucher) {
             self::assertTrue($voucher->isUsed(), 'Used voucher should be marked as used');
-            self::assertNotNull($voucher->usedAt, 'Used voucher should have usedAt set');
+            // For free months vouchers, usedAt should be set
+            // For percentage discount vouchers, usedAt is null but they're considered used
+            // when their claim count reaches maxUses
+            if ($voucher->voucherType === VoucherType::FreeMonths) {
+                self::assertNotNull($voucher->usedAt, 'Used free months voucher should have usedAt set');
+            } else {
+                self::assertGreaterThanOrEqual($voucher->maxUses, $voucher->usageCount, 'Used percentage voucher should have usage >= maxUses');
+            }
         }
     }
 

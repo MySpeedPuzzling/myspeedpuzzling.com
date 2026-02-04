@@ -22,10 +22,23 @@ readonly final class GetAllVouchers
     {
         $query = <<<SQL
 SELECT
-    COUNT(*) FILTER (WHERE used_at IS NULL AND valid_until >= :now) as available,
-    COUNT(*) FILTER (WHERE used_at IS NOT NULL) as used,
-    COUNT(*) FILTER (WHERE used_at IS NULL AND valid_until < :now) as expired
-FROM voucher
+    COUNT(*) FILTER (WHERE
+        valid_until >= :now AND (
+            (voucher_type = 'free_months' AND used_at IS NULL) OR
+            (voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
+        )
+    ) as available,
+    COUNT(*) FILTER (WHERE
+        (voucher_type = 'free_months' AND used_at IS NOT NULL) OR
+        (voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) >= v.max_uses)
+    ) as used,
+    COUNT(*) FILTER (WHERE
+        valid_until < :now AND (
+            (voucher_type = 'free_months' AND used_at IS NULL) OR
+            (voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
+        )
+    ) as expired
+FROM voucher v
 SQL;
 
         $row = $this->database->fetchAssociative($query, [
@@ -64,11 +77,18 @@ SELECT
     v.created_at,
     v.used_at,
     v.internal_note,
+    v.voucher_type,
+    v.percentage_discount,
+    v.max_uses,
     p.id as used_by_id,
-    p.name as used_by_name
+    p.name as used_by_name,
+    (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) as usage_count
 FROM voucher v
 LEFT JOIN player p ON p.id = v.used_by_id
-WHERE v.used_at IS NULL AND v.valid_until >= :now
+WHERE v.valid_until >= :now AND (
+    (v.voucher_type = 'free_months' AND v.used_at IS NULL) OR
+    (v.voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
+)
 ORDER BY v.created_at DESC
 SQL;
 
@@ -96,12 +116,18 @@ SELECT
     v.created_at,
     v.used_at,
     v.internal_note,
+    v.voucher_type,
+    v.percentage_discount,
+    v.max_uses,
     p.id as used_by_id,
-    p.name as used_by_name
+    p.name as used_by_name,
+    (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) as usage_count
 FROM voucher v
 LEFT JOIN player p ON p.id = v.used_by_id
-WHERE v.used_at IS NOT NULL
-ORDER BY v.used_at DESC
+WHERE
+    (v.voucher_type = 'free_months' AND v.used_at IS NOT NULL) OR
+    (v.voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) >= v.max_uses)
+ORDER BY COALESCE(v.used_at, v.created_at) DESC
 SQL;
 
         $rows = $this->database->fetchAllAssociative($query);
@@ -126,11 +152,18 @@ SELECT
     v.created_at,
     v.used_at,
     v.internal_note,
+    v.voucher_type,
+    v.percentage_discount,
+    v.max_uses,
     p.id as used_by_id,
-    p.name as used_by_name
+    p.name as used_by_name,
+    (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) as usage_count
 FROM voucher v
 LEFT JOIN player p ON p.id = v.used_by_id
-WHERE v.used_at IS NULL AND v.valid_until < :now
+WHERE v.valid_until < :now AND (
+    (v.voucher_type = 'free_months' AND v.used_at IS NULL) OR
+    (v.voucher_type = 'percentage_discount' AND (SELECT COUNT(*) FROM voucher_claim WHERE voucher_id = v.id) < v.max_uses)
+)
 ORDER BY v.valid_until DESC
 SQL;
 

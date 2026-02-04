@@ -46,7 +46,9 @@
                     <thead class="d-none d-md-table-header-group">
                         <tr>
                             <th>Code</th>
-                            <th>Months</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Usage</th>
                             <th>Valid Until</th>
                             <th>Status</th>
                             {% if active_tab == 'used' %}
@@ -63,11 +65,15 @@
                                     <code class="fs-6">{{ voucher.maskedCode }}</code>
                                     <div class="d-md-none mt-1">
                                         <small class="text-muted">
-                                            {{ voucher.monthsValue }} month{% if voucher.monthsValue > 1 %}s{% endif %}
+                                            {% if voucher.voucherType.value == 'percentage_discount' %}
+                                                {{ voucher.percentageDiscount }}% off
+                                            {% else %}
+                                                {{ voucher.monthsValue }} month{% if voucher.monthsValue > 1 %}s{% endif %}
+                                            {% endif %}
                                             &bull; Valid until {{ voucher.validUntil|date('d.m.Y') }}
                                         </small>
                                     </div>
-                                    {% if active_tab == 'used' %}
+                                    {% if active_tab == 'used' and voucher.voucherType.value == 'free_months' %}
                                         <div class="d-md-none">
                                             <small class="text-muted">
                                                 Used {{ voucher.usedAt|ago }}
@@ -84,7 +90,17 @@
                                     {% endif %}
                                 </td>
                                 <td class="d-none d-md-table-cell">
-                                    {{ voucher.monthsValue }}
+                                    {% if voucher.voucherType.value == 'percentage_discount' %}
+                                        <span class="badge bg-info">Discount</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Free Months</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ voucher.value }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ voucher.usageDisplay }}
                                 </td>
                                 <td class="d-none d-md-table-cell">
                                     {{ voucher.validUntil|date('d.m.Y') }}
@@ -100,17 +116,23 @@
                                 </td>
                                 {% if active_tab == 'used' %}
                                     <td class="d-none d-md-table-cell">
-                                        {% if voucher.usedByName %}
-                                            <a href="{{ path('player_profile', {playerId: voucher.usedById}) }}">
-                                                {{ voucher.usedByName }}
-                                            </a>
+                                        {% if voucher.voucherType.value == 'free_months' %}
+                                            {% if voucher.usedByName %}
+                                                <a href="{{ path('player_profile', {playerId: voucher.usedById}) }}">
+                                                    {{ voucher.usedByName }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Unknown</span>
+                                            {% endif %}
                                         {% else %}
-                                            <span class="text-muted">Unknown</span>
+                                            <span class="text-muted">Multiple users</span>
                                         {% endif %}
                                     </td>
                                     <td class="d-none d-md-table-cell">
                                         {% if voucher.usedAt %}
                                             {{ voucher.usedAt|ago }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
                                 {% endif %}

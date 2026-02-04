@@ -8,21 +8,32 @@
             <div class="col-lg-6 col-md-8">
                 <h1 class="h2">Claim Voucher</h1>
 
-                {% if success %}
+                {% if result is not null and result.success %}
                     <div class="alert alert-success">
                         <i class="ci-check-circle me-2"></i>
-                        Voucher claimed successfully! Your membership has been extended.
+                        {% if result.voucherType.value == 'percentage_discount' %}
+                            Voucher claimed successfully! Your {{ result.percentageDiscount }}% discount has been applied to your subscription.
+                        {% else %}
+                            Voucher claimed successfully! Your membership has been extended.
+                        {% endif %}
                     </div>
 
                     <a href="{{ path('membership') }}" class="btn btn-primary">
                         View Membership Status
                     </a>
                 {% else %}
-                    <p>Enter your voucher code to claim free membership months.</p>
+                    <p>Enter your voucher code to claim membership benefits.</p>
 
                     {% for flash_message in app.flashes('danger') %}
                         <div class="alert alert-danger">
                             <i class="ci-close-circle me-2"></i>
+                            {{ flash_message }}
+                        </div>
+                    {% endfor %}
+
+                    {% for flash_message in app.flashes('success') %}
+                        <div class="alert alert-success">
+                            <i class="ci-check-circle me-2"></i>
                             {{ flash_message }}
                         </div>
                     {% endfor %}

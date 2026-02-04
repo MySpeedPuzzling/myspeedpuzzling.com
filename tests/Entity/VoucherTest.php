@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Voucher;
+use SpeedPuzzling\Web\Value\VoucherType;
 
 final class VoucherTest extends TestCase
 {
@@ -95,6 +96,76 @@ final class VoucherTest extends TestCase
         self::assertFalse($voucher->isAvailable(new DateTimeImmutable()));
     }
 
+    public function testIsFreeMonthsReturnsTrueForFreeMonthsVoucher(): void
+    {
+        $voucher = $this->createVoucher();
+
+        self::assertTrue($voucher->isFreeMonths());
+        self::assertFalse($voucher->isPercentageDiscount());
+    }
+
+    public function testIsPercentageDiscountReturnsTrueForPercentageVoucher(): void
+    {
+        $voucher = $this->createPercentageVoucher();
+
+        self::assertTrue($voucher->isPercentageDiscount());
+        self::assertFalse($voucher->isFreeMonths());
+    }
+
+    public function testHasRemainingUsesReturnsTrueWhenUnderLimit(): void
+    {
+        $voucher = new Voucher(
+            id: Uuid::uuid7(),
+            code: 'TESTCODE12345678',
+            monthsValue: null,
+            validUntil: new DateTimeImmutable('+30 days'),
+            createdAt: new DateTimeImmutable(),
+            voucherType: VoucherType::PercentageDiscount,
+            percentageDiscount: 20,
+            maxUses: 100,
+        );
+
+        self::assertTrue($voucher->hasRemainingUses(0));
+        self::assertTrue($voucher->hasRemainingUses(50));
+        self::assertTrue($voucher->hasRemainingUses(99));
+    }
+
+    public function testHasRemainingUsesReturnsFalseWhenAtOrOverLimit(): void
+    {
+        $voucher = new Voucher(
+            id: Uuid::uuid7(),
+            code: 'TESTCODE12345678',
+            monthsValue: null,
+            validUntil: new DateTimeImmutable('+30 days'),
+            createdAt: new DateTimeImmutable(),
+            voucherType: VoucherType::PercentageDiscount,
+            percentageDiscount: 20,
+            maxUses: 5,
+        );
+
+        self::assertFalse($voucher->hasRemainingUses(5));
+        self::assertFalse($voucher->hasRemainingUses(10));
+    }
+
+    public function testSetStripeCouponId(): void
+    {
+        $voucher = $this->createPercentageVoucher();
+
+        self::assertNull($voucher->stripeCouponId);
+
+        $voucher->setStripeCouponId('coupon_abc123');
+
+        self::assertSame('coupon_abc123', $voucher->stripeCouponId);
+    }
+
+    public function testPercentageVoucherHasNoMonthsValue(): void
+    {
+        $voucher = $this->createPercentageVoucher();
+
+        self::assertNull($voucher->monthsValue);
+        self::assertSame(20, $voucher->percentageDiscount);
+    }
+
     private function createVoucher(): Voucher
     {
         return new Voucher(
@@ -104,6 +175,21 @@ final class VoucherTest extends TestCase
             validUntil: new DateTimeImmutable('+30 days'),
             createdAt: new DateTimeImmutable(),
             internalNote: 'Test voucher',
+        );
+    }
+
+    private function createPercentageVoucher(): Voucher
+    {
+        return new Voucher(
+            id: Uuid::uuid7(),
+            code: 'DISCOUNT20PRCT12',
+            monthsValue: null,
+            validUntil: new DateTimeImmutable('+30 days'),
+            createdAt: new DateTimeImmutable(),
+            internalNote: 'Test percentage voucher',
+            voucherType: VoucherType::PercentageDiscount,
+            percentageDiscount: 20,
+            maxUses: 100,
         );
     }
 

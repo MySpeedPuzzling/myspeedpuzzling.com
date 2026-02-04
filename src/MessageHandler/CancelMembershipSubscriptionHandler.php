@@ -9,6 +9,7 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -17,6 +18,7 @@ readonly final class CancelMembershipSubscriptionHandler
 {
     public function __construct(
         private MembershipRepository $membershipRepository,
+        private PlayerRepository $playerRepository,
         private ClockInterface $clock,
         private LockFactory $lockFactory,
         private LoggerInterface $logger,
@@ -52,6 +54,17 @@ readonly final class CancelMembershipSubscriptionHandler
         }
 
         $membership->cancel($this->clock->now());
+
+        // Clear any claimed discount voucher so future subscriptions start fresh
+        $player = $this->playerRepository->get($membership->player->id->toString());
+        if ($player->claimedDiscountVoucher !== null) {
+            $player->clearClaimedDiscountVoucher();
+
+            $this->logger->info('Cleared claimed discount voucher on subscription cancellation', [
+                'player_id' => $player->id->toString(),
+                'subscription_id' => $message->stripeSubscriptionId,
+            ]);
+        }
 
         $lock->release();
     }

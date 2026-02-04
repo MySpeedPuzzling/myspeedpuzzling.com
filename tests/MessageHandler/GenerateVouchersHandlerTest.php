@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Message\GenerateVouchers;
 use SpeedPuzzling\Web\Repository\VoucherRepository;
+use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -142,5 +143,94 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
 
         $voucher = $this->voucherRepository->getByCode($codes[0]);
         self::assertSame($validUntil->format('Y-m-d H:i:s'), $voucher->validUntil->format('Y-m-d H:i:s'));
+    }
+
+    public function testGeneratesPercentageDiscountVoucher(): void
+    {
+        $envelope = $this->messageBus->dispatch(
+            new GenerateVouchers(
+                count: 1,
+                monthsValue: null,
+                validUntil: new DateTimeImmutable('+90 days'),
+                codeLength: 12,
+                internalNote: 'Test percentage voucher',
+                voucherType: VoucherType::PercentageDiscount,
+                percentageDiscount: 20,
+                maxUses: 100,
+            ),
+        );
+
+        /** @var HandledStamp|null $handledStamp */
+        $handledStamp = $envelope->last(HandledStamp::class);
+        self::assertNotNull($handledStamp);
+
+        /** @var array<string> $codes */
+        $codes = $handledStamp->getResult();
+        self::assertCount(1, $codes);
+
+        $voucher = $this->voucherRepository->getByCode($codes[0]);
+        self::assertSame(VoucherType::PercentageDiscount, $voucher->voucherType);
+        self::assertSame(20, $voucher->percentageDiscount);
+        self::assertSame(100, $voucher->maxUses);
+        self::assertNull($voucher->monthsValue);
+        self::assertSame('Test percentage voucher', $voucher->internalNote);
+        self::assertTrue($voucher->isPercentageDiscount());
+        self::assertFalse($voucher->isFreeMonths());
+    }
+
+    public function testGeneratesMultiplePercentageVouchers(): void
+    {
+        $envelope = $this->messageBus->dispatch(
+            new GenerateVouchers(
+                count: 3,
+                monthsValue: null,
+                validUntil: new DateTimeImmutable('+30 days'),
+                codeLength: 16,
+                internalNote: 'Batch percentage test',
+                voucherType: VoucherType::PercentageDiscount,
+                percentageDiscount: 15,
+                maxUses: 50,
+            ),
+        );
+
+        /** @var HandledStamp|null $handledStamp */
+        $handledStamp = $envelope->last(HandledStamp::class);
+        self::assertNotNull($handledStamp);
+
+        /** @var array<string> $codes */
+        $codes = $handledStamp->getResult();
+        self::assertCount(3, $codes);
+
+        foreach ($codes as $code) {
+            $voucher = $this->voucherRepository->getByCode($code);
+            self::assertSame(VoucherType::PercentageDiscount, $voucher->voucherType);
+            self::assertSame(15, $voucher->percentageDiscount);
+            self::assertSame(50, $voucher->maxUses);
+        }
+    }
+
+    public function testDefaultVoucherTypeIsFreeMonths(): void
+    {
+        $envelope = $this->messageBus->dispatch(
+            new GenerateVouchers(
+                count: 1,
+                monthsValue: 2,
+                validUntil: new DateTimeImmutable('+30 days'),
+            ),
+        );
+
+        /** @var HandledStamp|null $handledStamp */
+        $handledStamp = $envelope->last(HandledStamp::class);
+        self::assertNotNull($handledStamp);
+
+        /** @var array<string> $codes */
+        $codes = $handledStamp->getResult();
+
+        $voucher = $this->voucherRepository->getByCode($codes[0]);
+        self::assertSame(VoucherType::FreeMonths, $voucher->voucherType);
+        self::assertSame(2, $voucher->monthsValue);
+        self::assertNull($voucher->percentageDiscount);
+        self::assertSame(1, $voucher->maxUses);
+        self::assertTrue($voucher->isFreeMonths());
     }
 }

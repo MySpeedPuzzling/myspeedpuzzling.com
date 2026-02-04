@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Message\GenerateVouchers;
+use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -29,7 +30,10 @@ final class GenerateVouchersConsoleCommand extends Command
         parent::configure();
 
         $this->addOption('count', 'c', InputOption::VALUE_REQUIRED, 'Number of vouchers to generate', '1');
-        $this->addOption('months', 'm', InputOption::VALUE_REQUIRED, 'Months value for each voucher', '1');
+        $this->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Voucher type (free_months|percentage_discount)', 'free_months');
+        $this->addOption('months', 'm', InputOption::VALUE_REQUIRED, 'Months value for free_months vouchers');
+        $this->addOption('percentage', 'p', InputOption::VALUE_REQUIRED, 'Discount percentage (1-100) for percentage_discount vouchers');
+        $this->addOption('max-uses', null, InputOption::VALUE_REQUIRED, 'Maximum number of claims allowed', '1');
         $this->addOption('valid-until', 'u', InputOption::VALUE_REQUIRED, 'Voucher validity date (Y-m-d format)');
         $this->addOption('code-length', 'l', InputOption::VALUE_REQUIRED, 'Length of voucher code', '16');
         $this->addOption('note', null, InputOption::VALUE_REQUIRED, 'Internal note for the vouchers');
@@ -43,9 +47,26 @@ final class GenerateVouchersConsoleCommand extends Command
         $countString = $input->getOption('count');
         $count = (int) $countString;
 
-        /** @var string $monthsString */
+        /** @var string $typeString */
+        $typeString = $input->getOption('type');
+        $voucherType = VoucherType::tryFrom($typeString);
+
+        if ($voucherType === null) {
+            $io->error('Invalid voucher type. Use "free_months" or "percentage_discount"');
+            return self::FAILURE;
+        }
+
+        /** @var string|null $monthsString */
         $monthsString = $input->getOption('months');
-        $months = (int) $monthsString;
+        $months = $monthsString !== null ? (int) $monthsString : null;
+
+        /** @var string|null $percentageString */
+        $percentageString = $input->getOption('percentage');
+        $percentage = $percentageString !== null ? (int) $percentageString : null;
+
+        /** @var string $maxUsesString */
+        $maxUsesString = $input->getOption('max-uses');
+        $maxUses = (int) $maxUsesString;
 
         /** @var string|null $validUntilString */
         $validUntilString = $input->getOption('valid-until');
@@ -76,8 +97,22 @@ final class GenerateVouchersConsoleCommand extends Command
             return self::FAILURE;
         }
 
-        if ($months < 1) {
-            $io->error('Months value must be at least 1');
+        if ($voucherType === VoucherType::FreeMonths) {
+            if ($months === null || $months < 1) {
+                $io->error('Months value (--months) is required and must be at least 1 for free_months vouchers');
+                return self::FAILURE;
+            }
+        }
+
+        if ($voucherType === VoucherType::PercentageDiscount) {
+            if ($percentage === null || $percentage < 1 || $percentage > 100) {
+                $io->error('Percentage (--percentage) is required and must be between 1 and 100 for percentage_discount vouchers');
+                return self::FAILURE;
+            }
+        }
+
+        if ($maxUses < 1) {
+            $io->error('Max uses must be at least 1');
             return self::FAILURE;
         }
 
@@ -86,18 +121,31 @@ final class GenerateVouchersConsoleCommand extends Command
             return self::FAILURE;
         }
 
-        $io->info(sprintf(
-            'Generating %d voucher(s) with %d month(s) value, valid until %s',
-            $count,
-            $months,
-            $validUntil->format('Y-m-d'),
-        ));
+        if ($voucherType === VoucherType::FreeMonths) {
+            $io->info(sprintf(
+                'Generating %d free months voucher(s) with %d month(s) value, valid until %s',
+                $count,
+                $months,
+                $validUntil->format('Y-m-d'),
+            ));
+        } else {
+            $io->info(sprintf(
+                'Generating %d percentage discount voucher(s) with %d%% off, max %d uses, valid until %s',
+                $count,
+                $percentage,
+                $maxUses,
+                $validUntil->format('Y-m-d'),
+            ));
+        }
 
         $envelope = $this->messageBus->dispatch(
             new GenerateVouchers(
                 count: $count,
-                monthsValue: $months,
                 validUntil: $validUntil,
+                voucherType: $voucherType,
+                monthsValue: $months,
+                percentageDiscount: $percentage,
+                maxUses: $maxUses,
                 codeLength: $codeLength,
                 internalNote: $note,
             ),

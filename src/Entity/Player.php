@@ -8,6 +8,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\JoinColumn;
+use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
@@ -21,6 +23,10 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
 #[Entity]
 class Player
 {
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[ManyToOne]
+    #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    public null|Voucher $claimedDiscountVoucher = null;
     /**
      * @var array<string>
      */
@@ -225,5 +231,15 @@ class Player
     public function changeSolvedPuzzlesVisibility(CollectionVisibility $visibility): void
     {
         $this->solvedPuzzlesVisibility = $visibility;
+    }
+
+    public function claimDiscountVoucher(Voucher $voucher): void
+    {
+        $this->claimedDiscountVoucher = $voucher;
+    }
+
+    public function clearClaimedDiscountVoucher(): void
+    {
+        $this->claimedDiscountVoucher = null;
     }
 }

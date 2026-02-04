@@ -42,6 +42,9 @@ readonly final class GenerateVouchersHandler
                 validUntil: $message->validUntil,
                 createdAt: $this->clock->now(),
                 internalNote: $message->internalNote,
+                voucherType: $message->voucherType,
+                percentageDiscount: $message->percentageDiscount,
+                maxUses: $message->maxUses,
             );
 
             $this->voucherRepository->save($voucher);

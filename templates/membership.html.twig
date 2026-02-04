@@ -78,6 +78,14 @@
 
                             <h4>{{ 'membership.choose_your_subscription'|trans }}</h4>
 
+                            {% if player.claimedDiscountVoucher is not null and not player.claimedDiscountVoucher.isExpired(now) %}
+                                <div class="alert alert-success mb-3">
+                                    <i class="ci-check-circle me-2"></i>
+                                    <strong>{{ player.claimedDiscountVoucher.percentageDiscount }}% discount ready!</strong>
+                                    <br><small>Your discount will be applied automatically at checkout.</small>
+                                </div>
+                            {% endif %}
+
                             {% if is_web() %}
                                 <div class="d-flex mt-2 text-center justify-content-center">
                                     <p class="my-1 mx-1">
@@ -139,6 +147,11 @@
                                     <small class="text-muted">{{ 'membership.purchase_via_play_store'|trans }}</small>
                                 </p>
                             {% endif %}
+
+                            <hr class="my-3">
+                            <p class="text-center mb-0">
+                                <a href="{{ path('claim_voucher') }}">Have a voucher code?</a>
+                            </p>
                         {% endif %}
                     </div>
                 </div>

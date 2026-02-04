@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
 use SpeedPuzzling\Web\Message\CreatePlayerStripeCustomer;
 use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Value\BillingPeriod;
 use Stripe\Price;
 use Stripe\StripeClient;
@@ -27,6 +28,8 @@ readonly final class MembershipManagement
         private MessageBusInterface $messageBus,
         private GetPlayerMembership $getPlayerMembership,
         private ClockInterface $clock,
+        private PlayerRepository $playerRepository,
+        private StripeCouponManager $stripeCouponManager,
     ) {
     }
 
@@ -84,8 +87,16 @@ readonly final class MembershipManagement
             ]],
         ];
 
+        // Apply claimed discount voucher if available and valid
+        $player = $this->playerRepository->get($userProfile->playerId);
+        $now = $this->clock->now();
+
+        if ($player->claimedDiscountVoucher !== null && !$player->claimedDiscountVoucher->isExpired($now)) {
+            $couponId = $this->stripeCouponManager->getOrCreateCoupon($player->claimedDiscountVoucher);
+            $checkoutData['discounts'] = [['coupon' => $couponId]];
+        }
+
         try {
-            $now = $this->clock->now();
             $membership = $this->getPlayerMembership->byId($userProfile->playerId);
 
             if (

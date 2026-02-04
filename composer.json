@@ -32,6 +32,7 @@
         "ext-simplexml": "*",
         "ext-uuid": "*",
         "auth0/symfony": "dev-main",
+        "bacon/bacon-qr-code": "^3.0",
         "doctrine/doctrine-bundle": "^3.1",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.0",

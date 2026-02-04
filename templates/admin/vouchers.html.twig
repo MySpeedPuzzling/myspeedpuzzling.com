@@ -1,0 +1,151 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Vouchers{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-4">Vouchers</h1>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'available' ? 'active' : '' }}"
+               href="{{ path('admin_vouchers', {tab: 'available'}) }}">
+                Available
+                {% if counts.available > 0 %}
+                    <span class="badge bg-success">{{ counts.available }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'used' ? 'active' : '' }}"
+               href="{{ path('admin_vouchers', {tab: 'used'}) }}">
+                Used
+                {% if counts.used > 0 %}
+                    <span class="badge bg-secondary">{{ counts.used }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'expired' ? 'active' : '' }}"
+               href="{{ path('admin_vouchers', {tab: 'expired'}) }}">
+                Expired
+                {% if counts.expired > 0 %}
+                    <span class="badge bg-danger">{{ counts.expired }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if vouchers is empty %}
+        <div class="alert alert-info">
+            No {{ active_tab }} vouchers.
+        </div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="d-none d-md-table-header-group">
+                        <tr>
+                            <th>Code</th>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Usage</th>
+                            <th>Valid Until</th>
+                            <th>Status</th>
+                            {% if active_tab == 'used' %}
+                                <th>Used By</th>
+                                <th>Used At</th>
+                            {% endif %}
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for voucher in vouchers %}
+                            <tr>
+                                <td>
+                                    <code class="fs-6">{{ voucher.maskedCode }}</code>
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            {% if voucher.voucherType.value == 'percentage_discount' %}
+                                                {{ voucher.percentageDiscount }}% off
+                                            {% else %}
+                                                {{ voucher.monthsValue }} month{% if voucher.monthsValue > 1 %}s{% endif %}
+                                            {% endif %}
+                                            &bull; Valid until {{ voucher.validUntil|date('d.m.Y') }}
+                                        </small>
+                                    </div>
+                                    {% if active_tab == 'used' and voucher.voucherType.value == 'free_months' %}
+                                        <div class="d-md-none">
+                                            <small class="text-muted">
+                                                Used {{ voucher.usedAt|ago }}
+                                                {% if voucher.usedByName %}
+                                                    by <a href="{{ path('player_profile', {playerId: voucher.usedById}) }}">{{ voucher.usedByName }}</a>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                    {% endif %}
+                                    {% if voucher.internalNote %}
+                                        <div class="d-md-none">
+                                            <small class="text-muted">{{ voucher.internalNote }}</small>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if voucher.voucherType.value == 'percentage_discount' %}
+                                        <span class="badge bg-info">Discount</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">Free Months</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ voucher.value }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ voucher.usageDisplay }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ voucher.validUntil|date('d.m.Y') }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if voucher.isUsed %}
+                                        <span class="badge bg-secondary">Used</span>
+                                    {% elseif voucher.isExpired(now) %}
+                                        <span class="badge bg-danger">Expired</span>
+                                    {% else %}
+                                        <span class="badge bg-success">Available</span>
+                                    {% endif %}
+                                </td>
+                                {% if active_tab == 'used' %}
+                                    <td class="d-none d-md-table-cell">
+                                        {% if voucher.voucherType.value == 'free_months' %}
+                                            {% if voucher.usedByName %}
+                                                <a href="{{ path('player_profile', {playerId: voucher.usedById}) }}">
+                                                    {{ voucher.usedByName }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Unknown</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">Multiple users</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="d-none d-md-table-cell">
+                                        {% if voucher.usedAt %}
+                                            {{ voucher.usedAt|ago }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td class="d-none d-md-table-cell">
+                                    {% if voucher.internalNote %}
+                                        <small class="text-muted">{{ voucher.internalNote }}</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

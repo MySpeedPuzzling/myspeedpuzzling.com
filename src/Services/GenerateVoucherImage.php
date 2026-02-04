@@ -21,7 +21,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 readonly final class GenerateVoucherImage
 {
     private const string BACKGROUND_PATH_TEMPLATE = __DIR__ . '/../../assets/img/voucher-%d.png';
-    private const string FONT_PATH = __DIR__ . '/../../assets/fonts/CourierPrime/CourierPrime-Regular.ttf';
     private const string FONT_BOLD_PATH = __DIR__ . '/../../assets/fonts/CourierPrime/CourierPrime-Bold.ttf';
     private const string FONT_LAZYDOG_PATH = __DIR__ . '/../../assets/fonts/LazyDog/lazy_dog.ttf';
     private const int MIN_VARIANT = 1;

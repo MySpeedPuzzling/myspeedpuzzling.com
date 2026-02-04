@@ -25,11 +25,12 @@ readonly final class GenerateVouchersHandler
 
     /**
      * @throws CouldNotGenerateUniqueCode
-     * @return array<string>
+     * @return array<Voucher>
      */
     public function __invoke(GenerateVouchers $message): array
     {
         $generatedCodes = [];
+        $vouchers = [];
 
         for ($i = 0; $i < $message->count; $i++) {
             $code = $this->generateUniqueCode($message->codeLength, $generatedCodes);
@@ -48,9 +49,10 @@ readonly final class GenerateVouchersHandler
             );
 
             $this->voucherRepository->save($voucher);
+            $vouchers[] = $voucher;
         }
 
-        return $generatedCodes;
+        return $vouchers;
     }
 
     /**

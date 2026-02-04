@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Entity\Voucher;
 use SpeedPuzzling\Web\Message\GenerateVouchers;
 use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -15,12 +16,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[AsCommand('myspeedpuzzling:vouchers:generate')]
 final class GenerateVouchersConsoleCommand extends Command
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
+        readonly private UrlGeneratorInterface $urlGenerator,
     ) {
         parent::__construct();
     }
@@ -155,11 +158,37 @@ final class GenerateVouchersConsoleCommand extends Command
         $handledStamp = $envelope->last(HandledStamp::class);
 
         if ($handledStamp !== null) {
-            /** @var array<string> $codes */
-            $codes = $handledStamp->getResult();
+            /** @var array<Voucher> $vouchers */
+            $vouchers = $handledStamp->getResult();
 
-            $io->success(sprintf('Successfully generated %d voucher(s):', count($codes)));
-            $io->listing($codes);
+            $io->success(sprintf('Successfully generated %d voucher(s):', count($vouchers)));
+            $io->writeln('id, valid_until, value, max_uses, code, image_v1, image_v2, image_v3, image_v4');
+            $io->writeln('');
+
+            foreach ($vouchers as $voucher) {
+                $value = $voucher->isFreeMonths()
+                    ? sprintf('%d months', $voucher->monthsValue)
+                    : sprintf('%d%%', $voucher->percentageDiscount);
+
+                $imageUrls = [];
+                for ($variant = 1; $variant <= 4; $variant++) {
+                    $imageUrls[] = $this->urlGenerator->generate(
+                        'voucher_image',
+                        ['voucherId' => $voucher->id->toString(), 'variant' => $variant],
+                        UrlGeneratorInterface::ABSOLUTE_URL,
+                    );
+                }
+
+                $io->writeln(sprintf(
+                    '%s, %s, %s, %d, %s, %s',
+                    $voucher->id->toString(),
+                    $voucher->validUntil->format('Y-m-d'),
+                    $value,
+                    $voucher->maxUses,
+                    $voucher->code,
+                    implode(', ', $imageUrls),
+                ));
+            }
         }
 
         return self::SUCCESS;

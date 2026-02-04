@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use BaconQrCode\Renderer\Color\Alpha;
+use BaconQrCode\Renderer\Color\Rgb;
 use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\Fill;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 use Intervention\Image\ImageManager;
@@ -18,8 +21,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 readonly final class GenerateVoucherImage
 {
     private const string BACKGROUND_PATH_TEMPLATE = __DIR__ . '/../../assets/img/voucher-%d.png';
-    private const string FONT_PATH = __DIR__ . '/../../assets/fonts/Rubik/Rubik-Regular.ttf';
-    private const string FONT_BOLD_PATH = __DIR__ . '/../../assets/fonts/Rubik/Rubik-Bold.ttf';
+    private const string FONT_PATH = __DIR__ . '/../../assets/fonts/CourierPrime/CourierPrime-Regular.ttf';
+    private const string FONT_BOLD_PATH = __DIR__ . '/../../assets/fonts/CourierPrime/CourierPrime-Bold.ttf';
+    private const string FONT_LAZYDOG_PATH = __DIR__ . '/../../assets/fonts/LazyDog/lazy_dog.ttf';
     private const int MIN_VARIANT = 1;
     private const int MAX_VARIANT = 4;
 
@@ -44,7 +48,16 @@ readonly final class GenerateVoucherImage
 
         // Generate QR code
         $renderer = new ImageRenderer(
-            new RendererStyle(400),
+            new RendererStyle(
+                400,
+                0, // no margin (side-to-side)
+                null,
+                null,
+                Fill::uniformColor(
+                    new Alpha(0, new Rgb(255, 255, 255)), // transparent background
+                    new Rgb(0, 0, 0), // black foreground
+                ),
+            ),
             new ImagickImageBackEnd(),
         );
         $writer = new Writer($renderer);
@@ -60,36 +73,37 @@ readonly final class GenerateVoucherImage
         // QR code position - in the white square on the right side
         $qrSize = 500;
         $qrCode = $qrCode->cover($qrSize, $qrSize);
-        $image = $image->place($qrCode, 'top-left', 2870, 510);
+        $image = $image->place($qrCode, 'top-left', 2384, 517);
 
-        // Add voucher code below "VOUCHER" text
-        $image = $image->text($voucher->code, 1420, 1100, function (FontFactory $font): void {
+        // Voucher code
+        $image = $image->text($voucher->code, 3160, 760, function (FontFactory $font): void {
             $font->filename(self::FONT_BOLD_PATH);
-            $font->color('#1d4580');
-            $font->size(140);
+            $font->color('#000000');
+            $font->size(110);
             $font->align('center');
             $font->valign('middle');
+            $font->angle(270);
         });
 
         // Add value text below the code
         $valueText = $this->formatValue($voucher);
-        $image = $image->text($valueText, 1420, 1300, function (FontFactory $font): void {
-            $font->filename(self::FONT_PATH);
-            $font->color('#1d4580');
-            $font->size(100);
+        $image = $image->text($valueText, 1500, 1160, function (FontFactory $font): void {
+            $font->filename(self::FONT_LAZYDOG_PATH);
+            $font->color('#444343');
+            $font->size(190);
             $font->align('center');
             $font->valign('middle');
         });
 
         // Add validity date - positioned on the left side, rotated text
         $validityText = $voucher->validUntil->format('d.m.Y');
-        $image = $image->text($validityText, 82, 950, function (FontFactory $font): void {
-            $font->filename(self::FONT_PATH);
-            $font->color('#1d4580');
-            $font->size(60);
+        $image = $image->text($validityText, 362, 760, function (FontFactory $font): void {
+            $font->filename(self::FONT_BOLD_PATH);
+            $font->color('#000000');
+            $font->size(85);
             $font->align('center');
             $font->valign('middle');
-            $font->angle(90);
+            $font->angle(270);
         });
 
         return (string) $image->encodeByMediaType(MediaType::IMAGE_PNG, quality: 100);

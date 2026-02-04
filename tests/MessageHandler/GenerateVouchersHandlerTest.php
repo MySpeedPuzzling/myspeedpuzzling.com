@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Entity\Voucher;
 use SpeedPuzzling\Web\Message\GenerateVouchers;
-use SpeedPuzzling\Web\Repository\VoucherRepository;
 use SpeedPuzzling\Web\Value\VoucherType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -15,14 +15,12 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 final class GenerateVouchersHandlerTest extends KernelTestCase
 {
     private MessageBusInterface $messageBus;
-    private VoucherRepository $voucherRepository;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
-        $this->voucherRepository = $container->get(VoucherRepository::class);
     }
 
     public function testGeneratesSingleVoucher(): void
@@ -41,14 +39,12 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
-        self::assertCount(1, $codes);
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
+        self::assertCount(1, $vouchers);
 
-        $code = $codes[0];
-        self::assertSame(12, strlen($code));
-
-        $voucher = $this->voucherRepository->getByCode($code);
+        $voucher = $vouchers[0];
+        self::assertSame(12, strlen($voucher->code));
         self::assertSame(3, $voucher->monthsValue);
         self::assertSame('Test single voucher', $voucher->internalNote);
         self::assertFalse($voucher->isUsed());
@@ -70,22 +66,18 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
-        self::assertCount(5, $codes);
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
+        self::assertCount(5, $vouchers);
 
         // Verify all codes are unique
+        $codes = array_map(fn(Voucher $v) => $v->code, $vouchers);
         $uniqueCodes = array_unique($codes);
         self::assertCount(5, $uniqueCodes);
 
         // Verify all codes have correct length
-        foreach ($codes as $code) {
-            self::assertSame(16, strlen($code));
-        }
-
-        // Verify all vouchers exist in database
-        foreach ($codes as $code) {
-            $voucher = $this->voucherRepository->getByCode($code);
+        foreach ($vouchers as $voucher) {
+            self::assertSame(16, strlen($voucher->code));
             self::assertSame(1, $voucher->monthsValue);
             self::assertSame('Batch test', $voucher->internalNote);
         }
@@ -106,12 +98,13 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
 
         $allowedChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-        foreach ($codes as $code) {
+        foreach ($vouchers as $voucher) {
+            $code = $voucher->code;
             for ($i = 0; $i < strlen($code); $i++) {
                 self::assertStringContainsString(
                     $code[$i],
@@ -138,11 +131,10 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
 
-        $voucher = $this->voucherRepository->getByCode($codes[0]);
-        self::assertSame($validUntil->format('Y-m-d H:i:s'), $voucher->validUntil->format('Y-m-d H:i:s'));
+        self::assertSame($validUntil->format('Y-m-d H:i:s'), $vouchers[0]->validUntil->format('Y-m-d H:i:s'));
     }
 
     public function testGeneratesPercentageDiscountVoucher(): void
@@ -164,11 +156,11 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
-        self::assertCount(1, $codes);
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
+        self::assertCount(1, $vouchers);
 
-        $voucher = $this->voucherRepository->getByCode($codes[0]);
+        $voucher = $vouchers[0];
         self::assertSame(VoucherType::PercentageDiscount, $voucher->voucherType);
         self::assertSame(20, $voucher->percentageDiscount);
         self::assertSame(100, $voucher->maxUses);
@@ -197,12 +189,11 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
-        self::assertCount(3, $codes);
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
+        self::assertCount(3, $vouchers);
 
-        foreach ($codes as $code) {
-            $voucher = $this->voucherRepository->getByCode($code);
+        foreach ($vouchers as $voucher) {
             self::assertSame(VoucherType::PercentageDiscount, $voucher->voucherType);
             self::assertSame(15, $voucher->percentageDiscount);
             self::assertSame(50, $voucher->maxUses);
@@ -223,10 +214,10 @@ final class GenerateVouchersHandlerTest extends KernelTestCase
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);
 
-        /** @var array<string> $codes */
-        $codes = $handledStamp->getResult();
+        /** @var array<Voucher> $vouchers */
+        $vouchers = $handledStamp->getResult();
 
-        $voucher = $this->voucherRepository->getByCode($codes[0]);
+        $voucher = $vouchers[0];
         self::assertSame(VoucherType::FreeMonths, $voucher->voucherType);
         self::assertSame(2, $voucher->monthsValue);
         self::assertNull($voucher->percentageDiscount);

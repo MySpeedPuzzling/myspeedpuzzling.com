@@ -1,0 +1,193 @@
+<div {{ attributes }}>
+    <div class="filters">
+        <div class="row gx-2">
+            <div class="col-sm-6 col-lg-3 mb-2">
+                <input
+                    type="search"
+                    class="form-control"
+                    placeholder="{{ 'forms.puzzle_search_placeholder'|trans }}"
+                    data-model="debounce(300)|search"
+                    value="{{ this.search }}"
+                >
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2 mb-2">
+                <div data-live-ignore data-controller="tomselect-sync">
+                    <input type="hidden" data-model="brandId" data-tomselect-sync-target="hidden" value="{{ this.brandId }}">
+                    <select
+                        id="puzzle-search-brand"
+                        class="form-select"
+                        data-tomselect-sync-target="select"
+                    >
+                        <option value="">{{ 'forms.brand'|trans }}</option>
+                        {% for manufacturer in this.manufacturers %}
+                            <option
+                                value="{{ manufacturer.manufacturerId }}"
+                                {{ this.brandId == manufacturer.manufacturerId ? 'selected' }}
+                            >
+                                {{ manufacturer.manufacturerName }} ({{ manufacturer.puzzlesCount }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2 mb-2">
+                <div data-live-ignore data-controller="tomselect-sync">
+                    <input type="hidden" data-model="tagId" data-tomselect-sync-target="hidden" value="{{ this.tagId }}">
+                    <select
+                        id="puzzle-search-tag"
+                        class="form-select"
+                        data-tomselect-sync-target="select"
+                    >
+                        <option value="">{{ 'forms.competition'|trans }}</option>
+                        {% for tag in this.allTags %}
+                            <option
+                                value="{{ tag.tagId }}"
+                                {{ this.tagId == tag.tagId ? 'selected' }}
+                            >
+                                {{ tag.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="col-sm-6 col-lg-4">
+                <div class="form-check form-option form-check-inline mb-2">
+                    <input type="radio" class="form-check-input" id="pieces-any"
+                           data-model="pieces" name="pieces" value=""
+                           {{ this.pieces is empty ? 'checked' }}>
+                    <label for="pieces-any" class="form-option-label">{{ 'all_pieces'|trans }}</label>
+                </div>
+                <div class="form-check form-option form-check-inline mb-2">
+                    <input type="radio" class="form-check-input" id="pieces-1-499"
+                           data-model="pieces" name="pieces" value="1-499"
+                           {{ this.pieces == '1-499' ? 'checked' }}>
+                    <label for="pieces-1-499" class="form-option-label">1-499</label>
+                </div>
+                <div class="form-check form-option form-check-inline mb-2">
+                    <input type="radio" class="form-check-input" id="pieces-500"
+                           data-model="pieces" name="pieces" value="500"
+                           {{ this.pieces == '500' ? 'checked' }}>
+                    <label for="pieces-500" class="form-option-label">500</label>
+                </div>
+                <div class="form-check form-option form-check-inline mb-2">
+                    <input type="radio" class="form-check-input" id="pieces-501-999"
+                           data-model="pieces" name="pieces" value="501-999"
+                           {{ this.pieces == '501-999' ? 'checked' }}>
+                    <label for="pieces-501-999" class="form-option-label">501-999</label>
+                </div>
+                <div class="form-check form-option form-check-inline mb-2">
+                    <input type="radio" class="form-check-input" id="pieces-1000"
+                           data-model="pieces" name="pieces" value="1000"
+                           {{ this.pieces == '1000' ? 'checked' }}>
+                    <label for="pieces-1000" class="form-option-label">1000</label>
+                </div>
+                <div class="form-check form-option form-check-inline mb-2">
+                    <input type="radio" class="form-check-input" id="pieces-1001"
+                           data-model="pieces" name="pieces" value="1001+"
+                           {{ this.pieces == '1001+' ? 'checked' }}>
+                    <label for="pieces-1001" class="form-option-label">1001+</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-sm-flex justify-content-between align-items-center my-1">
+        <div class="d-flex">
+            <div class="me-2 mb-1">
+                <small class="text-muted">{{ 'total_found'|trans({'%count%': this.totalCount }) }}</small>
+            </div>
+
+            <div style="display: none;" data-loading="show">
+                <span class="spinner-border text-primary spinner-border-sm" role="status"></span>
+                <small class="ps-1 text-primary">{{ 'searching'|trans }}</small>
+            </div>
+        </div>
+
+        <div class="dropdown position-relative d-inline-block me-1 my-1">
+            <button
+                class="btn btn-outline-primary btn-sm dropdown-toggle"
+                type="button"
+                id="sortingDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                <i class="bi-sort-up"></i>
+                {{ 'sorting.sort_by'|trans }}:
+                {% if this.sortBy == 'most-solved' %}{{ 'sorting.most_solved'|trans }}{% endif %}
+                {% if this.sortBy == 'least-solved' %}{{ 'sorting.least_solved'|trans }}{% endif %}
+                {% if this.sortBy == 'a-z' %}{{ 'sorting.a_z'|trans }}{% endif %}
+                {% if this.sortBy == 'z-a' %}{{ 'sorting.z_a'|trans }}{% endif %}
+            </button>
+
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="sortingDropdown">
+                <button type="button"
+                        class="dropdown-item {{ this.sortBy == 'most-solved' ? 'active' }}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="most-solved">
+                    {{ 'sorting.most_solved'|trans }}
+                </button>
+                <button type="button"
+                        class="dropdown-item {{ this.sortBy == 'least-solved' ? 'active' }}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="least-solved">
+                    {{ 'sorting.least_solved'|trans }}
+                </button>
+                <button type="button"
+                        class="dropdown-item {{ this.sortBy == 'a-z' ? 'active' }}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="a-z">
+                    {{ 'sorting.a_z'|trans }}
+                </button>
+                <button type="button"
+                        class="dropdown-item {{ this.sortBy == 'z-a' ? 'active' }}"
+                        data-action="live#action"
+                        data-live-action-param="changeSortBy"
+                        data-live-sort-param="z-a">
+                    {{ 'sorting.z_a'|trans }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if this.totalCount == 0 %}
+        <p class="mt-2 mb-3 text-muted small">{{ 'puzzle_overview.missing_puzzle_info'|trans }}</p>
+        <div class="alert alert-warning mt-2">
+            {{ 'filters.no_puzzle_matches_filters'|trans }}
+        </div>
+    {% else %}
+        <div class="row g-2 g-md-3">
+            {% for puzzle in this.puzzles %}
+                {{ include('_puzzle_item.html.twig', {
+                    'puzzle': puzzle,
+                    'search': this.search,
+                    'puzzle_statuses': this.puzzleStatuses,
+                    'ranking': this.userRanking,
+                    'tags': this.tags,
+                }) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if this.hasMore %}
+        <p class="text-center mt-3">
+            <button
+                type="button"
+                class="btn btn-sm btn-primary"
+                data-action="live#action"
+                data-live-action-param="loadMore"
+            >
+                {{ 'load_more'|trans }}
+            </button>
+            <br>
+            <small class="text-muted">{{ 'remaining'|trans({'%puzzle%': this.remainingCount }) }}</small>
+            <br>
+            <a class="small" href="#top" data-turbo="false">{{ 'back_to_top'|trans }}</a>
+        </p>
+    {% endif %}
+</div>

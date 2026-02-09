@@ -8,6 +8,7 @@ readonly final class UpdateMembershipSubscription
 {
     public function __construct(
         public string $stripeSubscriptionId,
+        public bool $isPaymentConfirmed = false,
     ) {
     }
 }

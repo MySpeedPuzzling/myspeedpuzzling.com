@@ -93,7 +93,7 @@ readonly final class StripeWebhookHandler
 
     private function handlePaymentSucceeded(string $stripeSubscriptionId): void
     {
-        $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscriptionId));
+        $this->messageBus->dispatch(new UpdateMembershipSubscription($stripeSubscriptionId, isPaymentConfirmed: true));
     }
 
     private function handleSubscriptionDeleted(Subscription $stripeSubscription): void

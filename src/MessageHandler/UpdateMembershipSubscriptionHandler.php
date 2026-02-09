@@ -113,7 +113,7 @@ readonly final class UpdateMembershipSubscriptionHandler
             if ($subscription->cancel_at_period_end === true) {
                 $membership->cancel($billingPeriodEnd);
             } else {
-                $membership->updateStripeSubscription($subscriptionId, $billingPeriodEnd, $subscriptionStatus, $now);
+                $membership->updateStripeSubscription($subscriptionId, $billingPeriodEnd, $subscriptionStatus, $now, $message->isPaymentConfirmed);
             }
         } catch (MembershipNotFound) {
             if (

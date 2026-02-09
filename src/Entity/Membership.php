@@ -68,6 +68,7 @@ class Membership implements EntityWithEvents
         DateTimeImmutable $billingPeriodEndsAt,
         string $status,
         DateTimeImmutable $now,
+        bool $isPaymentConfirmed = false,
     ): void {
         if ($status === Subscription::STATUS_CANCELED) {
             $this->cancel($billingPeriodEndsAt);
@@ -90,17 +91,19 @@ class Membership implements EntityWithEvents
 
         // TODO: Split active vs trial
         if ($status === Subscription::STATUS_ACTIVE || $status === Subscription::STATUS_TRIALING) {
-            if (
-                $this->billingPeriodEndsAt === null
-                || $this->endsAt !== null
-                || $billingPeriodEndsAt > $this->billingPeriodEndsAt
-            ) {
-                $this->recordThat(new MembershipSubscriptionRenewed($this->id));
-            }
-
             $this->stripeSubscriptionId = $stripeSubscriptionId;
-            $this->billingPeriodEndsAt = $billingPeriodEndsAt;
             $this->endsAt = null;
+
+            if ($isPaymentConfirmed) {
+                if (
+                    $this->billingPeriodEndsAt === null
+                    || $billingPeriodEndsAt > $this->billingPeriodEndsAt
+                ) {
+                    $this->recordThat(new MembershipSubscriptionRenewed($this->id));
+                }
+
+                $this->billingPeriodEndsAt = $billingPeriodEndsAt;
+            }
         }
     }
 

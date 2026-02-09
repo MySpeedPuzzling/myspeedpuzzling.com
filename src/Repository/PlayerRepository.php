@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetSubscribedPlayers;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;
 
-readonly final class PlayerRepository
+readonly class PlayerRepository
 {
     public function __construct(
         private EntityManagerInterface $entityManager,

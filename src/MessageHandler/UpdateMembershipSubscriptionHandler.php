@@ -38,6 +38,20 @@ readonly final class UpdateMembershipSubscriptionHandler
 
         $subscriptionId = $message->stripeSubscriptionId;
         $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
+
+        // Skip processing when subscription billing is paused (e.g., during voucher free period)
+        // The voucher handler already set the correct membership state
+        if ($subscription->pause_collection !== null) {
+            $this->logger->info('Skipping membership update - subscription has active pause_collection', [
+                'subscription_id' => $subscriptionId,
+                'pause_behavior' => $subscription->pause_collection->behavior ?? null,
+                'resumes_at' => $subscription->pause_collection->resumes_at ?? null,
+            ]);
+            $lock->release();
+
+            return;
+        }
+
         $subscriptionStatus = $subscription->status;
         $now = $this->clock->now();
 

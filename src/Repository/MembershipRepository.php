@@ -10,7 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Membership;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 
-readonly final class MembershipRepository
+readonly class MembershipRepository
 {
     public function __construct(
         private EntityManagerInterface $entityManager,

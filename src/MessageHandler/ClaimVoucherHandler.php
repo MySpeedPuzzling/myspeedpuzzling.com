@@ -161,7 +161,7 @@ readonly final class ClaimVoucherHandler
             if ($membership->stripeSubscriptionId !== null && $membership->endsAt === null) {
                 $couponId = $this->stripeCouponManager->getOrCreateCoupon($voucher);
                 $this->stripeClient->subscriptions->update($membership->stripeSubscriptionId, [
-                    'coupon' => $couponId,
+                    'discounts' => [['coupon' => $couponId]],
                 ]);
 
                 $claim->markAsApplied($now);

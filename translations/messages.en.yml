@@ -761,6 +761,8 @@ membership:
             <li>Badges for various achievements</li>
             <li>&hellip; and much more, this is just a small preview of what we’re preparing for you!</li>
         </ul>
+    have_voucher_code: "Have a voucher code?"
+    redeem_voucher: "Redeem a voucher"
     members_exclusive_button: "Members exclusive"
     members_exclusive_short: "Members"
     modal:

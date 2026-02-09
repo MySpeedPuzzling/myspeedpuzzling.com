@@ -160,11 +160,21 @@
 
                             <hr class="my-3">
                             <p class="text-center mb-0">
-                                <a href="{{ path('claim_voucher') }}">Have a voucher code?</a>
+                                <a href="{{ path('claim_voucher') }}" class="text-decoration-none">
+                                    <i class="ci-gift me-1"></i> {{ 'membership.have_voucher_code'|trans }}
+                                </a>
                             </p>
                         {% endif %}
                     </div>
                 </div>
+
+                {% if membership and (membership.endsAt is null or membership.endsAt > now) %}
+                    <div class="text-center mt-3">
+                        <a href="{{ path('claim_voucher') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="ci-gift me-1"></i> {{ 'membership.redeem_voucher'|trans }}
+                        </a>
+                    </div>
+                {% endif %}
 
                 <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
                 {{ 'membership.full_description'|trans|raw }}

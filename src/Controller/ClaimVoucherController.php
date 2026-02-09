@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
@@ -88,16 +89,17 @@ final class ClaimVoucherController extends AbstractController
                         return $this->redirectToRoute('membership');
                     }
                 }
-            } catch (VoucherNotFound) {
-                $this->addFlash('danger', 'Invalid voucher code. Please check and try again.');
-            } catch (VoucherAlreadyUsed) {
-                $this->addFlash('danger', 'This voucher has already been used.');
-            } catch (VoucherExpired) {
-                $this->addFlash('danger', 'This voucher has expired.');
-            } catch (VoucherUsageLimitReached) {
-                $this->addFlash('danger', 'This voucher has reached its usage limit.');
-            } catch (PlayerAlreadyClaimedVoucher) {
-                $this->addFlash('danger', 'You have already claimed this voucher.');
+            } catch (HandlerFailedException $e) {
+                $nested = $e->getWrappedExceptions()[0] ?? $e;
+
+                match (true) {
+                    $nested instanceof VoucherNotFound => $this->addFlash('danger', 'Invalid voucher code. Please check and try again.'),
+                    $nested instanceof VoucherAlreadyUsed => $this->addFlash('danger', 'This voucher has already been used.'),
+                    $nested instanceof VoucherExpired => $this->addFlash('danger', 'This voucher has expired.'),
+                    $nested instanceof VoucherUsageLimitReached => $this->addFlash('danger', 'This voucher has reached its usage limit.'),
+                    $nested instanceof PlayerAlreadyClaimedVoucher => $this->addFlash('danger', 'You have already claimed this voucher.'),
+                    default => throw $e,
+                };
             }
         }
 

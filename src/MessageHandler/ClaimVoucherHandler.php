@@ -96,10 +96,17 @@ readonly final class ClaimVoucherHandler
             $membership = $this->membershipRepository->getByPlayerId($player->id->toString());
 
             if ($membership->stripeSubscriptionId !== null && $membership->endsAt === null) {
+                // Active Stripe subscription: pause it, update billing date, keep endsAt null
                 $this->pauseStripeSubscription($membership->stripeSubscriptionId, $voucherEndDate);
-            }
+                $membership->billingPeriodEndsAt = $voucherEndDate;
+            } else {
+                $this->extendMembership($membership, $now, $voucher->monthsValue);
 
-            $this->extendMembership($membership, $now, $voucher->monthsValue);
+                // If billingPeriodEndsAt was set (e.g., paused/incomplete subscription), update it too
+                if ($membership->billingPeriodEndsAt !== null) {
+                    $membership->billingPeriodEndsAt = $membership->endsAt;
+                }
+            }
         } catch (MembershipNotFound) {
             $membership = new Membership(
                 id: Uuid::uuid7(),

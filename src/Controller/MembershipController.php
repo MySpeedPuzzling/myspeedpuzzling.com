@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -38,7 +39,7 @@ final class MembershipController extends AbstractController
          ],
          name: 'membership',
      )]
-    public function __invoke(#[CurrentUser] User $user): Response
+    public function __invoke(#[CurrentUser] User $user, Request $request): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -47,6 +48,7 @@ final class MembershipController extends AbstractController
         }
 
         $player = $this->playerRepository->get($profile->playerId);
+        $now = $this->clock->now();
 
         try {
             $membership = $this->getPlayerMembership->byId($profile->playerId);
@@ -54,10 +56,32 @@ final class MembershipController extends AbstractController
             $membership = null;
         }
 
+        $isCzk = $request->getLocale() === 'cs';
+        $baseMonthly = $isCzk ? 150 : 6;
+        $baseYearly = $isCzk ? 1500 : 60;
+        $decimals = $isCzk ? 0 : 2;
+
+        $monthlyPrice = number_format($baseMonthly, $decimals, '.', '');
+        $yearlyPrice = number_format($baseYearly, $decimals, '.', '');
+
+        $discountedMonthlyPrice = null;
+        $discountedYearlyPrice = null;
+
+        if ($player->claimedDiscountVoucher !== null && !$player->claimedDiscountVoucher->isExpired($now)) {
+            $discount = $player->claimedDiscountVoucher->percentageDiscount;
+
+            $discountedMonthlyPrice = number_format($baseMonthly * (100 - $discount) / 100, $decimals, '.', '');
+            $discountedYearlyPrice = number_format($baseYearly * (100 - $discount) / 100, $decimals, '.', '');
+        }
+
         return $this->render('membership.html.twig', [
             'membership' => $membership,
             'player' => $player,
-            'now' => $this->clock->now(),
+            'now' => $now,
+            'monthlyPrice' => $monthlyPrice,
+            'yearlyPrice' => $yearlyPrice,
+            'discountedMonthlyPrice' => $discountedMonthlyPrice,
+            'discountedYearlyPrice' => $discountedYearlyPrice,
         ]);
     }
 }

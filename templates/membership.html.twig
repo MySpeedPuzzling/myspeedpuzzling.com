@@ -78,7 +78,7 @@
 
                             <h4>{{ 'membership.choose_your_subscription'|trans }}</h4>
 
-                            {% if player.claimedDiscountVoucher is not null and not player.claimedDiscountVoucher.isExpired(now) %}
+                            {% if discountedMonthlyPrice is not null %}
                                 <div class="alert alert-success mb-3">
                                     <i class="ci-check-circle me-2"></i>
                                     <strong>{{ player.claimedDiscountVoucher.percentageDiscount }}% discount ready!</strong>
@@ -91,14 +91,24 @@
                                     <p class="my-1 mx-1">
                                         <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
                                             <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                                            <br>{{ 'membership.price_per_month'|trans }}
+                                            {% if discountedMonthlyPrice is not null %}
+                                                <br><s class="text-muted small">{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}</s>
+                                                <br><strong>{{ 'membership.price_per_month'|trans({'%price%': discountedMonthlyPrice}) }}</strong>
+                                            {% else %}
+                                                <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
+                                            {% endif %}
                                         </a>
                                     </p>
 
                                     <p class="my-1 mx-1">
                                         <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership', {'period': 'yearly'}) }}">
                                             <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                                            <br>{{ 'membership.price_per_year'|trans }}
+                                            {% if discountedYearlyPrice is not null %}
+                                                <br><s class="text-muted small">{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}</s>
+                                                <br><strong>{{ 'membership.price_per_year'|trans({'%price%': discountedYearlyPrice}) }}</strong>
+                                            {% else %}
+                                                <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
+                                            {% endif %}
                                         </a>
                                     </p>
                                 </div>
@@ -111,14 +121,14 @@
                                     <p class="my-1 mx-1">
                                         <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.monthly">
                                             <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                                            <br>{{ 'membership.price_per_month'|trans }}
+                                            <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
                                         </button>
                                     </p>
 
                                     <p class="my-1 mx-1">
                                         <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.yearly">
                                             <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                                            <br>{{ 'membership.price_per_year'|trans }}
+                                            <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
                                         </button>
                                     </p>
                                 </div>
@@ -131,14 +141,14 @@
                                     <p class="my-1 mx-1">
                                         <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_monthly">
                                             <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
-                                            <br>{{ 'membership.price_per_month'|trans }}
+                                            <br>{{ 'membership.price_per_month'|trans({'%price%': monthlyPrice}) }}
                                         </button>
                                     </p>
 
                                     <p class="my-1 mx-1">
                                         <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_yearly">
                                             <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_yearly'|trans }}</small>
-                                            <br>{{ 'membership.price_per_year'|trans }}
+                                            <br>{{ 'membership.price_per_year'|trans({'%price%': yearlyPrice}) }}
                                         </button>
                                     </p>
                                 </div>

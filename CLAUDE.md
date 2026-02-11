@@ -122,6 +122,10 @@ For working with test fixtures, see `.claude/fixtures.md` for complete documenta
 - Competitions and solving times
 - Connections between players (favorites, team solving, lending)
 
+### Feature Planning & Brainstorming
+Feature design documents and implementation plans are in `docs/features/`. Each feature has its own directory with detailed specifications, entity designs, and step-by-step implementation guides.
+- **Marketplace**: `docs/features/marketplace/` — Centralized marketplace, messaging, ratings, shipping settings, admin moderation
+
 ### Notable Features
 - **Puzzle Time Tracking**: Sophisticated stopwatch with pause/resume and verification
 - **Competition Management**: WJPC (World Jigsaw Puzzle Championship) integration

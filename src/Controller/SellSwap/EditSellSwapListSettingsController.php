@@ -74,6 +74,8 @@ final class EditSellSwapListSettingsController extends AbstractController
                     customCurrency: $formData->customCurrency,
                     shippingInfo: $formData->shippingInfo,
                     contactInfo: $formData->contactInfo,
+                    shippingCountries: $formData->shippingCountries,
+                    shippingCost: $formData->shippingCost,
                 ),
             );
 

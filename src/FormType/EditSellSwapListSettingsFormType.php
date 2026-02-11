@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\EditSellSwapListSettingsFormData;
+use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -70,6 +71,94 @@ final class EditSellSwapListSettingsFormType extends AbstractType
             ],
             'help' => 'sell_swap_list.settings.contact_info_help',
         ]);
+
+        $builder->add('shippingCountries', ChoiceType::class, [
+            'label' => 'sell_swap_list.settings.shipping_countries',
+            'required' => false,
+            'multiple' => true,
+            'expanded' => true,
+            'choices' => $this->getCountryChoicesGroupedByRegion(),
+        ]);
+
+        $builder->add('shippingCost', TextType::class, [
+            'label' => 'sell_swap_list.settings.shipping_cost',
+            'required' => false,
+            'attr' => [
+                'placeholder' => 'sell_swap_list.settings.shipping_cost_placeholder',
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    private function getCountryChoicesGroupedByRegion(): array
+    {
+        $centralEurope = [
+            CountryCode::cz, CountryCode::sk, CountryCode::pl, CountryCode::hu,
+            CountryCode::at, CountryCode::si, CountryCode::ch, CountryCode::li,
+        ];
+
+        $westernEurope = [
+            CountryCode::de, CountryCode::fr, CountryCode::nl, CountryCode::be,
+            CountryCode::lu, CountryCode::ie, CountryCode::gb, CountryCode::mc,
+        ];
+
+        $southernEurope = [
+            CountryCode::es, CountryCode::pt, CountryCode::it, CountryCode::gr,
+            CountryCode::hr, CountryCode::ba, CountryCode::rs, CountryCode::me,
+            CountryCode::mk, CountryCode::al, CountryCode::mt, CountryCode::cy,
+        ];
+
+        $northernEurope = [
+            CountryCode::se, CountryCode::no, CountryCode::dk, CountryCode::fi,
+            CountryCode::is, CountryCode::ee, CountryCode::lv, CountryCode::lt,
+        ];
+
+        $easternEurope = [
+            CountryCode::ro, CountryCode::bg, CountryCode::ua, CountryCode::md,
+            CountryCode::by,
+        ];
+
+        $northAmerica = [
+            CountryCode::us, CountryCode::ca, CountryCode::mx,
+        ];
+
+        $groups = [
+            'Central Europe' => $centralEurope,
+            'Western Europe' => $westernEurope,
+            'Southern Europe' => $southernEurope,
+            'Northern Europe' => $northernEurope,
+            'Eastern Europe' => $easternEurope,
+            'North America' => $northAmerica,
+        ];
+
+        // Collect all codes used in groups
+        $usedCodes = [];
+        foreach ($groups as $countries) {
+            foreach ($countries as $country) {
+                $usedCodes[] = $country->name;
+            }
+        }
+
+        // Remaining countries
+        $restOfWorld = [];
+        foreach (CountryCode::cases() as $country) {
+            if (!in_array($country->name, $usedCodes, true)) {
+                $restOfWorld[] = $country;
+            }
+        }
+
+        $groups['Rest of World'] = $restOfWorld;
+
+        $choices = [];
+        foreach ($groups as $groupName => $countries) {
+            foreach ($countries as $country) {
+                $choices[$groupName][$country->value] = $country->name;
+            }
+        }
+
+        return $choices;
     }
 
     public function configureOptions(OptionsResolver $resolver): void

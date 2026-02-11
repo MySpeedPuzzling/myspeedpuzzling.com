@@ -31,6 +31,8 @@ readonly final class EditSellSwapListSettingsHandler
             customCurrency: $message->customCurrency,
             shippingInfo: $message->shippingInfo,
             contactInfo: $message->contactInfo,
+            shippingCountries: $message->shippingCountries,
+            shippingCost: $message->shippingCost,
         );
 
         $player->changeSellSwapListSettings($settings);

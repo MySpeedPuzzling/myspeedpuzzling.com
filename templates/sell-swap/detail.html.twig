@@ -77,7 +77,28 @@
                             {{ settings.contactInfo|nl2br }}
                         </div>
                     {% endif %}
+
+                    {% if settings.shippingCost %}
+                        <div class="col-md-4 mb-2">
+                            <strong><i class="bi bi-cash me-1"></i>{{ 'sell_swap_list.settings.shipping_cost'|trans }}:</strong>
+                            {{ settings.shippingCost }}
+                        </div>
+                    {% endif %}
                 </div>
+
+                {% if settings.shippingCountries is not empty %}
+                    <div class="mt-2">
+                        <strong><i class="bi bi-globe me-1"></i>{{ 'sell_swap_list.settings.ships_to'|trans }}:</strong>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            {% for code in settings.shippingCountries %}
+                                <span class="badge bg-light text-dark border">
+                                    <small class="shadow-custom fi fi-{{ code }}"></small>
+                                    {{ code|upper|country_name }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
 
                 <div class="alert alert-info mb-0 mt-2 small">
                     <i class="bi bi-info-circle me-1"></i>

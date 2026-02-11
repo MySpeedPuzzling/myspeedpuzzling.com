@@ -100,7 +100,7 @@ readonly final class PlayerProfile
         $sellSwapListSettings = null;
         if ($row['sell_swap_list_settings'] !== null) {
             try {
-                /** @var array{description?: null|string, currency?: null|string, custom_currency?: null|string, shipping_info?: null|string, contact_info?: null|string} $settingsData */
+                /** @var array{description?: null|string, currency?: null|string, custom_currency?: null|string, shipping_info?: null|string, contact_info?: null|string, shipping_countries?: string[], shipping_cost?: null|string} $settingsData */
                 $settingsData = Json::decode($row['sell_swap_list_settings'], true);
                 $sellSwapListSettings = new SellSwapListSettings(
                     description: $settingsData['description'] ?? null,
@@ -108,6 +108,8 @@ readonly final class PlayerProfile
                     customCurrency: $settingsData['custom_currency'] ?? null,
                     shippingInfo: $settingsData['shipping_info'] ?? null,
                     contactInfo: $settingsData['contact_info'] ?? null,
+                    shippingCountries: $settingsData['shipping_countries'] ?? [],
+                    shippingCost: $settingsData['shipping_cost'] ?? null,
                 );
             } catch (JsonException) {
                 // Invalid JSON, keep null

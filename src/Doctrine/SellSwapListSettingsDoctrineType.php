@@ -22,7 +22,7 @@ final class SellSwapListSettingsDoctrineType extends JsonType
             return null;
         }
 
-        /** @var array{description: null|string, currency: null|string, custom_currency: null|string, shipping_info: null|string, contact_info: null|string} $jsonData */
+        /** @var array{description?: null|string, currency?: null|string, custom_currency?: null|string, shipping_info?: null|string, contact_info?: null|string, shipping_countries?: string[], shipping_cost?: null|string} $jsonData */
         $jsonData = parent::convertToPHPValue($value, $platform);
 
         return new SellSwapListSettings(
@@ -31,6 +31,8 @@ final class SellSwapListSettingsDoctrineType extends JsonType
             customCurrency: $jsonData['custom_currency'] ?? null,
             shippingInfo: $jsonData['shipping_info'] ?? null,
             contactInfo: $jsonData['contact_info'] ?? null,
+            shippingCountries: $jsonData['shipping_countries'] ?? [],
+            shippingCost: $jsonData['shipping_cost'] ?? null,
         );
     }
 
@@ -50,6 +52,8 @@ final class SellSwapListSettingsDoctrineType extends JsonType
             'custom_currency' => $value->customCurrency,
             'shipping_info' => $value->shippingInfo,
             'contact_info' => $value->contactInfo,
+            'shipping_countries' => $value->shippingCountries,
+            'shipping_cost' => $value->shippingCost,
         ];
 
         return parent::convertToDatabaseValue($data, $platform);

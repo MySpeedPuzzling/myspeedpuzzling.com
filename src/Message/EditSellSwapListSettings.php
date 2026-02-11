@@ -13,6 +13,9 @@ readonly final class EditSellSwapListSettings
         public null|string $customCurrency,
         public null|string $shippingInfo,
         public null|string $contactInfo,
+        /** @var string[] */
+        public array $shippingCountries = [],
+        public null|string $shippingCost = null,
     ) {
     }
 }

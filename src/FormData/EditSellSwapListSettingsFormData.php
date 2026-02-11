@@ -18,6 +18,11 @@ final class EditSellSwapListSettingsFormData
 
     public null|string $contactInfo = null;
 
+    /** @var string[] */
+    public array $shippingCountries = [];
+
+    public null|string $shippingCost = null;
+
     public static function fromSettings(null|SellSwapListSettings $settings): self
     {
         $data = new self();
@@ -28,6 +33,8 @@ final class EditSellSwapListSettingsFormData
             $data->customCurrency = $settings->customCurrency;
             $data->shippingInfo = $settings->shippingInfo;
             $data->contactInfo = $settings->contactInfo;
+            $data->shippingCountries = $settings->shippingCountries;
+            $data->shippingCost = $settings->shippingCost;
         }
 
         return $data;

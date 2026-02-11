@@ -6,7 +6,7 @@
     <twig:PlayerHeader player="{{ player }}" />
 
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
+        <div class="col-md-10 col-lg-8">
             <div class="card shadow-lg">
                 <div class="card-header">
                     <h3 class="mb-0">{{ 'sell_swap_list.settings.title'|trans }}</h3>
@@ -39,6 +39,45 @@
 
                     <div class="mb-3">
                         {{ form_row(form.shippingInfo) }}
+                    </div>
+
+                    <div class="mb-3" data-controller="shipping-countries">
+                        <label class="form-label">{{ 'sell_swap_list.settings.shipping_countries'|trans }}</label>
+                        <div class="mb-2 d-flex flex-wrap gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="shipping-countries#selectAll">
+                                {{ 'sell_swap_list.settings.select_all'|trans }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-action="shipping-countries#deselectAll">
+                                {{ 'sell_swap_list.settings.deselect_all'|trans }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="shipping-countries#selectEu">
+                                {{ 'sell_swap_list.settings.eu_countries'|trans }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-action="shipping-countries#selectEurope">
+                                {{ 'sell_swap_list.settings.europe'|trans }}
+                            </button>
+                        </div>
+                        {% for groupLabel, choices in form.shippingCountries %}
+                            {% if choices is iterable %}
+                                <div class="mb-2">
+                                    <strong class="small text-muted">{{ groupLabel }}</strong>
+                                    <div class="row">
+                                        {% for choice in choices %}
+                                            <div class="col-6 col-sm-4 col-md-3">
+                                                <div class="form-check">
+                                                    {{ form_widget(choice, {attr: {'data-shipping-countries-target': 'checkbox'}}) }}
+                                                    {{ form_label(choice, null, {label_attr: {class: 'form-check-label'}}) }}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_row(form.shippingCost) }}
                     </div>
 
                     <div class="mb-4">

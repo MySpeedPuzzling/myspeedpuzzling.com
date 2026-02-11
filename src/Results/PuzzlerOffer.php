@@ -26,6 +26,7 @@ readonly final class PuzzlerOffer
         // Seller settings (for currency display)
         public null|string $currency,
         public null|string $customCurrency,
+        public bool $reserved,
     ) {
     }
 }

@@ -77,7 +77,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         $manager->persist($item02);
         $this->addReference(self::SELLSWAP_02, $item02);
 
-        // Both sell and swap, normal condition, with comment
+        // Both sell and swap, normal condition, with comment, RESERVED
         $item03 = $this->createSellSwapListItem(
             id: self::SELLSWAP_03,
             player: $player5,
@@ -88,10 +88,11 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Open to offers',
             daysAgo: 15,
         );
+        $item03->markAsReserved();
         $manager->persist($item03);
         $this->addReference(self::SELLSWAP_03, $item03);
 
-        // Sell only, not so good condition, with comment
+        // Sell only, not so good condition, with comment, RESERVED for a specific player
         $item04 = $this->createSellSwapListItem(
             id: self::SELLSWAP_04,
             player: $player5,
@@ -102,6 +103,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Some wear on box',
             daysAgo: 10,
         );
+        $item04->markAsReserved(Uuid::fromString(PlayerFixture::PLAYER_ADMIN));
         $manager->persist($item04);
         $this->addReference(self::SELLSWAP_04, $item04);
 

@@ -126,6 +126,10 @@
                             </div>
                         {% elseif page_context == 'sell-swap' %}
                             <div class="mt-1">
+                                {% if item.reserved %}
+                                    <span class="badge bg-warning">{{ 'sell_swap_list.reserved'|trans }}</span>
+                                {% endif %}
+
                                 {% if item.listingType.value == 'swap' %}
                                     <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
                                 {% elseif item.listingType.value == 'sell' %}
@@ -232,6 +236,25 @@
                                             <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
                                         </a>
                                     </li>
+                                    {% if item.reserved %}
+                                        <li>
+                                            <form action="{{ path('sell_swap_remove_reservation', {itemId: item.sellSwapListItemId}) }}"
+                                                  method="post">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    {% else %}
+                                        <li>
+                                            <form action="{{ path('sell_swap_mark_reserved', {itemId: item.sellSwapListItemId}) }}"
+                                                  method="post">
+                                                <button type="submit" class="dropdown-item text-warning">
+                                                    <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    {% endif %}
                                     <li>
                                         <a class="dropdown-item text-success"
                                            href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}?context=list"

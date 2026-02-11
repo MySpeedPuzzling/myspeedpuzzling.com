@@ -1220,6 +1220,13 @@ sell_swap_list:
         removed: "Puzzle was removed from your sell/swap list."
         login_required: "You must be logged in to manage your sell/swap list."
         validation_error: "Please fix the errors and try again."
+    reserved: "RESERVED"
+    reserved.success: "Listing was marked as reserved."
+    reservation_removed.success: "Reservation was removed."
+    mark_reserved:
+        button: "Mark as Reserved"
+    remove_reservation:
+        button: "Remove Reservation"
     history:
         title: "Sold/Swapped History"
         menu: "History"

@@ -79,6 +79,9 @@
                                     </a>
                                 </td>
                                 <td>
+                                    {% if offer.reserved %}
+                                        <span class="badge bg-warning">{{ 'sell_swap_list.reserved'|trans }}</span>
+                                    {% endif %}
                                     {% if offer.listingType.value == 'swap' %}
                                         <span class="badge bg-info">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
                                     {% elseif offer.listingType.value == 'sell' %}

@@ -25,6 +25,7 @@ readonly final class SellSwapListItemOverview
         public PuzzleCondition $condition,
         public null|string $comment,
         public DateTimeImmutable $addedAt,
+        public bool $reserved,
     ) {
     }
 }

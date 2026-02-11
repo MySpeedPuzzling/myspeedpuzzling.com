@@ -31,6 +31,7 @@ SELECT
     ssli.condition,
     ssli.comment,
     ssli.added_at,
+    ssli.reserved,
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.alternative_name as puzzle_alternative_name,
@@ -58,6 +59,7 @@ SQL;
              *     condition: string,
              *     comment: string|null,
              *     added_at: string,
+             *     reserved: bool,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: string|null,
@@ -84,6 +86,7 @@ SQL;
                 condition: PuzzleCondition::from($row['condition']),
                 comment: $row['comment'],
                 addedAt: new DateTimeImmutable($row['added_at']),
+                reserved: (bool) $row['reserved'],
             );
         }, $data);
     }
@@ -131,6 +134,7 @@ SELECT
     ssli.condition,
     ssli.comment,
     ssli.added_at,
+    ssli.reserved,
     pl.id as player_id,
     pl.name as player_name,
     pl.code as player_code,
@@ -155,6 +159,7 @@ SQL;
              *     condition: string,
              *     comment: string|null,
              *     added_at: string,
+             *     reserved: bool,
              *     player_id: string,
              *     player_name: string|null,
              *     player_code: string,
@@ -187,6 +192,7 @@ SQL;
                 playerCountry: $row['player_country'],
                 currency: $currency,
                 customCurrency: $customCurrency,
+                reserved: (bool) $row['reserved'],
             );
         }, $data);
     }

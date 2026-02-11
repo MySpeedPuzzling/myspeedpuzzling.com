@@ -1,0 +1,190 @@
+<div {{ attributes }}>
+    {# Loading spinner #}
+    <div class="text-primary text-center my-3" style="display: none;" data-loading="show">
+        <span class="spinner-border spinner-border-sm" role="status"></span>
+    </div>
+
+    {# Filters #}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body py-2">
+            <div class="d-lg-none mb-2">
+                <button class="btn btn-outline-primary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#marketplaceFilters" aria-expanded="false">
+                    <i class="bi-filter me-1"></i> Filters
+                </button>
+            </div>
+
+            <div class="collapse d-lg-block" id="marketplaceFilters">
+                <div class="row g-2 align-items-end">
+                    {# Search #}
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label class="form-label form-label-sm mb-0"><small>Search</small></label>
+                        <input
+                            type="text"
+                            data-model="debounce(300)|search"
+                            class="form-control form-control-sm"
+                            value="{{ this.search }}"
+                            placeholder="Puzzle name, EAN..."
+                        >
+                    </div>
+
+                    {# Manufacturer #}
+                    <div class="col-6 col-md-3 col-lg-2">
+                        <label class="form-label form-label-sm mb-0"><small>Brand</small></label>
+                        <select data-model="manufacturer" class="form-select form-select-sm">
+                            <option value="">All brands</option>
+                            {% for mfr in this.manufacturers %}
+                                <option value="{{ mfr.manufacturer_id }}" {{ this.manufacturer == mfr.manufacturer_id ? 'selected' }}>
+                                    {{ mfr.manufacturer_name }} ({{ mfr.listing_count }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Pieces range #}
+                    <div class="col-6 col-md-3 col-lg-2">
+                        <label class="form-label form-label-sm mb-0"><small>Pieces</small></label>
+                        <div class="d-flex gap-1">
+                            <input
+                                type="number"
+                                data-model="debounce(300)|piecesMin"
+                                class="form-control form-control-sm"
+                                value="{{ this.piecesMin }}"
+                                placeholder="Min"
+                                min="0"
+                            >
+                            <input
+                                type="number"
+                                data-model="debounce(300)|piecesMax"
+                                class="form-control form-control-sm"
+                                value="{{ this.piecesMax }}"
+                                placeholder="Max"
+                                min="0"
+                            >
+                        </div>
+                    </div>
+
+                    {# Listing type #}
+                    <div class="col-6 col-md-3 col-lg-1">
+                        <label class="form-label form-label-sm mb-0"><small>Type</small></label>
+                        <select data-model="listingType" class="form-select form-select-sm">
+                            <option value="">All</option>
+                            <option value="sell" {{ this.listingType == 'sell' ? 'selected' }}>Sell</option>
+                            <option value="swap" {{ this.listingType == 'swap' ? 'selected' }}>Swap</option>
+                            <option value="both" {{ this.listingType == 'both' ? 'selected' }}>Both</option>
+                            <option value="free" {{ this.listingType == 'free' ? 'selected' }}>Free</option>
+                        </select>
+                    </div>
+
+                    {# Price range #}
+                    <div class="col-6 col-md-3 col-lg-2">
+                        <label class="form-label form-label-sm mb-0"><small>Price</small></label>
+                        <div class="d-flex gap-1">
+                            <input
+                                type="number"
+                                data-model="debounce(300)|priceMin"
+                                class="form-control form-control-sm"
+                                value="{{ this.priceMin }}"
+                                placeholder="Min"
+                                min="0"
+                                step="0.01"
+                            >
+                            <input
+                                type="number"
+                                data-model="debounce(300)|priceMax"
+                                class="form-control form-control-sm"
+                                value="{{ this.priceMax }}"
+                                placeholder="Max"
+                                min="0"
+                                step="0.01"
+                            >
+                        </div>
+                    </div>
+
+                    {# Condition #}
+                    <div class="col-6 col-md-3 col-lg-1">
+                        <label class="form-label form-label-sm mb-0"><small>Condition</small></label>
+                        <select data-model="condition" class="form-select form-select-sm">
+                            <option value="">All</option>
+                            <option value="like_new" {{ this.condition == 'like_new' ? 'selected' }}>Like New</option>
+                            <option value="normal" {{ this.condition == 'normal' ? 'selected' }}>Normal</option>
+                            <option value="not_so_good" {{ this.condition == 'not_so_good' ? 'selected' }}>Not So Good</option>
+                            <option value="missing_pieces" {{ this.condition == 'missing_pieces' ? 'selected' }}>Missing Pieces</option>
+                        </select>
+                    </div>
+
+                    {# Sort #}
+                    <div class="col-6 col-md-3 col-lg-1">
+                        <label class="form-label form-label-sm mb-0"><small>Sort</small></label>
+                        <select data-model="sort" class="form-select form-select-sm">
+                            <option value="newest" {{ this.sort == 'newest' ? 'selected' }}>Newest</option>
+                            <option value="price_asc" {{ this.sort == 'price_asc' ? 'selected' }}>Price asc</option>
+                            <option value="price_desc" {{ this.sort == 'price_desc' ? 'selected' }}>Price desc</option>
+                            {% if this.search is not empty %}
+                                <option value="relevance" {{ this.sort == 'relevance' ? 'selected' }}>Relevance</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Results count #}
+    {% set resultCount = this.resultCount %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <small class="text-muted">Showing {{ resultCount }} {{ resultCount == 1 ? 'result' : 'results' }}</small>
+    </div>
+
+    {# Results grid #}
+    {% set items = this.items %}
+    {% if items is empty %}
+        <div class="text-center py-5">
+            <i class="bi bi-shop fs-1 text-muted"></i>
+            <p class="text-muted mt-2">No listings found matching your filters.</p>
+        </div>
+    {% else %}
+        <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">
+            {% for item in items %}
+                <div class="col">
+                    {% include 'marketplace/_listing_card.html.twig' with {item: item} only %}
+                </div>
+            {% endfor %}
+        </div>
+
+        {# Pagination #}
+        {% set totalPages = this.totalPages %}
+        {% if totalPages > 1 %}
+            <nav class="mt-4" aria-label="Marketplace pagination">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if this.page > 1 %}
+                        <li class="page-item">
+                            <button class="page-link" data-model="page" data-value="{{ this.page - 1 }}" data-action="live#update">&laquo;</button>
+                        </li>
+                    {% endif %}
+
+                    {% for p in 1..totalPages %}
+                        {% if p == this.page %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ p }}</span>
+                            </li>
+                        {% elseif p <= 3 or p > totalPages - 3 or (p >= this.page - 1 and p <= this.page + 1) %}
+                            <li class="page-item">
+                                <button class="page-link" data-model="page" data-value="{{ p }}" data-action="live#update">{{ p }}</button>
+                            </li>
+                        {% elseif p == 4 or p == totalPages - 3 %}
+                            <li class="page-item disabled">
+                                <span class="page-link">&hellip;</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if this.page < totalPages %}
+                        <li class="page-item">
+                            <button class="page-link" data-model="page" data-value="{{ this.page + 1 }}" data-action="live#update">&raquo;</button>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% endif %}
+</div>

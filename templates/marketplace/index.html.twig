@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Marketplace{% endblock %}
+{% block meta_description %}Browse puzzles for sale, swap, or free on the MySpeedPuzzling marketplace.{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-3">
+        <i class="bi bi-shop me-2"></i>Marketplace
+    </h1>
+
+    <twig:MarketplaceListing />
+{% endblock %}

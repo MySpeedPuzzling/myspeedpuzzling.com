@@ -349,6 +349,12 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link text-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
+                                    <i class="me-1 me-lg-0 bi bi-shop"></i>
+                                    Marketplace
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link text-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
                                     <i class="me-1 me-lg-0 bi bi-trophy"></i>
                                     {{ 'menu.ladder'|trans }}
@@ -426,6 +432,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('puzzles') }}" class="widget-list-link">{{ 'menu.puzzles_overview'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('marketplace') }}" class="widget-list-link">Marketplace</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('ladder') }}" class="widget-list-link">{{ 'menu.ladder'|trans }}</a>

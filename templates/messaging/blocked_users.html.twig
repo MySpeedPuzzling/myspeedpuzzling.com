@@ -22,13 +22,7 @@
             {% for user in blocked_users %}
                 <div class="list-group-item d-flex align-items-center justify-content-between py-3">
                     <div class="d-flex align-items-center">
-                        {% if user.blocked_avatar %}
-                            <img src="{{ user.blocked_avatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-3 flex-shrink-0" width="48" height="48">
-                        {% else %}
-                            <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
-                                <i class="bi bi-person text-white"></i>
-                            </div>
-                        {% endif %}
+                        {{ include('messaging/_avatar.html.twig', {avatar: user.blocked_avatar, size: 48, class: 'me-3 flex-shrink-0'}) }}
                         <div>
                             <a href="{{ path('player_profile', {playerId: user.blocked_id}) }}" class="fw-bold text-decoration-none">
                                 {{ user.blocked_name ?? user.blocked_code }}

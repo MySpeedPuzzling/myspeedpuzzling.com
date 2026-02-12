@@ -125,6 +125,39 @@ $soft-teal: #5bc0de;
     }
 }
 
+// Chat bubble tails
+.chat-bubble {
+    position: relative;
+
+    &--own::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: -6px;
+        width: 12px;
+        height: 12px;
+        background: $primary;
+        clip-path: polygon(0 0, 0 100%, 100% 100%);
+        border-bottom-right-radius: 2px;
+    }
+
+    &--other {
+        background-color: $gray-200;
+
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            background: $gray-200;
+            clip-path: polygon(100% 0, 0 100%, 100% 100%);
+            border-bottom-left-radius: 2px;
+        }
+    }
+}
+
 // Accessibility: Improve text-muted contrast for WCAG AA compliance
 // Original $gray-600 (#7d879c) has ~4:1 ratio, this achieves ~6:1
 .text-muted {

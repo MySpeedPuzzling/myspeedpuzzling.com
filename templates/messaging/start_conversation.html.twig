@@ -19,13 +19,7 @@
                 <div class="card-body">
                     {% if recipient is defined %}
                         <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-                            {% if recipient.avatar %}
-                                <img src="{{ recipient.avatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-2" width="40" height="40">
-                            {% else %}
-                                <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="bi bi-person text-white"></i>
-                                </div>
-                            {% endif %}
+                            {{ include('messaging/_avatar.html.twig', {avatar: recipient.avatar, size: 40, class: 'me-2'}) }}
                             <div>
                                 <strong>{{ recipient.playerName ?? recipient.code }}</strong>
                             </div>
@@ -41,7 +35,15 @@
                                 <div class="fw-bold">{{ puzzle.puzzleName }}</div>
                                 {% if sell_swap_list_item is defined %}
                                     <div class="text-muted small">
-                                        {{ sell_swap_list_item.listingType.value|capitalize }}
+                                        {% if sell_swap_list_item.listingType.value == 'sell' %}
+                                            {{ 'marketplace.listing_type.sell'|trans }}
+                                        {% elseif sell_swap_list_item.listingType.value == 'swap' %}
+                                            {{ 'marketplace.listing_type.swap'|trans }}
+                                        {% elseif sell_swap_list_item.listingType.value == 'both' %}
+                                            {{ 'marketplace.listing_type.both'|trans }}
+                                        {% elseif sell_swap_list_item.listingType.value == 'free' %}
+                                            {{ 'marketplace.listing_type.free'|trans }}
+                                        {% endif %}
                                         {% if sell_swap_list_item.price %}
                                             - {{ sell_swap_list_item.price }}
                                         {% endif %}

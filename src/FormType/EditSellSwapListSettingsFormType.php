@@ -12,12 +12,18 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @extends AbstractType<EditSellSwapListSettingsFormData>
  */
 final class EditSellSwapListSettingsFormType extends AbstractType
 {
+    public function __construct(
+        private readonly TranslatorInterface $translator,
+    ) {
+    }
+
     /**
      * @param mixed[] $options
      */
@@ -125,12 +131,12 @@ final class EditSellSwapListSettingsFormType extends AbstractType
         ];
 
         $groups = [
-            'Central Europe' => $centralEurope,
-            'Western Europe' => $westernEurope,
-            'Southern Europe' => $southernEurope,
-            'Northern Europe' => $northernEurope,
-            'Eastern Europe' => $easternEurope,
-            'North America' => $northAmerica,
+            $this->translator->trans('sell_swap_list.settings.region.central_europe') => $centralEurope,
+            $this->translator->trans('sell_swap_list.settings.region.western_europe') => $westernEurope,
+            $this->translator->trans('sell_swap_list.settings.region.southern_europe') => $southernEurope,
+            $this->translator->trans('sell_swap_list.settings.region.northern_europe') => $northernEurope,
+            $this->translator->trans('sell_swap_list.settings.region.eastern_europe') => $easternEurope,
+            $this->translator->trans('sell_swap_list.settings.region.north_america') => $northAmerica,
         ];
 
         // Collect all codes used in groups
@@ -149,7 +155,7 @@ final class EditSellSwapListSettingsFormType extends AbstractType
             }
         }
 
-        $groups['Rest of World'] = $restOfWorld;
+        $groups[$this->translator->trans('sell_swap_list.settings.region.rest_of_world')] = $restOfWorld;
 
         $choices = [];
         foreach ($groups as $groupName => $countries) {

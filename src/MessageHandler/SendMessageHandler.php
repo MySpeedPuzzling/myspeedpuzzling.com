@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -31,6 +32,7 @@ readonly final class SendMessageHandler
         private UserBlockRepository $userBlockRepository,
         private MercureNotifier $mercureNotifier,
         private GetConversations $getConversations,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -84,11 +86,18 @@ readonly final class SendMessageHandler
         $this->chatMessageRepository->save($chatMessage);
         $conversation->updateLastMessageAt($now);
 
-        $this->mercureNotifier->notifyNewMessage($chatMessage);
+        try {
+            $this->mercureNotifier->notifyNewMessage($chatMessage);
 
-        // Notify recipient about unread count change
-        $recipientId = $otherParticipant->id->toString();
-        $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
-        $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+            // Notify recipient about unread count change
+            $recipientId = $otherParticipant->id->toString();
+            $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
+            $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to send Mercure notification for message', [
+                'conversationId' => $conversation->id->toString(),
+                'exception' => $e,
+            ]);
+        }
     }
 }

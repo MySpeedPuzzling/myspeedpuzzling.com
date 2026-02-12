@@ -28,9 +28,10 @@ readonly final class GetConversations
             $statusFilter = 'AND c.status = :status';
             $params['status'] = $status->value;
         } else {
-            // By default, only show accepted conversations (not pending/denied)
-            $statusFilter = 'AND c.status = :status';
-            $params['status'] = ConversationStatus::Accepted->value;
+            // Show accepted conversations + pending conversations where the player is the initiator
+            $statusFilter = 'AND (c.status = :statusAccepted OR (c.status = :statusPending AND c.initiator_id = :playerId))';
+            $params['statusAccepted'] = ConversationStatus::Accepted->value;
+            $params['statusPending'] = ConversationStatus::Pending->value;
         }
 
         $query = <<<SQL

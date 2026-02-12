@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Message\AcceptConversation;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -17,6 +18,7 @@ readonly final class AcceptConversationHandler
     public function __construct(
         private ConversationRepository $conversationRepository,
         private MercureNotifier $mercureNotifier,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -37,6 +39,13 @@ readonly final class AcceptConversationHandler
 
         $conversation->accept();
 
-        $this->mercureNotifier->notifyConversationAccepted($conversation);
+        try {
+            $this->mercureNotifier->notifyConversationAccepted($conversation);
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to send Mercure notification for conversation acceptance', [
+                'conversationId' => $conversation->id->toString(),
+                'exception' => $e,
+            ]);
+        }
     }
 }

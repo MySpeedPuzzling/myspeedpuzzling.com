@@ -22,7 +22,7 @@
                             <div>
                                 <h6 class="mb-1">{{ sold_swapped_item.puzzle.name }}</h6>
                                 <div class="text-muted small">
-                                    {{ sold_swapped_item.puzzle.piecesCount }} pcs
+                                    {{ sold_swapped_item.puzzle.piecesCount }} {{ 'marketplace.pcs'|trans }}
                                     &middot;
                                     {% if sold_swapped_item.listingType.value == 'sell' %}
                                         {{ 'rating.sold'|trans }}

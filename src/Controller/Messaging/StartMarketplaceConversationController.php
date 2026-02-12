@@ -85,6 +85,8 @@ final class StartMarketplaceConversationController extends AbstractController
                     $this->addFlash('warning', $this->translator->trans('messaging.pending_request_exists'));
 
                     return $this->redirectToRoute('conversations_list');
+                } else {
+                    $this->addFlash('danger', $this->translator->trans('messaging.send_failed'));
                 }
             }
         }

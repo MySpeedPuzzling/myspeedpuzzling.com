@@ -1163,10 +1163,21 @@ sell_swap_list:
         shipping_info: "Shipping Information"
         shipping_info_placeholder: "Describe your shipping options and costs..."
         shipping_info_help: "Describe your shipping options and costs..."
+        shipping_countries: "Countries you ship to"
+        shipping_cost: "Shipping cost info"
+        shipping_cost_placeholder: "e.g. Free shipping over 50 EUR, flat rate 5 EUR"
         contact_info: "Contact Information"
         contact_info_placeholder: "How should buyers contact you?"
         contact_info_help: "How should buyers contact you?"
         contact_info_warning: "Your contact information will be publicly visible. Only share what you're comfortable with."
+        region:
+            central_europe: "Central Europe"
+            western_europe: "Western Europe"
+            southern_europe: "Southern Europe"
+            northern_europe: "Northern Europe"
+            eastern_europe: "Eastern Europe"
+            north_america: "North America"
+            rest_of_world: "Rest of World"
     form:
         listing_type: "Listing Type"
         price: "Price"
@@ -1472,7 +1483,21 @@ messaging:
     write_message_placeholder: "Write your message..."
     max_characters: "Maximum 2000 characters."
     send_message: "Send message"
+    send_failed: "Failed to send message. Please try again."
     regarding: "Regarding:"
+    conversation_with: "Conversation with %name%"
+    blocked_users: "Blocked users"
+    no_blocked_users: "You haven't blocked any users."
+    blocked_on: "Blocked on"
+    unblock_confirm: "Are you sure you want to unblock this user?"
+    unblock: "Unblock"
+    report_conversation: "Report conversation"
+    report_confirm: "Are you sure you want to report this conversation?"
+    report_reason: "Reason"
+    cancel: "Cancel"
+    report_submit: "Submit Report"
+    read_status: "Read"
+    sent_status: "Sent"
 
 rating:
     title: "Ratings"
@@ -1501,9 +1526,17 @@ rating:
     back_to_profile: "Back to profile"
     cancel: "Cancel"
     optional_note: "Optional. Max 500 characters."
+    role:
+        seller: "Seller"
+        buyer: "Buyer"
+    view_all: "View all"
 
 marketplace:
     title: "Marketplace"
+    meta:
+        description: "Browse puzzles for sale, swap, or free on the MySpeedPuzzling marketplace."
+    all_countries: "All countries"
+    pcs: "pcs"
     filter:
         search_placeholder: "Search puzzles..."
         brand: "Brand"

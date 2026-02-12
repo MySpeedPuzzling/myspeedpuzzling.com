@@ -57,6 +57,8 @@ final class ConversationDetailController extends AbstractController
                 conversationId: $conversationId,
                 playerId: $loggedPlayer->playerId,
             ));
+        } elseif ($conversation->status === ConversationStatus::Pending && $isInitiator) {
+            $messages = $this->getMessages->forConversation($conversationId, $loggedPlayer->playerId);
         }
 
         $puzzleContext = null;

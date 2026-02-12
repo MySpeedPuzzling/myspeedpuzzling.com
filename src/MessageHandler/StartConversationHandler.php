@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -36,6 +37,7 @@ readonly final class StartConversationHandler
         private SellSwapListItemRepository $sellSwapListItemRepository,
         private MercureNotifier $mercureNotifier,
         private MessageBusInterface $messageBus,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -109,8 +111,15 @@ readonly final class StartConversationHandler
 
                 $this->chatMessageRepository->save($chatMessage);
 
-                $this->mercureNotifier->notifyNewMessage($chatMessage);
-                $this->mercureNotifier->notifyNewConversationRequest($conversation);
+                try {
+                    $this->mercureNotifier->notifyNewMessage($chatMessage);
+                    $this->mercureNotifier->notifyNewConversationRequest($conversation);
+                } catch (\Throwable $e) {
+                    $this->logger->error('Failed to send Mercure notification for new marketplace conversation', [
+                        'conversationId' => $conversation->id->toString(),
+                        'exception' => $e,
+                    ]);
+                }
 
                 return;
             }
@@ -162,6 +171,13 @@ readonly final class StartConversationHandler
 
         $this->chatMessageRepository->save($chatMessage);
 
-        $this->mercureNotifier->notifyNewConversationRequest($conversation);
+        try {
+            $this->mercureNotifier->notifyNewConversationRequest($conversation);
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to send Mercure notification for new conversation request', [
+                'conversationId' => $conversation->id->toString(),
+                'exception' => $e,
+            ]);
+        }
     }
 }

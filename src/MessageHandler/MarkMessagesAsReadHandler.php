@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -20,6 +21,7 @@ readonly final class MarkMessagesAsReadHandler
         private Connection $database,
         private MercureNotifier $mercureNotifier,
         private GetConversations $getConversations,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -39,7 +41,14 @@ readonly final class MarkMessagesAsReadHandler
             ],
         );
 
-        $unreadCount = $this->getConversations->countUnreadForPlayer($message->playerId);
-        $this->mercureNotifier->notifyUnreadCountChanged($message->playerId, $unreadCount);
+        try {
+            $unreadCount = $this->getConversations->countUnreadForPlayer($message->playerId);
+            $this->mercureNotifier->notifyUnreadCountChanged($message->playerId, $unreadCount);
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to send Mercure notification for unread count', [
+                'conversationId' => $message->conversationId,
+                'exception' => $e,
+            ]);
+        }
     }
 }

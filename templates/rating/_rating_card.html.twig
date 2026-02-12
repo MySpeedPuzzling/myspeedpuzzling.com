@@ -16,7 +16,7 @@
             {% if rating.reviewerCountry %}
                 <small class="fi fi-{{ rating.reviewerCountry }} shadow-custom"></small>
             {% endif %}
-            <span class="badge bg-secondary">{{ rating.reviewerRole == 'seller' ? 'Seller' : 'Buyer' }}</span>
+            <span class="badge bg-secondary">{{ rating.reviewerRole == 'seller' ? 'rating.role.seller'|trans : 'rating.role.buyer'|trans }}</span>
         </div>
         <div class="mb-1">
             {% include 'rating/_rating_stars.html.twig' with {stars: rating.stars} %}
@@ -26,7 +26,7 @@
         {% endif %}
         <div class="text-muted small">
             <a href="{{ path('puzzle_detail', {puzzleId: rating.puzzleId}) }}" class="text-muted text-decoration-underline">
-                {{ rating.puzzleName }}{% if rating.puzzlePiecesCount %} ({{ rating.puzzlePiecesCount }} pcs){% endif %}
+                {{ rating.puzzleName }}{% if rating.puzzlePiecesCount %} ({{ rating.puzzlePiecesCount }} {{ 'marketplace.pcs'|trans }}){% endif %}
             </a>
             &middot;
             {{ rating.ratedAt|ago }}

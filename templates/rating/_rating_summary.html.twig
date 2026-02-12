@@ -9,7 +9,7 @@
         </small>
         {% if player_id is defined %}
             <a href="{{ path('player_ratings', {playerId: player_id}) }}" class="text-muted text-decoration-underline">
-                <small>View all</small>
+                <small>{{ 'rating.view_all'|trans }}</small>
             </a>
         {% endif %}
     </span>

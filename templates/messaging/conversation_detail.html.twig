@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Conversation with {{ other_player.name ?? other_player.code }}{% endblock %}
+{% block title %}{{ 'messaging.conversation_with'|trans({'%name%': other_player.name ?? other_player.code}) }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -13,13 +13,7 @@
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
-                {% if other_player.avatar %}
-                    <img src="{{ other_player.avatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-2" width="40" height="40">
-                {% else %}
-                    <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                        <i class="bi bi-person text-white"></i>
-                    </div>
-                {% endif %}
+                {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 40, class: 'me-2'}) }}
                 <div>
                     <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="fw-bold text-decoration-none">
                         {{ other_player.name ?? other_player.code }}
@@ -63,7 +57,7 @@
                             {{ puzzle_context.name }}
                         </a>
                         <div class="text-muted" style="font-size: 0.75rem;">
-                            {{ puzzle_context.piecesCount }} pcs
+                            {{ puzzle_context.piecesCount }} {{ 'marketplace.pcs'|trans }}
                             {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
                                 &middot;
                                 {% if puzzle_context.listingType == 'sell' %}
@@ -107,9 +101,13 @@
                     </div>
                 </div>
             {% elseif conversation.status.value == 'pending' and not is_recipient %}
-                <div class="text-center py-4 text-muted">
-                    <i class="bi bi-hourglass-split fs-1 d-block mb-3"></i>
-                    <p>{{ 'messaging.waiting_for_acceptance'|trans({'%name%': other_player.name ?? other_player.code}) }}</p>
+                {% for message in messages %}
+                    {{ include('messaging/_message_bubble.html.twig') }}
+                {% endfor %}
+
+                <div class="text-center py-3 text-muted">
+                    <i class="bi bi-hourglass-split d-block mb-2"></i>
+                    <p class="small mb-0">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': other_player.name ?? other_player.code}) }}</p>
                 </div>
             {% elseif conversation.status.value == 'denied' %}
                 <div class="text-center py-4 text-muted">

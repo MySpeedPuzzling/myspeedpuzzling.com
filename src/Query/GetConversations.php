@@ -63,11 +63,15 @@ SELECT
     ) AS unread_count,
     -- Puzzle context
     p.id AS puzzle_id,
-    p.name AS puzzle_name
+    p.name AS puzzle_name,
+    p.image AS puzzle_image,
+    sli.listing_type AS listing_type,
+    sli.price AS listing_price
 FROM conversation c
 JOIN player ip ON c.initiator_id = ip.id
 JOIN player rp ON c.recipient_id = rp.id
 LEFT JOIN puzzle p ON c.puzzle_id = p.id
+LEFT JOIN sell_swap_list_item sli ON c.sell_swap_list_item_id = sli.id
 WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
     {$statusFilter}
 ORDER BY c.last_message_at DESC NULLS LAST
@@ -92,6 +96,9 @@ SQL;
              *     unread_count: int|string,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
+             *     puzzle_image: null|string,
+             *     listing_type: null|string,
+             *     listing_price: null|string,
              * } $row
              */
 
@@ -109,6 +116,9 @@ SQL;
                 puzzleName: $row['puzzle_name'],
                 puzzleId: $row['puzzle_id'],
                 sellSwapListItemId: $row['sell_swap_list_item_id'],
+                puzzleImage: $row['puzzle_image'],
+                listingType: $row['listing_type'],
+                listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
             );
         }, $data);
     }
@@ -131,10 +141,14 @@ SELECT
     ip.avatar AS other_player_avatar,
     ip.country AS other_player_country,
     p.id AS puzzle_id,
-    p.name AS puzzle_name
+    p.name AS puzzle_name,
+    p.image AS puzzle_image,
+    sli.listing_type AS listing_type,
+    sli.price AS listing_price
 FROM conversation c
 JOIN player ip ON c.initiator_id = ip.id
 LEFT JOIN puzzle p ON c.puzzle_id = p.id
+LEFT JOIN sell_swap_list_item sli ON c.sell_swap_list_item_id = sli.id
 WHERE c.recipient_id = :playerId
     AND c.status = :status
 ORDER BY c.created_at DESC
@@ -161,6 +175,9 @@ SQL;
              *     other_player_country: null|string,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
+             *     puzzle_image: null|string,
+             *     listing_type: null|string,
+             *     listing_price: null|string,
              * } $row
              */
 
@@ -178,6 +195,9 @@ SQL;
                 puzzleName: $row['puzzle_name'],
                 puzzleId: $row['puzzle_id'],
                 sellSwapListItemId: $row['sell_swap_list_item_id'],
+                puzzleImage: $row['puzzle_image'],
+                listingType: $row['listing_type'],
+                listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
             );
         }, $data);
     }

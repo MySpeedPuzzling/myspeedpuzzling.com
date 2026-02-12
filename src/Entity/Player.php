@@ -106,6 +106,14 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $allowDirectMessages = true;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $ratingCount = 0;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DECIMAL, precision: 3, scale: 2, nullable: true)]
+    public null|string $averageRating = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -250,5 +258,11 @@ class Player
     public function changeAllowDirectMessages(bool $allow): void
     {
         $this->allowDirectMessages = $allow;
+    }
+
+    public function updateRatingStats(int $count, null|string $average): void
+    {
+        $this->ratingCount = $count;
+        $this->averageRating = $average;
     }
 }

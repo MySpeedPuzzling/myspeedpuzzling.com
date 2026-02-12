@@ -1,0 +1,16 @@
+{# Reusable rating summary partial #}
+{# Usage: {% include 'rating/_rating_summary.html.twig' with {average_rating: 4.7, rating_count: 23, player_id: '...'} %} #}
+{% if rating_count is defined and rating_count > 0 %}
+    <span class="d-inline-flex align-items-center gap-1">
+        {% include 'rating/_rating_stars.html.twig' with {stars: average_rating} %}
+        <small class="text-muted">
+            {{ average_rating|number_format(1) }}
+            ({{ rating_count }})
+        </small>
+        {% if player_id is defined %}
+            <a href="{{ path('player_ratings', {playerId: player_id}) }}" class="text-muted text-decoration-underline">
+                <small>View all</small>
+            </a>
+        {% endif %}
+    </span>
+{% endif %}

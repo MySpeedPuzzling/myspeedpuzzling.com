@@ -25,6 +25,33 @@
                         {% endif %}
                     </div>
 
+                    {% if conversation.puzzleName %}
+                        <div class="d-flex align-items-center mb-2 p-2 bg-light rounded">
+                            {% if conversation.puzzleImage %}
+                                <img src="{{ conversation.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 50px; max-height: 50px; object-fit: contain;">
+                            {% endif %}
+                            <div>
+                                <a href="{{ path('puzzle_detail', {puzzleId: conversation.puzzleId}) }}" class="fw-bold small text-decoration-none">{{ conversation.puzzleName }}</a>
+                                <div>
+                                    {% if conversation.listingType %}
+                                        {% if conversation.listingType == 'sell' %}
+                                            <span class="badge bg-success" style="font-size: 0.7rem;">Sell</span>
+                                        {% elseif conversation.listingType == 'swap' %}
+                                            <span class="badge bg-info" style="font-size: 0.7rem;">Swap</span>
+                                        {% elseif conversation.listingType == 'both' %}
+                                            <span class="badge bg-primary" style="font-size: 0.7rem;">Sell / Swap</span>
+                                        {% elseif conversation.listingType == 'free' %}
+                                            <span class="badge bg-danger" style="font-size: 0.7rem;">Free</span>
+                                        {% endif %}
+                                    {% endif %}
+                                    {% if conversation.listingPrice %}
+                                        <span class="fw-bold small">{{ conversation.listingPrice }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
                     <div class="d-flex gap-2">
                         <form action="{{ path('accept_conversation', {conversationId: conversation.conversationId}) }}" method="post">
                             <button type="submit" class="btn btn-sm btn-success">

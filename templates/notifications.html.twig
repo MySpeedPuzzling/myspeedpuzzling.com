@@ -74,6 +74,25 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isRatingNotification %}
+                                {# Transaction rating notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi bi-star-fill fs-3 text-warning"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    <span>Rate your transaction with
+                                        <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.ratingOtherPlayerId}) }}">{{ notification.ratingOtherPlayerName }}</a>
+                                        for <strong>{{ notification.ratingPuzzleName }}</strong>
+                                    </span>
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    <a href="{{ path('rate_transaction', {soldSwappedItemId: notification.soldSwappedItemId}) }}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-star"></i> Rate
+                                    </a>
+                                </td>
                             {% elseif notification.isLendingNotification %}
                                 {# Lending notification #}
                                 <td class="text-center" style="width: 60px;">

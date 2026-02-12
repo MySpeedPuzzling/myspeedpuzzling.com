@@ -59,11 +59,27 @@ final class ConversationDetailController extends AbstractController
             ));
         }
 
+        $puzzleContext = null;
+        if ($conversation->puzzle !== null) {
+            $puzzleContext = [
+                'id' => $conversation->puzzle->id->toString(),
+                'name' => $conversation->puzzle->name,
+                'image' => $conversation->puzzle->image,
+                'piecesCount' => $conversation->puzzle->piecesCount,
+            ];
+
+            if ($conversation->sellSwapListItem !== null) {
+                $puzzleContext['listingType'] = $conversation->sellSwapListItem->listingType->value;
+                $puzzleContext['price'] = $conversation->sellSwapListItem->price;
+            }
+        }
+
         return $this->render('messaging/conversation_detail.html.twig', [
             'conversation' => $conversation,
             'messages' => $messages,
             'other_player' => $otherPlayer,
             'is_recipient' => $isRecipient,
+            'puzzle_context' => $puzzleContext,
         ]);
     }
 }

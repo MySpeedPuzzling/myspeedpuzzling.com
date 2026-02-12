@@ -10,6 +10,8 @@ use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
+use SpeedPuzzling\Web\Query\HasExistingConversation;
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -26,6 +28,8 @@ final class PlayerProfileController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetTags $getTags,
         readonly private GetBadges $getBadges,
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private HasExistingConversation $hasExistingConversation,
     ) {
     }
 
@@ -50,12 +54,20 @@ final class PlayerProfileController extends AbstractController
             return $this->redirectToRoute('ladder');
         }
 
+        $canMessage = false;
+        $loggedProfile = $this->retrieveLoggedUserProfile->getProfile();
+        if ($loggedProfile !== null && $loggedProfile->playerId !== $player->playerId) {
+            $canMessage = $player->allowDirectMessages
+                || $this->hasExistingConversation->acceptedBetween($loggedProfile->playerId, $player->playerId);
+        }
+
         return $this->render('player_profile.html.twig', [
             'player' => $player,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
+            'can_message' => $canMessage,
         ]);
     }
 }

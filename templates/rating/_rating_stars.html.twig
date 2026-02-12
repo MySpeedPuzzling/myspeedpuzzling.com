@@ -1,0 +1,15 @@
+{# Displays filled/empty stars for a numeric rating #}
+{# Usage: {% include 'rating/_rating_stars.html.twig' with {stars: 4.5} %} #}
+{% set full_stars = stars|round(0, 'floor') %}
+{% set has_half = (stars - full_stars) >= 0.25 and (stars - full_stars) < 0.75 %}
+{% set full_stars = (stars - full_stars) >= 0.75 ? full_stars + 1 : full_stars %}
+
+{% for i in 1..5 %}
+    {% if i <= full_stars %}
+        <i class="bi bi-star-fill text-warning"></i>
+    {% elseif has_half and i == full_stars + 1 %}
+        <i class="bi bi-star-half text-warning"></i>
+    {% else %}
+        <i class="bi bi-star text-warning"></i>
+    {% endif %}
+{% endfor %}

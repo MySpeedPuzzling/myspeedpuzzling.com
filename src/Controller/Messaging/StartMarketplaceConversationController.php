@@ -43,6 +43,12 @@ final class StartMarketplaceConversationController extends AbstractController
         $puzzle = $this->getPuzzleOverview->byId($sellSwapListItem->puzzle->id->toString());
         $recipientId = $sellSwapListItem->player->id->toString();
 
+        if ($recipientId === $loggedPlayer->playerId) {
+            $this->addFlash('warning', 'You cannot contact yourself.');
+
+            return $this->redirectToRoute('conversations_list');
+        }
+
         if ($request->isMethod('POST')) {
             $messageContent = trim($request->request->getString('message'));
 

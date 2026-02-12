@@ -58,6 +58,12 @@ readonly final class PlayerNotification
         public null|string $mergeRequestPuzzleName = null,
         public null|string $mergeRequestPuzzleImage = null,
         public null|string $mergeRequestRejectionReason = null,
+        // Transaction rating notification fields
+        public null|string $soldSwappedItemId = null,
+        public null|string $ratingPuzzleName = null,
+        public null|string $ratingPuzzleImage = null,
+        public null|string $ratingOtherPlayerName = null,
+        public null|string $ratingOtherPlayerId = null,
     ) {
     }
 
@@ -154,6 +160,12 @@ readonly final class PlayerNotification
             mergeRequestPuzzleName: is_string($row['merge_request_puzzle_name'] ?? null) ? $row['merge_request_puzzle_name'] : null,
             mergeRequestPuzzleImage: is_string($row['merge_request_puzzle_image'] ?? null) ? $row['merge_request_puzzle_image'] : null,
             mergeRequestRejectionReason: is_string($row['merge_request_rejection_reason'] ?? null) ? $row['merge_request_rejection_reason'] : null,
+            // Rating notification fields
+            soldSwappedItemId: is_string($row['sold_swapped_item_id'] ?? null) ? $row['sold_swapped_item_id'] : null,
+            ratingPuzzleName: is_string($row['rating_puzzle_name'] ?? null) ? $row['rating_puzzle_name'] : null,
+            ratingPuzzleImage: is_string($row['rating_puzzle_image'] ?? null) ? $row['rating_puzzle_image'] : null,
+            ratingOtherPlayerName: is_string($row['rating_other_player_name'] ?? null) ? $row['rating_other_player_name'] : null,
+            ratingOtherPlayerId: is_string($row['rating_other_player_id'] ?? null) ? $row['rating_other_player_id'] : null,
         );
     }
 
@@ -175,5 +187,10 @@ readonly final class PlayerNotification
     public function isMergeRequestNotification(): bool
     {
         return $this->mergeRequestId !== null;
+    }
+
+    public function isRatingNotification(): bool
+    {
+        return $this->soldSwappedItemId !== null;
     }
 }

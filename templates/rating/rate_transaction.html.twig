@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rate Transaction{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <h1 class="h3 mb-4">Rate your transaction</h1>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-3">
+                            {% if sold_swapped_item.puzzle.image is not null %}
+                                <img
+                                    src="{{ sold_swapped_item.puzzle.image|puzzle_image('puzzle_small') }}"
+                                    alt="{{ sold_swapped_item.puzzle.name }}"
+                                    class="rounded"
+                                    style="max-height: 80px; max-width: 80px; object-fit: contain;"
+                                >
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-1">{{ sold_swapped_item.puzzle.name }}</h6>
+                                <div class="text-muted small">
+                                    {{ sold_swapped_item.puzzle.piecesCount }} pcs
+                                    &middot;
+                                    {% if sold_swapped_item.listingType.value == 'sell' %}
+                                        Sold
+                                    {% elseif sold_swapped_item.listingType.value == 'swap' %}
+                                        Swapped
+                                    {% else %}
+                                        {{ sold_swapped_item.listingType.value|capitalize }}
+                                    {% endif %}
+                                </div>
+                                <div class="small">
+                                    {% if is_seller %}
+                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'Sold to' : 'Swapped with' }}:
+                                    {% else %}
+                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'Bought from' : 'Swapped with' }}:
+                                    {% endif %}
+                                    <strong>{{ other_player.name ?? ('#' ~ other_player.code) }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Rating</label>
+                        <div class="star-rating-input d-flex gap-1 fs-2">
+                            {% for i in 1..5 %}
+                                <div class="form-check d-inline-block p-0">
+                                    <input type="radio" name="stars" value="{{ i }}" id="stars_{{ i }}" class="d-none star-radio" required>
+                                    <label for="stars_{{ i }}" class="star-label" style="cursor: pointer;" title="{{ i }} star{{ i != 1 ? 's' }}">
+                                        <i class="bi bi-star text-warning"></i>
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="review_text" class="form-label">Review (optional)</label>
+                        <textarea name="review_text" id="review_text" class="form-control" rows="4" maxlength="500" placeholder="Share your experience..."></textarea>
+                        <div class="form-text">Optional. Max 500 characters.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-star-fill me-1"></i> Submit Rating
+                    </button>
+                    <a href="{{ path('sold_swapped_history', {playerId: app.user ? (app.user.userIdentifier) : ''}) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const radioInputs = document.querySelectorAll('.star-radio');
+            const labels = document.querySelectorAll('.star-label');
+
+            function updateStars() {
+                let checkedValue = 0;
+                radioInputs.forEach(function(input) {
+                    if (input.checked) checkedValue = parseInt(input.value);
+                });
+
+                labels.forEach(function(label, index) {
+                    const icon = label.querySelector('i');
+                    if (index < checkedValue) {
+                        icon.className = 'bi bi-star-fill text-warning';
+                    } else {
+                        icon.className = 'bi bi-star text-warning';
+                    }
+                });
+            }
+
+            radioInputs.forEach(function(input) {
+                input.addEventListener('change', updateStars);
+            });
+
+            labels.forEach(function(label, index) {
+                label.addEventListener('mouseenter', function() {
+                    labels.forEach(function(l, i) {
+                        const icon = l.querySelector('i');
+                        if (i <= index) {
+                            icon.className = 'bi bi-star-fill text-warning';
+                        } else {
+                            icon.className = 'bi bi-star text-warning';
+                        }
+                    });
+                });
+            });
+
+            const container = document.querySelector('.star-rating-input');
+            if (container) {
+                container.addEventListener('mouseleave', updateStars);
+            }
+
+            // Initialize on load
+            updateStars();
+        });
+    </script>
+{% endblock %}

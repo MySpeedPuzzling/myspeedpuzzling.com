@@ -18,6 +18,8 @@ final class SoldSwappedItemFixture extends Fixture implements DependentFixtureIn
 {
     public const string SOLD_01 = '018d000d-0000-0000-0000-000000000001';
     public const string SOLD_02 = '018d000d-0000-0000-0000-000000000002';
+    public const string SOLD_RECENT = '018d000d-0000-0000-0000-000000000003';
+    public const string SOLD_EXPIRED = '018d000d-0000-0000-0000-000000000004';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -30,6 +32,7 @@ final class SoldSwappedItemFixture extends Fixture implements DependentFixtureIn
         $playerPrivate = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
         $playerRegular = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
         $puzzle500_05 = $this->getReference(PuzzleFixture::PUZZLE_500_05, Puzzle::class);
+        $puzzle1000_01 = $this->getReference(PuzzleFixture::PUZZLE_1000_01, Puzzle::class);
 
         // PLAYER_ADMIN sold PUZZLE_500_05 to PLAYER_REGULAR
         $sold01 = new SoldSwappedItem(
@@ -58,6 +61,34 @@ final class SoldSwappedItemFixture extends Fixture implements DependentFixtureIn
         );
         $manager->persist($sold02);
         $this->addReference(self::SOLD_02, $sold02);
+
+        // PLAYER_WITH_STRIPE sold to PLAYER_REGULAR - recent (within 30-day window)
+        $soldRecent = new SoldSwappedItem(
+            id: Uuid::fromString(self::SOLD_RECENT),
+            seller: $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class),
+            puzzle: $puzzle1000_01,
+            buyerPlayer: $playerRegular,
+            buyerName: null,
+            listingType: ListingType::Sell,
+            price: 15.00,
+            soldAt: $this->clock->now()->modify('-5 days'),
+        );
+        $manager->persist($soldRecent);
+        $this->addReference(self::SOLD_RECENT, $soldRecent);
+
+        // PLAYER_ADMIN sold to PLAYER_WITH_FAVORITES - expired (>30 days)
+        $soldExpired = new SoldSwappedItem(
+            id: Uuid::fromString(self::SOLD_EXPIRED),
+            seller: $playerAdmin,
+            puzzle: $puzzle1000_01,
+            buyerPlayer: $this->getReference(PlayerFixture::PLAYER_WITH_FAVORITES, Player::class),
+            buyerName: null,
+            listingType: ListingType::Swap,
+            price: null,
+            soldAt: $this->clock->now()->modify('-60 days'),
+        );
+        $manager->persist($soldExpired);
+        $this->addReference(self::SOLD_EXPIRED, $soldExpired);
 
         $manager->flush();
     }

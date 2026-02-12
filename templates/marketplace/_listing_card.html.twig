@@ -1,66 +1,83 @@
-<a href="{{ path('puzzler_offers', {puzzleId: item.puzzleId}) }}" class="card h-100 shadow-sm text-decoration-none border-0 position-relative">
+<div class="card h-100 shadow-sm border-0 position-relative">
     {% if item.reserved %}
         <span class="badge bg-warning position-absolute top-0 end-0 m-2" style="z-index: 1;">RESERVED</span>
     {% endif %}
 
-    <div class="card-img-top text-center bg-light p-2" style="min-height: 140px;">
-        <img
-            src="{{ item.puzzleImage|puzzle_image('puzzle_small') }}"
-            alt="{{ item.puzzleName }}"
-            class="rounded"
-            style="max-height: 130px; max-width: 100%; object-fit: contain;"
-        >
-    </div>
+    <a href="{{ path('puzzler_offers', {puzzleId: item.puzzleId}) }}" class="text-decoration-none">
+        <div class="card-img-top text-center bg-light p-2" style="min-height: 140px;">
+            <img
+                src="{{ item.puzzleImage|puzzle_image('puzzle_small') }}"
+                alt="{{ item.puzzleName }}"
+                class="rounded"
+                style="max-height: 130px; max-width: 100%; object-fit: contain;"
+            >
+        </div>
+    </a>
 
     <div class="card-body p-2 d-flex flex-column">
-        <h6 class="card-title fs-sm mb-1 text-dark" title="{{ item.puzzleName }}">
-            {{ item.puzzleName|length > 60 ? item.puzzleName|slice(0, 57) ~ '...' : item.puzzleName }}
-        </h6>
+        <a href="{{ path('puzzler_offers', {puzzleId: item.puzzleId}) }}" class="text-decoration-none">
+            <h6 class="card-title fs-sm mb-1 text-dark" title="{{ item.puzzleName }}">
+                {{ item.puzzleName|length > 60 ? item.puzzleName|slice(0, 57) ~ '...' : item.puzzleName }}
+            </h6>
 
-        <div class="fs-xs text-muted mb-1">
-            {{ item.piecesCount }} pcs{% if item.manufacturerName %} &middot; {{ item.manufacturerName }}{% endif %}
-        </div>
+            <div class="fs-xs text-muted mb-1">
+                {{ item.piecesCount }} pcs{% if item.manufacturerName %} &middot; {{ item.manufacturerName }}{% endif %}
+            </div>
 
-        <div class="mb-1">
-            {% if item.listingType == 'sell' %}
-                <span class="badge bg-success">Sell</span>
-            {% elseif item.listingType == 'swap' %}
-                <span class="badge bg-info">Swap</span>
-            {% elseif item.listingType == 'both' %}
-                <span class="badge bg-primary">Sell / Swap</span>
-            {% elseif item.listingType == 'free' %}
-                <span class="badge bg-danger">Free</span>
-            {% endif %}
+            <div class="mb-1">
+                {% if item.listingType == 'sell' %}
+                    <span class="badge bg-success">Sell</span>
+                {% elseif item.listingType == 'swap' %}
+                    <span class="badge bg-info">Swap</span>
+                {% elseif item.listingType == 'both' %}
+                    <span class="badge bg-primary">Sell / Swap</span>
+                {% elseif item.listingType == 'free' %}
+                    <span class="badge bg-danger">Free</span>
+                {% endif %}
 
-            {% if item.condition == 'like_new' %}
-                <span class="badge bg-secondary">Like New</span>
-            {% elseif item.condition == 'normal' %}
-                <span class="badge bg-secondary">Normal</span>
-            {% elseif item.condition == 'not_so_good' %}
-                <span class="badge bg-secondary">Not So Good</span>
-            {% elseif item.condition == 'missing_pieces' %}
-                <span class="badge bg-secondary">Missing Pieces</span>
-            {% endif %}
-        </div>
+                {% if item.condition == 'like_new' %}
+                    <span class="badge bg-secondary">Like New</span>
+                {% elseif item.condition == 'normal' %}
+                    <span class="badge bg-secondary">Normal</span>
+                {% elseif item.condition == 'not_so_good' %}
+                    <span class="badge bg-secondary">Not So Good</span>
+                {% elseif item.condition == 'missing_pieces' %}
+                    <span class="badge bg-secondary">Missing Pieces</span>
+                {% endif %}
+            </div>
 
-        <div class="mb-1">
-            {% if item.price is not null %}
-                <span class="fw-bold text-dark">{{ item.price }} {{ item.sellerCustomCurrency ?? item.sellerCurrency ?? '' }}</span>
-            {% elseif item.listingType == 'swap' %}
-                <span class="text-info fw-bold">Swap</span>
-            {% elseif item.listingType == 'free' %}
-                <span class="text-danger fw-bold">Free</span>
-            {% endif %}
-        </div>
+            <div class="mb-1">
+                {% if item.price is not null %}
+                    <span class="fw-bold text-dark">{{ item.price }} {{ item.sellerCustomCurrency ?? item.sellerCurrency ?? '' }}</span>
+                {% elseif item.listingType == 'swap' %}
+                    <span class="text-info fw-bold">Swap</span>
+                {% elseif item.listingType == 'free' %}
+                    <span class="text-danger fw-bold">Free</span>
+                {% endif %}
+            </div>
+        </a>
 
-        <div class="mt-auto d-flex align-items-center">
-            {% if item.sellerAvatar %}
-                <img src="{{ item.sellerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;">
-            {% endif %}
-            <small class="text-muted">{{ item.sellerName ?? item.sellerCode }}</small>
-            {% if item.sellerCountry %}
-                <small class="fi fi-{{ item.sellerCountry }} shadow-custom ms-1"></small>
+        <div class="mt-auto d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                {% if item.sellerAvatar %}
+                    <img src="{{ item.sellerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle me-1" style="width: 20px; height: 20px; object-fit: cover;">
+                {% endif %}
+                <small class="text-muted">{{ item.sellerName ?? item.sellerCode }}</small>
+                {% if item.sellerCountry %}
+                    <small class="fi fi-{{ item.sellerCountry }} shadow-custom ms-1"></small>
+                {% endif %}
+                {% if item.sellerRatingCount is defined and item.sellerRatingCount > 0 %}
+                    <small class="ms-1 text-warning" title="{{ item.sellerAverageRating|number_format(1) }} ({{ item.sellerRatingCount }})">
+                        <i class="bi bi-star-fill"></i> {{ item.sellerAverageRating|number_format(1) }}
+                    </small>
+                {% endif %}
+            </div>
+
+            {% if logged_user.profile is not null and logged_user.profile.playerId is not same as item.sellerId %}
+                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary btn-xs py-0 px-1" title="Contact seller">
+                    <i class="bi bi-envelope" style="font-size: 0.75rem;"></i>
+                </a>
             {% endif %}
         </div>
     </div>
-</a>
+</div>

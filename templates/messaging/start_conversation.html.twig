@@ -34,11 +34,11 @@
 
                     {% if puzzle is defined and puzzle is not null %}
                         <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-                            {% if puzzle.image %}
-                                <img src="{{ puzzle.image|imagine_filter('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
+                            {% if puzzle.puzzleImage %}
+                                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
                             {% endif %}
                             <div>
-                                <div class="fw-bold">{{ puzzle.name }}</div>
+                                <div class="fw-bold">{{ puzzle.puzzleName }}</div>
                                 {% if sell_swap_list_item is defined %}
                                     <div class="text-muted small">
                                         {{ sell_swap_list_item.listingType.value|capitalize }}

@@ -55,7 +55,9 @@ readonly final class GetMarketplaceListings
     pl.code AS seller_code,
     pl.avatar AS seller_avatar,
     pl.country AS seller_country,
-    pl.sell_swap_list_settings';
+    pl.sell_swap_list_settings,
+    pl.rating_count AS seller_rating_count,
+    pl.average_rating AS seller_average_rating';
 
         if ($hasSearch && $sort === 'relevance') {
             $query .= ',
@@ -209,6 +211,8 @@ LIMIT :limit OFFSET :offset';
              *     seller_avatar: string|null,
              *     seller_country: string|null,
              *     sell_swap_list_settings: string|null,
+             *     seller_rating_count: int|string,
+             *     seller_average_rating: string|null,
              * } $row
              */
 
@@ -245,6 +249,8 @@ LIMIT :limit OFFSET :offset';
                 sellerCurrency: $currency,
                 sellerCustomCurrency: $customCurrency,
                 sellerShippingCost: $shippingCost,
+                sellerRatingCount: (int) $row['seller_rating_count'],
+                sellerAverageRating: $row['seller_average_rating'] !== null ? (float) $row['seller_average_rating'] : null,
             );
         }, $data);
     }

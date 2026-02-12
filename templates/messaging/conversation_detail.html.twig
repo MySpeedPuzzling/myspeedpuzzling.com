@@ -24,12 +24,6 @@
                     <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="fw-bold text-decoration-none">
                         {{ other_player.name ?? other_player.code }}
                     </a>
-                    {% if conversation.puzzle %}
-                        <div class="text-muted small">
-                            <i class="bi bi-puzzle me-1"></i>
-                            Regarding: {{ conversation.puzzle.name }}
-                        </div>
-                    {% endif %}
                 </div>
             </div>
 
@@ -48,6 +42,40 @@
                 </ul>
             </div>
         </div>
+
+        {% if puzzle_context is not null %}
+            <div class="card-body border-bottom bg-light py-2 px-3">
+                <div class="d-flex align-items-center">
+                    <small class="text-muted me-2">Regarding:</small>
+                    {% if puzzle_context.image %}
+                        <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
+                    {% endif %}
+                    <div>
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle_context.id}) }}" class="fw-bold text-decoration-none small">
+                            {{ puzzle_context.name }}
+                        </a>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            {{ puzzle_context.piecesCount }} pcs
+                            {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
+                                &middot;
+                                {% if puzzle_context.listingType == 'sell' %}
+                                    <span class="badge bg-success" style="font-size: 0.65rem;">Sell</span>
+                                {% elseif puzzle_context.listingType == 'swap' %}
+                                    <span class="badge bg-info" style="font-size: 0.65rem;">Swap</span>
+                                {% elseif puzzle_context.listingType == 'both' %}
+                                    <span class="badge bg-primary" style="font-size: 0.65rem;">Sell / Swap</span>
+                                {% elseif puzzle_context.listingType == 'free' %}
+                                    <span class="badge bg-danger" style="font-size: 0.65rem;">Free</span>
+                                {% endif %}
+                            {% endif %}
+                            {% if puzzle_context.price is defined and puzzle_context.price is not null %}
+                                &middot; {{ puzzle_context.price }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
 
         <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
              data-controller="messaging"

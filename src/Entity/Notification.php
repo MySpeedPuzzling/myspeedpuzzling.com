@@ -51,6 +51,10 @@ class Notification
         #[JoinColumn(onDelete: 'CASCADE')]
         #[Immutable]
         public null|PuzzleMergeRequest $targetMergeRequest = null,
+        #[ManyToOne]
+        #[JoinColumn(onDelete: 'CASCADE')]
+        #[Immutable]
+        public null|SoldSwappedItem $targetSoldSwappedItem = null,
     ) {
     }
 }

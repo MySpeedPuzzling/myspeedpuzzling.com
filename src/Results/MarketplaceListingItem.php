@@ -28,6 +28,8 @@ readonly final class MarketplaceListingItem
         public null|string $sellerCurrency,
         public null|string $sellerCustomCurrency,
         public null|string $sellerShippingCost,
+        public int $sellerRatingCount = 0,
+        public null|float $sellerAverageRating = null,
     ) {
     }
 }

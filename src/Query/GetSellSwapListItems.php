@@ -140,7 +140,9 @@ SELECT
     pl.code as player_code,
     pl.avatar as player_avatar,
     pl.country as player_country,
-    pl.sell_swap_list_settings
+    pl.sell_swap_list_settings,
+    pl.rating_count AS seller_rating_count,
+    pl.average_rating AS seller_average_rating
 FROM sell_swap_list_item ssli
 JOIN player pl ON ssli.player_id = pl.id
 WHERE ssli.puzzle_id = :puzzleId
@@ -166,6 +168,8 @@ SQL;
              *     player_avatar: string|null,
              *     player_country: string|null,
              *     sell_swap_list_settings: string|null,
+             *     seller_rating_count: int|string,
+             *     seller_average_rating: string|null,
              * } $row
              */
 
@@ -193,6 +197,8 @@ SQL;
                 currency: $currency,
                 customCurrency: $customCurrency,
                 reserved: (bool) $row['reserved'],
+                sellerRatingCount: (int) $row['seller_rating_count'],
+                sellerAverageRating: $row['seller_average_rating'] !== null ? (float) $row['seller_average_rating'] : null,
             );
         }, $data);
     }

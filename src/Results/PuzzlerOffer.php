@@ -27,6 +27,8 @@ readonly final class PuzzlerOffer
         public null|string $currency,
         public null|string $customCurrency,
         public bool $reserved,
+        public int $sellerRatingCount = 0,
+        public null|float $sellerAverageRating = null,
     ) {
     }
 }

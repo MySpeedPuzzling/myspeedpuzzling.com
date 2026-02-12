@@ -1,0 +1,35 @@
+{# Single rating display card #}
+{# Usage: {% include 'rating/_rating_card.html.twig' with {rating: ratingView} %} #}
+<div class="d-flex gap-3 py-3 border-bottom">
+    <div class="flex-shrink-0">
+        {% if rating.reviewerAvatar %}
+            <img src="{{ rating.reviewerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+        {% else %}
+            <span class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-size: 16px;">
+                {{ rating.reviewerName|slice(0, 1)|upper }}
+            </span>
+        {% endif %}
+    </div>
+    <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <strong>{{ rating.reviewerName }}</strong>
+            {% if rating.reviewerCountry %}
+                <small class="fi fi-{{ rating.reviewerCountry }} shadow-custom"></small>
+            {% endif %}
+            <span class="badge bg-secondary">{{ rating.reviewerRole == 'seller' ? 'Seller' : 'Buyer' }}</span>
+        </div>
+        <div class="mb-1">
+            {% include 'rating/_rating_stars.html.twig' with {stars: rating.stars} %}
+        </div>
+        {% if rating.reviewText %}
+            <p class="mb-1">{{ rating.reviewText }}</p>
+        {% endif %}
+        <div class="text-muted small">
+            <a href="{{ path('puzzle_detail', {puzzleId: rating.puzzleId}) }}" class="text-muted text-decoration-underline">
+                {{ rating.puzzleName }}{% if rating.puzzlePiecesCount %} ({{ rating.puzzlePiecesCount }} pcs){% endif %}
+            </a>
+            &middot;
+            {{ rating.ratedAt|ago }}
+        </div>
+    </div>
+</div>

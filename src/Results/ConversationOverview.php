@@ -23,6 +23,9 @@ readonly final class ConversationOverview
         public null|string $puzzleName = null,
         public null|string $puzzleId = null,
         public null|string $sellSwapListItemId = null,
+        public null|string $puzzleImage = null,
+        public null|string $listingType = null,
+        public null|float $listingPrice = null,
     ) {
     }
 }

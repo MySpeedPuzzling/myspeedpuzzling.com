@@ -1249,6 +1249,9 @@ puzzler_offers:
         type: "Type"
         price: "Price"
         condition: "Condition"
+    view_all: "View all %count% offers"
+    offers_link: "Offers (%count%)"
+    view_on_marketplace: "View on marketplace"
 
 lend_borrow:
     name: "Lend & Borrow"
@@ -1424,3 +1427,14 @@ pending_proposals:
         merge_request: "Merge Request"
     reported_by: "Reported by"
     go_to_admin: "Go to admin"
+
+moderation:
+    report_submitted: "Report submitted successfully. Our team will review it."
+    report_resolved: "Report has been resolved."
+    report_dismissed: "Report has been dismissed."
+    warning_issued: "Warning has been issued."
+    user_muted: "User has been muted for %days% days."
+    user_unmuted: "User has been unmuted."
+    marketplace_banned: "User has been banned from the marketplace."
+    ban_lifted: "Marketplace ban has been lifted."
+    listing_removed: "Listing has been removed."

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\PuzzlerOffer;
 use SpeedPuzzling\Web\Results\SellSwapListItemOverview;
@@ -201,6 +202,36 @@ SQL;
                 sellerAverageRating: $row['seller_average_rating'] !== null ? (float) $row['seller_average_rating'] : null,
             );
         }, $data);
+    }
+
+    /**
+     * @param string[] $puzzleIds
+     * @return array<string, int> puzzleId => count
+     */
+    public function countByPuzzleIds(array $puzzleIds): array
+    {
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        $query = <<<SQL
+SELECT puzzle_id, COUNT(*) as offer_count
+FROM sell_swap_list_item
+WHERE puzzle_id IN (:puzzleIds)
+GROUP BY puzzle_id
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, ['puzzleIds' => $puzzleIds], ['puzzleIds' => ArrayParameterType::STRING])
+            ->fetchAllAssociative();
+
+        $counts = [];
+        foreach ($data as $row) {
+            /** @var array{puzzle_id: string, offer_count: int|string} $row */
+            $counts[$row['puzzle_id']] = (int) $row['offer_count'];
+        }
+
+        return $counts;
     }
 
     public function countByPuzzleId(string $puzzleId): int

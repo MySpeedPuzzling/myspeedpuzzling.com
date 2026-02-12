@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
+use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\SendMessage;
@@ -37,6 +38,7 @@ readonly final class SendMessageHandler
      * @throws ConversationNotFound
      * @throws PlayerNotFound
      * @throws UserIsBlocked
+     * @throws MessagingMuted
      */
     public function __invoke(SendMessage $message): void
     {
@@ -47,6 +49,10 @@ readonly final class SendMessageHandler
         }
 
         $sender = $this->playerRepository->get($message->senderId);
+
+        if ($sender->isMessagingMuted()) {
+            throw new MessagingMuted();
+        }
 
         // Verify sender is a participant
         $isInitiator = $conversation->initiator->id->toString() === $message->senderId;

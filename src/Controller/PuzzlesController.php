@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\FormData\SearchPuzzleFormData;
 use SpeedPuzzling\Web\FormType\SearchPuzzleFormType;
 use SpeedPuzzling\Web\Query\GetRanking;
+use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
@@ -32,6 +33,7 @@ final class PuzzlesController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetTags $getTags,
         readonly private CacheInterface $cache,
+        readonly private GetSellSwapListItems $getSellSwapListItems,
     ) {
     }
 
@@ -110,6 +112,9 @@ final class PuzzlesController extends AbstractController
 
         $usingSearch = is_string($search);
 
+        $puzzleIds = array_map(static fn (PuzzleOverview $p): string => $p->puzzleId, $foundPuzzle);
+        $offerCounts = $this->getSellSwapListItems->countByPuzzleIds($puzzleIds);
+
         return $this->render($templateName, [
             'puzzles' => $foundPuzzle,
             'total_puzzles_count' => $totalPuzzlesCount,
@@ -122,6 +127,7 @@ final class PuzzlesController extends AbstractController
             'next_offset' => $offset + $limit,
             'remaining' => max($totalPuzzlesCount - $limit - $offset, 0),
             'using_search' => $usingSearch,
+            'offer_counts' => $offerCounts,
         ]);
     }
 

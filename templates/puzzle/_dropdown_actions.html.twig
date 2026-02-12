@@ -41,7 +41,22 @@
     }) }}
 {% endif %}
 
+{% set puzzle_offer_count = (offer_counts is defined and offer_counts[puzzle_id] is defined) ? offer_counts[puzzle_id] : null %}
 <li><hr class="dropdown-divider"></li>
+
+{% if puzzle_offer_count is not null and puzzle_offer_count > 0 %}
+    <li>
+        <a class="dropdown-item" href="{{ path('puzzler_offers', {puzzleId: puzzle_id}) }}">
+            <i class="bi bi-shop me-1"></i> {{ 'puzzler_offers.offers_link'|trans({'%count%': puzzle_offer_count}) }}
+        </a>
+    </li>
+{% elseif puzzle_offer_count is not null %}
+    <li>
+        <span class="dropdown-item disabled">
+            <i class="bi bi-shop me-1"></i> {{ 'puzzler_offers.offers_link'|trans({'%count%': 0}) }}
+        </span>
+    </li>
+{% endif %}
 
 {# Visible to all users - redirects to login if not authenticated #}
 {{ include('puzzle-report/_dropdown_action.html.twig', {

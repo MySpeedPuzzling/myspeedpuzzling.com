@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
+use DateTimeImmutable;
 
 #[Entity]
 class Player
@@ -113,6 +114,18 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DECIMAL, precision: 3, scale: 2, nullable: true)]
     public null|string $averageRating = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $messagingMuted = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $messagingMutedUntil = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $marketplaceBanned = false;
 
     public function __construct(
         #[Id]
@@ -264,5 +277,40 @@ class Player
     {
         $this->ratingCount = $count;
         $this->averageRating = $average;
+    }
+
+    public function muteMessaging(DateTimeImmutable $until): void
+    {
+        $this->messagingMuted = true;
+        $this->messagingMutedUntil = $until;
+    }
+
+    public function unmuteMessaging(): void
+    {
+        $this->messagingMuted = false;
+        $this->messagingMutedUntil = null;
+    }
+
+    public function banFromMarketplace(): void
+    {
+        $this->marketplaceBanned = true;
+    }
+
+    public function liftMarketplaceBan(): void
+    {
+        $this->marketplaceBanned = false;
+    }
+
+    public function isMessagingMuted(): bool
+    {
+        if (!$this->messagingMuted) {
+            return false;
+        }
+
+        if ($this->messagingMutedUntil !== null && $this->messagingMutedUntil < new DateTimeImmutable()) {
+            return false;
+        }
+
+        return true;
     }
 }

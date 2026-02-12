@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
+use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\SendMessage;
@@ -43,10 +44,16 @@ readonly final class StartConversationHandler
      * @throws UserIsBlocked
      * @throws DirectMessagesDisabled
      * @throws ConversationRequestAlreadyPending
+     * @throws MessagingMuted
      */
     public function __invoke(StartConversation $message): void
     {
         $initiator = $this->playerRepository->get($message->initiatorId);
+
+        if ($initiator->isMessagingMuted()) {
+            throw new MessagingMuted();
+        }
+
         $recipient = $this->playerRepository->get($message->recipientId);
 
         // Check if initiator is blocked by recipient

@@ -50,4 +50,47 @@ final class GetSellSwapListItemsTest extends KernelTestCase
         self::assertNotNull($reservedOffer);
         self::assertTrue($reservedOffer->reserved);
     }
+
+    public function testCountByPuzzleIdsWithMultiplePuzzles(): void
+    {
+        $counts = $this->getSellSwapListItems->countByPuzzleIds([
+            PuzzleFixture::PUZZLE_500_01,
+            PuzzleFixture::PUZZLE_1000_01,
+        ]);
+
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $counts);
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_1000_01, $counts);
+        self::assertGreaterThan(0, $counts[PuzzleFixture::PUZZLE_500_01]);
+        self::assertGreaterThan(0, $counts[PuzzleFixture::PUZZLE_1000_01]);
+    }
+
+    public function testCountByPuzzleIdsWithSinglePuzzle(): void
+    {
+        $counts = $this->getSellSwapListItems->countByPuzzleIds([
+            PuzzleFixture::PUZZLE_500_01,
+        ]);
+
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $counts);
+        self::assertSame(1, $counts[PuzzleFixture::PUZZLE_500_01]);
+    }
+
+    public function testCountByPuzzleIdsExcludesPuzzlesWithoutOffers(): void
+    {
+        // PUZZLE_1000_04 has no sell/swap items in fixtures
+        $counts = $this->getSellSwapListItems->countByPuzzleIds([
+            PuzzleFixture::PUZZLE_500_01,
+            PuzzleFixture::PUZZLE_1000_04,
+        ]);
+
+        self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $counts);
+        self::assertArrayNotHasKey(PuzzleFixture::PUZZLE_1000_04, $counts);
+        self::assertSame(0, $counts[PuzzleFixture::PUZZLE_1000_04] ?? 0);
+    }
+
+    public function testCountByPuzzleIdsWithEmptyArrayReturnsEmpty(): void
+    {
+        $counts = $this->getSellSwapListItems->countByPuzzleIds([]);
+
+        self::assertSame([], $counts);
+    }
 }

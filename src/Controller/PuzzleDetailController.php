@@ -74,13 +74,16 @@ final class PuzzleDetailController extends AbstractController
             $puzzleCollections = $this->getPuzzleCollections->byPlayerAndPuzzle($loggedPlayer->playerId, $puzzleId);
         }
 
+        $offers = $this->getSellSwapListItems->byPuzzleId($puzzleId);
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzle_statuses' => $puzzleStatuses,
             'tags' => $this->getTags->forPuzzle($puzzleId),
             'puzzle_collections' => $puzzleCollections,
             'logged_player' => $loggedPlayer,
-            'offers_count' => $this->getSellSwapListItems->countByPuzzleId($puzzleId),
+            'offers_count' => count($offers),
+            'offers_preview' => array_slice($offers, 0, 3),
             'has_pending_proposals' => $this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId),
         ]);
     }

@@ -42,7 +42,17 @@ subscription_renewed:
     title: "Payment successful, thank you!"
     content: |
         <p>Thank you so much for staying with us and being part of MySpeedPuzzling.com!</p>
-        <p>We’re excited to inform you that your membership has been successfully renewed. Your next billing period begins on: <b>%nextBillingPeriod%</b>.</p>
-        <p>If you’d like to update or review the details of your subscription, you can do so on the <a href="%membershipUrl%">membership page</a>.</p>
-        <p>We’re constantly working on improving and adding new features for our members. If there’s anything we can do better, let us know.</p>
+        <p>We're excited to inform you that your membership has been successfully renewed. Your next billing period begins on: <b>%nextBillingPeriod%</b>.</p>
+        <p>If you'd like to update or review the details of your subscription, you can do so on the <a href="%membershipUrl%">membership page</a>.</p>
+        <p>We're constantly working on improving and adding new features for our members. If there's anything we can do better, let us know.</p>
         <p>Once again, thank you for your support. We wish you lots of fast speed puzzling and amazing results!</p>
+
+unread_messages:
+    subject: "You have unread messages on MySpeedPuzzling"
+    title: "You have unread messages"
+    greeting: "Hi %playerName%,"
+    intro: "You have unread messages waiting for you:"
+    message_line: "%count% message(s) from %senderName%"
+    message_line_with_puzzle: "%count% message(s) from %senderName% (about: %puzzleName%)"
+    view_messages: "View your messages"
+    opt_out: 'You can turn off these notifications in your <a href="%settingsUrl%">profile settings</a>.'

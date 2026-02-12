@@ -23,6 +23,7 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
     public const string MESSAGE_PENDING = '018d000f-0000-0000-0000-000000000005';
     public const string MESSAGE_MARKETPLACE_01 = '018d000f-0000-0000-0000-000000000006';
     public const string MESSAGE_MARKETPLACE_02 = '018d000f-0000-0000-0000-000000000007';
+    public const string MESSAGE_OLD_UNREAD = '018d000f-0000-0000-0000-000000000008';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -112,6 +113,16 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
             sentAt: $now->modify('-3 days'),
         );
         $manager->persist($msgMarketplace02);
+
+        // Old unread message from ADMIN to REGULAR (sent 2 days ago, unread) - for notification testing
+        $msgOldUnread = $this->createMessage(
+            id: self::MESSAGE_OLD_UNREAD,
+            conversation: $acceptedConversation,
+            sender: $playerAdmin,
+            content: 'Also, have you tried sorting by image regions?',
+            sentAt: $now->modify('-2 days'),
+        );
+        $manager->persist($msgOldUnread);
 
         $manager->flush();
     }

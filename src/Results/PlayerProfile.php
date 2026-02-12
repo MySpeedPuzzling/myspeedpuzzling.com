@@ -38,6 +38,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     solved_puzzles_visibility: string,
  *     sell_swap_list_settings: null|string,
  *     allow_direct_messages: bool,
+ *     email_notifications_enabled: bool,
  *     rating_count: int|string,
  *     average_rating: null|string,
  *  }
@@ -73,6 +74,7 @@ readonly final class PlayerProfile
         public bool $isPrivate = false,
         public null|CountryCode $countryCode = null,
         public bool $allowDirectMessages = true,
+        public bool $emailNotificationsEnabled = true,
         public int $ratingCount = 0,
         public null|float $averageRating = null,
     ) {
@@ -150,6 +152,7 @@ readonly final class PlayerProfile
             isPrivate: $row['is_private'],
             countryCode: $countryCode,
             allowDirectMessages: (bool) $row['allow_direct_messages'],
+            emailNotificationsEnabled: (bool) $row['email_notifications_enabled'],
             ratingCount: (int) $row['rating_count'],
             averageRating: $row['average_rating'] !== null ? (float) $row['average_rating'] : null,
         );

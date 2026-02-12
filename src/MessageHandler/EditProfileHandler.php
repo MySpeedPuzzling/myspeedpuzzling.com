@@ -62,5 +62,6 @@ readonly final class EditProfileHandler
         );
 
         $player->changeAllowDirectMessages($message->allowDirectMessages);
+        $player->changeEmailNotificationsEnabled($message->emailNotificationsEnabled);
     }
 }

@@ -27,7 +27,7 @@ final class GetMessagesTest extends KernelTestCase
             PlayerFixture::PLAYER_REGULAR,
         );
 
-        self::assertCount(4, $messages);
+        self::assertCount(5, $messages);
 
         // Verify chronological order (ASC)
         for ($i = 0; $i < count($messages) - 1; $i++) {
@@ -42,11 +42,12 @@ final class GetMessagesTest extends KernelTestCase
             PlayerFixture::PLAYER_REGULAR,
         );
 
-        // Messages 1, 3 are from REGULAR (own), messages 2, 4 from ADMIN (not own)
+        // Messages 1, 3 are from REGULAR (own), messages 2, 4, 5 from ADMIN (not own)
         self::assertTrue($messages[0]->isOwnMessage);
         self::assertFalse($messages[1]->isOwnMessage);
         self::assertTrue($messages[2]->isOwnMessage);
         self::assertFalse($messages[3]->isOwnMessage);
+        self::assertFalse($messages[4]->isOwnMessage);
     }
 
     public function testPaginationWorks(): void
@@ -84,7 +85,8 @@ final class GetMessagesTest extends KernelTestCase
         self::assertNotNull($messages[1]->readAt);
         self::assertNotNull($messages[2]->readAt);
 
-        // Last message (from ADMIN) has no readAt
+        // Messages 4 and 5 (from ADMIN) have no readAt
         self::assertNull($messages[3]->readAt);
+        self::assertNull($messages[4]->readAt);
     }
 }

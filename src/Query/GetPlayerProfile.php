@@ -56,6 +56,7 @@ SELECT
     solved_puzzles_visibility,
     sell_swap_list_settings,
     allow_direct_messages,
+    email_notifications_enabled,
     rating_count,
     average_rating,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
@@ -111,6 +112,7 @@ SELECT
     solved_puzzles_visibility,
     sell_swap_list_settings,
     allow_direct_messages,
+    email_notifications_enabled,
     rating_count,
     average_rating,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at

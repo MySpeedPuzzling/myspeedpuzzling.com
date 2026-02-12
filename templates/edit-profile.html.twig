@@ -97,6 +97,9 @@
                 </div>
 
 
+                {{ form_row(edit_profile_form.allowDirectMessages) }}
+                {{ form_row(edit_profile_form.emailNotificationsEnabled) }}
+
                 <p class="mt-3 mb-0">
                     <input type="submit" name="submit" value="{{ 'forms.save'|trans }}" class="btn btn-primary" />
                 </p>

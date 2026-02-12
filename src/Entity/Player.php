@@ -127,6 +127,10 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $marketplaceBanned = false;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $emailNotificationsEnabled = true;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -299,6 +303,11 @@ class Player
     public function liftMarketplaceBan(): void
     {
         $this->marketplaceBanned = false;
+    }
+
+    public function changeEmailNotificationsEnabled(bool $enabled): void
+    {
+        $this->emailNotificationsEnabled = $enabled;
     }
 
     public function isMessagingMuted(): bool

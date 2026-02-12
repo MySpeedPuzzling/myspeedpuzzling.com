@@ -1,0 +1,45 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            <row>
+                <columns>
+                    <spacer size-sm="10"></spacer>
+                    <h3>{{ 'unread_messages.title'|trans }}</h3>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'unread_messages.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
+
+                    <p>{{ 'unread_messages.intro'|trans }}</p>
+
+                    <ul>
+                        {% for summary in summaries %}
+                            <li>
+                                {% if summary.puzzleName is not null %}
+                                    {{ 'unread_messages.message_line_with_puzzle'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName, '%puzzleName%': summary.puzzleName}) }}
+                                {% else %}
+                                    {{ 'unread_messages.message_line'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName}) }}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <center>
+                        <button href="{{ url('conversations_list') }}">
+                            {{ 'unread_messages.view_messages'|trans }}
+                        </button>
+                    </center>
+
+                    <spacer size-sm="10"></spacer>
+
+                    <p><small>{{ 'unread_messages.opt_out'|trans({'%settingsUrl%': url('edit_profile')})|raw }}</small></p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

@@ -18,6 +18,7 @@ final class EditProfileFormData
     public null|string $facebook = null;
     public null|string $instagram = null;
     public bool $allowDirectMessages = true;
+    public bool $emailNotificationsEnabled = true;
 
     public static function fromPlayerProfile(PlayerProfile $playerProfile): self
     {
@@ -30,6 +31,7 @@ final class EditProfileFormData
         $data->facebook = $playerProfile->facebook;
         $data->instagram = $playerProfile->instagram;
         $data->allowDirectMessages = $playerProfile->allowDirectMessages;
+        $data->emailNotificationsEnabled = $playerProfile->emailNotificationsEnabled;
 
         return $data;
     }

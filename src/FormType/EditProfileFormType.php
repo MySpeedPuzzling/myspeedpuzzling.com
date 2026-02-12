@@ -116,6 +116,11 @@ final class EditProfileFormType extends AbstractType
             'label' => 'Allow other users to message me directly',
             'required' => false,
         ]);
+
+        $builder->add('emailNotificationsEnabled', CheckboxType::class, [
+            'label' => 'Send me email notifications about unread messages',
+            'required' => false,
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

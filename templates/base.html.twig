@@ -319,7 +319,7 @@
 
                         {% if logged_user.profile is not null %}
                             {% set unread_messages_count = get_conversations.countUnreadForPlayer(logged_user.profile.playerId) %}
-                            <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2"
+                            <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-3"
                                  data-controller="unread-badge"
                                  data-unread-badge-player-id-value="{{ logged_user.profile.playerId }}"
                                  data-unread-badge-mercure-url-value="{{ mercure_public_url }}">
@@ -328,7 +328,7 @@
                                         <span class="navbar-tool-label {{ unread_messages_count == 0 ? 'bg-secondary text-dark' }}" data-unread-badge-target="count">{{ unread_messages_count }}</span>
                                         <i class="navbar-tool-icon ci-mail" aria-hidden="true"></i>
                                     </div>
-                                    <div class="navbar-tool-text ms-n3"><small>Messages</small></div>
+                                    <div class="navbar-tool-text ms-n3 d-none"><small>Messages</small></div>
                                 </a>
                             </div>
                         {% endif %}
@@ -353,51 +353,59 @@
                         <hr class="d-lg-none my-2">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
                                     <i class="me-1 me-lg-0 bi bi-house-door"></i>
-                                    {{ 'menu.hub'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.hub'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.hub'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
                                     <i class="me-1 me-lg-0 bi bi-puzzle"></i>
-                                    {{ 'menu.puzzles_overview'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.puzzles_overview'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.puzzles_overview'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
                                     <i class="me-1 me-lg-0 bi bi-shop"></i>
-                                    Marketplace
+                                    <small class="d-none d-lg-block">Marketplace</small>
+                                    <span class="d-lg-none">Marketplace</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
                                     <i class="me-1 me-lg-0 bi bi-trophy"></i>
-                                    {{ 'menu.ladder'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.ladder'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.ladder'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
                                     <i class="me-1 me-lg-0 bi bi-people"></i>
-                                    {{ 'menu.players'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.players'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.players'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
                                     <i class="me-1 me-lg-0 ci-calendar"></i>
-                                    {{ 'menu.events'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.events'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.events'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
                                     <i class="me-1 me-lg-0 ci-time"></i>
-                                    {{ 'menu.stopwatch'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.stopwatch'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.stopwatch'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
                                     <i class="me-1 me-lg-0 bi bi-patch-question"></i>
-                                    {{ 'menu.faq'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.faq'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.faq'|trans }}</span>
                                 </a>
                             </li>
                         </ul>

@@ -12,12 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class DenyConversationController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -37,7 +39,7 @@ final class DenyConversationController extends AbstractController
             playerId: $loggedPlayer->playerId,
         ));
 
-        $this->addFlash('success', 'Message request denied.');
+        $this->addFlash('success', $this->translator->trans('messaging.request_denied'));
 
         return $this->redirectToRoute('conversations_list', ['tab' => 'requests']);
     }

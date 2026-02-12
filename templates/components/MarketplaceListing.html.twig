@@ -9,7 +9,7 @@
         <div class="card-body py-2">
             <div class="d-lg-none mb-2">
                 <button class="btn btn-outline-primary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#marketplaceFilters" aria-expanded="false">
-                    <i class="bi-filter me-1"></i> Filters
+                    <i class="bi-filter me-1"></i> {{ 'marketplace.filter.filters'|trans }}
                 </button>
             </div>
 
@@ -17,21 +17,21 @@
                 <div class="row g-2 align-items-end">
                     {# Search #}
                     <div class="col-12 col-md-6 col-lg-3">
-                        <label class="form-label form-label-sm mb-0"><small>Search</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.search_placeholder'|trans }}</small></label>
                         <input
                             type="text"
                             data-model="debounce(300)|search"
                             class="form-control form-control-sm"
                             value="{{ this.search }}"
-                            placeholder="Puzzle name, EAN..."
+                            placeholder="{{ 'marketplace.search_placeholder'|trans }}"
                         >
                     </div>
 
                     {# Manufacturer #}
                     <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm mb-0"><small>Brand</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.brand'|trans }}</small></label>
                         <select data-model="manufacturer" class="form-select form-select-sm">
-                            <option value="">All brands</option>
+                            <option value="">{{ 'marketplace.all_brands'|trans }}</option>
                             {% for mfr in this.manufacturers %}
                                 <option value="{{ mfr.manufacturer_id }}" {{ this.manufacturer == mfr.manufacturer_id ? 'selected' }}>
                                     {{ mfr.manufacturer_name }} ({{ mfr.listing_count }})
@@ -42,14 +42,14 @@
 
                     {# Pieces range #}
                     <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm mb-0"><small>Pieces</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.pieces'|trans }}</small></label>
                         <div class="d-flex gap-1">
                             <input
                                 type="number"
                                 data-model="debounce(300)|piecesMin"
                                 class="form-control form-control-sm"
                                 value="{{ this.piecesMin }}"
-                                placeholder="Min"
+                                placeholder="{{ 'marketplace.min'|trans }}"
                                 min="0"
                             >
                             <input
@@ -57,7 +57,7 @@
                                 data-model="debounce(300)|piecesMax"
                                 class="form-control form-control-sm"
                                 value="{{ this.piecesMax }}"
-                                placeholder="Max"
+                                placeholder="{{ 'marketplace.max'|trans }}"
                                 min="0"
                             >
                         </div>
@@ -65,26 +65,26 @@
 
                     {# Listing type #}
                     <div class="col-6 col-md-3 col-lg-1">
-                        <label class="form-label form-label-sm mb-0"><small>Type</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.type'|trans }}</small></label>
                         <select data-model="listingType" class="form-select form-select-sm">
-                            <option value="">All</option>
-                            <option value="sell" {{ this.listingType == 'sell' ? 'selected' }}>Sell</option>
-                            <option value="swap" {{ this.listingType == 'swap' ? 'selected' }}>Swap</option>
-                            <option value="both" {{ this.listingType == 'both' ? 'selected' }}>Both</option>
-                            <option value="free" {{ this.listingType == 'free' ? 'selected' }}>Free</option>
+                            <option value="">{{ 'marketplace.all'|trans }}</option>
+                            <option value="sell" {{ this.listingType == 'sell' ? 'selected' }}>{{ 'marketplace.listing_type.sell'|trans }}</option>
+                            <option value="swap" {{ this.listingType == 'swap' ? 'selected' }}>{{ 'marketplace.listing_type.swap'|trans }}</option>
+                            <option value="both" {{ this.listingType == 'both' ? 'selected' }}>{{ 'marketplace.listing_type.both'|trans }}</option>
+                            <option value="free" {{ this.listingType == 'free' ? 'selected' }}>{{ 'marketplace.listing_type.free'|trans }}</option>
                         </select>
                     </div>
 
                     {# Price range #}
                     <div class="col-6 col-md-3 col-lg-2">
-                        <label class="form-label form-label-sm mb-0"><small>Price</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.price'|trans }}</small></label>
                         <div class="d-flex gap-1">
                             <input
                                 type="number"
                                 data-model="debounce(300)|priceMin"
                                 class="form-control form-control-sm"
                                 value="{{ this.priceMin }}"
-                                placeholder="Min"
+                                placeholder="{{ 'marketplace.min'|trans }}"
                                 min="0"
                                 step="0.01"
                             >
@@ -93,7 +93,7 @@
                                 data-model="debounce(300)|priceMax"
                                 class="form-control form-control-sm"
                                 value="{{ this.priceMax }}"
-                                placeholder="Max"
+                                placeholder="{{ 'marketplace.max'|trans }}"
                                 min="0"
                                 step="0.01"
                             >
@@ -102,25 +102,25 @@
 
                     {# Condition #}
                     <div class="col-6 col-md-3 col-lg-1">
-                        <label class="form-label form-label-sm mb-0"><small>Condition</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.condition'|trans }}</small></label>
                         <select data-model="condition" class="form-select form-select-sm">
-                            <option value="">All</option>
-                            <option value="like_new" {{ this.condition == 'like_new' ? 'selected' }}>Like New</option>
-                            <option value="normal" {{ this.condition == 'normal' ? 'selected' }}>Normal</option>
-                            <option value="not_so_good" {{ this.condition == 'not_so_good' ? 'selected' }}>Not So Good</option>
-                            <option value="missing_pieces" {{ this.condition == 'missing_pieces' ? 'selected' }}>Missing Pieces</option>
+                            <option value="">{{ 'marketplace.all'|trans }}</option>
+                            <option value="like_new" {{ this.condition == 'like_new' ? 'selected' }}>{{ 'marketplace.condition.like_new'|trans }}</option>
+                            <option value="normal" {{ this.condition == 'normal' ? 'selected' }}>{{ 'marketplace.condition.normal'|trans }}</option>
+                            <option value="not_so_good" {{ this.condition == 'not_so_good' ? 'selected' }}>{{ 'marketplace.condition.not_so_good'|trans }}</option>
+                            <option value="missing_pieces" {{ this.condition == 'missing_pieces' ? 'selected' }}>{{ 'marketplace.condition.missing_pieces'|trans }}</option>
                         </select>
                     </div>
 
                     {# Sort #}
                     <div class="col-6 col-md-3 col-lg-1">
-                        <label class="form-label form-label-sm mb-0"><small>Sort</small></label>
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.sort'|trans }}</small></label>
                         <select data-model="sort" class="form-select form-select-sm">
-                            <option value="newest" {{ this.sort == 'newest' ? 'selected' }}>Newest</option>
-                            <option value="price_asc" {{ this.sort == 'price_asc' ? 'selected' }}>Price asc</option>
-                            <option value="price_desc" {{ this.sort == 'price_desc' ? 'selected' }}>Price desc</option>
+                            <option value="newest" {{ this.sort == 'newest' ? 'selected' }}>{{ 'marketplace.sort.newest'|trans }}</option>
+                            <option value="price_asc" {{ this.sort == 'price_asc' ? 'selected' }}>{{ 'marketplace.sort.price_asc'|trans }}</option>
+                            <option value="price_desc" {{ this.sort == 'price_desc' ? 'selected' }}>{{ 'marketplace.sort.price_desc'|trans }}</option>
                             {% if this.search is not empty %}
-                                <option value="relevance" {{ this.sort == 'relevance' ? 'selected' }}>Relevance</option>
+                                <option value="relevance" {{ this.sort == 'relevance' ? 'selected' }}>{{ 'marketplace.sort.relevance'|trans }}</option>
                             {% endif %}
                         </select>
                     </div>
@@ -132,7 +132,7 @@
     {# Results count #}
     {% set resultCount = this.resultCount %}
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <small class="text-muted">Showing {{ resultCount }} {{ resultCount == 1 ? 'result' : 'results' }}</small>
+        <small class="text-muted">{{ resultCount == 1 ? 'marketplace.result'|trans : 'marketplace.results'|trans({'%count%': resultCount}) }}</small>
     </div>
 
     {# Results grid #}
@@ -140,7 +140,7 @@
     {% if items is empty %}
         <div class="text-center py-5">
             <i class="bi bi-shop fs-1 text-muted"></i>
-            <p class="text-muted mt-2">No listings found matching your filters.</p>
+            <p class="text-muted mt-2">{{ 'marketplace.no_results'|trans }}</p>
         </div>
     {% else %}
         <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3">

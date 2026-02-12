@@ -14,12 +14,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ResolveReportController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -48,7 +50,7 @@ final class ResolveReportController extends AbstractController
             adminNote: $adminNote !== '' ? $adminNote : null,
         ));
 
-        $this->addFlash('success', 'Report has been resolved.');
+        $this->addFlash('success', $this->translator->trans('moderation.report_resolved'));
 
         return $this->redirectToRoute('admin_moderation_dashboard');
     }

@@ -1,22 +1,22 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Messages{% endblock %}
+{% block title %}{{ 'messaging.title'|trans }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0"><i class="bi bi-chat-dots me-2"></i>Messages</h1>
+        <h1 class="h3 mb-0"><i class="bi bi-chat-dots me-2"></i>{{ 'messaging.title'|trans }}</h1>
     </div>
 
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item">
             <a class="nav-link {{ active_tab == 'conversations' ? 'active' : '' }}" href="{{ path('conversations_list') }}">
-                Conversations
+                {{ 'messaging.conversations'|trans }}
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link {{ active_tab == 'requests' ? 'active' : '' }}" href="{{ path('conversations_list', {tab: 'requests'}) }}">
-                Requests
+                {{ 'messaging.requests'|trans }}
                 {% if pending_count > 0 %}
                     <span class="badge bg-danger ms-1">{{ pending_count }}</span>
                 {% endif %}
@@ -28,7 +28,7 @@
         {% if pending_requests is empty %}
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                <p>No pending message requests.</p>
+                <p>{{ 'messaging.no_pending_requests'|trans }}</p>
             </div>
         {% else %}
             <div class="row g-3">
@@ -41,7 +41,7 @@
         {% if conversations is empty %}
             <div class="text-center py-5 text-muted">
                 <i class="bi bi-chat fs-1 d-block mb-3"></i>
-                <p>No conversations yet.</p>
+                <p>{{ 'messaging.no_conversations_yet'|trans }}</p>
             </div>
         {% else %}
             <div class="list-group">

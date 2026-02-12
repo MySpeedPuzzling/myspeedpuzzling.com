@@ -162,7 +162,7 @@ WHERE 1=1';
         if ($shipsToCountry !== null && $shipsToCountry !== '') {
             $query .= "
     AND pl.sell_swap_list_settings->'shippingCountries' @> :countryJson";
-            $params['countryJson'] = '"' . $shipsToCountry . '"';
+            $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 
         // Sorting
@@ -337,7 +337,7 @@ WHERE 1=1';
         if ($shipsToCountry !== null && $shipsToCountry !== '') {
             $query .= "
     AND pl.sell_swap_list_settings->'shippingCountries' @> :countryJson";
-            $params['countryJson'] = '"' . $shipsToCountry . '"';
+            $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 
         $count = $this->database

@@ -13,12 +13,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class MuteUserController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -48,7 +50,7 @@ final class MuteUserController extends AbstractController
             reportId: $reportId !== '' ? $reportId : null,
         ));
 
-        $this->addFlash('success', "User has been muted for {$days} days.");
+        $this->addFlash('success', $this->translator->trans('moderation.user_muted', ['%days%' => $days]));
 
         return $this->redirectToRoute('admin_moderation_dashboard');
     }

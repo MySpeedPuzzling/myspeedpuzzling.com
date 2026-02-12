@@ -17,6 +17,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class StartConversationController extends AbstractController
 {
@@ -24,6 +25,7 @@ final class StartConversationController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPlayerProfile $getPlayerProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -44,7 +46,7 @@ final class StartConversationController extends AbstractController
             $messageContent = trim($request->request->getString('message'));
 
             if ($messageContent === '') {
-                $this->addFlash('danger', 'Message cannot be empty.');
+                $this->addFlash('danger', $this->translator->trans('messaging.message_empty'));
 
                 return $this->render('messaging/start_conversation.html.twig', [
                     'recipient' => $recipient,
@@ -58,18 +60,18 @@ final class StartConversationController extends AbstractController
                     initialMessage: $messageContent,
                 ));
 
-                $this->addFlash('success', 'Message request sent successfully.');
+                $this->addFlash('success', $this->translator->trans('messaging.request_sent'));
 
                 return $this->redirectToRoute('conversations_list');
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
                 if ($realException instanceof UserIsBlocked) {
-                    $this->addFlash('danger', 'You cannot message this user.');
+                    $this->addFlash('danger', $this->translator->trans('messaging.cannot_message_user'));
                 } elseif ($realException instanceof DirectMessagesDisabled) {
-                    $this->addFlash('warning', 'This user does not accept direct messages.');
+                    $this->addFlash('warning', $this->translator->trans('messaging.direct_messages_disabled'));
                 } elseif ($realException instanceof ConversationRequestAlreadyPending) {
-                    $this->addFlash('warning', 'You already have a pending message request with this user.');
+                    $this->addFlash('warning', $this->translator->trans('messaging.pending_request_exists'));
 
                     return $this->redirectToRoute('conversations_list');
                 }

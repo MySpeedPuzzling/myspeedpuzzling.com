@@ -6,7 +6,7 @@
 <div class="container py-4">
     <div class="mb-3">
         <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> Back to messages
+            <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
         </a>
     </div>
 
@@ -34,8 +34,8 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
                         <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
-                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to block this user?')">
-                                <i class="bi bi-slash-circle me-1"></i> Block user
+                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'messaging.block_confirm'|trans }}')">
+                                <i class="bi bi-slash-circle me-1"></i> {{ 'messaging.block_user'|trans }}
                             </button>
                         </form>
                     </li>
@@ -46,7 +46,7 @@
         {% if puzzle_context is not null %}
             <div class="card-body border-bottom bg-light py-2 px-3">
                 <div class="d-flex align-items-center">
-                    <small class="text-muted me-2">Regarding:</small>
+                    <small class="text-muted me-2">{{ 'messaging.regarding'|trans }}</small>
                     {% if puzzle_context.image %}
                         <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
                     {% endif %}
@@ -59,13 +59,13 @@
                             {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
                                 &middot;
                                 {% if puzzle_context.listingType == 'sell' %}
-                                    <span class="badge bg-success" style="font-size: 0.65rem;">Sell</span>
+                                    <span class="badge bg-success" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
                                 {% elseif puzzle_context.listingType == 'swap' %}
-                                    <span class="badge bg-info" style="font-size: 0.65rem;">Swap</span>
+                                    <span class="badge bg-info" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
                                 {% elseif puzzle_context.listingType == 'both' %}
-                                    <span class="badge bg-primary" style="font-size: 0.65rem;">Sell / Swap</span>
+                                    <span class="badge bg-primary" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
                                 {% elseif puzzle_context.listingType == 'free' %}
-                                    <span class="badge bg-danger" style="font-size: 0.65rem;">Free</span>
+                                    <span class="badge bg-danger" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
                                 {% endif %}
                             {% endif %}
                             {% if puzzle_context.price is defined and puzzle_context.price is not null %}
@@ -84,16 +84,16 @@
 
             {% if conversation.status.value == 'pending' and is_recipient %}
                 <div class="text-center py-4">
-                    <p class="text-muted mb-3">This is a message request. Accept to view and reply to messages.</p>
+                    <p class="text-muted mb-3">{{ 'messaging.pending_request_notice'|trans }}</p>
                     <div class="d-flex justify-content-center gap-2">
                         <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
                             <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-lg me-1"></i> Accept
+                                <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
                             </button>
                         </form>
                         <form action="{{ path('deny_conversation', {conversationId: conversation.id}) }}" method="post">
                             <button type="submit" class="btn btn-outline-danger">
-                                <i class="bi bi-x-lg me-1"></i> Deny
+                                <i class="bi bi-x-lg me-1"></i> {{ 'messaging.deny'|trans }}
                             </button>
                         </form>
                     </div>
@@ -101,17 +101,17 @@
             {% elseif conversation.status.value == 'pending' and not is_recipient %}
                 <div class="text-center py-4 text-muted">
                     <i class="bi bi-hourglass-split fs-1 d-block mb-3"></i>
-                    <p>Waiting for {{ other_player.name ?? other_player.code }} to accept your message request.</p>
+                    <p>{{ 'messaging.waiting_for_acceptance'|trans({'%name%': other_player.name ?? other_player.code}) }}</p>
                 </div>
             {% elseif conversation.status.value == 'denied' %}
                 <div class="text-center py-4 text-muted">
                     <i class="bi bi-x-circle fs-1 d-block mb-3"></i>
-                    <p>This conversation was declined.</p>
+                    <p>{{ 'messaging.conversation_declined'|trans }}</p>
                 </div>
             {% elseif conversation.status.value == 'accepted' %}
                 {% if messages is empty %}
                     <div class="text-center py-4 text-muted">
-                        <p>No messages yet. Start the conversation!</p>
+                        <p>{{ 'messaging.no_messages_yet'|trans }}</p>
                     </div>
                 {% else %}
                     {% for message in messages %}
@@ -124,7 +124,7 @@
         {% if conversation.status.value == 'accepted' %}
             <div class="card-footer">
                 <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2">
-                    <textarea name="message" class="form-control" rows="1" placeholder="Type a message..." maxlength="2000" required></textarea>
+                    <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required></textarea>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-send"></i>
                     </button>

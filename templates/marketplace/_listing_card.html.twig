@@ -1,6 +1,6 @@
 <div class="card h-100 shadow-sm border-0 position-relative">
     {% if item.reserved %}
-        <span class="badge bg-warning position-absolute top-0 end-0 m-2" style="z-index: 1;">RESERVED</span>
+        <span class="badge bg-warning position-absolute top-0 end-0 m-2" style="z-index: 1;">{{ 'marketplace.reserved'|trans }}</span>
     {% endif %}
 
     <a href="{{ path('puzzler_offers', {puzzleId: item.puzzleId}) }}" class="text-decoration-none">
@@ -26,23 +26,23 @@
 
             <div class="mb-1">
                 {% if item.listingType == 'sell' %}
-                    <span class="badge bg-success">Sell</span>
+                    <span class="badge bg-success">{{ 'marketplace.listing_type.sell'|trans }}</span>
                 {% elseif item.listingType == 'swap' %}
-                    <span class="badge bg-info">Swap</span>
+                    <span class="badge bg-info">{{ 'marketplace.listing_type.swap'|trans }}</span>
                 {% elseif item.listingType == 'both' %}
-                    <span class="badge bg-primary">Sell / Swap</span>
+                    <span class="badge bg-primary">{{ 'marketplace.listing_type.both'|trans }}</span>
                 {% elseif item.listingType == 'free' %}
-                    <span class="badge bg-danger">Free</span>
+                    <span class="badge bg-danger">{{ 'marketplace.listing_type.free'|trans }}</span>
                 {% endif %}
 
                 {% if item.condition == 'like_new' %}
-                    <span class="badge bg-secondary">Like New</span>
+                    <span class="badge bg-secondary">{{ 'marketplace.condition.like_new'|trans }}</span>
                 {% elseif item.condition == 'normal' %}
-                    <span class="badge bg-secondary">Normal</span>
+                    <span class="badge bg-secondary">{{ 'marketplace.condition.normal'|trans }}</span>
                 {% elseif item.condition == 'not_so_good' %}
-                    <span class="badge bg-secondary">Not So Good</span>
+                    <span class="badge bg-secondary">{{ 'marketplace.condition.not_so_good'|trans }}</span>
                 {% elseif item.condition == 'missing_pieces' %}
-                    <span class="badge bg-secondary">Missing Pieces</span>
+                    <span class="badge bg-secondary">{{ 'marketplace.condition.missing_pieces'|trans }}</span>
                 {% endif %}
             </div>
 
@@ -50,9 +50,9 @@
                 {% if item.price is not null %}
                     <span class="fw-bold text-dark">{{ item.price }} {{ item.sellerCustomCurrency ?? item.sellerCurrency ?? '' }}</span>
                 {% elseif item.listingType == 'swap' %}
-                    <span class="text-info fw-bold">Swap</span>
+                    <span class="text-info fw-bold">{{ 'marketplace.listing_type.swap'|trans }}</span>
                 {% elseif item.listingType == 'free' %}
-                    <span class="text-danger fw-bold">Free</span>
+                    <span class="text-danger fw-bold">{{ 'marketplace.listing_type.free'|trans }}</span>
                 {% endif %}
             </div>
         </a>
@@ -74,7 +74,7 @@
             </div>
 
             {% if logged_user.profile is not null and logged_user.profile.playerId is not same as item.sellerId %}
-                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary btn-xs py-0 px-1" title="Contact seller">
+                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary btn-xs py-0 px-1" title="{{ 'marketplace.contact_seller'|trans }}">
                     <i class="bi bi-envelope" style="font-size: 0.75rem;"></i>
                 </a>
             {% endif %}

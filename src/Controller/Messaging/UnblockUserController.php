@@ -12,12 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class UnblockUserController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -37,7 +39,7 @@ final class UnblockUserController extends AbstractController
             blockedId: $playerId,
         ));
 
-        $this->addFlash('success', 'User has been unblocked.');
+        $this->addFlash('success', $this->translator->trans('messaging.user_unblocked'));
 
         $referer = $request->headers->get('referer');
         if ($referer !== null && $referer !== '') {

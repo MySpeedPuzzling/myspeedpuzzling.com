@@ -12,12 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class UnmuteUserController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -40,7 +42,7 @@ final class UnmuteUserController extends AbstractController
             adminId: $player->playerId,
         ));
 
-        $this->addFlash('success', 'User has been unmuted.');
+        $this->addFlash('success', $this->translator->trans('moderation.user_unmuted'));
 
         return $this->redirectToRoute('admin_moderation_dashboard');
     }

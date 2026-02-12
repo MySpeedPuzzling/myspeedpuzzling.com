@@ -12,12 +12,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ReportConversationController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -41,7 +43,7 @@ final class ReportConversationController extends AbstractController
                 reason: $reason,
             ));
 
-            $this->addFlash('success', 'Report submitted successfully. Our team will review it.');
+            $this->addFlash('success', $this->translator->trans('moderation.report_submitted'));
         }
 
         return $this->redirectToRoute('conversation_detail', ['conversationId' => $conversationId]);

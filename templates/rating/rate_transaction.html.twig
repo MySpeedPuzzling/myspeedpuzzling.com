@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Rate Transaction{% endblock %}
+{% block title %}{{ 'rating.rate_transaction'|trans }}{% endblock %}
 
 {% block content %}
     <div class="container py-4">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
-                <h1 class="h3 mb-4">Rate your transaction</h1>
+                <h1 class="h3 mb-4">{{ 'rating.rate_your_transaction'|trans }}</h1>
 
                 <div class="card shadow-sm mb-4">
                     <div class="card-body">
@@ -25,18 +25,18 @@
                                     {{ sold_swapped_item.puzzle.piecesCount }} pcs
                                     &middot;
                                     {% if sold_swapped_item.listingType.value == 'sell' %}
-                                        Sold
+                                        {{ 'rating.sold'|trans }}
                                     {% elseif sold_swapped_item.listingType.value == 'swap' %}
-                                        Swapped
+                                        {{ 'rating.swapped'|trans }}
                                     {% else %}
                                         {{ sold_swapped_item.listingType.value|capitalize }}
                                     {% endif %}
                                 </div>
                                 <div class="small">
                                     {% if is_seller %}
-                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'Sold to' : 'Swapped with' }}:
+                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'rating.sold_to'|trans : 'rating.swapped_with'|trans }}:
                                     {% else %}
-                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'Bought from' : 'Swapped with' }}:
+                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'rating.bought_from'|trans : 'rating.swapped_with'|trans }}:
                                     {% endif %}
                                     <strong>{{ other_player.name ?? ('#' ~ other_player.code) }}</strong>
                                 </div>
@@ -47,7 +47,7 @@
 
                 <form method="post">
                     <div class="mb-4">
-                        <label class="form-label fw-bold">Rating</label>
+                        <label class="form-label fw-bold">{{ 'rating.stars_label'|trans }}</label>
                         <div class="star-rating-input d-flex gap-1 fs-2">
                             {% for i in 1..5 %}
                                 <div class="form-check d-inline-block p-0">
@@ -61,15 +61,15 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="review_text" class="form-label">Review (optional)</label>
-                        <textarea name="review_text" id="review_text" class="form-control" rows="4" maxlength="500" placeholder="Share your experience..."></textarea>
-                        <div class="form-text">Optional. Max 500 characters.</div>
+                        <label for="review_text" class="form-label">{{ 'rating.review_label'|trans }}</label>
+                        <textarea name="review_text" id="review_text" class="form-control" rows="4" maxlength="500" placeholder="{{ 'rating.review_placeholder'|trans }}"></textarea>
+                        <div class="form-text">{{ 'rating.optional_note'|trans }}</div>
                     </div>
 
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-star-fill me-1"></i> Submit Rating
+                        <i class="bi bi-star-fill me-1"></i> {{ 'rating.submit_button'|trans }}
                     </button>
-                    <a href="{{ path('sold_swapped_history', {playerId: app.user ? (app.user.userIdentifier) : ''}) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                    <a href="{{ path('sold_swapped_history', {playerId: app.user ? (app.user.userIdentifier) : ''}) }}" class="btn btn-outline-secondary ms-2">{{ 'rating.cancel'|trans }}</a>
                 </form>
             </div>
         </div>

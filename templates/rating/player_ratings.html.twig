@@ -1,25 +1,25 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - Ratings{% endblock %}
+{% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - {{ 'rating.title'|trans }}{% endblock %}
 
 {% block content %}
     <div class="mb-4">
         <h1 class="h3">
-            Ratings for {{ player.playerName ?? ('#' ~ player.code) }}
+            {{ 'rating.title_for_player'|trans({'%name%': player.playerName ?? ('#' ~ player.code)}) }}
         </h1>
 
         {% if summary is not null %}
             <div class="d-flex align-items-center gap-2 mb-3">
                 {% include 'rating/_rating_stars.html.twig' with {stars: summary.averageRating} %}
                 <span class="fw-bold">{{ summary.averageRating|number_format(1) }}</span>
-                <span class="text-muted">({{ summary.ratingCount }} {{ summary.ratingCount == 1 ? 'rating' : 'ratings' }})</span>
+                <span class="text-muted">({{ summary.ratingCount == 1 ? 'rating.count_singular'|trans : 'rating.count'|trans({'%count%': summary.ratingCount}) }})</span>
             </div>
         {% endif %}
     </div>
 
     {% if ratings is empty %}
         <div class="alert alert-info">
-            No ratings yet.
+            {{ 'rating.no_ratings'|trans }}
         </div>
     {% else %}
         <div class="card shadow-sm">
@@ -33,7 +33,7 @@
 
     <div class="mt-3">
         <a href="{{ path('player_profile', {playerId: player.playerId}) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Back to profile
+            <i class="bi bi-arrow-left me-1"></i> {{ 'rating.back_to_profile'|trans }}
         </a>
     </div>
 {% endblock %}

@@ -18,6 +18,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class RateTransactionController extends AbstractController
 {
@@ -26,6 +27,7 @@ final class RateTransactionController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetTransactionRatings $getTransactionRatings,
         readonly private SoldSwappedItemRepository $soldSwappedItemRepository,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -43,7 +45,7 @@ final class RateTransactionController extends AbstractController
         $soldSwappedItem = $this->soldSwappedItemRepository->get($soldSwappedItemId);
 
         if (!$this->getTransactionRatings->canRate($soldSwappedItemId, $loggedPlayer->playerId)) {
-            $this->addFlash('warning', 'You cannot rate this transaction. It may have already been rated or the rating window has expired.');
+            $this->addFlash('warning', $this->translator->trans('rating.cannot_rate'));
 
             return $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
         }
@@ -57,7 +59,7 @@ final class RateTransactionController extends AbstractController
             $reviewText = trim($request->request->getString('review_text'));
 
             if ($stars < 1 || $stars > 5) {
-                $this->addFlash('danger', 'Please select a rating between 1 and 5 stars.');
+                $this->addFlash('danger', $this->translator->trans('rating.invalid_stars'));
 
                 return $this->render('rating/rate_transaction.html.twig', [
                     'sold_swapped_item' => $soldSwappedItem,
@@ -74,18 +76,18 @@ final class RateTransactionController extends AbstractController
                     reviewText: $reviewText !== '' ? $reviewText : null,
                 ));
 
-                $this->addFlash('success', 'Thank you for your rating!');
+                $this->addFlash('success', $this->translator->trans('rating.thank_you'));
 
                 return $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
                 if ($realException instanceof DuplicateTransactionRating) {
-                    $this->addFlash('warning', 'You have already rated this transaction.');
+                    $this->addFlash('warning', $this->translator->trans('rating.already_rated'));
                 } elseif ($realException instanceof TransactionRatingExpired) {
-                    $this->addFlash('warning', 'The rating window has expired (30 days).');
+                    $this->addFlash('warning', $this->translator->trans('rating.expired'));
                 } elseif ($realException instanceof TransactionRatingNotAllowed) {
-                    $this->addFlash('danger', 'You are not allowed to rate this transaction.');
+                    $this->addFlash('danger', $this->translator->trans('rating.not_allowed'));
                 }
 
                 return $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);

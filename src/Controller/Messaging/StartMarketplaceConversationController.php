@@ -17,6 +17,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class StartMarketplaceConversationController extends AbstractController
 {
@@ -25,6 +26,7 @@ final class StartMarketplaceConversationController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private SellSwapListItemRepository $sellSwapListItemRepository,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -44,7 +46,7 @@ final class StartMarketplaceConversationController extends AbstractController
         $recipientId = $sellSwapListItem->player->id->toString();
 
         if ($recipientId === $loggedPlayer->playerId) {
-            $this->addFlash('warning', 'You cannot contact yourself.');
+            $this->addFlash('warning', $this->translator->trans('messaging.cannot_contact_yourself'));
 
             return $this->redirectToRoute('conversations_list');
         }
@@ -53,7 +55,7 @@ final class StartMarketplaceConversationController extends AbstractController
             $messageContent = trim($request->request->getString('message'));
 
             if ($messageContent === '') {
-                $this->addFlash('danger', 'Message cannot be empty.');
+                $this->addFlash('danger', $this->translator->trans('messaging.message_empty'));
 
                 return $this->render('messaging/start_conversation.html.twig', [
                     'recipient_id' => $recipientId,
@@ -71,16 +73,16 @@ final class StartMarketplaceConversationController extends AbstractController
                     puzzleId: $sellSwapListItem->puzzle->id->toString(),
                 ));
 
-                $this->addFlash('success', 'Message request sent successfully.');
+                $this->addFlash('success', $this->translator->trans('messaging.request_sent'));
 
                 return $this->redirectToRoute('conversations_list');
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
                 if ($realException instanceof UserIsBlocked) {
-                    $this->addFlash('danger', 'You cannot message this user.');
+                    $this->addFlash('danger', $this->translator->trans('messaging.cannot_message_user'));
                 } elseif ($realException instanceof ConversationRequestAlreadyPending) {
-                    $this->addFlash('warning', 'You already have a pending message request with this user.');
+                    $this->addFlash('warning', $this->translator->trans('messaging.pending_request_exists'));
 
                     return $this->redirectToRoute('conversations_list');
                 }

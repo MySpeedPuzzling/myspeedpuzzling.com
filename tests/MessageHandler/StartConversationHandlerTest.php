@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
+use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Query\GetConversations;
@@ -173,5 +175,26 @@ final class StartConversationHandlerTest extends KernelTestCase
         }
 
         self::assertTrue($found, 'New marketplace conversation should be auto-accepted');
+    }
+
+    public function testMutedUserCannotStartConversation(): void
+    {
+        // Mute the player first
+        $player = $this->playerRepository->get(PlayerFixture::PLAYER_ADMIN);
+        $player->muteMessaging(new DateTimeImmutable('+7 days'));
+
+        try {
+            $this->messageBus->dispatch(
+                new StartConversation(
+                    initiatorId: PlayerFixture::PLAYER_ADMIN,
+                    recipientId: PlayerFixture::PLAYER_WITH_STRIPE,
+                    initialMessage: 'Should not work - user is muted',
+                ),
+            );
+            self::fail('Expected MessagingMuted exception was not thrown');
+        } catch (HandlerFailedException $e) {
+            $previous = $e->getPrevious();
+            self::assertInstanceOf(MessagingMuted::class, $previous);
+        }
     }
 }

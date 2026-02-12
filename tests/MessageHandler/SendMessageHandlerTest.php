@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
+use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -19,6 +22,7 @@ final class SendMessageHandlerTest extends KernelTestCase
     private MessageBusInterface $messageBus;
     private GetMessages $getMessages;
     private ConversationRepository $conversationRepository;
+    private PlayerRepository $playerRepository;
 
     protected function setUp(): void
     {
@@ -27,6 +31,7 @@ final class SendMessageHandlerTest extends KernelTestCase
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->getMessages = $container->get(GetMessages::class);
         $this->conversationRepository = $container->get(ConversationRepository::class);
+        $this->playerRepository = $container->get(PlayerRepository::class);
     }
 
     public function testSendingMessageInAcceptedConversation(): void
@@ -99,6 +104,27 @@ final class SendMessageHandlerTest extends KernelTestCase
         } catch (HandlerFailedException $e) {
             $previous = $e->getPrevious();
             self::assertInstanceOf(ConversationNotFound::class, $previous);
+        }
+    }
+
+    public function testMutedUserCannotSendMessage(): void
+    {
+        // Mute the player first
+        $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
+        $player->muteMessaging(new DateTimeImmutable('+7 days'));
+
+        try {
+            $this->messageBus->dispatch(
+                new SendMessage(
+                    conversationId: ConversationFixture::CONVERSATION_ACCEPTED,
+                    senderId: PlayerFixture::PLAYER_REGULAR,
+                    content: 'Should not work - user is muted',
+                ),
+            );
+            self::fail('Expected MessagingMuted exception was not thrown');
+        } catch (HandlerFailedException $e) {
+            $previous = $e->getPrevious();
+            self::assertInstanceOf(MessagingMuted::class, $previous);
         }
     }
 }

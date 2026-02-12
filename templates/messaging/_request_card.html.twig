@@ -14,10 +14,10 @@
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
                             {% if conversation.puzzleName %}
-                                <strong>{{ conversation.otherPlayerName }}</strong> is interested in your puzzle
+                                {{ 'messaging.interested_in_puzzle'|trans({'%name%': conversation.otherPlayerName}) }}
                                 <span class="fw-bold">{{ conversation.puzzleName }}</span>
                             {% else %}
-                                <strong>{{ conversation.otherPlayerName }}</strong> wants to message you
+                                {{ 'messaging.wants_to_message'|trans({'%name%': conversation.otherPlayerName}) }}
                             {% endif %}
                         </div>
                         {% if conversation.lastMessageAt %}
@@ -35,13 +35,13 @@
                                 <div>
                                     {% if conversation.listingType %}
                                         {% if conversation.listingType == 'sell' %}
-                                            <span class="badge bg-success" style="font-size: 0.7rem;">Sell</span>
+                                            <span class="badge bg-success" style="font-size: 0.7rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
                                         {% elseif conversation.listingType == 'swap' %}
-                                            <span class="badge bg-info" style="font-size: 0.7rem;">Swap</span>
+                                            <span class="badge bg-info" style="font-size: 0.7rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
                                         {% elseif conversation.listingType == 'both' %}
-                                            <span class="badge bg-primary" style="font-size: 0.7rem;">Sell / Swap</span>
+                                            <span class="badge bg-primary" style="font-size: 0.7rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
                                         {% elseif conversation.listingType == 'free' %}
-                                            <span class="badge bg-danger" style="font-size: 0.7rem;">Free</span>
+                                            <span class="badge bg-danger" style="font-size: 0.7rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
                                         {% endif %}
                                     {% endif %}
                                     {% if conversation.listingPrice %}
@@ -55,12 +55,12 @@
                     <div class="d-flex gap-2">
                         <form action="{{ path('accept_conversation', {conversationId: conversation.conversationId}) }}" method="post">
                             <button type="submit" class="btn btn-sm btn-success">
-                                <i class="bi bi-check-lg me-1"></i> Accept
+                                <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
                             </button>
                         </form>
                         <form action="{{ path('deny_conversation', {conversationId: conversation.conversationId}) }}" method="post">
                             <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-x-lg me-1"></i> Deny
+                                <i class="bi bi-x-lg me-1"></i> {{ 'messaging.deny'|trans }}
                             </button>
                         </form>
                     </div>

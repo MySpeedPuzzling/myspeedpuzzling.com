@@ -13,12 +13,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AdminRemoveListingController extends AbstractController
 {
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -46,7 +48,7 @@ final class AdminRemoveListingController extends AbstractController
             reportId: $reportId !== '' ? $reportId : null,
         ));
 
-        $this->addFlash('success', 'Listing has been removed.');
+        $this->addFlash('success', $this->translator->trans('moderation.listing_removed'));
 
         return $this->redirectToRoute('admin_moderation_dashboard');
     }

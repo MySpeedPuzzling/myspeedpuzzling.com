@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}New message{% endblock %}
+{% block title %}{{ 'messaging.new_message'|trans }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <div class="mb-3">
         <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> Back to messages
+            <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
         </a>
     </div>
 
@@ -14,7 +14,7 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">New message</h5>
+                    <h5 class="mb-0">{{ 'messaging.new_message'|trans }}</h5>
                 </div>
                 <div class="card-body">
                     {% if recipient is defined %}
@@ -53,12 +53,12 @@
 
                     <form method="post">
                         <div class="mb-3">
-                            <label for="message" class="form-label">Message</label>
-                            <textarea name="message" id="message" class="form-control" rows="4" maxlength="2000" required placeholder="Write your message..."></textarea>
-                            <div class="form-text">Maximum 2000 characters.</div>
+                            <label for="message" class="form-label">{{ 'messaging.message_label'|trans }}</label>
+                            <textarea name="message" id="message" class="form-control" rows="4" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}"></textarea>
+                            <div class="form-text">{{ 'messaging.max_characters'|trans }}</div>
                         </div>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-send me-1"></i> Send message
+                            <i class="bi bi-send me-1"></i> {{ 'messaging.send_message'|trans }}
                         </button>
                     </form>
                 </div>

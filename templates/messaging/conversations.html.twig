@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0"><i class="bi bi-chat-dots me-2"></i>Messages</h1>
+    </div>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'conversations' ? 'active' : '' }}" href="{{ path('conversations_list') }}">
+                Conversations
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'requests' ? 'active' : '' }}" href="{{ path('conversations_list', {tab: 'requests'}) }}">
+                Requests
+                {% if pending_count > 0 %}
+                    <span class="badge bg-danger ms-1">{{ pending_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if active_tab == 'requests' %}
+        {% if pending_requests is empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p>No pending message requests.</p>
+            </div>
+        {% else %}
+            <div class="row g-3">
+                {% for request in pending_requests %}
+                    {{ include('messaging/_request_card.html.twig', {conversation: request}) }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        {% if conversations is empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-chat fs-1 d-block mb-3"></i>
+                <p>No conversations yet.</p>
+            </div>
+        {% else %}
+            <div class="list-group">
+                {% for conversation in conversations %}
+                    {{ include('messaging/_conversation_list_item.html.twig') }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

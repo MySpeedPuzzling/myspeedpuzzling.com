@@ -55,6 +55,7 @@ SELECT
     lend_borrow_list_visibility,
     solved_puzzles_visibility,
     sell_swap_list_settings,
+    allow_direct_messages,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id
@@ -107,6 +108,7 @@ SELECT
     lend_borrow_list_visibility,
     solved_puzzles_visibility,
     sell_swap_list_settings,
+    allow_direct_messages,
     COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id

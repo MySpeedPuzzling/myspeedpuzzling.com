@@ -1,0 +1,69 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}New message{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> Back to messages
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">New message</h5>
+                </div>
+                <div class="card-body">
+                    {% if recipient is defined %}
+                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                            {% if recipient.avatar %}
+                                <img src="{{ recipient.avatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-2" width="40" height="40">
+                            {% else %}
+                                <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="bi bi-person text-white"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ recipient.playerName ?? recipient.code }}</strong>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if puzzle is defined and puzzle is not null %}
+                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
+                            {% if puzzle.image %}
+                                <img src="{{ puzzle.image|imagine_filter('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
+                            {% endif %}
+                            <div>
+                                <div class="fw-bold">{{ puzzle.name }}</div>
+                                {% if sell_swap_list_item is defined %}
+                                    <div class="text-muted small">
+                                        {{ sell_swap_list_item.listingType.value|capitalize }}
+                                        {% if sell_swap_list_item.price %}
+                                            - {{ sell_swap_list_item.price }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Message</label>
+                            <textarea name="message" id="message" class="form-control" rows="4" maxlength="2000" required placeholder="Write your message..."></textarea>
+                            <div class="form-text">Maximum 2000 characters.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i> Send message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

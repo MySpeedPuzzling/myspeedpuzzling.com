@@ -8,7 +8,7 @@ A centralized marketplace page where all active sell/swap listings are displayed
 
 - **Browsing/searching**: Available to all users (including anonymous)
 - **Creating listings**: Requires active membership (existing behavior)
-- **Contacting sellers (chat)**: Requires active membership
+- **Contacting sellers (chat)**: Available to all registered users (no membership required)
 - **Viewing seller profiles**: Public (existing behavior)
 
 ## URL Structure

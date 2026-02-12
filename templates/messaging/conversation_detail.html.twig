@@ -1,0 +1,108 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Conversation with {{ other_player.name ?? other_player.code }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> Back to messages
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                {% if other_player.avatar %}
+                    <img src="{{ other_player.avatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-2" width="40" height="40">
+                {% else %}
+                    <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-person text-white"></i>
+                    </div>
+                {% endif %}
+                <div>
+                    <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="fw-bold text-decoration-none">
+                        {{ other_player.name ?? other_player.code }}
+                    </a>
+                    {% if conversation.puzzle %}
+                        <div class="text-muted small">
+                            <i class="bi bi-puzzle me-1"></i>
+                            Regarding: {{ conversation.puzzle.name }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
+                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure you want to block this user?')">
+                                <i class="bi bi-slash-circle me-1"></i> Block user
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
+             data-controller="messaging"
+             data-messaging-conversation-id-value="{{ conversation.id }}"
+             data-messaging-mercure-url-value="{{ mercure_public_url }}">
+
+            {% if conversation.status.value == 'pending' and is_recipient %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-3">This is a message request. Accept to view and reply to messages.</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-lg me-1"></i> Accept
+                            </button>
+                        </form>
+                        <form action="{{ path('deny_conversation', {conversationId: conversation.id}) }}" method="post">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-x-lg me-1"></i> Deny
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% elseif conversation.status.value == 'pending' and not is_recipient %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-hourglass-split fs-1 d-block mb-3"></i>
+                    <p>Waiting for {{ other_player.name ?? other_player.code }} to accept your message request.</p>
+                </div>
+            {% elseif conversation.status.value == 'denied' %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-x-circle fs-1 d-block mb-3"></i>
+                    <p>This conversation was declined.</p>
+                </div>
+            {% elseif conversation.status.value == 'accepted' %}
+                {% if messages is empty %}
+                    <div class="text-center py-4 text-muted">
+                        <p>No messages yet. Start the conversation!</p>
+                    </div>
+                {% else %}
+                    {% for message in messages %}
+                        {{ include('messaging/_message_bubble.html.twig') }}
+                    {% endfor %}
+                {% endif %}
+            {% endif %}
+        </div>
+
+        {% if conversation.status.value == 'accepted' %}
+            <div class="card-footer">
+                <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2">
+                    <textarea name="message" class="form-control" rows="1" placeholder="Type a message..." maxlength="2000" required></textarea>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i>
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

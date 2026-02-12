@@ -171,6 +171,9 @@ function createCustomIndexes(): void
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_tracked_at_type ON puzzle_solving_time (tracked_at, puzzling_type)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_pst_type_time_valid ON puzzle_solving_time (puzzling_type, seconds_to_solve) WHERE seconds_to_solve IS NOT NULL AND suspicious = false');
     $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_team_puzzlers_gin ON puzzle_solving_time USING GIN ((team::jsonb->'puzzlers') jsonb_path_ops) WHERE team IS NOT NULL");
+
+    // Chat message unread optimization (Version20260212002500)
+    $pdo->exec('CREATE INDEX IF NOT EXISTS custom_chat_message_unread ON chat_message (conversation_id, sender_id) WHERE read_at IS NULL');
 }
 
 /**

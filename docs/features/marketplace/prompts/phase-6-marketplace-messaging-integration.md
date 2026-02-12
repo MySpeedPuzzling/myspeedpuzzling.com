@@ -15,7 +15,7 @@ Wire up the marketplace and messaging systems: add "Contact seller" buttons, sho
 In `templates/marketplace/_listing_card.html.twig`:
 - Add a "Contact seller" button/link on each card
 - Links to `start_marketplace_conversation` route with `sellSwapListItemId`
-- Only show for authenticated users with active membership
+- Only show for authenticated users (no membership required — any registered user can contact sellers)
 - Don't show on own listings
 - Small button or icon, doesn't dominate the card
 

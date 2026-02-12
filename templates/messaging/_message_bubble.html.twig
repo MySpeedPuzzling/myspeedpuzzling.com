@@ -1,0 +1,25 @@
+<div class="d-flex mb-3 {{ message.isOwnMessage ? 'justify-content-end' : 'justify-content-start' }}">
+    {% if not message.isOwnMessage %}
+        {% if message.senderAvatar %}
+            <img src="{{ message.senderAvatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-2 flex-shrink-0 align-self-end" width="32" height="32">
+        {% else %}
+            <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center flex-shrink-0 align-self-end" style="width: 32px; height: 32px;">
+                <i class="bi bi-person text-white" style="font-size: 0.8rem;"></i>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    <div class="d-flex flex-column {{ message.isOwnMessage ? 'align-items-end' : 'align-items-start' }}" style="max-width: 75%;">
+        <div class="px-3 py-2 rounded-3 {{ message.isOwnMessage ? 'bg-primary text-white' : 'bg-light' }}">
+            <div style="white-space: pre-wrap; word-break: break-word;">{{ message.content }}</div>
+        </div>
+        <div class="text-muted mt-1" style="font-size: 0.7rem;">
+            {{ message.sentAt|date('H:i') }}
+            {% if message.isOwnMessage and message.readAt %}
+                <i class="bi bi-check2-all ms-1" title="Read"></i>
+            {% elseif message.isOwnMessage %}
+                <i class="bi bi-check2 ms-1" title="Sent"></i>
+            {% endif %}
+        </div>
+    </div>
+</div>

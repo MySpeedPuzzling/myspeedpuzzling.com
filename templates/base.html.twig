@@ -317,6 +317,22 @@
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.puzzle_add'|trans }}</small></div>
                         </a>
 
+                        {% if logged_user.profile is not null %}
+                            {% set unread_messages_count = get_conversations.countUnreadForPlayer(logged_user.profile.playerId) %}
+                            <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2"
+                                 data-controller="unread-badge"
+                                 data-unread-badge-player-id-value="{{ logged_user.profile.playerId }}"
+                                 data-unread-badge-mercure-url-value="{{ mercure_public_url }}">
+                                <a class="navbar-tool {% if app.request.pathInfo starts with '/en/messages' %}active{% endif %}" href="{{ path('conversations_list') }}" aria-label="Messages">
+                                    <div class="navbar-tool-icon-box {{ unread_messages_count > 0 ? 'bg-secondary' }}">
+                                        <span class="navbar-tool-label {{ unread_messages_count == 0 ? 'bg-secondary text-dark' }}" data-unread-badge-target="count">{{ unread_messages_count }}</span>
+                                        <i class="navbar-tool-icon ci-mail" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="navbar-tool-text ms-n3"><small>Messages</small></div>
+                                </a>
+                            </div>
+                        {% endif %}
+
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
 
                         <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">

@@ -15,6 +15,14 @@
             </p>
         {% endif %}
 
+        {% if logged_user.profile is not null and logged_user.profile.playerId is not same as player.playerId and player.allowDirectMessages %}
+            <p class="col-sm">
+                <a href="{{ path('start_conversation', {recipientId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-envelope me-1"></i> Send message
+                </a>
+            </p>
+        {% endif %}
+
         {% if logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
             <div class="col-sm" style="max-width: 366px;" data-controller="clipboard">
                 <div class="share-profile-link">

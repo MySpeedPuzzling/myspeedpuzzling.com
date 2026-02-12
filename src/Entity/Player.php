@@ -102,6 +102,10 @@ class Player
     #[Column(type: Types::STRING, enumType: CollectionVisibility::class, options: ['default' => 'private'])]
     public CollectionVisibility $solvedPuzzlesVisibility = CollectionVisibility::Private;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $allowDirectMessages = true;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -241,5 +245,10 @@ class Player
     public function clearClaimedDiscountVoucher(): void
     {
         $this->claimedDiscountVoucher = null;
+    }
+
+    public function changeAllowDirectMessages(bool $allow): void
+    {
+        $this->allowDirectMessages = $allow;
     }
 }

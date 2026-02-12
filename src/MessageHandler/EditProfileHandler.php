@@ -60,5 +60,7 @@ readonly final class EditProfileHandler
             facebook: $message->facebook,
             instagram: $message->instagram,
         );
+
+        $player->changeAllowDirectMessages($message->allowDirectMessages);
     }
 }

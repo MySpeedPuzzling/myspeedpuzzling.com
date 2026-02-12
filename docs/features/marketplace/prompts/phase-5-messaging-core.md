@@ -252,14 +252,14 @@ All single-action with `__invoke()`, in `src/Controller/Messaging/`.
 
 **`StartConversationController`**:
 - Route: GET+POST `/en/messages/new/{recipientId}` (name: `start_conversation`)
-- Requires auth + membership check
+- Requires auth (no membership required — any registered user can message)
 - GET: render form with recipient info
 - POST: dispatch `StartConversation`, redirect to conversations list
 - Template: `templates/messaging/start_conversation.html.twig`
 
 **`StartMarketplaceConversationController`**:
 - Route: GET+POST `/en/messages/new/offer/{sellSwapListItemId}` (name: `start_marketplace_conversation`)
-- Requires auth + membership check
+- Requires auth (no membership required — any registered user can contact sellers)
 - GET: render form with puzzle/listing context
 - POST: dispatch `StartConversation` with `sellSwapListItemId` and `puzzleId`
 - Template: reuse `start_conversation.html.twig` with additional puzzle context

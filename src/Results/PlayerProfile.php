@@ -37,6 +37,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     lend_borrow_list_visibility: string,
  *     solved_puzzles_visibility: string,
  *     sell_swap_list_settings: null|string,
+ *     allow_direct_messages: bool,
  *  }
  */
 readonly final class PlayerProfile
@@ -69,6 +70,7 @@ readonly final class PlayerProfile
         public bool $isAdmin = false,
         public bool $isPrivate = false,
         public null|CountryCode $countryCode = null,
+        public bool $allowDirectMessages = true,
     ) {
     }
 
@@ -143,6 +145,7 @@ readonly final class PlayerProfile
             isAdmin: $row['is_admin'],
             isPrivate: $row['is_private'],
             countryCode: $countryCode,
+            allowDirectMessages: (bool) $row['allow_direct_messages'],
         );
     }
 }

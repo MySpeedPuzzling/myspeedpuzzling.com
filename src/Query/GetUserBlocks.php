@@ -14,7 +14,7 @@ readonly final class GetUserBlocks
     }
 
     /**
-     * @return array<array{blocked_id: string, blocked_name: null|string, blocked_code: string, blocked_avatar: null|string, blocked_at: string}>
+     * @return array<array{blocked_id: string, blocked_name: null|string, blocked_code: string, blocked_avatar: null|string, blocked_country: null|string, blocked_at: string}>
      */
     public function forPlayer(string $playerId): array
     {
@@ -24,6 +24,7 @@ SELECT
     p.name AS blocked_name,
     p.code AS blocked_code,
     p.avatar AS blocked_avatar,
+    p.country AS blocked_country,
     ub.blocked_at
 FROM user_block ub
 JOIN player p ON ub.blocked_id = p.id
@@ -31,7 +32,7 @@ WHERE ub.blocker_id = :playerId
 ORDER BY ub.blocked_at DESC
 SQL;
 
-        /** @var array<array{blocked_id: string, blocked_name: null|string, blocked_code: string, blocked_avatar: null|string, blocked_at: string}> */
+        /** @var array<array{blocked_id: string, blocked_name: null|string, blocked_code: string, blocked_avatar: null|string, blocked_country: null|string, blocked_at: string}> */
         return $this->database
             ->executeQuery($query, ['playerId' => $playerId])
             ->fetchAllAssociative();

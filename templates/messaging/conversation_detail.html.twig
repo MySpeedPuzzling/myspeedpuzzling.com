@@ -32,6 +32,14 @@
                     <i class="bi bi-three-dots"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
+                    {% if conversation.status.value == 'accepted' %}
+                        <li>
+                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reportConversationModal">
+                                <i class="bi bi-flag me-1"></i> {{ 'messaging.report_conversation'|trans }}
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                    {% endif %}
                     <li>
                         <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
                             <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'messaging.block_confirm'|trans }}')">
@@ -123,7 +131,7 @@
 
         {% if conversation.status.value == 'accepted' %}
             <div class="card-footer">
-                <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2">
+                <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" onsubmit="this.querySelector('button[type=submit]').disabled = true">
                     <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required></textarea>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-send"></i>
@@ -132,5 +140,31 @@
             </div>
         {% endif %}
     </div>
+
+    {% if conversation.status.value == 'accepted' %}
+        {# Report Conversation Modal #}
+        <div class="modal fade" id="reportConversationModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form action="{{ path('report_conversation', {conversationId: conversation.id}) }}" method="post" onsubmit="return confirm('{{ 'messaging.report_confirm'|trans }}')">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ 'messaging.report_conversation'|trans }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="reportReason" class="form-label">{{ 'messaging.report_reason'|trans }}</label>
+                                <textarea name="reason" id="reportReason" class="form-control" rows="3" maxlength="500" required placeholder="{{ 'messaging.report_reason_placeholder'|trans }}"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'messaging.cancel'|trans }}</button>
+                            <button type="submit" class="btn btn-danger">{{ 'messaging.report_submit'|trans }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

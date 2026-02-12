@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'messaging.blocked_users'|trans }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-3">
+        <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
+        </a>
+    </div>
+
+    <h1 class="h3 mb-4"><i class="bi bi-slash-circle me-2"></i>{{ 'messaging.blocked_users'|trans }}</h1>
+
+    {% if blocked_users is empty %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-person-check fs-1 d-block mb-3"></i>
+            <p>{{ 'messaging.no_blocked_users'|trans }}</p>
+        </div>
+    {% else %}
+        <div class="list-group">
+            {% for user in blocked_users %}
+                <div class="list-group-item d-flex align-items-center justify-content-between py-3">
+                    <div class="d-flex align-items-center">
+                        {% if user.blocked_avatar %}
+                            <img src="{{ user.blocked_avatar|imagine_filter('avatar_small') }}" alt="" class="rounded-circle me-3 flex-shrink-0" width="48" height="48">
+                        {% else %}
+                            <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;">
+                                <i class="bi bi-person text-white"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <a href="{{ path('player_profile', {playerId: user.blocked_id}) }}" class="fw-bold text-decoration-none">
+                                {{ user.blocked_name ?? user.blocked_code }}
+                            </a>
+                            {% if user.blocked_country %}
+                                <span class="fi fi-{{ user.blocked_country }} shadow-custom ms-1" style="font-size: 0.75rem;"></span>
+                            {% endif %}
+                            <div class="text-muted small">{{ 'messaging.blocked_on'|trans }} {{ user.blocked_at|format_datetime('medium', 'none') }}</div>
+                        </div>
+                    </div>
+                    <form action="{{ path('unblock_user', {playerId: user.blocked_id}) }}" method="post">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('{{ 'messaging.unblock_confirm'|trans }}')">
+                            {{ 'messaging.unblock'|trans }}
+                        </button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

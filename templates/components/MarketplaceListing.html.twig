@@ -112,6 +112,20 @@
                         </select>
                     </div>
 
+                    {# Ships to #}
+                    {% set defaultShipsTo = this.defaultShipsTo %}
+                    <div class="col-6 col-md-3 col-lg-2">
+                        <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.ships_to'|trans }}</small></label>
+                        <select data-model="shipsTo" class="form-select form-select-sm">
+                            <option value="">{{ 'marketplace.all_countries'|trans }}</option>
+                            {% for country in enum('SpeedPuzzling\\Web\\Value\\CountryCode').cases %}
+                                <option value="{{ country.name }}" {{ defaultShipsTo == country.name ? 'selected' }}>
+                                    {{ country.value }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
                     {# Sort #}
                     <div class="col-6 col-md-3 col-lg-1">
                         <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.sort'|trans }}</small></label>

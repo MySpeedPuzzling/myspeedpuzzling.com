@@ -18,11 +18,14 @@ This document describes the test data structure defined in `tests/DataFixtures/`
 
 ## Membership
 
-**Only `PLAYER_WITH_STRIPE` has active membership:**
-- Stripe subscription ID: `sub_test_123456789`
-- Stripe customer ID: `cus_test_123456789`
-- Started: 60 days ago
-- Billing period ends: 30 days from now
+**`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN` have active membership:**
+
+| Player | Stripe Subscription ID | Started | Billing Period Ends |
+|--------|----------------------|---------|-------------------|
+| PLAYER_WITH_STRIPE | `sub_test_123456789` | 60 days ago | 30 days from now |
+| PLAYER_ADMIN | `sub_admin_123456789` | 60 days ago | 30 days from now |
+
+PLAYER_WITH_STRIPE also has Stripe customer ID: `cus_test_123456789`
 
 ## Lent/Borrowed Puzzles
 
@@ -97,19 +100,27 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 ## Sell/Swap Listings
 
-**Only `PLAYER_WITH_STRIPE`** has sell/swap items (requires membership):
+Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap items:
 
-| Const | Puzzle | Type | Price | Condition |
-|-------|--------|------|-------|-----------|
-| `SELLSWAP_01` | PUZZLE_500_01 | Sell | 25.00 | LikeNew |
-| `SELLSWAP_02` | PUZZLE_500_02 | Swap | - | Normal |
-| `SELLSWAP_03` | PUZZLE_1000_01 | Both | 45.00 | Normal |
-| `SELLSWAP_04` | PUZZLE_500_03 | Sell | 15.00 | NotSoGood |
-| `SELLSWAP_05` | PUZZLE_1000_02 | Swap | - | LikeNew |
-| `SELLSWAP_06` | PUZZLE_1500_01 | Both | 60.00 | MissingPieces |
-| `SELLSWAP_07` | PUZZLE_1000_03 | Sell | 35.00 | Normal |
-| `SELLSWAP_08` | PUZZLE_500_05 | Sell | 20.00 | Normal | (PLAYER_ADMIN)
-| `SELLSWAP_09` | PUZZLE_500_04 | Swap | - | LikeNew | (PLAYER_ADMIN)
+| Const | Puzzle | Owner | Type | Price | Condition | Reserved |
+|-------|--------|-------|------|-------|-----------|----------|
+| `SELLSWAP_01` | PUZZLE_500_01 | PLAYER_WITH_STRIPE | Sell | 25.00 | LikeNew | No |
+| `SELLSWAP_02` | PUZZLE_500_02 | PLAYER_WITH_STRIPE | Swap | - | Normal | No |
+| `SELLSWAP_03` | PUZZLE_1000_01 | PLAYER_WITH_STRIPE | Both | 45.00 | Normal | **Yes** |
+| `SELLSWAP_04` | PUZZLE_500_03 | PLAYER_WITH_STRIPE | Sell | 15.00 | NotSoGood | **Yes** (for PLAYER_ADMIN) |
+| `SELLSWAP_05` | PUZZLE_1000_02 | PLAYER_WITH_STRIPE | Swap | - | LikeNew | **Yes** |
+| `SELLSWAP_06` | PUZZLE_1500_01 | PLAYER_WITH_STRIPE | Both | 60.00 | MissingPieces | No |
+| `SELLSWAP_07` | PUZZLE_1000_03 | PLAYER_WITH_STRIPE | Sell | 35.00 | Normal | No |
+| `SELLSWAP_08` | PUZZLE_500_05 | PLAYER_ADMIN | Sell | 20.00 | Normal | No |
+| `SELLSWAP_09` | PUZZLE_500_04 | PLAYER_ADMIN | Swap | - | LikeNew | No |
+| `SELLSWAP_10` | PUZZLE_500_01 | PLAYER_ADMIN | Both | 22.00 | Normal | No |
+| `SELLSWAP_11` | PUZZLE_1000_01 | PLAYER_ADMIN | Sell | 40.00 | LikeNew | No |
+| `SELLSWAP_12` | PUZZLE_1000_02 | PLAYER_ADMIN | Sell | 30.00 | Normal | **Yes** |
+
+### Puzzles with Multiple Offers
+- **PUZZLE_500_01**: 2 offers (SELLSWAP_01 + SELLSWAP_10), none reserved
+- **PUZZLE_1000_01**: 2 offers (SELLSWAP_03 reserved + SELLSWAP_11 not reserved) — mixed reservation status
+- **PUZZLE_1000_02**: 2 offers (SELLSWAP_05 + SELLSWAP_12), **all reserved** — only-reserved puzzle
 
 ## Wishlists
 
@@ -206,13 +217,13 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 | Feature | Player |
 |---------|--------|
-| Active membership | PLAYER_WITH_STRIPE |
+| Active membership | PLAYER_WITH_STRIPE, PLAYER_ADMIN |
 | Admin privileges | PLAYER_ADMIN |
 | Private profile | PLAYER_PRIVATE |
 | Stripe customer | PLAYER_WITH_STRIPE |
 | Owns lent puzzles | PLAYER_WITH_STRIPE, PLAYER_REGULAR |
 | Holds borrowed puzzle | PLAYER_REGULAR, PLAYER_WITH_FAVORITES, PLAYER_WITH_STRIPE |
-| Sell/swap listings | PLAYER_WITH_STRIPE |
+| Sell/swap listings | PLAYER_WITH_STRIPE, PLAYER_ADMIN |
 | Public collection | PLAYER_WITH_STRIPE |
 | Favorite players set | PLAYER_WITH_FAVORITES |
 | Team solving experience | PLAYER_REGULAR, PLAYER_PRIVATE |

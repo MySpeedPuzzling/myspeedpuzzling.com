@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -214,5 +215,57 @@ final class GetMarketplaceListingsTest extends KernelTestCase
 
         // This puzzle has SELLSWAP_02
         self::assertNotEmpty($items);
+    }
+
+    public function testPuzzleWithMultipleOffers(): void
+    {
+        // Search for "Puzzle 1" which is PUZZLE_500_01 with 2 offers from different sellers
+        $items = $this->query->search(searchTerm: 'Puzzle 1');
+
+        $puzzle500_01Items = array_filter(
+            $items,
+            static fn ($item) => $item->puzzleId === PuzzleFixture::PUZZLE_500_01,
+        );
+
+        self::assertCount(2, $puzzle500_01Items);
+
+        $sellerIds = array_map(static fn ($item) => $item->sellerId, $puzzle500_01Items);
+        self::assertCount(2, array_unique($sellerIds));
+    }
+
+    public function testPuzzleWithOnlyReservedOffers(): void
+    {
+        // PUZZLE_1000_02 ("Puzzle 7") has 2 offers, both reserved
+        $allItems = $this->query->search(limit: 100);
+
+        $puzzle1000_02Items = array_filter(
+            $allItems,
+            static fn ($item) => $item->puzzleId === PuzzleFixture::PUZZLE_1000_02,
+        );
+
+        self::assertCount(2, $puzzle1000_02Items);
+
+        foreach ($puzzle1000_02Items as $item) {
+            self::assertTrue($item->reserved);
+        }
+    }
+
+    public function testPuzzleWithMixedReservationStatus(): void
+    {
+        // PUZZLE_1000_01 ("Puzzle 6") has 2 offers: one reserved, one not
+        $allItems = $this->query->search(limit: 100);
+
+        $puzzle1000_01Items = array_filter(
+            $allItems,
+            static fn ($item) => $item->puzzleId === PuzzleFixture::PUZZLE_1000_01,
+        );
+
+        self::assertCount(2, $puzzle1000_01Items);
+
+        $reserved = array_filter($puzzle1000_01Items, static fn ($item) => $item->reserved);
+        $nonReserved = array_filter($puzzle1000_01Items, static fn ($item) => !$item->reserved);
+
+        self::assertCount(1, $reserved);
+        self::assertCount(1, $nonReserved);
     }
 }

@@ -69,6 +69,7 @@ final class EditSellSwapListItemController extends AbstractController
         $formData->price = $item->price;
         $formData->condition = $item->condition;
         $formData->comment = $item->comment;
+        $formData->publishedOnMarketplace = $item->publishedOnMarketplace;
 
         $form = $this->createForm(AddToSellSwapListFormType::class, $formData);
         $form->handleRequest($request);
@@ -82,6 +83,7 @@ final class EditSellSwapListItemController extends AbstractController
                     price: $formData->price,
                     condition: $formData->condition,
                     comment: $formData->comment,
+                    publishedOnMarketplace: $formData->publishedOnMarketplace,
                 ),
             );
 

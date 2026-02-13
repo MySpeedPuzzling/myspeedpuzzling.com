@@ -33,6 +33,7 @@ SELECT
     ssli.comment,
     ssli.added_at,
     ssli.reserved,
+    ssli.published_on_marketplace,
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.alternative_name as puzzle_alternative_name,
@@ -61,6 +62,7 @@ SQL;
              *     comment: string|null,
              *     added_at: string,
              *     reserved: bool,
+             *     published_on_marketplace: bool,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: string|null,
@@ -88,6 +90,7 @@ SQL;
                 comment: $row['comment'],
                 addedAt: new DateTimeImmutable($row['added_at']),
                 reserved: (bool) $row['reserved'],
+                publishedOnMarketplace: (bool) $row['published_on_marketplace'],
             );
         }, $data);
     }

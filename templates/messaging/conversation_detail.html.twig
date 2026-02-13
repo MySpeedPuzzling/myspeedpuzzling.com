@@ -10,7 +10,11 @@
         </a>
     </div>
 
-    <div class="card">
+    <div class="card" data-controller="messaging conversation-realtime"
+         data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
+         data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
+         data-conversation-realtime-mercure-url-value="{{ mercure_public_url }}"
+         data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
         <div class="card-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
                 {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 40, class: 'me-2'}) }}
@@ -48,6 +52,7 @@
         {% if puzzle_context is not null %}
             <div class="card-body border-bottom bg-light py-2 px-3">
                 <div class="d-flex align-items-center">
+                    <i class="bi bi-shop text-primary me-2" style="font-size: 0.8rem;" title="{{ 'marketplace.title'|trans }}"></i>
                     <small class="text-muted me-2">{{ 'messaging.regarding'|trans }}</small>
                     {% if puzzle_context.image %}
                         <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
@@ -80,27 +85,34 @@
         {% endif %}
 
         <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
-             data-controller="messaging"
-             data-messaging-conversation-id-value="{{ conversation.id }}"
-             data-messaging-mercure-url-value="{{ mercure_public_url }}">
+             data-messaging-target="messages"
+             data-conversation-realtime-target="messages">
 
-            {% if conversation.status.value == 'pending' and is_recipient %}
-                <div class="text-center py-4">
-                    <p class="text-muted mb-3">{{ 'messaging.pending_request_notice'|trans }}</p>
+            {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
+                {% if messages is not empty %}
+                    {% for message in messages %}
+                        {{ include('messaging/_message_bubble.html.twig') }}
+                    {% endfor %}
+                {% endif %}
+
+                <div class="text-center py-3">
+                    <p class="text-muted mb-2 small">{{ 'messaging.accept_disclaimer'|trans }}</p>
                     <div class="d-flex justify-content-center gap-2">
                         <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
                             <button type="submit" class="btn btn-success">
                                 <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
                             </button>
                         </form>
-                        <form action="{{ path('deny_conversation', {conversationId: conversation.id}) }}" method="post">
-                            <button type="submit" class="btn btn-outline-danger">
-                                <i class="bi bi-x-lg me-1"></i> {{ 'messaging.deny'|trans }}
-                            </button>
-                        </form>
+                        {% if conversation.status.value == 'pending' %}
+                            <form action="{{ path('ignore_conversation', {conversationId: conversation.id}) }}" method="post">
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <i class="bi bi-eye-slash me-1"></i> {{ 'messaging.ignore'|trans }}
+                                </button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
-            {% elseif conversation.status.value == 'pending' and not is_recipient %}
+            {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
                 {% for message in messages %}
                     {{ include('messaging/_message_bubble.html.twig') }}
                 {% endfor %}
@@ -108,11 +120,6 @@
                 <div class="text-center py-3 text-muted">
                     <i class="bi bi-hourglass-split d-block mb-2"></i>
                     <p class="small mb-0">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': other_player.name ?? other_player.code}) }}</p>
-                </div>
-            {% elseif conversation.status.value == 'denied' %}
-                <div class="text-center py-4 text-muted">
-                    <i class="bi bi-x-circle fs-1 d-block mb-3"></i>
-                    <p>{{ 'messaging.conversation_declined'|trans }}</p>
                 </div>
             {% elseif conversation.status.value == 'accepted' %}
                 {% if messages is empty %}
@@ -127,10 +134,16 @@
             {% endif %}
         </div>
 
-        {% if conversation.status.value == 'accepted' %}
+        <div class="d-flex align-items-center text-muted small px-3 pb-2 d-none"
+             data-conversation-realtime-target="typingIndicator">
+            <div class="typing-dots me-2"><span></span><span></span><span></span></div>
+            <span>{{ 'messaging.typing'|trans }}</span>
+        </div>
+
+        {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
             <div class="card-footer">
                 <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" onsubmit="this.querySelector('button[type=submit]').disabled = true">
-                    <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required></textarea>
+                    <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-send"></i>
                     </button>

@@ -46,8 +46,9 @@
 
 {% if puzzle_offer_count is not null and puzzle_offer_count > 0 %}
     <li>
-        <a class="dropdown-item" href="{{ path('puzzler_offers', {puzzleId: puzzle_id}) }}">
-            <i class="bi bi-shop me-1"></i> {{ 'puzzler_offers.offers_link'|trans({'%count%': puzzle_offer_count}) }}
+        <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ path('puzzler_offers', {puzzleId: puzzle_id}) }}">
+            <span><i class="bi bi-shop me-1"></i> {{ 'puzzler_offers.offers_link'|trans({'%count%': puzzle_offer_count}) }}</span>
+            <span class="badge bg-primary ms-2">{{ 'new_badge'|trans }}</span>
         </a>
     </li>
 {% elseif puzzle_offer_count is not null %}

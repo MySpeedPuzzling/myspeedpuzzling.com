@@ -33,7 +33,7 @@ readonly final class MarkMessagesAsReadHandler
         $conversation = $this->conversationRepository->get($message->conversationId);
 
         // Bulk update: set readAt = now() on all messages where sender is NOT the current player and readAt IS NULL
-        $this->database->executeStatement(
+        $affectedRows = $this->database->executeStatement(
             'UPDATE chat_message SET read_at = NOW() WHERE conversation_id = :conversationId AND sender_id != :playerId AND read_at IS NULL',
             [
                 'conversationId' => $message->conversationId,
@@ -44,6 +44,10 @@ readonly final class MarkMessagesAsReadHandler
         try {
             $unreadCount = $this->getConversations->countUnreadForPlayer($message->playerId);
             $this->mercureNotifier->notifyUnreadCountChanged($message->playerId, $unreadCount);
+
+            if ($affectedRows > 0) {
+                $this->mercureNotifier->notifyMessagesRead($message->conversationId);
+            }
         } catch (\Throwable $e) {
             $this->logger->error('Failed to send Mercure notification for unread count', [
                 'conversationId' => $message->conversationId,

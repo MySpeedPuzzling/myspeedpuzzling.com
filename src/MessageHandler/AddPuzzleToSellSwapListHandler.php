@@ -48,6 +48,7 @@ readonly final class AddPuzzleToSellSwapListHandler
             $existingItem->changePrice($message->price);
             $existingItem->changeCondition($message->condition);
             $existingItem->changeComment($message->comment);
+            $existingItem->changePublishedOnMarketplace($message->publishedOnMarketplace);
             return;
         }
 
@@ -60,6 +61,7 @@ readonly final class AddPuzzleToSellSwapListHandler
             $message->condition,
             $message->comment,
             new DateTimeImmutable(),
+            $message->publishedOnMarketplace,
         );
 
         $this->sellSwapListItemRepository->save($sellSwapListItem);

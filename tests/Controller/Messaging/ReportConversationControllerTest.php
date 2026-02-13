@@ -29,7 +29,7 @@ final class ReportConversationControllerTest extends WebTestCase
         // PLAYER_ADMIN is recipient of CONVERSATION_MARKETPLACE
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->request('POST', '/en/messages/' . ConversationFixture::CONVERSATION_DENIED . '/report', [
+        $browser->request('POST', '/en/messages/' . ConversationFixture::CONVERSATION_IGNORED . '/report', [
             'reason' => 'Spam content',
         ]);
 

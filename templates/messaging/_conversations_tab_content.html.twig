@@ -1,0 +1,64 @@
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'conversations' ? 'active' : '' }}" href="{{ path('conversations_list') }}">
+                {{ 'messaging.conversations'|trans }}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'requests' ? 'active' : '' }}" href="{{ path('conversations_list', {tab: 'requests'}) }}">
+                {{ 'messaging.requests'|trans }}
+                {% if pending_count > 0 %}
+                    <span class="badge bg-danger ms-1">{{ pending_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {{ active_tab == 'ignored' ? 'active' : '' }}" href="{{ path('conversations_list', {tab: 'ignored'}) }}">
+                {{ 'messaging.ignored'|trans }}
+                {% if ignored_count > 0 %}
+                    <span class="badge bg-secondary ms-1">{{ ignored_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if active_tab == 'ignored' %}
+        {% if ignored_conversations is empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-eye-slash fs-1 d-block mb-3"></i>
+                <p>{{ 'messaging.no_ignored_conversations'|trans }}</p>
+            </div>
+        {% else %}
+            <div class="row g-3">
+                {% for conversation in ignored_conversations %}
+                    {{ include('messaging/_ignored_card.html.twig', {conversation: conversation}) }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% elseif active_tab == 'requests' %}
+        {% if pending_requests is empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                <p>{{ 'messaging.no_pending_requests'|trans }}</p>
+            </div>
+        {% else %}
+            <div class="row g-3">
+                {% for request in pending_requests %}
+                    {{ include('messaging/_request_card.html.twig', {conversation: request}) }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% else %}
+        {% if conversations is empty %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-chat fs-1 d-block mb-3"></i>
+                <p>{{ 'messaging.no_conversations_yet'|trans }}</p>
+            </div>
+        {% else %}
+            <div class="list-group">
+                {% for conversation in conversations %}
+                    {{ include('messaging/_conversation_list_item.html.twig') }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}

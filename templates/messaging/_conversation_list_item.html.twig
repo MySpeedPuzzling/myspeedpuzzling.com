@@ -15,8 +15,20 @@
         </div>
 
         {% if conversation.puzzleName %}
-            <div class="text-muted small">
-                <i class="bi bi-puzzle me-1"></i>{{ conversation.puzzleName }}
+            <div class="d-flex align-items-center gap-1 mt-1">
+                <i class="bi bi-shop text-primary" style="font-size: 0.7rem;" title="{{ 'marketplace.title'|trans }}"></i>
+                <small class="text-muted">{{ conversation.puzzleName|length > 40 ? conversation.puzzleName|slice(0, 37) ~ '...' : conversation.puzzleName }}</small>
+                {% if conversation.listingType %}
+                    {% if conversation.listingType == 'sell' %}
+                        <span class="badge bg-success" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
+                    {% elseif conversation.listingType == 'swap' %}
+                        <span class="badge bg-info" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
+                    {% elseif conversation.listingType == 'both' %}
+                        <span class="badge bg-primary" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
+                    {% elseif conversation.listingType == 'free' %}
+                        <span class="badge bg-danger" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
+                    {% endif %}
+                {% endif %}
             </div>
         {% endif %}
 
@@ -24,12 +36,12 @@
             <div class="text-muted small text-truncate">{{ conversation.lastMessagePreview }}</div>
         {% endif %}
 
-        {% if conversation.status.value == 'pending' %}
+        {% if conversation.status.value in ['pending', 'ignored'] %}
             <div class="text-muted small fst-italic">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': conversation.otherPlayerName}) }}</div>
         {% endif %}
     </div>
 
-    {% if conversation.status.value == 'pending' %}
+    {% if conversation.status.value in ['pending', 'ignored'] %}
         <span class="badge bg-warning text-dark rounded-pill ms-2 flex-shrink-0">{{ 'messaging.pending_status'|trans }}</span>
     {% elseif conversation.unreadCount > 0 %}
         <span class="badge bg-primary rounded-pill ms-2 flex-shrink-0">{{ conversation.unreadCount }}</span>

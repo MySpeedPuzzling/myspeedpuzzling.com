@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
-use SpeedPuzzling\Web\Message\DenyConversation;
+use SpeedPuzzling\Web\Message\IgnoreConversation;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
@@ -13,7 +13,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
-readonly final class DenyConversationHandler
+readonly final class IgnoreConversationHandler
 {
     public function __construct(
         private ConversationRepository $conversationRepository,
@@ -25,7 +25,7 @@ readonly final class DenyConversationHandler
     /**
      * @throws ConversationNotFound
      */
-    public function __invoke(DenyConversation $message): void
+    public function __invoke(IgnoreConversation $message): void
     {
         $conversation = $this->conversationRepository->get($message->conversationId);
 
@@ -37,12 +37,14 @@ readonly final class DenyConversationHandler
             throw new ConversationNotFound();
         }
 
-        $conversation->deny();
+        $conversation->ignore();
 
         try {
-            $this->mercureNotifier->notifyConversationDenied($conversation);
+            $this->mercureNotifier->notifyConversationIgnored($conversation);
+            $this->mercureNotifier->notifyConversationListChanged($conversation->initiator->id->toString());
+            $this->mercureNotifier->notifyConversationListChanged($conversation->recipient->id->toString());
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to send Mercure notification for conversation denial', [
+            $this->logger->error('Failed to send Mercure notification for conversation ignore', [
                 'conversationId' => $conversation->id->toString(),
                 'exception' => $e,
             ]);

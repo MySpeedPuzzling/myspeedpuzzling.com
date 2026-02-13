@@ -52,6 +52,26 @@ readonly final class ConversationRepository
             ]);
     }
 
+    public function findDirectBetween(Player $playerA, Player $playerB): null|Conversation
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+
+        $conversations = $qb->select('c')
+            ->from(Conversation::class, 'c')
+            ->where('((c.initiator = :playerA AND c.recipient = :playerB) OR (c.initiator = :playerB AND c.recipient = :playerA))')
+            ->andWhere('c.sellSwapListItem IS NULL')
+            ->andWhere('c.status IN (:statuses)')
+            ->setParameter('playerA', $playerA)
+            ->setParameter('playerB', $playerB)
+            ->setParameter('statuses', [ConversationStatus::Accepted, ConversationStatus::Pending, ConversationStatus::Ignored])
+            ->orderBy('c.lastMessageAt', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        return $conversations[0] ?? null;
+    }
+
     public function findAcceptedBetween(Player $playerA, Player $playerB): null|Conversation
     {
         $qb = $this->entityManager->createQueryBuilder();
@@ -78,5 +98,25 @@ readonly final class ConversationRepository
                 'recipient' => $recipient,
                 'sellSwapListItem' => $sellSwapListItem,
             ]);
+    }
+
+    public function findActiveByPlayersAndListing(Player $playerA, Player $playerB, SellSwapListItem $sellSwapListItem): null|Conversation
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+
+        $conversations = $qb->select('c')
+            ->from(Conversation::class, 'c')
+            ->where('((c.initiator = :playerA AND c.recipient = :playerB) OR (c.initiator = :playerB AND c.recipient = :playerA))')
+            ->andWhere('c.sellSwapListItem = :sellSwapListItem')
+            ->andWhere('c.status IN (:statuses)')
+            ->setParameter('playerA', $playerA)
+            ->setParameter('playerB', $playerB)
+            ->setParameter('sellSwapListItem', $sellSwapListItem)
+            ->setParameter('statuses', [ConversationStatus::Pending, ConversationStatus::Accepted, ConversationStatus::Ignored])
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getResult();
+
+        return $conversations[0] ?? null;
     }
 }

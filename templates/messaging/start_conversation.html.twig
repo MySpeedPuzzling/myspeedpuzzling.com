@@ -1,6 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'messaging.new_message'|trans }}{% endblock %}
+{% block title %}
+    {% if conversation is defined and conversation is not null %}
+        {{ 'messaging.conversation_with'|trans({'%name%': recipient.playerName ?? recipient.code}) }}
+    {% else %}
+        {{ 'messaging.new_message'|trans }}
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -10,62 +16,191 @@
         </a>
     </div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">{{ 'messaging.new_message'|trans }}</h5>
-                </div>
-                <div class="card-body">
-                    {% if recipient is defined %}
-                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-                            {{ include('messaging/_avatar.html.twig', {avatar: recipient.avatar, size: 40, class: 'me-2'}) }}
-                            <div>
-                                <strong>{{ recipient.playerName ?? recipient.code }}</strong>
-                            </div>
+    {% if conversation is defined and conversation is not null %}
+        {# Existing conversation - show chat #}
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card" data-controller="messaging conversation-realtime"
+                     data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
+                     data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
+                     data-conversation-realtime-mercure-url-value="{{ mercure_public_url }}"
+                     data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
+                    <div class="card-header d-flex align-items-center">
+                        {{ include('messaging/_avatar.html.twig', {avatar: recipient.avatar, size: 40, class: 'me-2'}) }}
+                        <div>
+                            <a href="{{ path('player_profile', {playerId: recipient.playerId}) }}" class="fw-bold text-decoration-none">
+                                {{ recipient.playerName ?? recipient.code }}
+                            </a>
+                            {% if recipient.country %}
+                                <span class="fi fi-{{ recipient.country }} shadow-custom ms-1"></span>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                    </div>
 
                     {% if puzzle is defined and puzzle is not null %}
-                        <div class="d-flex align-items-center mb-3 p-3 bg-light rounded">
-                            {% if puzzle.puzzleImage %}
-                                <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
-                            {% endif %}
-                            <div>
-                                <div class="fw-bold">{{ puzzle.puzzleName }}</div>
-                                {% if sell_swap_list_item is defined %}
-                                    <div class="text-muted small">
-                                        {% if sell_swap_list_item.listingType.value == 'sell' %}
-                                            {{ 'marketplace.listing_type.sell'|trans }}
-                                        {% elseif sell_swap_list_item.listingType.value == 'swap' %}
-                                            {{ 'marketplace.listing_type.swap'|trans }}
-                                        {% elseif sell_swap_list_item.listingType.value == 'both' %}
-                                            {{ 'marketplace.listing_type.both'|trans }}
-                                        {% elseif sell_swap_list_item.listingType.value == 'free' %}
-                                            {{ 'marketplace.listing_type.free'|trans }}
-                                        {% endif %}
-                                        {% if sell_swap_list_item.price %}
-                                            - {{ sell_swap_list_item.price }}
-                                        {% endif %}
-                                    </div>
+                        <div class="card-body border-bottom bg-light py-2 px-3">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-shop text-primary me-2" style="font-size: 0.8rem;" title="{{ 'marketplace.title'|trans }}"></i>
+                                <small class="text-muted me-2">{{ 'messaging.regarding'|trans }}</small>
+                                {% if puzzle.puzzleImage %}
+                                    <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
                                 {% endif %}
+                                <div>
+                                    <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}" class="fw-bold text-decoration-none small">
+                                        {{ puzzle.puzzleName }}
+                                    </a>
+                                    {% if sell_swap_list_item is defined and sell_swap_list_item is not null %}
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            {{ puzzle.piecesCount }} {{ 'marketplace.pcs'|trans }}
+                                            &middot;
+                                            {% if sell_swap_list_item.listingType.value == 'sell' %}
+                                                <span class="badge bg-success" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
+                                            {% elseif sell_swap_list_item.listingType.value == 'swap' %}
+                                                <span class="badge bg-info" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
+                                            {% elseif sell_swap_list_item.listingType.value == 'both' %}
+                                                <span class="badge bg-primary" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
+                                            {% elseif sell_swap_list_item.listingType.value == 'free' %}
+                                                <span class="badge bg-danger" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
+                                            {% endif %}
+                                            {% if sell_swap_list_item.price %}
+                                                &middot; {{ sell_swap_list_item.price }}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     {% endif %}
 
-                    <form method="post">
-                        <div class="mb-3">
-                            <label for="message" class="form-label">{{ 'messaging.message_label'|trans }}</label>
-                            <textarea name="message" id="message" class="form-control" rows="4" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}"></textarea>
-                            <div class="form-text">{{ 'messaging.max_characters'|trans }}</div>
+                    <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
+                         data-messaging-target="messages"
+                         data-conversation-realtime-target="messages">
+
+                        {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
+                            {% for message in messages %}
+                                {{ include('messaging/_message_bubble.html.twig') }}
+                            {% endfor %}
+
+                            <div class="text-center py-3">
+                                <p class="text-muted mb-2 small">{{ 'messaging.accept_disclaimer'|trans }}</p>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
+                                        </button>
+                                    </form>
+                                    {% if conversation.status.value == 'pending' %}
+                                        <form action="{{ path('ignore_conversation', {conversationId: conversation.id}) }}" method="post">
+                                            <button type="submit" class="btn btn-outline-secondary">
+                                                <i class="bi bi-eye-slash me-1"></i> {{ 'messaging.ignore'|trans }}
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
+                            {% for message in messages %}
+                                {{ include('messaging/_message_bubble.html.twig') }}
+                            {% endfor %}
+
+                            <div class="text-center py-3 text-muted">
+                                <i class="bi bi-hourglass-split d-block mb-2"></i>
+                                <p class="small mb-0">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': recipient.playerName ?? recipient.code}) }}</p>
+                            </div>
+                        {% elseif conversation.status.value == 'accepted' %}
+                            {% if messages is empty %}
+                                <div class="text-center py-4 text-muted">
+                                    <p>{{ 'messaging.no_messages_yet'|trans }}</p>
+                                </div>
+                            {% else %}
+                                {% for message in messages %}
+                                    {{ include('messaging/_message_bubble.html.twig') }}
+                                {% endfor %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex align-items-center text-muted small px-3 pb-2 d-none"
+                         data-conversation-realtime-target="typingIndicator">
+                        <div class="typing-dots me-2"><span></span><span></span><span></span></div>
+                        <span>{{ 'messaging.typing'|trans }}</span>
+                    </div>
+
+                    {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
+                        <div class="card-footer">
+                            <form action="{{ sell_swap_list_item is defined and sell_swap_list_item is not null ? path('start_marketplace_conversation', {sellSwapListItemId: sell_swap_list_item.id}) : path('start_conversation', {recipientId: recipient.playerId}) }}" method="post" class="d-flex gap-2">
+                                <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i>
+                                </button>
+                            </form>
                         </div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-send me-1"></i> {{ 'messaging.send_message'|trans }}
-                        </button>
-                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
-    </div>
+    {% else %}
+        {# New conversation form #}
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">{{ 'messaging.new_message'|trans }}</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if recipient is defined %}
+                            <div class="d-flex align-items-center mb-3 bg-light rounded">
+                                {{ include('messaging/_avatar.html.twig', {avatar: recipient.avatar, size: 40, class: 'me-2'}) }}
+                                <div>
+                                    <strong>{{ recipient.playerName ?? recipient.code }}</strong>
+                                    {% if recipient.country %}
+                                        <span class="fi fi-{{ recipient.country }} shadow-custom ms-1"></span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        {% if puzzle is defined and puzzle is not null %}
+                            <div class="d-flex align-items-center mb-3 bg-light rounded">
+                                {% if puzzle.puzzleImage %}
+                                    <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
+                                {% endif %}
+                                <div>
+                                    <div class="fw-bold">{{ puzzle.puzzleName }}</div>
+                                    {% if sell_swap_list_item is defined %}
+                                        <div class="text-muted small">
+                                            {% if sell_swap_list_item.listingType.value == 'sell' %}
+                                                {{ 'marketplace.listing_type.sell'|trans }}
+                                            {% elseif sell_swap_list_item.listingType.value == 'swap' %}
+                                                {{ 'marketplace.listing_type.swap'|trans }}
+                                            {% elseif sell_swap_list_item.listingType.value == 'both' %}
+                                                {{ 'marketplace.listing_type.both'|trans }}
+                                            {% elseif sell_swap_list_item.listingType.value == 'free' %}
+                                                {{ 'marketplace.listing_type.free'|trans }}
+                                            {% endif %}
+                                            {% if sell_swap_list_item.price %}
+                                                - {{ sell_swap_list_item.price }}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <form method="post">
+                            <div class="mb-3">
+                                <label for="message" class="form-label">{{ 'messaging.message_label'|trans }}</label>
+                                <textarea name="message" id="message" class="form-control" rows="4" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}"></textarea>
+                                <div class="form-text">{{ 'messaging.max_characters'|trans }}</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i> {{ 'messaging.send_message'|trans }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

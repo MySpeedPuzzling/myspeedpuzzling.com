@@ -42,6 +42,21 @@ final class AcceptConversationHandlerTest extends KernelTestCase
         self::assertNotNull($conversation->respondedAt);
     }
 
+    public function testAcceptingIgnoredConversationChangesStatusToAccepted(): void
+    {
+        // CONVERSATION_IGNORED: WITH_FAVORITES (initiator) → ADMIN (recipient)
+        $this->messageBus->dispatch(
+            new AcceptConversation(
+                conversationId: ConversationFixture::CONVERSATION_IGNORED,
+                playerId: PlayerFixture::PLAYER_ADMIN,
+            ),
+        );
+
+        $conversation = $this->conversationRepository->get(ConversationFixture::CONVERSATION_IGNORED);
+        self::assertSame(ConversationStatus::Accepted, $conversation->status);
+        self::assertNotNull($conversation->respondedAt);
+    }
+
     public function testOnlyRecipientCanAccept(): void
     {
         try {

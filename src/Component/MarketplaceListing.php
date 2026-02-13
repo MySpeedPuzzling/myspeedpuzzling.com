@@ -52,6 +52,9 @@ final class MarketplaceListing
     public string $sort = 'newest';
 
     #[LiveProp(writable: true, url: true)]
+    public bool $myOffers = false;
+
+    #[LiveProp(writable: true, url: true)]
     public int $page = 1;
 
     /** @var null|array<MarketplaceListingItem> */
@@ -92,6 +95,7 @@ final class MarketplaceListing
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
             shipsToCountry: $this->shipsTo !== '' ? $this->shipsTo : null,
+            sellerId: $this->getMyOffersSellerId(),
             sort: $this->sort,
             limit: self::PER_PAGE,
             offset: ($this->page - 1) * self::PER_PAGE,
@@ -116,6 +120,7 @@ final class MarketplaceListing
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
             shipsToCountry: $this->shipsTo !== '' ? $this->shipsTo : null,
+            sellerId: $this->getMyOffersSellerId(),
         );
 
         return $this->cachedCount;
@@ -147,6 +152,21 @@ final class MarketplaceListing
         }
 
         return '';
+    }
+
+    private function getMyOffersSellerId(): null|string
+    {
+        if ($this->myOffers === false) {
+            return null;
+        }
+
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($profile === null) {
+            return null;
+        }
+
+        return $profile->playerId;
     }
 
     private function getListingTypeEnum(): null|ListingType

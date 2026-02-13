@@ -73,8 +73,53 @@
                 {% endif %}
             </div>
 
-            {% if logged_user.profile is not null and logged_user.profile.playerId is not same as item.sellerId %}
-                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary btn-xs py-0 px-1" title="{{ 'marketplace.contact_seller'|trans }}">
+            {% if logged_user.profile is not null and logged_user.profile.playerId is same as item.sellerId %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-xs py-0 px-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical" style="font-size: 0.75rem;"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li>
+                            <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item.itemId}) }}">
+                                <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                            </a>
+                        </li>
+                        {% if item.reserved %}
+                            <li>
+                                <form action="{{ path('sell_swap_remove_reservation', {itemId: item.itemId}) }}" method="post">
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                                    </button>
+                                </form>
+                            </li>
+                        {% else %}
+                            <li>
+                                <form action="{{ path('sell_swap_mark_reserved', {itemId: item.itemId}) }}" method="post">
+                                    <button type="submit" class="dropdown-item text-warning">
+                                        <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
+                                    </button>
+                                </form>
+                            </li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item text-success"
+                               href="{{ path('sellswap_mark_sold', {itemId: item.itemId}) }}"
+                               data-turbo="true"
+                               data-turbo-frame="modal-frame">
+                                <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+                            </a>
+                        </li>
+                        <li>
+                            <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}" method="post">
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            {% elseif logged_user.profile is not null %}
+                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary btn-xs py-0 px-1" title="{{ 'marketplace.contact_seller'|trans }}" data-turbo="true" data-turbo-frame="modal-frame">
                     <i class="bi bi-envelope" style="font-size: 0.75rem;"></i>
                 </a>
             {% endif %}

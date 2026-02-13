@@ -33,5 +33,6 @@ readonly final class EditSellSwapListItemHandler
         $item->changePrice($message->price);
         $item->changeCondition($message->condition);
         $item->changeComment($message->comment);
+        $item->changePublishedOnMarketplace($message->publishedOnMarketplace);
     }
 }

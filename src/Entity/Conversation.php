@@ -68,9 +68,9 @@ class Conversation
         $this->respondedAt = new DateTimeImmutable();
     }
 
-    public function deny(): void
+    public function ignore(): void
     {
-        $this->status = ConversationStatus::Denied;
+        $this->status = ConversationStatus::Ignored;
         $this->respondedAt = new DateTimeImmutable();
     }
 

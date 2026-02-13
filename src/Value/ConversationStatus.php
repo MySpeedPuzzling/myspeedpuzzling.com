@@ -8,5 +8,5 @@ enum ConversationStatus: string
 {
     case Pending = 'pending';
     case Accepted = 'accepted';
-    case Denied = 'denied';
+    case Ignored = 'ignored';
 }

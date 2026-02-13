@@ -33,7 +33,7 @@ readonly final class AcceptConversationHandler
             throw new ConversationNotFound();
         }
 
-        if ($conversation->status !== ConversationStatus::Pending) {
+        if (!in_array($conversation->status, [ConversationStatus::Pending, ConversationStatus::Ignored], true)) {
             throw new ConversationNotFound();
         }
 
@@ -41,6 +41,8 @@ readonly final class AcceptConversationHandler
 
         try {
             $this->mercureNotifier->notifyConversationAccepted($conversation);
+            $this->mercureNotifier->notifyConversationListChanged($conversation->initiator->id->toString());
+            $this->mercureNotifier->notifyConversationListChanged($conversation->recipient->id->toString());
         } catch (\Throwable $e) {
             $this->logger->error('Failed to send Mercure notification for conversation acceptance', [
                 'conversationId' => $conversation->id->toString(),

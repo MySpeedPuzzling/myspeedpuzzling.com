@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
-use SpeedPuzzling\Web\Message\DenyConversation;
+use SpeedPuzzling\Web\Message\IgnoreConversation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-final class DenyConversationController extends AbstractController
+final class IgnoreConversationController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
@@ -24,8 +24,8 @@ final class DenyConversationController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages/{conversationId}/deny',
-        name: 'deny_conversation',
+        path: '/en/messages/{conversationId}/ignore',
+        name: 'ignore_conversation',
         methods: ['POST'],
     )]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
@@ -34,12 +34,12 @@ final class DenyConversationController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
-        $this->messageBus->dispatch(new DenyConversation(
+        $this->messageBus->dispatch(new IgnoreConversation(
             conversationId: $conversationId,
             playerId: $loggedPlayer->playerId,
         ));
 
-        $this->addFlash('success', $this->translator->trans('messaging.request_denied'));
+        $this->addFlash('success', $this->translator->trans('messaging.request_ignored'));
 
         return $this->redirectToRoute('conversations_list', ['tab' => 'requests']);
     }

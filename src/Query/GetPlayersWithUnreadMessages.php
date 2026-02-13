@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Results\PendingRequestNotification;
 use SpeedPuzzling\Web\Results\UnreadMessageNotification;
 use SpeedPuzzling\Web\Results\UnreadMessageSummary;
 
@@ -71,6 +72,62 @@ SQL;
                 playerLocale: $row['player_locale'],
                 oldestUnreadAt: new DateTimeImmutable($row['oldest_unread_at']),
                 totalUnreadCount: (int) $row['unread_count'],
+            );
+        }, $rows);
+    }
+
+    /**
+     * @return PendingRequestNotification[]
+     */
+    public function findPlayersWithPendingRequestsToNotify(int $hoursThreshold = 12): array
+    {
+        $query = <<<SQL
+SELECT
+    p.id as player_id,
+    p.email as player_email,
+    p.name as player_name,
+    p.locale as player_locale,
+    MIN(c.created_at) as oldest_pending_at,
+    COUNT(c.id) as pending_count
+FROM player p
+JOIN conversation c ON c.recipient_id = p.id
+WHERE p.email IS NOT NULL
+  AND p.email_notifications_enabled = true
+  AND c.status = 'pending'
+  AND c.created_at < NOW() - CAST(:hours AS INTERVAL)
+GROUP BY p.id, p.email, p.name, p.locale
+HAVING MIN(c.created_at) > COALESCE(
+    (SELECT MAX(rnl.oldest_pending_request_at)
+     FROM request_notification_log rnl
+     WHERE rnl.player_id = p.id),
+    '1970-01-01'::timestamptz
+)
+SQL;
+
+        $rows = $this->database
+            ->executeQuery($query, [
+                'hours' => $hoursThreshold . ' hours',
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): PendingRequestNotification {
+            /** @var array{
+             *     player_id: string,
+             *     player_email: string,
+             *     player_name: null|string,
+             *     player_locale: null|string,
+             *     oldest_pending_at: string,
+             *     pending_count: int|string,
+             * } $row
+             */
+
+            return new PendingRequestNotification(
+                playerId: $row['player_id'],
+                playerEmail: $row['player_email'],
+                playerName: $row['player_name'],
+                playerLocale: $row['player_locale'],
+                oldestPendingAt: new DateTimeImmutable($row['oldest_pending_at']),
+                pendingCount: (int) $row['pending_count'],
             );
         }, $rows);
     }

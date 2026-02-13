@@ -41,7 +41,7 @@ final class StartConversationHandlerTest extends KernelTestCase
     public function testStartingConversationCreatesPendingConversation(): void
     {
         // PLAYER_WITH_FAVORITES → PLAYER_ADMIN: no existing conversation between them in general context
-        // But CONVERSATION_DENIED exists between them - this shouldn't block new ones
+        // But CONVERSATION_IGNORED exists between them - this shouldn't block new ones
         // Actually, let's use a different pair: ADMIN → WITH_STRIPE (no existing conversations in this direction)
         // Wait - CONVERSATION_MARKETPLACE exists between WITH_FAVORITES → WITH_STRIPE, but that's marketplace
         // Use: PLAYER_ADMIN → PLAYER_WITH_FAVORITES (no existing general conversation)

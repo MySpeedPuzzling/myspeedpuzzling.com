@@ -47,15 +47,14 @@
                         </div>
                     {% endif %}
 
+                    {% if conversation.lastMessagePreview %}
+                        <div class="text-muted small mb-2 text-truncate">{{ conversation.lastMessagePreview }}</div>
+                    {% endif %}
+
                     <div class="d-flex gap-2">
                         <form action="{{ path('accept_conversation', {conversationId: conversation.conversationId}) }}" method="post">
                             <button type="submit" class="btn btn-sm btn-success">
                                 <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
-                            </button>
-                        </form>
-                        <form action="{{ path('ignore_conversation', {conversationId: conversation.conversationId}) }}" method="post">
-                            <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-eye-slash me-1"></i> {{ 'messaging.ignore'|trans }}
                             </button>
                         </form>
                         <a href="{{ path('conversation_detail', {conversationId: conversation.conversationId}) }}" class="btn btn-sm btn-outline-secondary">

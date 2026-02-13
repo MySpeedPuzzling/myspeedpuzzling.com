@@ -57,7 +57,8 @@ final class ConversationDetailController extends AbstractController
                 conversationId: $conversationId,
                 playerId: $loggedPlayer->playerId,
             ));
-        } elseif ($conversation->status === ConversationStatus::Pending && $isInitiator) {
+        } elseif (in_array($conversation->status, [ConversationStatus::Pending, ConversationStatus::Ignored], true)) {
+            // Both parties can see messages, but do NOT mark as read for recipient
             $messages = $this->getMessages->forConversation($conversationId, $loggedPlayer->playerId);
         }
 

@@ -6,14 +6,17 @@ namespace SpeedPuzzling\Web\Services;
 
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
+use SpeedPuzzling\Web\Results\MessageView;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 use Symfony\Contracts\Service\ResetInterface;
+use Twig\Environment;
 
 final class MercureNotifier implements ResetInterface
 {
     public function __construct(
         private readonly HubInterface $hub,
+        private readonly Environment $twig,
     ) {
     }
 
@@ -40,12 +43,12 @@ final class MercureNotifier implements ResetInterface
         ));
     }
 
-    public function notifyConversationDenied(Conversation $conversation): void
+    public function notifyConversationIgnored(Conversation $conversation): void
     {
         $this->hub->publish(new Update(
             '/conversations/' . $conversation->initiator->id->toString(),
             json_encode([
-                'type' => 'denied',
+                'type' => 'ignored',
                 'conversationId' => $conversation->id->toString(),
             ], JSON_THROW_ON_ERROR),
         ));
@@ -53,14 +56,49 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyNewMessage(ChatMessage $chatMessage): void
     {
+        $senderId = $chatMessage->sender->id->toString();
+        $conversation = $chatMessage->conversation;
+        $recipientId = ($conversation->initiator->id->toString() === $senderId)
+            ? $conversation->recipient->id->toString()
+            : $conversation->initiator->id->toString();
+
+        $messageView = new MessageView(
+            messageId: $chatMessage->id->toString(),
+            senderId: $senderId,
+            senderName: $chatMessage->sender->name,
+            senderAvatar: $chatMessage->sender->avatar,
+            content: $chatMessage->content,
+            sentAt: $chatMessage->sentAt,
+            readAt: null,
+            isOwnMessage: false,
+        );
+
+        $html = $this->twig->render('messaging/_new_message_stream.html.twig', [
+            'message' => $messageView,
+        ]);
+
         $this->hub->publish(new Update(
-            '/messages/' . $chatMessage->conversation->id->toString(),
+            '/messages/' . $conversation->id->toString() . '/user/' . $recipientId,
+            $html,
+        ));
+    }
+
+    public function notifyMessagesRead(string $conversationId): void
+    {
+        $this->hub->publish(new Update(
+            '/conversation/' . $conversationId . '/read',
             json_encode([
-                'type' => 'new_message',
-                'messageId' => $chatMessage->id->toString(),
-                'senderId' => $chatMessage->sender->id->toString(),
-                'content' => $chatMessage->content,
-                'sentAt' => $chatMessage->sentAt->format(\DateTimeInterface::ATOM),
+                'type' => 'read',
+            ], JSON_THROW_ON_ERROR),
+        ));
+    }
+
+    public function notifyConversationListChanged(string $playerId): void
+    {
+        $this->hub->publish(new Update(
+            '/conversations/' . $playerId,
+            json_encode([
+                'type' => 'list_changed',
             ], JSON_THROW_ON_ERROR),
         ));
     }

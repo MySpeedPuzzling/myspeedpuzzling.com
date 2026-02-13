@@ -1,43 +1,31 @@
 import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
-    static values = {
-        conversationId: String,
-        mercureUrl: String,
-    };
+    static targets = ['messages'];
 
     connect() {
         this.scrollToBottom();
-
-        if (this.mercureUrlValue) {
-            this.connectToMercure();
-        }
+        this.observer = new MutationObserver(() => this.scrollToBottom());
+        this.observer.observe(this.messagesTarget, { childList: true });
     }
 
     disconnect() {
-        if (this.eventSource) {
-            this.eventSource.close();
+        if (this.observer) {
+            this.observer.disconnect();
         }
     }
 
-    connectToMercure() {
-        const topic = `/messages/${this.conversationIdValue}`;
-        const url = new URL(this.mercureUrlValue);
-        url.searchParams.append('topic', topic);
-
-        this.eventSource = new EventSource(url);
-
-        this.eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            if (data.html) {
-                this.element.insertAdjacentHTML('beforeend', data.html);
-                this.scrollToBottom();
+    submitOnEnter(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            const form = event.target.closest('form');
+            if (form && event.target.value.trim() !== '') {
+                form.requestSubmit();
             }
-        };
+        }
     }
 
     scrollToBottom() {
-        this.element.scrollTop = this.element.scrollHeight;
+        this.messagesTarget.scrollTop = this.messagesTarget.scrollHeight;
     }
 }

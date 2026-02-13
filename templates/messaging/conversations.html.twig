@@ -11,48 +11,14 @@
         </a>
     </div>
 
-    <ul class="nav nav-tabs mb-4">
-        <li class="nav-item">
-            <a class="nav-link {{ active_tab == 'conversations' ? 'active' : '' }}" href="{{ path('conversations_list') }}">
-                {{ 'messaging.conversations'|trans }}
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {{ active_tab == 'requests' ? 'active' : '' }}" href="{{ path('conversations_list', {tab: 'requests'}) }}">
-                {{ 'messaging.requests'|trans }}
-                {% if pending_count > 0 %}
-                    <span class="badge bg-danger ms-1">{{ pending_count }}</span>
-                {% endif %}
-            </a>
-        </li>
-    </ul>
-
-    {% if active_tab == 'requests' %}
-        {% if pending_requests is empty %}
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                <p>{{ 'messaging.no_pending_requests'|trans }}</p>
-            </div>
-        {% else %}
-            <div class="row g-3">
-                {% for request in pending_requests %}
-                    {{ include('messaging/_request_card.html.twig', {conversation: request}) }}
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% else %}
-        {% if conversations is empty %}
-            <div class="text-center py-5 text-muted">
-                <i class="bi bi-chat fs-1 d-block mb-3"></i>
-                <p>{{ 'messaging.no_conversations_yet'|trans }}</p>
-            </div>
-        {% else %}
-            <div class="list-group">
-                {% for conversation in conversations %}
-                    {{ include('messaging/_conversation_list_item.html.twig') }}
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endif %}
+    <div data-controller="conversation-list"
+         data-conversation-list-player-id-value="{{ logged_user.profile.playerId }}"
+         data-conversation-list-mercure-url-value="{{ mercure_public_url }}"
+         data-conversation-list-refresh-url-value="{{ path('conversations_list_tab') }}"
+         data-conversation-list-active-tab-value="{{ active_tab }}">
+        <div data-conversation-list-target="tabContent">
+            {{ include('messaging/_conversations_tab_content.html.twig') }}
+        </div>
+    </div>
 </div>
 {% endblock %}

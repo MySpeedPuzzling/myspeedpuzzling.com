@@ -21,4 +21,6 @@ final class AddToSellSwapListFormData
 
     #[Assert\Length(max: 500)]
     public null|string $comment = null;
+
+    public bool $publishedOnMarketplace = true;
 }

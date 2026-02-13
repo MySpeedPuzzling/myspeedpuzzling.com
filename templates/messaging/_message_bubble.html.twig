@@ -1,4 +1,4 @@
-<div class="d-flex mb-3 {{ message.isOwnMessage ? 'justify-content-end' : 'justify-content-start' }}">
+<div class="d-flex mb-3 {{ message.isOwnMessage ? 'justify-content-end' : 'justify-content-start' }}" data-message-id="{{ message.messageId }}">
     {% if not message.isOwnMessage %}
         {{ include('messaging/_avatar.html.twig', {avatar: message.senderAvatar, size: 32, class: 'me-2 flex-shrink-0 align-self-end'}) }}
     {% endif %}
@@ -10,9 +10,9 @@
         <div class="text-muted mt-1" style="font-size: 0.7rem;">
             {{ message.sentAt|date('H:i') }}
             {% if message.isOwnMessage and message.readAt %}
-                <i class="bi bi-check2-all ms-1" title="{{ 'messaging.read_status'|trans }}"></i>
+                <i class="bi bi-check2-all message-status-icon ms-1 text-success" title="{{ 'messaging.read_status'|trans }}"></i>
             {% elseif message.isOwnMessage %}
-                <i class="bi bi-check2 ms-1" title="{{ 'messaging.sent_status'|trans }}"></i>
+                <i class="bi bi-check2 message-status-icon ms-1" title="{{ 'messaging.sent_status'|trans }}"></i>
             {% endif %}
         </div>
     </div>

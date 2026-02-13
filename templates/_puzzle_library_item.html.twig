@@ -155,6 +155,12 @@
                                         {{ 'sell_swap_list.condition.missing_pieces'|trans }}
                                     {% endif %}
                                 </span>
+
+                                {% if item.publishedOnMarketplace is defined and item.publishedOnMarketplace %}
+                                    <a href="{{ path('marketplace') }}" class="badge bg-dark text-decoration-none">
+                                        <i class="bi bi-shop me-1"></i>{{ 'sell_swap_list.on_marketplace'|trans }}
+                                    </a>
+                                {% endif %}
                             </div>
                         {% elseif page_context == 'wishlist' %}
                             {% if item.removeOnCollectionAdd %}

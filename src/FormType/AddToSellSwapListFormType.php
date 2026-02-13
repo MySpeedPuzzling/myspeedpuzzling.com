@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\FormData\AddToSellSwapListFormData;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -67,6 +68,12 @@ final class AddToSellSwapListFormType extends AbstractType
                 'rows' => 3,
                 'maxlength' => 500,
             ],
+        ]);
+
+        $builder->add('publishedOnMarketplace', CheckboxType::class, [
+            'label' => 'sell_swap_list.form.publish_on_marketplace',
+            'required' => false,
+            'help' => 'sell_swap_list.form.publish_on_marketplace_help',
         ]);
     }
 

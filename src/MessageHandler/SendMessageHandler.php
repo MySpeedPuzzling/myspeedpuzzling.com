@@ -46,10 +46,6 @@ readonly final class SendMessageHandler
     {
         $conversation = $this->conversationRepository->get($message->conversationId);
 
-        if ($conversation->status !== ConversationStatus::Accepted) {
-            throw new ConversationNotFound();
-        }
-
         $sender = $this->playerRepository->get($message->senderId);
 
         if ($sender->isMessagingMuted()) {
@@ -63,6 +59,12 @@ readonly final class SendMessageHandler
         if (!$isInitiator && !$isRecipient) {
             throw new ConversationNotFound();
         }
+
+        // Check conversation status and permissions
+        match ($conversation->status) {
+            ConversationStatus::Accepted => null, // Anyone can send
+            ConversationStatus::Pending, ConversationStatus::Ignored => $isInitiator ? null : throw new ConversationNotFound(),
+        };
 
         // Determine the other participant
         $otherParticipant = $isInitiator ? $conversation->recipient : $conversation->initiator;
@@ -89,10 +91,16 @@ readonly final class SendMessageHandler
         try {
             $this->mercureNotifier->notifyNewMessage($chatMessage);
 
-            // Notify recipient about unread count change
-            $recipientId = $otherParticipant->id->toString();
-            $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
-            $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+            // Only notify recipient about unread count for accepted conversations
+            if ($conversation->status === ConversationStatus::Accepted) {
+                $recipientId = $otherParticipant->id->toString();
+                $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
+                $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+            }
+
+            // Notify both participants to refresh their conversation list
+            $this->mercureNotifier->notifyConversationListChanged($otherParticipant->id->toString());
+            $this->mercureNotifier->notifyConversationListChanged($sender->id->toString());
         } catch (\Throwable $e) {
             $this->logger->error('Failed to send Mercure notification for message', [
                 'conversationId' => $conversation->id->toString(),

@@ -8,9 +8,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\MessageNotificationLog;
+use SpeedPuzzling\Web\Entity\RequestNotificationLog;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use SpeedPuzzling\Web\Repository\MessageNotificationLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\RequestNotificationLogRepository;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -29,6 +31,7 @@ final class SendUnreadMessageNotificationsCommand extends Command
     public function __construct(
         readonly private GetPlayersWithUnreadMessages $getPlayersWithUnreadMessages,
         readonly private MessageNotificationLogRepository $messageNotificationLogRepository,
+        readonly private RequestNotificationLogRepository $requestNotificationLogRepository,
         readonly private PlayerRepository $playerRepository,
         readonly private MailerInterface $mailer,
         readonly private TranslatorInterface $translator,
@@ -43,52 +46,106 @@ final class SendUnreadMessageNotificationsCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $playersToNotify = $this->getPlayersWithUnreadMessages->findPlayersToNotify(12);
+        $pendingRequestNotifications = $this->getPlayersWithUnreadMessages->findPlayersWithPendingRequestsToNotify(12);
 
-        if (count($playersToNotify) === 0) {
+        // Index pending requests by player ID for easy lookup
+        $pendingByPlayer = [];
+        foreach ($pendingRequestNotifications as $pendingNotification) {
+            $pendingByPlayer[$pendingNotification->playerId] = $pendingNotification;
+        }
+
+        // Collect all player IDs that need notification (unread messages or pending requests)
+        $allPlayerIds = array_unique(array_merge(
+            array_map(static fn ($n) => $n->playerId, $playersToNotify),
+            array_keys($pendingByPlayer),
+        ));
+
+        if (count($allPlayerIds) === 0) {
             $io->success('No players to notify.');
             return self::SUCCESS;
+        }
+
+        // Index unread message notifications by player ID
+        $unreadByPlayer = [];
+        foreach ($playersToNotify as $notification) {
+            $unreadByPlayer[$notification->playerId] = $notification;
         }
 
         $sentCount = 0;
         $skippedCount = 0;
 
-        foreach ($playersToNotify as $notification) {
-            $summaries = $this->getPlayersWithUnreadMessages->getUnreadSummaryForPlayer($notification->playerId);
+        foreach ($allPlayerIds as $playerId) {
+            $unreadNotification = $unreadByPlayer[$playerId] ?? null;
+            $pendingNotification = $pendingByPlayer[$playerId] ?? null;
 
-            if (count($summaries) === 0) {
+            $summaries = [];
+            if ($unreadNotification !== null) {
+                $summaries = $this->getPlayersWithUnreadMessages->getUnreadSummaryForPlayer($playerId);
+            }
+
+            $pendingRequestCount = $pendingNotification !== null ? $pendingNotification->pendingCount : 0;
+
+            if (count($summaries) === 0 && $pendingRequestCount === 0) {
                 $skippedCount++;
                 continue;
+            }
+
+            // Get player info from whichever notification is available
+            if ($unreadNotification !== null) {
+                $playerEmail = $unreadNotification->playerEmail;
+                $playerName = $unreadNotification->playerName;
+                $playerLocale = $unreadNotification->playerLocale;
+            } else {
+                assert($pendingNotification !== null);
+                $playerEmail = $pendingNotification->playerEmail;
+                $playerName = $pendingNotification->playerName;
+                $playerLocale = $pendingNotification->playerLocale;
             }
 
             $subject = $this->translator->trans(
                 'unread_messages.subject',
                 domain: 'emails',
-                locale: $notification->playerLocale,
+                locale: $playerLocale,
             );
 
             $email = (new TemplatedEmail())
-                ->to($notification->playerEmail)
-                ->locale($notification->playerLocale ?? 'en')
+                ->to($playerEmail)
+                ->locale($playerLocale ?? 'en')
                 ->subject($subject)
                 ->htmlTemplate('emails/unread_messages.html.twig')
                 ->context([
-                    'playerName' => $notification->playerName,
+                    'playerName' => $playerName,
                     'summaries' => $summaries,
-                    'locale' => $notification->playerLocale ?? 'en',
+                    'pendingRequestCount' => $pendingRequestCount,
+                    'locale' => $playerLocale ?? 'en',
                 ]);
 
             $this->mailer->send($email);
 
-            $player = $this->playerRepository->get($notification->playerId);
+            $player = $this->playerRepository->get($playerId);
 
-            $log = new MessageNotificationLog(
-                id: Uuid::uuid7(),
-                player: $player,
-                sentAt: $this->clock->now(),
-                oldestUnreadMessageAt: $notification->oldestUnreadAt,
-            );
+            if ($unreadNotification !== null) {
+                $log = new MessageNotificationLog(
+                    id: Uuid::uuid7(),
+                    player: $player,
+                    sentAt: $this->clock->now(),
+                    oldestUnreadMessageAt: $unreadNotification->oldestUnreadAt,
+                );
 
-            $this->messageNotificationLogRepository->save($log);
+                $this->messageNotificationLogRepository->save($log);
+            }
+
+            if ($pendingNotification !== null) {
+                $requestLog = new RequestNotificationLog(
+                    id: Uuid::uuid7(),
+                    player: $player,
+                    sentAt: $this->clock->now(),
+                    oldestPendingRequestAt: $pendingNotification->oldestPendingAt,
+                );
+
+                $this->requestNotificationLogRepository->save($requestLog);
+            }
+
             $sentCount++;
         }
 

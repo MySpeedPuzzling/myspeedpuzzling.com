@@ -51,6 +51,9 @@ class SellSwapListItem
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $addedAt,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+        public bool $publishedOnMarketplace = true,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::BOOLEAN, options: ['default' => false])]
         public bool $reserved = false,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -80,6 +83,11 @@ class SellSwapListItem
     public function changeComment(null|string $comment): void
     {
         $this->comment = $comment;
+    }
+
+    public function changePublishedOnMarketplace(bool $publishedOnMarketplace): void
+    {
+        $this->publishedOnMarketplace = $publishedOnMarketplace;
     }
 
     public function markAsReserved(null|UuidInterface $reservedForPlayerId = null): void

@@ -13,25 +13,41 @@
                 <columns>
                     <p>{{ 'unread_messages.greeting'|trans({'%playerName%': playerName ?? 'Puzzler'}) }}</p>
 
-                    <p>{{ 'unread_messages.intro'|trans }}</p>
+                    {% if summaries is not empty %}
+                        <p>{{ 'unread_messages.intro'|trans }}</p>
 
-                    <ul>
-                        {% for summary in summaries %}
-                            <li>
-                                {% if summary.puzzleName is not null %}
-                                    {{ 'unread_messages.message_line_with_puzzle'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName, '%puzzleName%': summary.puzzleName}) }}
-                                {% else %}
-                                    {{ 'unread_messages.message_line'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName}) }}
-                                {% endif %}
-                            </li>
-                        {% endfor %}
-                    </ul>
+                        <ul>
+                            {% for summary in summaries %}
+                                <li>
+                                    {% if summary.puzzleName is not null %}
+                                        {{ 'unread_messages.message_line_with_puzzle'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName, '%puzzleName%': summary.puzzleName}) }}
+                                    {% else %}
+                                        {{ 'unread_messages.message_line'|trans({'%count%': summary.unreadCount, '%senderName%': summary.senderName}) }}
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
 
-                    <center>
-                        <button href="{{ url('conversations_list') }}">
-                            {{ 'unread_messages.view_messages'|trans }}
-                        </button>
-                    </center>
+                    {% if pendingRequestCount is defined and pendingRequestCount > 0 %}
+                        <p>{{ 'unread_messages.pending_requests_line'|trans({'%count%': pendingRequestCount}) }}</p>
+
+                        <center>
+                            <button href="{{ url('conversations_list', {tab: 'requests'}) }}">
+                                {{ 'unread_messages.view_requests'|trans }}
+                            </button>
+                        </center>
+
+                        <spacer size-sm="10"></spacer>
+                    {% endif %}
+
+                    {% if summaries is not empty %}
+                        <center>
+                            <button href="{{ url('conversations_list') }}">
+                                {{ 'unread_messages.view_messages'|trans }}
+                            </button>
+                        </center>
+                    {% endif %}
 
                     <spacer size-sm="10"></spacer>
 

@@ -28,10 +28,11 @@ readonly final class GetConversations
             $statusFilter = 'AND c.status = :status';
             $params['status'] = $status->value;
         } else {
-            // Show accepted conversations + pending conversations where the player is the initiator
-            $statusFilter = 'AND (c.status = :statusAccepted OR (c.status = :statusPending AND c.initiator_id = :playerId))';
+            // Show accepted conversations + pending/ignored conversations where the player is the initiator
+            $statusFilter = 'AND (c.status = :statusAccepted OR (c.status IN (:statusPending, :statusIgnored) AND c.initiator_id = :playerId))';
             $params['statusAccepted'] = ConversationStatus::Accepted->value;
             $params['statusPending'] = ConversationStatus::Pending->value;
+            $params['statusIgnored'] = ConversationStatus::Ignored->value;
         }
 
         $query = <<<SQL
@@ -190,6 +191,93 @@ SQL;
                 otherPlayerAvatar: $row['other_player_avatar'],
                 otherPlayerCountry: $row['other_player_country'],
                 lastMessagePreview: null,
+                lastMessageAt: $row['last_message_at'] !== null ? new DateTimeImmutable($row['last_message_at']) : new DateTimeImmutable($row['created_at']),
+                unreadCount: 0,
+                status: ConversationStatus::from($row['status']),
+                puzzleName: $row['puzzle_name'],
+                puzzleId: $row['puzzle_id'],
+                sellSwapListItemId: $row['sell_swap_list_item_id'],
+                puzzleImage: $row['puzzle_image'],
+                listingType: $row['listing_type'],
+                listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
+            );
+        }, $data);
+    }
+
+    /**
+     * @return array<ConversationOverview>
+     */
+    public function ignoredForPlayer(string $playerId): array
+    {
+        $query = <<<SQL
+SELECT
+    c.id AS conversation_id,
+    c.status,
+    c.last_message_at,
+    c.created_at,
+    c.sell_swap_list_item_id,
+    c.initiator_id AS other_player_id,
+    ip.name AS other_player_name,
+    ip.code AS other_player_code,
+    ip.avatar AS other_player_avatar,
+    ip.country AS other_player_country,
+    (
+        SELECT LEFT(cm.content, 80)
+        FROM chat_message cm
+        WHERE cm.conversation_id = c.id
+        ORDER BY cm.sent_at DESC
+        LIMIT 1
+    ) AS last_message_preview,
+    p.id AS puzzle_id,
+    p.name AS puzzle_name,
+    p.image AS puzzle_image,
+    sli.listing_type AS listing_type,
+    sli.price AS listing_price
+FROM conversation c
+JOIN player ip ON c.initiator_id = ip.id
+LEFT JOIN puzzle p ON c.puzzle_id = p.id
+LEFT JOIN sell_swap_list_item sli ON c.sell_swap_list_item_id = sli.id
+WHERE c.recipient_id = :playerId
+    AND c.status = :status
+ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'status' => ConversationStatus::Ignored->value,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): ConversationOverview {
+            /** @var array{
+             *     conversation_id: string,
+             *     status: string,
+             *     last_message_at: null|string,
+             *     created_at: string,
+             *     sell_swap_list_item_id: null|string,
+             *     other_player_id: string,
+             *     other_player_name: null|string,
+             *     other_player_code: string,
+             *     other_player_avatar: null|string,
+             *     other_player_country: null|string,
+             *     last_message_preview: null|string,
+             *     puzzle_id: null|string,
+             *     puzzle_name: null|string,
+             *     puzzle_image: null|string,
+             *     listing_type: null|string,
+             *     listing_price: null|string,
+             * } $row
+             */
+
+            return new ConversationOverview(
+                conversationId: $row['conversation_id'],
+                otherPlayerName: $row['other_player_name'] ?? $row['other_player_code'],
+                otherPlayerCode: $row['other_player_code'],
+                otherPlayerId: $row['other_player_id'],
+                otherPlayerAvatar: $row['other_player_avatar'],
+                otherPlayerCountry: $row['other_player_country'],
+                lastMessagePreview: $row['last_message_preview'],
                 lastMessageAt: $row['last_message_at'] !== null ? new DateTimeImmutable($row['last_message_at']) : new DateTimeImmutable($row['created_at']),
                 unreadCount: 0,
                 status: ConversationStatus::from($row['status']),

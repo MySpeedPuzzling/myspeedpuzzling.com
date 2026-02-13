@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-final class ConversationsListController extends AbstractController
+final class ConversationsListTabController extends AbstractController
 {
     public function __construct(
         readonly private GetConversations $getConversations,
@@ -21,9 +21,10 @@ final class ConversationsListController extends AbstractController
     }
 
     #[Route(
-        path: '/en/messages',
-        name: 'conversations_list',
+        path: '/en/messages/tab-content',
+        name: 'conversations_list_tab',
         methods: ['GET'],
+        priority: 1,
     )]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function __invoke(Request $request): Response
@@ -37,7 +38,7 @@ final class ConversationsListController extends AbstractController
         $pendingRequests = $this->getConversations->pendingRequestsForPlayer($loggedPlayer->playerId);
         $ignoredConversations = $this->getConversations->ignoredForPlayer($loggedPlayer->playerId);
 
-        return $this->render('messaging/conversations.html.twig', [
+        return $this->render('messaging/_conversations_tab_content.html.twig', [
             'conversations' => $conversations,
             'pending_requests' => $pendingRequests,
             'pending_count' => count($pendingRequests),

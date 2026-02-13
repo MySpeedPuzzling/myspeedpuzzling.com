@@ -20,7 +20,7 @@ final class ConversationFixture extends Fixture implements DependentFixtureInter
     public const string CONVERSATION_ACCEPTED = '018d000e-0000-0000-0000-000000000001';
     public const string CONVERSATION_PENDING = '018d000e-0000-0000-0000-000000000002';
     public const string CONVERSATION_MARKETPLACE = '018d000e-0000-0000-0000-000000000003';
-    public const string CONVERSATION_DENIED = '018d000e-0000-0000-0000-000000000004';
+    public const string CONVERSATION_IGNORED = '018d000e-0000-0000-0000-000000000004';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -79,17 +79,17 @@ final class ConversationFixture extends Fixture implements DependentFixtureInter
         $manager->persist($marketplaceConversation);
         $this->addReference(self::CONVERSATION_MARKETPLACE, $marketplaceConversation);
 
-        // Denied conversation: WITH_FAVORITES (initiator) → ADMIN (recipient)
-        $deniedConversation = new Conversation(
-            id: Uuid::fromString(self::CONVERSATION_DENIED),
+        // Ignored conversation: WITH_FAVORITES (initiator) → ADMIN (recipient)
+        $ignoredConversation = new Conversation(
+            id: Uuid::fromString(self::CONVERSATION_IGNORED),
             initiator: $playerWithFavorites,
             recipient: $playerAdmin,
-            status: ConversationStatus::Denied,
+            status: ConversationStatus::Ignored,
             createdAt: $now->modify('-15 days'),
             respondedAt: $now->modify('-14 days'),
         );
-        $manager->persist($deniedConversation);
-        $this->addReference(self::CONVERSATION_DENIED, $deniedConversation);
+        $manager->persist($ignoredConversation);
+        $this->addReference(self::CONVERSATION_IGNORED, $ignoredConversation);
 
         $manager->flush();
     }

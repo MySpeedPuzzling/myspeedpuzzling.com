@@ -29,6 +29,7 @@ readonly final class GetMarketplaceListings
         null|float $priceMax = null,
         null|PuzzleCondition $condition = null,
         null|string $shipsToCountry = null,
+        null|string $sellerId = null,
         string $sort = 'newest',
         int $limit = 24,
         int $offset = 0,
@@ -93,7 +94,7 @@ FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 JOIN player pl ON ssli.player_id = pl.id
-WHERE 1=1';
+WHERE ssli.published_on_marketplace = true';
 
         $params = [];
 
@@ -163,6 +164,12 @@ WHERE 1=1';
             $query .= "
     AND pl.sell_swap_list_settings->'shippingCountries' @> :countryJson";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
+        }
+
+        if ($sellerId !== null && $sellerId !== '') {
+            $query .= '
+    AND ssli.player_id = :sellerId';
+            $params['sellerId'] = $sellerId;
         }
 
         // Sorting
@@ -265,6 +272,7 @@ LIMIT :limit OFFSET :offset';
         null|float $priceMax = null,
         null|PuzzleCondition $condition = null,
         null|string $shipsToCountry = null,
+        null|string $sellerId = null,
     ): int {
         $hasSearch = $searchTerm !== null && $searchTerm !== '';
         $eanSearch = $hasSearch ? trim($searchTerm, '0') : '';
@@ -274,7 +282,7 @@ FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 JOIN player pl ON ssli.player_id = pl.id
-WHERE 1=1';
+WHERE ssli.published_on_marketplace = true';
 
         $params = [];
 
@@ -340,6 +348,12 @@ WHERE 1=1';
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 
+        if ($sellerId !== null && $sellerId !== '') {
+            $query .= '
+    AND ssli.player_id = :sellerId';
+            $params['sellerId'] = $sellerId;
+        }
+
         $count = $this->database
             ->executeQuery($query, $params)
             ->fetchOne();
@@ -362,6 +376,7 @@ SELECT
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
 JOIN manufacturer m ON p.manufacturer_id = m.id
+WHERE ssli.published_on_marketplace = true
 GROUP BY m.id, m.name
 HAVING COUNT(*) > 0
 ORDER BY m.name ASC

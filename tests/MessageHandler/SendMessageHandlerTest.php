@@ -72,13 +72,35 @@ final class SendMessageHandlerTest extends KernelTestCase
         self::assertGreaterThanOrEqual($lastMessageAtBefore, $conversationAfter->lastMessageAt);
     }
 
-    public function testCannotSendMessageInPendingConversation(): void
+    public function testInitiatorCanSendMessageInPendingConversation(): void
+    {
+        // CONVERSATION_PENDING: WITH_STRIPE (initiator) → REGULAR (recipient)
+        $this->messageBus->dispatch(
+            new SendMessage(
+                conversationId: ConversationFixture::CONVERSATION_PENDING,
+                senderId: PlayerFixture::PLAYER_WITH_STRIPE,
+                content: 'Follow-up message while pending',
+            ),
+        );
+
+        $messages = $this->getMessages->forConversation(
+            ConversationFixture::CONVERSATION_PENDING,
+            PlayerFixture::PLAYER_WITH_STRIPE,
+        );
+
+        $lastMessage = end($messages);
+        self::assertNotFalse($lastMessage);
+        self::assertSame('Follow-up message while pending', $lastMessage->content);
+    }
+
+    public function testRecipientCannotSendMessageInPendingConversation(): void
     {
         try {
+            // PLAYER_REGULAR is the recipient of CONVERSATION_PENDING
             $this->messageBus->dispatch(
                 new SendMessage(
                     conversationId: ConversationFixture::CONVERSATION_PENDING,
-                    senderId: PlayerFixture::PLAYER_WITH_STRIPE,
+                    senderId: PlayerFixture::PLAYER_REGULAR,
                     content: 'Should not work',
                 ),
             );

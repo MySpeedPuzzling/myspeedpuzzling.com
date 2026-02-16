@@ -15,8 +15,6 @@
         <div class="modal-body p-0" data-controller="messaging">
             {# Puzzle context #}
             <div class="d-flex align-items-center bg-light py-2 px-3 border-bottom">
-                <i class="bi bi-shop text-primary me-2" style="font-size: 0.8rem;" title="{{ 'marketplace.title'|trans }}"></i>
-                <small class="text-muted me-2">{{ 'messaging.regarding'|trans }}</small>
                 {% if puzzle.puzzleImage %}
                     <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
                 {% endif %}

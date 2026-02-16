@@ -3,18 +3,18 @@
 {% block title %}{{ 'messaging.conversation_with'|trans({'%name%': other_player.name ?? other_player.code}) }}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="py-4">
     <div class="mb-3">
         <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
             <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
         </a>
     </div>
 
-    <div class="card" data-controller="messaging conversation-realtime"
+    <div class="card shadow-custom" data-controller="messaging conversation-realtime"
          data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
          data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
          data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
-        <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="card-header d-flex align-items-center justify-content-between" style="background-color: #f5f5f5;">
             <div class="d-flex align-items-center">
                 {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 40, class: 'me-2'}) }}
                 <div>
@@ -52,8 +52,6 @@
             <div class="card-body border-bottom bg-light py-2 px-3">
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
-                        <i class="bi bi-shop text-primary me-2" style="font-size: 0.8rem;" title="{{ 'marketplace.title'|trans }}"></i>
-                        <small class="text-muted me-2">{{ 'messaging.regarding'|trans }}</small>
                         {% if puzzle_context.image %}
                             <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
                         {% endif %}
@@ -201,7 +199,7 @@
         </div>
 
         {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
-            <div class="card-footer">
+            <div class="card-footer" style="background-color: #f5f5f5;">
                 <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
                     <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
                     <button type="submit" class="btn btn-primary">

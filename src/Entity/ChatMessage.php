@@ -16,12 +16,21 @@ use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\ChatMessageSent;
+use SpeedPuzzling\Web\Value\SystemMessageType;
 
 #[Entity]
 #[Index(columns: ['conversation_id', 'sent_at'])]
 class ChatMessage implements EntityWithEvents
 {
     use HasEvents;
+
+    #[Immutable]
+    #[Column(type: Types::STRING, nullable: true, enumType: SystemMessageType::class)]
+    public null|SystemMessageType $systemMessageType;
+
+    #[Immutable]
+    #[Column(type: UuidType::NAME, nullable: true)]
+    public null|UuidInterface $systemMessageTargetPlayerId;
 
     public function __construct(
         #[Id]
@@ -34,8 +43,8 @@ class ChatMessage implements EntityWithEvents
         public Conversation $conversation,
         #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $sender,
+        #[JoinColumn(nullable: true)]
+        public null|Player $sender,
         #[Immutable]
         #[Column(type: Types::TEXT)]
         public string $content,
@@ -45,16 +54,28 @@ class ChatMessage implements EntityWithEvents
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $readAt = null,
+        null|SystemMessageType $systemMessageType = null,
+        null|UuidInterface $systemMessageTargetPlayerId = null,
     ) {
-        $this->recordThat(new ChatMessageSent(
-            chatMessageId: $this->id,
-            conversationId: $this->conversation->id,
-            senderId: $this->sender->id->toString(),
-        ));
+        $this->systemMessageType = $systemMessageType;
+        $this->systemMessageTargetPlayerId = $systemMessageTargetPlayerId;
+
+        if ($this->sender !== null) {
+            $this->recordThat(new ChatMessageSent(
+                chatMessageId: $this->id,
+                conversationId: $this->conversation->id,
+                senderId: $this->sender->id->toString(),
+            ));
+        }
     }
 
     public function markAsRead(): void
     {
         $this->readAt = new DateTimeImmutable();
+    }
+
+    public function isSystemMessage(): bool
+    {
+        return $this->systemMessageType !== null;
     }
 }

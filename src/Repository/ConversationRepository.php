@@ -100,6 +100,17 @@ readonly final class ConversationRepository
             ]);
     }
 
+    /**
+     * @return array<Conversation>
+     */
+    public function findAllByListItem(SellSwapListItem $sellSwapListItem): array
+    {
+        return $this->entityManager->getRepository(Conversation::class)
+            ->findBy([
+                'sellSwapListItem' => $sellSwapListItem,
+            ]);
+    }
+
     public function findActiveByPlayersAndListing(Player $playerA, Player $playerB, SellSwapListItem $sellSwapListItem): null|Conversation
     {
         $qb = $this->entityManager->createQueryBuilder();

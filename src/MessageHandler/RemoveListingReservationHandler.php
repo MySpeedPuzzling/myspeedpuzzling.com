@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\RemoveListingReservation;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
+use SpeedPuzzling\Web\Services\SystemMessageSender;
+use SpeedPuzzling\Web\Value\SystemMessageType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -14,6 +16,7 @@ readonly final class RemoveListingReservationHandler
 {
     public function __construct(
         private SellSwapListItemRepository $sellSwapListItemRepository,
+        private SystemMessageSender $systemMessageSender,
     ) {
     }
 
@@ -29,5 +32,10 @@ readonly final class RemoveListingReservationHandler
         }
 
         $item->removeReservation();
+
+        $this->systemMessageSender->sendToAllConversations(
+            $item,
+            SystemMessageType::ListingReservationRemoved,
+        );
     }
 }

@@ -55,11 +55,12 @@ SELECT
         ORDER BY cm.sent_at DESC
         LIMIT 1
     ) AS last_message_preview,
-    -- Unread count for this player
+    -- Unread count for this player (exclude system messages)
     (
         SELECT COUNT(*)
         FROM chat_message cm
         WHERE cm.conversation_id = c.id
+            AND cm.sender_id IS NOT NULL
             AND cm.sender_id != :playerId
             AND cm.read_at IS NULL
     ) AS unread_count,
@@ -299,6 +300,7 @@ FROM conversation c
 JOIN chat_message cm ON cm.conversation_id = c.id
 WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
     AND c.status = :status
+    AND cm.sender_id IS NOT NULL
     AND cm.sender_id != :playerId
     AND cm.read_at IS NULL
 SQL;

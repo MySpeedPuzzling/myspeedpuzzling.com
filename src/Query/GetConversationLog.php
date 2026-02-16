@@ -28,9 +28,10 @@ SELECT
     p.avatar AS sender_avatar,
     cm.content,
     cm.sent_at,
-    cm.read_at
+    cm.read_at,
+    cm.system_message_type
 FROM chat_message cm
-JOIN player p ON cm.sender_id = p.id
+LEFT JOIN player p ON cm.sender_id = p.id
 WHERE cm.conversation_id = :conversationId
 ORDER BY cm.sent_at ASC
 SQL;
@@ -42,12 +43,13 @@ SQL;
         return array_map(static function (array $row): MessageView {
             /** @var array{
              *     message_id: string,
-             *     sender_id: string,
+             *     sender_id: null|string,
              *     sender_name: null|string,
              *     sender_avatar: null|string,
              *     content: string,
              *     sent_at: string,
              *     read_at: null|string,
+             *     system_message_type: null|string,
              * } $row
              */
 
@@ -60,6 +62,8 @@ SQL;
                 sentAt: new DateTimeImmutable($row['sent_at']),
                 readAt: $row['read_at'] !== null ? new DateTimeImmutable($row['read_at']) : null,
                 isOwnMessage: false,
+                isSystemMessage: $row['system_message_type'] !== null,
+                systemTranslationKey: $row['system_message_type'],
             );
         }, $data);
     }

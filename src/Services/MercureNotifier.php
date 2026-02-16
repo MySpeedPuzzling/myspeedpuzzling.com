@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Results\MessageView;
+use SpeedPuzzling\Web\Value\SystemMessageType;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 use Symfony\Contracts\Service\ResetInterface;
@@ -59,6 +60,7 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyNewMessage(ChatMessage $chatMessage): void
     {
+        assert($chatMessage->sender !== null);
         $senderId = $chatMessage->sender->id->toString();
         $conversation = $chatMessage->conversation;
         $recipientId = ($conversation->initiator->id->toString() === $senderId)
@@ -85,6 +87,47 @@ final class MercureNotifier implements ResetInterface
             $html,
             private: true,
         ));
+    }
+
+    public function notifySystemMessage(ChatMessage $chatMessage): void
+    {
+        assert($chatMessage->systemMessageType !== null);
+
+        $conversation = $chatMessage->conversation;
+        $initiatorId = $conversation->initiator->id->toString();
+        $recipientId = $conversation->recipient->id->toString();
+        $targetPlayerId = $chatMessage->systemMessageTargetPlayerId?->toString();
+
+        foreach ([$initiatorId, $recipientId] as $viewerId) {
+            $translationKey = SystemMessageType::resolveTranslationKey(
+                $chatMessage->systemMessageType,
+                $targetPlayerId,
+                $viewerId,
+            );
+
+            $messageView = new MessageView(
+                messageId: $chatMessage->id->toString(),
+                senderId: null,
+                senderName: null,
+                senderAvatar: null,
+                content: '',
+                sentAt: $chatMessage->sentAt,
+                readAt: null,
+                isOwnMessage: false,
+                isSystemMessage: true,
+                systemTranslationKey: $translationKey,
+            );
+
+            $html = $this->twig->render('messaging/_new_message_stream.html.twig', [
+                'message' => $messageView,
+            ]);
+
+            $this->hub->publish(new Update(
+                '/messages/' . $conversation->id->toString() . '/user/' . $viewerId,
+                $html,
+                private: true,
+            ));
+        }
     }
 
     public function notifyMessagesRead(string $conversationId, string $senderId): void

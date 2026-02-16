@@ -1,4 +1,4 @@
-<a href="{{ path('conversation_detail', {conversationId: conversation.conversationId}) }}" class="list-group-item list-group-item-action d-flex align-items-center py-3 {{ conversation.unreadCount > 0 ? 'bg-light' : '' }}">
+<a href="{{ path('conversation_detail', {conversationId: conversation.conversationId}) }}" class="list-group-item list-group-item-action d-flex align-items-center py-3 {{ conversation.unreadCount > 0 ? 'conversation-unread' : '' }}">
     <div class="me-3 flex-shrink-0">
         {{ include('messaging/_avatar.html.twig', {avatar: conversation.otherPlayerAvatar, size: 48}) }}
     </div>
@@ -35,7 +35,7 @@
         {% endif %}
 
         {% if conversation.lastMessagePreview %}
-            <div class="text-muted small text-truncate">{{ conversation.lastMessagePreview }}</div>
+            <div class="small text-truncate {{ conversation.unreadCount > 0 ? 'text-body fw-semibold' : 'text-muted' }}">{{ conversation.lastMessagePreview }}</div>
         {% endif %}
 
         {% if conversation.status.value in ['pending', 'ignored'] %}

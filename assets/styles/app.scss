@@ -198,7 +198,7 @@ td.rank {
 }
 
 .shadow-custom {
-    box-shadow: rgba(0, 0, 0, .25) 0 0 15px 0;
+    box-shadow: rgba(0, 0, 0, .16) 0 0 13px 0;
     //border: 1px solid #ddd;
 }
 
@@ -989,6 +989,11 @@ header {
 
 .shadow-primary {
     box-shadow: 0 0 75px -10px rgba(254, 105, 106, .5) !important;
+}
+
+.conversation-unread {
+    background-color: rgba($primary, 0.07) !important;
+    border-left: 3px solid $primary !important;
 }
 
 .collection-comment-truncated {

@@ -1,3 +1,6 @@
+{% if message.isSystemMessage %}
+    {{ include('messaging/_system_message_bubble.html.twig') }}
+{% else %}
 <div class="d-flex mb-3 {{ message.isOwnMessage ? 'justify-content-end' : 'justify-content-start' }}" data-message-id="{{ message.messageId }}">
     {% if not message.isOwnMessage %}
         {{ include('messaging/_avatar.html.twig', {avatar: message.senderAvatar, size: 32, class: 'me-2 flex-shrink-0 align-self-end'}) }}
@@ -17,3 +20,4 @@
         </div>
     </div>
 </div>
+{% endif %}

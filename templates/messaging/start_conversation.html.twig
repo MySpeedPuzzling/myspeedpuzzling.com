@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="py-4">
     <div class="mb-3">
         <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
             <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
@@ -24,7 +24,7 @@
                      data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
                      data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
                      data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
-                    <div class="card-header d-flex align-items-center">
+                    <div class="card-header d-flex align-items-center" style="background-color: #f5f5f5;">
                         {{ include('messaging/_avatar.html.twig', {avatar: recipient.avatar, size: 40, class: 'me-2'}) }}
                         <div>
                             <a href="{{ path('player_profile', {playerId: recipient.playerId}) }}" class="fw-bold text-decoration-none">
@@ -39,8 +39,6 @@
                     {% if puzzle is defined and puzzle is not null %}
                         <div class="card-body border-bottom bg-light py-2 px-3">
                             <div class="d-flex align-items-center">
-                                <i class="bi bi-shop text-primary me-2" style="font-size: 0.8rem;" title="{{ 'marketplace.title'|trans }}"></i>
-                                <small class="text-muted me-2">{{ 'messaging.regarding'|trans }}</small>
                                 {% if puzzle.puzzleImage %}
                                     <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
                                 {% endif %}
@@ -126,7 +124,7 @@
                     </div>
 
                     {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
-                        <div class="card-footer">
+                        <div class="card-footer" style="background-color: #f5f5f5;">
                             <form action="{{ sell_swap_list_item is defined and sell_swap_list_item is not null ? path('start_marketplace_conversation', {sellSwapListItemId: sell_swap_list_item.id}) : path('start_conversation', {recipientId: recipient.playerId}) }}" method="post" class="d-flex gap-2">
                                 <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
                                 <button type="submit" class="btn btn-primary">

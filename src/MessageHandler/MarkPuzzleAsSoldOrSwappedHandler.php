@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Repository\SoldSwappedItemRepository;
 use SpeedPuzzling\Web\Repository\WishListItemRepository;
+use SpeedPuzzling\Web\Services\SystemMessageSender;
+use SpeedPuzzling\Web\Value\SystemMessageType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -30,6 +32,7 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
         private WishListItemRepository $wishListItemRepository,
         private PlayerRepository $playerRepository,
         private MessageBusInterface $messageBus,
+        private SystemMessageSender $systemMessageSender,
     ) {
     }
 
@@ -68,6 +71,13 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
         );
 
         $this->soldSwappedItemRepository->save($soldSwappedItem);
+
+        // Send system messages BEFORE deleting the item (deletion nullifies FK on conversations)
+        $this->systemMessageSender->sendToAllConversations(
+            $item,
+            SystemMessageType::ListingSold,
+            $buyerPlayer?->id,
+        );
 
         // Delete from sell/swap list
         $this->sellSwapListItemRepository->delete($item);

@@ -12,6 +12,7 @@ export default class extends Controller {
     connect() {
         this._lastTypingSent = 0;
         this._typingTimeout = null;
+        this._hasNewMessages = false;
 
         this._onMercureMessage = (event) => this.handleEvent(event.detail);
         document.addEventListener('mercure:message', this._onMercureMessage);
@@ -21,6 +22,7 @@ export default class extends Controller {
             const target = event.target?.getAttribute?.('target');
             if (target === 'messages-container') {
                 this.hideTypingIndicator();
+                this._hasNewMessages = true;
             }
         };
         document.addEventListener('turbo:before-stream-render', this._onStreamRender);
@@ -98,11 +100,19 @@ export default class extends Controller {
         if (now - this._lastTypingSent < 2000) return;
 
         this._lastTypingSent = now;
+
+        const headers = {
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+
+        if (this._hasNewMessages) {
+            headers['X-Mark-As-Read'] = '1';
+            this._hasNewMessages = false;
+        }
+
         fetch(this.typingUrlValue, {
             method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-            },
+            headers,
         }).catch(() => {});
     }
 }

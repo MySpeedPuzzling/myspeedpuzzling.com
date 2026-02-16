@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkListingAsReserved;
+use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
+use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -17,6 +19,7 @@ final class MarkListingAsReservedHandlerTest extends KernelTestCase
 {
     private MessageBusInterface $messageBus;
     private SellSwapListItemRepository $sellSwapListItemRepository;
+    private GetMessages $getMessages;
 
     protected function setUp(): void
     {
@@ -24,6 +27,7 @@ final class MarkListingAsReservedHandlerTest extends KernelTestCase
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->sellSwapListItemRepository = $container->get(SellSwapListItemRepository::class);
+        $this->getMessages = $container->get(GetMessages::class);
     }
 
     public function testMarkingItemAsReservedSucceeds(): void
@@ -104,6 +108,31 @@ final class MarkListingAsReservedHandlerTest extends KernelTestCase
         $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_01);
         self::assertTrue($item->reserved);
         self::assertNull($item->reservedForPlayerId);
+    }
+
+    public function testSystemMessageCreatedInConversationAfterReservation(): void
+    {
+        // SELLSWAP_01 belongs to PLAYER_WITH_STRIPE, CONVERSATION_MARKETPLACE links WITH_FAVORITES → WITH_STRIPE
+        $this->messageBus->dispatch(
+            new MarkListingAsReserved(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_01,
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                reservedForPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES,
+            ),
+        );
+
+        // Check system message exists in the marketplace conversation
+        $messages = $this->getMessages->forConversation(
+            ConversationFixture::CONVERSATION_MARKETPLACE,
+            PlayerFixture::PLAYER_WITH_FAVORITES,
+        );
+
+        $systemMessages = array_filter($messages, static fn ($m) => $m->isSystemMessage);
+        self::assertCount(1, $systemMessages);
+
+        // WITH_FAVORITES is the target → should see "reserved for you"
+        $systemMessage = array_values($systemMessages)[0];
+        self::assertSame('messaging.system.listing_reserved_for_you', $systemMessage->systemTranslationKey);
     }
 
     public function testNonOwnerCannotMarkAsReserved(): void

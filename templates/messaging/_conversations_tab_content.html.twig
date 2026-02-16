@@ -55,7 +55,7 @@
                 <p>{{ 'messaging.no_conversations_yet'|trans }}</p>
             </div>
         {% else %}
-            <div class="list-group">
+            <div class="list-group shadow-custom">
                 {% for conversation in conversations %}
                     {{ include('messaging/_conversation_list_item.html.twig') }}
                 {% endfor %}

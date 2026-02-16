@@ -12,16 +12,16 @@
     </div>
 
     <div class="mb-3" data-conditional-field-target="conditionalElement">
-        {{ form_row(form.price) }}
+        {{ form_row(form.price, {'attr': {'class': 'form-control form-control-sm'}}) }}
     </div>
 </div>
 
 <div class="mb-3">
-    {{ form_row(form.condition) }}
+    {{ form_row(form.condition, {'attr': {'class': 'form-select form-select-sm'}}) }}
 </div>
 
 <div class="mb-3">
-    {{ form_row(form.comment) }}
+    {{ form_row(form.comment, {'attr': {'class': 'form-control form-control-sm'}}) }}
 </div>
 
 <div class="mb-4">

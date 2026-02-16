@@ -46,15 +46,15 @@
 </div>
 
 <div class="d-grid gap-2 d-sm-flex">
-    <button type="submit" class="btn btn-sm btn-success flex-grow-1">
+    <button type="submit" class="btn btn-success flex-grow-1">
         <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.confirm'|trans }}
     </button>
     {% if in_modal|default(false) %}
-        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
             {{ 'forms.cancel'|trans }}
         </button>
     {% else %}
-        <a href="{{ path('sell_swap_list', {playerId: logged_user.profile.playerId}) }}" class="btn btn-sm btn-secondary">
+        <a href="{{ path('sell_swap_list', {playerId: logged_user.profile.playerId}) }}" class="btn btn-secondary">
             {{ 'forms.cancel'|trans }}
         </a>
     {% endif %}

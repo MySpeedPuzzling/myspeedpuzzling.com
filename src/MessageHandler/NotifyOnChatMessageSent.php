@@ -8,6 +8,7 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Events\ChatMessageSent;
 use SpeedPuzzling\Web\Exceptions\ChatMessageNotFound;
 use SpeedPuzzling\Web\Query\GetConversations;
+use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
@@ -20,6 +21,7 @@ readonly final class NotifyOnChatMessageSent
         private ChatMessageRepository $chatMessageRepository,
         private MercureNotifier $mercureNotifier,
         private GetConversations $getConversations,
+        private GetUserBlocks $getUserBlocks,
         private LoggerInterface $logger,
     ) {
     }
@@ -35,16 +37,22 @@ readonly final class NotifyOnChatMessageSent
         $isInitiator = $conversation->initiator->id->toString() === $event->senderId;
         $otherParticipant = $isInitiator ? $conversation->recipient : $conversation->initiator;
 
-        try {
-            $this->mercureNotifier->notifyNewMessage($chatMessage);
+        // If the sender is blocked by the other participant, skip notifications to them
+        $isBlockedByOther = $this->getUserBlocks->isBlocked($otherParticipant->id->toString(), $event->senderId);
 
-            if ($conversation->status === ConversationStatus::Accepted) {
-                $recipientId = $otherParticipant->id->toString();
-                $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
-                $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+        try {
+            if (!$isBlockedByOther) {
+                $this->mercureNotifier->notifyNewMessage($chatMessage);
+
+                if ($conversation->status === ConversationStatus::Accepted) {
+                    $recipientId = $otherParticipant->id->toString();
+                    $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
+                    $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+                }
+
+                $this->mercureNotifier->notifyConversationListChanged($otherParticipant->id->toString());
             }
 
-            $this->mercureNotifier->notifyConversationListChanged($otherParticipant->id->toString());
             $this->mercureNotifier->notifyConversationListChanged($event->senderId);
         } catch (\Throwable $e) {
             $this->logger->error('Failed to send Mercure notification for message', [

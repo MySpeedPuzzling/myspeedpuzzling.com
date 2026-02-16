@@ -99,10 +99,12 @@ final class MercureNotifier implements ResetInterface
         $targetPlayerId = $chatMessage->systemMessageTargetPlayerId?->toString();
 
         foreach ([$initiatorId, $recipientId] as $viewerId) {
+            $otherParticipantId = $viewerId === $initiatorId ? $recipientId : $initiatorId;
             $translationKey = SystemMessageType::resolveTranslationKey(
                 $chatMessage->systemMessageType,
                 $targetPlayerId,
                 $viewerId,
+                $otherParticipantId,
             );
 
             $messageView = new MessageView(
@@ -116,6 +118,7 @@ final class MercureNotifier implements ResetInterface
                 isOwnMessage: false,
                 isSystemMessage: true,
                 systemTranslationKey: $translationKey,
+                puzzleId: $conversation->puzzle?->id->toString(),
             );
 
             $html = $this->twig->render('messaging/_new_message_stream.html.twig', [

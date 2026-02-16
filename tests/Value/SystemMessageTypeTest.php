@@ -20,12 +20,25 @@ final class SystemMessageTypeTest extends TestCase
         self::assertSame('messaging.system.listing_reserved_for_you', $key);
     }
 
+    public function testListingReservedForThisPuzzler(): void
+    {
+        $key = SystemMessageType::resolveTranslationKey(
+            SystemMessageType::ListingReserved,
+            'player-1',
+            'player-2',
+            'player-1',
+        );
+
+        self::assertSame('messaging.system.listing_reserved_for_this_puzzler', $key);
+    }
+
     public function testListingReservedForSomeoneElse(): void
     {
         $key = SystemMessageType::resolveTranslationKey(
             SystemMessageType::ListingReserved,
             'player-1',
             'player-2',
+            'player-3',
         );
 
         self::assertSame('messaging.system.listing_reserved_for_someone_else', $key);
@@ -64,12 +77,25 @@ final class SystemMessageTypeTest extends TestCase
         self::assertSame('messaging.system.listing_sold_to_you', $key);
     }
 
+    public function testListingSoldToThisPuzzler(): void
+    {
+        $key = SystemMessageType::resolveTranslationKey(
+            SystemMessageType::ListingSold,
+            'player-1',
+            'player-2',
+            'player-1',
+        );
+
+        self::assertSame('messaging.system.listing_sold_to_this_puzzler', $key);
+    }
+
     public function testListingSoldToSomeoneElse(): void
     {
         $key = SystemMessageType::resolveTranslationKey(
             SystemMessageType::ListingSold,
             'player-1',
             'player-2',
+            'player-3',
         );
 
         self::assertSame('messaging.system.listing_sold_to_someone_else', $key);

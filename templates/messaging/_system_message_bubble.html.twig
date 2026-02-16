@@ -1,6 +1,14 @@
-<div class="d-flex justify-content-center mb-3" data-message-id="{{ message.messageId }}">
+<div class="d-flex flex-column align-items-center mb-3" data-message-id="{{ message.messageId }}">
     <div class="px-3 py-2 rounded-3 border d-inline-flex align-items-center text-body-secondary" style="font-size: 0.85rem; background-color: #fff3cd; border-color: #ffecb5 !important;">
         <i class="bi bi-exclamation-circle me-2"></i>
         <span>{{ message.systemTranslationKey|trans }}</span>
     </div>
+    {% if message.systemTranslationKey == 'messaging.system.listing_sold_to_you' and message.puzzleId is not null %}
+        <a href="{{ path('collection_add', {puzzleId: message.puzzleId}) }}?context=conversation"
+           class="btn btn-outline-primary btn-sm mt-2"
+           data-turbo="true"
+           data-turbo-frame="modal-frame">
+            <i class="bi bi-bookmark-plus me-1"></i> {{ 'collections.add_to_collection'|trans }}
+        </a>
+    {% endif %}
 </div>

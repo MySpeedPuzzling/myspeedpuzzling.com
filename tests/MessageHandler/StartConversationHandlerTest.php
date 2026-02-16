@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
-use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetMessages;
@@ -69,23 +68,39 @@ final class StartConversationHandlerTest extends KernelTestCase
         self::assertTrue($found, 'Pending conversation should exist for recipient');
     }
 
-    public function testStartingConversationWhenBlockedThrowsException(): void
+    public function testStartingConversationWhenBlockedSilentlyCreatesConversation(): void
     {
         // PLAYER_REGULAR blocks PLAYER_PRIVATE (from UserBlockFixture)
-        // So PLAYER_PRIVATE trying to start conversation with PLAYER_REGULAR should fail
-        try {
-            $this->messageBus->dispatch(
-                new StartConversation(
-                    initiatorId: PlayerFixture::PLAYER_PRIVATE,
-                    recipientId: PlayerFixture::PLAYER_REGULAR,
-                    initialMessage: 'Hi there!',
-                ),
-            );
-            self::fail('Expected UserIsBlocked exception was not thrown');
-        } catch (HandlerFailedException $e) {
-            $previous = $e->getPrevious();
-            self::assertInstanceOf(UserIsBlocked::class, $previous);
+        // PLAYER_PRIVATE can still start a conversation - they won't know they're blocked
+        $this->messageBus->dispatch(
+            new StartConversation(
+                initiatorId: PlayerFixture::PLAYER_PRIVATE,
+                recipientId: PlayerFixture::PLAYER_REGULAR,
+                initialMessage: 'Hi there!',
+            ),
+        );
+
+        // The conversation should exist for the sender (they don't know they're blocked)
+        $senderConversations = $this->getConversations->forPlayer(PlayerFixture::PLAYER_PRIVATE, ConversationStatus::Pending);
+        $found = false;
+        foreach ($senderConversations as $conversation) {
+            if ($conversation->otherPlayerId === PlayerFixture::PLAYER_REGULAR) {
+                $found = true;
+                break;
+            }
         }
+        self::assertTrue($found, 'Blocked sender should still see their pending conversation');
+
+        // But the blocker should NOT see it (filtered by block)
+        $blockerConversations = $this->getConversations->pendingRequestsForPlayer(PlayerFixture::PLAYER_REGULAR);
+        $foundByBlocker = false;
+        foreach ($blockerConversations as $conversation) {
+            if ($conversation->otherPlayerId === PlayerFixture::PLAYER_PRIVATE) {
+                $foundByBlocker = true;
+                break;
+            }
+        }
+        self::assertFalse($foundByBlocker, 'Blocker should not see conversations from blocked user');
     }
 
     public function testStartingConversationWhenDirectMessagesDisabledThrowsException(): void

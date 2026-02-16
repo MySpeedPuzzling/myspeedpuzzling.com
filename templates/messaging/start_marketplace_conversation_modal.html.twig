@@ -12,7 +12,12 @@
 
     {% if conversation is defined and conversation is not null %}
         {# Existing conversation - show chat history #}
-        <div class="modal-body p-0" data-controller="messaging">
+        <div class="modal-body p-0" data-controller="messaging conversation-realtime"
+             data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
+             data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
+             data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}"
+             data-conversation-realtime-mercure-url-value="{{ mercure_public_url }}"
+        >
             {# Puzzle context #}
             <div class="d-flex align-items-center bg-light py-2 px-3 border-bottom">
                 {% if puzzle.puzzleImage %}
@@ -40,6 +45,7 @@
             <div style="max-height: 350px; overflow-y: auto;" id="messages-container"
                  class="p-3"
                  data-messaging-target="messages"
+                 data-conversation-realtime-target="messages"
                  {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}
                  data-symfony--ux-turbo--mercure-turbo-stream-with-credentials-value="true">
 
@@ -88,13 +94,18 @@
             </div>
 
             {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
-                <div class="border-top p-3">
+                <div class="border-top position-relative p-3">
+                    <div class="d-flex align-items-center text-muted small position-absolute d-none" style="top: -24px; left: 12px;"
+                         data-conversation-realtime-target="typingIndicator">
+                        <div class="typing-dots me-2"><span></span><span></span><span></span></div>
+                        <span>{{ 'messaging.typing'|trans }}</span>
+                    </div>
                     <form method="post"
                           action="{{ path('start_marketplace_conversation', {sellSwapListItemId: sell_swap_list_item.id}) }}"
                           data-turbo="true"
                           data-turbo-frame="modal-frame"
                           class="d-flex gap-2">
-                        <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter"></textarea>
+                        <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-send"></i>
                         </button>

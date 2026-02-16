@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
@@ -43,7 +42,6 @@ readonly final class StartConversationHandler
 
     /**
      * @throws PlayerNotFound
-     * @throws UserIsBlocked
      * @throws DirectMessagesDisabled
      * @throws ConversationRequestAlreadyPending
      * @throws MessagingMuted
@@ -58,11 +56,8 @@ readonly final class StartConversationHandler
 
         $recipient = $this->playerRepository->get($message->recipientId);
 
-        // Check if initiator is blocked by recipient
-        $block = $this->userBlockRepository->findByBlockerAndBlocked($recipient, $initiator);
-        if ($block !== null) {
-            throw new UserIsBlocked();
-        }
+        // Check if initiator is blocked by recipient - silently skip notifications
+        $isBlocked = $this->userBlockRepository->findByBlockerAndBlocked($recipient, $initiator) !== null;
 
         $sellSwapListItem = null;
         $puzzle = null;
@@ -111,14 +106,16 @@ readonly final class StartConversationHandler
 
                 $this->chatMessageRepository->save($chatMessage);
 
-                try {
-                    $this->mercureNotifier->notifyNewMessage($chatMessage);
-                    $this->mercureNotifier->notifyNewConversationRequest($conversation);
-                } catch (\Throwable $e) {
-                    $this->logger->error('Failed to send Mercure notification for new marketplace conversation', [
-                        'conversationId' => $conversation->id->toString(),
-                        'exception' => $e,
-                    ]);
+                if (!$isBlocked) {
+                    try {
+                        $this->mercureNotifier->notifyNewMessage($chatMessage);
+                        $this->mercureNotifier->notifyNewConversationRequest($conversation);
+                    } catch (\Throwable $e) {
+                        $this->logger->error('Failed to send Mercure notification for new marketplace conversation', [
+                            'conversationId' => $conversation->id->toString(),
+                            'exception' => $e,
+                        ]);
+                    }
                 }
 
                 return;
@@ -171,13 +168,15 @@ readonly final class StartConversationHandler
 
         $this->chatMessageRepository->save($chatMessage);
 
-        try {
-            $this->mercureNotifier->notifyNewConversationRequest($conversation);
-        } catch (\Throwable $e) {
-            $this->logger->error('Failed to send Mercure notification for new conversation request', [
-                'conversationId' => $conversation->id->toString(),
-                'exception' => $e,
-            ]);
+        if (!$isBlocked) {
+            try {
+                $this->mercureNotifier->notifyNewConversationRequest($conversation);
+            } catch (\Throwable $e) {
+                $this->logger->error('Failed to send Mercure notification for new conversation request', [
+                    'conversationId' => $conversation->id->toString(),
+                    'exception' => $e,
+                ]);
+            }
         }
     }
 }

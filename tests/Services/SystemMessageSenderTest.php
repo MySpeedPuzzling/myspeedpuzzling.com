@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\SystemMessageSender;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\SystemMessageType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -74,13 +75,13 @@ final class SystemMessageSenderTest extends KernelTestCase
         $systemMessages = array_values(array_filter($messages, static fn ($m) => $m->isSystemMessage));
         self::assertSame('messaging.system.listing_reserved_for_you', $systemMessages[0]->systemTranslationKey);
 
-        // Viewed by WITH_FAVORITES (the initiator, not the target) → "reserved for someone else"
+        // Viewed by WITH_FAVORITES (the initiator, other participant is the target) → "reserved for this puzzler"
         $messages = $this->getMessages->forConversation(
             ConversationFixture::CONVERSATION_MARKETPLACE,
             PlayerFixture::PLAYER_WITH_FAVORITES,
         );
         $systemMessages = array_values(array_filter($messages, static fn ($m) => $m->isSystemMessage));
-        self::assertSame('messaging.system.listing_reserved_for_someone_else', $systemMessages[0]->systemTranslationKey);
+        self::assertSame('messaging.system.listing_reserved_for_this_puzzler', $systemMessages[0]->systemTranslationKey);
     }
 
     public function testNoErrorWhenNoConversationsExist(): void
@@ -116,19 +117,65 @@ final class SystemMessageSenderTest extends KernelTestCase
         }
     }
 
-    public function testSystemMessagesCountAsUnread(): void
+    public function testSystemMessagesCountAsUnreadForTargetPlayer(): void
     {
-        // PLAYER_WITH_STRIPE has no unread in CONVERSATION_MARKETPLACE (last message was from them)
-        $unreadBefore = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
-
         $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_01);
 
+        // Get per-conversation unread count before for WITH_FAVORITES (buyer/initiator)
+        $conversationsBefore = $this->getConversations->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $unreadBefore = 0;
+        foreach ($conversationsBefore as $c) {
+            if ($c->conversationId === ConversationFixture::CONVERSATION_MARKETPLACE) {
+                $unreadBefore = $c->unreadCount;
+            }
+        }
+
+        // Target WITH_FAVORITES — "sold to you" should increase their unread count
         $this->systemMessageSender->sendToAllConversations(
             $item,
-            SystemMessageType::ListingReserved,
+            SystemMessageType::ListingSold,
+            Uuid::fromString(PlayerFixture::PLAYER_WITH_FAVORITES),
         );
 
-        $unreadAfter = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
+        $conversationsAfter = $this->getConversations->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $unreadAfter = 0;
+        foreach ($conversationsAfter as $c) {
+            if ($c->conversationId === ConversationFixture::CONVERSATION_MARKETPLACE) {
+                $unreadAfter = $c->unreadCount;
+            }
+        }
+
         self::assertGreaterThan($unreadBefore, $unreadAfter);
+    }
+
+    public function testSystemMessagesDoNotCountAsUnreadForNonTargetPlayer(): void
+    {
+        $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_01);
+
+        // Get per-conversation unread count before for WITH_STRIPE (seller)
+        $conversationsBefore = $this->getConversations->forPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
+        $unreadBefore = 0;
+        foreach ($conversationsBefore as $c) {
+            if ($c->conversationId === ConversationFixture::CONVERSATION_MARKETPLACE) {
+                $unreadBefore = $c->unreadCount;
+            }
+        }
+
+        // Target WITH_FAVORITES — seller (WITH_STRIPE) should NOT get unread increase
+        $this->systemMessageSender->sendToAllConversations(
+            $item,
+            SystemMessageType::ListingSold,
+            Uuid::fromString(PlayerFixture::PLAYER_WITH_FAVORITES),
+        );
+
+        $conversationsAfter = $this->getConversations->forPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
+        $unreadAfter = 0;
+        foreach ($conversationsAfter as $c) {
+            if ($c->conversationId === ConversationFixture::CONVERSATION_MARKETPLACE) {
+                $unreadAfter = $c->unreadCount;
+            }
+        }
+
+        self::assertSame($unreadBefore, $unreadAfter);
     }
 }

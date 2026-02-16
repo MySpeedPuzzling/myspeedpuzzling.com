@@ -5,6 +5,7 @@ export default class extends Controller {
         conversationId: String,
         playerId: String,
         typingUrl: String,
+        mercureUrl: String,
     };
 
     static targets = ['messages', 'typingIndicator'];
@@ -14,8 +15,24 @@ export default class extends Controller {
         this._typingTimeout = null;
         this._hasNewMessages = false;
 
-        this._onMercureMessage = (event) => this.handleEvent(event.detail);
-        document.addEventListener('mercure:message', this._onMercureMessage);
+        // If mercureUrl is provided, create own EventSource (for modals where global hub lacks these topics)
+        if (this.hasMercureUrlValue && this.mercureUrlValue && this.hasConversationIdValue) {
+            const url = new URL(this.mercureUrlValue);
+            url.searchParams.append('topic', '/conversation/' + this.conversationIdValue + '/typing');
+            url.searchParams.append('topic', '/conversation/' + this.conversationIdValue + '/read/' + this.playerIdValue);
+
+            this._ownEventSource = new EventSource(url, { withCredentials: true });
+            this._ownEventSource.addEventListener('message', (event) => {
+                try {
+                    const parsed = JSON.parse(event.data.trim());
+                    this.handleEvent(parsed);
+                } catch { /* ignore non-JSON */ }
+            });
+        } else {
+            // Fallback: listen for global mercure:message events (full-page view with mercure-hub)
+            this._onMercureMessage = (event) => this.handleEvent(event.detail);
+            document.addEventListener('mercure:message', this._onMercureMessage);
+        }
 
         // Listen for turbo stream renders to hide typing indicator on new messages
         this._onStreamRender = (event) => {
@@ -29,6 +46,10 @@ export default class extends Controller {
     }
 
     disconnect() {
+        if (this._ownEventSource) {
+            this._ownEventSource.close();
+            this._ownEventSource = null;
+        }
         if (this._onMercureMessage) {
             document.removeEventListener('mercure:message', this._onMercureMessage);
         }

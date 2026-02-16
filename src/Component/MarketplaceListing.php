@@ -22,7 +22,7 @@ final class MarketplaceListing
 {
     use DefaultActionTrait;
 
-    private const int PER_PAGE = 6;
+    private const int PER_PAGE = 21;
 
     #[LiveProp(writable: true, url: true)]
     public string $search = '';

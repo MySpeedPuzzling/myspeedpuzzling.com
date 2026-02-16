@@ -68,8 +68,11 @@ SELECT
         SELECT COUNT(*)
         FROM chat_message cm
         WHERE cm.conversation_id = c.id
-            AND (cm.sender_id IS NULL OR cm.sender_id != :playerId)
             AND cm.read_at IS NULL
+            AND (
+                (cm.sender_id IS NOT NULL AND cm.sender_id != :playerId)
+                OR (cm.sender_id IS NULL AND cm.system_message_target_player_id = :playerId)
+            )
     ) AS unread_count,
     -- Puzzle context
     p.id AS puzzle_id,
@@ -333,8 +336,11 @@ FROM conversation c
 JOIN chat_message cm ON cm.conversation_id = c.id
 WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
     AND c.status = :status
-    AND (cm.sender_id IS NULL OR cm.sender_id != :playerId)
     AND cm.read_at IS NULL
+    AND (
+        (cm.sender_id IS NOT NULL AND cm.sender_id != :playerId)
+        OR (cm.sender_id IS NULL AND cm.system_message_target_player_id = :playerId)
+    )
     AND NOT EXISTS (
         SELECT 1 FROM user_block ub
         WHERE ub.blocker_id = :playerId

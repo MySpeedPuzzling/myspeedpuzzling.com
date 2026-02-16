@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
-use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Message\StartConversation;
@@ -84,21 +83,11 @@ final class StartMarketplaceConversationController extends AbstractController
                 $messageContent = trim($request->request->getString('message'));
 
                 if ($messageContent !== '') {
-                    try {
-                        $this->messageBus->dispatch(new SendMessage(
-                            conversationId: $existingConversation->id->toString(),
-                            senderId: $loggedPlayer->playerId,
-                            content: $messageContent,
-                        ));
-                    } catch (HandlerFailedException $exception) {
-                        $realException = $exception->getPrevious();
-
-                        if ($realException instanceof UserIsBlocked) {
-                            $this->addFlash('danger', $this->translator->trans('messaging.cannot_message_user'));
-                        } else {
-                            $this->addFlash('danger', $this->translator->trans('messaging.send_failed'));
-                        }
-                    }
+                    $this->messageBus->dispatch(new SendMessage(
+                        conversationId: $existingConversation->id->toString(),
+                        senderId: $loggedPlayer->playerId,
+                        content: $messageContent,
+                    ));
                 }
             }
 
@@ -170,9 +159,7 @@ final class StartMarketplaceConversationController extends AbstractController
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
-                if ($realException instanceof UserIsBlocked) {
-                    $this->addFlash('danger', $this->translator->trans('messaging.cannot_message_user'));
-                } elseif ($realException instanceof ConversationRequestAlreadyPending) {
+                if ($realException instanceof ConversationRequestAlreadyPending) {
                     $this->addFlash('warning', $this->translator->trans('messaging.pending_request_exists'));
 
                     return $this->redirectToRoute('conversations_list');

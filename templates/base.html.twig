@@ -359,10 +359,9 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
-                                    <span class="position-relative me-1 me-lg-0">
-                                        <i class="bi bi-shop"></i>
-                                        <span class="d-none d-lg-inline badge bg-primary position-absolute start-100" style="font-size: .55em; top: 4px;">{{ 'new_badge'|trans }}</span>
-                                    </span>
+                                    <i class="me-1 me-lg-0 bi bi-shop position-relative">
+                                        <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
+                                    </i>
                                     <small class="d-none d-lg-block">Marketplace</small>
                                     <span class="d-lg-none">Marketplace <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
                                 </a>

@@ -1516,10 +1516,12 @@ messaging:
     conversation_partners: "- From marketplace conversations -"
     system:
         listing_reserved_for_you: "This puzzle was reserved for you."
+        listing_reserved_for_this_puzzler: "This puzzle was reserved for this puzzler."
         listing_reserved_for_someone_else: "This puzzle was reserved for someone else."
         listing_reserved: "This puzzle was reserved."
         listing_reservation_removed: "The reservation for this puzzle was removed."
         listing_sold_to_you: "This puzzle was sold/swapped to you."
+        listing_sold_to_this_puzzler: "You sold/swapped this puzzle to this puzzler."
         listing_sold_to_someone_else: "This puzzle was sold/swapped to someone else."
         listing_sold: "This puzzle was sold/swapped to someone else."
 

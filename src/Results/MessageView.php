@@ -19,6 +19,7 @@ readonly final class MessageView
         public bool $isOwnMessage,
         public bool $isSystemMessage = false,
         public null|string $systemTranslationKey = null,
+        public null|string $puzzleId = null,
     ) {
     }
 }

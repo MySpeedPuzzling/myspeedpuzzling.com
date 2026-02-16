@@ -31,9 +31,12 @@ SELECT
     cm.sent_at,
     cm.read_at,
     cm.system_message_type,
-    cm.system_message_target_player_id
+    cm.system_message_target_player_id,
+    c.puzzle_id,
+    CASE WHEN c.initiator_id = :viewerId THEN c.recipient_id ELSE c.initiator_id END AS other_participant_id
 FROM chat_message cm
 LEFT JOIN player p ON cm.sender_id = p.id
+JOIN conversation c ON cm.conversation_id = c.id
 WHERE cm.conversation_id = :conversationId
 ORDER BY cm.sent_at ASC
 LIMIT :limit
@@ -43,6 +46,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'conversationId' => $conversationId,
+                'viewerId' => $viewerId,
                 'limit' => $limit,
                 'offset' => $offset,
             ])
@@ -59,6 +63,8 @@ SQL;
              *     read_at: null|string,
              *     system_message_type: null|string,
              *     system_message_target_player_id: null|string,
+             *     puzzle_id: null|string,
+             *     other_participant_id: null|string,
              * } $row
              */
 
@@ -71,6 +77,7 @@ SQL;
                     $type,
                     $row['system_message_target_player_id'],
                     $viewerId,
+                    $row['other_participant_id'],
                 );
             }
 
@@ -85,6 +92,7 @@ SQL;
                 isOwnMessage: $row['sender_id'] === $viewerId,
                 isSystemMessage: $isSystemMessage,
                 systemTranslationKey: $systemTranslationKey,
+                puzzleId: $isSystemMessage ? $row['puzzle_id'] : null,
             );
         }, $data);
     }

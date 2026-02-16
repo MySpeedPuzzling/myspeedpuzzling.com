@@ -163,7 +163,7 @@ WHERE ssli.published_on_marketplace = true';
 
         if ($shipsToCountry !== null && $shipsToCountry !== '') {
             $query .= "
-    AND (pl.sell_swap_list_settings->'shippingCountries')::jsonb @> :countryJson::jsonb";
+    AND (pl.sell_swap_list_settings->'shipping_countries')::jsonb @> :countryJson::jsonb";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 
@@ -352,7 +352,7 @@ WHERE ssli.published_on_marketplace = true';
 
         if ($shipsToCountry !== null && $shipsToCountry !== '') {
             $query .= "
-    AND (pl.sell_swap_list_settings->'shippingCountries')::jsonb @> :countryJson::jsonb";
+    AND (pl.sell_swap_list_settings->'shipping_countries')::jsonb @> :countryJson::jsonb";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 

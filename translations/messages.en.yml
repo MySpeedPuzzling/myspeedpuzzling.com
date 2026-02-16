@@ -1238,6 +1238,11 @@ sell_swap_list:
     reservation_removed.success: "Reservation was removed."
     mark_reserved:
         button: "Mark as Reserved"
+        title: "Mark as Reserved"
+        confirm: "Confirm Reservation"
+        reserved_for_input: "Reserved for"
+        reserved_for_input_help: "Enter the player's code (e.g. #ABC123) or name. Leave empty if unknown."
+        reserved_for_input_placeholder: "#ABC123 or name..."
     remove_reservation:
         button: "Remove Reservation"
     history:

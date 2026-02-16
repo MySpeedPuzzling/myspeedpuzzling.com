@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
@@ -267,5 +268,50 @@ final class GetMarketplaceListingsTest extends KernelTestCase
 
         self::assertCount(1, $reserved);
         self::assertCount(1, $nonReserved);
+    }
+
+    public function testFilterByShippingCountryReducesResults(): void
+    {
+        // player5 ships to gb, cz, de — player3 ships to cz, sk
+        // Filtering for "sk" should return only player3's items, reducing total results
+        $skItems = $this->query->search(shipsToCountry: 'sk');
+
+        self::assertNotEmpty($skItems);
+
+        $allItems = $this->query->search(limit: 100);
+        self::assertGreaterThan(count($skItems), count($allItems), 'Shipping filter should reduce results');
+
+        foreach ($skItems as $item) {
+            self::assertSame(PlayerFixture::PLAYER_ADMIN, $item->sellerId);
+        }
+    }
+
+    public function testFilterByShippingCountryReturnsOnlyMatchingSellers(): void
+    {
+        // player5 ships to gb, cz, de — player3 ships to cz, sk
+        // Filtering for "gb" should return only player5's items
+        $gbItems = $this->query->search(shipsToCountry: 'gb');
+
+        self::assertNotEmpty($gbItems);
+
+        foreach ($gbItems as $item) {
+            self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $item->sellerId);
+        }
+    }
+
+    public function testFilterByShippingCountryNoResults(): void
+    {
+        // No seller ships to "jp"
+        $items = $this->query->search(shipsToCountry: 'jp');
+
+        self::assertEmpty($items);
+    }
+
+    public function testCountWithShippingCountryFilter(): void
+    {
+        $czItems = $this->query->search(shipsToCountry: 'cz', limit: 100);
+        $czCount = $this->query->count(shipsToCountry: 'cz');
+
+        self::assertSame(count($czItems), $czCount);
     }
 }

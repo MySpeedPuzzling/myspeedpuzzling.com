@@ -105,11 +105,12 @@
                                             </form>
                                         </li>
                                         <li>
-                                            <form action="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}" method="post">
-                                                <button type="submit" class="dropdown-item">
-                                                    <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
-                                                </button>
-                                            </form>
+                                            <a class="dropdown-item"
+                                               href="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}"
+                                               data-turbo="true"
+                                               data-turbo-frame="modal-frame">
+                                                <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
+                                            </a>
                                         </li>
                                     </ul>
                                 </div>

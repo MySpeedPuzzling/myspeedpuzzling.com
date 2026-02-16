@@ -15,11 +15,14 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\ChatMessageSent;
 
 #[Entity]
 #[Index(columns: ['conversation_id', 'sent_at'])]
-class ChatMessage
+class ChatMessage implements EntityWithEvents
 {
+    use HasEvents;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -43,6 +46,11 @@ class ChatMessage
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $readAt = null,
     ) {
+        $this->recordThat(new ChatMessageSent(
+            chatMessageId: $this->id,
+            conversationId: $this->conversation->id,
+            senderId: $this->sender->id->toString(),
+        ));
     }
 
     public function markAsRead(): void

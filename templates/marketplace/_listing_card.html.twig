@@ -102,11 +102,12 @@
                             </li>
                         {% else %}
                             <li>
-                                <form action="{{ path('sell_swap_mark_reserved', {itemId: item.itemId}) }}" method="post">
-                                    <button type="submit" class="dropdown-item text-warning">
-                                        <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
-                                    </button>
-                                </form>
+                                <a class="dropdown-item text-warning"
+                                   href="{{ path('sell_swap_mark_reserved', {itemId: item.itemId}) }}"
+                                   data-turbo="true"
+                                   data-turbo-frame="modal-frame">
+                                    <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
+                                </a>
                             </li>
                         {% endif %}
                         <li>

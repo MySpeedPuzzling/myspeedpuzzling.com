@@ -12,14 +12,11 @@ use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\UserIsBlocked;
 use SpeedPuzzling\Web\Message\SendMessage;
-use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
-use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -30,9 +27,6 @@ readonly final class SendMessageHandler
         private ChatMessageRepository $chatMessageRepository,
         private PlayerRepository $playerRepository,
         private UserBlockRepository $userBlockRepository,
-        private MercureNotifier $mercureNotifier,
-        private GetConversations $getConversations,
-        private LoggerInterface $logger,
     ) {
     }
 
@@ -87,25 +81,5 @@ readonly final class SendMessageHandler
 
         $this->chatMessageRepository->save($chatMessage);
         $conversation->updateLastMessageAt($now);
-
-        try {
-            $this->mercureNotifier->notifyNewMessage($chatMessage);
-
-            // Only notify recipient about unread count for accepted conversations
-            if ($conversation->status === ConversationStatus::Accepted) {
-                $recipientId = $otherParticipant->id->toString();
-                $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
-                $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
-            }
-
-            // Notify both participants to refresh their conversation list
-            $this->mercureNotifier->notifyConversationListChanged($otherParticipant->id->toString());
-            $this->mercureNotifier->notifyConversationListChanged($sender->id->toString());
-        } catch (\Throwable $e) {
-            $this->logger->error('Failed to send Mercure notification for message', [
-                'conversationId' => $conversation->id->toString(),
-                'exception' => $e,
-            ]);
-        }
     }
 }

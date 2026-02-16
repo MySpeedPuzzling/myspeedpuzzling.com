@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\SellSwapListSettings;
 
 final class SellSwapListItemFixture extends Fixture implements DependentFixtureInterface
 {
@@ -40,6 +41,17 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         // Players with membership who can use sell/swap feature
         $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
+
+        // Set up shipping countries for sellers
+        // player5 (gb) ships to gb, cz, de
+        $player5->changeSellSwapListSettings(new SellSwapListSettings(
+            shippingCountries: ['gb', 'cz', 'de'],
+        ));
+
+        // player3 (cz) ships to cz, sk only
+        $player3->changeSellSwapListSettings(new SellSwapListSettings(
+            shippingCountries: ['cz', 'sk'],
+        ));
 
         // Puzzles from player5's collection
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);

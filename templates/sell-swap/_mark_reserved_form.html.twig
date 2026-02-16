@@ -1,0 +1,57 @@
+{{ form_start(form, {
+    'action': path('sell_swap_mark_reserved', {itemId: item_id}),
+    'attr': {
+        'data-turbo': 'true',
+        'data-turbo-frame': in_modal|default(false) ? 'modal-frame' : '_top'
+    }
+}) }}
+
+<input type="hidden" name="context" value="{{ context|default('detail') }}">
+
+<div class="mb-4" data-controller="favorite-player-select">
+    {{ form_label(form.reservedForInput) }}
+    <div class="input-group input-group-sm">
+        {{ form_widget(form.reservedForInput, {'attr': {'data-favorite-player-select-target': 'input', 'class': 'form-control form-control-sm'}}) }}
+        <select class="form-select form-select-sm"
+                data-favorite-player-select-target="select"
+                data-action="change->favorite-player-select#selectChanged">
+            <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
+            {% for favorite in favorite_players %}
+                <option value="{{ favorite.playerCode }}">
+                    {{ favorite.playerName ?? favorite.playerCode }} ({{ favorite.playerCode|upper }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    {% if conversation_partners is defined and conversation_partners is not empty %}
+        <div class="mt-2">
+            <select class="form-select form-select-sm"
+                    data-favorite-player-select-target="select"
+                    data-action="change->favorite-player-select#selectChanged">
+                <option value="">{{ 'messaging.conversation_partners'|trans }}</option>
+                {% for partner in conversation_partners %}
+                    <option value="{{ partner.playerCode }}">
+                        {{ partner.playerName ?? partner.playerCode }} ({{ partner.playerCode|upper }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+</div>
+
+<div class="d-grid gap-2 d-sm-flex">
+    <button type="submit" class="btn btn-warning flex-grow-1">
+        <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.confirm'|trans }}
+    </button>
+    {% if in_modal|default(false) %}
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            {{ 'forms.cancel'|trans }}
+        </button>
+    {% else %}
+        <a href="{{ path('sell_swap_list_detail', {playerId: logged_user.profile.playerId}) }}" class="btn btn-secondary">
+            {{ 'forms.cancel'|trans }}
+        </a>
+    {% endif %}
+</div>
+
+{{ form_end(form) }}

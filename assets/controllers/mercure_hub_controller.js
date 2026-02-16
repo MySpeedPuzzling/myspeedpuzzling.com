@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { connectStreamSource, disconnectStreamSource } from '@hotwired/turbo';
 
 export default class extends Controller {
     static values = { mercureUrl: String, topics: Array };
@@ -10,29 +11,24 @@ export default class extends Controller {
         this.topicsValue.forEach(topic => url.searchParams.append('topic', topic));
 
         this._eventSource = new EventSource(url, { withCredentials: true });
-        this._eventSource.onmessage = (event) => this._handleMessage(event);
+
+        // Let Turbo handle turbo-stream HTML messages natively
+        connectStreamSource(this._eventSource);
+
+        // Also dispatch JSON messages as custom events
+        this._eventSource.addEventListener('message', (event) => {
+            try {
+                const parsed = JSON.parse(event.data);
+                document.dispatchEvent(new CustomEvent('mercure:message', { detail: parsed }));
+            } catch { /* Not JSON - handled by Turbo stream source */ }
+        });
     }
 
     disconnect() {
         if (this._eventSource) {
+            disconnectStreamSource(this._eventSource);
             this._eventSource.close();
             this._eventSource = null;
-        }
-    }
-
-    _handleMessage(event) {
-        const data = event.data;
-        if (typeof data === 'string' && data.includes('<turbo-stream')) {
-            const template = document.createElement('template');
-            template.innerHTML = data.trim();
-            template.content.querySelectorAll('turbo-stream').forEach(streamEl => {
-                document.documentElement.appendChild(document.importNode(streamEl, true));
-            });
-        } else {
-            try {
-                const parsed = JSON.parse(data);
-                document.dispatchEvent(new CustomEvent('mercure:message', { detail: parsed }));
-            } catch { /* ignore non-JSON, non-turbo-stream messages */ }
         }
     }
 }

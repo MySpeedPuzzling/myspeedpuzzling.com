@@ -59,6 +59,53 @@ final class MarkListingAsReservedHandlerTest extends KernelTestCase
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $item->reservedForPlayerId->toString());
     }
 
+    public function testMarkingItemAsReservedWithPlayerCodeInput(): void
+    {
+        // PLAYER_ADMIN has code 'admin'
+        $this->messageBus->dispatch(
+            new MarkListingAsReserved(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_06,
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                reservedForInput: '#admin',
+            ),
+        );
+
+        $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_06);
+        self::assertTrue($item->reserved);
+        self::assertNotNull($item->reservedForPlayerId);
+        self::assertSame(PlayerFixture::PLAYER_ADMIN, $item->reservedForPlayerId->toString());
+    }
+
+    public function testMarkingItemAsReservedWithInvalidPlayerCodeInput(): void
+    {
+        $this->messageBus->dispatch(
+            new MarkListingAsReserved(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_07,
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                reservedForInput: '#nonexistent',
+            ),
+        );
+
+        $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_07);
+        self::assertTrue($item->reserved);
+        self::assertNull($item->reservedForPlayerId);
+    }
+
+    public function testMarkingItemAsReservedWithNonCodeInputIsIgnored(): void
+    {
+        $this->messageBus->dispatch(
+            new MarkListingAsReserved(
+                sellSwapListItemId: SellSwapListItemFixture::SELLSWAP_01,
+                playerId: PlayerFixture::PLAYER_WITH_STRIPE,
+                reservedForInput: 'some free text',
+            ),
+        );
+
+        $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_01);
+        self::assertTrue($item->reserved);
+        self::assertNull($item->reservedForPlayerId);
+    }
+
     public function testNonOwnerCannotMarkAsReserved(): void
     {
         try {

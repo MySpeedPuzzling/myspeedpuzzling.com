@@ -24,6 +24,24 @@ final class MercureTopicCollector implements ResetInterface
         return $this->topics;
     }
 
+    /** @return list<string> */
+    public function getAllTopicsForPlayer(string $playerId): array
+    {
+        $baseTopics = [
+            '/unread-count/' . $playerId,
+            '/conversations/' . $playerId,
+        ];
+
+        $allTopics = $baseTopics;
+        foreach ($this->topics as $topic) {
+            if (!in_array($topic, $allTopics, true)) {
+                $allTopics[] = $topic;
+            }
+        }
+
+        return $allTopics;
+    }
+
     public function reset(): void
     {
         $this->topics = [];

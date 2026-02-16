@@ -1209,7 +1209,6 @@ sell_swap_list:
         success: "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
     already_in_list: "Toto puzzle je již ve vašem seznamu k prodeji/výměně."
     not_in_collection: "Nejdříve přidejte do sbírky"
-    contact_notice: "Kontaktujte prodejce přímo pro domluvení nákupu nebo výměny."
     back_to_list: "Zpět na seznam k prodeji/výměně"
     membership_required:
         title: "Funkce pouze pro členy"

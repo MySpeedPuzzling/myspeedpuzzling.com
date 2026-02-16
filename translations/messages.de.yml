@@ -1104,7 +1104,6 @@ sell_swap_list:
     description: "Puzzles zum Verkauf oder Tausch"
     description_other: "Puzzles, die %name% verkauft oder tauscht"
     items_count: "%count% Puzzles"
-    contact_notice: "Kontaktiere den Verkäufer direkt, um Kauf oder Tausch zu vereinbaren."
     empty:
         title: "Deine Verkauf/Tausch-Liste ist leer"
         message: "Füge Puzzles hinzu, die du verkaufen oder tauschen möchtest!"

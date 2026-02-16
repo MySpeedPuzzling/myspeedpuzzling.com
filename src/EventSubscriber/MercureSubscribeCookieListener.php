@@ -46,19 +46,7 @@ final class MercureSubscribeCookieListener implements EventSubscriberInterface
         }
 
         $playerId = $profile->playerId;
-
-        // Base topics every logged-in user needs
-        $topics = [
-            '/unread-count/' . $playerId,
-            '/conversations/' . $playerId,
-        ];
-
-        // Merge controller-specific topics
-        foreach ($this->topicCollector->getTopics() as $topic) {
-            if (!in_array($topic, $topics, true)) {
-                $topics[] = $topic;
-            }
-        }
+        $topics = $this->topicCollector->getAllTopicsForPlayer($playerId);
 
         try {
             $this->authorization->setCookie($event->getRequest(), $topics);

@@ -1105,7 +1105,6 @@ sell_swap_list:
     description_other: "Puzzles que %name% está vendiendo o intercambiando"
     not_in_collection: "Añadir a la colección primero"
     items_count: "%count% puzzles"
-    contact_notice: "Contacta al vendedor directamente para organizar la compra o intercambio."
     empty:
         title: "Tu lista de venta/intercambio está vacía"
         message: "¡Añade puzzles que quieras vender o intercambiar!"

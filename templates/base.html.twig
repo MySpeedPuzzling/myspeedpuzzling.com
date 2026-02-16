@@ -319,10 +319,7 @@
 
                         {% if logged_user.profile is not null %}
                             {% set unread_messages_count = get_conversations.countUnreadForPlayer(logged_user.profile.playerId) %}
-                            <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-3"
-                                 data-controller="unread-badge"
-                                 data-unread-badge-mercure-url-value="{{ mercure_public_url }}"
-                                 data-unread-badge-topic-value="/unread-count/{{ logged_user.profile.playerId }}">
+                            <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-3">
                                 {{ include('messaging/_unread_badge.html.twig', {count: unread_messages_count}) }}
                             </div>
                         {% endif %}
@@ -362,9 +359,12 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
-                                    <i class="me-1 me-lg-0 bi bi-shop"></i>
+                                    <span class="position-relative me-1 me-lg-0">
+                                        <i class="bi bi-shop"></i>
+                                        <span class="d-none d-lg-inline badge bg-primary position-absolute start-100" style="font-size: .55em; top: 4px;">{{ 'new_badge'|trans }}</span>
+                                    </span>
                                     <small class="d-none d-lg-block">Marketplace</small>
-                                    <span class="d-lg-none">Marketplace</span>
+                                    <span class="d-lg-none">Marketplace <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -693,5 +693,12 @@
                 </div>
             </div>
         </div>
+
+        {% if logged_user.profile is not null %}
+            <div data-controller="mercure-hub"
+                 data-mercure-hub-mercure-url-value="{{ mercure_public_url }}"
+                 data-mercure-hub-topics-value="{{ mercure_subscribe_topics(logged_user.profile.playerId)|json_encode|e('html_attr') }}"
+                 style="display: none;"></div>
+        {% endif %}
     </body>
 </html>

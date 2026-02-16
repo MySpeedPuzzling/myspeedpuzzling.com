@@ -13,7 +13,6 @@
     <div class="card" data-controller="messaging conversation-realtime"
          data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
          data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
-         data-conversation-realtime-mercure-url-value="{{ mercure_public_url }}"
          data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
         <div class="card-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
@@ -146,9 +145,7 @@
 
         <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
              data-messaging-target="messages"
-             data-conversation-realtime-target="messages"
-             {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}
-             data-symfony--ux-turbo--mercure-turbo-stream-with-credentials-value="true">
+             data-conversation-realtime-target="messages">
 
             {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
                 {% if messages is not empty %}

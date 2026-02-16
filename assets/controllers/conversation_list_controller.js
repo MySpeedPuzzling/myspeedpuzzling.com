@@ -2,8 +2,6 @@ import { Controller } from '@hotwired/stimulus';
 
 export default class extends Controller {
     static values = {
-        playerId: String,
-        mercureUrl: String,
         refreshUrl: String,
         activeTab: String,
     };
@@ -11,23 +9,15 @@ export default class extends Controller {
     static targets = ['tabContent'];
 
     connect() {
-        if (this.mercureUrlValue && this.playerIdValue) {
-            const url = new URL(this.mercureUrlValue);
-            url.searchParams.append('topic', `/conversations/${this.playerIdValue}`);
-
-            this._eventSource = new EventSource(url, { withCredentials: true });
-            this._eventSource.onmessage = () => this.debouncedRefresh();
-            this._eventSource.onerror = () => {
-                // EventSource will auto-reconnect
-            };
-        }
         this._refreshTimeout = null;
+
+        this._onMercureMessage = () => this.debouncedRefresh();
+        document.addEventListener('mercure:message', this._onMercureMessage);
     }
 
     disconnect() {
-        if (this._eventSource) {
-            this._eventSource.close();
-            this._eventSource = null;
+        if (this._onMercureMessage) {
+            document.removeEventListener('mercure:message', this._onMercureMessage);
         }
         if (this._refreshTimeout) {
             clearTimeout(this._refreshTimeout);

@@ -4,26 +4,17 @@ export default class extends Controller {
     static values = {
         conversationId: String,
         playerId: String,
-        mercureUrl: String,
         typingUrl: String,
     };
 
     static targets = ['messages', 'typingIndicator'];
 
     connect() {
-        if (this.mercureUrlValue && this.conversationIdValue && this.playerIdValue) {
-            const url = new URL(this.mercureUrlValue);
-            url.searchParams.append('topic', `/conversation/${this.conversationIdValue}/read/${this.playerIdValue}`);
-            url.searchParams.append('topic', `/conversation/${this.conversationIdValue}/typing`);
-
-            this._eventSource = new EventSource(url, { withCredentials: true });
-            this._eventSource.onmessage = (event) => this.handleEvent(event);
-            this._eventSource.onerror = () => {
-                // EventSource will auto-reconnect
-            };
-        }
         this._lastTypingSent = 0;
         this._typingTimeout = null;
+
+        this._onMercureMessage = (event) => this.handleEvent(event.detail);
+        document.addEventListener('mercure:message', this._onMercureMessage);
 
         // Listen for turbo stream renders to hide typing indicator on new messages
         this._onStreamRender = (event) => {
@@ -36,9 +27,8 @@ export default class extends Controller {
     }
 
     disconnect() {
-        if (this._eventSource) {
-            this._eventSource.close();
-            this._eventSource = null;
+        if (this._onMercureMessage) {
+            document.removeEventListener('mercure:message', this._onMercureMessage);
         }
         if (this._typingTimeout) {
             clearTimeout(this._typingTimeout);
@@ -48,14 +38,7 @@ export default class extends Controller {
         }
     }
 
-    handleEvent(event) {
-        let data;
-        try {
-            data = JSON.parse(event.data);
-        } catch {
-            return;
-        }
-
+    handleEvent(data) {
         if (data.type === 'read') {
             this.handleReadReceipt();
         } else if (data.type === 'typing') {

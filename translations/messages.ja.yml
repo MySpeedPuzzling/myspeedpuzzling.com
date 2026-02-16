@@ -1105,7 +1105,6 @@ sell_swap_list:
         missing_pieces: "ピース欠け"
         normal: "普通"
         not_so_good: "やや難あり"
-    contact_notice: "購入または交換の手配については、出品者に直接お問い合わせください。"
     description: "販売または交換用のパズル"
     description_other: "%name%が販売または交換しているパズル"
     not_in_collection: "まずコレクションに追加してください"

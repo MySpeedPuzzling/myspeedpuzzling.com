@@ -1131,7 +1131,6 @@ sell_swap_list:
     description: "Puzzles for sale or swap"
     description_other: "Puzzles %name% is selling or swapping"
     items_count: "%count% puzzles"
-    contact_notice: "Contact the seller directly to arrange purchase or swap."
     empty:
         title: "Your sell/swap list is empty"
         message: "Add puzzles you want to sell or swap!"

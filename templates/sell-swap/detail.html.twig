@@ -33,6 +33,10 @@
                 {% endif %}
                 <i class="bi bi-puzzle me-1"></i>
                 {{ 'sell_swap_list.items_count'|trans({'%count%': '<span id="sellswap-count" data-collection-items-target="count">' ~ items|length ~ '</span>'})|raw }}
+                {% if player.ratingCount > 0 %}
+                    <span class="text-muted px-2">•</span>
+                    {% include 'rating/_rating_summary.html.twig' with {average_rating: player.averageRating, rating_count: player.ratingCount, player_id: player.playerId} %}
+                {% endif %}
             </p>
         </div>
 

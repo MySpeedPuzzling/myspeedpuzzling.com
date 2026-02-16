@@ -1263,6 +1263,7 @@ puzzler_offers:
         type: "Type"
         price: "Price"
         condition: "Condition"
+        comment: "Comment"
     view_all: "View all %count% offers"
     offers_link: "Offers (%count%)"
     view_on_marketplace: "View on marketplace"
@@ -1554,6 +1555,9 @@ marketplace:
         sort: "Sort"
         filters: "Filters"
         ships_to: "Ships to"
+        ship_to_my_country: "Ship to my country"
+        ship_to_my_country_disabled: "Ship to my country (set your country in"
+        set_country_link: "Edit profile)"
     sort:
         newest: "Newest"
         price_asc: "Price asc"
@@ -1583,6 +1587,9 @@ marketplace:
     search_placeholder: "Puzzle name, EAN..."
     all: "All"
     my_offers: "My offers"
+    showing_offers_for: "Showing offers for"
+    show_all: "Show all"
+    load_more: "Load more"
     disclaimer: "MySpeedPuzzling is not a seller and takes no responsibility for transactions. We only connect people. Always be careful and do not send money in advance."
 
 moderation:

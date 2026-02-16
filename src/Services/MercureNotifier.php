@@ -105,12 +105,13 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyUnreadCountChanged(string $playerId, int $count): void
     {
+        $html = $this->twig->render('messaging/_unread_badge_stream.html.twig', [
+            'count' => $count,
+        ]);
+
         $this->hub->publish(new Update(
             '/unread-count/' . $playerId,
-            json_encode([
-                'type' => 'unread_count',
-                'count' => $count,
-            ], JSON_THROW_ON_ERROR),
+            $html,
         ));
     }
 

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
+use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\SendMessage;
+use SpeedPuzzling\Web\Results\MessageView;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -40,6 +43,27 @@ final class SendMessageController extends AbstractController
                 senderId: $loggedPlayer->playerId,
                 content: $content,
             ));
+        }
+
+        if (str_contains($request->headers->get('Accept', ''), 'text/vnd.turbo-stream.html') && $content !== '') {
+            $messageView = new MessageView(
+                messageId: Uuid::uuid7()->toString(),
+                senderId: $loggedPlayer->playerId,
+                senderName: $loggedPlayer->playerName,
+                senderAvatar: $loggedPlayer->avatar,
+                content: $content,
+                sentAt: new DateTimeImmutable(),
+                readAt: null,
+                isOwnMessage: true,
+            );
+
+            return new Response(
+                $this->renderView('messaging/_new_message_stream.html.twig', [
+                    'message' => $messageView,
+                ]),
+                Response::HTTP_OK,
+                ['Content-Type' => 'text/vnd.turbo-stream.html'],
+            );
         }
 
         return $this->redirectToRoute('conversation_detail', ['conversationId' => $conversationId]);

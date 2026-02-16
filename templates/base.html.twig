@@ -323,13 +323,7 @@
                                  data-controller="unread-badge"
                                  data-unread-badge-player-id-value="{{ logged_user.profile.playerId }}"
                                  data-unread-badge-mercure-url-value="{{ mercure_public_url }}">
-                                <a class="navbar-tool {% if app.request.pathInfo starts with '/en/messages' %}active{% endif %}" href="{{ path('conversations_list') }}" aria-label="Messages">
-                                    <div class="navbar-tool-icon-box {{ unread_messages_count > 0 ? 'bg-secondary' }}">
-                                        <span class="navbar-tool-label {{ unread_messages_count == 0 ? 'bg-secondary text-dark' }}" data-unread-badge-target="count">{{ unread_messages_count }}</span>
-                                        <i class="navbar-tool-icon ci-mail" aria-hidden="true"></i>
-                                    </div>
-                                    <div class="navbar-tool-text ms-n3 d-none"><small>Messages</small></div>
-                                </a>
+                                {{ include('messaging/_unread_badge.html.twig', {count: unread_messages_count}) }}
                             </div>
                         {% endif %}
 

@@ -142,8 +142,8 @@
 
         {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
             <div class="card-footer">
-                <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" onsubmit="this.querySelector('button[type=submit]').disabled = true">
-                    <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
+                <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
+                    <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-send"></i>
                     </button>

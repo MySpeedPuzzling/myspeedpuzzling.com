@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import mercureManager from '../mercure-manager';
 
 export default class extends Controller {
     static values = {
@@ -12,29 +13,22 @@ export default class extends Controller {
 
     connect() {
         if (this.mercureUrlValue && this.playerIdValue) {
-            this.connectToMercure();
+            this._unsubscribe = mercureManager.subscribe(
+                this.mercureUrlValue,
+                [`/conversations/${this.playerIdValue}`],
+                () => this.debouncedRefresh(),
+            );
         }
         this._refreshTimeout = null;
     }
 
     disconnect() {
-        if (this.eventSource) {
-            this.eventSource.close();
+        if (this._unsubscribe) {
+            this._unsubscribe();
         }
         if (this._refreshTimeout) {
             clearTimeout(this._refreshTimeout);
         }
-    }
-
-    connectToMercure() {
-        const url = new URL(this.mercureUrlValue);
-        url.searchParams.append('topic', `/conversations/${this.playerIdValue}`);
-
-        this.eventSource = new EventSource(url);
-
-        this.eventSource.onmessage = () => {
-            this.debouncedRefresh();
-        };
     }
 
     debouncedRefresh() {

@@ -30,6 +30,7 @@ readonly final class GetMarketplaceListings
         null|PuzzleCondition $condition = null,
         null|string $shipsToCountry = null,
         null|string $sellerId = null,
+        null|string $puzzleId = null,
         string $sort = 'newest',
         int $limit = 24,
         int $offset = 0,
@@ -162,7 +163,7 @@ WHERE ssli.published_on_marketplace = true';
 
         if ($shipsToCountry !== null && $shipsToCountry !== '') {
             $query .= "
-    AND pl.sell_swap_list_settings->'shippingCountries' @> :countryJson";
+    AND (pl.sell_swap_list_settings->'shippingCountries')::jsonb @> :countryJson::jsonb";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 
@@ -170,6 +171,12 @@ WHERE ssli.published_on_marketplace = true';
             $query .= '
     AND ssli.player_id = :sellerId';
             $params['sellerId'] = $sellerId;
+        }
+
+        if ($puzzleId !== null && $puzzleId !== '') {
+            $query .= '
+    AND p.id = :puzzleId';
+            $params['puzzleId'] = $puzzleId;
         }
 
         // Sorting
@@ -273,6 +280,7 @@ LIMIT :limit OFFSET :offset';
         null|PuzzleCondition $condition = null,
         null|string $shipsToCountry = null,
         null|string $sellerId = null,
+        null|string $puzzleId = null,
     ): int {
         $hasSearch = $searchTerm !== null && $searchTerm !== '';
         $eanSearch = $hasSearch ? trim($searchTerm, '0') : '';
@@ -344,7 +352,7 @@ WHERE ssli.published_on_marketplace = true';
 
         if ($shipsToCountry !== null && $shipsToCountry !== '') {
             $query .= "
-    AND pl.sell_swap_list_settings->'shippingCountries' @> :countryJson";
+    AND (pl.sell_swap_list_settings->'shippingCountries')::jsonb @> :countryJson::jsonb";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
         }
 
@@ -352,6 +360,12 @@ WHERE ssli.published_on_marketplace = true';
             $query .= '
     AND ssli.player_id = :sellerId';
             $params['sellerId'] = $sellerId;
+        }
+
+        if ($puzzleId !== null && $puzzleId !== '') {
+            $query .= '
+    AND p.id = :puzzleId';
+            $params['puzzleId'] = $puzzleId;
         }
 
         $count = $this->database

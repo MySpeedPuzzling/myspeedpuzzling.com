@@ -82,8 +82,12 @@ final class EditSellSwapListSettingsFormType extends AbstractType
             'label' => 'sell_swap_list.settings.shipping_countries',
             'required' => false,
             'multiple' => true,
-            'expanded' => true,
+            'autocomplete' => true,
             'choices' => $this->getCountryChoicesGroupedByRegion(),
+            'choice_translation_domain' => false,
+            'choice_attr' => static function (string $countryCode): array {
+                return ['data-icon' => 'fi fi-' . $countryCode];
+            },
         ]);
 
         $builder->add('shippingCost', TextType::class, [

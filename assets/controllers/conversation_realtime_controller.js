@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import mercureManager from '../mercure-manager';
 
 export default class extends Controller {
     static values = {
@@ -12,58 +13,47 @@ export default class extends Controller {
 
     connect() {
         if (this.mercureUrlValue && this.conversationIdValue && this.playerIdValue) {
-            this.connectToMercure();
+            this._unsubscribe = mercureManager.subscribe(
+                this.mercureUrlValue,
+                [
+                    `/messages/${this.conversationIdValue}/user/${this.playerIdValue}`,
+                    `/conversation/${this.conversationIdValue}/read`,
+                    `/conversation/${this.conversationIdValue}/typing`,
+                ],
+                (event) => this.handleEvent(event),
+            );
         }
         this._lastTypingSent = 0;
         this._typingTimeout = null;
     }
 
     disconnect() {
-        if (this.eventSource) {
-            this.eventSource.close();
+        if (this._unsubscribe) {
+            this._unsubscribe();
         }
         if (this._typingTimeout) {
             clearTimeout(this._typingTimeout);
         }
     }
 
-    connectToMercure() {
-        const url = new URL(this.mercureUrlValue);
-        url.searchParams.append('topic', `/messages/${this.conversationIdValue}/user/${this.playerIdValue}`);
-        url.searchParams.append('topic', `/conversation/${this.conversationIdValue}/read`);
-        url.searchParams.append('topic', `/conversation/${this.conversationIdValue}/typing`);
+    handleEvent(event, isTurboStream) {
+        if (isTurboStream) {
+            // New message arrived via Turbo Stream (auto-processed by mercure-manager)
+            this.hideTypingIndicator();
+            return;
+        }
 
-        this.eventSource = new EventSource(url);
+        let data;
+        try {
+            data = JSON.parse(event.data);
+        } catch {
+            return;
+        }
 
-        this.eventSource.onmessage = (event) => {
-            let data;
-            try {
-                data = JSON.parse(event.data);
-            } catch {
-                // Not JSON - treat as Turbo Stream HTML
-                this.handleTurboStream(event.data);
-                return;
-            }
-
-            if (data.type === 'read') {
-                this.handleReadReceipt();
-            } else if (data.type === 'typing') {
-                this.handleTypingIndicator(data);
-            }
-        };
-    }
-
-    handleTurboStream(html) {
-        if (!this.hasMessagesTarget) return;
-
-        // Parse the turbo-stream and extract the template content
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const template = doc.querySelector('turbo-stream template');
-
-        if (template) {
-            const fragment = document.importNode(template.content, true);
-            this.messagesTarget.appendChild(fragment);
+        if (data.type === 'read') {
+            this.handleReadReceipt();
+        } else if (data.type === 'typing') {
+            this.handleTypingIndicator(data);
         }
     }
 
@@ -99,6 +89,16 @@ export default class extends Controller {
                     el.scrollTop = el.scrollHeight;
                 });
             }
+        }
+    }
+
+    hideTypingIndicator() {
+        if (this.hasTypingIndicatorTarget) {
+            this.typingIndicatorTarget.classList.add('d-none');
+        }
+        if (this._typingTimeout) {
+            clearTimeout(this._typingTimeout);
+            this._typingTimeout = null;
         }
     }
 

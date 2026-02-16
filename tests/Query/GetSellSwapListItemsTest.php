@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
-use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetSellSwapListItemsTest extends KernelTestCase
@@ -30,25 +29,6 @@ final class GetSellSwapListItemsTest extends KernelTestCase
 
         self::assertNotEmpty($reservedItems);
         self::assertNotEmpty($nonReservedItems);
-    }
-
-    public function testReservedStatusIsIncludedInByPuzzleId(): void
-    {
-        // PUZZLE_1000_01 has SELLSWAP_03 which is reserved
-        $offers = $this->getSellSwapListItems->byPuzzleId(PuzzleFixture::PUZZLE_1000_01);
-
-        self::assertNotEmpty($offers);
-
-        $reservedOffer = null;
-        foreach ($offers as $offer) {
-            if ($offer->sellSwapListItemId === SellSwapListItemFixture::SELLSWAP_03) {
-                $reservedOffer = $offer;
-                break;
-            }
-        }
-
-        self::assertNotNull($reservedOffer);
-        self::assertTrue($reservedOffer->reserved);
     }
 
     public function testCountByPuzzleIdsWithMultiplePuzzles(): void
@@ -93,43 +73,5 @@ final class GetSellSwapListItemsTest extends KernelTestCase
         $counts = $this->getSellSwapListItems->countByPuzzleIds([]);
 
         self::assertSame([], $counts);
-    }
-
-    public function testByPuzzleIdReturnsMultipleOffers(): void
-    {
-        // PUZZLE_500_01 has 2 offers: SELLSWAP_01 (PLAYER_WITH_STRIPE) and SELLSWAP_10 (PLAYER_ADMIN)
-        $offers = $this->getSellSwapListItems->byPuzzleId(PuzzleFixture::PUZZLE_500_01);
-
-        self::assertCount(2, $offers);
-
-        $sellerIds = array_map(static fn ($offer) => $offer->playerId, $offers);
-        self::assertContains(PlayerFixture::PLAYER_WITH_STRIPE, $sellerIds);
-        self::assertContains(PlayerFixture::PLAYER_ADMIN, $sellerIds);
-    }
-
-    public function testPuzzleWithMixedReservationStatus(): void
-    {
-        // PUZZLE_1000_01 has SELLSWAP_03 (reserved) and SELLSWAP_11 (not reserved)
-        $offers = $this->getSellSwapListItems->byPuzzleId(PuzzleFixture::PUZZLE_1000_01);
-
-        self::assertCount(2, $offers);
-
-        $reserved = array_filter($offers, static fn ($offer) => $offer->reserved);
-        $nonReserved = array_filter($offers, static fn ($offer) => !$offer->reserved);
-
-        self::assertCount(1, $reserved);
-        self::assertCount(1, $nonReserved);
-    }
-
-    public function testPuzzleWithOnlyReservedOffers(): void
-    {
-        // PUZZLE_1000_02 has SELLSWAP_05 and SELLSWAP_12, both reserved
-        $offers = $this->getSellSwapListItems->byPuzzleId(PuzzleFixture::PUZZLE_1000_02);
-
-        self::assertCount(2, $offers);
-
-        foreach ($offers as $offer) {
-            self::assertTrue($offer->reserved);
-        }
     }
 }

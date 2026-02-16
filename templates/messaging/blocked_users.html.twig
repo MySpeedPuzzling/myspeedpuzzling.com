@@ -22,7 +22,9 @@
             {% for user in blocked_users %}
                 <div class="list-group-item d-flex align-items-center justify-content-between py-3">
                     <div class="d-flex align-items-center">
-                        {{ include('messaging/_avatar.html.twig', {avatar: user.blocked_avatar, size: 48, class: 'me-3 flex-shrink-0'}) }}
+                        <div class="me-3 flex-shrink-0">
+                            {{ include('messaging/_avatar.html.twig', {avatar: user.blocked_avatar, size: 48}) }}
+                        </div>
                         <div>
                             <a href="{{ path('player_profile', {playerId: user.blocked_id}) }}" class="fw-bold text-decoration-none">
                                 {{ user.blocked_name ?? user.blocked_code }}

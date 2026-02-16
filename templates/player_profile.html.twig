@@ -15,12 +15,6 @@
             </p>
         {% endif %}
 
-        {% if player.ratingCount > 0 %}
-            <p class="col-sm">
-                {% include 'rating/_rating_summary.html.twig' with {average_rating: player.averageRating, rating_count: player.ratingCount, player_id: player.playerId} %}
-            </p>
-        {% endif %}
-
         {% if can_message %}
             <p class="col-sm">
                 <a href="{{ path('start_conversation', {recipientId: player.playerId}) }}" class="btn btn-sm btn-outline-primary" data-turbo="true" data-turbo-frame="modal-frame">

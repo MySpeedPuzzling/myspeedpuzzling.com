@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
+use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
@@ -19,7 +22,7 @@ final class MarketplaceListing
 {
     use DefaultActionTrait;
 
-    private const int PER_PAGE = 24;
+    private const int PER_PAGE = 6;
 
     #[LiveProp(writable: true, url: true)]
     public string $search = '';
@@ -46,7 +49,7 @@ final class MarketplaceListing
     public string $condition = '';
 
     #[LiveProp(writable: true, url: true)]
-    public string $shipsTo = '';
+    public bool $shipToMyCountry = true;
 
     #[LiveProp(writable: true, url: true)]
     public string $sort = 'newest';
@@ -55,7 +58,13 @@ final class MarketplaceListing
     public bool $myOffers = false;
 
     #[LiveProp(writable: true, url: true)]
+    public string $puzzleId = '';
+
+    #[LiveProp(writable: true)]
     public int $page = 1;
+
+    #[LiveProp]
+    public string $filterHash = '';
 
     /** @var null|array<MarketplaceListingItem> */
     private null|array $cachedItems = null;
@@ -64,6 +73,7 @@ final class MarketplaceListing
 
     public function __construct(
         readonly private GetMarketplaceListings $getMarketplaceListings,
+        readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -71,9 +81,16 @@ final class MarketplaceListing
     #[PreReRender]
     public function preReRender(): void
     {
-        // Reset cache on re-render
         $this->cachedItems = null;
         $this->cachedCount = null;
+
+        $currentHash = $this->computeFilterHash();
+
+        if ($this->filterHash !== '' && $this->filterHash !== $currentHash) {
+            $this->page = 1;
+        }
+
+        $this->filterHash = $currentHash;
     }
 
     /**
@@ -94,11 +111,12 @@ final class MarketplaceListing
             priceMin: $this->priceMin,
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
-            shipsToCountry: $this->shipsTo !== '' ? $this->shipsTo : null,
+            shipsToCountry: $this->getShipsToCountry(),
             sellerId: $this->getMyOffersSellerId(),
+            puzzleId: $this->puzzleId !== '' ? $this->puzzleId : null,
             sort: $this->sort,
-            limit: self::PER_PAGE,
-            offset: ($this->page - 1) * self::PER_PAGE,
+            limit: $this->page * self::PER_PAGE,
+            offset: 0,
         );
 
         return $this->cachedItems;
@@ -119,8 +137,9 @@ final class MarketplaceListing
             priceMin: $this->priceMin,
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
-            shipsToCountry: $this->shipsTo !== '' ? $this->shipsTo : null,
+            shipsToCountry: $this->getShipsToCountry(),
             sellerId: $this->getMyOffersSellerId(),
+            puzzleId: $this->puzzleId !== '' ? $this->puzzleId : null,
         );
 
         return $this->cachedCount;
@@ -134,24 +153,50 @@ final class MarketplaceListing
         return $this->getMarketplaceListings->getManufacturersWithActiveListings();
     }
 
-    public function getTotalPages(): int
+    public function hasMoreItems(): bool
     {
-        return max(1, (int) ceil($this->getResultCount() / self::PER_PAGE));
+        return ($this->page * self::PER_PAGE) < $this->getResultCount();
     }
 
-    public function getDefaultShipsTo(): string
+    #[LiveAction]
+    public function loadMore(): void
     {
-        if ($this->shipsTo !== '') {
-            return $this->shipsTo;
-        }
+        $this->page++;
+    }
 
+    public function getUserCountry(): null|string
+    {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
         if ($profile !== null && $profile->country !== null) {
             return $profile->country;
         }
 
-        return '';
+        return null;
+    }
+
+    public function getPuzzleName(): null|string
+    {
+        if ($this->puzzleId === '') {
+            return null;
+        }
+
+        try {
+            $puzzle = $this->getPuzzleOverview->byId($this->puzzleId);
+        } catch (PuzzleNotFound) {
+            return null;
+        }
+
+        return $puzzle->puzzleName;
+    }
+
+    private function getShipsToCountry(): null|string
+    {
+        if ($this->shipToMyCountry === false) {
+            return null;
+        }
+
+        return $this->getUserCountry();
     }
 
     private function getMyOffersSellerId(): null|string
@@ -185,5 +230,14 @@ final class MarketplaceListing
         }
 
         return PuzzleCondition::tryFrom($this->condition);
+    }
+
+    private function computeFilterHash(): string
+    {
+        return md5(serialize([
+            $this->search, $this->manufacturer, $this->piecesMin, $this->piecesMax,
+            $this->listingType, $this->priceMin, $this->priceMax, $this->condition,
+            $this->shipToMyCountry, $this->sort, $this->myOffers, $this->puzzleId,
+        ]));
     }
 }

@@ -321,8 +321,8 @@
                             {% set unread_messages_count = get_conversations.countUnreadForPlayer(logged_user.profile.playerId) %}
                             <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-3"
                                  data-controller="unread-badge"
-                                 data-unread-badge-player-id-value="{{ logged_user.profile.playerId }}"
-                                 data-unread-badge-mercure-url-value="{{ mercure_public_url }}">
+                                 data-unread-badge-mercure-url-value="{{ mercure_public_url }}"
+                                 data-unread-badge-topic-value="/unread-count/{{ logged_user.profile.playerId }}">
                                 {{ include('messaging/_unread_badge.html.twig', {count: unread_messages_count}) }}
                             </div>
                         {% endif %}

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller\Messaging;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
+use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ConversationStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ final class ConversationDetailController extends AbstractController
         readonly private GetMessages $getMessages,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
+        readonly private MercureTopicCollector $mercureTopicCollector,
     ) {
     }
 
@@ -74,8 +76,17 @@ final class ConversationDetailController extends AbstractController
             if ($conversation->sellSwapListItem !== null) {
                 $puzzleContext['listingType'] = $conversation->sellSwapListItem->listingType->value;
                 $puzzleContext['price'] = $conversation->sellSwapListItem->price;
+                $puzzleContext['itemId'] = $conversation->sellSwapListItem->id->toString();
+                $puzzleContext['reserved'] = $conversation->sellSwapListItem->reserved;
             }
         }
+
+        $this->mercureTopicCollector->addTopic('/messages/' . $conversationId . '/user/' . $loggedPlayer->playerId);
+        $this->mercureTopicCollector->addTopic('/conversation/' . $conversationId . '/read/' . $loggedPlayer->playerId);
+        $this->mercureTopicCollector->addTopic('/conversation/' . $conversationId . '/typing');
+
+        $isSeller = $conversation->sellSwapListItem !== null
+            && $conversation->sellSwapListItem->player->id->toString() === $loggedPlayer->playerId;
 
         return $this->render('messaging/conversation_detail.html.twig', [
             'conversation' => $conversation,
@@ -83,6 +94,7 @@ final class ConversationDetailController extends AbstractController
             'other_player' => $otherPlayer,
             'is_recipient' => $isRecipient,
             'puzzle_context' => $puzzleContext,
+            'is_seller' => $isSeller,
         ]);
     }
 }

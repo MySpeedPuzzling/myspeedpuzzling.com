@@ -50,6 +50,7 @@ final class TypingIndicatorController extends AbstractController
                 'playerId' => $loggedPlayer->playerId,
                 'isTyping' => true,
             ], JSON_THROW_ON_ERROR),
+            private: true,
         ));
 
         return new JsonResponse(['ok' => true]);

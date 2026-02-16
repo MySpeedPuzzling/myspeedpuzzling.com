@@ -37,9 +37,9 @@ final class NullMercureHub implements HubInterface, ResetInterface
         throw new \RuntimeException('Not implemented in test double');
     }
 
-    public function getFactory(): null|TokenFactoryInterface
+    public function getFactory(): TokenFactoryInterface
     {
-        return null;
+        return new NullTokenFactory();
     }
 
     /** @return Update[] */

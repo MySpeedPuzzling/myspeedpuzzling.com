@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetMessages;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ConversationStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -36,6 +37,7 @@ final class StartConversationController extends AbstractController
         readonly private ConversationRepository $conversationRepository,
         readonly private PlayerRepository $playerRepository,
         readonly private GetMessages $getMessages,
+        readonly private MercureTopicCollector $mercureTopicCollector,
     ) {
     }
 
@@ -92,6 +94,11 @@ final class StartConversationController extends AbstractController
                     playerId: $loggedPlayer->playerId,
                 ));
             }
+
+            $conversationIdStr = $existingConversation->id->toString();
+            $this->mercureTopicCollector->addTopic('/messages/' . $conversationIdStr . '/user/' . $loggedPlayer->playerId);
+            $this->mercureTopicCollector->addTopic('/conversation/' . $conversationIdStr . '/read/' . $loggedPlayer->playerId);
+            $this->mercureTopicCollector->addTopic('/conversation/' . $conversationIdStr . '/typing');
 
             return $this->render(
                 $isModal ? 'messaging/start_conversation_modal.html.twig' : 'messaging/start_conversation.html.twig',

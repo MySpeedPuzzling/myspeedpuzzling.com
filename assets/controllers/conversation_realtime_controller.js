@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus';
-import mercureManager from '../mercure-manager';
 
 export default class extends Controller {
     static values = {
@@ -13,36 +12,43 @@ export default class extends Controller {
 
     connect() {
         if (this.mercureUrlValue && this.conversationIdValue && this.playerIdValue) {
-            this._unsubscribe = mercureManager.subscribe(
-                this.mercureUrlValue,
-                [
-                    `/messages/${this.conversationIdValue}/user/${this.playerIdValue}`,
-                    `/conversation/${this.conversationIdValue}/read`,
-                    `/conversation/${this.conversationIdValue}/typing`,
-                ],
-                (event) => this.handleEvent(event),
-            );
+            const url = new URL(this.mercureUrlValue);
+            url.searchParams.append('topic', `/conversation/${this.conversationIdValue}/read/${this.playerIdValue}`);
+            url.searchParams.append('topic', `/conversation/${this.conversationIdValue}/typing`);
+
+            this._eventSource = new EventSource(url, { withCredentials: true });
+            this._eventSource.onmessage = (event) => this.handleEvent(event);
+            this._eventSource.onerror = () => {
+                // EventSource will auto-reconnect
+            };
         }
         this._lastTypingSent = 0;
         this._typingTimeout = null;
+
+        // Listen for turbo stream renders to hide typing indicator on new messages
+        this._onStreamRender = (event) => {
+            const target = event.target?.getAttribute?.('target');
+            if (target === 'messages-container') {
+                this.hideTypingIndicator();
+            }
+        };
+        document.addEventListener('turbo:before-stream-render', this._onStreamRender);
     }
 
     disconnect() {
-        if (this._unsubscribe) {
-            this._unsubscribe();
+        if (this._eventSource) {
+            this._eventSource.close();
+            this._eventSource = null;
         }
         if (this._typingTimeout) {
             clearTimeout(this._typingTimeout);
         }
+        if (this._onStreamRender) {
+            document.removeEventListener('turbo:before-stream-render', this._onStreamRender);
+        }
     }
 
-    handleEvent(event, isTurboStream) {
-        if (isTurboStream) {
-            // New message arrived via Turbo Stream (auto-processed by mercure-manager)
-            this.hideTypingIndicator();
-            return;
-        }
-
+    handleEvent(event) {
         let data;
         try {
             data = JSON.parse(event.data);

@@ -13,6 +13,7 @@ return App::config([
                 'jwt' => [
                     'secret' => '%env(MERCURE_JWT_SECRET)%',
                     'publish' => '*',
+                    'subscribe' => '*',
                 ],
             ],
         ],

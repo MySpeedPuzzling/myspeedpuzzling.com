@@ -1506,6 +1506,10 @@ messaging:
     read_status: "Read"
     sent_status: "Sent"
     typing: "typing..."
+    actions:
+        to_this_puzzler: "To this puzzler"
+        to_someone_else: "To someone else"
+    conversation_partners: "- From marketplace conversations -"
 
 rating:
     title: "Ratings"

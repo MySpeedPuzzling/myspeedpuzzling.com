@@ -29,6 +29,7 @@ final class MercureNotifier implements ResetInterface
                 'conversationId' => $conversation->id->toString(),
                 'initiatorId' => $conversation->initiator->id->toString(),
             ], JSON_THROW_ON_ERROR),
+            private: true,
         ));
     }
 
@@ -40,6 +41,7 @@ final class MercureNotifier implements ResetInterface
                 'type' => 'accepted',
                 'conversationId' => $conversation->id->toString(),
             ], JSON_THROW_ON_ERROR),
+            private: true,
         ));
     }
 
@@ -51,6 +53,7 @@ final class MercureNotifier implements ResetInterface
                 'type' => 'ignored',
                 'conversationId' => $conversation->id->toString(),
             ], JSON_THROW_ON_ERROR),
+            private: true,
         ));
     }
 
@@ -80,16 +83,18 @@ final class MercureNotifier implements ResetInterface
         $this->hub->publish(new Update(
             '/messages/' . $conversation->id->toString() . '/user/' . $recipientId,
             $html,
+            private: true,
         ));
     }
 
-    public function notifyMessagesRead(string $conversationId): void
+    public function notifyMessagesRead(string $conversationId, string $senderId): void
     {
         $this->hub->publish(new Update(
-            '/conversation/' . $conversationId . '/read',
+            '/conversation/' . $conversationId . '/read/' . $senderId,
             json_encode([
                 'type' => 'read',
             ], JSON_THROW_ON_ERROR),
+            private: true,
         ));
     }
 
@@ -100,6 +105,7 @@ final class MercureNotifier implements ResetInterface
             json_encode([
                 'type' => 'list_changed',
             ], JSON_THROW_ON_ERROR),
+            private: true,
         ));
     }
 
@@ -112,6 +118,7 @@ final class MercureNotifier implements ResetInterface
         $this->hub->publish(new Update(
             '/unread-count/' . $playerId,
             $html,
+            private: true,
         ));
     }
 

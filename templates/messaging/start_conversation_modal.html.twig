@@ -16,7 +16,8 @@
             <div style="max-height: 350px; overflow-y: auto;" id="messages-container"
                  class="p-3"
                  data-messaging-target="messages"
-                 {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}>
+                 {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}
+                 data-symfony--ux-turbo--mercure-turbo-stream-with-credentials-value="true">
 
                 {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
                     {% for message in messages %}

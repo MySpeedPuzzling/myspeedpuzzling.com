@@ -74,7 +74,9 @@
 
                     <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
                          data-messaging-target="messages"
-                         data-conversation-realtime-target="messages">
+                         data-conversation-realtime-target="messages"
+                         {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}
+                         data-symfony--ux-turbo--mercure-turbo-stream-with-credentials-value="true">
 
                         {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
                             {% for message in messages %}

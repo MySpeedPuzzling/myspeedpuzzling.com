@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\SellSwap;
 
-use SpeedPuzzling\Web\Message\MarkListingAsReserved;
+use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,39 +15,39 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-final class MarkAsReservedController extends AbstractController
+final class MarkAsSoldToPlayerController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PlayerRepository $playerRepository,
         readonly private TranslatorInterface $translator,
     ) {
     }
 
     #[Route(
-        path: '/en/sell-swap/{itemId}/reserve',
-        name: 'sell_swap_mark_reserved',
+        path: '/en/sell-swap/{itemId}/mark-sold-to-player/{buyerPlayerId}',
+        name: 'sellswap_mark_sold_to_player',
         methods: ['POST'],
     )]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
     public function __invoke(
         Request $request,
         string $itemId,
+        string $buyerPlayerId,
     ): Response {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
-        $reservedForPlayerId = $request->request->getString('reservedForPlayerId');
+        $buyer = $this->playerRepository->get($buyerPlayerId);
 
-        $this->messageBus->dispatch(
-            new MarkListingAsReserved(
-                sellSwapListItemId: $itemId,
-                playerId: $loggedPlayer->playerId,
-                reservedForPlayerId: $reservedForPlayerId !== '' ? $reservedForPlayerId : null,
-            ),
-        );
+        $this->messageBus->dispatch(new MarkPuzzleAsSoldOrSwapped(
+            sellSwapListItemId: $itemId,
+            playerId: $loggedPlayer->playerId,
+            buyerInput: '#' . $buyer->code,
+        ));
 
-        $this->addFlash('success', $this->translator->trans('sell_swap_list.reserved.success'));
+        $this->addFlash('success', $this->translator->trans('sell_swap_list.mark_sold.success'));
 
         $referer = $request->headers->get('referer');
         if ($referer !== null && $referer !== '') {

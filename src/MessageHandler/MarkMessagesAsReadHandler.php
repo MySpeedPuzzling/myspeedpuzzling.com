@@ -32,6 +32,22 @@ readonly final class MarkMessagesAsReadHandler
     {
         $conversation = $this->conversationRepository->get($message->conversationId);
 
+        $initiatorId = $conversation->initiator->id->toString();
+        $recipientId = $conversation->recipient->id->toString();
+
+        // Verify the player is a participant
+        if ($message->playerId !== $initiatorId && $message->playerId !== $recipientId) {
+            $this->logger->warning('Non-participant attempted to mark messages as read', [
+                'conversationId' => $message->conversationId,
+                'playerId' => $message->playerId,
+            ]);
+
+            return;
+        }
+
+        // The "other" participant is the one whose messages we're marking as read
+        $otherPlayerId = $message->playerId === $initiatorId ? $recipientId : $initiatorId;
+
         // Bulk update: set readAt = now() on all messages where sender is NOT the current player and readAt IS NULL
         $affectedRows = $this->database->executeStatement(
             'UPDATE chat_message SET read_at = NOW() WHERE conversation_id = :conversationId AND sender_id != :playerId AND read_at IS NULL',
@@ -46,7 +62,7 @@ readonly final class MarkMessagesAsReadHandler
             $this->mercureNotifier->notifyUnreadCountChanged($message->playerId, $unreadCount);
 
             if ($affectedRows > 0) {
-                $this->mercureNotifier->notifyMessagesRead($message->conversationId);
+                $this->mercureNotifier->notifyMessagesRead($message->conversationId, $otherPlayerId);
             }
         } catch (\Throwable $e) {
             $this->logger->error('Failed to send Mercure notification for unread count', [

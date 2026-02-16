@@ -1002,3 +1002,10 @@ header {
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+@include media-breakpoint-down(md) {
+    .small-tabs .nav-link {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.85rem;
+    }
+}

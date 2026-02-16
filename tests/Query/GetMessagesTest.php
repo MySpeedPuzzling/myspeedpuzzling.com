@@ -27,7 +27,7 @@ final class GetMessagesTest extends KernelTestCase
             PlayerFixture::PLAYER_REGULAR,
         );
 
-        self::assertCount(5, $messages);
+        self::assertCount(6, $messages);
 
         // Verify chronological order (ASC)
         for ($i = 0; $i < count($messages) - 1; $i++) {

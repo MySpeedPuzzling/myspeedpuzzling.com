@@ -49,8 +49,9 @@ readonly final class MarkMessagesAsReadHandler
         $otherPlayerId = $message->playerId === $initiatorId ? $recipientId : $initiatorId;
 
         // Bulk update: set readAt = now() on all messages where sender is NOT the current player and readAt IS NULL
+        // Note: (sender_id IS NULL OR sender_id != :playerId) handles system messages which have NULL sender_id
         $affectedRows = $this->database->executeStatement(
-            'UPDATE chat_message SET read_at = NOW() WHERE conversation_id = :conversationId AND sender_id != :playerId AND read_at IS NULL',
+            'UPDATE chat_message SET read_at = NOW() WHERE conversation_id = :conversationId AND (sender_id IS NULL OR sender_id != :playerId) AND read_at IS NULL',
             [
                 'conversationId' => $message->conversationId,
                 'playerId' => $message->playerId,

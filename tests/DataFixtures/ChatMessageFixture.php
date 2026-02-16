@@ -13,6 +13,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Value\SystemMessageType;
 
 final class ChatMessageFixture extends Fixture implements DependentFixtureInterface
 {
@@ -24,6 +25,7 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
     public const string MESSAGE_MARKETPLACE_01 = '018d000f-0000-0000-0000-000000000006';
     public const string MESSAGE_MARKETPLACE_02 = '018d000f-0000-0000-0000-000000000007';
     public const string MESSAGE_OLD_UNREAD = '018d000f-0000-0000-0000-000000000008';
+    public const string MESSAGE_SYSTEM_RESERVED = '018d000f-0000-0000-0000-000000000009';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -113,6 +115,17 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
             sentAt: $now->modify('-3 days'),
         );
         $manager->persist($msgMarketplace02);
+
+        // System message in accepted conversation - unread, to test mark-as-read with NULL sender_id
+        $msgSystemReserved = new ChatMessage(
+            id: Uuid::fromString(self::MESSAGE_SYSTEM_RESERVED),
+            conversation: $acceptedConversation,
+            sender: null,
+            content: '',
+            sentAt: $now->modify('-12 hours'),
+            systemMessageType: SystemMessageType::ListingReserved,
+        );
+        $manager->persist($msgSystemReserved);
 
         // Old unread message from ADMIN to REGULAR (sent 2 days ago, unread) - for notification testing
         $msgOldUnread = $this->createMessage(

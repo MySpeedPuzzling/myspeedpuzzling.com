@@ -55,13 +55,20 @@ SELECT
         ORDER BY cm.sent_at DESC
         LIMIT 1
     ) AS last_message_preview,
-    -- Unread count for this player (exclude system messages)
+    -- Was last message sent by current player?
+    (
+        SELECT cm.sender_id = :playerId
+        FROM chat_message cm
+        WHERE cm.conversation_id = c.id
+        ORDER BY cm.sent_at DESC
+        LIMIT 1
+    ) AS last_message_sent_by_me,
+    -- Unread count for this player
     (
         SELECT COUNT(*)
         FROM chat_message cm
         WHERE cm.conversation_id = c.id
-            AND cm.sender_id IS NOT NULL
-            AND cm.sender_id != :playerId
+            AND (cm.sender_id IS NULL OR cm.sender_id != :playerId)
             AND cm.read_at IS NULL
     ) AS unread_count,
     -- Puzzle context
@@ -77,6 +84,11 @@ LEFT JOIN puzzle p ON c.puzzle_id = p.id
 LEFT JOIN sell_swap_list_item sli ON c.sell_swap_list_item_id = sli.id
 WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
     {$statusFilter}
+    AND NOT EXISTS (
+        SELECT 1 FROM user_block ub
+        WHERE ub.blocker_id = :playerId
+        AND ub.blocked_id = CASE WHEN c.initiator_id = :playerId THEN c.recipient_id ELSE c.initiator_id END
+    )
 ORDER BY c.last_message_at DESC NULLS LAST
 SQL;
 
@@ -96,6 +108,7 @@ SQL;
              *     other_player_avatar: null|string,
              *     other_player_country: null|string,
              *     last_message_preview: null|string,
+             *     last_message_sent_by_me: null|bool,
              *     unread_count: int|string,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
@@ -122,6 +135,7 @@ SQL;
                 puzzleImage: $row['puzzle_image'],
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
+                lastMessageSentByMe: (bool) ($row['last_message_sent_by_me'] ?? false),
             );
         }, $data);
     }
@@ -154,6 +168,11 @@ LEFT JOIN puzzle p ON c.puzzle_id = p.id
 LEFT JOIN sell_swap_list_item sli ON c.sell_swap_list_item_id = sli.id
 WHERE c.recipient_id = :playerId
     AND c.status = :status
+    AND NOT EXISTS (
+        SELECT 1 FROM user_block ub
+        WHERE ub.blocker_id = :playerId
+        AND ub.blocked_id = c.initiator_id
+    )
 ORDER BY c.created_at DESC
 SQL;
 
@@ -229,6 +248,13 @@ SELECT
         ORDER BY cm.sent_at DESC
         LIMIT 1
     ) AS last_message_preview,
+    (
+        SELECT cm.sender_id = :playerId
+        FROM chat_message cm
+        WHERE cm.conversation_id = c.id
+        ORDER BY cm.sent_at DESC
+        LIMIT 1
+    ) AS last_message_sent_by_me,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.image AS puzzle_image,
@@ -240,6 +266,11 @@ LEFT JOIN puzzle p ON c.puzzle_id = p.id
 LEFT JOIN sell_swap_list_item sli ON c.sell_swap_list_item_id = sli.id
 WHERE c.recipient_id = :playerId
     AND c.status = :status
+    AND NOT EXISTS (
+        SELECT 1 FROM user_block ub
+        WHERE ub.blocker_id = :playerId
+        AND ub.blocked_id = c.initiator_id
+    )
 ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
 SQL;
 
@@ -263,6 +294,7 @@ SQL;
              *     other_player_avatar: null|string,
              *     other_player_country: null|string,
              *     last_message_preview: null|string,
+             *     last_message_sent_by_me: null|bool,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
              *     puzzle_image: null|string,
@@ -288,6 +320,7 @@ SQL;
                 puzzleImage: $row['puzzle_image'],
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
+                lastMessageSentByMe: (bool) ($row['last_message_sent_by_me'] ?? false),
             );
         }, $data);
     }
@@ -300,9 +333,13 @@ FROM conversation c
 JOIN chat_message cm ON cm.conversation_id = c.id
 WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
     AND c.status = :status
-    AND cm.sender_id IS NOT NULL
-    AND cm.sender_id != :playerId
+    AND (cm.sender_id IS NULL OR cm.sender_id != :playerId)
     AND cm.read_at IS NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM user_block ub
+        WHERE ub.blocker_id = :playerId
+        AND ub.blocked_id = CASE WHEN c.initiator_id = :playerId THEN c.recipient_id ELSE c.initiator_id END
+    )
 SQL;
 
         $result = $this->database

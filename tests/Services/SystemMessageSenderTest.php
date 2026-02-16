@@ -116,9 +116,10 @@ final class SystemMessageSenderTest extends KernelTestCase
         }
     }
 
-    public function testSystemMessagesDontCountAsUnread(): void
+    public function testSystemMessagesCountAsUnread(): void
     {
-        $unreadBefore = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        // PLAYER_WITH_STRIPE has no unread in CONVERSATION_MARKETPLACE (last message was from them)
+        $unreadBefore = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
 
         $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_01);
 
@@ -127,7 +128,7 @@ final class SystemMessageSenderTest extends KernelTestCase
             SystemMessageType::ListingReserved,
         );
 
-        $unreadAfter = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
-        self::assertSame($unreadBefore, $unreadAfter);
+        $unreadAfter = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertGreaterThan($unreadBefore, $unreadAfter);
     }
 }

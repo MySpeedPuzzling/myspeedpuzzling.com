@@ -87,4 +87,31 @@ final class MarkMessagesAsReadHandlerTest extends KernelTestCase
 
         self::assertGreaterThan(0, $ownMessageCount);
     }
+
+    public function testMarksSystemMessagesAsRead(): void
+    {
+        // Accepted conversation has a system message (MESSAGE_SYSTEM_RESERVED) with sender=null
+        $messagesBefore = $this->getMessages->forConversation(
+            ConversationFixture::CONVERSATION_ACCEPTED,
+            PlayerFixture::PLAYER_REGULAR,
+        );
+
+        $unreadSystemBefore = array_filter($messagesBefore, static fn ($m) => $m->isSystemMessage && $m->readAt === null);
+        self::assertNotEmpty($unreadSystemBefore, 'Should have unread system messages before marking');
+
+        $this->messageBus->dispatch(
+            new MarkMessagesAsRead(
+                conversationId: ConversationFixture::CONVERSATION_ACCEPTED,
+                playerId: PlayerFixture::PLAYER_REGULAR,
+            ),
+        );
+
+        $messagesAfter = $this->getMessages->forConversation(
+            ConversationFixture::CONVERSATION_ACCEPTED,
+            PlayerFixture::PLAYER_REGULAR,
+        );
+
+        $unreadSystemAfter = array_filter($messagesAfter, static fn ($m) => $m->isSystemMessage && $m->readAt === null);
+        self::assertEmpty($unreadSystemAfter, 'System messages should be marked as read');
+    }
 }

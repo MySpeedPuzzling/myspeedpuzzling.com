@@ -3,124 +3,99 @@
 {% block title %}{{ 'messaging.conversation_with'|trans({'%name%': other_player.name ?? other_player.code}) }}{% endblock %}
 
 {% block content %}
-<div class="py-4">
-    <div class="mb-3">
-        <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
-        </a>
-    </div>
+<div class="mb-3">
+    <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
+    </a>
+</div>
 
-    <div class="card shadow-custom" data-controller="messaging conversation-realtime"
-         data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
-         data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
-         data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
-        <div class="card-header d-flex align-items-center justify-content-between" style="background-color: #f5f5f5;">
-            <div class="d-flex align-items-center">
-                {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 40, class: 'me-2'}) }}
-                <div>
-                    <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="fw-bold text-decoration-none">
-                        {{ other_player.name ?? other_player.code }}
-                    </a>
-                </div>
-            </div>
-
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-three-dots"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    {% if conversation.status.value == 'accepted' %}
-                        <li>
-                            <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reportConversationModal">
-                                <i class="bi bi-flag me-1"></i> {{ 'messaging.report_conversation'|trans }}
-                            </button>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                    {% endif %}
-                    <li>
-                        <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
-                            <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'messaging.block_confirm'|trans }}')">
-                                <i class="bi bi-slash-circle me-1"></i> {{ 'messaging.block_user'|trans }}
-                            </button>
-                        </form>
-                    </li>
-                </ul>
+<div class="card shadow-custom" data-controller="messaging conversation-realtime"
+     data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
+     data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
+     data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">
+    <div class="card-header d-flex align-items-center justify-content-between" style="background-color: #f5f5f5;">
+        <div class="d-flex align-items-center">
+            {{ include('messaging/_avatar.html.twig', {avatar: other_player.avatar, size: 40, class: 'me-2'}) }}
+            <div>
+                <a href="{{ path('player_profile', {playerId: other_player.id}) }}" class="fw-bold text-decoration-none">
+                    {{ other_player.name ?? other_player.code }}
+                </a>
             </div>
         </div>
 
-        {% if puzzle_context is not null %}
-            <div class="card-body border-bottom bg-light py-2 px-3">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        {% if puzzle_context.image %}
-                            <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
-                        {% endif %}
-                        <div>
-                            <a href="{{ path('puzzle_detail', {puzzleId: puzzle_context.id}) }}" class="fw-bold text-decoration-none small">
-                                {{ puzzle_context.name }}
-                            </a>
-                            <div class="text-muted" style="font-size: 0.75rem;">
-                                {{ puzzle_context.piecesCount }} {{ 'marketplace.pcs'|trans }}
-                                {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
-                                    &middot;
-                                    {% if puzzle_context.listingType == 'sell' %}
-                                        <span class="badge bg-success" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
-                                    {% elseif puzzle_context.listingType == 'swap' %}
-                                        <span class="badge bg-info" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
-                                    {% elseif puzzle_context.listingType == 'both' %}
-                                        <span class="badge bg-primary" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
-                                    {% elseif puzzle_context.listingType == 'free' %}
-                                        <span class="badge bg-danger" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
-                                    {% endif %}
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% if conversation.status.value == 'accepted' %}
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#reportConversationModal">
+                            <i class="bi bi-flag me-1"></i> {{ 'messaging.report_conversation'|trans }}
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                {% endif %}
+                <li>
+                    <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
+                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'messaging.block_confirm'|trans }}')">
+                            <i class="bi bi-slash-circle me-1"></i> {{ 'messaging.block_user'|trans }}
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    {% if puzzle_context is not null %}
+        <div class="card-body border-bottom bg-light py-2 px-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    {% if puzzle_context.image %}
+                        <img src="{{ puzzle_context.image|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
+                    {% endif %}
+                    <div>
+                        <a href="{{ path('puzzle_detail', {puzzleId: puzzle_context.id}) }}" class="fw-bold text-decoration-none small">
+                            {{ puzzle_context.name }}
+                        </a>
+                        <div class="text-muted" style="font-size: 0.75rem;">
+                            {{ puzzle_context.piecesCount }} {{ 'marketplace.pcs'|trans }}
+                            {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
+                                &middot;
+                                {% if puzzle_context.listingType == 'sell' %}
+                                    <span class="badge bg-success" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
+                                {% elseif puzzle_context.listingType == 'swap' %}
+                                    <span class="badge bg-info" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
+                                {% elseif puzzle_context.listingType == 'both' %}
+                                    <span class="badge bg-primary" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
+                                {% elseif puzzle_context.listingType == 'free' %}
+                                    <span class="badge bg-danger" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
                                 {% endif %}
-                                {% if puzzle_context.price is defined and puzzle_context.price is not null %}
-                                    &middot; {{ puzzle_context.price }}
-                                {% endif %}
-                            </div>
+                            {% endif %}
+                            {% if puzzle_context.price is defined and puzzle_context.price is not null %}
+                                &middot; {{ puzzle_context.price }}
+                            {% endif %}
                         </div>
                     </div>
+                </div>
 
-                    {% if is_seller and puzzle_context.itemId is defined %}
-                        <div class="d-flex gap-1 ms-2 flex-shrink-0">
-                            {% if puzzle_context.reserved %}
-                                <form action="{{ path('sell_swap_remove_reservation', {itemId: puzzle_context.itemId}) }}" method="post">
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
-                                    </button>
-                                </form>
-                            {% else %}
-                                <div class="dropdown">
-                                    <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <form action="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}" method="post">
-                                                <input type="hidden" name="reservedForPlayerId" value="{{ other_player.id }}">
-                                                <button type="submit" class="dropdown-item">
-                                                    <i class="bi bi-person-check me-1"></i> {{ 'messaging.actions.to_this_puzzler'|trans }}
-                                                </button>
-                                            </form>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item"
-                                               href="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}"
-                                               data-turbo="true"
-                                               data-turbo-frame="modal-frame">
-                                                <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            {% endif %}
-
+                {% if is_seller and puzzle_context.itemId is defined %}
+                    <div class="d-flex gap-1 ms-2 flex-shrink-0">
+                        {% if puzzle_context.reserved %}
+                            <form action="{{ path('sell_swap_remove_reservation', {itemId: puzzle_context.itemId}) }}" method="post">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                                </button>
+                            </form>
+                        {% else %}
                             <div class="dropdown">
-                                <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+                                <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li>
-                                        <form action="{{ path('sellswap_mark_sold_to_player', {itemId: puzzle_context.itemId, buyerPlayerId: other_player.id}) }}" method="post">
+                                        <form action="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}" method="post">
+                                            <input type="hidden" name="reservedForPlayerId" value="{{ other_player.id }}">
                                             <button type="submit" class="dropdown-item">
                                                 <i class="bi bi-person-check me-1"></i> {{ 'messaging.actions.to_this_puzzler'|trans }}
                                             </button>
@@ -128,7 +103,7 @@
                                     </li>
                                     <li>
                                         <a class="dropdown-item"
-                                           href="{{ path('sellswap_mark_sold', {itemId: puzzle_context.itemId}) }}"
+                                           href="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}"
                                            data-turbo="true"
                                            data-turbo-frame="modal-frame">
                                             <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
@@ -136,104 +111,127 @@
                                     </li>
                                 </ul>
                             </div>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
-
-        <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
-             data-messaging-target="messages"
-             data-conversation-realtime-target="messages">
-
-            {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
-                {% if messages is not empty %}
-                    {% for message in messages %}
-                        {{ include('messaging/_message_bubble.html.twig') }}
-                    {% endfor %}
-                {% endif %}
-
-                <div class="text-center py-3">
-                    <p class="text-muted mb-2 small">{{ 'messaging.accept_disclaimer'|trans }}</p>
-                    <div class="d-flex justify-content-center gap-2">
-                        <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
-                            </button>
-                        </form>
-                        {% if conversation.status.value == 'pending' %}
-                            <form action="{{ path('ignore_conversation', {conversationId: conversation.id}) }}" method="post">
-                                <button type="submit" class="btn btn-outline-secondary">
-                                    <i class="bi bi-eye-slash me-1"></i> {{ 'messaging.ignore'|trans }}
-                                </button>
-                            </form>
                         {% endif %}
-                    </div>
-                </div>
-            {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
-                {% for message in messages %}
-                    {{ include('messaging/_message_bubble.html.twig') }}
-                {% endfor %}
 
-                <div class="text-center py-3 text-muted">
-                    <i class="bi bi-hourglass-split d-block mb-2"></i>
-                    <p class="small mb-0">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': other_player.name ?? other_player.code}) }}</p>
-                </div>
-            {% elseif conversation.status.value == 'accepted' %}
-                {% if messages is empty %}
-                    <div class="text-center py-4 text-muted">
-                        <p>{{ 'messaging.no_messages_yet'|trans }}</p>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <form action="{{ path('sellswap_mark_sold_to_player', {itemId: puzzle_context.itemId, buyerPlayerId: other_player.id}) }}" method="post">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="bi bi-person-check me-1"></i> {{ 'messaging.actions.to_this_puzzler'|trans }}
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item"
+                                       href="{{ path('sellswap_mark_sold', {itemId: puzzle_context.itemId}) }}"
+                                       data-turbo="true"
+                                       data-turbo-frame="modal-frame">
+                                        <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                {% else %}
-                    {% for message in messages %}
-                        {{ include('messaging/_message_bubble.html.twig') }}
-                    {% endfor %}
                 {% endif %}
-            {% endif %}
-        </div>
-
-        <div class="d-flex align-items-center text-muted small px-3 pb-2 d-none"
-             data-conversation-realtime-target="typingIndicator">
-            <div class="typing-dots me-2"><span></span><span></span><span></span></div>
-            <span>{{ 'messaging.typing'|trans }}</span>
-        </div>
-
-        {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
-            <div class="card-footer" style="background-color: #f5f5f5;">
-                <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
-                    <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-send"></i>
-                    </button>
-                </form>
-            </div>
-        {% endif %}
-    </div>
-
-    {% if conversation.status.value == 'accepted' %}
-        {# Report Conversation Modal #}
-        <div class="modal fade" id="reportConversationModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <form action="{{ path('report_conversation', {conversationId: conversation.id}) }}" method="post" onsubmit="return confirm('{{ 'messaging.report_confirm'|trans }}')">
-                        <div class="modal-header">
-                            <h5 class="modal-title">{{ 'messaging.report_conversation'|trans }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="reportReason" class="form-label">{{ 'messaging.report_reason'|trans }}</label>
-                                <textarea name="reason" id="reportReason" class="form-control" rows="3" maxlength="500" required placeholder="{{ 'messaging.report_reason_placeholder'|trans }}"></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'messaging.cancel'|trans }}</button>
-                            <button type="submit" class="btn btn-danger">{{ 'messaging.report_submit'|trans }}</button>
-                        </div>
-                    </form>
-                </div>
             </div>
         </div>
     {% endif %}
+
+    <div class="card-body" style="max-height: 500px; overflow-y: auto;" id="messages-container"
+         data-messaging-target="messages"
+         data-conversation-realtime-target="messages">
+
+        {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
+            {% if messages is not empty %}
+                {% for message in messages %}
+                    {{ include('messaging/_message_bubble.html.twig') }}
+                {% endfor %}
+            {% endif %}
+
+            <div class="text-center py-3">
+                <p class="text-muted mb-2 small">{{ 'messaging.accept_disclaimer'|trans }}</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
+                        </button>
+                    </form>
+                    {% if conversation.status.value == 'pending' %}
+                        <form action="{{ path('ignore_conversation', {conversationId: conversation.id}) }}" method="post">
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="bi bi-eye-slash me-1"></i> {{ 'messaging.ignore'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
+            {% for message in messages %}
+                {{ include('messaging/_message_bubble.html.twig') }}
+            {% endfor %}
+
+            <div class="text-center py-3 text-muted">
+                <i class="bi bi-hourglass-split d-block mb-2"></i>
+                <p class="small mb-0">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': other_player.name ?? other_player.code}) }}</p>
+            </div>
+        {% elseif conversation.status.value == 'accepted' %}
+            {% if messages is empty %}
+                <div class="text-center py-4 text-muted">
+                    <p>{{ 'messaging.no_messages_yet'|trans }}</p>
+                </div>
+            {% else %}
+                {% for message in messages %}
+                    {{ include('messaging/_message_bubble.html.twig') }}
+                {% endfor %}
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center text-muted small px-3 pb-2 d-none"
+         data-conversation-realtime-target="typingIndicator">
+        <div class="typing-dots me-2"><span></span><span></span><span></span></div>
+        <span>{{ 'messaging.typing'|trans }}</span>
+    </div>
+
+    {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
+        <div class="card-footer" style="background-color: #f5f5f5;">
+            <form action="{{ path('send_message', {conversationId: conversation.id}) }}" method="post" class="d-flex gap-2" data-turbo="true" data-action="turbo:submit-end->messaging#onSubmitEnd">
+                <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput" data-messaging-target="textarea"></textarea>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+        </div>
+    {% endif %}
 </div>
+
+{% if conversation.status.value == 'accepted' %}
+    {# Report Conversation Modal #}
+    <div class="modal fade" id="reportConversationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ path('report_conversation', {conversationId: conversation.id}) }}" method="post" onsubmit="return confirm('{{ 'messaging.report_confirm'|trans }}')">
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ 'messaging.report_conversation'|trans }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="reportReason" class="form-label">{{ 'messaging.report_reason'|trans }}</label>
+                            <textarea name="reason" id="reportReason" class="form-control" rows="3" maxlength="500" required placeholder="{{ 'messaging.report_reason_placeholder'|trans }}"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'messaging.cancel'|trans }}</button>
+                        <button type="submit" class="btn btn-danger">{{ 'messaging.report_submit'|trans }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endif %}
 {% endblock %}

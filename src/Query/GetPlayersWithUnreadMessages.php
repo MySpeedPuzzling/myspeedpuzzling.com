@@ -39,6 +39,11 @@ WHERE p.email IS NOT NULL
   AND cm.sender_id != p.id
   AND cm.read_at IS NULL
   AND cm.sent_at < NOW() - CAST(:hours AS INTERVAL)
+  AND NOT EXISTS (
+      SELECT 1 FROM user_block ub
+      WHERE ub.blocker_id = p.id
+      AND ub.blocked_id = CASE WHEN c.initiator_id = p.id THEN c.recipient_id ELSE c.initiator_id END
+  )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(cm.sent_at) > COALESCE(
     (SELECT MAX(mnl.oldest_unread_message_at)
@@ -95,6 +100,11 @@ WHERE p.email IS NOT NULL
   AND p.email_notifications_enabled = true
   AND c.status = 'pending'
   AND c.created_at < NOW() - CAST(:hours AS INTERVAL)
+  AND NOT EXISTS (
+      SELECT 1 FROM user_block ub
+      WHERE ub.blocker_id = p.id
+      AND ub.blocked_id = c.initiator_id
+  )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(c.created_at) > COALESCE(
     (SELECT MAX(rnl.oldest_pending_request_at)
@@ -152,6 +162,11 @@ WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
   AND c.status = 'accepted'
   AND cm.sender_id != :playerId
   AND cm.read_at IS NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM user_block ub
+      WHERE ub.blocker_id = :playerId
+      AND ub.blocked_id = cm.sender_id
+  )
 GROUP BY sender.name, sender.code, pz.name, c.id
 ORDER BY MIN(cm.sent_at) ASC
 SQL;

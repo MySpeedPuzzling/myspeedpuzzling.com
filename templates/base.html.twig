@@ -319,7 +319,7 @@
 
                         {% if logged_user.profile is not null %}
                             {% set unread_messages_count = get_conversations.countUnreadForPlayer(logged_user.profile.playerId) %}
-                            <div class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-3">
+                            <div class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-3">
                                 {{ include('messaging/_unread_badge.html.twig', {count: unread_messages_count}) }}
                             </div>
                         {% endif %}
@@ -432,7 +432,7 @@
             {% endfor %}
 
             {% block full_content %}
-                <section class="container px-3 pt-2 pt-md-3 pt-lg-4">
+                <section class="container px-3 pt-2 pt-md-3 pt-lg-4 mb-4">
                     {% block content %}{% endblock %}
                 </section>
             {% endblock %}

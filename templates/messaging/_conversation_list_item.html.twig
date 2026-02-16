@@ -11,9 +11,6 @@
                     <span class="fi fi-{{ conversation.otherPlayerCountry }} shadow-custom ms-1" style="font-size: 0.75rem;"></span>
                 {% endif %}
             </span>
-            {% if conversation.lastMessageAt %}
-                <small class="text-muted ms-2 flex-shrink-0">{{ conversation.lastMessageAt|ago }}</small>
-            {% endif %}
         </div>
 
         {% if conversation.puzzleName %}
@@ -35,7 +32,7 @@
         {% endif %}
 
         {% if conversation.lastMessagePreview %}
-            <div class="small text-truncate {{ conversation.unreadCount > 0 ? 'text-body fw-semibold' : 'text-muted' }}">{{ conversation.lastMessagePreview }}</div>
+            <div class="small text-truncate {{ conversation.unreadCount > 0 ? 'text-body fw-semibold' : 'text-muted' }}">{% if conversation.lastMessageSentByMe %}<span class="text-muted fw-normal">{{ 'messaging.you_prefix'|trans }}</span> {% endif %}{{ conversation.lastMessagePreview }}</div>
         {% endif %}
 
         {% if conversation.status.value in ['pending', 'ignored'] %}
@@ -43,9 +40,16 @@
         {% endif %}
     </div>
 
-    {% if conversation.status.value in ['pending', 'ignored'] %}
-        <span class="badge bg-warning text-dark rounded-pill ms-2 flex-shrink-0">{{ 'messaging.pending_status'|trans }}</span>
-    {% elseif conversation.unreadCount > 0 %}
-        <span class="badge bg-primary rounded-pill ms-2 flex-shrink-0">{{ conversation.unreadCount }}</span>
+    {% if conversation.lastMessageAt %}
+        <div class="text-end ms-2">
+            <small class="text-muted d-block">{{ conversation.lastMessageAt|ago }}</small>
+
+            {% if conversation.status.value in ['pending', 'ignored'] %}
+                <span class="badge bg-warning text-dark rounded-pill">{{ 'messaging.pending_status'|trans }}</span>
+            {% elseif conversation.unreadCount > 0 %}
+                <span class="badge bg-primary rounded-pill">{{ conversation.unreadCount }}</span>
+            {% endif %}
+        </div>
     {% endif %}
+
 </a>

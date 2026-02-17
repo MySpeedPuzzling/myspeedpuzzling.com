@@ -937,7 +937,7 @@ collections:
     added_on: "Añadido el %date%"
     already_in_system: "Puzzle ya en tu colección"
     already_in_system_message: "Este puzzle ya está en tu Colección de Puzzles. ¿Quieres organizar tus puzzles en múltiples colecciones? ¡Desbloquea esta función con la membresía!"
-    back_to_library: "Volver a la biblioteca de puzzles"
+    back_to_library: "Biblioteca de puzzles"
     collection_not_found: "Colección no encontrada"
     confirm_remove: "¿Estás seguro de que quieres eliminar este puzzle de la colección?"
     copy_puzzle: "Copiar puzzle a la colección"

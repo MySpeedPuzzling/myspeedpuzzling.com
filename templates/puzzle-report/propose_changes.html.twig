@@ -6,9 +6,9 @@
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="mb-3">
-                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-sm btn-outline-secondary">
-                    <i class="ci-arrow-left me-1"></i> {{ 'puzzle_report.back_to_puzzle'|trans }}
+            <div class="mb-2">
+                <a href="{{ path('puzzle_detail', {puzzleId: puzzle_id}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+                    <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'puzzle_report.back_to_puzzle'|trans }}
                 </a>
             </div>
 

@@ -5,9 +5,11 @@
 {% block content %}
     <h1>{{ 'competition_connection.title'|trans({'%competitionName%': competition.name}) }}</h1>
 
-    <a class="btn btn-sm btn-primary me-3 mt-2 mb-2" href="{{ path('event_detail', {'slug': competition.slug}) }}">
-        <i class="ci-arrow-left"></i> {{ 'competition_connection.back_to_competition'|trans }}
-    </a>
+    <div class="mb-2">
+        <a href="{{ path('event_detail', {'slug': competition.slug}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+            <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'competition_connection.back_to_competition'|trans }}
+        </a>
+    </div>
 
     <p class="my-3">{{ 'competition_connection.description'|trans({'%link%': 'https://www.worldjigsawpuzzle.org/wjpc/2024/participants/individual'})|raw }}</p>
 

@@ -3,11 +3,7 @@
 {% block title %}{{ 'marketplace.how_it_works.title'|trans }}{% endblock %}
 
 {% block content %}
-    <div class="mb-4">
-        <a href="{{ path('marketplace') }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> {{ 'marketplace.how_it_works.back_to_marketplace'|trans }}
-        </a>
-    </div>
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('marketplace'), fallbackTitle: 'marketplace.how_it_works.back_to_marketplace'|trans} %}
 
     <h1 class="h3 mb-4">
         <i class="bi bi-lightbulb me-2"></i>{{ 'marketplace.how_it_works.title'|trans }}

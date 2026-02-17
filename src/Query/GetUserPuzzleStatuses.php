@@ -171,7 +171,7 @@ SQL;
             lentToNames: $lentToNames,
             borrowedFromNames: $borrowedFromNames,
             sellSwapTypes: $sellSwapTypes,
-            sellSwapReserved: $sellSwapReserved,
+            sellSwapReserved: array_keys($sellSwapReserved),
             sellSwapReservedNames: $sellSwapReservedNames,
         );
 

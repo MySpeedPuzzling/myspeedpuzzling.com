@@ -992,7 +992,7 @@ collections:
     no_puzzles: "No puzzles in this collection"
     no_puzzles_description: "This collection is empty. Add some puzzles to get started!"
     added_on: "Added on %date%"
-    back_to_library: "Back to Puzzle Library"
+    back_to_library: "Puzzle Library"
     select_collection_help: "Choose a collection or leave empty to add to your default Puzzle Collection"
     private_collection: "Private Collection"
     private_collection_message: "The collection \"%collection%\" by %player% is private and cannot be viewed."
@@ -1625,7 +1625,7 @@ marketplace:
     how_it_works_button: "How it works?"
     how_it_works:
         title: "How the Marketplace Works"
-        back_to_marketplace: "Back to Marketplace"
+        back_to_marketplace: "Marketplace"
         browse_marketplace: "Browse the Marketplace"
         intro: "The MySpeedPuzzling Marketplace is a place where puzzle lovers connect to sell, swap, or give away puzzles. Here's everything you need to know to get started."
         step1:

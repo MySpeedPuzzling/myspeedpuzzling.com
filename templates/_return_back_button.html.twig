@@ -1,5 +1,5 @@
-{% set returnUrl = app.request.query.get('return') %}
-{% set returnTitle = app.request.query.get('return_title') %}
+{% set returnUrl = app.request.query.get('return') ?? fallbackUrl|default(null) %}
+{% set returnTitle = app.request.query.get('return_title') ?? fallbackTitle|default(null) %}
 {% if returnUrl %}
     <div class="mb-2">
         <a href="{{ returnUrl }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">

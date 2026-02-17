@@ -9,11 +9,7 @@
         <h1 class="h3 mb-0">{{ collectionName }}</h1>
     </div>
 
-    <div class="mb-4">
-        <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_library'|trans }}
-        </a>
-    </div>
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
 
     <div class="text-center py-5">
         <div class="mb-4">

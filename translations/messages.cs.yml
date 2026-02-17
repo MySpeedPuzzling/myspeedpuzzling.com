@@ -988,7 +988,7 @@ collections:
     no_puzzles: "V této kolekci nejsou žádná puzzle"
     no_puzzles_description: "Tato kolekce je prázdná. Přidejte nějaká puzzle pro začátek!"
     added_on: "Přidáno %date%"
-    back_to_library: "Zpět do knihovny puzzlí"
+    back_to_library: "Knihovna puzzlí"
     select_collection_help: "Vyberte kolekci nebo nechte prázdné pro přidání do výchozí Puzzle kolekce"
     private_collection: "Soukromá kolekce"
     private_collection_message: "Kolekce \"%collection%\" hráče %player% je soukromá a nelze ji zobrazit."

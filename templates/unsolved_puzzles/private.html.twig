@@ -12,8 +12,8 @@
         <p class="text-muted mb-4">{{ 'unsolved_puzzles.private_message'|trans({'%collection%': collectionName, '%player%': player.playerName}) }}</p>
 
         <div class="d-flex justify-content-center gap-3">
-            <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-outline-secondary">
-                <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_library'|trans }}
+            <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+                <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'collections.back_to_library'|trans }}
             </a>
 
             <a href="{{ path('ladder') }}" class="btn btn-primary">

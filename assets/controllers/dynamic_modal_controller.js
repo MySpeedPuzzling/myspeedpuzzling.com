@@ -87,6 +87,15 @@ export default class extends Controller {
         if (this.frameTarget.innerHTML.trim() === '') {
             return;
         }
+
+        // Dynamic modal size: check first child for data-modal-size
+        const dialog = this.element.querySelector('.modal-dialog');
+        const sizeEl = this.frameTarget.querySelector('[data-modal-size]');
+        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+        if (sizeEl) {
+            dialog.classList.add(sizeEl.dataset.modalSize);
+        }
+
         this.modal.show();
         document.body.classList.add('modal-open');
     }

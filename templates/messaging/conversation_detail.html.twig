@@ -3,9 +3,9 @@
 {% block title %}{{ 'messaging.conversation_with'|trans({'%name%': other_player.name ?? other_player.code}) }}{% endblock %}
 
 {% block content %}
-<div class="mb-3">
-    <a href="{{ path('conversations_list') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="ci-arrow-left me-1"></i> {{ 'messaging.back_to_messages'|trans }}
+<div class="mb-2">
+    <a href="{{ path('conversations_list') }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+        <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'messaging.back_to_messages'|trans }}
     </a>
 </div>
 

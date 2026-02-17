@@ -997,7 +997,7 @@ collections:
     no_puzzles: "Keine Puzzles in dieser Sammlung"
     no_puzzles_description: "Diese Sammlung ist leer. Fügen Sie einige Puzzles hinzu, um zu beginnen!"
     added_on: "Hinzugefügt am %date%"
-    back_to_library: "Zurück zur Puzzle-Bibliothek"
+    back_to_library: "Puzzle-Bibliothek"
     select_collection_help: "Wählen Sie eine Sammlung oder lassen Sie das Feld leer, um es zu Ihrer Standard-Puzzle-Sammlung hinzuzufügen"
     private_collection: "Private Sammlung"
     private_collection_message: "Die Sammlung \"%collection%\" von %player% ist privat und kann nicht angezeigt werden."

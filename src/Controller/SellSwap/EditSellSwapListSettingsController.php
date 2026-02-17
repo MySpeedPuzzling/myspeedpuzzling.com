@@ -92,7 +92,11 @@ final class EditSellSwapListSettingsController extends AbstractController
             ? $this->generateUrl('puzzle_library', ['playerId' => $playerId])
             : $this->generateUrl('sell_swap_list_detail', ['playerId' => $playerId]);
 
-        return $this->render('sell-swap/edit_settings.html.twig', [
+        $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
+            ? 'sell-swap/_edit_settings_modal.html.twig'
+            : 'sell-swap/edit_settings.html.twig';
+
+        return $this->render($template, [
             'form' => $form,
             'player' => $player,
             'cancelUrl' => $cancelUrl,

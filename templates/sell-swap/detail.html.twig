@@ -6,22 +6,14 @@
 <div data-controller="collection-items collection-filter">
     <twig:PlayerHeader player="{{ player }}" />
 
-    {{ include('_return_back_button.html.twig') }}
-
-    {% if not app.request.query.get('return') %}
-        <div class="mb-3">
-            <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
-                <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_library'|trans }}
-            </a>
-        </div>
-    {% endif %}
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
 
     <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-2 mb-4">
         <div>
             <h1 class="h3 mb-0 d-flex align-items-center">
                 <span><i class="bi bi-shop me-2"></i>{{ 'sell_swap_list.title'|trans }}</span>
                 {% if isOwnProfile %}
-                    <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId}) }}" class="fs-sm fw-normal text-primary ms-2 text-decoration-underline">
+                    <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId, 'return': path('sell_swap_list_detail', {playerId: player.playerId}), 'return_title': 'sell_swap_list.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="fs-sm fw-normal text-primary ms-2 text-decoration-underline">
                         <i class="ci-eye me-1"></i>{{ 'collections.public'|trans }}
                     </a>
                 {% else %}
@@ -50,7 +42,7 @@
                 <a href="{{ path('sold_swapped_history', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi-clock-history me-1"></i> {{ 'sell_swap_list.history.button'|trans }}
                 </a>
-                <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId, 'return': path('sell_swap_list_detail', {playerId: player.playerId}), 'return_title': 'sell_swap_list.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-outline-primary">
                     <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                 </a>
             {% endif %}
@@ -75,7 +67,7 @@
                                 <h6 class="mb-0">{{ 'sell_swap_list.settings_alert.title'|trans }}</h6>
                                 <small class="text-muted">{{ 'sell_swap_list.settings_alert.subtitle'|trans }}</small>
                             </div>
-                            <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId}) }}" class="btn btn-sm btn-primary flex-shrink-0">
+                            <a href="{{ path('edit_sell_swap_list_settings', {playerId: player.playerId, 'return': path('sell_swap_list_detail', {playerId: player.playerId}), 'return_title': 'sell_swap_list.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-primary flex-shrink-0">
                                 <i class="ci-edit me-1"></i>{{ 'sell_swap_list.settings_alert.cta'|trans }}
                             </a>
                         </div>

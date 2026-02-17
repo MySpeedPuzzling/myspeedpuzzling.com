@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Messaging;
 
 use SpeedPuzzling\Web\Query\GetConversations;
+use SpeedPuzzling\Web\Query\GetTransactionRatings;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,7 @@ final class ConversationsListController extends AbstractController
     public function __construct(
         readonly private GetConversations $getConversations,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetTransactionRatings $getTransactionRatings,
     ) {
     }
 
@@ -36,6 +38,7 @@ final class ConversationsListController extends AbstractController
         $conversations = $this->getConversations->forPlayer($loggedPlayer->playerId);
         $pendingRequests = $this->getConversations->pendingRequestsForPlayer($loggedPlayer->playerId);
         $ignoredConversations = $this->getConversations->ignoredForPlayer($loggedPlayer->playerId);
+        $conversationRatings = $this->getTransactionRatings->forConversationList($loggedPlayer->playerId);
 
         return $this->render('messaging/conversations.html.twig', [
             'conversations' => $conversations,
@@ -44,6 +47,7 @@ final class ConversationsListController extends AbstractController
             'ignored_conversations' => $ignoredConversations,
             'ignored_count' => count($ignoredConversations),
             'active_tab' => $tab,
+            'conversation_ratings' => $conversationRatings,
         ]);
     }
 }

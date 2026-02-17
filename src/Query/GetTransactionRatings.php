@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\ConversationRatingInfo;
 use SpeedPuzzling\Web\Results\PendingTransactionRating;
 use SpeedPuzzling\Web\Results\PlayerRatingSummary;
 use SpeedPuzzling\Web\Results\TransactionRatingView;
@@ -221,5 +222,98 @@ SQL;
                 soldAt: new DateTimeImmutable($row['sold_at']),
             );
         }, $data);
+    }
+
+    public function forConversation(string $puzzleId, string $playerAId, string $playerBId, string $viewerId): null|ConversationRatingInfo
+    {
+        $query = <<<SQL
+SELECT
+    ssi.id AS sold_swapped_item_id,
+    ssi.sold_at,
+    tr.stars AS my_rating_stars
+FROM sold_swapped_item ssi
+LEFT JOIN transaction_rating tr ON tr.sold_swapped_item_id = ssi.id AND tr.reviewer_id = :viewerId
+WHERE ssi.puzzle_id = :puzzleId
+    AND ssi.buyer_player_id IS NOT NULL
+    AND (
+        (ssi.seller_id = :playerAId AND ssi.buyer_player_id = :playerBId)
+        OR (ssi.seller_id = :playerBId AND ssi.buyer_player_id = :playerAId)
+    )
+ORDER BY ssi.sold_at DESC
+LIMIT 1
+SQL;
+
+        /** @var false|array{sold_swapped_item_id: string, sold_at: string, my_rating_stars: null|int|string} $row */
+        $row = $this->database
+            ->executeQuery($query, [
+                'puzzleId' => $puzzleId,
+                'playerAId' => $playerAId,
+                'playerBId' => $playerBId,
+                'viewerId' => $viewerId,
+            ])
+            ->fetchAssociative();
+
+        if ($row === false) {
+            return null;
+        }
+
+        $soldAt = new DateTimeImmutable($row['sold_at']);
+        $myRatingStars = $row['my_rating_stars'] !== null ? (int) $row['my_rating_stars'] : null;
+        $canRate = $myRatingStars === null && $soldAt > $this->clock->now()->modify('-30 days');
+
+        return new ConversationRatingInfo(
+            soldSwappedItemId: $row['sold_swapped_item_id'],
+            canRate: $canRate,
+            myRatingStars: $myRatingStars,
+        );
+    }
+
+    /**
+     * @return array<string, ConversationRatingInfo>
+     */
+    public function forConversationList(string $playerId): array
+    {
+        $query = <<<SQL
+SELECT DISTINCT ON (c.id)
+    c.id AS conversation_id,
+    ssi.id AS sold_swapped_item_id,
+    ssi.sold_at,
+    tr.stars AS my_rating_stars
+FROM conversation c
+JOIN sold_swapped_item ssi ON ssi.puzzle_id = c.puzzle_id
+    AND ssi.buyer_player_id IS NOT NULL
+    AND (
+        (ssi.seller_id = c.initiator_id AND ssi.buyer_player_id = c.recipient_id)
+        OR (ssi.seller_id = c.recipient_id AND ssi.buyer_player_id = c.initiator_id)
+    )
+LEFT JOIN transaction_rating tr ON tr.sold_swapped_item_id = ssi.id AND tr.reviewer_id = :playerId
+WHERE c.sell_swap_list_item_id IS NULL
+    AND c.puzzle_id IS NOT NULL
+    AND (c.initiator_id = :playerId OR c.recipient_id = :playerId)
+ORDER BY c.id, ssi.sold_at DESC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchAllAssociative();
+
+        $result = [];
+
+        foreach ($data as $row) {
+            /** @var array{conversation_id: string, sold_swapped_item_id: string, sold_at: string, my_rating_stars: null|int|string} $row */
+            $soldAt = new DateTimeImmutable($row['sold_at']);
+            $myRatingStars = $row['my_rating_stars'] !== null ? (int) $row['my_rating_stars'] : null;
+            $canRate = $myRatingStars === null && $soldAt > $this->clock->now()->modify('-30 days');
+
+            $result[$row['conversation_id']] = new ConversationRatingInfo(
+                soldSwappedItemId: $row['sold_swapped_item_id'],
+                canRate: $canRate,
+                myRatingStars: $myRatingStars,
+            );
+        }
+
+        return $result;
     }
 }

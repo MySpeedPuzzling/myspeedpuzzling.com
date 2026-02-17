@@ -19,6 +19,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\UX\Turbo\TurboBundle;
 
 final class RateTransactionController extends AbstractController
 {
@@ -44,28 +45,44 @@ final class RateTransactionController extends AbstractController
 
         $soldSwappedItem = $this->soldSwappedItemRepository->get($soldSwappedItemId);
 
+        $isTurboFrameRequest = $request->headers->get('Turbo-Frame') === 'modal-frame';
+        $returnUrl = $request->query->getString('return');
+        $fallbackRedirect = $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
+
         if (!$this->getTransactionRatings->canRate($soldSwappedItemId, $loggedPlayer->playerId)) {
             $this->addFlash('warning', $this->translator->trans('rating.cannot_rate'));
 
-            return $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
+            return $returnUrl !== '' ? $this->redirect($returnUrl) : $fallbackRedirect;
         }
 
         // Determine other party for display
         $isSeller = $soldSwappedItem->seller->id->toString() === $loggedPlayer->playerId;
         $otherPlayer = $isSeller ? $soldSwappedItem->buyerPlayer : $soldSwappedItem->seller;
 
+        $templateParams = [
+            'sold_swapped_item' => $soldSwappedItem,
+            'other_player' => $otherPlayer,
+            'is_seller' => $isSeller,
+            'return_url' => $returnUrl,
+        ];
+
         if ($request->isMethod('POST')) {
             $stars = $request->request->getInt('stars');
             $reviewText = trim($request->request->getString('review_text'));
+            $postReturnUrl = $request->request->getString('return');
+
+            if ($postReturnUrl !== '') {
+                $returnUrl = $postReturnUrl;
+            }
 
             if ($stars < 1 || $stars > 5) {
                 $this->addFlash('danger', $this->translator->trans('rating.invalid_stars'));
 
-                return $this->render('rating/rate_transaction.html.twig', [
-                    'sold_swapped_item' => $soldSwappedItem,
-                    'other_player' => $otherPlayer,
-                    'is_seller' => $isSeller,
-                ]);
+                $template = $isTurboFrameRequest
+                    ? 'rating/_rate_transaction_modal.html.twig'
+                    : 'rating/rate_transaction.html.twig';
+
+                return $this->render($template, $templateParams);
             }
 
             try {
@@ -78,7 +95,13 @@ final class RateTransactionController extends AbstractController
 
                 $this->addFlash('success', $this->translator->trans('rating.thank_you'));
 
-                return $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
+                if ($isTurboFrameRequest) {
+                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                    return $this->render('rating/_rate_transaction_success_stream.html.twig');
+                }
+
+                return $returnUrl !== '' ? $this->redirect($returnUrl) : $fallbackRedirect;
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
@@ -90,14 +113,15 @@ final class RateTransactionController extends AbstractController
                     $this->addFlash('danger', $this->translator->trans('rating.not_allowed'));
                 }
 
-                return $this->redirectToRoute('sold_swapped_history', ['playerId' => $loggedPlayer->playerId]);
+                return $returnUrl !== '' ? $this->redirect($returnUrl) : $fallbackRedirect;
             }
         }
 
-        return $this->render('rating/rate_transaction.html.twig', [
-            'sold_swapped_item' => $soldSwappedItem,
-            'other_player' => $otherPlayer,
-            'is_seller' => $isSeller,
-        ]);
+        // GET request
+        if ($isTurboFrameRequest) {
+            return $this->render('rating/_rate_transaction_modal.html.twig', $templateParams);
+        }
+
+        return $this->render('rating/rate_transaction.html.twig', $templateParams);
     }
 }

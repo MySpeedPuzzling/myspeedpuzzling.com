@@ -20,6 +20,7 @@ final class SoldSwappedItemFixture extends Fixture implements DependentFixtureIn
     public const string SOLD_02 = '018d000d-0000-0000-0000-000000000002';
     public const string SOLD_RECENT = '018d000d-0000-0000-0000-000000000003';
     public const string SOLD_EXPIRED = '018d000d-0000-0000-0000-000000000004';
+    public const string SOLD_MARKETPLACE = '018d000d-0000-0000-0000-000000000005';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -89,6 +90,21 @@ final class SoldSwappedItemFixture extends Fixture implements DependentFixtureIn
         );
         $manager->persist($soldExpired);
         $this->addReference(self::SOLD_EXPIRED, $soldExpired);
+
+        // PLAYER_WITH_STRIPE sold PUZZLE_500_01 to PLAYER_WITH_FAVORITES - recent (matches CONVERSATION_MARKETPLACE_COMPLETED)
+        $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
+        $soldMarketplace = new SoldSwappedItem(
+            id: Uuid::fromString(self::SOLD_MARKETPLACE),
+            seller: $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class),
+            puzzle: $puzzle500_01,
+            buyerPlayer: $this->getReference(PlayerFixture::PLAYER_WITH_FAVORITES, Player::class),
+            buyerName: null,
+            listingType: ListingType::Sell,
+            price: 20.00,
+            soldAt: $this->clock->now()->modify('-3 days'),
+        );
+        $manager->persist($soldMarketplace);
+        $this->addReference(self::SOLD_MARKETPLACE, $soldMarketplace);
 
         $manager->flush();
     }

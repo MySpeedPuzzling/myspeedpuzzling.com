@@ -1,0 +1,112 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'marketplace.how_it_works.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <a href="{{ path('marketplace') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> {{ 'marketplace.how_it_works.back_to_marketplace'|trans }}
+        </a>
+    </div>
+
+    <h1 class="h3 mb-4">
+        <i class="bi bi-lightbulb me-2"></i>{{ 'marketplace.how_it_works.title'|trans }}
+    </h1>
+
+    <p class="lead text-muted mb-4">{{ 'marketplace.how_it_works.intro'|trans }}</p>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-size: 1.1rem;">1</span>
+                        <h5 class="mb-0">{{ 'marketplace.how_it_works.step1.title'|trans }}</h5>
+                    </div>
+                    <p class="text-muted mb-0">{{ 'marketplace.how_it_works.step1.description'|trans }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-size: 1.1rem;">2</span>
+                        <h5 class="mb-0">{{ 'marketplace.how_it_works.step2.title'|trans }}</h5>
+                    </div>
+                    <p class="text-muted mb-0">{{ 'marketplace.how_it_works.step2.description'|trans }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-size: 1.1rem;">3</span>
+                        <h5 class="mb-0">{{ 'marketplace.how_it_works.step3.title'|trans }}</h5>
+                    </div>
+                    <p class="text-muted mb-0">{{ 'marketplace.how_it_works.step3.description'|trans }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-size: 1.1rem;">4</span>
+                        <h5 class="mb-0">{{ 'marketplace.how_it_works.step4.title'|trans }}</h5>
+                    </div>
+                    <p class="text-muted mb-0">{{ 'marketplace.how_it_works.step4.description'|trans }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-size: 1.1rem;">5</span>
+                        <h5 class="mb-0">{{ 'marketplace.how_it_works.step5.title'|trans }}</h5>
+                    </div>
+                    <p class="text-muted mb-0">{{ 'marketplace.how_it_works.step5.description'|trans }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="badge bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-size: 1.1rem;">6</span>
+                        <h5 class="mb-0">{{ 'marketplace.how_it_works.step6.title'|trans }}</h5>
+                    </div>
+                    <p class="text-muted mb-0">{{ 'marketplace.how_it_works.step6.description'|trans }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-heart me-2"></i>{{ 'marketplace.how_it_works.community.title'|trans }}</h5>
+            <p class="text-muted mb-0">{{ 'marketplace.how_it_works.community.description'|trans }}</p>
+        </div>
+    </div>
+
+    <div class="card border-warning border mb-4">
+        <div class="card-body">
+            <h5 class="mb-3"><i class="bi bi-shield-check me-2"></i>{{ 'marketplace.how_it_works.safety.title'|trans }}</h5>
+            <p class="text-muted mb-2">{{ 'marketplace.how_it_works.safety.description'|trans }}</p>
+            <p class="text-muted mb-0"><small>{{ 'marketplace.how_it_works.safety.block_info'|trans }}</small></p>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="{{ path('marketplace') }}" class="btn btn-primary">
+            <i class="bi bi-shop me-1"></i> {{ 'marketplace.how_it_works.browse_marketplace'|trans }}
+        </a>
+    </div>
+{% endblock %}

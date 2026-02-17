@@ -8,118 +8,12 @@
             <div class="col-md-8 col-lg-6">
                 <h1 class="h3 mb-4">{{ 'rating.rate_your_transaction'|trans }}</h1>
 
-                <div class="card shadow-sm mb-4">
+                <div class="card shadow-sm">
                     <div class="card-body">
-                        <div class="d-flex align-items-center gap-3">
-                            {% if sold_swapped_item.puzzle.image is not null %}
-                                <img
-                                    src="{{ sold_swapped_item.puzzle.image|puzzle_image('puzzle_small') }}"
-                                    alt="{{ sold_swapped_item.puzzle.name }}"
-                                    class="rounded"
-                                    style="max-height: 80px; max-width: 80px; object-fit: contain;"
-                                >
-                            {% endif %}
-                            <div>
-                                <h6 class="mb-1">{{ sold_swapped_item.puzzle.name }}</h6>
-                                <div class="text-muted small">
-                                    {{ sold_swapped_item.puzzle.piecesCount }} {{ 'marketplace.pcs'|trans }}
-                                    &middot;
-                                    {% if sold_swapped_item.listingType.value == 'sell' %}
-                                        {{ 'rating.sold'|trans }}
-                                    {% elseif sold_swapped_item.listingType.value == 'swap' %}
-                                        {{ 'rating.swapped'|trans }}
-                                    {% else %}
-                                        {{ sold_swapped_item.listingType.value|capitalize }}
-                                    {% endif %}
-                                </div>
-                                <div class="small">
-                                    {% if is_seller %}
-                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'rating.sold_to'|trans : 'rating.swapped_with'|trans }}:
-                                    {% else %}
-                                        {{ sold_swapped_item.listingType.value == 'sell' ? 'rating.bought_from'|trans : 'rating.swapped_with'|trans }}:
-                                    {% endif %}
-                                    <strong>{{ other_player.name ?? ('#' ~ other_player.code) }}</strong>
-                                </div>
-                            </div>
-                        </div>
+                        {{ include('rating/_rate_transaction_form.html.twig', {in_modal: false}) }}
                     </div>
                 </div>
-
-                <form method="post">
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">{{ 'rating.stars_label'|trans }}</label>
-                        <div class="star-rating-input d-flex gap-1 fs-2">
-                            {% for i in 1..5 %}
-                                <div class="form-check d-inline-block p-0">
-                                    <input type="radio" name="stars" value="{{ i }}" id="stars_{{ i }}" class="d-none star-radio" required>
-                                    <label for="stars_{{ i }}" class="star-label" style="cursor: pointer;" title="{{ i }} star{{ i != 1 ? 's' }}">
-                                        <i class="bi bi-star text-warning"></i>
-                                    </label>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="review_text" class="form-label">{{ 'rating.review_label'|trans }}</label>
-                        <textarea name="review_text" id="review_text" class="form-control" rows="4" maxlength="500" placeholder="{{ 'rating.review_placeholder'|trans }}"></textarea>
-                        <div class="form-text">{{ 'rating.optional_note'|trans }}</div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-star-fill me-1"></i> {{ 'rating.submit_button'|trans }}
-                    </button>
-                    <a href="{{ path('sold_swapped_history', {playerId: app.user ? (app.user.userIdentifier) : ''}) }}" class="btn btn-outline-secondary ms-2">{{ 'rating.cancel'|trans }}</a>
-                </form>
             </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const radioInputs = document.querySelectorAll('.star-radio');
-            const labels = document.querySelectorAll('.star-label');
-
-            function updateStars() {
-                let checkedValue = 0;
-                radioInputs.forEach(function(input) {
-                    if (input.checked) checkedValue = parseInt(input.value);
-                });
-
-                labels.forEach(function(label, index) {
-                    const icon = label.querySelector('i');
-                    if (index < checkedValue) {
-                        icon.className = 'bi bi-star-fill text-warning';
-                    } else {
-                        icon.className = 'bi bi-star text-warning';
-                    }
-                });
-            }
-
-            radioInputs.forEach(function(input) {
-                input.addEventListener('change', updateStars);
-            });
-
-            labels.forEach(function(label, index) {
-                label.addEventListener('mouseenter', function() {
-                    labels.forEach(function(l, i) {
-                        const icon = l.querySelector('i');
-                        if (i <= index) {
-                            icon.className = 'bi bi-star-fill text-warning';
-                        } else {
-                            icon.className = 'bi bi-star text-warning';
-                        }
-                    });
-                });
-            });
-
-            const container = document.querySelector('.star-rating-input');
-            if (container) {
-                container.addEventListener('mouseleave', updateStars);
-            }
-
-            // Initialize on load
-            updateStars();
-        });
-    </script>
 {% endblock %}

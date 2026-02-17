@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Messaging;
 
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
 use SpeedPuzzling\Web\Query\GetMessages;
+use SpeedPuzzling\Web\Query\GetTransactionRatings;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\MercureTopicCollector;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -24,6 +25,7 @@ final class ConversationDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
         readonly private MercureTopicCollector $mercureTopicCollector,
+        readonly private GetTransactionRatings $getTransactionRatings,
     ) {
     }
 
@@ -88,6 +90,16 @@ final class ConversationDetailController extends AbstractController
         $isSeller = $conversation->sellSwapListItem !== null
             && $conversation->sellSwapListItem->player->id->toString() === $loggedPlayer->playerId;
 
+        $ratingInfo = null;
+        if ($conversation->puzzle !== null && $conversation->sellSwapListItem === null) {
+            $ratingInfo = $this->getTransactionRatings->forConversation(
+                puzzleId: $conversation->puzzle->id->toString(),
+                playerAId: $conversation->initiator->id->toString(),
+                playerBId: $conversation->recipient->id->toString(),
+                viewerId: $loggedPlayer->playerId,
+            );
+        }
+
         return $this->render('messaging/conversation_detail.html.twig', [
             'conversation' => $conversation,
             'messages' => $messages,
@@ -95,6 +107,7 @@ final class ConversationDetailController extends AbstractController
             'is_recipient' => $isRecipient,
             'puzzle_context' => $puzzleContext,
             'is_seller' => $isSeller,
+            'rating_info' => $ratingInfo,
         ]);
     }
 }

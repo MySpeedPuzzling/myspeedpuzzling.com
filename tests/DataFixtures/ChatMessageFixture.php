@@ -26,6 +26,8 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
     public const string MESSAGE_MARKETPLACE_02 = '018d000f-0000-0000-0000-000000000007';
     public const string MESSAGE_OLD_UNREAD = '018d000f-0000-0000-0000-000000000008';
     public const string MESSAGE_SYSTEM_RESERVED = '018d000f-0000-0000-0000-000000000009';
+    public const string MESSAGE_MARKETPLACE_COMPLETED_01 = '018d000f-0000-0000-0000-000000000010';
+    public const string MESSAGE_SYSTEM_SOLD = '018d000f-0000-0000-0000-000000000011';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -126,6 +128,31 @@ final class ChatMessageFixture extends Fixture implements DependentFixtureInterf
             systemMessageType: SystemMessageType::ListingReserved,
         );
         $manager->persist($msgSystemReserved);
+
+        // Messages in completed marketplace conversation (WITH_FAVORITES ↔ WITH_STRIPE)
+        $completedMarketplaceConversation = $this->getReference(ConversationFixture::CONVERSATION_MARKETPLACE_COMPLETED, Conversation::class);
+
+        $msgMktCompleted01 = $this->createMessage(
+            id: self::MESSAGE_MARKETPLACE_COMPLETED_01,
+            conversation: $completedMarketplaceConversation,
+            sender: $playerWithFavorites,
+            content: 'Hi, I would like to buy this puzzle.',
+            sentAt: $now->modify('-7 days'),
+            readAt: $now->modify('-7 days'),
+        );
+        $manager->persist($msgMktCompleted01);
+
+        // System message: listing sold to WITH_FAVORITES (buyer)
+        $msgSystemSold = new ChatMessage(
+            id: Uuid::fromString(self::MESSAGE_SYSTEM_SOLD),
+            conversation: $completedMarketplaceConversation,
+            sender: null,
+            content: '',
+            sentAt: $now->modify('-3 days'),
+            systemMessageType: SystemMessageType::ListingSold,
+            systemMessageTargetPlayerId: $playerWithFavorites->id,
+        );
+        $manager->persist($msgSystemSold);
 
         // Old unread message from ADMIN to REGULAR (sent 2 days ago, unread) - for notification testing
         $msgOldUnread = $this->createMessage(

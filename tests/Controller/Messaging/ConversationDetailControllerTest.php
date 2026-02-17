@@ -67,4 +67,17 @@ final class ConversationDetailControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
     }
+
+    public function testConversationDetailShowsRateButtonForCompletedTransaction(): void
+    {
+        $browser = self::createClient();
+
+        // WITH_FAVORITES is initiator of CONVERSATION_MARKETPLACE_COMPLETED
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $crawler = $browser->request('GET', '/en/messages/' . ConversationFixture::CONVERSATION_MARKETPLACE_COMPLETED);
+
+        $this->assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $crawler->filter('a:contains("Rate transaction")')->count());
+    }
 }

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\SystemMessageSender;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\SystemMessageType;
@@ -55,6 +56,7 @@ final class SystemMessageSenderTest extends KernelTestCase
         $systemMessage = array_values($systemMessages)[0];
         self::assertSame('messaging.system.listing_reserved', $systemMessage->systemTranslationKey);
         self::assertNull($systemMessage->senderId);
+        self::assertSame(PuzzleFixture::PUZZLE_500_01, $systemMessage->puzzleId);
     }
 
     public function testSystemMessageWithTargetPlayerResolvesDifferentlyPerViewer(): void

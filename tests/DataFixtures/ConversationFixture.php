@@ -21,6 +21,7 @@ final class ConversationFixture extends Fixture implements DependentFixtureInter
     public const string CONVERSATION_PENDING = '018d000e-0000-0000-0000-000000000002';
     public const string CONVERSATION_MARKETPLACE = '018d000e-0000-0000-0000-000000000003';
     public const string CONVERSATION_IGNORED = '018d000e-0000-0000-0000-000000000004';
+    public const string CONVERSATION_MARKETPLACE_COMPLETED = '018d000e-0000-0000-0000-000000000005';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -90,6 +91,20 @@ final class ConversationFixture extends Fixture implements DependentFixtureInter
         );
         $manager->persist($ignoredConversation);
         $this->addReference(self::CONVERSATION_IGNORED, $ignoredConversation);
+
+        // Completed marketplace conversation: WITH_FAVORITES (initiator) → WITH_STRIPE (recipient), puzzle set but listing deleted (sold)
+        $completedMarketplaceConversation = new Conversation(
+            id: Uuid::fromString(self::CONVERSATION_MARKETPLACE_COMPLETED),
+            initiator: $playerWithFavorites,
+            recipient: $playerWithStripe,
+            status: ConversationStatus::Accepted,
+            createdAt: $now->modify('-7 days'),
+            puzzle: $puzzle500_01,
+            respondedAt: $now->modify('-7 days'),
+            lastMessageAt: $now->modify('-3 days'),
+        );
+        $manager->persist($completedMarketplaceConversation);
+        $this->addReference(self::CONVERSATION_MARKETPLACE_COMPLETED, $completedMarketplaceConversation);
 
         $manager->flush();
     }

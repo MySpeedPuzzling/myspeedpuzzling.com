@@ -1524,6 +1524,9 @@ messaging:
         listing_sold_to_this_puzzler: "You sold/swapped this puzzle to this puzzler."
         listing_sold_to_someone_else: "This puzzle was sold/swapped to someone else."
         listing_sold: "This puzzle was sold/swapped to someone else."
+    rate_transaction: "Rate transaction"
+    your_rating: "Your rating"
+    rate_pending: "Rate"
 
 rating:
     title: "Ratings"
@@ -1609,6 +1612,37 @@ marketplace:
     show_all: "Show all"
     load_more: "Load more"
     disclaimer: "MySpeedPuzzling is not a seller and takes no responsibility for transactions. We only connect people. Always be careful and do not send money in advance."
+    how_it_works_button: "How it works?"
+    how_it_works:
+        title: "How the Marketplace Works"
+        back_to_marketplace: "Back to Marketplace"
+        browse_marketplace: "Browse the Marketplace"
+        intro: "The MySpeedPuzzling Marketplace is a place where puzzle lovers connect to sell, swap, or give away puzzles. Here's everything you need to know to get started."
+        step1:
+            title: "List your puzzle"
+            description: "Go to any puzzle in your collection and add it to your sell/swap list. You can do this from the puzzle detail page, your puzzle library, or directly from your collection. Make sure to check \"Show on Marketplace\" so other puzzlers can find it."
+        step2:
+            title: "Set up your profile"
+            description: "Before listing, fill in the countries you ship to, your preferred currency, and optionally your shipping costs and contact information. This helps buyers know what to expect."
+        step3:
+            title: "Chat with fellow puzzlers"
+            description: "Use the built-in chat to communicate directly with interested buyers or sellers right here on the platform. You can also arrange things outside the platform if you prefer - it's up to you."
+        step4:
+            title: "Reserve puzzles"
+            description: "When you agree on a deal, mark the puzzle as reserved. This lets other puzzlers know the item is spoken for while the transaction is being completed."
+        step5:
+            title: "Complete the transaction"
+            description: "Once the puzzle has been sold or swapped, mark it as finished. The puzzle will be automatically removed from your collection and the buyer can add it directly to theirs."
+        step6:
+            title: "Leave a rating"
+            description: "After the transaction is done, don't forget to rate the other puzzler! Ratings help build trust in the community and show others how the experience went."
+        community:
+            title: "Be friendly and have fun!"
+            description: "We are all here because we love puzzles. Puzzles are meant to bring joy, and so is this marketplace. Be kind, be patient, and enjoy connecting with fellow puzzle enthusiasts from around the world."
+        safety:
+            title: "Stay safe"
+            description: "MySpeedPuzzling is not responsible for any transactions. We are here to connect puzzlers, but all deals are between you and the other party. Always be careful with money transactions and never send payment without proper arrangements."
+            block_info: "If you ever encounter any misbehaviour, you can block the conversation. The other person will never know they've been blocked."
 
 moderation:
     report_submitted: "Report submitted successfully. Our team will review it."

@@ -14,15 +14,18 @@
     {% endif %}
 
     {% if isOwnProfile %}
-        <div class="dropdown position-absolute" style="top: 0.25rem; right: 0.25rem; z-index: 3;">
+        <div class="dropdown position-absolute" style="top: 0.25rem; right: 0.25rem;">
             <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
                     type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed">
                 <i class="ci-menu"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item.sellSwapListItemId}) }}">
-                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                    <a class="dropdown-item"
+                       href="{{ path('edit_sell_swap_list_item', {itemId: item.sellSwapListItemId}) }}?context=list"
+                       data-turbo="true"
+                       data-turbo-frame="modal-frame">
+                        <i class="bi bi-pencil me-1"></i> {{ 'edit_my_puzzle_offer'|trans }}
                     </a>
                 </li>
                 {% if item.reserved %}

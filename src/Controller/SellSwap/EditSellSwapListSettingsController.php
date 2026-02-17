@@ -56,7 +56,7 @@ final class EditSellSwapListSettingsController extends AbstractController
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
-        $returnTo = $request->query->getString('returnTo', 'detail');
+        $returnUrl = $request->query->getString('return');
 
         $player = $this->getPlayerProfile->byId($playerId);
 
@@ -81,15 +81,15 @@ final class EditSellSwapListSettingsController extends AbstractController
 
             $this->addFlash('success', $this->translator->trans('sell_swap_list.flash.settings_updated'));
 
-            if ($returnTo === 'library') {
-                return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
+            if ($returnUrl !== '') {
+                return $this->redirect($returnUrl);
             }
 
             return $this->redirectToRoute('sell_swap_list_detail', ['playerId' => $playerId]);
         }
 
-        $cancelUrl = $returnTo === 'library'
-            ? $this->generateUrl('puzzle_library', ['playerId' => $playerId])
+        $cancelUrl = $returnUrl !== ''
+            ? $returnUrl
             : $this->generateUrl('sell_swap_list_detail', ['playerId' => $playerId]);
 
         $template = $request->headers->get('Turbo-Frame') === 'modal-frame'

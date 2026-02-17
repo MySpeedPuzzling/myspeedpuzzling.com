@@ -63,6 +63,14 @@ SELECT
         ORDER BY cm.sent_at DESC
         LIMIT 1
     ) AS last_message_sent_by_me,
+    -- System message type of last message (NULL for regular messages)
+    (
+        SELECT cm.system_message_type
+        FROM chat_message cm
+        WHERE cm.conversation_id = c.id
+        ORDER BY cm.sent_at DESC
+        LIMIT 1
+    ) AS last_message_system_type,
     -- Unread count for this player
     (
         SELECT COUNT(*)
@@ -71,7 +79,7 @@ SELECT
             AND cm.read_at IS NULL
             AND (
                 (cm.sender_id IS NOT NULL AND cm.sender_id != :playerId)
-                OR (cm.sender_id IS NULL AND cm.system_message_target_player_id = :playerId)
+                OR cm.sender_id IS NULL
             )
     ) AS unread_count,
     -- Puzzle context
@@ -112,6 +120,7 @@ SQL;
              *     other_player_country: null|string,
              *     last_message_preview: null|string,
              *     last_message_sent_by_me: null|bool,
+             *     last_message_system_type: null|string,
              *     unread_count: int|string,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
@@ -139,6 +148,7 @@ SQL;
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
                 lastMessageSentByMe: (bool) ($row['last_message_sent_by_me'] ?? false),
+                lastMessageSystemType: $row['last_message_system_type'],
             );
         }, $data);
     }
@@ -258,6 +268,13 @@ SELECT
         ORDER BY cm.sent_at DESC
         LIMIT 1
     ) AS last_message_sent_by_me,
+    (
+        SELECT cm.system_message_type
+        FROM chat_message cm
+        WHERE cm.conversation_id = c.id
+        ORDER BY cm.sent_at DESC
+        LIMIT 1
+    ) AS last_message_system_type,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.image AS puzzle_image,
@@ -298,6 +315,7 @@ SQL;
              *     other_player_country: null|string,
              *     last_message_preview: null|string,
              *     last_message_sent_by_me: null|bool,
+             *     last_message_system_type: null|string,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
              *     puzzle_image: null|string,
@@ -324,6 +342,7 @@ SQL;
                 listingType: $row['listing_type'],
                 listingPrice: $row['listing_price'] !== null ? (float) $row['listing_price'] : null,
                 lastMessageSentByMe: (bool) ($row['last_message_sent_by_me'] ?? false),
+                lastMessageSystemType: $row['last_message_system_type'],
             );
         }, $data);
     }
@@ -339,7 +358,7 @@ WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
     AND cm.read_at IS NULL
     AND (
         (cm.sender_id IS NOT NULL AND cm.sender_id != :playerId)
-        OR (cm.sender_id IS NULL AND cm.system_message_target_player_id = :playerId)
+        OR cm.sender_id IS NULL
     )
     AND NOT EXISTS (
         SELECT 1 FROM user_block ub

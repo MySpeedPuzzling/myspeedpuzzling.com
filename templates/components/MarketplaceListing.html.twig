@@ -114,6 +114,8 @@
                             <option value="newest" {{ this.sort == 'newest' ? 'selected' }}>{{ 'marketplace.sort.newest'|trans }}</option>
                             <option value="price_asc" {{ this.sort == 'price_asc' ? 'selected' }}>{{ 'marketplace.sort.price_asc'|trans }}</option>
                             <option value="price_desc" {{ this.sort == 'price_desc' ? 'selected' }}>{{ 'marketplace.sort.price_desc'|trans }}</option>
+                            <option value="name_asc" {{ this.sort == 'name_asc' ? 'selected' }}>{{ 'marketplace.sort.name_asc'|trans }}</option>
+                            <option value="name_desc" {{ this.sort == 'name_desc' ? 'selected' }}>{{ 'marketplace.sort.name_desc'|trans }}</option>
                             {% if this.search is not empty %}
                                 <option value="relevance" {{ this.sort == 'relevance' ? 'selected' }}>{{ 'marketplace.sort.relevance'|trans }}</option>
                             {% endif %}
@@ -161,10 +163,31 @@
     {% if this.puzzleId is not empty %}
         {% set puzzleName = this.puzzleName %}
         {% if puzzleName is not null %}
-            <div class="alert alert-info d-flex justify-content-between align-items-center mb-3 py-2">
-                <span>{{ 'marketplace.showing_offers_for'|trans }} <strong>{{ puzzleName }}</strong></span>
-                <a href="{{ path('marketplace') }}" class="btn btn-sm btn-outline-info">{{ 'marketplace.show_all'|trans }}</a>
+            <div class="card mb-3 border-primary bg-primary bg-opacity-10 shadow-custom">
+                <div class="card-body py-2 px-2">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            {% set puzzleImage = this.puzzleImage %}
+                            {% if puzzleImage is not null %}
+                                <img src="{{ puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="flex-shrink-0" style="max-width: 55px; max-height: 55px; object-fit: contain;">
+                            {% endif %}
+                            <small>{{ 'marketplace.showing_offers_for'|trans }} <strong>{{ puzzleName }}</strong></small>
+                        </div>
+                        <a href="{{ path('marketplace') }}" class="btn btn-sm btn-primary flex-shrink-0">{{ 'marketplace.show_all'|trans }}</a>
+                    </div>
+                </div>
             </div>
+        {% endif %}
+    {% endif %}
+
+    {# Settings checklist for logged users with active membership #}
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        {% set sellSwapSettings = logged_user.profile.sellSwapListSettings %}
+        {% if sellSwapSettings is null or (not sellSwapSettings.currency and not sellSwapSettings.customCurrency) or sellSwapSettings.shippingCountries is empty %}
+            {% include 'sell-swap/_settings_checklist.html.twig' with {
+                settings: sellSwapSettings,
+                editUrl: path('edit_sell_swap_list_settings', {playerId: logged_user.profile.playerId, 'return': path('marketplace'), 'return_title': 'marketplace.title'|trans}),
+            } only %}
         {% endif %}
     {% endif %}
 
@@ -175,6 +198,18 @@
             {{ resultCount == 1 ? 'marketplace.result'|trans : 'marketplace.results'|trans({'%count%': resultCount}) }}
             <span class="spinner-border spinner-border-sm ms-2 text-primary invisible" role="status" data-loading="removeClass(invisible)"></span>
         </small>
+        {% if logged_user.profile is not null %}
+            {% if logged_user.profile.activeMembership %}
+                {% set marketplaceChainUrl = path('marketplace', {return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}) %}
+                <a href="{{ path('sell_swap_list_detail', {playerId: logged_user.profile.playerId, return: marketplaceChainUrl, return_title: 'marketplace.title'|trans}) }}" class="btn btn-outline-primary btn-xs">
+                    {{ 'marketplace.manage_my_offers'|trans }}
+                </a>
+            {% else %}
+                <button type="button" class="btn btn-outline-primary btn-xs" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                    <i class="ci-locked me-1"></i>{{ 'marketplace.manage_my_offers'|trans }}
+                </button>
+            {% endif %}
+        {% endif %}
     </div>
 
     {# Results grid #}

@@ -9,11 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="mb-2">
-    <a href="{{ path('conversations_list') }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
-        <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'messaging.back_to_messages'|trans }}
-    </a>
-</div>
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('conversations_list'), fallbackTitle: 'messaging.back_to_messages'|trans} %}
 
 {% if conversation is defined and conversation is not null %}
     {# Existing conversation - show chat #}

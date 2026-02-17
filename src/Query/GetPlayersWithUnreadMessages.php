@@ -20,7 +20,7 @@ readonly final class GetPlayersWithUnreadMessages
     /**
      * @return UnreadMessageNotification[]
      */
-    public function findPlayersToNotify(int $hoursThreshold = 12): array
+    public function findPlayersToNotify(int $hoursThreshold): array
     {
         $query = <<<SQL
 SELECT
@@ -43,6 +43,11 @@ WHERE p.email IS NOT NULL
       SELECT 1 FROM user_block ub
       WHERE ub.blocker_id = p.id
       AND ub.blocked_id = CASE WHEN c.initiator_id = p.id THEN c.recipient_id ELSE c.initiator_id END
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM message_notification_log mnl
+      WHERE mnl.player_id = p.id
+      AND mnl.sent_at > NOW() - INTERVAL '24 hours'
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(cm.sent_at) > COALESCE(
@@ -84,7 +89,7 @@ SQL;
     /**
      * @return PendingRequestNotification[]
      */
-    public function findPlayersWithPendingRequestsToNotify(int $hoursThreshold = 12): array
+    public function findPlayersWithPendingRequestsToNotify(int $hoursThreshold): array
     {
         $query = <<<SQL
 SELECT
@@ -104,6 +109,11 @@ WHERE p.email IS NOT NULL
       SELECT 1 FROM user_block ub
       WHERE ub.blocker_id = p.id
       AND ub.blocked_id = c.initiator_id
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM request_notification_log rnl
+      WHERE rnl.player_id = p.id
+      AND rnl.sent_at > NOW() - INTERVAL '24 hours'
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(c.created_at) > COALESCE(

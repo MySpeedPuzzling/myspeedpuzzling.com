@@ -19,8 +19,6 @@ readonly final class EditProfile
         public null|string $bio,
         public null|string $facebook,
         public null|string $instagram,
-        public bool $allowDirectMessages = true,
-        public bool $emailNotificationsEnabled = true,
     ) {
     }
 
@@ -36,8 +34,6 @@ readonly final class EditProfile
             bio: $formData->bio,
             facebook: $formData->facebook,
             instagram: $formData->instagram,
-            allowDirectMessages: $formData->allowDirectMessages,
-            emailNotificationsEnabled: $formData->emailNotificationsEnabled,
         );
     }
 }

@@ -27,6 +27,7 @@ readonly final class ConversationOverview
         public null|string $listingType = null,
         public null|float $listingPrice = null,
         public bool $lastMessageSentByMe = false,
+        public null|string $lastMessageSystemType = null,
     ) {
     }
 }

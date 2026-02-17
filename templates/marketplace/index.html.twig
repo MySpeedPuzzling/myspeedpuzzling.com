@@ -1,9 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'marketplace.title'|trans }}{% endblock %}
+{% block title %}{% if puzzle_overview is not null %}{{ puzzle_overview.manufacturerName }} {{ puzzle_overview.puzzleName }} Marketplace - Buy, Sell, Trade{% else %}Puzzle Marketplace - Buy, Sell, Trade{% endif %}{% endblock %}
 {% block meta_description %}{{ 'marketplace.meta.description'|trans }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig') }}
+
     <div class="d-flex align-items-center mb-3">
         <h1 class="h3 mb-0">
             <i class="bi bi-shop me-2"></i>{{ 'marketplace.title'|trans }}
@@ -25,5 +27,5 @@
         </div>
     {% endif %}
 
-    <twig:MarketplaceListing />
+    <twig:MarketplaceListing :puzzleId="puzzle_id" />
 {% endblock %}

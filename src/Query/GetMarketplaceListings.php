@@ -192,6 +192,12 @@ ORDER BY ssli.price ASC NULLS LAST, ssli.added_at DESC';
         } elseif ($sort === 'price_desc') {
             $query .= '
 ORDER BY ssli.price DESC NULLS LAST, ssli.added_at DESC';
+        } elseif ($sort === 'name_asc') {
+            $query .= '
+ORDER BY p.name ASC, ssli.added_at DESC';
+        } elseif ($sort === 'name_desc') {
+            $query .= '
+ORDER BY p.name DESC, ssli.added_at DESC';
         } else {
             $query .= '
 ORDER BY ssli.added_at DESC';

@@ -49,7 +49,9 @@
                         </div>
                     {% endif %}
 
-                    {% if conversation.lastMessagePreview %}
+                    {% if conversation.lastMessageSystemType %}
+                        <div class="text-muted small mb-2 text-truncate"><i class="bi bi-info-circle me-1"></i>{{ ('messaging.system.preview.' ~ conversation.lastMessageSystemType)|trans }}</div>
+                    {% elseif conversation.lastMessagePreview %}
                         <div class="text-muted small mb-2 text-truncate">{% if conversation.lastMessageSentByMe %}{{ 'messaging.you_prefix'|trans }} {% endif %}{{ conversation.lastMessagePreview }}</div>
                     {% endif %}
 

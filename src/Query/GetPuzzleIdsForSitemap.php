@@ -31,4 +31,24 @@ SQL;
 
         return $puzzleIds;
     }
+
+    /**
+     * @return array<string>
+     */
+    public function withMarketplaceOffers(): array
+    {
+        $query = <<<SQL
+SELECT DISTINCT p.id
+FROM puzzle p
+JOIN sell_swap_list_item ssli ON ssli.puzzle_id = p.id
+WHERE ssli.published_on_marketplace = true
+SQL;
+
+        /** @var array<string> $puzzleIds */
+        $puzzleIds = $this->database
+            ->executeQuery($query)
+            ->fetchFirstColumn();
+
+        return $puzzleIds;
+    }
 }

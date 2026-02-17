@@ -150,7 +150,7 @@ final class SystemMessageSenderTest extends KernelTestCase
         self::assertGreaterThan($unreadBefore, $unreadAfter);
     }
 
-    public function testSystemMessagesDoNotCountAsUnreadForNonTargetPlayer(): void
+    public function testSystemMessagesCountAsUnreadForAllParticipants(): void
     {
         $item = $this->sellSwapListItemRepository->get(SellSwapListItemFixture::SELLSWAP_01);
 
@@ -163,7 +163,7 @@ final class SystemMessageSenderTest extends KernelTestCase
             }
         }
 
-        // Target WITH_FAVORITES — seller (WITH_STRIPE) should NOT get unread increase
+        // Target WITH_FAVORITES — seller (WITH_STRIPE) should also get unread increase
         $this->systemMessageSender->sendToAllConversations(
             $item,
             SystemMessageType::ListingSold,
@@ -178,6 +178,6 @@ final class SystemMessageSenderTest extends KernelTestCase
             }
         }
 
-        self::assertSame($unreadBefore, $unreadAfter);
+        self::assertGreaterThan($unreadBefore, $unreadAfter);
     }
 }

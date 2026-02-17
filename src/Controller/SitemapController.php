@@ -30,7 +30,7 @@ final class SitemapController extends AbstractController
             ],
         ];
 
-        $staticRoutes = ['homepage', 'contact', 'faq', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events'];
+        $staticRoutes = ['homepage', 'contact', 'faq', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events', 'marketplace'];
 
         foreach ($staticRoutes as $route) {
             foreach (self::LOCALES as $locale) {
@@ -44,6 +44,17 @@ final class SitemapController extends AbstractController
         foreach ($puzzleIds as $puzzleId) {
             foreach (self::LOCALES as $locale) {
                 $urls[$puzzleId][$locale] = $this->generateUrl('puzzle_detail', [
+                    '_locale' => $locale,
+                    'puzzleId' => $puzzleId,
+                ], UrlGeneratorInterface::ABSOLUTE_URL);
+            }
+        }
+
+        $marketplacePuzzleIds = $this->getPuzzleIdsForSitemap->withMarketplaceOffers();
+
+        foreach ($marketplacePuzzleIds as $puzzleId) {
+            foreach (self::LOCALES as $locale) {
+                $urls['marketplace_' . $puzzleId][$locale] = $this->generateUrl('marketplace_puzzle', [
                     '_locale' => $locale,
                     'puzzleId' => $puzzleId,
                 ], UrlGeneratorInterface::ABSOLUTE_URL);

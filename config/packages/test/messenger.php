@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Message\SendUnreadNotificationEmail;
+
 return App::config([
     'framework' => [
         'messenger' => [
@@ -11,6 +13,9 @@ return App::config([
                 'async' => [
                     'dsn' => 'in-memory://',
                 ],
+            ],
+            'routing' => [
+                SendUnreadNotificationEmail::class => 'sync',
             ],
         ],
     ],

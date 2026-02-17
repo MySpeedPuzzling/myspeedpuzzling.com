@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ListingType;
@@ -58,7 +59,7 @@ final class MarketplaceListing
     #[LiveProp(writable: true, url: true)]
     public bool $myOffers = false;
 
-    #[LiveProp(writable: true, url: true)]
+    #[LiveProp(writable: true)]
     public string $puzzleId = '';
 
     #[LiveProp(writable: true)]
@@ -179,17 +180,25 @@ final class MarketplaceListing
 
     public function getPuzzleName(): null|string
     {
+        return $this->getFilteredPuzzleOverview()?->puzzleName;
+    }
+
+    public function getPuzzleImage(): null|string
+    {
+        return $this->getFilteredPuzzleOverview()?->puzzleImage;
+    }
+
+    private function getFilteredPuzzleOverview(): null|PuzzleOverview
+    {
         if ($this->puzzleId === '') {
             return null;
         }
 
         try {
-            $puzzle = $this->getPuzzleOverview->byId($this->puzzleId);
+            return $this->getPuzzleOverview->byId($this->puzzleId);
         } catch (PuzzleNotFound) {
             return null;
         }
-
-        return $puzzle->puzzleName;
     }
 
     private function getShipsToCountry(): null|string
@@ -265,7 +274,7 @@ final class MarketplaceListing
         }
 
         if ($this->puzzleId !== '') {
-            $params['puzzleId'] = $this->puzzleId;
+            return $this->urlGenerator->generate('marketplace_puzzle', array_merge(['puzzleId' => $this->puzzleId], $params));
         }
 
         return $this->urlGenerator->generate('marketplace', $params);

@@ -1,0 +1,67 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ 'sell_swap_list.edit_item.title'|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div class="d-flex align-items-center mb-4 p-2 bg-light rounded">
+            {% if item.puzzle.image %}
+                {{ lazy_puzzle_image(
+                    item.puzzle.image,
+                    'puzzle_small',
+                    item.puzzle.name,
+                    1,
+                    60,
+                    'rounded me-3'
+                ) }}
+            {% endif %}
+            <div>
+                <strong>{{ item.puzzle.name }}</strong>
+                <br>
+                <small class="text-muted">{{ 'pieces_count'|trans({'%count%': item.puzzle.piecesCount})|raw }}</small>
+            </div>
+        </div>
+
+        {{ form_start(form, {
+            action: path('edit_sell_swap_list_item', {itemId: item.id.toString()}),
+            attr: {'data-turbo': 'true'}
+        }) }}
+
+        <input type="hidden" name="context" value="{{ context|default('detail') }}">
+        <input type="hidden" name="collection_id" value="{{ collection_id|default('') }}">
+
+        <div data-controller="conditional-field" data-conditional-field-trigger-value="swap,free" data-conditional-field-hide-on-value="true">
+            <div class="mb-3">
+                {{ form_row(form.listingType) }}
+            </div>
+
+            <div class="mb-3" data-conditional-field-target="conditionalElement">
+                {{ form_row(form.price) }}
+            </div>
+        </div>
+
+        <div class="mb-3">
+            {{ form_row(form.condition) }}
+        </div>
+
+        <div class="mb-3">
+            {{ form_row(form.comment) }}
+        </div>
+
+        <div class="mb-4">
+            {{ form_row(form.publishedOnMarketplace) }}
+        </div>
+
+        <div class="d-grid gap-2 d-sm-flex">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+                <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
+            </button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                {{ 'forms.cancel'|trans }}
+            </button>
+        </div>
+
+        {{ form_end(form) }}
+    </div>
+</turbo-frame>

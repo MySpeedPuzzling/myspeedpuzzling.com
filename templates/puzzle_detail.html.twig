@@ -30,7 +30,8 @@
                             puzzle_statuses: puzzle_statuses,
                         }) }}
                         {% if offers_count > 0 %}
-                            <a href="{{ path('marketplace') ~ '?puzzleId=' ~ puzzle.puzzleId }}"
+                            {% set puzzleDetailReturnUrl = path('puzzle_detail', {puzzleId: puzzle.puzzleId, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}) %}
+                            <a href="{{ path('marketplace_puzzle', {puzzleId: puzzle.puzzleId, return: puzzleDetailReturnUrl, return_title: puzzle.puzzleName}) }}"
                                class="mt-1 badge bg-danger badge-shadow rounded-pill text-white link-light">
                                 <i class="bi bi-shop me-1"></i>
                                 {{ 'puzzler_offers.badge'|trans({'%count%': offers_count}) }}
@@ -95,6 +96,7 @@
                             puzzle_id: puzzle.puzzleId,
                             puzzle_statuses: puzzle_statuses,
                             offer_counts: { (puzzle.puzzleId): offers_count },
+                            puzzle_name: puzzle.puzzleName,
                         }) }}
                     {% endif %}
                 </ul>

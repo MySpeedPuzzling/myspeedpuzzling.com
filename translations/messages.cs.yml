@@ -680,12 +680,12 @@ competition_connection:
     description: "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
 
 global_modal:
-    title: "World Jigsaw Puzzle Championship 2025"
+    title: "Marketplace je tady!"
     text: |
-        <p>Účastníš se mistrovství světa ve skládání puzzlí 2025 ve Valladolidu?</p>
-        <p>Propoj si svůj MySpeedPuzzling účet se jménem z WJPC, omrkni svou konkurenci… a rovnou ji svými časy pořádně vystraš!</p>
-    button_cta: "Propojit můj účet"
-    button_dismiss: "Nebudu tam soutěžit!"
+        <p>Chtěli jste někdy koupit, prodat nebo vyměnit puzzle? Teď je to jednodušší než kdy dřív!</p>
+        <p>Prozkoumejte zbrusu nový <strong>Marketplace</strong> — nabídněte své puzzle k prodeji, najděte skvělé nabídky a komunikujte s ostatními puzzlaři přímo na platformě. Budeme rádi za vaši zpětnou vazbu!</p>
+    button_cta: "Prozkoumat Marketplace"
+    button_dismiss: "Možná později"
 
 added_time_recap:
     title: "Skvělý čas, jen tak dál!"
@@ -1234,13 +1234,12 @@ sell_swap_list:
         comment_placeholder: "Jakékoli další informace o tomto puzzle..."
     settings:
         title: "Nastavení seznamu k prodeji/výměně"
-        info: "Nakonfigurujte nastavení svého seznamu k prodeji/výměně. Tyto informace budou zobrazeny potenciálním kupcům."
         description: "Popis"
         description_help: "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
         description_placeholder: "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
         contact_info: "Kontaktní informace"
-        contact_info_help: "Jak vás mají kupci kontaktovat?"
-        contact_info_placeholder: "Jak vás mají kupci kontaktovat?"
+        contact_info_help: "Pokud chcete být kontaktováni mimo platformu"
+        contact_info_placeholder: "např. email, telefon, Instagram..."
         contact_info_warning: "Vaše kontaktní informace budou veřejně viditelné. Sdílejte pouze to, s čím jste spokojeni."
         shipping_info: "Informace o doručení"
         shipping_info_help: "Popište vaše možnosti doručení a ceny..."

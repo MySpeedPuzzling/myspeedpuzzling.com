@@ -4,7 +4,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
     </div>
     <div class="modal-body">
-        {{ form_start(form, {attr: {'data-turbo-frame': '_top'}}) }}
+        {{ form_start(form, {
+            action: path('edit_collection', {collectionId: collection.collectionId}),
+            attr: {'data-turbo': 'false'}
+        }) }}
 
         <div class="mb-3">
             {{ form_row(form.name) }}

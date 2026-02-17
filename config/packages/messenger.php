@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Liip\ImagineBundle\Message\WarmupCache;
+use SpeedPuzzling\Web\Message\SendUnreadNotificationEmail;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
 return App::config([
@@ -33,6 +34,7 @@ return App::config([
             'routing' => [
                 WarmupCache::class => 'async',
                 SendEmailMessage::class => 'async',
+                SendUnreadNotificationEmail::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

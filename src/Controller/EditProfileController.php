@@ -8,11 +8,14 @@ use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\NonUniquePlayerCode;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
+use SpeedPuzzling\Web\FormData\MessagingSettingsFormData;
 use SpeedPuzzling\Web\FormData\PlayerCodeFormData;
 use SpeedPuzzling\Web\FormData\PlayerVisibilityFormData;
 use SpeedPuzzling\Web\FormType\EditProfileFormType;
+use SpeedPuzzling\Web\FormType\MessagingSettingsFormType;
 use SpeedPuzzling\Web\FormType\PlayerCodeFormType;
 use SpeedPuzzling\Web\FormType\PlayerVisibilityFormType;
+use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
@@ -132,11 +135,31 @@ final class EditProfileController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $messagingSettingsFormData = MessagingSettingsFormData::fromPlayerProfile($player);
+
+        $messagingSettingsForm = $this->createForm(MessagingSettingsFormType::class, $messagingSettingsFormData);
+        $messagingSettingsForm->handleRequest($request);
+
+        if ($messagingSettingsForm->isSubmitted() && $messagingSettingsForm->isValid()) {
+            $this->messageBus->dispatch(
+                new EditMessagingSettings(
+                    $player->playerId,
+                    $messagingSettingsFormData->allowDirectMessages,
+                    $messagingSettingsFormData->emailNotificationsEnabled,
+                )
+            );
+
+            $this->addFlash('success', $this->translator->trans('flashes.profile_saved'));
+
+            return $this->redirectToRoute('my_profile');
+        }
+
         return $this->render('edit-profile.html.twig', [
             'player' => $player,
             'edit_profile_form' => $editProfileForm,
             'edit_code_form' => $editCodeForm,
             'edit_visibility_form' => $editVisibilityForm,
+            'messaging_settings_form' => $messagingSettingsForm,
         ]);
     }
 }

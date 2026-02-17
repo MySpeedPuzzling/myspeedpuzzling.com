@@ -69,12 +69,9 @@ final class EditSellSwapListSettingsFormType extends AbstractType
             'help' => 'sell_swap_list.settings.shipping_info_help',
         ]);
 
-        $builder->add('contactInfo', TextareaType::class, [
+        $builder->add('contactInfo', TextType::class, [
             'label' => 'sell_swap_list.settings.contact_info',
             'required' => false,
-            'attr' => [
-                'rows' => 3,
-            ],
             'help' => 'sell_swap_list.settings.contact_info_help',
         ]);
 

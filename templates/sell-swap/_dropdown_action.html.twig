@@ -6,8 +6,11 @@
         {% set collection_id = currentCollectionId|default('') %}
         {% set item_id = puzzle_statuses.sellSwapItemIds[puzzle_id] %}
         <li>
-            <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item_id}) }}">
-                <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+            <a class="dropdown-item"
+               href="{{ path('edit_sell_swap_list_item', {itemId: item_id}) }}?context={{ context }}{% if currentCollectionId is defined and currentCollectionId %}&collection_id={{ currentCollectionId }}{% endif %}"
+               data-turbo="true"
+               data-turbo-frame="modal-frame">
+                <i class="bi bi-pencil me-1"></i> {{ 'edit_my_puzzle_offer'|trans }}
             </a>
         </li>
         {% if puzzle_id in puzzle_statuses.sellSwapReserved %}

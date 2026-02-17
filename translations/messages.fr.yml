@@ -685,12 +685,12 @@ competition_connection:
     description: "Connectez votre compte de compétition avec le profil MySpeedPuzzling et découvrez votre position contre les autres participants. Pour rendre les statistiques pertinentes, nous ne prenons que les puzzles de 500 pièces des 3 derniers mois dans les statistiques. Si vous avez résolu le même puzzle plusieurs fois, nous ne prenons que le plus rapide !"
 
 global_modal:
-    title: "World Jigsaw Puzzle Championship 2025"
+    title: "Le Marketplace est arrivé !"
     text: |
-        <p>Participez-vous au Championnat du Monde de Puzzle 2025 à Valladolid ?</p>
-        <p>Liez votre compte MySpeedPuzzling avec votre nom du WJPC, vérifiez votre compétition… et effrayez-les avec vos temps !</p>
-    button_cta: "Connecter mon compte"
-    button_dismiss: "Je ne participe pas !"
+        <p>Vous avez toujours voulu acheter, vendre ou échanger un puzzle ? C'est maintenant plus facile que jamais !</p>
+        <p>Découvrez le tout nouveau <strong>Marketplace</strong> — mettez vos puzzles en vente, trouvez de bonnes affaires et discutez directement avec d'autres puzzleurs sur la plateforme. Nous serions ravis d'avoir vos retours !</p>
+    button_cta: "Découvrir le Marketplace"
+    button_dismiss: "Peut-être plus tard"
 
 added_time_recap:
     title: "Excellent temps, continuez !"
@@ -1122,7 +1122,6 @@ sell_swap_list:
         submit: "Enregistrer les modifications"
     settings:
         title: "Paramètres de la liste vente/échange"
-        info: "Configurez les paramètres de votre liste vente/échange. Ces informations seront affichées aux acheteurs potentiels."
         description: "Description"
         description_placeholder: "Informez les acheteurs de vos politiques de vente, méthodes de paiement préférées, etc."
         description_help: "Informez les acheteurs de vos politiques de vente, méthodes de paiement préférées, etc."
@@ -1137,8 +1136,8 @@ sell_swap_list:
         shipping_info_placeholder: "Décrivez vos options et coûts d'expédition..."
         shipping_info_help: "Décrivez vos options et coûts d'expédition..."
         contact_info: "Informations de contact"
-        contact_info_placeholder: "Comment les acheteurs doivent-ils vous contacter ?"
-        contact_info_help: "Comment les acheteurs doivent-ils vous contacter ?"
+        contact_info_placeholder: "ex. email, téléphone, Instagram..."
+        contact_info_help: "Lorsque vous souhaitez être contacté en dehors de la plateforme"
         contact_info_warning: "Vos informations de contact seront publiquement visibles. Ne partagez que ce avec quoi vous êtes à l'aise."
     form:
         listing_type: "Type d'annonce"

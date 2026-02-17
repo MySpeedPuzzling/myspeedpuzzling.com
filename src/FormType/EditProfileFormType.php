@@ -10,7 +10,6 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -110,16 +109,6 @@ final class EditProfileFormType extends AbstractType
                     maxSize: '2m',
                 ),
             ],
-        ]);
-
-        $builder->add('allowDirectMessages', CheckboxType::class, [
-            'label' => 'Allow other users to message me directly',
-            'required' => false,
-        ]);
-
-        $builder->add('emailNotificationsEnabled', CheckboxType::class, [
-            'label' => 'Send me email notifications about unread messages',
-            'required' => false,
         ]);
     }
 

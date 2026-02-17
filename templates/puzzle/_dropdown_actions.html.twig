@@ -46,7 +46,8 @@
 
 {% if puzzle_offer_count is not null and puzzle_offer_count > 0 %}
     <li>
-        <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ path('marketplace') ~ '?puzzleId=' ~ puzzle_id }}">
+        {% set dropdownReturnUrl = path('puzzle_detail', {puzzleId: puzzle_id, return: app.request.query.get('return'), return_title: app.request.query.get('return_title')}) %}
+        <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ path('marketplace_puzzle', {puzzleId: puzzle_id, return: dropdownReturnUrl, return_title: puzzle_name|default('')}) }}">
             <span><i class="bi bi-shop me-1"></i> {{ 'puzzler_offers.offers_link'|trans({'%count%': puzzle_offer_count}) }}</span>
             <span class="badge bg-primary ms-2">{{ 'new_badge'|trans }}</span>
         </a>

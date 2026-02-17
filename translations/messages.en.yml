@@ -94,6 +94,7 @@ ranking_out_of: "of"
 wjpc_participant: "WJPC 2024 participant (%name%)"
 share: "Share"
 edit: "Edit"
+edit_my_puzzle_offer: "Edit my puzzle offer"
 delete: "Delete"
 active_membership: "Active membership"
 new_badge: "New"
@@ -512,6 +513,9 @@ edit_profile:
     title: "Edit profile"
     player_code_change: "Change player code"
     profile_visibility: "Profile visibility"
+    messaging_notifications: "Messaging & Notifications"
+    allow_direct_messages: "Allow other users to message me directly"
+    email_notifications: "Send me email notifications about unread messages"
 
 puzzle_detail:
     meta:
@@ -682,12 +686,12 @@ competition_connection:
     description: "Connect your competition account with MySpeedPuzzling profile and find out how you stand against other participants. To make statistics relevant, we only take 500-piece puzzles from last 3 months into the statistics. If you have solved the same puzzle multiple times, we take only the fastest!"
 
 global_modal:
-    title: "World Jigsaw Puzzle Championship 2025"
+    title: "Marketplace Is Here!"
     text: |
-        <p>Are you competing in the World Jigsaw Puzzle Championship 2025 in Valladolid?</p>
-        <p>Link your MySpeedPuzzling account with your name from WJPC, check out your competition… and scare them off with your times!</p>
-    button_cta: "Connect my account"
-    button_dismiss: "I am not competing!"
+        <p>Ever wanted to buy, sell, or swap a puzzle? Now it's easier than ever!</p>
+        <p>Explore the brand new <strong>Marketplace</strong> — list your puzzles for sale, find great deals, and chat directly with other puzzlers right on the platform. We'd love to hear your feedback!</p>
+    button_cta: "Explore Marketplace"
+    button_dismiss: "Maybe Later"
 
 added_time_recap:
     title: "Great time, keep it up!"
@@ -1156,7 +1160,6 @@ sell_swap_list:
         submit: "Save Changes"
     settings:
         title: "Sell/Swap List Settings"
-        info: "Configure your sell/swap list settings. This information will be displayed to potential buyers."
         description: "Description"
         description_placeholder: "Tell buyers about your listing policies, preferred payment methods, etc."
         description_help: "Tell buyers about your listing policies, preferred payment methods, etc."
@@ -1175,8 +1178,8 @@ sell_swap_list:
         shipping_cost: "Shipping cost info"
         shipping_cost_placeholder: "e.g. Free shipping over 50 EUR, flat rate 5 EUR"
         contact_info: "Contact Information"
-        contact_info_placeholder: "How should buyers contact you?"
-        contact_info_help: "How should buyers contact you?"
+        contact_info_placeholder: "e.g. email, phone, Instagram..."
+        contact_info_help: "When you want to be contacted outside of the platform"
         contact_info_warning: "Your contact information will be publicly visible. Only share what you're comfortable with."
         region:
             central_europe: "Central Europe"
@@ -1244,7 +1247,7 @@ sell_swap_list:
         validation_error: "Please fix the errors and try again."
     reserved: "RESERVED"
     reserved.success: "Listing was marked as reserved."
-    reservation_removed.success: "Reservation was removed."
+    reservation_removed.success: "Puzzle is no longer reserved and is available again."
     mark_reserved:
         button: "Mark as Reserved"
         title: "Mark as Reserved"
@@ -1490,7 +1493,7 @@ messaging:
     no_conversations_yet: "No conversations yet."
     no_pending_requests: "No pending message requests."
     no_ignored_conversations: "No ignored conversations."
-    back_to_messages: "Back to messages"
+    back_to_messages: "Messages"
     interested_in_puzzle: "%name% is interested in your puzzle"
     wants_to_message: "%name% wants to message you"
     pending_request_notice: "This is a message request."
@@ -1528,11 +1531,15 @@ messaging:
         listing_reserved_for_this_puzzler: "This puzzle was reserved for this puzzler."
         listing_reserved_for_someone_else: "This puzzle was reserved for someone else."
         listing_reserved: "This puzzle was reserved."
-        listing_reservation_removed: "The reservation for this puzzle was removed."
+        listing_reservation_removed: "This puzzle is no longer reserved and is available again."
         listing_sold_to_you: "This puzzle was sold/swapped to you."
         listing_sold_to_this_puzzler: "You sold/swapped this puzzle to this puzzler."
         listing_sold_to_someone_else: "This puzzle was sold/swapped to someone else."
         listing_sold: "This puzzle was sold/swapped to someone else."
+        preview:
+            listing_reserved: "Puzzle was reserved"
+            listing_reservation_removed: "Puzzle is available again"
+            listing_sold: "Puzzle was sold/swapped"
     rate_transaction: "Rate transaction"
     your_rating: "Your rating"
     rate_pending: "Rate"
@@ -1592,6 +1599,8 @@ marketplace:
         newest: "Newest"
         price_asc: "Price asc"
         price_desc: "Price desc"
+        name_asc: "Name A-Z"
+        name_desc: "Name Z-A"
         relevance: "Relevance"
     listing_type:
         sell: "Sell"
@@ -1618,6 +1627,7 @@ marketplace:
     search_placeholder: "Puzzle name, EAN..."
     all: "All"
     my_offers: "My offers"
+    manage_my_offers: "Manage my offers"
     showing_offers_for: "Showing offers for"
     show_all: "Show all"
     load_more: "Load more"

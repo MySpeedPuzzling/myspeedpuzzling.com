@@ -6,10 +6,12 @@ namespace SpeedPuzzling\Web\Services;
 
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
+use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Value\SystemMessageType;
 
@@ -19,6 +21,8 @@ readonly final class SystemMessageSender
         private ConversationRepository $conversationRepository,
         private EntityManagerInterface $entityManager,
         private MercureNotifier $mercureNotifier,
+        private GetConversations $getConversations,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -30,6 +34,7 @@ readonly final class SystemMessageSender
         $conversations = $this->conversationRepository->findAllByListItem($sellSwapListItem);
 
         $now = new DateTimeImmutable();
+        $affectedPlayerIds = [];
 
         foreach ($conversations as $conversation) {
             $chatMessage = new ChatMessage(
@@ -46,8 +51,25 @@ readonly final class SystemMessageSender
             $conversation->updateLastMessageAt($now);
 
             $this->mercureNotifier->notifySystemMessage($chatMessage);
+
+            $affectedPlayerIds[] = $conversation->initiator->id->toString();
+            $affectedPlayerIds[] = $conversation->recipient->id->toString();
         }
 
         $this->entityManager->flush();
+
+        try {
+            $affectedPlayerIds = array_unique($affectedPlayerIds);
+
+            foreach ($affectedPlayerIds as $playerId) {
+                $unreadCount = $this->getConversations->countUnreadForPlayer($playerId);
+                $this->mercureNotifier->notifyUnreadCountChanged($playerId, $unreadCount);
+                $this->mercureNotifier->notifyConversationListChanged($playerId);
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('Failed to send Mercure notifications for system message', [
+                'exception' => $e,
+            ]);
+        }
     }
 }

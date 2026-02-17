@@ -563,12 +563,12 @@ compare_players:
     head_to_head: "対戦成績"
 
 global_modal:
-    title: "World Jigsaw Puzzle Championship 2025"
+    title: "マーケットプレイスが登場！"
     text: |
-        <p>バリャドリッドで開催される世界ジグソーパズル選手権2025に参加されますか？</p>
-        <p>MySpeedPuzzlingアカウントをWJPCの名前とリンクして、競争相手をチェックし…あなたのタイムで彼らを驚かせましょう！</p>
-    button_cta: "アカウントを接続"
-    button_dismiss: "参加しません！"
+        <p>パズルを買いたい、売りたい、交換したいと思ったことはありませんか？今まで以上に簡単になりました！</p>
+        <p>新しい<strong>マーケットプレイス</strong>をご覧ください — パズルを出品したり、お得な商品を見つけたり、プラットフォーム上で他のパズラーと直接チャットできます。ぜひご感想をお聞かせください！</p>
+    button_cta: "マーケットプレイスを見る"
+    button_dismiss: "また後で"
 
 puzzlers_comparison:
     meta:
@@ -1181,8 +1181,8 @@ sell_swap_list:
         success: "パズルが売買・交換リストから削除されました。"
     settings:
         contact_info: "連絡先情報"
-        contact_info_help: "購入者はどのように連絡すればよいですか？"
-        contact_info_placeholder: "購入者はどのように連絡すればよいですか？"
+        contact_info_help: "プラットフォーム外で連絡を希望する場合"
+        contact_info_placeholder: "例：メール、電話、Instagram..."
         contact_info_warning: "連絡先情報は公開されます。快適に共有できる情報のみを記入してください。"
         currency: "通貨"
         currency_custom: "カスタム通貨"
@@ -1194,7 +1194,6 @@ sell_swap_list:
         description: "説明"
         description_help: "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
         description_placeholder: "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
-        info: "売買・交換リスト設定を構成します。この情報は潜在的な購入者に表示されます。"
         shipping_info: "配送情報"
         shipping_info_help: "配送オプションと費用について説明してください..."
         shipping_info_placeholder: "配送オプションと費用について説明してください..."

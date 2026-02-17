@@ -8,7 +8,7 @@
             ({{ rating_count }})
         </small>
         {% if player_id is defined %}
-            <a href="{{ path('player_ratings', {playerId: player_id}) }}" class="text-muted text-decoration-underline">
+            <a href="{{ path('player_ratings', {playerId: player_id}) }}" class="text-muted text-decoration-underline" data-turbo="true" data-turbo-frame="modal-frame">
                 <small>{{ 'rating.view_all'|trans }}</small>
             </a>
         {% endif %}

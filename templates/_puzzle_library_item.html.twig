@@ -127,7 +127,7 @@
                         {% elseif page_context == 'sell-swap' %}
                             <div class="mt-1">
                                 {% if item.reserved %}
-                                    <span class="badge bg-warning">{{ 'sell_swap_list.reserved'|trans }}</span>
+                                    <span class="badge bg-dark text-light">{{ 'sell_swap_list.reserved'|trans }}</span>
                                 {% endif %}
 
                                 {% if item.listingType.value == 'swap' %}

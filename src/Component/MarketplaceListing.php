@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -49,7 +50,7 @@ final class MarketplaceListing
     public string $condition = '';
 
     #[LiveProp(writable: true, url: true)]
-    public bool $shipToMyCountry = true;
+    public bool $shipToMyCountry = false;
 
     #[LiveProp(writable: true, url: true)]
     public string $sort = 'newest';
@@ -75,6 +76,7 @@ final class MarketplaceListing
         readonly private GetMarketplaceListings $getMarketplaceListings,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -212,6 +214,61 @@ final class MarketplaceListing
         }
 
         return $profile->playerId;
+    }
+
+    public function getReturnUrl(): string
+    {
+        $params = [];
+
+        if ($this->search !== '') {
+            $params['search'] = $this->search;
+        }
+
+        if ($this->manufacturer !== '') {
+            $params['manufacturer'] = $this->manufacturer;
+        }
+
+        if ($this->piecesMin !== null) {
+            $params['piecesMin'] = $this->piecesMin;
+        }
+
+        if ($this->piecesMax !== null) {
+            $params['piecesMax'] = $this->piecesMax;
+        }
+
+        if ($this->listingType !== '') {
+            $params['listingType'] = $this->listingType;
+        }
+
+        if ($this->priceMin !== null) {
+            $params['priceMin'] = $this->priceMin;
+        }
+
+        if ($this->priceMax !== null) {
+            $params['priceMax'] = $this->priceMax;
+        }
+
+        if ($this->condition !== '') {
+            $params['condition'] = $this->condition;
+        }
+
+        if ($this->shipToMyCountry) {
+            $params['shipToMyCountry'] = '1';
+        }
+
+        if ($this->sort !== 'newest') {
+            $params['sort'] = $this->sort;
+        }
+
+        if ($this->myOffers) {
+            $params['myOffers'] = '1';
+        }
+
+        if ($this->puzzleId !== '') {
+            $params['puzzleId'] = $this->puzzleId;
+        }
+
+        return $this->urlGenerator->generate('marketplace', $params);
     }
 
     private function getListingTypeEnum(): null|ListingType

@@ -40,13 +40,14 @@
         {{ encore_entry_link_tags('app') }}
 
         {% set currentRoute = app.request.attributes.get('_route') %}
-        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all) %}
-        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'en'}) %}
-        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'cs'}) %}
-        {% set routeParamsEs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'es'}) %}
-        {% set routeParamsJa = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'ja'}) %}
-        {% set routeParamsFr = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'fr'}) %}
-        {% set routeParamsDe = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'de'}) %}
+        {% set cleanQuery = app.request.query.all|filter((v, k) => k not in ['return', 'return_url', 'return_title']) %}
+        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery) %}
+        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'en'}) %}
+        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'cs'}) %}
+        {% set routeParamsEs = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'es'}) %}
+        {% set routeParamsJa = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'ja'}) %}
+        {% set routeParamsFr = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'fr'}) %}
+        {% set routeParamsDe = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'de'}) %}
 
         {% if currentRoute %}
             <link rel="alternate" hreflang="cs-CZ" href="{{ url(currentRoute, routeParamsCs) }}">

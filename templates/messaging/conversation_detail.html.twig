@@ -59,9 +59,14 @@
                             {{ puzzle_context.name }}
                         </a>
                         <div class="text-muted" style="font-size: 0.75rem;">
-                            {{ puzzle_context.piecesCount }} {{ 'marketplace.pcs'|trans }}
-                            {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
-                                &middot;
+                            {{ puzzle_context.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if puzzle_context.manufacturerName is defined and puzzle_context.manufacturerName is not null %} &middot; {{ puzzle_context.manufacturerName }}{% endif %}
+                        </div>
+                        {% if puzzle_context.listingType is defined and puzzle_context.listingType is not null %}
+                            <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
+                                {% if puzzle_context.price is defined and puzzle_context.price is not null and puzzle_context.listingType != 'free' and puzzle_context.listingType != 'swap' %}
+                                    <span class="fw-bold text-dark" style="font-size: 0.75rem;">{{ puzzle_context.price }} {{ puzzle_context.currency is defined and puzzle_context.currency is not null ? puzzle_context.currency : '' }}</span>
+                                {% endif %}
+
                                 {% if puzzle_context.listingType == 'sell' %}
                                     <span class="badge bg-success" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
                                 {% elseif puzzle_context.listingType == 'swap' %}
@@ -71,11 +76,12 @@
                                 {% elseif puzzle_context.listingType == 'free' %}
                                     <span class="badge bg-danger" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
                                 {% endif %}
-                            {% endif %}
-                            {% if puzzle_context.price is defined and puzzle_context.price is not null %}
-                                &middot; {{ puzzle_context.price }}
-                            {% endif %}
-                        </div>
+
+                                {% if puzzle_context.condition is defined and puzzle_context.condition is not null %}
+                                    <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ ('marketplace.condition.' ~ puzzle_context.condition)|trans }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 

@@ -4,6 +4,8 @@
 {% block meta_description %}{{ 'puzzle_detail.meta.description'|trans({ '%puzzle%': puzzle.puzzleName, '%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig') }}
+
     <div class="position-relative">
 
         <div class="d-flex">

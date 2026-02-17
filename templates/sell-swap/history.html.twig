@@ -68,10 +68,10 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if item.price %}
+                                    {% if item.price and item.price > 0 %}
                                         {{ item.price }}
                                     {% else %}
-                                        -
+                                        <small class="text-muted"><i class="bi bi-exclamation-circle me-1"></i>{{ 'marketplace.price_not_disclosed'|trans }}</small>
                                     {% endif %}
                                 </td>
                                 <td>

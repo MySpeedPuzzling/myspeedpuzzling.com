@@ -75,11 +75,21 @@ final class ConversationDetailController extends AbstractController
                 'piecesCount' => $conversation->puzzle->piecesCount,
             ];
 
+            if ($conversation->puzzle->manufacturer !== null) {
+                $puzzleContext['manufacturerName'] = $conversation->puzzle->manufacturer->name;
+            }
+
             if ($conversation->sellSwapListItem !== null) {
                 $puzzleContext['listingType'] = $conversation->sellSwapListItem->listingType->value;
                 $puzzleContext['price'] = $conversation->sellSwapListItem->price;
+                $puzzleContext['condition'] = $conversation->sellSwapListItem->condition->value;
                 $puzzleContext['itemId'] = $conversation->sellSwapListItem->id->toString();
                 $puzzleContext['reserved'] = $conversation->sellSwapListItem->reserved;
+
+                $sellerSettings = $conversation->sellSwapListItem->player->sellSwapListSettings;
+                if ($sellerSettings !== null) {
+                    $puzzleContext['currency'] = $sellerSettings->customCurrency ?? $sellerSettings->currency;
+                }
             }
         }
 

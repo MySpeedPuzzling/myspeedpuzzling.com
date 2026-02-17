@@ -189,3 +189,9 @@ $soft-teal: #5bc0de;
 .text-muted a:not(.btn) {
     text-decoration: underline;
 }
+
+// Utility: grayscale filter for images (e.g. reserved marketplace items)
+.grayscale {
+    filter: grayscale(100%);
+    opacity: 0.6;
+}

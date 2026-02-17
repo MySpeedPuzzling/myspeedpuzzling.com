@@ -2,13 +2,13 @@
     {# Filters #}
     <div class="card shadow-sm mb-3">
         <div class="card-body py-2">
-            <div class="d-lg-none mb-2">
+            <div class="d-md-none">
                 <button class="btn btn-outline-primary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#marketplaceFilters" aria-expanded="false">
                     <i class="bi-filter me-1"></i> {{ 'marketplace.filter.filters'|trans }}
                 </button>
             </div>
 
-            <div class="collapse d-lg-block" id="marketplaceFilters">
+            <div class="collapse mt-2 mt-md-0 d-md-block" id="marketplaceFilters">
                 <div class="row g-2 align-items-end">
                     {# Search #}
                     <div class="col-12 col-md-6 col-lg-3">
@@ -186,9 +186,10 @@
         </div>
     {% else %}
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            {% set marketplaceReturnUrl = this.returnUrl %}
             {% for item in items %}
                 <div class="col">
-                    {% include 'marketplace/_listing_card.html.twig' with {item: item} only %}
+                    {% include 'marketplace/_listing_card.html.twig' with {item: item, marketplaceReturnUrl: marketplaceReturnUrl} only %}
                 </div>
             {% endfor %}
         </div>

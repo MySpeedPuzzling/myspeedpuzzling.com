@@ -1,0 +1,130 @@
+<div class="card h-100 shadow position-relative">
+    {% if item.reserved %}
+        <div class="position-absolute start-0 top-0" style="z-index: 2;">
+            <span class="badge bg-dark text-light px-2 py-1 mt-2" style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem; letter-spacing: 0.03em;">{{ 'sell_swap_list.reserved'|trans }}</span>
+        </div>
+    {% endif %}
+
+    {% if isOwnProfile %}
+        <div class="dropdown position-absolute" style="top: 0.25rem; right: 0.25rem; z-index: 3;">
+            <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                    type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed">
+                <i class="ci-menu"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item.sellSwapListItemId}) }}">
+                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                    </a>
+                </li>
+                {% if item.reserved %}
+                    <li>
+                        <form action="{{ path('sell_swap_remove_reservation', {itemId: item.sellSwapListItemId}) }}" method="post">
+                            <button type="submit" class="dropdown-item">
+                                <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                            </button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li>
+                        <a class="dropdown-item text-warning"
+                           href="{{ path('sell_swap_mark_reserved', {itemId: item.sellSwapListItemId}) }}?context=list"
+                           data-turbo="true"
+                           data-turbo-frame="modal-frame">
+                            <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
+                        </a>
+                    </li>
+                {% endif %}
+                <li>
+                    <a class="dropdown-item text-success"
+                       href="{{ path('sellswap_mark_sold', {itemId: item.sellSwapListItemId}) }}?context=list"
+                       data-turbo="true"
+                       data-turbo-frame="modal-frame">
+                        <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+                    </a>
+                </li>
+                <li>
+                    <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}" method="post" data-turbo="true">
+                        <input type="hidden" name="context" value="list">
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="card-body p-2 d-flex flex-column">
+        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId, return: sellSwapReturnUrl|default(null), return_title: sellSwapReturnTitle|default(null)}) }}" class="text-decoration-none">
+            <div class="d-flex gap-2 mb-1">
+                <div class="flex-shrink-0 text-center" style="width: 90px;">
+                    {{ lazy_puzzle_image(
+                        item.image,
+                        'puzzle_small',
+                        item.puzzleName,
+                        999,
+                        90,
+                        'rounded lazy-img-marketplace' ~ (item.reserved ? ' grayscale' : '')
+                    ) }}
+                </div>
+
+                <div class="flex-grow-1 min-width-0">
+                    <h6 class="card-title mb-0 text-dark" style="padding-right: 45px; font-size: 0.8rem; line-height: 125% !important;" title="{{ item.puzzleName }}">
+                        {{ item.puzzleName|length > 55 ? item.puzzleName|slice(0, 52) ~ '...' : item.puzzleName }}
+                    </h6>
+
+                    <div class="fs-xs text-muted">
+                        {{ item.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if item.manufacturerName %} &middot; {{ item.manufacturerName }}{% endif %}
+                    </div>
+
+                    <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                        {% if item.listingType.value != 'free' and item.listingType.value != 'swap' %}
+                            {% if item.price is not null and item.price > 0 %}
+                                <span class="fw-bold text-dark" style="font-size: 0.8rem;">{{ item.price }} {{ settings.customCurrency ?? settings.currency ?? '' }}</span>
+                            {% else %}
+                                <small class="text-muted"><i class="bi bi-exclamation-circle me-1"></i>{{ 'marketplace.price_not_disclosed'|trans }}</small>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if item.listingType.value == 'sell' %}
+                            <span class="badge bg-success" style="font-size: 0.75rem;">{{ 'sell_swap_list.listing_type.sell'|trans }}</span>
+                        {% elseif item.listingType.value == 'swap' %}
+                            <span class="badge bg-info" style="font-size: 0.75rem;">{{ 'sell_swap_list.listing_type.swap'|trans }}</span>
+                        {% elseif item.listingType.value == 'free' %}
+                            <span class="badge bg-danger" style="font-size: 0.75rem;">{{ 'sell_swap_list.listing_type.free'|trans }}</span>
+                        {% else %}
+                            <span class="badge bg-primary" style="font-size: 0.75rem;">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
+                        {% endif %}
+
+                        {% if item.condition.value == 'like_new' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.like_new'|trans }}</span>
+                        {% elseif item.condition.value == 'normal' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.normal'|trans }}</span>
+                        {% elseif item.condition.value == 'not_so_good' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.not_so_good'|trans }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.missing_pieces'|trans }}</span>
+                        {% endif %}
+
+                        {% if item.publishedOnMarketplace is defined and item.publishedOnMarketplace %}
+                            <span class="badge border border-primary text-primary" style="font-size: 0.75rem;">
+                                <i class="bi bi-shop"></i>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        {% if item.comment %}
+            <div class="fs-xs text-muted mb-1">{{ item.comment|length > 80 ? item.comment|slice(0, 77) ~ '...' : item.comment }}</div>
+        {% endif %}
+    </div>
+
+    {% if not isOwnProfile and logged_user.profile is not null %}
+        <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.sellSwapListItemId}) }}" class="btn btn-outline-primary shadow btn-xs position-absolute" style="top: 0.25rem; right: 0.25rem; z-index: 3;" title="{{ 'marketplace.contact_seller'|trans }}" data-turbo="true" data-turbo-frame="modal-frame">
+            <i class="bi bi-envelope"></i>
+        </a>
+    {% endif %}
+</div>

@@ -56,7 +56,7 @@ FROM lent_puzzle lp
 LEFT JOIN player holder ON lp.current_holder_player_id = holder.id
 WHERE lp.owner_player_id = :playerId
 UNION ALL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, id::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, listing_type, reserved, 'sell_swap' as status FROM sell_swap_list_item WHERE player_id = :playerId
+SELECT ssli.puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, ssli.id::text as sell_swap_item_id, NULL::text as holder_name, COALESCE(rp.name, '#' || UPPER(rp.code), '') as owner_name, ssli.listing_type, ssli.reserved, 'sell_swap' as status FROM sell_swap_list_item ssli LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id WHERE ssli.player_id = :playerId
 SQL;
 
         /** @var array<array{puzzle_id: string, lent_puzzle_id: string|null, collection_id: string|null, collection_name: string|null, sell_swap_item_id: string|null, holder_name: string|null, owner_name: string|null, listing_type: string|null, reserved: bool|null, status: string}> $rows */
@@ -84,6 +84,8 @@ SQL;
         $sellSwapTypes = [];
         /** @var array<string, bool> $sellSwapReserved */
         $sellSwapReserved = [];
+        /** @var array<string, string> $sellSwapReservedNames */
+        $sellSwapReservedNames = [];
 
         foreach ($rows as $row) {
             $puzzleId = $row['puzzle_id'];
@@ -133,6 +135,9 @@ SQL;
                     }
                     if ($row['reserved']) {
                         $sellSwapReserved[$puzzleId] = true;
+                        if ($row['owner_name'] !== null && $row['owner_name'] !== '') {
+                            $sellSwapReservedNames[$puzzleId] = $row['owner_name'];
+                        }
                     }
                     break;
             }
@@ -167,6 +172,7 @@ SQL;
             borrowedFromNames: $borrowedFromNames,
             sellSwapTypes: $sellSwapTypes,
             sellSwapReserved: $sellSwapReserved,
+            sellSwapReservedNames: $sellSwapReservedNames,
         );
 
         $this->cache[$playerId] = $result;

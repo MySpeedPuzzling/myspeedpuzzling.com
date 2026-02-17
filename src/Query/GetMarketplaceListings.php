@@ -59,7 +59,9 @@ readonly final class GetMarketplaceListings
     pl.country AS seller_country,
     pl.sell_swap_list_settings,
     pl.rating_count AS seller_rating_count,
-    pl.average_rating AS seller_average_rating';
+    pl.average_rating AS seller_average_rating,
+    ssli.reserved_for_player_id,
+    COALESCE(rp.name, CHR(35) || UPPER(rp.code)) AS reserved_for_player_name';
 
         if ($hasSearch && $sort === 'relevance') {
             $query .= ',
@@ -95,6 +97,7 @@ FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
 JOIN player pl ON ssli.player_id = pl.id
+LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
 WHERE ssli.published_on_marketplace = true';
 
         $params = [];
@@ -227,6 +230,8 @@ LIMIT :limit OFFSET :offset';
              *     sell_swap_list_settings: string|null,
              *     seller_rating_count: int|string,
              *     seller_average_rating: string|null,
+             *     reserved_for_player_id: string|null,
+             *     reserved_for_player_name: string|null,
              * } $row
              */
 
@@ -254,6 +259,8 @@ LIMIT :limit OFFSET :offset';
                 condition: $row['condition'],
                 comment: $row['comment'],
                 reserved: (bool) $row['reserved'],
+                reservedForPlayerId: $row['reserved_for_player_id'],
+                reservedForPlayerName: $row['reserved_for_player_name'],
                 addedAt: $row['added_at'],
                 sellerId: $row['seller_id'],
                 sellerName: $row['seller_name'],

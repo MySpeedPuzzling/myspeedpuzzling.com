@@ -19,6 +19,8 @@ readonly final class MarketplaceListingItem
         public string $condition,
         public null|string $comment,
         public bool $reserved,
+        public null|string $reservedForPlayerId,
+        public null|string $reservedForPlayerName,
         public string $addedAt,
         public string $sellerId,
         public null|string $sellerName,

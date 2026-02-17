@@ -1608,7 +1608,7 @@ marketplace:
     no_results: "No listings found matching your filters."
     reserved: "RESERVED"
     contact_seller: "Contact seller"
-    price_not_disclosed: "Not disclosed"
+    price_not_disclosed: "Price not defined"
     shipping_cost: "Shipping"
     all_types: "All Types"
     all_conditions: "All Conditions"

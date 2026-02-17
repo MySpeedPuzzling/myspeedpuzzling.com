@@ -32,6 +32,8 @@ SELECT
     ssli.comment,
     ssli.added_at,
     ssli.reserved,
+    ssli.reserved_for_player_id,
+    COALESCE(rp.name, '#' || UPPER(rp.code)) as reserved_for_player_name,
     ssli.published_on_marketplace,
     p.id as puzzle_id,
     p.name as puzzle_name,
@@ -44,6 +46,7 @@ SELECT
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
+LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
 WHERE ssli.player_id = :playerId
 ORDER BY ssli.added_at DESC
 SQL;
@@ -61,6 +64,8 @@ SQL;
              *     comment: string|null,
              *     added_at: string,
              *     reserved: bool,
+             *     reserved_for_player_id: string|null,
+             *     reserved_for_player_name: string|null,
              *     published_on_marketplace: bool,
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -89,6 +94,8 @@ SQL;
                 comment: $row['comment'],
                 addedAt: new DateTimeImmutable($row['added_at']),
                 reserved: (bool) $row['reserved'],
+                reservedForPlayerId: $row['reserved_for_player_id'],
+                reservedForPlayerName: $row['reserved_for_player_name'],
                 publishedOnMarketplace: (bool) $row['published_on_marketplace'],
             );
         }, $data);

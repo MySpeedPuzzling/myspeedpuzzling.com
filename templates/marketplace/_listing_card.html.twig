@@ -1,7 +1,15 @@
 <div class="card h-100 shadow position-relative">
     {% if item.reserved %}
         <div class="position-absolute start-0 top-0" style="z-index: 2;">
-            <span class="badge bg-dark text-light px-2 py-1 mt-2" style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem; letter-spacing: 0.03em;">{{ 'marketplace.reserved'|trans }}</span>
+            {% if logged_user.profile is not null and logged_user.profile.playerId is same as item.sellerId and item.reservedForPlayerName is not null %}
+                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}"
+                   class="badge bg-dark text-light px-2 py-1 mt-2 text-decoration-none"
+                   style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem; letter-spacing: 0.03em;"
+                   data-turbo="true"
+                   data-turbo-frame="modal-frame">{{ 'marketplace.reserved'|trans }}<br><i class="bi bi-envelope me-1"></i>{{ item.reservedForPlayerName|length > 10 ? item.reservedForPlayerName|slice(0, 10) ~ '…' : item.reservedForPlayerName }}</a>
+            {% else %}
+                <span class="badge bg-dark text-light px-2 py-1 mt-2" style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem; letter-spacing: 0.03em;">{{ 'marketplace.reserved'|trans }}</span>
+            {% endif %}
         </div>
     {% endif %}
 
@@ -19,16 +27,20 @@
                 </li>
                 {% if item.reserved %}
                     <li>
-                        <form action="{{ path('sell_swap_remove_reservation', {itemId: item.itemId}) }}" method="post">
+                        <form action="{{ path('sell_swap_remove_reservation', {itemId: item.itemId}) }}" method="post" data-turbo="true">
+                            <input type="hidden" name="context" value="marketplace">
                             <button type="submit" class="dropdown-item">
                                 <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                                {% if item.reservedForPlayerName is not null %}
+                                    <small class="text-muted">({{ item.reservedForPlayerName }})</small>
+                                {% endif %}
                             </button>
                         </form>
                     </li>
                 {% else %}
                     <li>
                         <a class="dropdown-item text-warning"
-                           href="{{ path('sell_swap_mark_reserved', {itemId: item.itemId}) }}"
+                           href="{{ path('sell_swap_mark_reserved', {itemId: item.itemId}) }}?context=marketplace"
                            data-turbo="true"
                            data-turbo-frame="modal-frame">
                             <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
@@ -37,7 +49,7 @@
                 {% endif %}
                 <li>
                     <a class="dropdown-item text-success"
-                       href="{{ path('sellswap_mark_sold', {itemId: item.itemId}) }}"
+                       href="{{ path('sellswap_mark_sold', {itemId: item.itemId}) }}?context=marketplace"
                        data-turbo="true"
                        data-turbo-frame="modal-frame">
                         <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
@@ -136,7 +148,7 @@
     </div>
 
     {% if logged_user.profile is not null and logged_user.profile.playerId is not same as item.sellerId %}
-        <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary shadow btn-xs position-absolute" style="top: 0.25rem; right: 0.25rem; z-index: 3;" title="{{ 'marketplace.contact_seller'|trans }}" data-turbo="true" data-turbo-frame="modal-frame">
+        <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary shadow btn-xs position-absolute" style="top: 0.25rem; right: 0.25rem;" title="{{ 'marketplace.contact_seller'|trans }}" data-turbo="true" data-turbo-frame="modal-frame">
             <i class="bi bi-envelope"></i>
         </a>
     {% endif %}

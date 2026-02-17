@@ -7,8 +7,12 @@ namespace SpeedPuzzling\Web\Controller\SellSwap;
 use SpeedPuzzling\Web\FormData\MarkAsReservedFormData;
 use SpeedPuzzling\Web\FormType\MarkAsReservedFormType;
 use SpeedPuzzling\Web\Message\MarkListingAsReserved;
+use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetConversationPartnersForListing;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +33,10 @@ final class MarkAsReservedController extends AbstractController
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private GetConversationPartnersForListing $getConversationPartnersForListing,
+        readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
+        readonly private GetCollectionItems $getCollectionItems,
+        readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -92,9 +100,48 @@ final class MarkAsReservedController extends AbstractController
             if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                 $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
-                return $this->render('sell-swap/_mark_reserved_stream.html.twig', [
-                    'message' => $this->translator->trans('sell_swap_list.reserved.success'),
-                ]);
+                $context = $request->request->getString('context', 'detail');
+                $message = $this->translator->trans('sell_swap_list.reserved.success');
+                $puzzleId = $sellSwapListItem->puzzle->id->toString();
+
+                // For sell-swap list and marketplace pages, use page refresh
+                if ($context === 'list' || $context === 'marketplace') {
+                    return $this->render('sell-swap/_mark_reserved_stream.html.twig', [
+                        'message' => $message,
+                    ]);
+                }
+
+                // For puzzle detail and library pages, use targeted stream replacements
+                $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
+
+                $templateParams = [
+                    'puzzle_id' => $puzzleId,
+                    'puzzle_statuses' => $puzzleStatuses,
+                    'message' => $message,
+                    'context' => $context,
+                ];
+
+                if ($context === 'collection-detail') {
+                    $collectionId = $request->request->getString('collection_id');
+                    $collectionIdForQuery = ($collectionId !== '' && $collectionId !== '__system_collection__') ? $collectionId : null;
+
+                    $collectionItem = $this->getCollectionItems->getByPuzzleIdAndPlayerId(
+                        $puzzleId,
+                        $loggedPlayer->playerId,
+                        $collectionIdForQuery,
+                    );
+
+                    $templateParams['item'] = $collectionItem;
+                    $templateParams['collection_id'] = $collectionId;
+                } elseif ($context === 'unsolved-detail') {
+                    $unsolvedItem = $this->getUnsolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    $templateParams['item'] = $unsolvedItem;
+                } elseif ($context === 'solved-detail') {
+                    $solvedItem = $this->getPlayerSolvedPuzzles->byPuzzleIdAndPlayerId($puzzleId, $loggedPlayer->playerId);
+                    $templateParams['item'] = $solvedItem;
+                }
+
+                return $this->render('sell-swap/_stream.html.twig', $templateParams);
             }
 
             // Non-Turbo request: redirect with flash message
@@ -113,6 +160,7 @@ final class MarkAsReservedController extends AbstractController
             'favorite_players' => $favoritePlayers,
             'conversation_partners' => $conversationPartners,
             'context' => $request->query->getString('context', 'detail'),
+            'collection_id' => $request->query->getString('collection_id', ''),
         ];
 
         // Turbo Frame request - return frame content only

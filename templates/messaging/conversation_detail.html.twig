@@ -88,7 +88,7 @@
                 {% if is_seller and puzzle_context.itemId is defined %}
                     <div class="d-flex gap-1 ms-2 flex-shrink-0">
                         {% if puzzle_context.reserved %}
-                            <form action="{{ path('sell_swap_remove_reservation', {itemId: puzzle_context.itemId}) }}" method="post">
+                            <form action="{{ path('sell_swap_remove_reservation', {itemId: puzzle_context.itemId}) }}" method="post" data-turbo="true">
                                 <button type="submit" class="btn btn-outline-secondary btn-sm">
                                     <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
                                 </button>

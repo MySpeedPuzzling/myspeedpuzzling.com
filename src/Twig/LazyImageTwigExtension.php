@@ -56,12 +56,13 @@ final class LazyImageTwigExtension extends AbstractExtension
         $wrapperClasses = trim(sprintf('lazy-img-wrapper %s %s', $sizeClass, $class));
 
         // Build img classes and onload handler
+        // Use both onload (for fresh loads) and inline complete check (for cached images after Turbo morph)
         if ($isEager) {
             $imgClasses = 'lazy-img loaded';
-            $onload = '';
+            $extraAttrs = '';
         } else {
             $imgClasses = 'lazy-img';
-            $onload = ' onload="this.classList.add(\'loaded\')"';
+            $extraAttrs = ' onload="this.classList.add(\'loaded\')"';
         }
 
         return sprintf(
@@ -71,7 +72,7 @@ final class LazyImageTwigExtension extends AbstractExtension
             htmlspecialchars($alt, ENT_QUOTES, 'UTF-8'),
             $loading,
             $imgClasses,
-            $onload,
+            $extraAttrs,
         );
     }
 

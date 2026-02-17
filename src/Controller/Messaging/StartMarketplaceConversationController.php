@@ -60,10 +60,16 @@ final class StartMarketplaceConversationController extends AbstractController
         $recipient = $this->getPlayerProfile->byId($recipientId);
         $isModal = $request->headers->get('Turbo-Frame') === 'modal-frame';
 
+        // When the seller opens the conversation link, redirect to conversation with the reservee
         if ($recipientId === $loggedPlayer->playerId) {
-            $this->addFlash('warning', $this->translator->trans('messaging.cannot_contact_yourself'));
+            if ($sellSwapListItem->reservedForPlayerId !== null) {
+                $recipientId = $sellSwapListItem->reservedForPlayerId->toString();
+                $recipient = $this->getPlayerProfile->byId($recipientId);
+            } else {
+                $this->addFlash('warning', $this->translator->trans('messaging.cannot_contact_yourself'));
 
-            return $this->redirectToRoute('conversations_list');
+                return $this->redirectToRoute('conversations_list');
+            }
         }
 
         $loggedPlayerEntity = $this->playerRepository->get($loggedPlayer->playerId);

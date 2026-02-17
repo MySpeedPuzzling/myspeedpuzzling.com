@@ -1,7 +1,7 @@
 <div class="list-group-item list-group-item-action d-flex align-items-center py-3 position-relative {{ conversation.unreadCount > 0 ? 'conversation-unread' : '' }}">
     <a href="{{ path('conversation_detail', {conversationId: conversation.conversationId}) }}" class="stretched-link"></a>
 
-    <div class="me-3 flex-shrink-0">
+    <div class="me-2 me-sm-3 flex-shrink-0">
         {{ include('messaging/_avatar.html.twig', {avatar: conversation.otherPlayerAvatar, size: 48}) }}
     </div>
 
@@ -17,8 +17,8 @@
 
         {% if conversation.puzzleName %}
             <div class="d-flex align-items-center gap-1 mt-1">
-                <i class="bi bi-shop text-primary" style="font-size: 0.7rem;" title="{{ 'marketplace.title'|trans }}"></i>
-                <small class="text-muted">{{ conversation.puzzleName|length > 40 ? conversation.puzzleName|slice(0, 37) ~ '...' : conversation.puzzleName }}</small>
+                <i class="bi bi-shop text-primary flex-shrink-0" style="font-size: 0.7rem;" title="{{ 'marketplace.title'|trans }}"></i>
+                <small class="text-muted text-truncate">{{ conversation.puzzleName }}</small>
                 {% if conversation.listingType %}
                     {% if conversation.listingType == 'sell' %}
                         <span class="badge bg-success" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
@@ -45,8 +45,8 @@
     </div>
 
     {% if conversation.lastMessageAt %}
-        <div class="text-end ms-2">
-            <small class="text-muted d-block">{{ conversation.lastMessageAt|ago }}</small>
+        <div class="text-end ms-2 flex-shrink-0">
+            <small class="text-muted d-block" style="font-size: 0.75rem;">{{ conversation.lastMessageAt|ago }}</small>
 
             {% if conversation.status.value in ['pending', 'ignored'] %}
                 <span class="badge bg-warning text-dark rounded-pill">{{ 'messaging.pending_status'|trans }}</span>

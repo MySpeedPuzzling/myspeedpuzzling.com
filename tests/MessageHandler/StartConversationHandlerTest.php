@@ -11,11 +11,13 @@ use SpeedPuzzling\Web\Exceptions\MessagingMuted;
 use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetMessages;
+use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\SellSwapListItemFixture;
 use SpeedPuzzling\Web\Value\ConversationStatus;
+use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -25,6 +27,7 @@ final class StartConversationHandlerTest extends KernelTestCase
     private MessageBusInterface $messageBus;
     private GetConversations $getConversations;
     private GetMessages $getMessages;
+    private GetNotifications $getNotifications;
     private PlayerRepository $playerRepository;
 
     protected function setUp(): void
@@ -34,6 +37,7 @@ final class StartConversationHandlerTest extends KernelTestCase
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->getConversations = $container->get(GetConversations::class);
         $this->getMessages = $container->get(GetMessages::class);
+        $this->getNotifications = $container->get(GetNotifications::class);
         $this->playerRepository = $container->get(PlayerRepository::class);
     }
 
@@ -211,5 +215,58 @@ final class StartConversationHandlerTest extends KernelTestCase
             $previous = $e->getPrevious();
             self::assertInstanceOf(MessagingMuted::class, $previous);
         }
+    }
+
+    public function testStartingConversationCreatesNotificationForRecipient(): void
+    {
+        $this->messageBus->dispatch(
+            new StartConversation(
+                initiatorId: PlayerFixture::PLAYER_ADMIN,
+                recipientId: PlayerFixture::PLAYER_WITH_FAVORITES,
+                initialMessage: 'Hello, nice puzzling profile!',
+            ),
+        );
+
+        $notifications = $this->getNotifications->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 50);
+
+        $found = false;
+        foreach ($notifications as $notification) {
+            if (
+                $notification->notificationType === NotificationType::NewConversationRequest
+                && $notification->conversationInitiatorId === PlayerFixture::PLAYER_ADMIN
+            ) {
+                $found = true;
+                break;
+            }
+        }
+
+        self::assertTrue($found, 'Recipient should have a NewConversationRequest notification');
+    }
+
+    public function testStartingConversationWhenBlockedDoesNotCreateNotification(): void
+    {
+        // PLAYER_REGULAR blocks PLAYER_PRIVATE (from UserBlockFixture)
+        $this->messageBus->dispatch(
+            new StartConversation(
+                initiatorId: PlayerFixture::PLAYER_PRIVATE,
+                recipientId: PlayerFixture::PLAYER_REGULAR,
+                initialMessage: 'Hi there!',
+            ),
+        );
+
+        $notifications = $this->getNotifications->forPlayer(PlayerFixture::PLAYER_REGULAR, 50);
+
+        $found = false;
+        foreach ($notifications as $notification) {
+            if (
+                $notification->notificationType === NotificationType::NewConversationRequest
+                && $notification->conversationInitiatorId === PlayerFixture::PLAYER_PRIVATE
+            ) {
+                $found = true;
+                break;
+            }
+        }
+
+        self::assertFalse($found, 'Blocker should NOT receive a notification from blocked user');
     }
 }

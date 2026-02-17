@@ -196,6 +196,15 @@ $utilities: map-merge(
       class: zindex,
       responsive: true,
       values: 1 5 10
+    ),
+
+    // Min-width (needed for text truncation in flex containers)
+    'min-width': (
+      property: min-width,
+      class: min-width,
+      values: (
+        0: 0
+      )
     )
   )
 );

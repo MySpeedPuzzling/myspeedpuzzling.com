@@ -3,10 +3,10 @@
 {% block title %}{{ 'messaging.title'|trans }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 gap-2">
     <h1 class="h3 mb-0"><i class="bi bi-chat-dots me-2"></i>{{ 'messaging.title'|trans }}</h1>
-    <a href="{{ path('blocked_users') }}" class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-slash-circle me-1"></i> {{ 'messaging.blocked_users'|trans }}
+    <a href="{{ path('blocked_users') }}" class="btn btn-sm btn-outline-secondary flex-shrink-0">
+        <i class="bi bi-slash-circle"></i> <span class="d-none d-sm-inline ms-1">{{ 'messaging.blocked_users'|trans }}</span>
     </a>
 </div>
 

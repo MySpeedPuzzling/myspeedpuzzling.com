@@ -70,6 +70,22 @@ final class RemoveReservationController extends AbstractController
                 ]);
             }
 
+            // For conversation detail page, replace listing action buttons
+            if ($context === 'conversation') {
+                $otherPlayerId = $request->request->getString('other_player_id');
+
+                return $this->render('messaging/_conversation_listing_actions_stream.html.twig', [
+                    'message' => $message,
+                    'puzzle_context' => [
+                        'itemId' => $itemId,
+                        'reserved' => false,
+                    ],
+                    'other_player' => [
+                        'id' => $otherPlayerId,
+                    ],
+                ]);
+            }
+
             // For puzzle detail and library pages, use targeted stream replacements
             $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer->playerId);
 

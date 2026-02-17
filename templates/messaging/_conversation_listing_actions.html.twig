@@ -1,0 +1,63 @@
+{#
+    Listing action buttons for conversation detail page.
+
+    Parameters:
+    - puzzle_context: Puzzle context array with itemId, reserved, etc.
+    - other_player: The other player in the conversation
+#}
+{% if puzzle_context.reserved %}
+    <form action="{{ path('sell_swap_remove_reservation', {itemId: puzzle_context.itemId}) }}" method="post" data-turbo="true">
+        <input type="hidden" name="context" value="conversation">
+        <input type="hidden" name="other_player_id" value="{{ other_player.id }}">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+        </button>
+    </form>
+{% else %}
+    <div class="dropdown">
+        <button class="btn btn-outline-warning btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-bookmark-check me-1"></i> {{ 'messaging.actions.reserved'|trans }}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <form action="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}" method="post">
+                    <input type="hidden" name="reservedForPlayerId" value="{{ other_player.id }}">
+                    <button type="submit" class="dropdown-item">
+                        <i class="bi bi-person-check me-1"></i> {{ 'messaging.actions.to_this_puzzler'|trans }}
+                    </button>
+                </form>
+            </li>
+            <li>
+                <a class="dropdown-item"
+                   href="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}"
+                   data-turbo="true"
+                   data-turbo-frame="modal-frame">
+                    <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
+                </a>
+            </li>
+        </ul>
+    </div>
+{% endif %}
+
+<div class="dropdown">
+    <button class="btn btn-outline-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="bi bi-check-circle me-1"></i> {{ 'messaging.actions.sold_swapped'|trans }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li>
+            <form action="{{ path('sellswap_mark_sold_to_player', {itemId: puzzle_context.itemId, buyerPlayerId: other_player.id}) }}" method="post">
+                <button type="submit" class="dropdown-item">
+                    <i class="bi bi-person-check me-1"></i> {{ 'messaging.actions.to_this_puzzler'|trans }}
+                </button>
+            </form>
+        </li>
+        <li>
+            <a class="dropdown-item"
+               href="{{ path('sellswap_mark_sold', {itemId: puzzle_context.itemId}) }}"
+               data-turbo="true"
+               data-turbo-frame="modal-frame">
+                <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}
+            </a>
+        </li>
+    </ul>
+</div>

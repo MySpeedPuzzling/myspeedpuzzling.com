@@ -2,13 +2,13 @@
     <div class="card shadow-custom">
         <div class="card-body">
             <div class="d-flex align-items-start">
-                <div class="me-3 flex-shrink-0">
+                <div class="me-3 flex-shrink-0 d-none d-sm-block">
                     {{ include('messaging/_avatar.html.twig', {avatar: conversation.otherPlayerAvatar, size: 48}) }}
                 </div>
 
-                <div class="flex-grow-1">
+                <div class="flex-grow-1 min-width-0">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
+                        <div class="min-width-0">
                             {% if conversation.puzzleName %}
                                 {{ 'messaging.interested_in_puzzle'|trans({'%name%': conversation.otherPlayerName}) }}
                                 <span class="fw-bold">{{ conversation.puzzleName }}</span>
@@ -17,7 +17,7 @@
                             {% endif %}
                         </div>
                         {% if conversation.lastMessageAt %}
-                            <small class="text-muted ms-2">{{ conversation.lastMessageAt|ago }}</small>
+                            <small class="text-muted ms-2 flex-shrink-0">{{ conversation.lastMessageAt|ago }}</small>
                         {% endif %}
                     </div>
 
@@ -49,7 +49,7 @@
                         </div>
                     {% endif %}
 
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         <form action="{{ path('accept_conversation', {conversationId: conversation.conversationId}) }}" method="post">
                             <button type="submit" class="btn btn-sm btn-success">
                                 <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}

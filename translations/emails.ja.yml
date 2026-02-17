@@ -46,3 +46,16 @@ subscription_renewed:
         <p>登録の詳細を更新または確認したい場合は、<a href="%membershipUrl%">メンバーシップページ</a>で行えます。</p>
         <p>私たちはメンバーの皆様のために改善と新機能追加に常に取り組んでいます。改善できることがあればお知らせください。</p>
         <p>再度、サポートしてくださりありがとうございます。高速スピードパズリングと素晴らしい結果をお祈りしています！</p>
+
+unread_messages:
+    subject: "MySpeedPuzzlingで未読メッセージがあります"
+    title: "未読メッセージがあります"
+    greeting: "%playerName%さん、こんにちは"
+    intro: "未読メッセージがあります："
+    message_line: "%senderName%からの%count%件のメッセージ"
+    message_line_with_puzzle: "%senderName%からの%count%件のメッセージ（%puzzleName%について）"
+    view_messages: "メッセージを見る"
+    pending_requests_also: "%count%件の新しいメッセージリクエストもあります。"
+    pending_requests_only: "%count%件の新しいメッセージリクエストがあります。"
+    view_requests: "メッセージリクエストを見る"
+    opt_out: 'これらの通知は<a href="%settingsUrl%">プロフィール設定</a>でオフにできます。'

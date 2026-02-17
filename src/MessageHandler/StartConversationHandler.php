@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
+use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Exceptions\ConversationRequestAlreadyPending;
 use SpeedPuzzling\Web\Exceptions\DirectMessagesDisabled;
 use SpeedPuzzling\Web\Exceptions\MessagingMuted;
@@ -21,6 +24,7 @@ use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use SpeedPuzzling\Web\Value\ConversationStatus;
+use SpeedPuzzling\Web\Value\NotificationType;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -37,6 +41,8 @@ readonly final class StartConversationHandler
         private MercureNotifier $mercureNotifier,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
+        private EntityManagerInterface $entityManager,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -107,6 +113,15 @@ readonly final class StartConversationHandler
                 $this->chatMessageRepository->save($chatMessage);
 
                 if (!$isBlocked) {
+                    $notification = new Notification(
+                        Uuid::uuid7(),
+                        $recipient,
+                        NotificationType::NewConversationRequest,
+                        $this->clock->now(),
+                        targetConversation: $conversation,
+                    );
+                    $this->entityManager->persist($notification);
+
                     try {
                         $this->mercureNotifier->notifyNewMessage($chatMessage);
                         $this->mercureNotifier->notifyNewConversationRequest($conversation);
@@ -169,6 +184,15 @@ readonly final class StartConversationHandler
         $this->chatMessageRepository->save($chatMessage);
 
         if (!$isBlocked) {
+            $notification = new Notification(
+                Uuid::uuid7(),
+                $recipient,
+                NotificationType::NewConversationRequest,
+                $this->clock->now(),
+                targetConversation: $conversation,
+            );
+            $this->entityManager->persist($notification);
+
             try {
                 $this->mercureNotifier->notifyNewConversationRequest($conversation);
             } catch (\Throwable $e) {

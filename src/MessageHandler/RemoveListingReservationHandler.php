@@ -31,6 +31,10 @@ readonly final class RemoveListingReservationHandler
             throw new SellSwapListItemNotFound();
         }
 
+        if ($item->reserved === false) {
+            return;
+        }
+
         $item->removeReservation();
 
         $this->systemMessageSender->sendToAllConversations(

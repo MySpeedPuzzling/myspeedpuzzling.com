@@ -644,6 +644,9 @@ notifications:
         change_rejected: "Your suggested changes were rejected"
         merge_approved: "Your duplicate report was approved and puzzles were merged"
         merge_rejected: "Your duplicate report was rejected"
+    conversation_request:
+        general: "%player% sent you a conversation request"
+        marketplace: "%player% sent you a message about %puzzle%"
 
 badges:
     title: "Badges"
@@ -1525,6 +1528,8 @@ messaging:
     actions:
         to_this_puzzler: "To this puzzler"
         to_someone_else: "To someone else"
+        reserved: "Reserved"
+        sold_swapped: "Sold/swapped"
     conversation_partners: "- From marketplace conversations -"
     system:
         listing_reserved_for_you: "This puzzle was reserved for you."

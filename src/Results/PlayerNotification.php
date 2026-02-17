@@ -64,6 +64,14 @@ readonly final class PlayerNotification
         public null|string $ratingPuzzleImage = null,
         public null|string $ratingOtherPlayerName = null,
         public null|string $ratingOtherPlayerId = null,
+        // Conversation request notification fields
+        public null|string $conversationId = null,
+        public null|string $conversationInitiatorId = null,
+        public null|string $conversationInitiatorName = null,
+        public null|string $conversationInitiatorAvatar = null,
+        public null|bool $conversationIsMarketplace = null,
+        public null|string $conversationPuzzleName = null,
+        public null|string $conversationPuzzleImage = null,
     ) {
     }
 
@@ -166,6 +174,14 @@ readonly final class PlayerNotification
             ratingPuzzleImage: is_string($row['rating_puzzle_image'] ?? null) ? $row['rating_puzzle_image'] : null,
             ratingOtherPlayerName: is_string($row['rating_other_player_name'] ?? null) ? $row['rating_other_player_name'] : null,
             ratingOtherPlayerId: is_string($row['rating_other_player_id'] ?? null) ? $row['rating_other_player_id'] : null,
+            // Conversation request notification fields
+            conversationId: is_string($row['conversation_id'] ?? null) ? $row['conversation_id'] : null,
+            conversationInitiatorId: is_string($row['conversation_initiator_id'] ?? null) ? $row['conversation_initiator_id'] : null,
+            conversationInitiatorName: is_string($row['conversation_initiator_name'] ?? null) ? $row['conversation_initiator_name'] : null,
+            conversationInitiatorAvatar: is_string($row['conversation_initiator_avatar'] ?? null) ? $row['conversation_initiator_avatar'] : null,
+            conversationIsMarketplace: isset($row['conversation_is_marketplace']) ? (bool) $row['conversation_is_marketplace'] : null,
+            conversationPuzzleName: is_string($row['conversation_puzzle_name'] ?? null) ? $row['conversation_puzzle_name'] : null,
+            conversationPuzzleImage: is_string($row['conversation_puzzle_image'] ?? null) ? $row['conversation_puzzle_image'] : null,
         );
     }
 
@@ -192,5 +208,10 @@ readonly final class PlayerNotification
     public function isRatingNotification(): bool
     {
         return $this->soldSwappedItemId !== null;
+    }
+
+    public function isConversationRequestNotification(): bool
+    {
+        return $this->conversationId !== null;
     }
 }

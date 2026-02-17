@@ -25,4 +25,7 @@ enum NotificationType: string
 
     // Transaction rating notifications
     case RateYourTransaction = 'RateYourTransaction';
+
+    // Conversation notifications
+    case NewConversationRequest = 'NewConversationRequest';
 }

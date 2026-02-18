@@ -1,3 +1,50 @@
-{{ include('_toast_stream.html.twig', {message: message}) }}
+{#
+    Stream for removing reservation from sell-swap list and marketplace pages.
 
-<turbo-stream action="refresh"></turbo-stream>
+    Parameters:
+    - message: Toast message
+    - context: 'list' or 'marketplace'
+
+    For list context:
+    - item: SellSwapListItemOverview - updated item data
+    - settings: SellSwapListSettings
+
+    For marketplace context:
+    - marketplace_item: MarketplaceListingItem - updated item data
+#}
+
+{% if context == 'marketplace' %}
+    <turbo-stream action="replace" target="marketplace-listing-{{ marketplace_item.itemId }}">
+        <template>
+            <div class="col" id="marketplace-listing-{{ marketplace_item.itemId }}">
+                {% include 'marketplace/_listing_card.html.twig' with {item: marketplace_item} only %}
+            </div>
+        </template>
+    </turbo-stream>
+{% elseif context == 'list' %}
+    <turbo-stream action="replace" target="library-sell-swap-{{ item.puzzleId }}">
+        <template>
+            <div class="col"
+                 id="library-sell-swap-{{ item.puzzleId }}"
+                 data-collection-items-target="item"
+                 data-puzzle-id="{{ item.puzzleId }}"
+                 data-collection-filter-target="item"
+                 data-pieces-count="{{ item.piecesCount }}"
+                 data-puzzle-name="{{ item.puzzleName }}"
+                 data-puzzle-alternative-name="{{ item.puzzleAlternativeName ?? '' }}"
+                 data-puzzle-code="{{ item.puzzleIdentificationNumber ?? '' }}"
+                 data-ean="{{ item.ean ?? '' }}"
+                 data-manufacturer="{{ item.manufacturerName ?? '' }}"
+                 data-listing-type="{{ item.listingType.value }}"
+                 data-price="{{ item.price ?? '' }}">
+                {% include 'sell-swap/_item_card.html.twig' with {
+                    item: item,
+                    settings: settings,
+                    isOwnProfile: true,
+                } only %}
+            </div>
+        </template>
+    </turbo-stream>
+{% endif %}
+
+{{ include('_toast_stream.html.twig', {message: message}) }}

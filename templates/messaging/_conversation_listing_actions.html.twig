@@ -20,8 +20,10 @@
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
             <li>
-                <form action="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}" method="post">
+                <form action="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}" method="post" data-turbo="true">
                     <input type="hidden" name="reservedForPlayerId" value="{{ other_player.id }}">
+                    <input type="hidden" name="context" value="conversation">
+                    <input type="hidden" name="other_player_id" value="{{ other_player.id }}">
                     <button type="submit" class="dropdown-item">
                         <i class="bi bi-person-check me-1"></i> {{ 'messaging.actions.to_this_puzzler'|trans }}
                     </button>
@@ -29,7 +31,7 @@
             </li>
             <li>
                 <a class="dropdown-item"
-                   href="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}"
+                   href="{{ path('sell_swap_mark_reserved', {itemId: puzzle_context.itemId}) }}?context=conversation&other_player_id={{ other_player.id }}"
                    data-turbo="true"
                    data-turbo-frame="modal-frame">
                     <i class="bi bi-people me-1"></i> {{ 'messaging.actions.to_someone_else'|trans }}

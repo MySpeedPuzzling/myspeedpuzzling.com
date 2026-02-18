@@ -113,15 +113,6 @@ readonly final class StartConversationHandler
                 $this->chatMessageRepository->save($chatMessage);
 
                 if (!$isBlocked) {
-                    $notification = new Notification(
-                        Uuid::uuid7(),
-                        $recipient,
-                        NotificationType::NewConversationRequest,
-                        $this->clock->now(),
-                        targetConversation: $conversation,
-                    );
-                    $this->entityManager->persist($notification);
-
                     try {
                         $this->mercureNotifier->notifyNewMessage($chatMessage);
                         $this->mercureNotifier->notifyNewConversationRequest($conversation);

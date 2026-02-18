@@ -1,1416 +1,1450 @@
-menu:
-    my_profile: "Mi perfil"
-    puzzle_add: "Agregar"
-    stopwatch: "Cronómetro"
-    puzzles_overview: "Puzzle"
-    ladder: "Clasificación"
-    players: "Jugadores"
-    faq: "Preguntas frecuentes"
-    sign_in: "Iniciar sesión"
-    hub: "Centro"
-    feedback: "Enviar comentarios"
-    support_us: "Apóyanos"
-    terms_of_service: "Términos de servicio"
-    privacy_policy: "Política de privacidad"
-    membership: "Membresía"
-    search: "Buscar"
-    statistics: "Estadísticas"
-    favorite_puzzlers: "Puzzleros favoritos"
-    edit_profile: "Editar perfil"
-    change_player_code: "Cambiar código de jugador"
-    profile: "Perfil"
-    events: "Eventos"
-    puzzle_library: "Biblioteca de puzzles"
-    export_data: "Exportar datos"
-
-accessibility:
-    toggle_navigation: "Alternar navegación"
-    barcode_scanner: "Escanear código de barras"
-    notifications_count: "Notificaciones (%count%)"
-
-navigation:
-    home: "Inicio"
-
-form:
-    visibility: "Visibilidad"
-    visibility_public: "Pública"
-    visibility_private: "Privada"
-
-footer:
-    created_with_love: "Creado con amor por los puzzles y el código por %simona% y %jan%"
-    about: "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los puzzles y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
-    popular_search: "Búsquedas populares"
-    speed_puzzling_leaderboard: "Ranking Speed Puzzling"
-    speed_puzzling_players: "Jugadores Speed Puzzling"
-    latest_puzzle_times: "Últimos Tiempos Puzzle"
-    750_piece_puzzles: "Puzzles 750 Piezas"
-    puzzle_add: "Agregar puzzle"
-
-puzzler_name: "Nombre"
-puzzler: "Puzzlero"
-puzzle: "Puzzle"
-time: "Tiempo"
-pieces_count: "%count%&nbsp;piezas"
-show_more: "Mostrar más"
-show_less: "Mostrar menos"
-puzzle_solved: "completado"
-puzzle_available: "disponible para préstamo"
-puzzle_not_available: "no disponible"
-add_solving: "Añadir resolución"
-start_solving: "Comenzar a resolver"
-show_times: "Mostrar tiempos"
-fastest_time_short: "Mejor: %time%"
-average_time_short: "Prom: %time%"
-fastest_time: "Más rápido:"
-average_time: "Promedio:"
-only_first_tries_filter: "Solo primeros intentos"
-only_unboxed_filter: "Solo sin caja"
-only_favorite_players_filter: "Solo jugadores favoritos"
-filtered_out_puzzlers_count_info: "Ocultos <strong>%count% puzzleros</strong> sin información del primer intento."
-my_time: "Mi tiempo:"
-puzzle_solved_count: "Número de completados:"
-puzzle_solved_times: "completado %count%x"
-puzzle.relax_solvings_count: "%count%x resuelto en modo relax"
-never_solved_puzzles: "Nadie ha resuelto estos puzzles aún, ¡sé el primero!"
-show_more_solving_times: "Más (%count%x)"
-be_first_to_solve: "Nadie ha resuelto estos puzzles aún. ¡Sé el primero!"
-be_first_to_group_solve: "Estos puzzles aún no han sido resueltos en grupo. ¡Sé el primero!"
-email: "Email"
-facebook: "Facebook"
-instagram: "Instagram"
-search: "Buscar"
-puzzle_waiting_for_approval: "Puzzles añadidos recientemente esperando aprobación del administrador - usualmente dentro de 24 horas después de añadir. Gracias por tu paciencia."
-puzzle_img_alt: "%puzzle% - imagen del puzzle"
-searching: "Buscando..."
-load_more: "Cargar más..."
-back_to_top: "Volver arriba"
-total_found: "Total encontrado: %count%"
-remaining: "Restante: %puzzle%"
-loading: "Cargando"
-any: "Cualquiera"
-all_pieces: "Todas"
-solo_solved: "Resuelto SOLO:"
-first_attempt: "1er intento"
-unboxed: "Sin caja"
-ranking_out_of: "de"
-wjpc_participant: "Participante WJPC 2024 (%name%)"
-share: "Compartir"
-edit: "Editar"
-delete: "Eliminar"
-active_membership: "Membresía activa"
-new_badge: "Nuevo"
-secret_puzzler_name: "Puzzlero Oculto"
-right_now: "Ahora mismo"
-
-badge:
-    relax: "Relax"
-    suspicious: "Verificación necesaria"
-
-homepage:
-    meta:
-        title: "Comunidad Speed Puzzling | Compite"
-        description: "¡Únete a la comunidad speed puzzling definitiva! Registra tiempos, compite con jugadores mundiales y escala rankings. ¡Empieza hoy!"
-        keywords: "speed puzzling, speedpuzzling, tiempos puzzle, comunidad puzzle, competición resolver puzzles, ranking puzzle"
-    global_statistics: "Nos tomó a todos este tiempo resolver <strong>%puzzles%</strong> rompecabezas.<br>Eso es un increíble total de <strong>%pieces%</strong> piezas."
-
-    title: "¡Bienvenido Puzzlero, al Mundo del Speed Puzzling!"
-    intro_text: "El Speed Puzzling es un deporte emocionante donde el objetivo es armar rompecabezas lo más rápido posible. Cada pieza cuenta, cada segundo importa. ¡Imagina resolver rompecabezas tradicionales pero con la adrenalina de una pista de carreras! Nuestra plataforma es la primera de su tipo: un lugar donde puedes probar tus habilidades de resolución de rompecabezas no solo contra el tiempo, sino también contra otros entusiastas de los rompecabezas."
-    why_block: |
-        <h3>¿Por qué debería unirme?</h3>
-        <ul>
-            <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzleros</li>
-            <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzleros más rápidos, los rompecabezas más armados y los usuarios más activos</li>
-            <li><strong>Cronómetro:</strong> Usa nuestro cronómetro integrado para cronometrar fácilmente el armado de tu rompecabezas</li>
-            <li><strong>Añade tus rompecabezas:</strong> ¿Tienes un rompecabezas que falta en nuestro sitio? Añádelo y comparte tus tiempos con la comunidad.</li>
-            <li><strong>Construye tu comunidad de rompecabezas:</strong> Únete a nuestra creciente comunidad y comparte consejos, trucos y rivalidad amistosa</li>
-            <li><strong>Expande tus horizontes:</strong> Planeamos organizar competencias, tanto en línea como en el futuro fuera de línea, para que puedas mostrar tus habilidades en vivo</li>
-        </ul>
-    help_us_grow_block: |
-        <h3>Ayúdanos a Crecer</h3>
-        <p>Nuestra aplicación está comenzando, y tus ideas, comentarios y ayuda para encontrar errores son invaluables. Únete a nosotros en esta etapa temprana y ten un impacto directo en el futuro del speed puzzling.</p>
-    start_today_block: |
-        <h3>Comienza Hoy</h3>
-        <p>Ya seas principiante o un puzzlero experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>
-    cta_sign_in: "Iniciar sesión"
-    cta_my_profile: "Mi perfil"
-    cta_recent: "Tiempos recientes"
-
-ladder:
-    title: "Ranking"
-    meta:
-        title: "Ranking Speed Puzzling | Tiempos"
-        description: "Ranking speed puzzling mostrando tiempos más rápidos y clasificación jugadores. Ve quién tiene récords y compite por mejores posiciones."
-        keywords: "speed puzzling ranking, tiempos rápidos, récords puzzle, clasificación jugadores, resultados competición, campeones puzzle"
-    overview: "Resumen"
-    recent_activity: "Tiempos Añadidos Recientemente"
-    solo: "Solo"
-    duo: "Dúo"
-    team: "Equipo"
-    most_solved_puzzle: "Rompecabezas Más Armado"
-    most_active_puzzlers: "Puzzleros Más Entusiastas"
-    puzzle_solved_count: "Rompecabezas Resueltos"
-    link_to_hub: "¿Buscas el rompecabezas más resuelto o los jugadores más activos? ¡Lo movimos al&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">nuevo Centro</a>!"
-
-filters:
-    button: "Filtros"
-    filter_by: "Filtrar por"
-    pieces_placeholder: "- Piezas -"
-    manufacturer_placeholder: "- Fabricante -"
-    less_than: "Menos de %count%"
-    more_than: "Más de %count%"
-    text_search_placeholder: "Nombre del puzzle o código..."
-    only_available: "Solo disponibles para préstamo"
-    only_with_time: "Solo con tiempo ingresado"
-    no_puzzle_matches_filters: "Ningún puzzle coincide con los filtros especificados"
-    only_relax: "Solo puzzles relajados"
-    date_range: "Rango de fechas"
-    date_from: "Desde"
-    date_to: "Hasta"
-    time_filter: "Filtro de tiempo"
-    faster_than: "Más rápido que"
-    slower_than: "Más lento que"
-    minutes: "min"
-    reset: "Restablecer filtros"
-    all_manufacturers: "Todos los fabricantes"
-    all_pieces: "Todas las piezas"
-
-sorting:
-    sort_by: "Ordenar por"
-    newest_times: "Más nuevos"
-    oldest_times: "Más antiguos"
-    fastest_times: "Más rápidos"
-    slowest_times: "Más lentos"
-    most_solved: "Más resueltos"
-    least_solved: "Menos resueltos"
-    a_z: "Nombre A-Z"
-    z_a: "Nombre Z-A"
-    fastest_ppm: "PPM más rápido"
-    slowest_ppm: "PPM más lento"
-
-puzzle_overview:
-    meta:
-        title: "Base Speed Puzzling"
-        description: "Explora base datos speed puzzling con puzzles 500-1000+ piezas. Compara tiempos, encuentra nuevos desafíos y rastrea progreso."
-        keywords: "base datos puzzle, tiempos puzzle, puzzle 500 piezas, puzzle 1000 piezas, marcas puzzle, resolver rápido"
-    title: "Puzzles"
-    missing_puzzle_info: "Si no puedes encontrar un rompecabezas aquí, significa que nadie lo ha resuelto aún y no está en nuestra base de datos. Se pueden ingresar nuevos rompecabezas al añadir tiempo."
-
-stopwatch:
-    meta:
-        title: "Cronómetro"
-    title: "Cronómetro"
-    start: "Iniciar"
-    stop: "Parar"
-    continue: "Continuar"
-    reset: "Reiniciar"
-    finish: "¡Completado! Añadir tiempo"
-    more_my_stopwatches: "Más de mis cronómetros"
-    status:
-        not_started: "Listo para comenzar"
-        running: "En marcha"
-        paused: "Pausado"
-        finished: "Rompecabezas completado"
-
-puzzle_add:
-    meta:
-        title: "Agregar puzzle"
-    title: "Agregar..."
-    chosen_puzzle: "Rompecabezas seleccionado:"
-    choose_puzzle: "Elegir un puzzle"
-    puzzle_needed: "Debes seleccionar un puzzle de la lista o añadir uno nuevo"
-    change_puzzle: "Cambiar selección"
-    add_when_not_found_info: "Si no puedes encontrar el rompecabezas en la lista, por favor añade uno nuevo."
-    need_approve_info: "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
-    add_manufacturer: "Añadir un nuevo fabricante"
-    not_in_list: "(no en la lista)"
-    choose_manufacturer: "Elegir un fabricante de la lista"
-    time_from_stopwatch: "Tiempo del cronómetro"
-    add_puzzler: "Añadir co-puzzlero del grupo"
-    teamplayer: "Co-puzzlero"
-    player_code_info: "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlero no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
-    competition_result: "Resultado de competición"
-    group_puzzling: "Armando en pareja/grupo"
-    mode:
-        speed_puzzling: "Speed Puzzling"
-        relax: "Relax (sin tiempo)"
-        to_collection: "Puzzle a la Colección"
-
-forms:
-    choose_from_favorites: "- Elegir de favoritos -"
-    drop_file: "Arrastra y suelta un archivo aquí para subirlo"
-    choose_file: "O selecciona un archivo"
-    save: "Guardar"
-    required_field: "¡Este campo es obligatorio!"
-    removing: "Eliminando..."
-    cancel: "Cancelar"
-    close: "Cerrar"
-    add: "Añadir"
-    back: "Atrás"
-    clear: "Limpiar"
-    add_new_brand: "Añadir nueva marca:"
-    confirm: "Confirmar"
-    continue: "Continuar"
-    create: "Crear"
-    delete: "Eliminar"
-    edit: "Editar"
-    max_characters: "Máximo 500 caracteres"
-    next: "Siguiente"
-    no: "No"
-    ok: "OK"
-    previous: "Anterior"
-    remove: "Eliminar"
-    reset: "Restablecer"
-    saving: "Guardando..."
-    search: "Buscar"
-    submit: "Enviar"
-    update: "Actualizar"
-    yes: "Sí"
-    hours_short: "hrs"
-    minutes_short: "min"
-    seconds_short: "seg"
-    time_required: "Por favor, introduce el tiempo"
-    add_puzzle_to_collection:
-        choose_collection: "- Elegir colección -"
-        collection: "Colección"
-        collection_help: "Elige una colección existente o añade un nuevo nombre de colección."
-        comment: "Comentario"
-        comment_placeholder: "Comentario opcional sobre este puzzle..."
-        puzzle_collection: "Colección de Puzzles (Predeterminada)"
-        submit: "Añadir a la colección"
-    empty_group_error: "No puedes crear un grupo solo contigo, eso no es armado en grupo :-)"
-    too_high_ppm: "Por favor verifica el tiempo que ingresaste, ¡no hay manera de que puedas resolver el rompecabezas tan rápido! :-) El tiempo debe ingresarse en formato HH:MM:SS. ¡El tiempo que ingresaste sería un nuevo récord mundial! :-)"
-    ppm_warning_title: "Por favor verifica tu tiempo"
-    ppm_warning_too_fast: "¡Tu ritmo parece muy rápido! Por favor verifica que hayas ingresado el tiempo correctamente."
-    ppm_warning_too_slow: "Solo una verificación rápida - ¿ingresaste el tiempo correctamente? A veces las horas y los minutos se pueden confundir."
-    ppm_confirm_button: "Sí, el tiempo es correcto"
-    ppm_cancel_button: "Déjame revisar"
-    ppm_entered_time: "Ingresaste"
-    hours: "horas"
-    minutes: "minutos"
-    seconds: "segundos"
-    unknown_error: "Ocurrió un error inesperado :(. Hemos sido notificados. Por favor intenta de nuevo más tarde."
-    name_help: "Bajo este nombre armarás rompecabezas y será visible para todos los miembros de la comunidad."
-    email_help: "Tu email es privado, no se muestra en ningún lugar y solo se usa en caso de que el administrador necesite contactarte."
-    location_help: "El lugar donde vives actualmente (opcional)."
-    location: "Ubicación"
-    nationality: "Nacionalidad"
-    country_most_common: "Los más comunes"
-    country_all: "Todos los países"
-    about_me: "Acerca de mí (biografía)"
-    avatar: "Avatar/foto"
-    search_puzzler: "Nombre, código de jugador, o parte de..."
-    time_format_placeholder: "HH:MM:SS"
-    comment: "Información adicional"
-    finished_puzzle_photo: "Foto de rompecabezas completados"
-    add_new_puzzle: "Añadir nuevo rompecabezas - no en la lista"
-    puzzle: "Rompecabezas"
-    puzzle_help: "Elige un rompecabezas existente (busca por nombre, código de marca, piezas) o añade el nombre del nuevo rompecabezas cuando no se encuentre."
-    brand: "Marca"
-    brand_help: "Elige una marca existente o ingresa el nombre de la nueva marca cuando no se encuentre."
-    pieces_count: "Número de piezas"
-    puzzle_box_photo: "Foto de la imagen o caja del rompecabezas"
-    date_finished: "Fecha completada"
-    ean: "Código EAN"
-    puzzle_identification_number: "Código del fabricante"
-    puzzle_photo_is_required: "Se requiere foto del rompecabezas resuelto, motivo o caja"
-    puzzle_photo_help: "Por favor adjunta foto del rompecabezas resuelto, motivo o caja para que podamos identificar y asignar correctamente el rompecabezas."
-    puzzle_choose_placeholder: "Buscar o ingresar el nombre del nuevo rompecabezas"
-    puzzle_choose_brand_placeholder: "Elegir marca primero"
-    only_with_results: "Solo rompecabezas con tiempo ingresado"
-    only_solved_by_me: "Solo rompecabezas que he resuelto"
-    only_available: "Solo disponibles para préstamo"
-    puzzle_search_placeholder: "Nombre, código, EAN..."
-    tag: "Etiqueta"
-    competition: "Competencia / evento"
-    competition_help: "Elige la competencia, cuando este resultado sea de una competencia o un evento online."
-    tags: "Etiquetas"
-    feedback: "Mensaje"
-    feedback_help: "Envíanos sugerencias de nuevas características o mejoras, reportes de errores, lo que te gusta o disgusta, puede ser cualquier cosa que se te ocurra..."
-    send_feedback: "Enviar"
-    first_attempt: "Tu primer armado de este rompecabezas"
-    first_attempt_help: "Si armas en grupo, entonces solo si nadie armó este rompecabezas antes, ni siquiera solo"
-    unboxed: "Armado sin mirar la imagen de la caja"
-    unboxed_help: "Marca esto si armaste el rompecabezas sin consultar la caja o imagen"
-    competition_participant: "Tu nombre en la competencia"
-    player_code: "Código de Jugador"
-    player_code_help: "Un código de jugador único - al menos 3 caracteres, hasta 8 caracteres. Solo puede contener letras y números, sin caracteres especiales o espacios."
-    global_search_placeholder: "Buscar puzzle o jugador..."
-    private_profile: "Perfil privado"
-    private_profile_help: "Tu nombre no se mostrará en ningún lugar y los tiempos se presentarán anónimamente."
-
-puzzlers_comparison:
-    meta:
-        title: "Comparación de Puzzleros"
-    title: "Comparación de Puzzleros"
-    nothing_to_compare: "Desafortunadamente, no tienes rompecabezas para comparar que hayan sido armados por ambos puzzleros."
-
-edit_time:
-    meta:
-        title: "Editando Datos de Tiempo del Rompecabezas"
-    title: "Editando Datos de Tiempo del Rompecabezas"
-    delete_button: "¡Eliminar permanentemente este registro de armado y pretender que nunca pasó!"
-    delete_modal_message: "Solo para estar seguro..."
-    delete_modal_confirm: "¿Realmente eliminar?"
-    delete_modal_discard_button: "No, mantenerlo"
-    delete_modal_confirm_button: "Sí, eliminar"
-
-error:
-    generic:
-        title: "Algo se rompió"
-        message: "Algo salió mal... si crees que el error no es de tu lado, por favor escríbenos."
-    404:
-        title: "Página no encontrada"
-        message: "Desafortunadamente, no pudimos encontrar la página que solicitaste. Por favor verifica la URL.."
-    500:
-        title: "Error desconocido"
-        message: "Algo salió mal - hemos sido notificados y lo arreglaremos tan pronto como sea posible"
-
-profile:
-    add_to_favorites: "Añadir a favoritos"
-    remove_from_favorites: "Eliminar de favoritos"
-    compare: "Comparar tiempos"
-    no_puzzles_solved: "¿No hay rompecabezas resueltos? ¡Inténtalo y ve cómo lo haces! ¡Creemos que puedes hacerlo!"
-    not_filled: "No completado"
-    avatar: "Avatar"
-    about_me: "Acerca de mí"
-    location: "Ubicación"
-    nationality: "Nacionalidad"
-    statistics: "Estadísticas"
-    statistics_time: "Tiempo gastado armando"
-    statistics_puzzles_solved: "Número de rompecabezas resueltos"
-    statistics_pieces_count: "Número de piezas armadas"
-    favorite_puzzlers: "Puzzleros favoritos"
-    no_favorite_puzzlers: "No hay puzzleros favoritos"
-    solved_puzzles: "Rompecabezas resueltos"
-    solved_puzzles_solo: "Individual"
-    solved_puzzles_group: "Armado en grupo"
-    recent_activity: "Actividad<br>reciente"
-    personal_info: "Información<br>personal"
-    private_profile_info_1: "Este puzzlero ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
-    private_profile_info_2: "¿Quieres saber más? Encuéntralos en persona e intenta convencerlos de revelar sus tiempos. Eso es todo lo que podemos decirte aquí."
-
-my_profile:
-    meta:
-        title: "Mi Perfil"
-    title: "Mi Perfil"
-    edit: "Editar información"
-    logout: "Cerrar sesión"
-    myssing_name_info: "Lo sentimos, pero si no completas un nombre o apodo, no sabemos cómo presentarte. Por lo tanto, todos tus resultados son no públicos."
-    public_info: "público"
-    not_public_info: "no público"
-    name: "Nombre/apodo"
-    stopwatches: "Mis cronómetros"
-    missing_name_info: "Lo sentimos, pero si no completas un nombre o apodo, no sabemos cómo presentarte. Por lo tanto, todos tus resultados son no públicos."
-    share_mention_myspeedpuzzling: "Etiquétanos: <code>@MySpeedPuzzling</code>"
-    wjpc_connection: "Conexión de cuenta de competencia"
-
-edit_profile:
-    meta:
-        title: "Editar perfil"
-    title: "Editar perfil"
-    player_code_change: "Cambiar código de jugador"
-    profile_visibility: "Visibilidad del perfil"
-
-puzzle_detail:
-    meta:
-        description: "Explora el rompecabezas %brand% %puzzle% (%pieces% piezas) en My Speed Puzzling. Rastrea el progreso, compara tiempos y conquista rompecabezas con nuestra comunidad. ¡Comienza tu frenesí de resolución de speed puzzling hoy!"
-
-export:
-    page_title: "Exportar Datos"
-    heading: "Exporta Tus Datos"
-    feedback_message: "¡Esta es una nueva función! Agradeceríamos tu opinión."
-    feedback_link: "Envíanos tus comentarios"
-    description: "Descarga todos tus tiempos de resolución de puzzles en tu formato preferido. Tus datos te pertenecen."
-    format:
-        json: "Descargar JSON"
-        xlsx: "Descargar Excel"
-        csv: "Descargar CSV"
-        xml: "Descargar XML"
-    data_included: "¿Qué incluye la exportación?"
-    data:
-        result_id: "ID del resultado"
-        puzzle_info: "Nombre del puzzle, marca y cantidad de piezas"
-        solving_time: "Tiempo de resolución (segundos y formato HH:MM:SS)"
-        dates: "Fecha de finalización y fecha de registro"
-        type: "Tipo de resolución (solo, dúo o equipo)"
-        team_members: "Miembros del equipo (si es resolución en grupo)"
-        photo_url: "URL de la foto del puzzle terminado"
-        comment: "Tu comentario"
-
-events:
-    title: "Eventos"
-    meta:
-        title: "Eventos Speed Puzzling | Compite"
-        description: "Únete a eventos speed puzzling, competiciones y torneos. Compite con mejores puzzleros mundiales y prueba tus habilidades."
-        keywords: "eventos speed puzzling, competiciones puzzle, torneos puzzle, WJPC, campeonato puzzle, puzzling competitivo"
-    live: "Ocurriendo ahora mismo"
-    upcoming: "Próximos"
-    past: "Eventos pasados"
-    website_link: "Info"
-    results_link: "Resultados"
-    registration_link: "Registrarse"
-    competition_puzzles: "Rompecabezas de competencia"
-    no_puzzle_text: No hay rompecabezas aquí… ¡todavía! Mantente atento
-
-faq:
-    meta:
-        title: "Speed Puzzling FAQ | Registrar"
-        description: "FAQ speed puzzling sobre cómo registrar tiempos puzzle, competir con otros y mejorar habilidades. ¡Empieza hoy!"
-        keywords: "speed puzzling FAQ, cómo speed puzzle, registrar tiempos puzzle, cronometrar puzzle, consejos resolver rápido, guía competición puzzle"
-    title: "Preguntas frecuentes"
-    intro_block: |
-        <p>¡Tus comentarios son muy importantes para nosotros y los apreciamos mucho! Si tienes algo que te gustaría decirnos, por favor escríbenos a <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (o a <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> para asuntos técnicos) o en <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
-        <p>Todos nuestros códigos fuente son de código abierto y públicos en <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. Nos adherimos a la filosofía de "compartir es cuidar" y nos esforzamos por compartir todo sobre myspeedpuzzling.com abiertamente.</p>
-
-    question_fair_play: |
-    answer_fair_play: |
-        <h4 class="mb-3">¿Cómo sabes que no estoy haciendo trampa al ingresar tiempos?</h4>
-        <p>Honestamente - probablemente no lo sabremos. En la tabla de clasificación pública, donde los puzzleros ingresan tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlero individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>
-        <p>Asumimos que, como nosotros, otros puzzleros arman principalmente por el placer de hacerlo, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomé 3 horas durante una competencia?</p>
-        <p>En el futuro, también planeamos ligas clasificadas, donde la verificación de tiempo podría ser requerida, por ejemplo, a través de grabación de video.</p>
-        <p class="text-danger mb-0"><small>Dado que nuestra comunidad incluye finalistas del Campeonato Mundial de Rompecabezas, que han quedado en la cima, podemos tomar sus tiempos como referencia. Los tiempos sospechosos serán monitoreados y si se prueba fraude, serán despiadadamente eliminados. En caso de trampas repetidas, el acceso del jugador a la plataforma será restringido.</small></p>
-
-    question_qr: Recibí rompecabezas con un código QR y el logo de myspeedpuzzling.com, ¿qué debo hacer?
-    answer_qr: |
-        <p>Para hacer el armado y la entrada de tiempos lo más placentera posible para ti, añadimos un código QR a todos los rompecabezas que pasan por nuestras manos - escanearlo te lleva a la página con los rompecabezas dados, donde puedes comenzar directamente a cronometrar o ingresar tu tiempo.</p>
-        <p class="mb-0">Si te gustaría ayudar a difundir la palabra sobre speedpuzzling y añadir un folleto con un código QR a tus rompecabezas, por favor escríbenos - te enviaremos un PDF que puedes imprimir, o podemos enviarte por correo folletos impresos directamente.</p>
-
-    question_add_time_for_missing_puzzle: ¿Puedo añadir tiempo para rompecabezas que no están en la plataforma?
-    answer_add_time_for_missing_puzzle: |
-        <p>¡Definitivamente! Si has armado un rompecabezas que aún no está en nuestra plataforma, al añadir tiempo, cambia a la opción:</p>
-        <div class="form-check form-switch mb-3">
-            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
-            <label class="form-check-label" for="switch-add-puzzle">Ingresar rompecabezas manualmente - fabricante desconocido o no en la lista</label>
-        </div>
-        <p class="mb-0">Entonces tienes la opción de seleccionar de una lista de fabricantes. Si el fabricante tampoco está en la base de datos, puedes ingresarlo tú mismo.</p>
-
-    question_edit_or_delete_time: ¿Cómo edito o elimino un tiempo ingresado?
-    answer_edit_or_delete_time: |
-        <p>En la sección <a href="%link%">Mi Perfil</a>, junto a cada tiempo ingresado, encontrarás un enlace para editar (el enlace parece un icono de lápiz <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
-        <p class="mb-0">En la página de edición, en la parte inferior, hay un <a class="btn btn-sm btn-outline-danger mx-2">botón mágico</a> que de una vez por todas elimina el registro de toda la internet.</p>
-
-    question_button_start_solving: ¿Qué hace el botón <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> Comenzar a Resolver</a>?
-    answer_button_start_solving: |
-        <p class="mb-0">Abre el cronómetro con rompecabezas seleccionados - puedes comenzar a armar y cronometrar de inmediato.</p>
-
-    question_button_add_my_time: ¿Qué hace el botón <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> Añadir Mi Tiempo</a>?
-    answer_button_add_my_time: |
-        <p class="mb-0">Abre añadir tu tiempo a rompecabezas seleccionados - adecuado si usas tu propio cronómetro y acabas de terminar de armar. Si armaste en el pasado y quieres registrar el tiempo, tienes la opción de especificar también la fecha en que armaste.</p>
-
-    question_helping: ¿Quieres una mano ayudante?
-    answer_helping: |
-        <p class="mb-0">¡Claro! Conéctate con nosotros, idealmente con una idea de cómo te gustaría involucrarte en construir la comunidad speed puzzling, pondremos nuestras cabezas juntas y seguramente se nos ocurrirá algo.</p>
-
-puzzlers:
-    meta:
-        title: "Jugadores Speed Puzzling | Resultados"
-        description: "Descubre jugadores speed puzzling, compara resultados y rankings. Sigue puzzleros favoritos y ve sus últimos tiempos."
-        keywords: "jugadores speed puzzling, puzzleros, resolventes puzzle, resultados jugadores, comunidad puzzle, tiempos speed puzzling"
-    title: "Puzzleros"
-    results_for: "Resultados de búsqueda para"
-    no_matches_found: "No se encontraron coincidencias"
-    my_favorites: "Mis Favoritos"
-    most_popular: "Más Populares"
-    by_country: "Por país"
-    most_favorite: "Puzzleros más favoritos"
-    search_placeholder: "Buscar por nombre o código de jugador..."
-    total_players: "Total de jugadores"
-
-players_per_country:
-    meta:
-        title: "Puzzleros del país - %country%"
-    title:  "Puzzleros del país - %country%"
-    link: "Puzzleros por país"
-
-flashes:
-    stopwatch_already_saved: "Estos cronómetros ya han sido guardados."
-    collection_not_found: "¡La colección que buscabas no existe en nuestra plataforma!"
-    puzzle_removed_from_collection: "El puzzle ha sido eliminado de la colección."
-    puzzle_added_to_collection: "El puzzle ha sido añadido a la colección."
-    tracking_added: "Hemos guardado el seguimiento de tu puzzle."
-    puzzle_needs_approve: "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
-    time_added: "Hemos guardado tu tiempo de rompecabezas."
-    time_deleted: "¡Hemos eliminado toda evidencia. ¡Nadie sabrá jamás lo que acaba de pasar!"
-    profile_saved: "¡Cambios del perfil guardados!"
-    time_edited: "La información editada ha sido guardada."
-    player_not_found: "¡El jugador que trataste de encontrar no está registrado con nosotros!"
-    puzzle_not_found: "¡El rompecabezas que trataste de encontrar no existe en nuestra plataforma!"
-    puzzler_added_to_favorites: "Hemos añadido al puzzlero a tu lista de favoritos."
-    puzzler_removed_from_favorites: "Hemos eliminado al puzzlero de tu lista de favoritos."
-    can_not_favorite_yourself: "No puedes añadirte a tu lista de favoritos. ¡Está claro que eres tu propio puzzlero favorito!"
-    player_already_in_favorites: "Este puzzlero ya está en tu lista de favoritos, así que no lo añadiremos de nuevo ;-)."
-    player_not_in_favorites: "Hmm, no pudimos encontrar a este puzzlero en tus favoritos, así que no podemos eliminarlo ;-)."
-    competition_duplicate_connection: "Algo está mal :-( has elegido una cuenta de competencia, que ya está conectada a algún perfil de MySpeedPuzzling. No te preocupes, fuimos automáticamente notificados y verificaremos qué está mal."
-    competition_connection_saved: "¡Genial! ¡Cuenta de competencia conectada exitosamente a tu perfil de MySpeedPuzzling!"
-    membership_subscribed_successfully: "¡Tu membresía ahora está activa!"
-    non_unique_player_code: "Lo sentimos, pero parece que este código ya está tomado. Por favor elige otro."
-    unknown_error: "Lo sentimos, pero algo salió mal - hemos sido notificados e intentaremos arreglarlo tan pronto como sea posible. Por favor intenta de nuevo más tarde."
-    exclusive_membership_feature: "Esta característica es exclusiva solo para miembros. Si quieres usarla, por favor compra una membresía."
-
-hub:
-    title: "Hub"
-    meta:
-        title: "Hub Speed Puzzling | Resultados"
-        description: "Hub speed puzzling con últimos resultados, rankings jugadores y estadísticas puzzle. Ve quién resuelve más rápido y rastrea progreso comunidad."
-        keywords: "hub speed puzzling, últimos resultados, rankings puzzle, jugadores activos, estadísticas puzzle, actividad reciente"
-    welcome: "¡Bienvenido puzzlero!"
-    seo_suffix: "- Comunidad Speed Puzzling"
-    welcome_back: "Bienvenido de vuelta"
-    recent_favorites_activity: "Actividad de<br>favoritos"
-    this_month: "Este<br>mes"
-    last_month: "Mes<br>pasado"
-    all_time: "Todo el<br>tiempo"
-    most_active_solo_players: "Jugadores SOLO más activos"
-    most_solved_puzzle: "Rompecabezas más resuelto"
-    statistics: "Estadísticas"
-    no_favorites: "No tienes jugadores favoritos. Añade algunos y sigue su actividad aquí."
-    not_logged: "No has iniciado sesión - para usar el potencial completo de lo que esta plataforma te ofrece, inicia sesión."
-
-statistics:
-    puzzle_solved: "Rompecabezas resueltos"
-    total_pieces: "Total de piezas"
-    time_spent: "Tiempo gastado resolviendo"
-    longest_streak: "Racha más larga"
-    longest_streak_help: "Máx días consecutivos resolviendo rompecabezas"
-    most_solved_brand: "Marca más resuelta"
-    all_brands: "Todas las marcas"
-    no_results: |
-        Sabemos que amas resolver rompecabezas — básicamente eres un susurrador de rompecabezas. Pero para el período de tiempo seleccionado… nada. Cero. Zilch. Nada.<br> 
-        O no resolviste ninguno, o te olvidaste de añadirlos a la plataforma (lo cual es aún más desconcertante, honestamente).<br>
-        ¡Es hora de tomar un rompecabezas y arreglar este giro trágico de la trama! Tus estadísticas están llorando en la esquina — ve a mostrarles algo de amor.
-
-dates:
-    all_time: "Todo el tiempo"
-    year: "Año"
-    months:
-        1: "Enero"
-        2: "Febrero"
-        3: "Marzo"
-        4: "Abril"
-        5: "Mayo"
-        6: "Junio"
-        7: "Julio"
-        8: "Agosto"
-        9: "Septiembre"
-        10: "Octubre"
-        11: "Noviembre"
-        12: "Diciembre"
-
-feedback:
-    title: "Enviar comentarios"
-    success_msg: "¡Hemos recibido tus comentarios y los apreciamos mucho! Te avisaremos pronto."
-    message: "Mensaje"
-    send: "Enviar"
-    thank_you: "¡Gracias por tus comentarios!"
-
-contact:
-    email: "Correo electrónico"
-    message: "Mensaje"
-    send: "Enviar"
-    thank_you: "¡Gracias por contactarnos!"
-    title: "Contacto"
-
-compare_players:
-    comparison: "Comparación"
-    head_to_head: "Enfrentamiento directo"
-    select_players: "Seleccionar jugadores para comparar"
-    statistics: "Estadísticas"
-    title: "Comparación de jugadores"
-
-recent_activity:
-    latest_times: "Últimos tiempos"
-    no_activity: "Sin actividad reciente"
-    title: "Actividad reciente"
-
-notifications:
-    title: "Notificaciones"
-    solved_puzzle_with_time: "en"
-    solved_puzzle: "resolvió rompecabezas"
-    no_notifications: "No tienes notificaciones hasta ahora. Suscríbete a algunos jugadores añadiéndolos a favoritos."
-    mark_all_as_read: "Marcar todo como leído"
-    mark_as_read: "Marcar como leído"
-    new_notification: "Nueva notificación"
-    lending:
-        borrowed_from_you: "%borrower% tomó prestado tu puzzle"
-        lent_to_you: "%owner% te prestó un puzzle"
-        passed_from_you: "El puzzle fue pasado a %to%"
-        passed_to_you: "%from% te pasó un puzzle"
-        returned_to_you: "%holder% devolvió tu puzzle"
-        taken_back: "%owner% recuperó el puzzle"
-        your_puzzle_passed: "Tu puzzle fue pasado de %from% a %to%"
-    puzzle_report:
-        change_approved: "Tus cambios sugeridos fueron aprobados"
-        change_rejected: "Tus cambios sugeridos fueron rechazados"
-        merge_approved: "Tu reporte de duplicado fue aprobado y los puzzles fueron fusionados"
-        merge_rejected: "Tu reporte de duplicado fue rechazado"
-
-badges:
-    title: "Insignias"
-    my_title: "Mis insignias"
-    badge:
-        supporter: "Partidario"
-
-
-scan:
-    meta:
-        title: "Lector de código de barras"
-    title: "Lector de código de barras"
-    beta_info: "Esta es una característica completamente nueva, todavía la estamos probando y trabajando en mejoras. ¡Estaremos muy agradecidos por cualquier comentario!"
-    instructions: "Apunta tu cámara al EAN (código de barras) en la caja e intenta tu suerte - si el rompecabezas está en la base de datos, lo encontraremos ;-)."
-    not_found: "Desafortunadamente el rompecabezas con EAN %code% no está en nuestra base de datos. Siéntete libre de rastrear el tiempo y añadirlos, estaremos agradecidos por eso."
-    puzzle_ean_barcode: "Escanear código EAN del puzzle"
-    puzzle_form:
-        not_found: "Puzzle con EAN %ean% no encontrado. Intente buscar por nombre o añádalo como nuevo puzzle."
-        multiple_brands: "Se encontraron varias marcas para el EAN %ean%. Por favor, seleccione una de la lista."
-        multiple_puzzles: "Se encontraron varios puzzles para el EAN %ean%. Por favor, seleccione uno de la lista."
-
-wjpc2024:
-    meta:
-        title: "WJPC 2024"
-    title: "WJPC 2024"
-    intro: "¡El evento de Speed Puzzling del año está aquí! Te estamos trayendo algunas estadísticas para que puedas conocer contra quién estarás compitiendo. Todas las estadísticas presentadas son rompecabezas de 500 piezas de los últimos 3 meses solamente, para asegurar que sean lo más relevantes posible. Si has resuelto el mismo rompecabezas múltiples veces, ¡tomamos solo el más rápido! Conecta tu perfil con tu cuenta WJPC en <a href=\"%link%\">la configuración de tu perfil</a>. Solo para competidores en la categoría individual."
-    connected_participants: "Participantes conectados"
-    not_connected_participants: "Participantes"
-    puzzle_solved: "Rompecabezas resueltos"
-    average: "Prom"
-    fastest: "Mejor"
-    no_participant_matches_filters: "Ningún participante coincide con la consulta de búsqueda"
-    filter_by_name: "Buscar por nombre"
-
-competition_connection:
-    meta:
-        title: "Conexión de cuenta %competitionName%"
-    title: "Conexión de cuenta %competitionName%"
-    back_to_competition: "Volver a la competencia"
-    description: "Conecta tu cuenta de competencia con el perfil de MySpeedPuzzling y descubre cómo te encuentras contra otros participantes. Para hacer las estadísticas relevantes, solo tomamos rompecabezas de 500 piezas de los últimos 3 meses en las estadísticas. ¡Si has resuelto el mismo rompecabezas múltiples veces, tomamos solo el más rápido!"
-
-global_modal:
-    title: "¡El Marketplace ya está aquí!"
-    text: |
-        <p>¿Alguna vez quisiste comprar, vender o intercambiar un puzzle? ¡Ahora es más fácil que nunca!</p>
-        <p>Explora el nuevo <strong>Marketplace</strong> — publica tus puzzles a la venta, encuentra grandes ofertas y chatea directamente con otros puzzleros en la plataforma. ¡Nos encantaría conocer tu opinión!</p>
-    button_cta: "Explorar Marketplace"
-    button_dismiss: "Quizás después"
-
-added_time_recap:
-    title: "¡Excelente tiempo, sigue así!"
-    add_time: "Añadir nuevo tiempo"
-    the_same_puzzle: "Para el mismo rompecabezas"
-    puzzle_detail: "Resultados"
-
-global_search:
-    info: "¡Bienvenida nueva búsqueda! Busca por nombre del puzzle, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
-    no_player_found: "No se encontró jugador :-("
-    no_puzzle_found: "No se encontró puzzle :-("
-
-added_tracking_recap:
-    meta:
-        title: "Puzzle registrado"
-    title: "¡Puzzle registrado con éxito!"
-    add_another: "Registrar otro puzzle"
-    the_same_puzzle: "Registrar el mismo puzzle de nuevo"
-    puzzle_detail: "Ver detalle del puzzle"
-    manufacturer: "Fabricante"
-    pieces: "Piezas"
-    group_puzzlers: "Armado con"
-
-membership:
-    meta:
-        title: "Membresía"
-        description: ""
-    title: "Membresía"
-    intro_text: "¡La membresía es una forma de obtener acceso a características exclusivas para verdaderos entusiastas de los rompecabezas! Al suscribirte a una membresía, también apoyas el desarrollo de la plataforma y nos ayudas a lograr nuestra visión de crear la mejor plataforma comunitaria de rompecabezas del mundo."
-    redirect_to_stripe: "Serás redirigido a la pasarela de pago de Stripe."
-    subscription_active: "Suscripción activa, ¡gracias por ser parte de la comunidad!"
-    membership_active: "Membresía activa, ¡gracias por ser parte de la comunidad!"
-    membership_inactive: "La membresía no está activa"
-    membership_cancelling: "La suscripción ha sido cancelada, la membresía está activa hasta el final del período"
-    free_membership_active: "Membresía gratuita activa (sin suscripción)"
-    membership_expired: "Tu membresía expiró"
-    next_payment: "Próximo pago"
-    membership_active_until: "Membresía activa hasta"
-    payment_portal_button: "Gestionar suscripción (portal de pago)"
-    description_title: "¿Cuáles son los beneficios de la membresía?"
-    choose_your_subscription: "Elige tu suscripción"
-    subscribe_for_monthly: "Mensual por"
-    subscribe_for_yearly: "Anual por"
-    price_per_month: "€%price% / mes"
-    price_per_year: "€%price% / año"
-    billing_portal_info: "En el portal de pago, puedes actualizar tus detalles de pago, cancelar tu membresía o descargar facturas o recibos."
-    manage_in_app_store: "Administrar en App Store"
-    manage_in_play_store: "Administrar en Play Store"
-    manage_subscription_ios_info: "Administre su suscripción en Ajustes de su iPhone/iPad en ID de Apple > Suscripciones."
-    manage_subscription_android_info: "Administre su suscripción en Google Play Store en Pagos y suscripciones."
-    purchase_via_app_store: "El pago se procesará a través de Apple App Store."
-    purchase_via_play_store: "El pago se procesará a través de Google Play Store."
-    full_description: |
-        <ul>
-            <li>Un gran agradecimiento por apoyar el desarrollo de la plataforma</li>
-            <li>Tu propio código de jugador personalizado (puedes cambiarlo en tu perfil)</li>
-            <li>Insignia de membresía</li>
-            <li>Filtrado por primeros intentos</li>
-            <li>Filtrado por país</li>
-            <li>Gráficos</li>
-            <li>Escáner de código de barras</li>
-            <li>Estadísticas detalladas</li>
-        </ul>
-        
-        <h3 class="h4">¿Qué puedes esperar pronto?</h3>
-        <ul>
-            <li>Reportes mensuales y anuales <small class="ms-1 text-muted">(pronto)</small></li>
-            <li>Perfil público mypuzzler.com <small class="ms-1 text-muted">(pronto)</small></li>
-            <li class="mt-2">Desafíos especiales exclusivamente para miembros</li>
-            <li>Préstamo y venta de rompecabezas entre miembros</li>
-            <li>Gamificación - ganar experiencia y niveles</li>
-            <li>Insignias por varios logros</li>
-            <li>&hellip; y mucho más, ¡esto es solo una pequeña vista previa de lo que estamos preparando para ti!</li>
-        </ul>
-    members_exclusive_button: "Exclusivo para miembros"
-    members_exclusive_short: "Miembros"
-    modal:
-        title: "Característica Exclusiva para Miembros"
-        cta: "Convertirse en miembro"
-        no_thanks: "¡No, gracias!"
-        text: |
-            <p>Desbloquea el acceso a esta y otras características diseñadas para mejorar tu experiencia.</p>
-            <p>¡Conviértete en miembro hoy, apoya el desarrollo de la plataforma y disfruta de características exclusivas que hacen tu viaje de speed puzzling aún más emocionante!</p>
-
-membership_payment_cancelled:
-    meta:
-        title: "Pago Cancelado"
-        description: ""
-    title: "Pago Cancelado"
-    text: "El proceso de pago fue interrumpido, muy probablemente por ti :-)."
-    membership_link: "Volver al resumen de membresía"
-    payment_link: "Reintentar pago"
-
-terms_of_service:
-    meta:
-        title: "Términos de Servicio"
-        description: "Términos de Servicio para la plataforma MySpeedPuzzling.com"
-    content: |
-        <h1>Términos de Servicio</h1>
-        <p>Estos Términos de Servicio rigen la provisión de suscripción (membresía) en la plataforma MySpeedPuzzling.com. Queremos que tengas toda la información importante en un lugar para que puedas revisarla fácilmente.</p>
-        <h2>1. Quiénes Somos</h2>
-        <ul>
-            <li><strong>Proveedor:</strong> Simona Mikešová (Propietario Único)</li>
-            <li><strong>Dirección:</strong> Františka Formana 237/31, 700 30 Ostrava, República Checa</li>
-            <li><strong>No. de ID:</strong> 06868878</li>
-            <li><strong>Email de Contacto:</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
-        </ul>
-        <p>Como operador de la plataforma MySpeedPuzzling.com, somos tu socio contractual para comprar y usar la membresía paga.</p>
-        <h2>2. Cómo Funciona el Servicio</h2>
-        <p>MySpeedPuzzling.com es una plataforma en línea para entusiastas de los rompecabezas. Ofrecemos varias características, mientras que las partes premium de la aplicación son accesibles solo para usuarios con una membresía activa.</p>
-        <ul>
-            <li>La membresía es un producto virtual (digital) – una vez que pagas, inmediatamente obtienes acceso a características exclusivas.</li>
-            <li>Dado que es un servicio electrónico, no se aplican condiciones de entrega física o envío.</li>
-            <li>El contenido y las características disponibles como parte de la membresía pueden cambiar con el tiempo – las estamos mejorando continuamente.</li>
-        </ul>
-        <h2>3. Pedido y Conclusión del Contrato</h2>
-        <p>Si decides comprar una membresía paga, simplemente elige la suscripción mensual en la sección "Membresía". Luego serás redirigido a la pasarela de pago de Stripe.</p>
-        <ul>
-            <li><strong>Detalles de Pago:</strong> Todos los detalles de pago son procesados vía Stripe usando comunicación encriptada – no tenemos acceso a esta información.</li>
-            <li><strong>Confirmación de Pedido:</strong> El contrato entre tú y nosotros se concluye en el momento del pago exitoso. Tu membresía se activa inmediatamente después.</li>
-            <li><strong>Factura:</strong> Puedes descargar la factura de tu suscripción paga directamente desde el portal de pago de Stripe.</li>
-            <li><strong>Gestión Adicional de Membresía:</strong> Los cambios al método de pago, cancelación o extensión también se gestionan a través del portal de pago de Stripe, accesible vía la sección "Membresía" en tu cuenta.</li>
-        </ul>
-        <h2>4. Precios y Términos de Pago</h2>
-        <ul>
-            <li><strong>Precio de Membresía:</strong> Todos los precios están indicados incluyendo IVA. Dependiendo de la moneda que uses para el pago, los precios pueden variar ligeramente.</li>
-            <li><strong>Métodos de Pago:</strong> Stripe soporta pagos con tarjeta, Apple Pay y Link (otros métodos pueden añadirse con el tiempo).</li>
-            <li><strong>Pago Recurrente:</strong> Esta es una suscripción mensual, lo que significa que el pago se repite cada mes hasta que canceles tu membresía.</li>
-        </ul>
-        <h2>5. Cancelación y Reembolsos</h2>
-        <ul>
-            <li><strong>Puedes cancelar tu membresía en cualquier momento:</strong> Después de la cancelación, mantendrás el acceso hasta el final del período prepagado. No se tomarán más pagos una vez que termine ese período.</li>
-            <li><strong>Reembolsos:</strong> Si solicitas un reembolso para el período de facturación actual, reembolsaremos el pago usando el mismo método que usaste para pagar, y tu membresía terminará inmediatamente.</li>
-            <li><strong>Velocidad de Procesamiento:</strong> Procesamos reembolsos y reclamos prontamente (usualmente dentro del siguiente día hábil), no más tarde de 30 días como lo requiere la ley.</li>
-            <li><strong>Costos de Reembolso:</strong> Cubrimos cualquier tarifa por reembolsos – queremos que estés satisfecho.</li>
-        </ul>
-        <h2>6. Reclamos</h2>
-        <p>Si sientes que el servicio no ha sido proporcionado con la calidad apropiada o experimentas problemas técnicos, por favor contáctanos en
-            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.
-        </p>
-        <ul>
-            <li>Manejamos reclamos tan rápido como sea posible, típicamente dentro de 1–2 días hábiles.</li>
-            <li>El tiempo máximo de resolución para reclamos es de 30 días.</li>
-        </ul>
-        <h2>7. Protección de Datos Personales</h2>
-        <p>Proporcionamos información sobre el procesamiento de datos personales en <a href="%privacyPolicyLink%">una página separada</a> dedicada a la protección de privacidad. Ahí encontrarás todos los detalles sobre qué datos recolectamos, por qué los procesamos y cómo los manejamos.</p>
-        <h2>8. Disposiciones Finales</h2>
-        <ul>
-            <li>Estos términos se rigen por la ley checa, y cualquier disputa será resuelta por los tribunales competentes de la República Checa.</li>
-            <li>Creemos que no surgirán disputas, pero si surgen, puedes contactar a la Autoridad de Inspección Comercial Checa (ČOI) o usar la plataforma europea de Resolución de Disputas en Línea (ODR).</li>
-            <li>La versión actual de los términos siempre está disponible en MySpeedPuzzling.com. Nos reservamos el derecho de hacer cambios razonables para mantenerlos en línea con la legislación o necesidades operacionales.</li>
-        </ul>
-        <p><em><small>Última actualización: Enero 2025</small></em></p>
-
-privacy_policy:
-    meta:
-        title: "Política de Privacidad"
-        description: "Política de Privacidad de la plataforma MySpeedPuzzling.com"
-    content: |
-        <h1>Política de Privacidad</h1>
-        <p>El propósito de este documento es informarte sobre cómo manejamos tus datos personales en MySpeedPuzzling.com. Valoramos mucho tu confianza y privacidad.</p>
-        <h2>1. Nombre Público</h2>
-        <p>Al registrarte en MySpeedPuzzling.com, puedes elegir un <strong>nombre público</strong> – puede ser un apodo, abreviación o iniciales. Este nombre se muestra a todos los visitantes del sitio web. Por favor ten cuidado al elegir un nombre si deseas mantenerte más anónimo.</p>
-        <h2>2. Email</h2>
-        <ul>
-            <li>Proporcionas tu dirección de email para iniciar sesión y comunicarte con los administradores de la plataforma.</li>
-            <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y no es accesible para terceros.</li>
-            <li>Tu email se almacena en una base de datos encriptada, y solo los autores de la aplicación tienen acceso a él.</li>
-            <li>No compartimos tu dirección de email con ninguna otra entidad.</li>
-        </ul>
-        <h2>3. Contraseña</h2>
-        <ul>
-            <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – esta es una encriptación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>
-            <li>Cuando inicias sesión, la información que ingresas se compara contra el hash almacenado en la base de datos.</li>
-            <li>Por razones de seguridad, nunca enviamos por email la contraseña original; si es necesario, puedes restablecerla usando el proceso "Olvidé mi Contraseña".</li>
-        </ul>
-        <h2>4. Información Pública Opcional</h2>
-        <p>Los usuarios tienen la opción de proporcionar <strong>información pública</strong> adicional en su perfil (ej., ciudad, país, enlaces de redes sociales, descripción, avatar) para una mejor interacción comunitaria.</p>
-        <ul>
-            <li>Esta información es visible para todos los visitantes y <strong>no se considera</strong> datos personales sensibles.</li>
-            <li>Serás notificado de que esta información es pública al completarla.</li>
-            <li>Sin embargo, estos datos también se almacenan en nuestra base de datos encriptada.</li>
-        </ul>
-        <h2>5. Información de Pago</h2>
-        <ul>
-            <li>La plataforma MySpeedPuzzling.com <strong>no recolecta ningún dato sobre métodos de pago</strong> – todos los pagos son procesados exclusivamente a través de la compañía asociada Stripe.</li>
-            <li>Nunca tenemos acceso a los detalles de tu tarjeta de pago, información de cuenta bancaria o cualquier otro dato financiero.</li>
-        </ul>
-        <h2>6. Seguridad y Privacidad</h2>
-        <ul>
-            <li>La seguridad de nuestros usuarios es nuestra prioridad – los servidores y bases de datos están protegidos contra acceso no autorizado, filtraciones de datos y otras amenazas cibernéticas.</li>
-            <li>Tus datos personales (ej., email o información de perfil opcional) siempre están encriptados, y solo los autores de la aplicación pueden acceder a ellos.</li>
-            <li>Mantenemos todas las medidas de seguridad estándar y trabajamos continuamente para mejorar nuestra seguridad.</li>
-        </ul>
-        <p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
-        <p><em><small>Última actualización: Enero 2025</small></em></p>
-
-countdown:
-    days: "días"
-    hours: "horas"
-    minutes: "mins"
-    seconds: "segs"
-
-blog:
-    outage-2025-02-17:
-        title: "La Mayor Interrupción en la Historia de MySpeedPuzzling"
-        content: |
-            <h2 class="h5">El 17 de febrero, experimentamos la interrupción más larga en la historia de MySpeedPuzzling ...</h2>
-            <h4 class="h6">¡Antes que nada, quiero agradecerles mucho a todos por su paciencia y confianza! ¡Créanme, esas 7 horas cuando sabíamos que MSP no estaba funcionando fueron extremadamente estresantes para nosotros!</h4>
-            <p>Hoy, tuvimos una interrupción de casi 10 horas de toda la plataforma. Es la interrupción más larga en la historia de MySpeedPuzzling. No fue nuestra culpa... ¿o sí lo fue?</p>
-            <p>Porque nos esforzamos por ser 100% transparentes, aquí tienes un relato paso a paso de lo que pasó.</p>
-            <p>Me fui a la cama alrededor de la 1:30 AM (desafortunadamente, justo antes de que todo se viniera abajo), habiendo acabado de terminar otra nueva característica para MySpeedPuzzling. Alrededor de las 5 AM, cuando uno de nuestros hijos se levantó para ir al baño, Simona automáticamente revisó las notificaciones en su teléfono—a menudo mira quién publicó nuevos tiempos y qué tan rápido lograron resolver el rompecabezas. Sí, incluso a las 5 de la mañana... Pero fue recibida por una sorpresa desagradable: ¡la página no cargaba! Me empujó, diciendo: "¡MySpeedPuzzling no está funcionando!" Escuchar eso me despertó inmediatamente. Tomé mi teléfono, lo intenté, ¡y realmente no estaba funcionando! Tomé mi laptop para examinar las cosas más de cerca. A la 1:59 AM, habíamos recibido una notificación de monitoreo automatizada, lo cual usualmente no son buenas noticias. Desafortunadamente, me la perdí porque me había ido a la cama justo antes. Además, el cambio que había hecho no era de ninguna manera destructivo y no podría haber causado tal interrupción. Y así comenzó nuestra interrupción del lunes, que duró casi hasta el mediodía.</p>
-            <h5>Detalles técnicos para geeks:</h5>
-            <p><em>(esto te dará un vistazo a nuestra infraestructura de servidor)</em></p>
-            <p>Hace una semana, instalé un servidor de correo en nuestro servidor físico de MySpeedPuzzling—esto era preparación para migrar de Auth0 a nuestro propio servicio de autenticación, además de un boletín y otras características—enviar decenas de miles de emails al mes no es solo un paseo por el parque, y necesitamos estar listos para ello. Como resultó, ese servidor de correo fue efectivamente el culpable, pero no nos adelantemos.</p>
-            <p>Lo primero que descubrí fue que los puertos 443 y 80 estaban agotando el tiempo. El servidor aloja múltiples aplicaciones, y esto afectó a todas ellas, no solo MSP—lo cual fue desagradable. Otro hallazgo más preocupante fue que no podía acceder al servidor vía SSH—el puerto también agotaba el tiempo.</p>
-            <p>¿Qué ahora? El pánico se instaló, y le dije a Simona que esto era un gran problema.</p>
-            <p>Inmediatamente notifiqué al proveedor del servidor que este servidor en particular no estaba respondiendo—en ese momento, parecía un problema claro de su parte porque el servidor no respondía para nada, mientras que otros servidores en el mismo centro de datos todavía eran alcanzables. Sospeché un problema de hardware, tal vez una tarjeta de red mala o un cable suelto (esto me ha pasado antes…), o una prohibición del proveedor debido a actividad sospechosa.</p>
-            <p>El proveedor respondió en unos minutos diciendo que no veían nada de su lado. Revisaron el centro de datos; el servidor estaba funcionando y respondiendo—desde su perspectiva, todo estaba bien. Genial, así que no veían ningún problema, pero el servidor MSP todavía era inalcanzable y no podía iniciar sesión…</p>
-            <p>Rápidamente arranqué un sistema de rescate junto al servidor, desde el cual monté exitosamente el sistema de archivos del servidor MSP, y comencé la búsqueda de aguja en un pajar. Sabía que la interrupción pasó alrededor de 1:58–1:59 AM. Busqué cualquier archivo cambiado en ese momento, en caso de que hubiéramos sido hackeados. No encontré nada. Nada de eso tenía sentido, y no pude detectar nada. Alrededor de las 8:00 AM, un colega del trabajo se unió a mí para ayudar. Juntos, descubrimos que SMTP en el puerto 25 (usado para enviar emails) estaba funcionando y no agotando el tiempo—incluso pude enviarme un email a mí mismo, y fue realmente entregado.</p>
-            <p>Eso solo nos confundió más—el servidor estaba funcionando y operacional, era "solo" inalcanzable, y los puertos 80 y 443 también estaban bloqueados. Para entonces, estábamos casi seguros de que había algún problema con la configuración de red—todo todavía se veía "normal," ¡pero nuestro principal sospechoso era el servidor de correo!</p>
-            <p>Y efectivamente, ese era el caso. Todo en el servidor funciona en contenedores Docker. Cualquiera que haya usado Docker sabe que su red puede ser complicada. El servidor de correo que elegí también incluye fail2ban, que está diseñado para bloquear el acceso desde direcciones IP sospechosas—por ejemplo, si hay demasiados intentos de inicio de sesión fallidos u otras amenazas. Saltaré unas dos horas más de diagnóstico—pero esencialmente, fail2ban no estaba configurado apropiadamente (se dejó en su configuración predeterminada), y combinado con UFW, de alguna manera misteriosamente bloqueó todo el tráfico en los puertos 22, 80 y 443—aunque todavía no entendemos completamente por qué pasó de esa manera.</p>
-            <p>Una vez que supe la causa, la solución final no tomó mucho tiempo—rápidamente desinstalar el servidor de correo (incluyendo UFW), limpiar iptables, re-añadir las reglas de red de Docker, "rebotar" todo unas pocas veces, desconectar el sistema de rescate, reiniciar todo, y… finalmente, después de cinco horas agonizantes maldiciendo al monitor, MSP estaba de vuelta a la normalidad…</p>
-            <p>Salté algunos detalles innecesarios—como cómo cambié DNS a un proxy de CloudFlare en cinco minutos mientras tanto y configuré un worker de Node.js para mostrar un mensaje sobre la interrupción—solo para que no hubiera una página en blanco…</p>
-            <p>Por ahora, estoy dejando el trabajo del servidor de correo a un lado, y sé que estará "a un lado," en un servidor separado, lejos de MSP. Por un lado, fue interesante probar nuestro proceso de "recuperación de desastres"—en un punto estaba tan desesperado que estaba listo para dejar que este servidor se quemara en el infierno, girar todo en uno nuevo, y solo actualizar los registros DNS… Afortunadamente, eso resultó innecesario al final.</p>
-            <p>PS. Realmente se rompió "por sí solo", gracias al servidor de correo, después de una semana sin ninguna intervención humana… Eso es bastante algo…</p>
-            <p>PS2. Eres valiente si has leído hasta el final :-).</p>
-
-collections:
-    add_puzzle_here:
-        button: "Añadir puzzle"
-    add_puzzle_form:
-        title: "Añadir puzzle a la colección"
-        button: "Añadir puzzle"
-        description: "Seleccione un puzzle existente o añada uno nuevo a su colección."
-        submit: "Añadir a la colección"
-        success: "El puzzle se ha añadido correctamente a la colección."
-    comment_help: "Añada un comentario opcional sobre este puzzle en su colección."
-    add_to_collection: "Añadir a la colección"
-    add_puzzle: "Añadir puzzle a la colección"
-    moving_from: "Moviendo de %collection%"
-    private: "Privada"
-    change_to_public_hint: "Cambiar a pública para compartir"
-    added_on: "Añadido el %date%"
-    already_in_system: "Puzzle ya en tu colección"
-    already_in_system_message: "Este puzzle ya está en tu Colección de Puzzles. ¿Quieres organizar tus puzzles en múltiples colecciones? ¡Desbloquea esta función con la membresía!"
-    back_to_library: "Biblioteca de puzzles"
-    collection_not_found: "Colección no encontrada"
-    confirm_remove: "¿Estás seguro de que quieres eliminar este puzzle de la colección?"
-    copy_puzzle: "Copiar puzzle a la colección"
-    copy_puzzle_submit: "Copiar"
-    copy_to_collection: "Copiar a colección"
-    create:
-        button: "Crear colección"
-        meta:
-            title: "Crear colección"
-        submit: "Crear"
-        title: "Crear nueva colección"
-    delete:
-        button: "Eliminar"
-        confirm:
-            button: "Eliminar colección"
-            message: "¿Realmente quieres eliminar la colección %name%? Esta acción es irreversible y también eliminará todos los puzzles de esta colección."
-            title: "Eliminar colección"
-    edit:
-        button: "Editar"
-        meta:
-            title: "Editar colección %name%"
-        submit: "Guardar cambios"
-        title: "Editar colección %name%"
-    edit_comment:
-        meta:
-            title: "Editar comentario - %name%"
-        submit: "Guardar"
-        title: "Editar comentario"
-    edit_system:
-        info: "Solo puedes cambiar la visibilidad de tu Colección de Puzzles. El nombre y la descripción no se pueden modificar."
-        meta:
-            title: "Editar colección de puzzles"
-        submit: "Guardar cambios"
-        title: "Editar colección de puzzles"
-    empty:
-        message: "Crea tu primera colección y comienza a organizar tus puzzles favoritos."
-        message_other: "%name% no tiene colecciones públicas."
-        title: "No tienes colecciones"
-        title_other: "Sin colecciones públicas"
-    flash:
-        comment_updated: "El comentario se ha actualizado correctamente."
-        created: "La colección se ha creado correctamente."
-        deleted: "La colección se ha eliminado correctamente."
-        login_required_add: "Debes iniciar sesión para añadir puzzles a las colecciones."
-        login_required_copy: "Debes iniciar sesión para copiar puzzles a las colecciones."
-        login_required_move: "Debes iniciar sesión para mover puzzles entre colecciones."
-        membership_required: "Crear colecciones es una función premium. ¡Obtén la membresía para organizar tus puzzles en colecciones ilimitadas!"
-        puzzle_added: "El puzzle se ha añadido correctamente a la colección."
-        puzzle_removed: "El puzzle se ha eliminado de la colección."
-        system_updated: "La visibilidad de la colección de puzzles se ha actualizado correctamente."
-        updated: "La colección se ha actualizado correctamente."
-        puzzle_moved: "El puzzle se ha movido correctamente a la colección."
-    form:
-        description: "Descripción"
-        name: "Nombre"
-        visibility_help: "Las colecciones públicas son visibles para todos los usuarios, las privadas solo para ti."
-    items_count: "%count% puzzles"
-    membership_required:
-        help_text: "¿Quieres organizar puzzles en múltiples colecciones?"
-        message: "¡Crea colecciones ilimitadas para organizar tus puzzles con la membresía!"
-        title: "Desbloquea colecciones ilimitadas"
-        toast: "Crear colecciones requiere una membresía activa."
-        unlock_link: "Desbloquear con membresía"
-    meta:
-        title: "Biblioteca de puzzles"
-    move_puzzle: "Mover puzzle a la colección"
-    move_puzzle_submit: "Mover"
-    move_to_collection: "Mover a colección"
-    no_copy_target: "Sin colecciones disponibles"
-    no_copy_target_message: "No hay otras colecciones a las que copiar este puzzle. Crea colecciones personalizadas para organizar tus puzzles."
-    no_move_target: "Sin colecciones disponibles"
-    no_move_target_message: "No hay otras colecciones a las que mover este puzzle. Crea colecciones personalizadas para organizar tus puzzles."
-    no_puzzles: "No hay puzzles en esta colección"
-    no_puzzles_description: "Esta colección está vacía. ¡Añade algunos puzzles para empezar!"
-    private_page:
-        title: "Colección privada"
-        message: "La colección de %name% es privada y no se puede ver."
-    private_collection: "Colección privada"
-    private_collection_message: "La colección \"%collection%\" de %player% es privada y no se puede ver."
-    public: "Pública"
-    remove: "Eliminar"
-    remove_from: "Eliminar de %collection%"
-    remove_puzzle: "Eliminar de la colección"
-    select_collection_help: "Elige una colección o deja vacío para añadir a tu Colección de Puzzles predeterminada"
-    system_name: "Colección de Puzzles"
-    title: "Biblioteca de puzzles"
-    title_other: "Biblioteca de puzzles de %name%"
-    visibility:
-        private: "Privada"
-        public: "Pública"
-
-unsolved_puzzles:
-    description: "Puzzles en tu colección que aún no has resuelto"
-    description_other: "Puzzles que %name% posee pero aún no ha resuelto"
-    edit:
-        meta:
-            title: "Editar visibilidad de puzzles sin resolver"
-        submit: "Guardar cambios"
-        title: "Editar visibilidad de puzzles sin resolver"
-    empty:
-        message: "¡Todos los puzzles de tu colección han sido resueltos!"
-        title: "Sin puzzles sin resolver"
-    flash:
-        updated: "La visibilidad de los puzzles sin resolver se actualizó correctamente."
-    form:
-        visibility_help: "La lista pública de puzzles sin resolver es visible para todos los usuarios, la privada solo para ti."
-    items_count: "%count% puzzles"
-    meta:
-        title: "Puzzles sin resolver"
-    name: "Puzzles sin resolver"
-    private: "Puzzles sin resolver privados"
-    private_message: "La lista de puzzles sin resolver \"%collection%\" de %player% es privada y no se puede ver."
-    title: "Puzzles sin resolver"
-    title_other: "Puzzles sin resolver de %name%"
-
-wish_list:
-    name: "Lista de Deseos"
-    meta:
-        title: "Lista de Deseos"
-    title: "Lista de Deseos"
-    title_other: "Lista de Deseos de %name%"
-    description: "Puzzles que quieres conseguir"
-    description_other: "Puzzles que %name% quiere conseguir"
-    items_count: "%count% puzzles"
-    empty:
-        title: "Tu lista de deseos está vacía"
-        message: "¡Añade puzzles que quieras conseguir a tu lista de deseos!"
-        title_other: "Lista de deseos vacía"
-        message_other: "La lista de deseos de %name% está vacía."
-    edit:
-        title: "Editar Visibilidad de Lista de Deseos"
-        meta:
-            title: "Editar Visibilidad de Lista de Deseos"
-        submit: "Guardar Cambios"
-    form:
-        visibility_help: "La lista de deseos pública es visible para todos los usuarios, la privada solo para ti."
-        remove_on_add: "Eliminar automáticamente de la lista de deseos"
-        remove_on_add_help: "Cuando esté marcado, este puzzle se eliminará automáticamente de tu lista de deseos cuando lo añadas a cualquier colección, añadas un tiempo de resolución o lo tomes prestado."
-    flash:
-        updated: "La visibilidad de la lista de deseos se actualizó correctamente."
-        added: "El puzzle fue añadido a tu lista de deseos."
-        removed: "El puzzle fue eliminado de tu lista de deseos."
-        login_required: "Debes iniciar sesión para gestionar tu lista de deseos."
-    private: "Lista de Deseos Privada"
-    private_message: "La lista de deseos de %player% es privada y no se puede ver."
-    on_wishlist: "En la Lista de Deseos"
-    add:
-        title: "Añadir a Lista de Deseos"
-        button: "Añadir a Lista de Deseos"
-        success: "El puzzle fue añadido a tu lista de deseos."
-    remove:
-        button: "Eliminar de Lista de Deseos"
-        success: "El puzzle fue eliminado de tu lista de deseos."
-    already_in_list: "Este puzzle ya está en tu lista de deseos."
-    login_required: "Debes iniciar sesión para añadir puzzles a tu lista de deseos."
-    auto_remove_enabled: "Eliminación automática habilitada"
-
-sell_swap_list:
-    name: "Lista de Venta/Intercambio"
-    meta:
-        title: "Lista de Venta/Intercambio"
-    title: "Lista de Venta/Intercambio"
-    title_other: "Lista de Venta/Intercambio de %name%"
-    description: "Puzzles en venta o para intercambio"
-    description_other: "Puzzles que %name% está vendiendo o intercambiando"
-    not_in_collection: "Añadir a la colección primero"
-    items_count: "%count% puzzles"
-    empty:
-        title: "Tu lista de venta/intercambio está vacía"
-        message: "¡Añade puzzles que quieras vender o intercambiar!"
-        title_other: "Lista de venta/intercambio vacía"
-        message_other: "La lista de venta/intercambio de %name% está vacía."
-    edit_settings:
-        title: "Editar Configuración de Lista de Venta/Intercambio"
-        meta:
-            title: "Editar Configuración de Lista de Venta/Intercambio"
-        submit: "Guardar Cambios"
-    edit_item:
-        title: "Editar Artículo"
-        meta:
-            title: "Editar Artículo de Venta/Intercambio"
-        submit: "Guardar Cambios"
-    settings:
-        title: "Configuración de Lista de Venta/Intercambio"
-        description: "Descripción"
-        description_placeholder: "Cuéntale a los compradores sobre tus políticas de listado, métodos de pago preferidos, etc."
-        description_help: "Cuéntale a los compradores sobre tus políticas de listado, métodos de pago preferidos, etc."
-        currency: "Moneda"
-        currency_placeholder: "Selecciona moneda..."
-        currency_custom: "Moneda personalizada"
-        custom_currency: "Moneda personalizada"
-        currency_custom_placeholder: "ej. USD, GBP, CHF..."
-        custom_currency_placeholder: "ej. USD, GBP, CHF..."
-        custom_currency_help: "Usa esto si tu moneda no está en la lista anterior."
-        shipping_info: "Información de Envío"
-        shipping_info_placeholder: "Describe tus opciones de envío y costos..."
-        shipping_info_help: "Describe tus opciones de envío y costos..."
-        contact_info: "Información de Contacto"
-        contact_info_placeholder: "p. ej. email, teléfono, Instagram..."
-        contact_info_help: "Cuando deseas que te contacten fuera de la plataforma"
-        contact_info_warning: "Tu información de contacto será públicamente visible. Solo comparte lo que te resulte cómodo."
-    form:
-        listing_type: "Tipo de Anuncio"
-        price: "Precio"
-        price_help: "Deja vacío si prefieres discutir el precio o para artículos solo de intercambio. Puedes establecer tu moneda en la configuración de la lista de venta/intercambio."
-        condition: "Condición"
-        condition_placeholder: "Selecciona condición..."
-        comment: "Comentario"
-        comment_placeholder: "Detalles adicionales sobre este puzzle..."
-    listing_type:
-        swap: "Intercambio"
-        sell: "Venta"
-        both: "Venta o Intercambio"
-        free: "Gratis"
-    condition:
-        like_new: "Como Nuevo"
-        normal: "Normal"
-        not_so_good: "No Tan Bueno"
-        missing_pieces: "Piezas Faltantes"
-    filter:
-        all_types: "Todos los Tipos"
-        min_price: "Precio Mín"
-        max_price: "Precio Máx"
-    add:
-        title: "Añadir a Lista de Venta/Intercambio"
-        button: "Añadir a Lista de Venta/Intercambio"
-        success: "El puzzle fue añadido a tu lista de venta/intercambio."
-    remove:
-        button: "Eliminar de Lista de Venta/Intercambio"
-        success: "El puzzle fue eliminado de tu lista de venta/intercambio."
-    already_in_list: "Este puzzle ya está en tu lista de venta/intercambio."
-    login_required: "Debes iniciar sesión para gestionar tu lista de venta/intercambio."
-    membership_required:
-        title: "Función Exclusiva para Miembros"
-        message: "La lista de venta/intercambio está disponible exclusivamente para miembros."
-    mark_sold:
-        title: "Marcar como Vendido/Intercambiado"
-        button: "Marcar como Vendido/Intercambiado"
-        confirm: "Confirmar"
-        warning: "Esto eliminará el puzzle de tu lista de venta/intercambio y todas tus colecciones."
-        buyer_input: "Comprador"
-        buyer_input_help: "Ingresa el código de jugador del comprador (ej. #ABC123) o nombre. Deja vacío si es desconocido."
-        buyer_input_placeholder: "#ABC123 o nombre..."
-        success: "El puzzle fue marcado como vendido/intercambiado y eliminado de tus colecciones."
-    back_to_list: "Volver a Lista de Venta/Intercambio"
-    flash:
-        updated: "La configuración de la lista de venta/intercambio se actualizó correctamente."
-        settings_updated: "La configuración de la lista de venta/intercambio se actualizó correctamente."
-        item_updated: "El artículo de la lista de venta/intercambio se actualizó correctamente."
-        added: "El puzzle fue añadido a tu lista de venta/intercambio."
-        removed: "El puzzle fue eliminado de tu lista de venta/intercambio."
-        login_required: "Debes iniciar sesión para gestionar tu lista de venta/intercambio."
-        validation_error: "Por favor corrige los errores e intenta de nuevo."
-    history:
-        title: "Historial de Vendidos/Intercambiados"
-        menu: "Historial"
-        button: "Historial"
-        empty: "Aún no hay artículos vendidos o intercambiados."
-        puzzle: "Puzzle"
-        type: "Tipo"
-        price: "Precio"
-        buyer: "Comprador"
-        date: "Fecha"
-        unknown_buyer: "Desconocido"
-
-puzzler_offers:
-    badge: "%count% ofertas"
-    title: "Ofertas de puzzlers"
-    meta:
-        description: "%count% puzzlers ofrecen %brand% %puzzle% para venta o intercambio"
-    column:
-        player: "Jugador"
-        type: "Tipo"
-        price: "Precio"
-        condition: "Condición"
-
-lend_borrow:
-    name: "Préstamo y Devolución"
-    title: "Préstamo y Devolución"
-    description: "Puzzles actualmente prestados o tomados prestados"
-    not_in_collection: "No está en tu colección"
-    lent_count: "%count% prestados"
-    borrowed_count: "%count% tomados prestados"
-    tab:
-        lent: "Prestados"
-        borrowed: "Tomados prestados"
-    lent_to: "Prestado a %name%"
-    borrowed_from: "De %name%"
-    view_holder: "Ver poseedor actual"
-    view_owner: "Ver propietario"
-    lent:
-        empty:
-            title: "Sin puzzles prestados"
-            message: "Aún no has prestado ningún puzzle. Usa el menú del puzzle para prestar puzzles a otros jugadores."
-            title_other: "Sin puzzles prestados"
-            message_other: "%name% no ha prestado ningún puzzle."
-    borrowed:
-        empty:
-            title: "Sin puzzles tomados prestados"
-            message: "No tienes ningún puzzle tomado prestado."
-            title_other: "Sin puzzles tomados prestados"
-            message_other: "%name% no ha tomado prestado ningún puzzle."
-    form:
-        borrower_code: "Código de jugador o nombre del prestatario"
-        borrower_code_help: "Para usuarios registrados usa #código (ej. #ABC123). Para personas no registradas simplemente ingresa su nombre."
-        borrower_code_placeholder: "#ABC123 o Juan Pérez"
-        owner_code: "Código de jugador o nombre del propietario"
-        owner_code_help: "Para usuarios registrados usa #código (ej. #ABC123). Para personas no registradas simplemente ingresa su nombre."
-        owner_code_placeholder: "#ABC123 o Juan Pérez"
-        notes: "Notas"
-        notes_placeholder: "Notas opcionales sobre este préstamo..."
-        new_holder_code: "Código de jugador o nombre del nuevo poseedor"
-        new_holder_code_help: "Para usuarios registrados usa #código (ej. #ABC123). Para personas no registradas simplemente ingresa su nombre."
-        new_holder_code_placeholder: "#ABC123 o Juan Pérez"
-    lend:
-        title: "Prestar Puzzle"
-        button: "Prestar a jugador"
-        description: "Presta este puzzle a otro jugador. Podrán pasarlo o devolvértelo."
-    borrow:
-        title: "Marcar como Tomado Prestado"
-        button: "Tomado prestado de"
-        description: "Marca este puzzle como tomado prestado de otro jugador."
-    pass:
-        title: "Pasar Puzzle"
-        button: "Pasar a otra persona"
-        description: "Pasa %puzzle% a otro jugador. El propietario aún podrá rastrearlo."
-    return:
-        title: "Devolver Puzzle"
-        button: "Devolver al propietario"
-        confirm_message: "¿Devolver %puzzle% a su propietario?"
-    membership_required:
-        title: "Función Exclusiva para Miembros"
-        message: "Prestar puzzles está disponible exclusivamente para miembros."
-    already_lent: "Este puzzle ya está prestado."
-    already_lent_short: "Ya prestado"
-    already_borrowed: "Este puzzle ya está en tu lista de tomados prestados."
-    already_borrowed_short: "Ya tomado prestado"
-    login_required: "Debes iniciar sesión para gestionar tu lista de préstamos."
-    edit_settings:
-        title: "Editar Configuración de Préstamo y Devolución"
-        meta:
-            title: "Editar Configuración de Préstamo y Devolución"
-        submit: "Guardar Cambios"
-    flash:
-        lent: "El puzzle fue prestado exitosamente."
-        passed: "El puzzle fue pasado exitosamente."
-        returned: "El puzzle fue devuelto exitosamente al propietario."
-        borrowed: "El puzzle fue marcado como tomado prestado."
-        settings_updated: "La configuración de Préstamo y Devolución se actualizó correctamente."
-        login_required: "Debes iniciar sesión para gestionar tu lista de préstamos."
-        validation_error: "Por favor corrige los errores e intenta de nuevo."
-        player_not_found: "Jugador no encontrado. Por favor verifica el código de jugador."
-        cannot_lend_to_self: "No puedes prestarte un puzzle a ti mismo."
-        cannot_borrow_from_self: "No puedes tomar prestado un puzzle de ti mismo."
-        cannot_pass_to_self: "No puede pasar un puzzle a sí mismo."
-
-status:
-    borrowed: "Prestado"
-    collection: "En colección"
-    for_sale: "En venta"
-    lent: "Prestado"
-    solved: "Resuelto"
-    unsolved: "Sin resolver"
-    wishlist: "Lista de deseos"
-
-solved_puzzles:
-    name: "Puzzles Resueltos"
-    meta:
-        title: "Puzzles Resueltos"
-    title: "Puzzles Resueltos"
-    title_other: "Puzzles Resueltos de %name%"
-    description: "Todos los puzzles que has completado"
-    description_other: "Todos los puzzles que %name% ha completado"
-    items_count: "%count% puzzles"
-    private: "Puzzles Resueltos Privados"
-    private_message: "La lista de puzzles resueltos \"%collection%\" de %player% es privada y no se puede ver."
-    empty:
-        title: "Sin puzzles resueltos"
-        message: "¡Empieza a resolver puzzles para verlos aquí!"
-        title_other: "Sin puzzles resueltos"
-        message_other: "%name% aún no ha resuelto ningún puzzle."
-    edit:
-        title: "Editar visibilidad de puzzles resueltos"
-        meta:
-            title: "Editar visibilidad de puzzles resueltos"
-        submit: "Guardar cambios"
-    form:
-        visibility_help: "La lista pública de puzzles resueltos es visible para todos, la privada solo para ti."
-    flash:
-        updated: "La visibilidad de los puzzles resueltos se actualizó correctamente."
-
-image_editor:
-    title: "Editar imagen"
-    rotate_left: "Girar a la izquierda"
-    rotate_right: "Girar a la derecha"
-    apply: "Aplicar"
-
-admin:
-    puzzle_change_request:
-        approved: "La solicitud de cambio ha sido aprobada y el puzzle actualizado."
-        rejected: "La solicitud de cambio ha sido rechazada."
-        rejection_reason_required: "Se requiere un motivo de rechazo."
-    puzzle_merge_request:
-        approved: "La solicitud de fusión ha sido aprobada. Los puzzles han sido fusionados."
-        rejected: "La solicitud de fusión ha sido rechazada."
-        rejection_reason_required: "Se requiere un motivo de rechazo."
-        validation_failed: "Se requiere el puzzle objetivo, nombre y cantidad de piezas."
-
-pending_proposals:
-    badge: "Propuesta Pendiente"
-    go_to_admin: "Ir a administración"
-    no_proposals: "No hay propuestas pendientes para este puzzle."
-    reported_by: "Reportado por"
-    title: "Propuestas Pendientes"
-    type:
-        change_request: "Solicitud de Cambio"
-        merge_request: "Solicitud de Fusión"
-
-puzzle_report:
-    back_to_puzzle: "Volver al puzzle"
-    dropdown:
-        suggest_change: "Sugerir un cambio"
-        suggest_change_description: "¿Datos faltantes/incorrectos o duplicado?"
-    flash:
-        changes_submitted: "Tus cambios sugeridos han sido enviados para revisión. ¡Gracias!"
-        duplicate_reported: "Tu reporte de duplicado ha sido enviado para revisión. ¡Gracias!"
-        login_required: "Por favor inicia sesión para sugerir cambios."
-        no_valid_duplicates: "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
-        pending_proposal_exists: "Ya existe una propuesta pendiente de revisión para este puzzle."
-        validation_error: "Por favor corrige los errores e intenta de nuevo."
-    form:
-        current_image: "Imagen Actual"
-        duplicate_url: "URL del Puzzle Duplicado"
-        duplicate_url_help: "Pega la URL del puzzle duplicado."
-        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
-        ean: "EAN / Código de barras"
-        ean_help: "El número del código de barras en la caja del puzzle (normalmente 13 dígitos)."
-        ean_placeholder: "ej., 4005556123456"
-        identification_number: "Código de Marca / SKU"
-        identification_number_help: "El código de producto del fabricante (ej. 19432 para puzzles Ravensburger)."
-        identification_number_placeholder: "ej., 19432"
-        manufacturer: "Fabricante"
-        manufacturer_placeholder: "Buscar fabricante..."
-        name: "Nombre del Puzzle"
-        name_help: "Introduce el nombre correcto como aparece en la caja del puzzle. Usa coma para separar múltiples nombres."
-        name_placeholder: "Introduce el nombre del puzzle..."
-        or: "o"
-        photo: "Nueva Foto"
-        photo_example_ok: "OK"
-        photo_example_perfect: "Perfecto"
-        photo_example_wrong: "Incorrecto"
-        photo_help_1: "Usa la imagen de la caja del puzzle, no el puzzle completado."
-        photo_help_2: "Asegura buena iluminación y enfoque."
-        photo_help_3: "Recorta para mostrar solo la imagen del puzzle, no la caja completa."
-        photo_help_4: "Para multipacks, elige solo la imagen de un puzzle."
-        photo_help_title: "Guía para la foto:"
-        photo_help_toggle: "Consejos para una buena foto"
-        pieces_count: "Cantidad de Piezas"
-        pieces_count_help: "Introduce el número correcto de piezas."
-        search_manufacturer: "Buscar por Fabricante"
-        search_manufacturer_placeholder: "Selecciona fabricante para explorar puzzles..."
-        select_duplicate_error: "Por favor selecciona un puzzle duplicado o introduce una URL de puzzle."
-        select_manufacturer_first: "Primero selecciona un fabricante"
-        select_puzzle: "Seleccionar Puzzle"
-        select_puzzle_placeholder: "Buscar puzzle..."
-        submit_changes: "Enviar Cambios"
-        submit_duplicate: "Reportar como Duplicado"
-    propose_changes:
-        description: "Sugiere correcciones o mejoras a la información de este puzzle. Todos los cambios serán revisados por un administrador."
-    report_duplicate:
-        description: "Reporta que este puzzle es un duplicado de otro puzzle. Un administrador revisará y fusionará los registros si se confirma."
-        max_puzzles_info: "Puedes reportar hasta %max% puzzles como duplicados a la vez."
-    tab:
-        suggestions: "Sugerencias"
-        report_duplicate: "Reportar Duplicado"
-    title: "Sugerir un Cambio al Puzzle"
+"menu":
+  "my_profile": "Mi perfil"
+  "puzzle_add": "Agregar"
+  "stopwatch": "Cronómetro"
+  "puzzles_overview": "Puzzle"
+  "ladder": "Clasificación"
+  "players": "Jugadores"
+  "faq": "Preguntas frecuentes"
+  "sign_in": "Iniciar sesión"
+  "hub": "Centro"
+  "feedback": "Enviar comentarios"
+  "support_us": "Apóyanos"
+  "terms_of_service": "Términos de servicio"
+  "privacy_policy": "Política de privacidad"
+  "membership": "Membresía"
+  "search": "Buscar"
+  "statistics": "Estadísticas"
+  "favorite_puzzlers": "Puzzleros favoritos"
+  "edit_profile": "Editar perfil"
+  "change_player_code": "Cambiar código de jugador"
+  "profile": "Perfil"
+  "events": "Eventos"
+  "puzzle_library": "Biblioteca de puzzles"
+  "export_data": "Exportar datos"
+"accessibility":
+  "toggle_navigation": "Alternar navegación"
+  "barcode_scanner": "Escanear código de barras"
+  "notifications_count": "Notificaciones (%count%)"
+"navigation":
+  "home": "Inicio"
+"form":
+  "visibility": "Visibilidad"
+  "visibility_public": "Pública"
+  "visibility_private": "Privada"
+"footer":
+  "created_with_love": "Creado con amor por los puzzles y el código por %simona% y %jan%"
+  "about": "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los puzzles y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
+  "popular_search": "Búsquedas populares"
+  "speed_puzzling_leaderboard": "Ranking Speed Puzzling"
+  "speed_puzzling_players": "Jugadores Speed Puzzling"
+  "latest_puzzle_times": "Últimos Tiempos Puzzle"
+  "750_piece_puzzles": "Puzzles 750 Piezas"
+  "puzzle_add": "Agregar puzzle"
+"puzzler_name": "Nombre"
+"puzzler": "Puzzlero"
+"puzzle": "Puzzle"
+"time": "Tiempo"
+"pieces_count": "%count%&nbsp;piezas"
+"show_more": "Mostrar más"
+"show_less": "Mostrar menos"
+"puzzle_solved": "completado"
+"puzzle_available": "disponible para préstamo"
+"puzzle_not_available": "no disponible"
+"add_solving": "Añadir resolución"
+"start_solving": "Comenzar a resolver"
+"show_times": "Mostrar tiempos"
+"fastest_time_short": "Mejor: %time%"
+"average_time_short": "Prom: %time%"
+"fastest_time": "Más rápido:"
+"average_time": "Promedio:"
+"only_first_tries_filter": "Solo primeros intentos"
+"only_unboxed_filter": "Solo sin caja"
+"only_favorite_players_filter": "Solo jugadores favoritos"
+"filtered_out_puzzlers_count_info": "Ocultos <strong>%count% puzzleros</strong> sin información del primer intento."
+"my_time": "Mi tiempo:"
+"puzzle_solved_count": "Número de completados:"
+"puzzle_solved_times": "completado %count%x"
+"puzzle.relax_solvings_count": "%count%x resuelto en modo relax"
+"never_solved_puzzles": "Nadie ha resuelto estos puzzles aún, ¡sé el primero!"
+"show_more_solving_times": "Más (%count%x)"
+"be_first_to_solve": "Nadie ha resuelto estos puzzles aún. ¡Sé el primero!"
+"be_first_to_group_solve": "Estos puzzles aún no han sido resueltos en grupo. ¡Sé el primero!"
+"email": "Email"
+"facebook": "Facebook"
+"instagram": "Instagram"
+"search": "Buscar"
+"puzzle_waiting_for_approval": "Puzzles añadidos recientemente esperando aprobación del administrador - usualmente dentro de 24 horas después de añadir. Gracias por tu paciencia."
+"puzzle_img_alt": "%puzzle% - imagen del puzzle"
+"searching": "Buscando..."
+"load_more": "Cargar más..."
+"back_to_top": "Volver arriba"
+"total_found": "Total encontrado: %count%"
+"remaining": "Restante: %puzzle%"
+"loading": "Cargando"
+"any": "Cualquiera"
+"all_pieces": "Todas"
+"solo_solved": "Resuelto SOLO:"
+"first_attempt": "1er intento"
+"unboxed": "Sin caja"
+"ranking_out_of": "de"
+"wjpc_participant": "Participante WJPC 2024 (%name%)"
+"share": "Compartir"
+"edit": "Editar"
+"delete": "Eliminar"
+"active_membership": "Membresía activa"
+"new_badge": "Nuevo"
+"secret_puzzler_name": "Puzzlero Oculto"
+"right_now": "Ahora mismo"
+"badge":
+  "relax": "Relax"
+  "suspicious": "Verificación necesaria"
+"homepage":
+  "meta":
+    "title": "Comunidad Speed Puzzling | Compite"
+    "description": "¡Únete a la comunidad speed puzzling definitiva! Registra tiempos, compite con jugadores mundiales y escala rankings. ¡Empieza hoy!"
+    "keywords": "speed puzzling, speedpuzzling, tiempos puzzle, comunidad puzzle, competición resolver puzzles, ranking puzzle"
+  "global_statistics": "Nos tomó a todos este tiempo resolver <strong>%puzzles%</strong> rompecabezas.<br>Eso es un increíble total de <strong>%pieces%</strong> piezas."
+  "title": "¡Bienvenido Puzzlero, al Mundo del Speed Puzzling!"
+  "intro_text": "El Speed Puzzling es un deporte emocionante donde el objetivo es armar rompecabezas lo más rápido posible. Cada pieza cuenta, cada segundo importa. ¡Imagina resolver rompecabezas tradicionales pero con la adrenalina de una pista de carreras! Nuestra plataforma es la primera de su tipo: un lugar donde puedes probar tus habilidades de resolución de rompecabezas no solo contra el tiempo, sino también contra otros entusiastas de los rompecabezas."
+  "why_block": "<h3>¿Por qué debería unirme?</h3>\n<ul>\n    <li><strong>Compite con otros:</strong> Comparte tus tiempos y compáralos con otros puzzleros</li>\n    <li><strong>Clasificaciones y estadísticas:</strong> Descubre las clasificaciones de los puzzleros más rápidos, los rompecabezas más armados y los usuarios más activos</li>\n    <li><strong>Cronómetro:</strong> Usa nuestro cronómetro integrado para cronometrar fácilmente el armado de tu rompecabezas</li>\n    <li><strong>Añade tus rompecabezas:</strong> ¿Tienes un rompecabezas que falta en nuestro sitio? Añádelo y comparte tus tiempos con la comunidad.</li>\n    <li><strong>Construye tu comunidad de rompecabezas:</strong> Únete a nuestra creciente comunidad y comparte consejos, trucos y rivalidad amistosa</li>\n    <li><strong>Expande tus horizontes:</strong> Planeamos organizar competencias, tanto en línea como en el futuro fuera de línea, para que puedas mostrar tus habilidades en vivo</li>\n</ul>\n"
+  "help_us_grow_block": "<h3>Ayúdanos a Crecer</h3>\n<p>Nuestra aplicación está comenzando, y tus ideas, comentarios y ayuda para encontrar errores son invaluables. Únete a nosotros en esta etapa temprana y ten un impacto directo en el futuro del speed puzzling.</p>\n"
+  "start_today_block": "<h3>Comienza Hoy</h3>\n<p>Ya seas principiante o un puzzlero experimentado, nuestra plataforma ofrece el lugar perfecto para desarrollar tus habilidades y medirte contra otros. ¡Únete a nosotros y conviértete en parte del futuro del speed puzzling!</p>\n"
+  "cta_sign_in": "Iniciar sesión"
+  "cta_my_profile": "Mi perfil"
+  "cta_recent": "Tiempos recientes"
+"ladder":
+  "title": "Ranking"
+  "meta":
+    "title": "Ranking Speed Puzzling | Tiempos"
+    "description": "Ranking speed puzzling mostrando tiempos más rápidos y clasificación jugadores. Ve quién tiene récords y compite por mejores posiciones."
+    "keywords": "speed puzzling ranking, tiempos rápidos, récords puzzle, clasificación jugadores, resultados competición, campeones puzzle"
+  "overview": "Resumen"
+  "recent_activity": "Tiempos Añadidos Recientemente"
+  "solo": "Solo"
+  "duo": "Dúo"
+  "team": "Equipo"
+  "most_solved_puzzle": "Rompecabezas Más Armado"
+  "most_active_puzzlers": "Puzzleros Más Entusiastas"
+  "puzzle_solved_count": "Rompecabezas Resueltos"
+  "link_to_hub": "¿Buscas el rompecabezas más resuelto o los jugadores más activos? ¡Lo movimos al&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">nuevo Centro</a>!"
+"filters":
+  "button": "Filtros"
+  "filter_by": "Filtrar por"
+  "pieces_placeholder": "- Piezas -"
+  "manufacturer_placeholder": "- Fabricante -"
+  "less_than": "Menos de %count%"
+  "more_than": "Más de %count%"
+  "text_search_placeholder": "Nombre del puzzle o código..."
+  "only_available": "Solo disponibles para préstamo"
+  "only_with_time": "Solo con tiempo ingresado"
+  "no_puzzle_matches_filters": "Ningún puzzle coincide con los filtros especificados"
+  "only_relax": "Solo puzzles relajados"
+  "date_range": "Rango de fechas"
+  "date_from": "Desde"
+  "date_to": "Hasta"
+  "time_filter": "Filtro de tiempo"
+  "faster_than": "Más rápido que"
+  "slower_than": "Más lento que"
+  "minutes": "min"
+  "reset": "Restablecer filtros"
+  "all_manufacturers": "Todos los fabricantes"
+  "all_pieces": "Todas las piezas"
+"sorting":
+  "sort_by": "Ordenar por"
+  "newest_times": "Más nuevos"
+  "oldest_times": "Más antiguos"
+  "fastest_times": "Más rápidos"
+  "slowest_times": "Más lentos"
+  "most_solved": "Más resueltos"
+  "least_solved": "Menos resueltos"
+  "a_z": "Nombre A-Z"
+  "z_a": "Nombre Z-A"
+  "fastest_ppm": "PPM más rápido"
+  "slowest_ppm": "PPM más lento"
+"puzzle_overview":
+  "meta":
+    "title": "Base Speed Puzzling"
+    "description": "Explora base datos speed puzzling con puzzles 500-1000+ piezas. Compara tiempos, encuentra nuevos desafíos y rastrea progreso."
+    "keywords": "base datos puzzle, tiempos puzzle, puzzle 500 piezas, puzzle 1000 piezas, marcas puzzle, resolver rápido"
+  "title": "Puzzles"
+  "missing_puzzle_info": "Si no puedes encontrar un rompecabezas aquí, significa que nadie lo ha resuelto aún y no está en nuestra base de datos. Se pueden ingresar nuevos rompecabezas al añadir tiempo."
+"stopwatch":
+  "meta":
+    "title": "Cronómetro"
+  "title": "Cronómetro"
+  "start": "Iniciar"
+  "stop": "Parar"
+  "continue": "Continuar"
+  "reset": "Reiniciar"
+  "finish": "¡Completado! Añadir tiempo"
+  "more_my_stopwatches": "Más de mis cronómetros"
+  "status":
+    "not_started": "Listo para comenzar"
+    "running": "En marcha"
+    "paused": "Pausado"
+    "finished": "Rompecabezas completado"
+"puzzle_add":
+  "meta":
+    "title": "Agregar puzzle"
+  "title": "Agregar..."
+  "chosen_puzzle": "Rompecabezas seleccionado:"
+  "choose_puzzle": "Elegir un puzzle"
+  "puzzle_needed": "Debes seleccionar un puzzle de la lista o añadir uno nuevo"
+  "change_puzzle": "Cambiar selección"
+  "add_when_not_found_info": "Si no puedes encontrar el rompecabezas en la lista, por favor añade uno nuevo."
+  "need_approve_info": "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
+  "add_manufacturer": "Añadir un nuevo fabricante"
+  "not_in_list": "(no en la lista)"
+  "choose_manufacturer": "Elegir un fabricante de la lista"
+  "time_from_stopwatch": "Tiempo del cronómetro"
+  "add_puzzler": "Añadir co-puzzlero del grupo"
+  "teamplayer": "Co-puzzlero"
+  "player_code_info": "Elige de favoritos o ingresa el código del jugador (comienza con #). Si el puzzlero no tiene una cuenta en myspeedpuzzling.com, por favor ingresa su nombre."
+  "competition_result": "Resultado de competición"
+  "group_puzzling": "Armando en pareja/grupo"
+  "mode":
+    "speed_puzzling": "Speed Puzzling"
+    "relax": "Relax (sin tiempo)"
+    "to_collection": "Puzzle a la Colección"
+"forms":
+  "choose_from_favorites": "- Elegir de favoritos -"
+  "drop_file": "Arrastra y suelta un archivo aquí para subirlo"
+  "choose_file": "O selecciona un archivo"
+  "save": "Guardar"
+  "required_field": "¡Este campo es obligatorio!"
+  "removing": "Eliminando..."
+  "cancel": "Cancelar"
+  "close": "Cerrar"
+  "add": "Añadir"
+  "back": "Atrás"
+  "clear": "Limpiar"
+  "add_new_brand": "Añadir nueva marca:"
+  "confirm": "Confirmar"
+  "continue": "Continuar"
+  "create": "Crear"
+  "delete": "Eliminar"
+  "edit": "Editar"
+  "max_characters": "Máximo 500 caracteres"
+  "next": "Siguiente"
+  "no": "No"
+  "ok": "OK"
+  "previous": "Anterior"
+  "remove": "Eliminar"
+  "reset": "Restablecer"
+  "saving": "Guardando..."
+  "search": "Buscar"
+  "submit": "Enviar"
+  "update": "Actualizar"
+  "yes": "Sí"
+  "hours_short": "hrs"
+  "minutes_short": "min"
+  "seconds_short": "seg"
+  "time_required": "Por favor, introduce el tiempo"
+  "add_puzzle_to_collection":
+    "choose_collection": "- Elegir colección -"
+    "collection": "Colección"
+    "collection_help": "Elige una colección existente o añade un nuevo nombre de colección."
+    "comment": "Comentario"
+    "comment_placeholder": "Comentario opcional sobre este puzzle..."
+    "puzzle_collection": "Colección de Puzzles (Predeterminada)"
+    "submit": "Añadir a la colección"
+  "empty_group_error": "No puedes crear un grupo solo contigo, eso no es armado en grupo :-)"
+  "too_high_ppm": "Por favor verifica el tiempo que ingresaste, ¡no hay manera de que puedas resolver el rompecabezas tan rápido! :-) El tiempo debe ingresarse en formato HH:MM:SS. ¡El tiempo que ingresaste sería un nuevo récord mundial! :-)"
+  "ppm_warning_title": "Por favor verifica tu tiempo"
+  "ppm_warning_too_fast": "¡Tu ritmo parece muy rápido! Por favor verifica que hayas ingresado el tiempo correctamente."
+  "ppm_warning_too_slow": "Solo una verificación rápida - ¿ingresaste el tiempo correctamente? A veces las horas y los minutos se pueden confundir."
+  "ppm_confirm_button": "Sí, el tiempo es correcto"
+  "ppm_cancel_button": "Déjame revisar"
+  "ppm_entered_time": "Ingresaste"
+  "hours": "horas"
+  "minutes": "minutos"
+  "seconds": "segundos"
+  "unknown_error": "Ocurrió un error inesperado :(. Hemos sido notificados. Por favor intenta de nuevo más tarde."
+  "name_help": "Bajo este nombre armarás rompecabezas y será visible para todos los miembros de la comunidad."
+  "email_help": "Tu email es privado, no se muestra en ningún lugar y solo se usa en caso de que el administrador necesite contactarte."
+  "location_help": "El lugar donde vives actualmente (opcional)."
+  "location": "Ubicación"
+  "nationality": "Nacionalidad"
+  "country_most_common": "Los más comunes"
+  "country_all": "Todos los países"
+  "about_me": "Acerca de mí (biografía)"
+  "avatar": "Avatar/foto"
+  "search_puzzler": "Nombre, código de jugador, o parte de..."
+  "time_format_placeholder": "HH:MM:SS"
+  "comment": "Información adicional"
+  "finished_puzzle_photo": "Foto de rompecabezas completados"
+  "add_new_puzzle": "Añadir nuevo rompecabezas - no en la lista"
+  "puzzle": "Rompecabezas"
+  "puzzle_help": "Elige un rompecabezas existente (busca por nombre, código de marca, piezas) o añade el nombre del nuevo rompecabezas cuando no se encuentre."
+  "brand": "Marca"
+  "brand_help": "Elige una marca existente o ingresa el nombre de la nueva marca cuando no se encuentre."
+  "pieces_count": "Número de piezas"
+  "puzzle_box_photo": "Foto de la imagen o caja del rompecabezas"
+  "date_finished": "Fecha completada"
+  "ean": "Código EAN"
+  "puzzle_identification_number": "Código del fabricante"
+  "puzzle_photo_is_required": "Se requiere foto del rompecabezas resuelto, motivo o caja"
+  "puzzle_photo_help": "Por favor adjunta foto del rompecabezas resuelto, motivo o caja para que podamos identificar y asignar correctamente el rompecabezas."
+  "puzzle_choose_placeholder": "Buscar o ingresar el nombre del nuevo rompecabezas"
+  "puzzle_choose_brand_placeholder": "Elegir marca primero"
+  "only_with_results": "Solo rompecabezas con tiempo ingresado"
+  "only_solved_by_me": "Solo rompecabezas que he resuelto"
+  "only_available": "Solo disponibles para préstamo"
+  "puzzle_search_placeholder": "Nombre, código, EAN..."
+  "tag": "Etiqueta"
+  "competition": "Competencia / evento"
+  "competition_help": "Elige la competencia, cuando este resultado sea de una competencia o un evento online."
+  "tags": "Etiquetas"
+  "feedback": "Mensaje"
+  "feedback_help": "Envíanos sugerencias de nuevas características o mejoras, reportes de errores, lo que te gusta o disgusta, puede ser cualquier cosa que se te ocurra..."
+  "send_feedback": "Enviar"
+  "first_attempt": "Tu primer armado de este rompecabezas"
+  "first_attempt_help": "Si armas en grupo, entonces solo si nadie armó este rompecabezas antes, ni siquiera solo"
+  "unboxed": "Armado sin mirar la imagen de la caja"
+  "unboxed_help": "Marca esto si armaste el rompecabezas sin consultar la caja o imagen"
+  "competition_participant": "Tu nombre en la competencia"
+  "player_code": "Código de Jugador"
+  "player_code_help": "Un código de jugador único - al menos 3 caracteres, hasta 8 caracteres. Solo puede contener letras y números, sin caracteres especiales o espacios."
+  "global_search_placeholder": "Buscar puzzle o jugador..."
+  "private_profile": "Perfil privado"
+  "private_profile_help": "Tu nombre no se mostrará en ningún lugar y los tiempos se presentarán anónimamente."
+"puzzlers_comparison":
+  "meta":
+    "title": "Comparación de Puzzleros"
+  "title": "Comparación de Puzzleros"
+  "nothing_to_compare": "Desafortunadamente, no tienes rompecabezas para comparar que hayan sido armados por ambos puzzleros."
+"edit_time":
+  "meta":
+    "title": "Editando Datos de Tiempo del Rompecabezas"
+  "title": "Editando Datos de Tiempo del Rompecabezas"
+  "delete_button": "¡Eliminar permanentemente este registro de armado y pretender que nunca pasó!"
+  "delete_modal_message": "Solo para estar seguro..."
+  "delete_modal_confirm": "¿Realmente eliminar?"
+  "delete_modal_discard_button": "No, mantenerlo"
+  "delete_modal_confirm_button": "Sí, eliminar"
+"error":
+  "generic":
+    "title": "Algo se rompió"
+    "message": "Algo salió mal... si crees que el error no es de tu lado, por favor escríbenos."
+  404:
+    "title": "Página no encontrada"
+    "message": "Desafortunadamente, no pudimos encontrar la página que solicitaste. Por favor verifica la URL.."
+  500:
+    "title": "Error desconocido"
+    "message": "Algo salió mal - hemos sido notificados y lo arreglaremos tan pronto como sea posible"
+"profile":
+  "add_to_favorites": "Añadir a favoritos"
+  "remove_from_favorites": "Eliminar de favoritos"
+  "compare": "Comparar tiempos"
+  "no_puzzles_solved": "¿No hay rompecabezas resueltos? ¡Inténtalo y ve cómo lo haces! ¡Creemos que puedes hacerlo!"
+  "not_filled": "No completado"
+  "avatar": "Avatar"
+  "about_me": "Acerca de mí"
+  "location": "Ubicación"
+  "nationality": "Nacionalidad"
+  "statistics": "Estadísticas"
+  "statistics_time": "Tiempo gastado armando"
+  "statistics_puzzles_solved": "Número de rompecabezas resueltos"
+  "statistics_pieces_count": "Número de piezas armadas"
+  "favorite_puzzlers": "Puzzleros favoritos"
+  "no_favorite_puzzlers": "No hay puzzleros favoritos"
+  "solved_puzzles": "Rompecabezas resueltos"
+  "solved_puzzles_solo": "Individual"
+  "solved_puzzles_group": "Armado en grupo"
+  "recent_activity": "Actividad<br>reciente"
+  "personal_info": "Información<br>personal"
+  "private_profile_info_1": "Este puzzlero ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
+  "private_profile_info_2": "¿Quieres saber más? Encuéntralos en persona e intenta convencerlos de revelar sus tiempos. Eso es todo lo que podemos decirte aquí."
+"my_profile":
+  "meta":
+    "title": "Mi Perfil"
+  "title": "Mi Perfil"
+  "edit": "Editar información"
+  "logout": "Cerrar sesión"
+  "myssing_name_info": "Lo sentimos, pero si no completas un nombre o apodo, no sabemos cómo presentarte. Por lo tanto, todos tus resultados son no públicos."
+  "public_info": "público"
+  "not_public_info": "no público"
+  "name": "Nombre/apodo"
+  "stopwatches": "Mis cronómetros"
+  "missing_name_info": "Lo sentimos, pero si no completas un nombre o apodo, no sabemos cómo presentarte. Por lo tanto, todos tus resultados son no públicos."
+  "share_mention_myspeedpuzzling": "Etiquétanos: <code>@MySpeedPuzzling</code>"
+  "wjpc_connection": "Conexión de cuenta de competencia"
+"edit_profile":
+  "meta":
+    "title": "Editar perfil"
+  "title": "Editar perfil"
+  "player_code_change": "Cambiar código de jugador"
+  "profile_visibility": "Visibilidad del perfil"
+  "allow_direct_messages": "Permitir que otros usuarios me envíen mensajes directos"
+  "email_notifications": "Enviarme notificaciones por correo electrónico sobre mensajes no leídos"
+  "messaging_notifications": "Mensajes y notificaciones"
+"puzzle_detail":
+  "meta":
+    "description": "Explora el rompecabezas %brand% %puzzle% (%pieces% piezas) en My Speed Puzzling. Rastrea el progreso, compara tiempos y conquista rompecabezas con nuestra comunidad. ¡Comienza tu frenesí de resolución de speed puzzling hoy!"
+"export":
+  "page_title": "Exportar Datos"
+  "heading": "Exporta Tus Datos"
+  "feedback_message": "¡Esta es una nueva función! Agradeceríamos tu opinión."
+  "feedback_link": "Envíanos tus comentarios"
+  "description": "Descarga todos tus tiempos de resolución de puzzles en tu formato preferido. Tus datos te pertenecen."
+  "format":
+    "json": "Descargar JSON"
+    "xlsx": "Descargar Excel"
+    "csv": "Descargar CSV"
+    "xml": "Descargar XML"
+  "data_included": "¿Qué incluye la exportación?"
+  "data":
+    "result_id": "ID del resultado"
+    "puzzle_info": "Nombre del puzzle, marca y cantidad de piezas"
+    "solving_time": "Tiempo de resolución (segundos y formato HH:MM:SS)"
+    "dates": "Fecha de finalización y fecha de registro"
+    "type": "Tipo de resolución (solo, dúo o equipo)"
+    "team_members": "Miembros del equipo (si es resolución en grupo)"
+    "photo_url": "URL de la foto del puzzle terminado"
+    "comment": "Tu comentario"
+"events":
+  "title": "Eventos"
+  "meta":
+    "title": "Eventos Speed Puzzling | Compite"
+    "description": "Únete a eventos speed puzzling, competiciones y torneos. Compite con mejores puzzleros mundiales y prueba tus habilidades."
+    "keywords": "eventos speed puzzling, competiciones puzzle, torneos puzzle, WJPC, campeonato puzzle, puzzling competitivo"
+  "live": "Ocurriendo ahora mismo"
+  "upcoming": "Próximos"
+  "past": "Eventos pasados"
+  "website_link": "Info"
+  "results_link": "Resultados"
+  "registration_link": "Registrarse"
+  "competition_puzzles": "Rompecabezas de competencia"
+  "no_puzzle_text": "No hay rompecabezas aquí… ¡todavía! Mantente atento"
+"faq":
+  "meta":
+    "title": "Speed Puzzling FAQ | Registrar"
+    "description": "FAQ speed puzzling sobre cómo registrar tiempos puzzle, competir con otros y mejorar habilidades. ¡Empieza hoy!"
+    "keywords": "speed puzzling FAQ, cómo speed puzzle, registrar tiempos puzzle, cronometrar puzzle, consejos resolver rápido, guía competición puzzle"
+  "title": "Preguntas frecuentes"
+  "intro_block": "<p>¡Tus comentarios son muy importantes para nosotros y los apreciamos mucho! Si tienes algo que te gustaría decirnos, por favor escríbenos a <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (o a <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> para asuntos técnicos) o en <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>.</p>\n<p>Todos nuestros códigos fuente son de código abierto y públicos en <a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>. Nos adherimos a la filosofía de \"compartir es cuidar\" y nos esforzamos por compartir todo sobre myspeedpuzzling.com abiertamente.</p>\n"
+  "question_fair_play": ""
+  "answer_fair_play": "<h4 class=\"mb-3\">¿Cómo sabes que no estoy haciendo trampa al ingresar tiempos?</h4>\n<p>Honestamente - probablemente no lo sabremos. En la tabla de clasificación pública, donde los puzzleros ingresan tiempos ellos mismos, confiamos en la honestidad e integridad de cada puzzlero individual. ¿Realmente disfrutarías un resultado ingresado deshonestamente?</p>\n<p>Asumimos que, como nosotros, otros puzzleros arman principalmente por el placer de hacerlo, y los tiempos de este tipo de armado son indicativos para una idea aproximada de cómo nos comparamos con otros y cómo nos mediremos durante alguna competencia. Dime, ¿no se vería sospechoso si tuviera un tiempo de 20 minutos en la plataforma pero tomé 3 horas durante una competencia?</p>\n<p>En el futuro, también planeamos ligas clasificadas, donde la verificación de tiempo podría ser requerida, por ejemplo, a través de grabación de video.</p>\n<p class=\"text-danger mb-0\"><small>Dado que nuestra comunidad incluye finalistas\
+    \ del Campeonato Mundial de Rompecabezas, que han quedado en la cima, podemos tomar sus tiempos como referencia. Los tiempos sospechosos serán monitoreados y si se prueba fraude, serán despiadadamente eliminados. En caso de trampas repetidas, el acceso del jugador a la plataforma será restringido.</small></p>\n"
+  "question_qr": "Recibí rompecabezas con un código QR y el logo de myspeedpuzzling.com, ¿qué debo hacer?"
+  "answer_qr": "<p>Para hacer el armado y la entrada de tiempos lo más placentera posible para ti, añadimos un código QR a todos los rompecabezas que pasan por nuestras manos - escanearlo te lleva a la página con los rompecabezas dados, donde puedes comenzar directamente a cronometrar o ingresar tu tiempo.</p>\n<p class=\"mb-0\">Si te gustaría ayudar a difundir la palabra sobre speedpuzzling y añadir un folleto con un código QR a tus rompecabezas, por favor escríbenos - te enviaremos un PDF que puedes imprimir, o podemos enviarte por correo folletos impresos directamente.</p>\n"
+  "question_add_time_for_missing_puzzle": "¿Puedo añadir tiempo para rompecabezas que no están en la plataforma?"
+  "answer_add_time_for_missing_puzzle": "<p>¡Definitivamente! Si has armado un rompecabezas que aún no está en nuestra plataforma, al añadir tiempo, cambia a la opción:</p>\n<div class=\"form-check form-switch mb-3\">\n    <input type=\"checkbox\" class=\"form-check-input\" id=\"switch-add-puzzle\">\n    <label class=\"form-check-label\" for=\"switch-add-puzzle\">Ingresar rompecabezas manualmente - fabricante desconocido o no en la lista</label>\n</div>\n<p class=\"mb-0\">Entonces tienes la opción de seleccionar de una lista de fabricantes. Si el fabricante tampoco está en la base de datos, puedes ingresarlo tú mismo.</p>\n"
+  "question_edit_or_delete_time": "¿Cómo edito o elimino un tiempo ingresado?"
+  "answer_edit_or_delete_time": "<p>En la sección <a href=\"%link%\">Mi Perfil</a>, junto a cada tiempo ingresado, encontrarás un enlace para editar (el enlace parece un icono de lápiz <span class=\"btn btn-sm btn-outline-dark px-2 py-1 border-0\"><i class=\"ci-edit\"></i></span>).</p>\n<p class=\"mb-0\">En la página de edición, en la parte inferior, hay un <a class=\"btn btn-sm btn-outline-danger mx-2\">botón mágico</a> que de una vez por todas elimina el registro de toda la internet.</p>\n"
+  "question_button_start_solving": "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-time\"></i> Comenzar a Resolver</a>?"
+  "answer_button_start_solving": "<p class=\"mb-0\">Abre el cronómetro con rompecabezas seleccionados - puedes comenzar a armar y cronometrar de inmediato.</p>\n"
+  "question_button_add_my_time": "¿Qué hace el botón <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Añadir Mi Tiempo</a>?"
+  "answer_button_add_my_time": "<p class=\"mb-0\">Abre añadir tu tiempo a rompecabezas seleccionados - adecuado si usas tu propio cronómetro y acabas de terminar de armar. Si armaste en el pasado y quieres registrar el tiempo, tienes la opción de especificar también la fecha en que armaste.</p>\n"
+  "question_helping": "¿Quieres una mano ayudante?"
+  "answer_helping": "<p class=\"mb-0\">¡Claro! Conéctate con nosotros, idealmente con una idea de cómo te gustaría involucrarte en construir la comunidad speed puzzling, pondremos nuestras cabezas juntas y seguramente se nos ocurrirá algo.</p>\n"
+"puzzlers":
+  "meta":
+    "title": "Jugadores Speed Puzzling | Resultados"
+    "description": "Descubre jugadores speed puzzling, compara resultados y rankings. Sigue puzzleros favoritos y ve sus últimos tiempos."
+    "keywords": "jugadores speed puzzling, puzzleros, resolventes puzzle, resultados jugadores, comunidad puzzle, tiempos speed puzzling"
+  "title": "Puzzleros"
+  "results_for": "Resultados de búsqueda para"
+  "no_matches_found": "No se encontraron coincidencias"
+  "my_favorites": "Mis Favoritos"
+  "most_popular": "Más Populares"
+  "by_country": "Por país"
+  "most_favorite": "Puzzleros más favoritos"
+  "search_placeholder": "Buscar por nombre o código de jugador..."
+  "total_players": "Total de jugadores"
+"players_per_country":
+  "meta":
+    "title": "Puzzleros del país - %country%"
+  "title": "Puzzleros del país - %country%"
+  "link": "Puzzleros por país"
+"flashes":
+  "stopwatch_already_saved": "Estos cronómetros ya han sido guardados."
+  "collection_not_found": "¡La colección que buscabas no existe en nuestra plataforma!"
+  "puzzle_removed_from_collection": "El puzzle ha sido eliminado de la colección."
+  "puzzle_added_to_collection": "El puzzle ha sido añadido a la colección."
+  "tracking_added": "Hemos guardado el seguimiento de tu puzzle."
+  "puzzle_needs_approve": "Los rompecabezas añadidos recientemente se mostrarán públicamente después de la aprobación por un administrador - usualmente dentro de 24 horas después de añadir."
+  "time_added": "Hemos guardado tu tiempo de rompecabezas."
+  "time_deleted": "¡Hemos eliminado toda evidencia. ¡Nadie sabrá jamás lo que acaba de pasar!"
+  "profile_saved": "¡Cambios del perfil guardados!"
+  "time_edited": "La información editada ha sido guardada."
+  "player_not_found": "¡El jugador que trataste de encontrar no está registrado con nosotros!"
+  "puzzle_not_found": "¡El rompecabezas que trataste de encontrar no existe en nuestra plataforma!"
+  "puzzler_added_to_favorites": "Hemos añadido al puzzlero a tu lista de favoritos."
+  "puzzler_removed_from_favorites": "Hemos eliminado al puzzlero de tu lista de favoritos."
+  "can_not_favorite_yourself": "No puedes añadirte a tu lista de favoritos. ¡Está claro que eres tu propio puzzlero favorito!"
+  "player_already_in_favorites": "Este puzzlero ya está en tu lista de favoritos, así que no lo añadiremos de nuevo ;-)."
+  "player_not_in_favorites": "Hmm, no pudimos encontrar a este puzzlero en tus favoritos, así que no podemos eliminarlo ;-)."
+  "competition_duplicate_connection": "Algo está mal :-( has elegido una cuenta de competencia, que ya está conectada a algún perfil de MySpeedPuzzling. No te preocupes, fuimos automáticamente notificados y verificaremos qué está mal."
+  "competition_connection_saved": "¡Genial! ¡Cuenta de competencia conectada exitosamente a tu perfil de MySpeedPuzzling!"
+  "membership_subscribed_successfully": "¡Tu membresía ahora está activa!"
+  "non_unique_player_code": "Lo sentimos, pero parece que este código ya está tomado. Por favor elige otro."
+  "unknown_error": "Lo sentimos, pero algo salió mal - hemos sido notificados e intentaremos arreglarlo tan pronto como sea posible. Por favor intenta de nuevo más tarde."
+  "exclusive_membership_feature": "Esta característica es exclusiva solo para miembros. Si quieres usarla, por favor compra una membresía."
+"hub":
+  "title": "Hub"
+  "meta":
+    "title": "Hub Speed Puzzling | Resultados"
+    "description": "Hub speed puzzling con últimos resultados, rankings jugadores y estadísticas puzzle. Ve quién resuelve más rápido y rastrea progreso comunidad."
+    "keywords": "hub speed puzzling, últimos resultados, rankings puzzle, jugadores activos, estadísticas puzzle, actividad reciente"
+  "welcome": "¡Bienvenido puzzlero!"
+  "seo_suffix": "- Comunidad Speed Puzzling"
+  "welcome_back": "Bienvenido de vuelta"
+  "recent_favorites_activity": "Actividad de<br>favoritos"
+  "this_month": "Este<br>mes"
+  "last_month": "Mes<br>pasado"
+  "all_time": "Todo el<br>tiempo"
+  "most_active_solo_players": "Jugadores SOLO más activos"
+  "most_solved_puzzle": "Rompecabezas más resuelto"
+  "statistics": "Estadísticas"
+  "no_favorites": "No tienes jugadores favoritos. Añade algunos y sigue su actividad aquí."
+  "not_logged": "No has iniciado sesión - para usar el potencial completo de lo que esta plataforma te ofrece, inicia sesión."
+"statistics":
+  "puzzle_solved": "Rompecabezas resueltos"
+  "total_pieces": "Total de piezas"
+  "time_spent": "Tiempo gastado resolviendo"
+  "longest_streak": "Racha más larga"
+  "longest_streak_help": "Máx días consecutivos resolviendo rompecabezas"
+  "most_solved_brand": "Marca más resuelta"
+  "all_brands": "Todas las marcas"
+  "no_results": "Sabemos que amas resolver rompecabezas — básicamente eres un susurrador de rompecabezas. Pero para el período de tiempo seleccionado… nada. Cero. Zilch. Nada.<br> \nO no resolviste ninguno, o te olvidaste de añadirlos a la plataforma (lo cual es aún más desconcertante, honestamente).<br>\n¡Es hora de tomar un rompecabezas y arreglar este giro trágico de la trama! Tus estadísticas están llorando en la esquina — ve a mostrarles algo de amor.\n"
+"dates":
+  "all_time": "Todo el tiempo"
+  "year": "Año"
+  "months":
+    1: "Enero"
+    2: "Febrero"
+    3: "Marzo"
+    4: "Abril"
+    5: "Mayo"
+    6: "Junio"
+    7: "Julio"
+    8: "Agosto"
+    9: "Septiembre"
+    10: "Octubre"
+    11: "Noviembre"
+    12: "Diciembre"
+"feedback":
+  "title": "Enviar comentarios"
+  "success_msg": "¡Hemos recibido tus comentarios y los apreciamos mucho! Te avisaremos pronto."
+  "message": "Mensaje"
+  "send": "Enviar"
+  "thank_you": "¡Gracias por tus comentarios!"
+"contact":
+  "email": "Correo electrónico"
+  "message": "Mensaje"
+  "send": "Enviar"
+  "thank_you": "¡Gracias por contactarnos!"
+  "title": "Contacto"
+"compare_players":
+  "comparison": "Comparación"
+  "head_to_head": "Enfrentamiento directo"
+  "select_players": "Seleccionar jugadores para comparar"
+  "statistics": "Estadísticas"
+  "title": "Comparación de jugadores"
+"recent_activity":
+  "latest_times": "Últimos tiempos"
+  "no_activity": "Sin actividad reciente"
+  "title": "Actividad reciente"
+"notifications":
+  "title": "Notificaciones"
+  "solved_puzzle_with_time": "en"
+  "solved_puzzle": "resolvió rompecabezas"
+  "no_notifications": "No tienes notificaciones hasta ahora. Suscríbete a algunos jugadores añadiéndolos a favoritos."
+  "mark_all_as_read": "Marcar todo como leído"
+  "mark_as_read": "Marcar como leído"
+  "new_notification": "Nueva notificación"
+  "lending":
+    "borrowed_from_you": "%borrower% tomó prestado tu puzzle"
+    "lent_to_you": "%owner% te prestó un puzzle"
+    "passed_from_you": "El puzzle fue pasado a %to%"
+    "passed_to_you": "%from% te pasó un puzzle"
+    "returned_to_you": "%holder% devolvió tu puzzle"
+    "taken_back": "%owner% recuperó el puzzle"
+    "your_puzzle_passed": "Tu puzzle fue pasado de %from% a %to%"
+  "puzzle_report":
+    "change_approved": "Tus cambios sugeridos fueron aprobados"
+    "change_rejected": "Tus cambios sugeridos fueron rechazados"
+    "merge_approved": "Tu reporte de duplicado fue aprobado y los puzzles fueron fusionados"
+    "merge_rejected": "Tu reporte de duplicado fue rechazado"
+  "conversation_request":
+    "general": "%player% te envió una solicitud de conversación"
+    "marketplace": "%player% te envió un mensaje sobre %puzzle%"
+"badges":
+  "title": "Insignias"
+  "my_title": "Mis insignias"
+  "badge":
+    "supporter": "Partidario"
+"scan":
+  "meta":
+    "title": "Lector de código de barras"
+  "title": "Lector de código de barras"
+  "beta_info": "Esta es una característica completamente nueva, todavía la estamos probando y trabajando en mejoras. ¡Estaremos muy agradecidos por cualquier comentario!"
+  "instructions": "Apunta tu cámara al EAN (código de barras) en la caja e intenta tu suerte - si el rompecabezas está en la base de datos, lo encontraremos ;-)."
+  "not_found": "Desafortunadamente el rompecabezas con EAN %code% no está en nuestra base de datos. Siéntete libre de rastrear el tiempo y añadirlos, estaremos agradecidos por eso."
+  "puzzle_ean_barcode": "Escanear código EAN del puzzle"
+  "puzzle_form":
+    "not_found": "Puzzle con EAN %ean% no encontrado. Intente buscar por nombre o añádalo como nuevo puzzle."
+    "multiple_brands": "Se encontraron varias marcas para el EAN %ean%. Por favor, seleccione una de la lista."
+    "multiple_puzzles": "Se encontraron varios puzzles para el EAN %ean%. Por favor, seleccione uno de la lista."
+"wjpc2024":
+  "meta":
+    "title": "WJPC 2024"
+  "title": "WJPC 2024"
+  "intro": "¡El evento de Speed Puzzling del año está aquí! Te estamos trayendo algunas estadísticas para que puedas conocer contra quién estarás compitiendo. Todas las estadísticas presentadas son rompecabezas de 500 piezas de los últimos 3 meses solamente, para asegurar que sean lo más relevantes posible. Si has resuelto el mismo rompecabezas múltiples veces, ¡tomamos solo el más rápido! Conecta tu perfil con tu cuenta WJPC en <a href=\"%link%\">la configuración de tu perfil</a>. Solo para competidores en la categoría individual."
+  "connected_participants": "Participantes conectados"
+  "not_connected_participants": "Participantes"
+  "puzzle_solved": "Rompecabezas resueltos"
+  "average": "Prom"
+  "fastest": "Mejor"
+  "no_participant_matches_filters": "Ningún participante coincide con la consulta de búsqueda"
+  "filter_by_name": "Buscar por nombre"
+"competition_connection":
+  "meta":
+    "title": "Conexión de cuenta %competitionName%"
+  "title": "Conexión de cuenta %competitionName%"
+  "back_to_competition": "Volver a la competencia"
+  "description": "Conecta tu cuenta de competencia con el perfil de MySpeedPuzzling y descubre cómo te encuentras contra otros participantes. Para hacer las estadísticas relevantes, solo tomamos rompecabezas de 500 piezas de los últimos 3 meses en las estadísticas. ¡Si has resuelto el mismo rompecabezas múltiples veces, tomamos solo el más rápido!"
+"global_modal":
+  "title": "¡El Marketplace ya está aquí!"
+  "text": "<p>¿Alguna vez quisiste comprar, vender o intercambiar un puzzle? ¡Ahora es más fácil que nunca!</p>\n<p>Explora el nuevo <strong>Marketplace</strong> — publica tus puzzles a la venta, encuentra grandes ofertas y chatea directamente con otros puzzleros en la plataforma. ¡Nos encantaría conocer tu opinión!</p>\n"
+  "button_cta": "Explorar Marketplace"
+  "button_dismiss": "Quizás después"
+"added_time_recap":
+  "title": "¡Excelente tiempo, sigue así!"
+  "add_time": "Añadir nuevo tiempo"
+  "the_same_puzzle": "Para el mismo rompecabezas"
+  "puzzle_detail": "Resultados"
+"global_search":
+  "info": "¡Bienvenida nueva búsqueda! Busca por nombre del puzzle, ean o código. Busca jugador por nombre o código. Por favor déjanos saber tus comentarios."
+  "no_player_found": "No se encontró jugador :-("
+  "no_puzzle_found": "No se encontró puzzle :-("
+"added_tracking_recap":
+  "meta":
+    "title": "Puzzle registrado"
+  "title": "¡Puzzle registrado con éxito!"
+  "add_another": "Registrar otro puzzle"
+  "the_same_puzzle": "Registrar el mismo puzzle de nuevo"
+  "puzzle_detail": "Ver detalle del puzzle"
+  "manufacturer": "Fabricante"
+  "pieces": "Piezas"
+  "group_puzzlers": "Armado con"
+"membership":
+  "meta":
+    "title": "Membresía"
+    "description": ""
+  "title": "Membresía"
+  "intro_text": "¡La membresía es una forma de obtener acceso a características exclusivas para verdaderos entusiastas de los rompecabezas! Al suscribirte a una membresía, también apoyas el desarrollo de la plataforma y nos ayudas a lograr nuestra visión de crear la mejor plataforma comunitaria de rompecabezas del mundo."
+  "redirect_to_stripe": "Serás redirigido a la pasarela de pago de Stripe."
+  "subscription_active": "Suscripción activa, ¡gracias por ser parte de la comunidad!"
+  "membership_active": "Membresía activa, ¡gracias por ser parte de la comunidad!"
+  "membership_inactive": "La membresía no está activa"
+  "membership_cancelling": "La suscripción ha sido cancelada, la membresía está activa hasta el final del período"
+  "free_membership_active": "Membresía gratuita activa (sin suscripción)"
+  "membership_expired": "Tu membresía expiró"
+  "next_payment": "Próximo pago"
+  "membership_active_until": "Membresía activa hasta"
+  "payment_portal_button": "Gestionar suscripción (portal de pago)"
+  "description_title": "¿Cuáles son los beneficios de la membresía?"
+  "choose_your_subscription": "Elige tu suscripción"
+  "subscribe_for_monthly": "Mensual por"
+  "subscribe_for_yearly": "Anual por"
+  "price_per_month": "€%price% / mes"
+  "price_per_year": "€%price% / año"
+  "billing_portal_info": "En el portal de pago, puedes actualizar tus detalles de pago, cancelar tu membresía o descargar facturas o recibos."
+  "manage_in_app_store": "Administrar en App Store"
+  "manage_in_play_store": "Administrar en Play Store"
+  "manage_subscription_ios_info": "Administre su suscripción en Ajustes de su iPhone/iPad en ID de Apple > Suscripciones."
+  "manage_subscription_android_info": "Administre su suscripción en Google Play Store en Pagos y suscripciones."
+  "purchase_via_app_store": "El pago se procesará a través de Apple App Store."
+  "purchase_via_play_store": "El pago se procesará a través de Google Play Store."
+  "full_description": "<ul>\n    <li>Un gran agradecimiento por apoyar el desarrollo de la plataforma</li>\n    <li>Tu propio código de jugador personalizado (puedes cambiarlo en tu perfil)</li>\n    <li>Insignia de membresía</li>\n    <li>Filtrado por primeros intentos</li>\n    <li>Filtrado por país</li>\n    <li>Gráficos</li>\n    <li>Escáner de código de barras</li>\n    <li>Estadísticas detalladas</li>\n</ul>\n\n<h3 class=\"h4\">¿Qué puedes esperar pronto?</h3>\n<ul>\n    <li>Reportes mensuales y anuales <small class=\"ms-1 text-muted\">(pronto)</small></li>\n    <li>Perfil público mypuzzler.com <small class=\"ms-1 text-muted\">(pronto)</small></li>\n    <li class=\"mt-2\">Desafíos especiales exclusivamente para miembros</li>\n    <li>Préstamo y venta de rompecabezas entre miembros</li>\n    <li>Gamificación - ganar experiencia y niveles</li>\n    <li>Insignias por varios logros</li>\n    <li>&hellip; y mucho más, ¡esto es solo una pequeña vista previa de lo que estamos preparando para\
+    \ ti!</li>\n</ul>\n"
+  "members_exclusive_button": "Exclusivo para miembros"
+  "members_exclusive_short": "Miembros"
+  "modal":
+    "title": "Característica Exclusiva para Miembros"
+    "cta": "Convertirse en miembro"
+    "no_thanks": "¡No, gracias!"
+    "text": "<p>Desbloquea el acceso a esta y otras características diseñadas para mejorar tu experiencia.</p>\n<p>¡Conviértete en miembro hoy, apoya el desarrollo de la plataforma y disfruta de características exclusivas que hacen tu viaje de speed puzzling aún más emocionante!</p>\n"
+  "have_voucher_code": "¿Tienes un código de cupón?"
+  "redeem_voucher": "Canjear cupón"
+"membership_payment_cancelled":
+  "meta":
+    "title": "Pago Cancelado"
+    "description": ""
+  "title": "Pago Cancelado"
+  "text": "El proceso de pago fue interrumpido, muy probablemente por ti :-)."
+  "membership_link": "Volver al resumen de membresía"
+  "payment_link": "Reintentar pago"
+"terms_of_service":
+  "meta":
+    "title": "Términos de Servicio"
+    "description": "Términos de Servicio para la plataforma MySpeedPuzzling.com"
+  "content": "<h1>Términos de Servicio</h1>\n<p>Estos Términos de Servicio rigen la provisión de suscripción (membresía) en la plataforma MySpeedPuzzling.com. Queremos que tengas toda la información importante en un lugar para que puedas revisarla fácilmente.</p>\n<h2>1. Quiénes Somos</h2>\n<ul>\n    <li><strong>Proveedor:</strong> Simona Mikešová (Propietario Único)</li>\n    <li><strong>Dirección:</strong> Františka Formana 237/31, 700 30 Ostrava, República Checa</li>\n    <li><strong>No. de ID:</strong> 06868878</li>\n    <li><strong>Email de Contacto:</strong> <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a></li>\n</ul>\n<p>Como operador de la plataforma MySpeedPuzzling.com, somos tu socio contractual para comprar y usar la membresía paga.</p>\n<h2>2. Cómo Funciona el Servicio</h2>\n<p>MySpeedPuzzling.com es una plataforma en línea para entusiastas de los rompecabezas. Ofrecemos varias características, mientras que las partes premium de la aplicación son accesibles\
+    \ solo para usuarios con una membresía activa.</p>\n<ul>\n    <li>La membresía es un producto virtual (digital) – una vez que pagas, inmediatamente obtienes acceso a características exclusivas.</li>\n    <li>Dado que es un servicio electrónico, no se aplican condiciones de entrega física o envío.</li>\n    <li>El contenido y las características disponibles como parte de la membresía pueden cambiar con el tiempo – las estamos mejorando continuamente.</li>\n</ul>\n<h2>3. Pedido y Conclusión del Contrato</h2>\n<p>Si decides comprar una membresía paga, simplemente elige la suscripción mensual en la sección \"Membresía\". Luego serás redirigido a la pasarela de pago de Stripe.</p>\n<ul>\n    <li><strong>Detalles de Pago:</strong> Todos los detalles de pago son procesados vía Stripe usando comunicación encriptada – no tenemos acceso a esta información.</li>\n    <li><strong>Confirmación de Pedido:</strong> El contrato entre tú y nosotros se concluye en el momento del pago exitoso. Tu membresía\
+    \ se activa inmediatamente después.</li>\n    <li><strong>Factura:</strong> Puedes descargar la factura de tu suscripción paga directamente desde el portal de pago de Stripe.</li>\n    <li><strong>Gestión Adicional de Membresía:</strong> Los cambios al método de pago, cancelación o extensión también se gestionan a través del portal de pago de Stripe, accesible vía la sección \"Membresía\" en tu cuenta.</li>\n</ul>\n<h2>4. Precios y Términos de Pago</h2>\n<ul>\n    <li><strong>Precio de Membresía:</strong> Todos los precios están indicados incluyendo IVA. Dependiendo de la moneda que uses para el pago, los precios pueden variar ligeramente.</li>\n    <li><strong>Métodos de Pago:</strong> Stripe soporta pagos con tarjeta, Apple Pay y Link (otros métodos pueden añadirse con el tiempo).</li>\n    <li><strong>Pago Recurrente:</strong> Esta es una suscripción mensual, lo que significa que el pago se repite cada mes hasta que canceles tu membresía.</li>\n</ul>\n<h2>5. Cancelación y Reembolsos</h2>\n\
+    <ul>\n    <li><strong>Puedes cancelar tu membresía en cualquier momento:</strong> Después de la cancelación, mantendrás el acceso hasta el final del período prepagado. No se tomarán más pagos una vez que termine ese período.</li>\n    <li><strong>Reembolsos:</strong> Si solicitas un reembolso para el período de facturación actual, reembolsaremos el pago usando el mismo método que usaste para pagar, y tu membresía terminará inmediatamente.</li>\n    <li><strong>Velocidad de Procesamiento:</strong> Procesamos reembolsos y reclamos prontamente (usualmente dentro del siguiente día hábil), no más tarde de 30 días como lo requiere la ley.</li>\n    <li><strong>Costos de Reembolso:</strong> Cubrimos cualquier tarifa por reembolsos – queremos que estés satisfecho.</li>\n</ul>\n<h2>6. Reclamos</h2>\n<p>Si sientes que el servicio no ha sido proporcionado con la calidad apropiada o experimentas problemas técnicos, por favor contáctanos en\n    <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.\n\
+    </p>\n<ul>\n    <li>Manejamos reclamos tan rápido como sea posible, típicamente dentro de 1–2 días hábiles.</li>\n    <li>El tiempo máximo de resolución para reclamos es de 30 días.</li>\n</ul>\n<h2>7. Protección de Datos Personales</h2>\n<p>Proporcionamos información sobre el procesamiento de datos personales en <a href=\"%privacyPolicyLink%\">una página separada</a> dedicada a la protección de privacidad. Ahí encontrarás todos los detalles sobre qué datos recolectamos, por qué los procesamos y cómo los manejamos.</p>\n<h2>8. Disposiciones Finales</h2>\n<ul>\n    <li>Estos términos se rigen por la ley checa, y cualquier disputa será resuelta por los tribunales competentes de la República Checa.</li>\n    <li>Creemos que no surgirán disputas, pero si surgen, puedes contactar a la Autoridad de Inspección Comercial Checa (ČOI) o usar la plataforma europea de Resolución de Disputas en Línea (ODR).</li>\n    <li>La versión actual de los términos siempre está disponible en MySpeedPuzzling.com.\
+    \ Nos reservamos el derecho de hacer cambios razonables para mantenerlos en línea con la legislación o necesidades operacionales.</li>\n</ul>\n<p><em><small>Última actualización: Enero 2025</small></em></p>\n"
+"privacy_policy":
+  "meta":
+    "title": "Política de Privacidad"
+    "description": "Política de Privacidad de la plataforma MySpeedPuzzling.com"
+  "content": "<h1>Política de Privacidad</h1>\n<p>El propósito de este documento es informarte sobre cómo manejamos tus datos personales en MySpeedPuzzling.com. Valoramos mucho tu confianza y privacidad.</p>\n<h2>1. Nombre Público</h2>\n<p>Al registrarte en MySpeedPuzzling.com, puedes elegir un <strong>nombre público</strong> – puede ser un apodo, abreviación o iniciales. Este nombre se muestra a todos los visitantes del sitio web. Por favor ten cuidado al elegir un nombre si deseas mantenerte más anónimo.</p>\n<h2>2. Email</h2>\n<ul>\n    <li>Proporcionas tu dirección de email para iniciar sesión y comunicarte con los administradores de la plataforma.</li>\n    <li><strong>La dirección de email no es pública</strong> – no aparece en ningún lugar de tu perfil y no es accesible para terceros.</li>\n    <li>Tu email se almacena en una base de datos encriptada, y solo los autores de la aplicación tienen acceso a él.</li>\n    <li>No compartimos tu dirección de email con ninguna otra entidad.</li>\n\
+    </ul>\n<h2>3. Contraseña</h2>\n<ul>\n    <li>Tu contraseña se almacena en nuestra base de datos solo como un <strong>hash</strong> – esta es una encriptación irreversible, por lo que ningún administrador o desarrollador puede descubrir su forma original.</li>\n    <li>Cuando inicias sesión, la información que ingresas se compara contra el hash almacenado en la base de datos.</li>\n    <li>Por razones de seguridad, nunca enviamos por email la contraseña original; si es necesario, puedes restablecerla usando el proceso \"Olvidé mi Contraseña\".</li>\n</ul>\n<h2>4. Información Pública Opcional</h2>\n<p>Los usuarios tienen la opción de proporcionar <strong>información pública</strong> adicional en su perfil (ej., ciudad, país, enlaces de redes sociales, descripción, avatar) para una mejor interacción comunitaria.</p>\n<ul>\n    <li>Esta información es visible para todos los visitantes y <strong>no se considera</strong> datos personales sensibles.</li>\n    <li>Serás notificado de que esta\
+    \ información es pública al completarla.</li>\n    <li>Sin embargo, estos datos también se almacenan en nuestra base de datos encriptada.</li>\n</ul>\n<h2>5. Información de Pago</h2>\n<ul>\n    <li>La plataforma MySpeedPuzzling.com <strong>no recolecta ningún dato sobre métodos de pago</strong> – todos los pagos son procesados exclusivamente a través de la compañía asociada Stripe.</li>\n    <li>Nunca tenemos acceso a los detalles de tu tarjeta de pago, información de cuenta bancaria o cualquier otro dato financiero.</li>\n</ul>\n<h2>6. Seguridad y Privacidad</h2>\n<ul>\n    <li>La seguridad de nuestros usuarios es nuestra prioridad – los servidores y bases de datos están protegidos contra acceso no autorizado, filtraciones de datos y otras amenazas cibernéticas.</li>\n    <li>Tus datos personales (ej., email o información de perfil opcional) siempre están encriptados, y solo los autores de la aplicación pueden acceder a ellos.</li>\n    <li>Mantenemos todas las medidas de seguridad\
+    \ estándar y trabajamos continuamente para mejorar nuestra seguridad.</li>\n</ul>\n<p>Si tienes alguna pregunta sobre la protección de datos personales o si no estás seguro de si algo está suficientemente claro, por favor contáctanos en <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.</p>\n<p><em><small>Última actualización: Enero 2025</small></em></p>\n"
+"countdown":
+  "days": "días"
+  "hours": "horas"
+  "minutes": "mins"
+  "seconds": "segs"
+"blog":
+  "outage-2025-02-17":
+    "title": "La Mayor Interrupción en la Historia de MySpeedPuzzling"
+    "content": "<h2 class=\"h5\">El 17 de febrero, experimentamos la interrupción más larga en la historia de MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">¡Antes que nada, quiero agradecerles mucho a todos por su paciencia y confianza! ¡Créanme, esas 7 horas cuando sabíamos que MSP no estaba funcionando fueron extremadamente estresantes para nosotros!</h4>\n<p>Hoy, tuvimos una interrupción de casi 10 horas de toda la plataforma. Es la interrupción más larga en la historia de MySpeedPuzzling. No fue nuestra culpa... ¿o sí lo fue?</p>\n<p>Porque nos esforzamos por ser 100% transparentes, aquí tienes un relato paso a paso de lo que pasó.</p>\n<p>Me fui a la cama alrededor de la 1:30 AM (desafortunadamente, justo antes de que todo se viniera abajo), habiendo acabado de terminar otra nueva característica para MySpeedPuzzling. Alrededor de las 5 AM, cuando uno de nuestros hijos se levantó para ir al baño, Simona automáticamente revisó las notificaciones en su teléfono—a menudo mira quién publicó\
+      \ nuevos tiempos y qué tan rápido lograron resolver el rompecabezas. Sí, incluso a las 5 de la mañana... Pero fue recibida por una sorpresa desagradable: ¡la página no cargaba! Me empujó, diciendo: \"¡MySpeedPuzzling no está funcionando!\" Escuchar eso me despertó inmediatamente. Tomé mi teléfono, lo intenté, ¡y realmente no estaba funcionando! Tomé mi laptop para examinar las cosas más de cerca. A la 1:59 AM, habíamos recibido una notificación de monitoreo automatizada, lo cual usualmente no son buenas noticias. Desafortunadamente, me la perdí porque me había ido a la cama justo antes. Además, el cambio que había hecho no era de ninguna manera destructivo y no podría haber causado tal interrupción. Y así comenzó nuestra interrupción del lunes, que duró casi hasta el mediodía.</p>\n<h5>Detalles técnicos para geeks:</h5>\n<p><em>(esto te dará un vistazo a nuestra infraestructura de servidor)</em></p>\n<p>Hace una semana, instalé un servidor de correo en nuestro servidor físico de MySpeedPuzzling—esto\
+      \ era preparación para migrar de Auth0 a nuestro propio servicio de autenticación, además de un boletín y otras características—enviar decenas de miles de emails al mes no es solo un paseo por el parque, y necesitamos estar listos para ello. Como resultó, ese servidor de correo fue efectivamente el culpable, pero no nos adelantemos.</p>\n<p>Lo primero que descubrí fue que los puertos 443 y 80 estaban agotando el tiempo. El servidor aloja múltiples aplicaciones, y esto afectó a todas ellas, no solo MSP—lo cual fue desagradable. Otro hallazgo más preocupante fue que no podía acceder al servidor vía SSH—el puerto también agotaba el tiempo.</p>\n<p>¿Qué ahora? El pánico se instaló, y le dije a Simona que esto era un gran problema.</p>\n<p>Inmediatamente notifiqué al proveedor del servidor que este servidor en particular no estaba respondiendo—en ese momento, parecía un problema claro de su parte porque el servidor no respondía para nada, mientras que otros servidores en el mismo centro\
+      \ de datos todavía eran alcanzables. Sospeché un problema de hardware, tal vez una tarjeta de red mala o un cable suelto (esto me ha pasado antes…), o una prohibición del proveedor debido a actividad sospechosa.</p>\n<p>El proveedor respondió en unos minutos diciendo que no veían nada de su lado. Revisaron el centro de datos; el servidor estaba funcionando y respondiendo—desde su perspectiva, todo estaba bien. Genial, así que no veían ningún problema, pero el servidor MSP todavía era inalcanzable y no podía iniciar sesión…</p>\n<p>Rápidamente arranqué un sistema de rescate junto al servidor, desde el cual monté exitosamente el sistema de archivos del servidor MSP, y comencé la búsqueda de aguja en un pajar. Sabía que la interrupción pasó alrededor de 1:58–1:59 AM. Busqué cualquier archivo cambiado en ese momento, en caso de que hubiéramos sido hackeados. No encontré nada. Nada de eso tenía sentido, y no pude detectar nada. Alrededor de las 8:00 AM, un colega del trabajo se unió a mí\
+      \ para ayudar. Juntos, descubrimos que SMTP en el puerto 25 (usado para enviar emails) estaba funcionando y no agotando el tiempo—incluso pude enviarme un email a mí mismo, y fue realmente entregado.</p>\n<p>Eso solo nos confundió más—el servidor estaba funcionando y operacional, era \"solo\" inalcanzable, y los puertos 80 y 443 también estaban bloqueados. Para entonces, estábamos casi seguros de que había algún problema con la configuración de red—todo todavía se veía \"normal,\" ¡pero nuestro principal sospechoso era el servidor de correo!</p>\n<p>Y efectivamente, ese era el caso. Todo en el servidor funciona en contenedores Docker. Cualquiera que haya usado Docker sabe que su red puede ser complicada. El servidor de correo que elegí también incluye fail2ban, que está diseñado para bloquear el acceso desde direcciones IP sospechosas—por ejemplo, si hay demasiados intentos de inicio de sesión fallidos u otras amenazas. Saltaré unas dos horas más de diagnóstico—pero esencialmente,\
+      \ fail2ban no estaba configurado apropiadamente (se dejó en su configuración predeterminada), y combinado con UFW, de alguna manera misteriosamente bloqueó todo el tráfico en los puertos 22, 80 y 443—aunque todavía no entendemos completamente por qué pasó de esa manera.</p>\n<p>Una vez que supe la causa, la solución final no tomó mucho tiempo—rápidamente desinstalar el servidor de correo (incluyendo UFW), limpiar iptables, re-añadir las reglas de red de Docker, \"rebotar\" todo unas pocas veces, desconectar el sistema de rescate, reiniciar todo, y… finalmente, después de cinco horas agonizantes maldiciendo al monitor, MSP estaba de vuelta a la normalidad…</p>\n<p>Salté algunos detalles innecesarios—como cómo cambié DNS a un proxy de CloudFlare en cinco minutos mientras tanto y configuré un worker de Node.js para mostrar un mensaje sobre la interrupción—solo para que no hubiera una página en blanco…</p>\n<p>Por ahora, estoy dejando el trabajo del servidor de correo a un lado, y sé que\
+      \ estará \"a un lado,\" en un servidor separado, lejos de MSP. Por un lado, fue interesante probar nuestro proceso de \"recuperación de desastres\"—en un punto estaba tan desesperado que estaba listo para dejar que este servidor se quemara en el infierno, girar todo en uno nuevo, y solo actualizar los registros DNS… Afortunadamente, eso resultó innecesario al final.</p>\n<p>PS. Realmente se rompió \"por sí solo\", gracias al servidor de correo, después de una semana sin ninguna intervención humana… Eso es bastante algo…</p>\n<p>PS2. Eres valiente si has leído hasta el final :-).</p>\n"
+"collections":
+  "add_puzzle_here":
+    "button": "Añadir puzzle"
+  "add_puzzle_form":
+    "title": "Añadir puzzle a la colección"
+    "button": "Añadir puzzle"
+    "description": "Seleccione un puzzle existente o añada uno nuevo a su colección."
+    "submit": "Añadir a la colección"
+    "success": "El puzzle se ha añadido correctamente a la colección."
+  "comment_help": "Añada un comentario opcional sobre este puzzle en su colección."
+  "add_to_collection": "Añadir a la colección"
+  "add_puzzle": "Añadir puzzle a la colección"
+  "moving_from": "Moviendo de %collection%"
+  "private": "Privada"
+  "change_to_public_hint": "Cambiar a pública para compartir"
+  "added_on": "Añadido el %date%"
+  "already_in_system": "Puzzle ya en tu colección"
+  "already_in_system_message": "Este puzzle ya está en tu Colección de Puzzles. ¿Quieres organizar tus puzzles en múltiples colecciones? ¡Desbloquea esta función con la membresía!"
+  "back_to_library": "Biblioteca de puzzles"
+  "collection_not_found": "Colección no encontrada"
+  "confirm_remove": "¿Estás seguro de que quieres eliminar este puzzle de la colección?"
+  "copy_puzzle": "Copiar puzzle a la colección"
+  "copy_puzzle_submit": "Copiar"
+  "copy_to_collection": "Copiar a colección"
+  "create":
+    "button": "Crear colección"
+    "meta":
+      "title": "Crear colección"
+    "submit": "Crear"
+    "title": "Crear nueva colección"
+  "delete":
+    "button": "Eliminar"
+    "confirm":
+      "button": "Eliminar colección"
+      "message": "¿Realmente quieres eliminar la colección %name%? Esta acción es irreversible y también eliminará todos los puzzles de esta colección."
+      "title": "Eliminar colección"
+  "edit":
+    "button": "Editar"
+    "meta":
+      "title": "Editar colección %name%"
+    "submit": "Guardar cambios"
+    "title": "Editar colección %name%"
+  "edit_comment":
+    "meta":
+      "title": "Editar comentario - %name%"
+    "submit": "Guardar"
+    "title": "Editar comentario"
+  "edit_system":
+    "info": "Solo puedes cambiar la visibilidad de tu Colección de Puzzles. El nombre y la descripción no se pueden modificar."
+    "meta":
+      "title": "Editar colección de puzzles"
+    "submit": "Guardar cambios"
+    "title": "Editar colección de puzzles"
+  "empty":
+    "message": "Crea tu primera colección y comienza a organizar tus puzzles favoritos."
+    "message_other": "%name% no tiene colecciones públicas."
+    "title": "No tienes colecciones"
+    "title_other": "Sin colecciones públicas"
+  "flash":
+    "comment_updated": "El comentario se ha actualizado correctamente."
+    "created": "La colección se ha creado correctamente."
+    "deleted": "La colección se ha eliminado correctamente."
+    "login_required_add": "Debes iniciar sesión para añadir puzzles a las colecciones."
+    "login_required_copy": "Debes iniciar sesión para copiar puzzles a las colecciones."
+    "login_required_move": "Debes iniciar sesión para mover puzzles entre colecciones."
+    "membership_required": "Crear colecciones es una función premium. ¡Obtén la membresía para organizar tus puzzles en colecciones ilimitadas!"
+    "puzzle_added": "El puzzle se ha añadido correctamente a la colección."
+    "puzzle_removed": "El puzzle se ha eliminado de la colección."
+    "system_updated": "La visibilidad de la colección de puzzles se ha actualizado correctamente."
+    "updated": "La colección se ha actualizado correctamente."
+    "puzzle_moved": "El puzzle se ha movido correctamente a la colección."
+  "form":
+    "description": "Descripción"
+    "name": "Nombre"
+    "visibility_help": "Las colecciones públicas son visibles para todos los usuarios, las privadas solo para ti."
+  "items_count": "%count% puzzles"
+  "membership_required":
+    "help_text": "¿Quieres organizar puzzles en múltiples colecciones?"
+    "message": "¡Crea colecciones ilimitadas para organizar tus puzzles con la membresía!"
+    "title": "Desbloquea colecciones ilimitadas"
+    "toast": "Crear colecciones requiere una membresía activa."
+    "unlock_link": "Desbloquear con membresía"
+  "meta":
+    "title": "Biblioteca de puzzles"
+  "move_puzzle": "Mover puzzle a la colección"
+  "move_puzzle_submit": "Mover"
+  "move_to_collection": "Mover a colección"
+  "no_copy_target": "Sin colecciones disponibles"
+  "no_copy_target_message": "No hay otras colecciones a las que copiar este puzzle. Crea colecciones personalizadas para organizar tus puzzles."
+  "no_move_target": "Sin colecciones disponibles"
+  "no_move_target_message": "No hay otras colecciones a las que mover este puzzle. Crea colecciones personalizadas para organizar tus puzzles."
+  "no_puzzles": "No hay puzzles en esta colección"
+  "no_puzzles_description": "Esta colección está vacía. ¡Añade algunos puzzles para empezar!"
+  "private_page":
+    "title": "Colección privada"
+    "message": "La colección de %name% es privada y no se puede ver."
+  "private_collection": "Colección privada"
+  "private_collection_message": "La colección \"%collection%\" de %player% es privada y no se puede ver."
+  "public": "Pública"
+  "remove": "Eliminar"
+  "remove_from": "Eliminar de %collection%"
+  "remove_puzzle": "Eliminar de la colección"
+  "select_collection_help": "Elige una colección o deja vacío para añadir a tu Colección de Puzzles predeterminada"
+  "system_name": "Colección de Puzzles"
+  "title": "Biblioteca de puzzles"
+  "title_other": "Biblioteca de puzzles de %name%"
+  "visibility":
+    "private": "Privada"
+    "public": "Pública"
+"unsolved_puzzles":
+  "description": "Puzzles en tu colección que aún no has resuelto"
+  "description_other": "Puzzles que %name% posee pero aún no ha resuelto"
+  "edit":
+    "meta":
+      "title": "Editar visibilidad de puzzles sin resolver"
+    "submit": "Guardar cambios"
+    "title": "Editar visibilidad de puzzles sin resolver"
+  "empty":
+    "message": "¡Todos los puzzles de tu colección han sido resueltos!"
+    "title": "Sin puzzles sin resolver"
+  "flash":
+    "updated": "La visibilidad de los puzzles sin resolver se actualizó correctamente."
+  "form":
+    "visibility_help": "La lista pública de puzzles sin resolver es visible para todos los usuarios, la privada solo para ti."
+  "items_count": "%count% puzzles"
+  "meta":
+    "title": "Puzzles sin resolver"
+  "name": "Puzzles sin resolver"
+  "private": "Puzzles sin resolver privados"
+  "private_message": "La lista de puzzles sin resolver \"%collection%\" de %player% es privada y no se puede ver."
+  "title": "Puzzles sin resolver"
+  "title_other": "Puzzles sin resolver de %name%"
+"wish_list":
+  "name": "Lista de Deseos"
+  "meta":
+    "title": "Lista de Deseos"
+  "title": "Lista de Deseos"
+  "title_other": "Lista de Deseos de %name%"
+  "description": "Puzzles que quieres conseguir"
+  "description_other": "Puzzles que %name% quiere conseguir"
+  "items_count": "%count% puzzles"
+  "empty":
+    "title": "Tu lista de deseos está vacía"
+    "message": "¡Añade puzzles que quieras conseguir a tu lista de deseos!"
+    "title_other": "Lista de deseos vacía"
+    "message_other": "La lista de deseos de %name% está vacía."
+  "edit":
+    "title": "Editar Visibilidad de Lista de Deseos"
+    "meta":
+      "title": "Editar Visibilidad de Lista de Deseos"
+    "submit": "Guardar Cambios"
+  "form":
+    "visibility_help": "La lista de deseos pública es visible para todos los usuarios, la privada solo para ti."
+    "remove_on_add": "Eliminar automáticamente de la lista de deseos"
+    "remove_on_add_help": "Cuando esté marcado, este puzzle se eliminará automáticamente de tu lista de deseos cuando lo añadas a cualquier colección, añadas un tiempo de resolución o lo tomes prestado."
+  "flash":
+    "updated": "La visibilidad de la lista de deseos se actualizó correctamente."
+    "added": "El puzzle fue añadido a tu lista de deseos."
+    "removed": "El puzzle fue eliminado de tu lista de deseos."
+    "login_required": "Debes iniciar sesión para gestionar tu lista de deseos."
+  "private": "Lista de Deseos Privada"
+  "private_message": "La lista de deseos de %player% es privada y no se puede ver."
+  "on_wishlist": "En la Lista de Deseos"
+  "add":
+    "title": "Añadir a Lista de Deseos"
+    "button": "Añadir a Lista de Deseos"
+    "success": "El puzzle fue añadido a tu lista de deseos."
+  "remove":
+    "button": "Eliminar de Lista de Deseos"
+    "success": "El puzzle fue eliminado de tu lista de deseos."
+  "already_in_list": "Este puzzle ya está en tu lista de deseos."
+  "login_required": "Debes iniciar sesión para añadir puzzles a tu lista de deseos."
+  "auto_remove_enabled": "Eliminación automática habilitada"
+"sell_swap_list":
+  "name": "Lista de Venta/Intercambio"
+  "meta":
+    "title": "Lista de Venta/Intercambio"
+  "title": "Lista de Venta/Intercambio"
+  "title_other": "Lista de Venta/Intercambio de %name%"
+  "description": "Puzzles en venta o para intercambio"
+  "description_other": "Puzzles que %name% está vendiendo o intercambiando"
+  "not_in_collection": "Añadir a la colección primero"
+  "items_count": "%count% puzzles"
+  "empty":
+    "title": "Tu lista de venta/intercambio está vacía"
+    "message": "¡Añade puzzles que quieras vender o intercambiar!"
+    "title_other": "Lista de venta/intercambio vacía"
+    "message_other": "La lista de venta/intercambio de %name% está vacía."
+  "edit_settings":
+    "title": "Editar Configuración de Lista de Venta/Intercambio"
+    "meta":
+      "title": "Editar Configuración de Lista de Venta/Intercambio"
+    "submit": "Guardar Cambios"
+  "edit_item":
+    "title": "Editar Artículo"
+    "meta":
+      "title": "Editar Artículo de Venta/Intercambio"
+    "submit": "Guardar Cambios"
+  "settings":
+    "title": "Configuración de Lista de Venta/Intercambio"
+    "description": "Descripción"
+    "description_placeholder": "Cuéntale a los compradores sobre tus políticas de listado, métodos de pago preferidos, etc."
+    "description_help": "Cuéntale a los compradores sobre tus políticas de listado, métodos de pago preferidos, etc."
+    "currency": "Moneda"
+    "currency_placeholder": "Selecciona moneda..."
+    "currency_custom": "Moneda personalizada"
+    "custom_currency": "Moneda personalizada"
+    "currency_custom_placeholder": "ej. USD, GBP, CHF..."
+    "custom_currency_placeholder": "ej. USD, GBP, CHF..."
+    "custom_currency_help": "Usa esto si tu moneda no está en la lista anterior."
+    "shipping_info": "Información de Envío"
+    "shipping_info_placeholder": "Describe tus opciones de envío y costos..."
+    "shipping_info_help": "Describe tus opciones de envío y costos..."
+    "contact_info": "Información de Contacto"
+    "contact_info_placeholder": "p. ej. email, teléfono, Instagram..."
+    "contact_info_help": "Cuando deseas que te contacten fuera de la plataforma"
+    "contact_info_warning": "Tu información de contacto será públicamente visible. Solo comparte lo que te resulte cómodo."
+    "region":
+      "central_europe": "Europa Central"
+      "eastern_europe": "Europa del Este"
+      "north_america": "América del Norte"
+      "northern_europe": "Europa del Norte"
+      "rest_of_world": "Resto del mundo"
+      "southern_europe": "Europa del Sur"
+      "western_europe": "Europa Occidental"
+    "shipping_cost": "Información de costos de envío"
+    "shipping_cost_placeholder": "ej. Envío gratis a partir de 50 EUR, tarifa fija 5 EUR"
+    "shipping_countries": "Países a los que envías"
+    "ships_to": "Envía a"
+  "form":
+    "listing_type": "Tipo de Anuncio"
+    "price": "Precio"
+    "price_help": "Deja vacío si prefieres discutir el precio o para artículos solo de intercambio. Puedes establecer tu moneda en la configuración de la lista de venta/intercambio."
+    "condition": "Condición"
+    "condition_placeholder": "Selecciona condición..."
+    "comment": "Comentario"
+    "comment_placeholder": "Detalles adicionales sobre este puzzle..."
+    "publish_on_marketplace": "Publicar en el mercado"
+    "publish_on_marketplace_help": "Cuando está habilitado, este artículo también aparecerá en el mercado público."
+  "listing_type":
+    "swap": "Intercambio"
+    "sell": "Venta"
+    "both": "Venta o Intercambio"
+    "free": "Gratis"
+  "condition":
+    "like_new": "Como Nuevo"
+    "normal": "Normal"
+    "not_so_good": "No Tan Bueno"
+    "missing_pieces": "Piezas Faltantes"
+  "filter":
+    "all_types": "Todos los Tipos"
+    "min_price": "Precio Mín"
+    "max_price": "Precio Máx"
+  "add":
+    "title": "Añadir a Lista de Venta/Intercambio"
+    "button": "Añadir a Lista de Venta/Intercambio"
+    "success": "El puzzle fue añadido a tu lista de venta/intercambio."
+  "remove":
+    "button": "Eliminar de Lista de Venta/Intercambio"
+    "success": "El puzzle fue eliminado de tu lista de venta/intercambio."
+  "already_in_list": "Este puzzle ya está en tu lista de venta/intercambio."
+  "login_required": "Debes iniciar sesión para gestionar tu lista de venta/intercambio."
+  "membership_required":
+    "title": "Función Exclusiva para Miembros"
+    "message": "La lista de venta/intercambio está disponible exclusivamente para miembros."
+  "mark_sold":
+    "title": "Marcar como Vendido/Intercambiado"
+    "button": "Marcar como Vendido/Intercambiado"
+    "confirm": "Confirmar"
+    "warning": "Esto eliminará el puzzle de tu lista de venta/intercambio y todas tus colecciones."
+    "buyer_input": "Comprador"
+    "buyer_input_help": "Ingresa el código de jugador del comprador (ej. #ABC123) o nombre. Deja vacío si es desconocido."
+    "buyer_input_placeholder": "#ABC123 o nombre..."
+    "success": "El puzzle fue marcado como vendido/intercambiado y eliminado de tus colecciones."
+  "back_to_list": "Volver a Lista de Venta/Intercambio"
+  "flash":
+    "updated": "La configuración de la lista de venta/intercambio se actualizó correctamente."
+    "settings_updated": "La configuración de la lista de venta/intercambio se actualizó correctamente."
+    "item_updated": "El artículo de la lista de venta/intercambio se actualizó correctamente."
+    "added": "El puzzle fue añadido a tu lista de venta/intercambio."
+    "removed": "El puzzle fue eliminado de tu lista de venta/intercambio."
+    "login_required": "Debes iniciar sesión para gestionar tu lista de venta/intercambio."
+    "validation_error": "Por favor corrige los errores e intenta de nuevo."
+  "history":
+    "title": "Historial de Vendidos/Intercambiados"
+    "menu": "Historial"
+    "button": "Historial"
+    "empty": "Aún no hay artículos vendidos o intercambiados."
+    "puzzle": "Puzzle"
+    "type": "Tipo"
+    "price": "Precio"
+    "buyer": "Comprador"
+    "date": "Fecha"
+    "unknown_buyer": "Desconocido"
+  "mark_reserved":
+    "button": "Marcar como reservado"
+    "confirm": "Confirmar reserva"
+    "reserved_for_input": "Reservado para"
+    "reserved_for_input_help": "Ingrese el código del jugador (ej. #ABC123) o nombre. Deje vacío si no lo sabe."
+    "reserved_for_input_placeholder": "#ABC123 o nombre..."
+    "title": "Marcar como reservado"
+  "on_marketplace": "En el mercado"
+  "remove_reservation":
+    "button": "Eliminar reserva"
+  "reservation_removed.success": "El puzzle ya no está reservado y está disponible de nuevo."
+  "reserved": "RESERVADO"
+  "reserved.success": "La oferta fue marcada como reservada."
+  "settings_alert":
+    "cta": "Completar configuración"
+    "missing_currency": "Configurar moneda"
+    "missing_shipping_countries": "Agregar países de envío"
+    "subtitle": "Por favor completa estos pasos para que tus puzzles puedan ser encontrados en el mercado."
+    "title": "¡Ya casi!"
+"puzzler_offers":
+  "badge": "%count% ofertas"
+  "title": "Ofertas de puzzlers"
+  "meta":
+    "description": "%count% puzzlers ofrecen %brand% %puzzle% para venta o intercambio"
+  "column":
+    "player": "Jugador"
+    "type": "Tipo"
+    "price": "Precio"
+    "condition": "Condición"
+    "comment": "Comentario"
+  "offers_link": "Ofertas (%count%)"
+  "view_all": "Ver las %count% ofertas"
+  "view_on_marketplace": "Ver en el mercado"
+"lend_borrow":
+  "name": "Préstamo y Devolución"
+  "title": "Préstamo y Devolución"
+  "description": "Puzzles actualmente prestados o tomados prestados"
+  "not_in_collection": "No está en tu colección"
+  "lent_count": "%count% prestados"
+  "borrowed_count": "%count% tomados prestados"
+  "tab":
+    "lent": "Prestados"
+    "borrowed": "Tomados prestados"
+  "lent_to": "Prestado a %name%"
+  "borrowed_from": "De %name%"
+  "view_holder": "Ver poseedor actual"
+  "view_owner": "Ver propietario"
+  "lent":
+    "empty":
+      "title": "Sin puzzles prestados"
+      "message": "Aún no has prestado ningún puzzle. Usa el menú del puzzle para prestar puzzles a otros jugadores."
+      "title_other": "Sin puzzles prestados"
+      "message_other": "%name% no ha prestado ningún puzzle."
+  "borrowed":
+    "empty":
+      "title": "Sin puzzles tomados prestados"
+      "message": "No tienes ningún puzzle tomado prestado."
+      "title_other": "Sin puzzles tomados prestados"
+      "message_other": "%name% no ha tomado prestado ningún puzzle."
+  "form":
+    "borrower_code": "Código de jugador o nombre del prestatario"
+    "borrower_code_help": "Para usuarios registrados usa #código (ej. #ABC123). Para personas no registradas simplemente ingresa su nombre."
+    "borrower_code_placeholder": "#ABC123 o Juan Pérez"
+    "owner_code": "Código de jugador o nombre del propietario"
+    "owner_code_help": "Para usuarios registrados usa #código (ej. #ABC123). Para personas no registradas simplemente ingresa su nombre."
+    "owner_code_placeholder": "#ABC123 o Juan Pérez"
+    "notes": "Notas"
+    "notes_placeholder": "Notas opcionales sobre este préstamo..."
+    "new_holder_code": "Código de jugador o nombre del nuevo poseedor"
+    "new_holder_code_help": "Para usuarios registrados usa #código (ej. #ABC123). Para personas no registradas simplemente ingresa su nombre."
+    "new_holder_code_placeholder": "#ABC123 o Juan Pérez"
+  "lend":
+    "title": "Prestar Puzzle"
+    "button": "Prestar a jugador"
+    "description": "Presta este puzzle a otro jugador. Podrán pasarlo o devolvértelo."
+  "borrow":
+    "title": "Marcar como Tomado Prestado"
+    "button": "Tomado prestado de"
+    "description": "Marca este puzzle como tomado prestado de otro jugador."
+  "pass":
+    "title": "Pasar Puzzle"
+    "button": "Pasar a otra persona"
+    "description": "Pasa %puzzle% a otro jugador. El propietario aún podrá rastrearlo."
+  "return":
+    "title": "Devolver Puzzle"
+    "button": "Devolver al propietario"
+    "confirm_message": "¿Devolver %puzzle% a su propietario?"
+  "membership_required":
+    "title": "Función Exclusiva para Miembros"
+    "message": "Prestar puzzles está disponible exclusivamente para miembros."
+  "already_lent": "Este puzzle ya está prestado."
+  "already_lent_short": "Ya prestado"
+  "already_borrowed": "Este puzzle ya está en tu lista de tomados prestados."
+  "already_borrowed_short": "Ya tomado prestado"
+  "login_required": "Debes iniciar sesión para gestionar tu lista de préstamos."
+  "edit_settings":
+    "title": "Editar Configuración de Préstamo y Devolución"
+    "meta":
+      "title": "Editar Configuración de Préstamo y Devolución"
+    "submit": "Guardar Cambios"
+  "flash":
+    "lent": "El puzzle fue prestado exitosamente."
+    "passed": "El puzzle fue pasado exitosamente."
+    "returned": "El puzzle fue devuelto exitosamente al propietario."
+    "borrowed": "El puzzle fue marcado como tomado prestado."
+    "settings_updated": "La configuración de Préstamo y Devolución se actualizó correctamente."
+    "login_required": "Debes iniciar sesión para gestionar tu lista de préstamos."
+    "validation_error": "Por favor corrige los errores e intenta de nuevo."
+    "player_not_found": "Jugador no encontrado. Por favor verifica el código de jugador."
+    "cannot_lend_to_self": "No puedes prestarte un puzzle a ti mismo."
+    "cannot_borrow_from_self": "No puedes tomar prestado un puzzle de ti mismo."
+    "cannot_pass_to_self": "No puede pasar un puzzle a sí mismo."
+"status":
+  "borrowed": "Prestado"
+  "collection": "En colección"
+  "for_sale": "En venta"
+  "lent": "Prestado"
+  "solved": "Resuelto"
+  "unsolved": "Sin resolver"
+  "wishlist": "Lista de deseos"
+"solved_puzzles":
+  "name": "Puzzles Resueltos"
+  "meta":
+    "title": "Puzzles Resueltos"
+  "title": "Puzzles Resueltos"
+  "title_other": "Puzzles Resueltos de %name%"
+  "description": "Todos los puzzles que has completado"
+  "description_other": "Todos los puzzles que %name% ha completado"
+  "items_count": "%count% puzzles"
+  "private": "Puzzles Resueltos Privados"
+  "private_message": "La lista de puzzles resueltos \"%collection%\" de %player% es privada y no se puede ver."
+  "empty":
+    "title": "Sin puzzles resueltos"
+    "message": "¡Empieza a resolver puzzles para verlos aquí!"
+    "title_other": "Sin puzzles resueltos"
+    "message_other": "%name% aún no ha resuelto ningún puzzle."
+  "edit":
+    "title": "Editar visibilidad de puzzles resueltos"
+    "meta":
+      "title": "Editar visibilidad de puzzles resueltos"
+    "submit": "Guardar cambios"
+  "form":
+    "visibility_help": "La lista pública de puzzles resueltos es visible para todos, la privada solo para ti."
+  "flash":
+    "updated": "La visibilidad de los puzzles resueltos se actualizó correctamente."
+"image_editor":
+  "title": "Editar imagen"
+  "rotate_left": "Girar a la izquierda"
+  "rotate_right": "Girar a la derecha"
+  "apply": "Aplicar"
+"admin":
+  "puzzle_change_request":
+    "approved": "La solicitud de cambio ha sido aprobada y el puzzle actualizado."
+    "rejected": "La solicitud de cambio ha sido rechazada."
+    "rejection_reason_required": "Se requiere un motivo de rechazo."
+  "puzzle_merge_request":
+    "approved": "La solicitud de fusión ha sido aprobada. Los puzzles han sido fusionados."
+    "rejected": "La solicitud de fusión ha sido rechazada."
+    "rejection_reason_required": "Se requiere un motivo de rechazo."
+    "validation_failed": "Se requiere el puzzle objetivo, nombre y cantidad de piezas."
+"pending_proposals":
+  "badge": "Propuesta Pendiente"
+  "go_to_admin": "Ir a administración"
+  "no_proposals": "No hay propuestas pendientes para este puzzle."
+  "reported_by": "Reportado por"
+  "title": "Propuestas Pendientes"
+  "type":
+    "change_request": "Solicitud de Cambio"
+    "merge_request": "Solicitud de Fusión"
+"puzzle_report":
+  "back_to_puzzle": "Volver al puzzle"
+  "dropdown":
+    "suggest_change": "Sugerir un cambio"
+    "suggest_change_description": "¿Datos faltantes/incorrectos o duplicado?"
+  "flash":
+    "changes_submitted": "Tus cambios sugeridos han sido enviados para revisión. ¡Gracias!"
+    "duplicate_reported": "Tu reporte de duplicado ha sido enviado para revisión. ¡Gracias!"
+    "login_required": "Por favor inicia sesión para sugerir cambios."
+    "no_valid_duplicates": "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
+    "pending_proposal_exists": "Ya existe una propuesta pendiente de revisión para este puzzle."
+    "validation_error": "Por favor corrige los errores e intenta de nuevo."
+  "form":
+    "current_image": "Imagen Actual"
+    "duplicate_url": "URL del Puzzle Duplicado"
+    "duplicate_url_help": "Pega la URL del puzzle duplicado."
+    "duplicate_url_placeholder": "https://www.myspeedpuzzling.com/puzzle/..."
+    "ean": "EAN / Código de barras"
+    "ean_help": "El número del código de barras en la caja del puzzle (normalmente 13 dígitos)."
+    "ean_placeholder": "ej., 4005556123456"
+    "identification_number": "Código de Marca / SKU"
+    "identification_number_help": "El código de producto del fabricante (ej. 19432 para puzzles Ravensburger)."
+    "identification_number_placeholder": "ej., 19432"
+    "manufacturer": "Fabricante"
+    "manufacturer_placeholder": "Buscar fabricante..."
+    "name": "Nombre del Puzzle"
+    "name_help": "Introduce el nombre correcto como aparece en la caja del puzzle. Usa coma para separar múltiples nombres."
+    "name_placeholder": "Introduce el nombre del puzzle..."
+    "or": "o"
+    "photo": "Nueva Foto"
+    "photo_example_ok": "OK"
+    "photo_example_perfect": "Perfecto"
+    "photo_example_wrong": "Incorrecto"
+    "photo_help_1": "Usa la imagen de la caja del puzzle, no el puzzle completado."
+    "photo_help_2": "Asegura buena iluminación y enfoque."
+    "photo_help_3": "Recorta para mostrar solo la imagen del puzzle, no la caja completa."
+    "photo_help_4": "Para multipacks, elige solo la imagen de un puzzle."
+    "photo_help_title": "Guía para la foto:"
+    "photo_help_toggle": "Consejos para una buena foto"
+    "pieces_count": "Cantidad de Piezas"
+    "pieces_count_help": "Introduce el número correcto de piezas."
+    "search_manufacturer": "Buscar por Fabricante"
+    "search_manufacturer_placeholder": "Selecciona fabricante para explorar puzzles..."
+    "select_duplicate_error": "Por favor selecciona un puzzle duplicado o introduce una URL de puzzle."
+    "select_manufacturer_first": "Primero selecciona un fabricante"
+    "select_puzzle": "Seleccionar Puzzle"
+    "select_puzzle_placeholder": "Buscar puzzle..."
+    "submit_changes": "Enviar Cambios"
+    "submit_duplicate": "Reportar como Duplicado"
+  "propose_changes":
+    "description": "Sugiere correcciones o mejoras a la información de este puzzle. Todos los cambios serán revisados por un administrador."
+  "report_duplicate":
+    "description": "Reporta que este puzzle es un duplicado de otro puzzle. Un administrador revisará y fusionará los registros si se confirma."
+    "max_puzzles_info": "Puedes reportar hasta %max% puzzles como duplicados a la vez."
+  "tab":
+    "suggestions": "Sugerencias"
+    "report_duplicate": "Reportar Duplicado"
+  "title": "Sugerir un Cambio al Puzzle"
+"back_to": "Volver a"
+"edit_my_puzzle_offer": "Editar mi oferta de puzzle"
+"messaging":
+  "accept": "Aceptar"
+  "accept_disclaimer": "Al aceptar, el remitente verá que estás activo y has leído los mensajes."
+  "actions":
+    "reserved": "Reservado"
+    "sold_swapped": "Vendido/intercambiado"
+    "to_someone_else": "A otra persona"
+    "to_this_puzzler": "A este puzzler"
+  "back_to_messages": "Mensajes"
+  "block_confirm": "¿Estás seguro de que quieres bloquear a este usuario?"
+  "block_user": "Bloquear usuario"
+  "blocked_on": "Bloqueado el"
+  "blocked_users": "Usuarios bloqueados"
+  "cancel": "Cancelar"
+  "cannot_contact_yourself": "No puedes contactarte a ti mismo."
+  "cannot_message_user": "No puedes enviar un mensaje a este usuario."
+  "conversation_partners": "- De conversaciones del mercado -"
+  "conversation_with": "Conversación con %name%"
+  "conversations": "Conversaciones"
+  "direct_messages_disabled": "Este usuario no acepta mensajes directos."
+  "ignore": "Ignorar"
+  "ignored": "Ignorado"
+  "ignored_notice": "Esta solicitud de conversación fue ignorada."
+  "ignored_status": "Ignorado"
+  "interested_in_puzzle": "%name% está interesado en tu puzzle"
+  "max_characters": "Máximo 2000 caracteres."
+  "message_empty": "El mensaje no puede estar vacío."
+  "message_label": "Mensaje"
+  "new_message": "Nuevo mensaje"
+  "no_blocked_users": "No has bloqueado a ningún usuario."
+  "no_conversations": "Aún no tienes conversaciones."
+  "no_conversations_yet": "Aún no hay conversaciones."
+  "no_ignored_conversations": "No hay conversaciones ignoradas."
+  "no_messages_yet": "Aún no hay mensajes. ¡Inicia la conversación!"
+  "no_pending_requests": "No hay solicitudes de mensajes pendientes."
+  "no_requests": "No tienes solicitudes pendientes."
+  "pending_notice": "Esta solicitud de conversación está esperando aprobación."
+  "pending_request_exists": "Ya tienes una solicitud de mensaje pendiente con este usuario."
+  "pending_request_notice": "Esta es una solicitud de mensaje."
+  "pending_status": "Pendiente"
+  "rate_pending": "Calificar"
+  "rate_transaction": "Calificar transacción"
+  "read_status": "Leído"
+  "report": "Reportar"
+  "report_button": "Enviar reporte"
+  "report_confirm": "¿Estás seguro de que quieres reportar esta conversación?"
+  "report_conversation": "Reportar conversación"
+  "report_reason": "Razón"
+  "report_reason_placeholder": "Describe por qué estás reportando esta conversación..."
+  "report_submit": "Enviar reporte"
+  "request_accepted": "Solicitud de mensaje aceptada."
+  "request_ignored": "Solicitud de mensaje ignorada."
+  "request_sent": "Solicitud de mensaje enviada exitosamente."
+  "requests": "Solicitudes"
+  "send": "Enviar"
+  "send_failed": "No se pudo enviar el mensaje. Por favor, inténtalo de nuevo."
+  "send_message": "Enviar mensaje"
+  "send_placeholder": "Escribe tu mensaje..."
+  "sent_status": "Enviado"
+  "system":
+    "listing_reservation_removed": "Este puzzle ya no está reservado y está disponible de nuevo."
+    "listing_reserved": "Este puzzle fue reservado."
+    "listing_reserved_for_someone_else": "Este puzzle fue reservado para otra persona."
+    "listing_reserved_for_this_puzzler": "Este puzzle fue reservado para este puzzler."
+    "listing_reserved_for_you": "Este puzzle fue reservado para ti."
+    "listing_sold": "Este puzzle fue vendido/intercambiado a otra persona."
+    "listing_sold_to_someone_else": "Este puzzle fue vendido/intercambiado a otra persona."
+    "listing_sold_to_this_puzzler": "Vendiste/intercambiaste este puzzle con este puzzler."
+    "listing_sold_to_you": "Este puzzle fue vendido/intercambiado para ti."
+    "preview":
+      "listing_reservation_removed": "El puzzle está disponible de nuevo"
+      "listing_reserved": "El puzzle fue reservado"
+      "listing_sold": "El puzzle fue vendido/intercambiado"
+  "title": "Mensajes"
+  "type_message": "Escribe un mensaje..."
+  "typing": "escribiendo..."
+  "unblock": "Desbloquear"
+  "unblock_confirm": "¿Estás seguro de que quieres desbloquear a este usuario?"
+  "user_blocked": "El usuario ha sido bloqueado."
+  "user_unblocked": "El usuario ha sido desbloqueado."
+  "view": "Ver"
+  "waiting_for_acceptance": "Esperando a que %name% acepte tu solicitud de mensaje."
+  "wants_to_message": "%name% quiere enviarte un mensaje"
+  "write_message_placeholder": "Escribe tu mensaje..."
+  "you_prefix": "Tú:"
+  "your_rating": "Tu calificación"
+"rating":
+  "already_rated": "Ya has calificado esta transacción."
+  "average": "Calificación promedio"
+  "back_to_profile": "Volver al perfil"
+  "bought_from": "Comprado de"
+  "cancel": "Cancelar"
+  "cannot_rate": "No puedes calificar esta transacción. Es posible que ya haya sido calificada o que el plazo de calificación haya expirado."
+  "count": "%count% calificaciones"
+  "count_singular": "1 calificación"
+  "expired": "El plazo de calificación ha expirado (30 días)."
+  "invalid_stars": "Por favor selecciona una calificación entre 1 y 5 estrellas."
+  "no_ratings": "Aún no hay calificaciones."
+  "not_allowed": "No tienes permiso para calificar esta transacción."
+  "optional_note": "Opcional. Máx. 500 caracteres."
+  "rate_transaction": "Calificar esta transacción"
+  "rate_your_transaction": "Califica tu transacción"
+  "review_label": "Reseña (opcional)"
+  "review_placeholder": "Comparte tu experiencia..."
+  "role":
+    "buyer": "Comprador"
+    "seller": "Vendedor"
+  "sold": "Vendido"
+  "sold_to": "Vendido a"
+  "stars_label": "Calificación"
+  "submit_button": "Enviar calificación"
+  "swapped": "Intercambiado"
+  "swapped_with": "Intercambiado con"
+  "thank_you": "¡Gracias por tu calificación!"
+  "title": "Calificaciones"
+  "title_for_player": "Calificaciones para %name%"
+  "view_all": "Ver todo"
+"marketplace":
+  "all": "Todo"
+  "all_brands": "Todas las marcas"
+  "all_conditions": "Todos los estados"
+  "all_countries": "Todos los países"
+  "all_types": "Todos los tipos"
+  "condition":
+    "like_new": "Como nuevo"
+    "missing_pieces": "Piezas faltantes"
+    "normal": "Normal"
+    "not_so_good": "No muy bueno"
+  "contact_seller": "Contactar vendedor"
+  "disclaimer": "MySpeedPuzzling no es un vendedor y no se responsabiliza por las transacciones. Solo conectamos personas. Siempre ten cuidado y no envíes dinero por adelantado."
+  "filter":
+    "brand": "Marca"
+    "condition": "Estado"
+    "filters": "Filtros"
+    "pieces": "Piezas"
+    "price": "Precio"
+    "search_placeholder": "Buscar puzzles..."
+    "set_country_link": "Editar perfil)"
+    "ship_to_my_country": "Envío a mi país"
+    "ship_to_my_country_disabled": "Envío a mi país (configura tu país en"
+    "ships_to": "Envía a"
+    "sort": "Ordenar"
+    "type": "Tipo"
+  "how_it_works":
+    "back_to_marketplace": "Mercado"
+    "browse_marketplace": "Explorar el mercado"
+    "community":
+      "description": "Todos estamos aquí porque amamos los puzzles. Los puzzles están hechos para traer alegría, y lo mismo aplica para este mercado. Sé amable, paciente y disfruta conectando con entusiastas de puzzles de todo el mundo."
+      "title": "¡Sé amable y diviértete!"
+    "intro": "El mercado de MySpeedPuzzling es un lugar donde los amantes de los puzzles se conectan para vender, intercambiar o regalar puzzles. Aquí está todo lo que necesitas saber."
+    "safety":
+      "block_info": "Si encuentras algún comportamiento inapropiado, puedes bloquear la conversación. La otra persona nunca sabrá que fue bloqueada."
+      "description": "MySpeedPuzzling no es responsable de ninguna transacción. Estamos aquí para conectar puzzlers, pero todos los acuerdos son entre tú y la otra parte. Siempre ten cuidado con las transacciones de dinero y nunca envíes pagos sin acuerdos adecuados."
+      "title": "Mantente seguro"
+    "step1":
+      "description": "Ve a cualquier puzzle de tu colección y agrégalo a tu lista de venta/intercambio. Puedes hacerlo desde la página de detalle del puzzle, tu biblioteca de puzzles o directamente desde tu colección. Asegúrate de marcar \"Mostrar en el mercado\" para que otros puzzlers puedan encontrarlo."
+      "title": "Publica tu puzzle"
+    "step2":
+      "description": "Antes de publicar, completa los países a los que envías, tu moneda preferida y opcionalmente tus costos de envío e información de contacto. Esto ayuda a los compradores a saber qué esperar."
+      "title": "Configura tu perfil"
+    "step3":
+      "description": "Usa el chat integrado para comunicarte directamente con los interesados aquí en la plataforma. También puedes organizar las cosas fuera de la plataforma si prefieres - depende de ti."
+      "title": "Chatea con puzzlers"
+    "step4":
+      "description": "Cuando llegues a un acuerdo, marca el puzzle como reservado. Esto les permite a otros puzzlers saber que el artículo está apartado mientras se completa la transacción."
+      "title": "Reserva puzzles"
+    "step5":
+      "description": "Una vez que el puzzle se ha vendido o intercambiado, márcalo como finalizado. El puzzle será eliminado automáticamente de tu colección y el comprador puede agregarlo directamente a la suya."
+      "title": "Completa la transacción"
+    "step6":
+      "description": "Después de completar la transacción, ¡no olvides calificar al otro puzzler! Las calificaciones ayudan a construir confianza en la comunidad y muestran a otros cómo fue la experiencia."
+      "title": "Deja una calificación"
+    "title": "Cómo funciona el mercado"
+  "how_it_works_button": "¿Cómo funciona?"
+  "listing_type":
+    "both": "Venta / Intercambio"
+    "free": "Gratis"
+    "sell": "Venta"
+    "swap": "Intercambio"
+  "load_more": "Cargar más"
+  "manage_my_offers": "Administrar mis ofertas"
+  "max": "Máx"
+  "meta":
+    "description": "Explora puzzles en venta, intercambio o gratis en el mercado de MySpeedPuzzling."
+  "min": "Mín"
+  "my_offers": "Mis ofertas"
+  "no_results": "No se encontraron ofertas que coincidan con tus filtros."
+  "pcs": "piezas"
+  "price_not_disclosed": "Precio no definido"
+  "reserved": "RESERVADO"
+  "result": "Total 1 resultado"
+  "results": "Total %count% resultados"
+  "search_placeholder": "Nombre del puzzle, EAN..."
+  "shipping_cost": "Envío"
+  "show_all": "Mostrar todo"
+  "showing_offers_for": "Mostrando ofertas para"
+  "sort":
+    "name_asc": "Nombre A-Z"
+    "name_desc": "Nombre Z-A"
+    "newest": "Más reciente"
+    "price_asc": "Precio ascendente"
+    "price_desc": "Precio descendente"
+    "relevance": "Relevancia"
+  "title": "Mercado"
+"moderation":
+  "ban_lifted": "La prohibición del mercado ha sido levantada."
+  "listing_removed": "La oferta ha sido eliminada."
+  "marketplace_banned": "El usuario ha sido prohibido del mercado."
+  "report_dismissed": "El reporte ha sido descartado."
+  "report_resolved": "El reporte ha sido resuelto."
+  "report_submitted": "Reporte enviado exitosamente. Nuestro equipo lo revisará."
+  "user_muted": "El usuario ha sido silenciado por %days% días."
+  "user_unmuted": "El usuario ha sido desilenciado."
+  "warning_issued": "Se ha emitido una advertencia."

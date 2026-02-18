@@ -10,7 +10,9 @@ use SpeedPuzzling\Web\Message\MarkListingAsReserved;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetConversationPartnersForListing;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetUnsolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
@@ -37,6 +39,8 @@ final class MarkAsReservedController extends AbstractController
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
+        readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetMarketplaceListings $getMarketplaceListings,
     ) {
     }
 
@@ -71,6 +75,29 @@ final class MarkAsReservedController extends AbstractController
                 ),
             );
 
+            $context = $request->request->getString('context');
+
+            // For conversation detail page, replace listing action buttons via turbo stream
+            if ($context === 'conversation' && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                $otherPlayerId = $request->request->getString('other_player_id');
+                $message = $this->translator->trans('sell_swap_list.reserved.success');
+
+                return new Response(
+                    $this->renderView('messaging/_conversation_listing_actions_stream.html.twig', [
+                        'message' => $message,
+                        'puzzle_context' => [
+                            'itemId' => $itemId,
+                            'reserved' => true,
+                        ],
+                        'other_player' => [
+                            'id' => $otherPlayerId,
+                        ],
+                    ]),
+                    Response::HTTP_OK,
+                    ['Content-Type' => TurboBundle::STREAM_MEDIA_TYPE],
+                );
+            }
+
             $this->addFlash('success', $this->translator->trans('sell_swap_list.reserved.success'));
 
             $referer = $request->headers->get('referer');
@@ -104,11 +131,56 @@ final class MarkAsReservedController extends AbstractController
                 $message = $this->translator->trans('sell_swap_list.reserved.success');
                 $puzzleId = $sellSwapListItem->puzzle->id->toString();
 
-                // For sell-swap list and marketplace pages, use page refresh
-                if ($context === 'list' || $context === 'marketplace') {
-                    return $this->render('sell-swap/_mark_reserved_stream.html.twig', [
-                        'message' => $message,
-                    ]);
+                // For sell-swap list page, replace the card with updated data
+                if ($context === 'list') {
+                    $updatedItem = $this->getSellSwapListItems->byItemId($itemId);
+
+                    return new Response(
+                        $this->renderView('sell-swap/_mark_reserved_stream.html.twig', [
+                            'message' => $message,
+                            'context' => 'list',
+                            'item' => $updatedItem,
+                            'settings' => $sellSwapListItem->player->sellSwapListSettings,
+                        ]),
+                        Response::HTTP_OK,
+                        ['Content-Type' => TurboBundle::STREAM_MEDIA_TYPE],
+                    );
+                }
+
+                // For marketplace page, replace the card with updated data
+                if ($context === 'marketplace') {
+                    $marketplaceItem = $this->getMarketplaceListings->byItemId($itemId);
+
+                    return new Response(
+                        $this->renderView('sell-swap/_mark_reserved_stream.html.twig', [
+                            'message' => $message,
+                            'context' => 'marketplace',
+                            'marketplace_item' => $marketplaceItem,
+                        ]),
+                        Response::HTTP_OK,
+                        ['Content-Type' => TurboBundle::STREAM_MEDIA_TYPE],
+                    );
+                }
+
+                // For conversation detail page, replace listing action buttons
+                if ($context === 'conversation') {
+                    $otherPlayerId = $request->request->getString('other_player_id');
+
+                    return new Response(
+                        $this->renderView('messaging/_conversation_listing_actions_stream.html.twig', [
+                            'message' => $message,
+                            'close_modal' => true,
+                            'puzzle_context' => [
+                                'itemId' => $itemId,
+                                'reserved' => true,
+                            ],
+                            'other_player' => [
+                                'id' => $otherPlayerId,
+                            ],
+                        ]),
+                        Response::HTTP_OK,
+                        ['Content-Type' => TurboBundle::STREAM_MEDIA_TYPE],
+                    );
                 }
 
                 // For puzzle detail and library pages, use targeted stream replacements
@@ -161,6 +233,7 @@ final class MarkAsReservedController extends AbstractController
             'conversation_partners' => $conversationPartners,
             'context' => $request->query->getString('context', 'detail'),
             'collection_id' => $request->query->getString('collection_id', ''),
+            'other_player_id' => $request->query->getString('other_player_id', ''),
         ];
 
         // Turbo Frame request - return frame content only

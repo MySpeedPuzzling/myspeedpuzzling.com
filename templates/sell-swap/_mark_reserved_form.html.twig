@@ -8,6 +8,7 @@
 
 <input type="hidden" name="context" value="{{ context|default('detail') }}">
 <input type="hidden" name="collection_id" value="{{ collection_id|default('') }}">
+<input type="hidden" name="other_player_id" value="{{ other_player_id|default('') }}">
 
 <div class="mb-4" data-controller="favorite-player-select">
     {{ form_label(form.reservedForInput) }}

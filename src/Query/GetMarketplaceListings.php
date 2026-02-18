@@ -282,6 +282,117 @@ LIMIT :limit OFFSET :offset';
         }, $data);
     }
 
+    public function byItemId(string $itemId): MarketplaceListingItem
+    {
+        $query = <<<SQL
+SELECT
+    ssli.id AS item_id,
+    p.id AS puzzle_id,
+    p.name AS puzzle_name,
+    p.alternative_name AS puzzle_alternative_name,
+    p.pieces_count,
+    p.image AS puzzle_image,
+    m.name AS manufacturer_name,
+    ssli.listing_type,
+    ssli.price,
+    ssli.condition,
+    ssli.comment,
+    ssli.reserved,
+    ssli.added_at,
+    pl.id AS seller_id,
+    pl.name AS seller_name,
+    pl.code AS seller_code,
+    pl.avatar AS seller_avatar,
+    pl.country AS seller_country,
+    pl.sell_swap_list_settings,
+    pl.rating_count AS seller_rating_count,
+    pl.average_rating AS seller_average_rating,
+    ssli.reserved_for_player_id,
+    COALESCE(rp.name, CHR(35) || UPPER(rp.code)) AS reserved_for_player_name
+FROM sell_swap_list_item ssli
+JOIN puzzle p ON ssli.puzzle_id = p.id
+LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
+JOIN player pl ON ssli.player_id = pl.id
+LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
+WHERE ssli.id = :itemId
+SQL;
+
+        $row = $this->database
+            ->executeQuery($query, ['itemId' => $itemId])
+            ->fetchAssociative();
+
+        if ($row === false) {
+            throw new \SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound();
+        }
+
+        /**
+         * @var array{
+         *     item_id: string,
+         *     puzzle_id: string,
+         *     puzzle_name: string,
+         *     puzzle_alternative_name: string|null,
+         *     pieces_count: int,
+         *     puzzle_image: string|null,
+         *     manufacturer_name: string|null,
+         *     listing_type: string,
+         *     price: string|null,
+         *     condition: string,
+         *     comment: string|null,
+         *     reserved: bool,
+         *     added_at: string,
+         *     seller_id: string,
+         *     seller_name: string|null,
+         *     seller_code: string|null,
+         *     seller_avatar: string|null,
+         *     seller_country: string|null,
+         *     sell_swap_list_settings: string|null,
+         *     seller_rating_count: int|string,
+         *     seller_average_rating: string|null,
+         *     reserved_for_player_id: string|null,
+         *     reserved_for_player_name: string|null,
+         * } $row
+         */
+
+        $currency = null;
+        $customCurrency = null;
+        $shippingCost = null;
+        if ($row['sell_swap_list_settings'] !== null) {
+            /** @var array{currency?: string|null, customCurrency?: string|null, shippingCost?: string|null} $settings */
+            $settings = json_decode($row['sell_swap_list_settings'], true);
+            $currency = $settings['currency'] ?? null;
+            $customCurrency = $settings['customCurrency'] ?? null;
+            $shippingCost = $settings['shippingCost'] ?? null;
+        }
+
+        return new MarketplaceListingItem(
+            itemId: $row['item_id'],
+            puzzleId: $row['puzzle_id'],
+            puzzleName: $row['puzzle_name'],
+            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            piecesCount: (int) $row['pieces_count'],
+            puzzleImage: $row['puzzle_image'],
+            manufacturerName: $row['manufacturer_name'],
+            listingType: $row['listing_type'],
+            price: $row['price'] !== null ? (float) $row['price'] : null,
+            condition: $row['condition'],
+            comment: $row['comment'],
+            reserved: (bool) $row['reserved'],
+            reservedForPlayerId: $row['reserved_for_player_id'],
+            reservedForPlayerName: $row['reserved_for_player_name'],
+            addedAt: $row['added_at'],
+            sellerId: $row['seller_id'],
+            sellerName: $row['seller_name'],
+            sellerCode: $row['seller_code'],
+            sellerAvatar: $row['seller_avatar'],
+            sellerCountry: $row['seller_country'],
+            sellerCurrency: $currency,
+            sellerCustomCurrency: $customCurrency,
+            sellerShippingCost: $shippingCost,
+            sellerRatingCount: (int) $row['seller_rating_count'],
+            sellerAverageRating: $row['seller_average_rating'] !== null ? (float) $row['seller_average_rating'] : null,
+        );
+    }
+
     public function count(
         null|string $searchTerm = null,
         null|string $manufacturerId = null,

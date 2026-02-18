@@ -125,7 +125,14 @@
 
         {# Row 2: Comment #}
         {% if item.comment %}
-            <div class="fs-xs text-muted mb-1">{{ item.comment|length > 80 ? item.comment|slice(0, 77) ~ '...' : item.comment }}</div>
+            {% if item.comment|length > 80 %}
+                <div class="fs-xs text-muted mb-1">
+                    <span class="js-comment-short">{{ item.comment|slice(0, 77) ~ '...' }} <a href="#" class="js-comment-toggle text-primary" onclick="event.preventDefault(); var p=this.closest('div'); p.querySelector('.js-comment-short').hidden=true; p.querySelector('.js-comment-full').hidden=false;">{{ 'show_more'|trans }}</a></span>
+                    <span class="js-comment-full" hidden>{{ item.comment }} <a href="#" class="js-comment-toggle text-primary" onclick="event.preventDefault(); var p=this.closest('div'); p.querySelector('.js-comment-full').hidden=true; p.querySelector('.js-comment-short').hidden=false;">{{ 'show_less'|trans }}</a></span>
+                </div>
+            {% else %}
+                <div class="fs-xs text-muted mb-1">{{ item.comment }}</div>
+            {% endif %}
         {% endif %}
 
         {# Row 3: Seller + Rating #}

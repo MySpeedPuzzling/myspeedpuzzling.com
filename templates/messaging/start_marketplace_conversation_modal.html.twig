@@ -31,7 +31,7 @@
                     <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
                         {% if sell_swap_list_item.price and sell_swap_list_item.listingType.value != 'free' and sell_swap_list_item.listingType.value != 'swap' %}
                             {% set sellerSettings = sell_swap_list_item.player.sellSwapListSettings %}
-                            <span class="fw-bold text-dark" style="font-size: 0.7rem;">{{ sell_swap_list_item.price }} {{ sellerSettings ? (sellerSettings.customCurrency ?? sellerSettings.currency ?? '') : '' }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.7rem;">{{ sell_swap_list_item.price }} {{ sellerSettings ? (sellerSettings.customCurrency ?? (sellerSettings.currency != 'custom' ? sellerSettings.currency : '')) : '' }}</span>
                         {% endif %}
 
                         {% if sell_swap_list_item.listingType.value == 'sell' %}
@@ -147,7 +147,7 @@
                     <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
                         {% if sell_swap_list_item.price and sell_swap_list_item.listingType.value != 'free' and sell_swap_list_item.listingType.value != 'swap' %}
                             {% set sellerSettings = sell_swap_list_item.player.sellSwapListSettings %}
-                            <span class="fw-bold text-dark" style="font-size: 0.75rem;">{{ sell_swap_list_item.price }} {{ sellerSettings ? (sellerSettings.customCurrency ?? sellerSettings.currency ?? '') : '' }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.75rem;">{{ sell_swap_list_item.price }} {{ sellerSettings ? (sellerSettings.customCurrency ?? (sellerSettings.currency != 'custom' ? sellerSettings.currency : '')) : '' }}</span>
                         {% endif %}
 
                         {% if sell_swap_list_item.listingType.value == 'sell' %}

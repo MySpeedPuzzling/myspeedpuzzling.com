@@ -96,7 +96,7 @@
                     <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
                         {% if item.listingType.value != 'free' and item.listingType.value != 'swap' %}
                             {% if item.price is not null and item.price > 0 %}
-                                <span class="fw-bold text-dark" style="font-size: 0.8rem;">{{ item.price }} {{ settings.customCurrency ?? settings.currency ?? '' }}</span>
+                                <span class="fw-bold text-dark" style="font-size: 0.8rem;">{{ item.price }} {{ settings.customCurrency ?? (settings.currency != 'custom' ? settings.currency : '') }}</span>
                             {% else %}
                                 <small class="text-muted"><i class="bi bi-exclamation-circle me-1"></i>{{ 'marketplace.price_not_disclosed'|trans }}</small>
                             {% endif %}

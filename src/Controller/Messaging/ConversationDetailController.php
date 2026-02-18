@@ -88,7 +88,7 @@ final class ConversationDetailController extends AbstractController
 
                 $sellerSettings = $conversation->sellSwapListItem->player->sellSwapListSettings;
                 if ($sellerSettings !== null) {
-                    $puzzleContext['currency'] = $sellerSettings->customCurrency ?? $sellerSettings->currency;
+                    $puzzleContext['currency'] = $sellerSettings->customCurrency ?? ($sellerSettings->currency !== 'custom' ? $sellerSettings->currency : null);
                 }
             }
         }

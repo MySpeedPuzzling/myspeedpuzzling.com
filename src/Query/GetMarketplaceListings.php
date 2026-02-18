@@ -245,11 +245,15 @@ LIMIT :limit OFFSET :offset';
             $customCurrency = null;
             $shippingCost = null;
             if ($row['sell_swap_list_settings'] !== null) {
-                /** @var array{currency?: string|null, customCurrency?: string|null, shippingCost?: string|null} $settings */
+                /** @var array{currency?: string|null, custom_currency?: string|null, shipping_cost?: string|null} $settings */
                 $settings = json_decode($row['sell_swap_list_settings'], true);
                 $currency = $settings['currency'] ?? null;
-                $customCurrency = $settings['customCurrency'] ?? null;
-                $shippingCost = $settings['shippingCost'] ?? null;
+                $customCurrency = $settings['custom_currency'] ?? null;
+                $shippingCost = $settings['shipping_cost'] ?? null;
+
+                if ($currency === 'custom') {
+                    $currency = null;
+                }
             }
 
             return new MarketplaceListingItem(
@@ -357,11 +361,15 @@ SQL;
         $customCurrency = null;
         $shippingCost = null;
         if ($row['sell_swap_list_settings'] !== null) {
-            /** @var array{currency?: string|null, customCurrency?: string|null, shippingCost?: string|null} $settings */
+            /** @var array{currency?: string|null, custom_currency?: string|null, shipping_cost?: string|null} $settings */
             $settings = json_decode($row['sell_swap_list_settings'], true);
             $currency = $settings['currency'] ?? null;
-            $customCurrency = $settings['customCurrency'] ?? null;
-            $shippingCost = $settings['shippingCost'] ?? null;
+            $customCurrency = $settings['custom_currency'] ?? null;
+            $shippingCost = $settings['shipping_cost'] ?? null;
+
+            if ($currency === 'custom') {
+                $currency = null;
+            }
         }
 
         return new MarketplaceListingItem(

@@ -141,7 +141,7 @@
                                 {% endif %}
 
                                 {% if item.price %}
-                                    <span class="badge bg-warning text-dark">{{ item.price }} {{ settings.customCurrency ?? settings.currency ?? '' }}</span>
+                                    <span class="badge bg-warning text-dark">{{ item.price }} {{ settings.customCurrency ?? (settings.currency != 'custom' ? settings.currency : '') }}</span>
                                 {% endif %}
 
                                 <span class="badge bg-secondary">

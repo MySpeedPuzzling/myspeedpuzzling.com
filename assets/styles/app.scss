@@ -924,6 +924,12 @@ header {
     backdrop-filter: blur(10px);
 }
 
+@media (max-width: 380px) {
+    header .container {
+        padding: 0 5px !important;
+    }
+}
+
 .no-caret::after {
     display: none !important;
 }

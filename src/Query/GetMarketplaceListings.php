@@ -525,7 +525,7 @@ JOIN manufacturer m ON p.manufacturer_id = m.id
 WHERE ssli.published_on_marketplace = true
 GROUP BY m.id, m.name
 HAVING COUNT(*) > 0
-ORDER BY m.name ASC
+ORDER BY listing_count DESC, m.name ASC
 SQL;
 
         /** @var array<array{manufacturer_id: string, manufacturer_name: string, listing_count: int}> $rows */

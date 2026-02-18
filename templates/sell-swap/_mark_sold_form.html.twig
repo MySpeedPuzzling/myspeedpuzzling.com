@@ -16,9 +16,9 @@
 
 <div class="mb-4" data-controller="favorite-player-select">
     {{ form_label(form.buyerInput) }}
-    <div class="input-group">
-        {{ form_widget(form.buyerInput, {'attr': {'data-favorite-player-select-target': 'input'}}) }}
-        <select class="form-select"
+    <div class="input-group input-group-sm">
+        {{ form_widget(form.buyerInput, {'attr': {'data-favorite-player-select-target': 'input', 'class': 'form-control form-control-sm'}}) }}
+        <select class="form-select form-select-sm"
                 data-favorite-player-select-target="select"
                 data-action="change->favorite-player-select#selectChanged">
             <option value="">{{ 'forms.choose_from_favorites'|trans }}</option>
@@ -29,6 +29,20 @@
             {% endfor %}
         </select>
     </div>
+    {% if conversation_partners is defined and conversation_partners is not empty %}
+        <div class="mt-2">
+            <select class="form-select form-select-sm"
+                    data-favorite-player-select-target="select"
+                    data-action="change->favorite-player-select#selectChanged">
+                <option value="">{{ 'messaging.conversation_partners'|trans }}</option>
+                {% for partner in conversation_partners %}
+                    <option value="{{ partner.playerCode }}">
+                        {{ partner.playerName ?? partner.playerCode }} ({{ partner.playerCode|upper }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
 </div>
 
 <div class="d-grid gap-2 d-sm-flex">

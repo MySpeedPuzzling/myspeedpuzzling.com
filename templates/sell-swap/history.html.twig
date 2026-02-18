@@ -5,12 +5,13 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0">{{ 'sell_swap_list.history.title'|trans }}</h1>
-        <a href="{{ path('sell_swap_list_detail', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> {{ 'sell_swap_list.back_to_list'|trans }}
+    <div class="mb-2">
+        <a href="{{ path('sell_swap_list_detail', {playerId: player.playerId}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+            <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'sell_swap_list.back_to_list'|trans }}
         </a>
     </div>
+
+    <h1 class="h3 mb-4">{{ 'sell_swap_list.history.title'|trans }}</h1>
 
     {% if items is empty %}
         <div class="text-center py-5">
@@ -68,10 +69,10 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if item.price %}
+                                    {% if item.price and item.price > 0 %}
                                         {{ item.price }}
                                     {% else %}
-                                        -
+                                        <small class="text-muted"><i class="bi bi-exclamation-circle me-1"></i>{{ 'marketplace.price_not_disclosed'|trans }}</small>
                                     {% endif %}
                                 </td>
                                 <td>

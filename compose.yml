@@ -61,8 +61,8 @@ services:
         restart: unless-stopped
         command: caddy run --config /etc/caddy/dev.Caddyfile
         environment:
-            MERCURE_PUBLISHER_JWT_KEY: "dummy-local-secret"
-            MERCURE_SUBSCRIBER_JWT_KEY: "dummy-local-secret"
+            MERCURE_PUBLISHER_JWT_KEY: "dummy-local-secret-key-for-development-only!"
+            MERCURE_SUBSCRIBER_JWT_KEY: "dummy-local-secret-key-for-development-only!"
             SERVER_NAME: ":80"
             MERCURE_EXTRA_DIRECTIVES: |
                 cors_origins http://localhost:8080

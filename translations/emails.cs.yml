@@ -46,3 +46,16 @@ subscription_renewed:
         <p>Pokud budete chtít upravit nebo zkontrolovat podrobnosti o svém předplatném, můžete tak učinit na <a href="%membershipUrl%">stránce členství</a>.</p>
         <p>Neustále pracujeme na vylepšování a přidávání nových funkcí pro naše členy. Pokud je něco, co bychom mohli udělat pro zlepšení, dejte nám vědět.</p>
         <p>Ještě jednou děkujeme za vaši podporu. Přejeme spoustu rychle poskládaných puzzlí a skvělých výsledků!</p>
+
+unread_messages:
+    subject: "Mate neprectenezpravy na MySpeedPuzzling"
+    title: "Mate neprectene zpravy"
+    greeting: "Ahoj %playerName%,"
+    intro: "Cekaji na vas neprectene zpravy:"
+    message_line: "%count% zprav(a/y) od %senderName%"
+    message_line_with_puzzle: "%count% zprav(a/y) od %senderName% (ohledne: %puzzleName%)"
+    view_messages: "Zobrazit zpravy"
+    pending_requests_also: "Take mate %count% novych zadosti o zpravu."
+    pending_requests_only: "Mate %count% novych zadosti o zpravu."
+    view_requests: "Zobrazit zadosti o zpravu"
+    opt_out: 'Tato upozorneni muzete vypnout v <a href="%settingsUrl%">nastaveni profilu</a>.'

@@ -1,0 +1,20 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'messaging.title'|trans }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 gap-2">
+    <h1 class="h3 mb-0"><i class="bi bi-chat-dots me-2"></i>{{ 'messaging.title'|trans }}</h1>
+    <a href="{{ path('blocked_users') }}" class="btn btn-sm btn-outline-secondary flex-shrink-0">
+        <i class="bi bi-slash-circle"></i> <span class="d-none d-sm-inline ms-1">{{ 'messaging.blocked_users'|trans }}</span>
+    </a>
+</div>
+
+<div data-controller="conversation-list"
+     data-conversation-list-refresh-url-value="{{ path('conversations_list_tab') }}"
+     data-conversation-list-active-tab-value="{{ active_tab }}">
+    <div data-conversation-list-target="tabContent">
+        {{ include('messaging/_conversations_tab_content.html.twig') }}
+    </div>
+</div>
+{% endblock %}

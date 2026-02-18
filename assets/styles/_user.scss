@@ -125,6 +125,60 @@ $soft-teal: #5bc0de;
     }
 }
 
+// Chat bubble tails
+.chat-bubble {
+    position: relative;
+
+    &--own::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: -6px;
+        width: 12px;
+        height: 12px;
+        background: $primary;
+        clip-path: polygon(0 0, 0 100%, 100% 100%);
+        border-bottom-right-radius: 2px;
+    }
+
+    &--other {
+        background-color: $gray-200;
+
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            background: $gray-200;
+            clip-path: polygon(100% 0, 0 100%, 100% 100%);
+            border-bottom-left-radius: 2px;
+        }
+    }
+}
+
+// Typing indicator animation
+.typing-dots {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #6c757d;
+        animation: typing-bounce 1.4s infinite;
+        &:nth-child(2) { animation-delay: 0.2s; }
+        &:nth-child(3) { animation-delay: 0.4s; }
+    }
+}
+
+@keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+}
+
 // Accessibility: Improve text-muted contrast for WCAG AA compliance
 // Original $gray-600 (#7d879c) has ~4:1 ratio, this achieves ~6:1
 .text-muted {
@@ -134,4 +188,10 @@ $soft-teal: #5bc0de;
 // Accessibility: Make links distinguishable in muted text sections
 .text-muted a:not(.btn) {
     text-decoration: underline;
+}
+
+// Utility: grayscale filter for images (e.g. reserved marketplace items)
+.grayscale {
+    filter: grayscale(100%);
+    opacity: 0.6;
 }

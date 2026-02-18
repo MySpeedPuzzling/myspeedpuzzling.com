@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{% if puzzle_overview is not null %}{{ puzzle_overview.manufacturerName }} {{ puzzle_overview.puzzleName }} Marketplace - Buy, Sell, Trade{% else %}Puzzle Marketplace - Buy, Sell, Trade{% endif %}{% endblock %}
+{% block meta_description %}{{ 'marketplace.meta.description'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig') }}
+
+    <div class="d-flex align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-shop me-2"></i>{{ 'marketplace.title'|trans }}
+        </h1>
+        <a href="{{ path('marketplace_how_it_works') }}" class="btn btn-outline-secondary btn-sm ms-2 py-0 px-2 fs-xs">
+            <i class="bi bi-question-circle me-1"></i>{{ 'marketplace.how_it_works_button'|trans }}
+        </a>
+    </div>
+
+    {% if not disclaimer_dismissed %}
+        <div class="alert alert-warning small mb-3 d-flex align-items-start">
+            <div class="flex-grow-1">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                {{ 'marketplace.disclaimer'|trans }}
+            </div>
+            {% if logged_user.profile is not null %}
+                <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="Close" onclick="fetch('{{ path('dismiss_hint') }}',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'type=marketplace_disclaimer'});this.closest('.alert').remove()"></button>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <twig:MarketplaceListing :puzzleId="puzzle_id" />
+{% endblock %}

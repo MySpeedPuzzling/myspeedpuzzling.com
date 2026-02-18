@@ -1,1416 +1,1439 @@
-menu:
-    my_profile: "マイプロフィール"
-    puzzle_add: "追加"
-    stopwatch: "ストップウォッチ"
-    puzzles_overview: "パズル"
-    ladder: "リーダーボード"
-    players: "プレイヤー"
-    faq: "よくある質問"
-    sign_in: "サインイン"
-    hub: "ハブ"
-    feedback: "フィードバック送信"
-    support_us: "サポート"
-    terms_of_service: "利用規約"
-    privacy_policy: "プライバシーポリシー"
-    membership: "メンバーシップ"
-    search: "検索"
-    statistics: "統計"
-    favorite_puzzlers: "お気に入りプレイヤー"
-    edit_profile: "プロフィール編集"
-    change_player_code: "プレイヤーコード変更"
-    profile: "プロフィール"
-    events: "イベント"
-    puzzle_library: "パズルライブラリ"
-    export_data: "データエクスポート"
-
-accessibility:
-    toggle_navigation: "ナビゲーション切替"
-    barcode_scanner: "バーコードスキャン"
-    notifications_count: "通知 (%count%)"
-
-navigation:
-    home: "ホーム"
-
-form:
-    visibility: "表示設定"
-    visibility_public: "公開"
-    visibility_private: "非公開"
-
-footer:
-    created_with_love: "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
-    about: "マイスピードパズリングは、すべてのパズル愛好家、特にスピードパズル愛好家のためのコミュニティプラットフォームです。<br>タイムを共有し、他の人と比較し、一緒に楽しむための究極の場所です。"
-    popular_search: "人気検索"
-    speed_puzzling_leaderboard: "スピードパズリングリーダーボード"
-    speed_puzzling_players: "スピードパズリングプレイヤー"
-    latest_puzzle_times: "最新のパズルタイム"
-    750_piece_puzzles: "750ピースパズル"
-    puzzle_add: "パズル追加"
-
-puzzler_name: "名前"
-puzzler: "パズラー"
-puzzle: "パズル"
-time: "タイム"
-pieces_count: "%count%&nbsp;ピース"
-show_more: "もっと見る"
-show_less: "閉じる"
-puzzle_solved: "完了"
-puzzle_available: "貸出可能"
-puzzle_not_available: "貸出不可"
-add_solving: "記録を追加"
-start_solving: "解き始める"
-show_times: "タイム表示"
-fastest_time_short: "最速: %time%"
-average_time_short: "平均: %time%"
-fastest_time: "最速:"
-average_time: "平均:"
-only_first_tries_filter: "初回のみ"
-only_unboxed_filter: "箱なしのみ"
-only_favorite_players_filter: "お気に入りのみ"
-filtered_out_puzzlers_count_info: "初回情報のない<strong>%count%人のパズラー</strong>を非表示にしています。"
-my_time: "マイタイム:"
-puzzle_solved_count: "完了回数:"
-puzzle_solved_times: "%count%回完了"
-puzzle.relax_solvings_count: "リラックスモードで%count%回完成"
-never_solved_puzzles: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
-show_more_solving_times: "もっと見る (%count%回)"
-be_first_to_solve: "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
-be_first_to_group_solve: "これらのパズルはまだグループで解かれていません。最初のグループになりましょう！"
-email: "メール"
-facebook: "Facebook"
-instagram: "Instagram"
-search: "検索"
-puzzle_waiting_for_approval: "最近追加されたパズルは管理者の承認を待っています - 通常追加から24時間以内です。ご辛抱をお願いします。"
-puzzle_img_alt: "%puzzle% - パズル画像"
-searching: "検索中..."
-load_more: "さらに読み込む..."
-back_to_top: "トップに戻る"
-total_found: "合計発見数: %count%"
-remaining: "残り: %puzzle%"
-loading: "読み込み中"
-any: "すべて"
-all_pieces: "すべて"
-solo_solved: "ソロ完了:"
-first_attempt: "初回"
-unboxed: "箱なし"
-ranking_out_of: "の"
-wjpc_participant: "WJPC 2024参加者 (%name%)"
-share: "シェア"
-edit: "編集"
-delete: "削除"
-active_membership: "アクティブメンバーシップ"
-new_badge: "新着"
-secret_puzzler_name: "秘密のパズラー"
-right_now: "今すぐ"
-
-badge:
-    relax: "リラックス"
-    suspicious: "確認が必要"
-
-homepage:
-    meta:
-        title: "スピードパズリング - タイム記録＆競争"
-        description: "究極のスピードパズリングコミュニティに参加しましょう！パズルタイムを記録し、世界中のプレイヤーと競争し、リーダーボードを登りましょう。今すぐ始めましょう！"
-        keywords: "スピードパズリング, パズルタイム, ジグソーパズルコミュニティ, パズル解決競争, パズルリーダーボード"
-    global_statistics: "私たち全員で<strong>%puzzles%</strong>個のパズルを解くのにこれだけの時間がかかりました。<br>それは驚くべき<strong>%pieces%</strong>ピースです。"
-    title: "ようこそパズラー、スピードパズリングの世界へ！"
-    intro_text: "スピードパズリングは、できるだけ早くパズルを組み立てることを目標とするエキサイティングなスポーツです。すべてのピースが重要で、毎秒が重要です。従来のパズル解決にレーストラックのアドレナリンを想像してみてください！私たちのプラットフォームは、時間だけでなく他のパズル愛好家とも対戦できる初のプラットフォームです。"
-    why_block: |
-        <h3>なぜ参加するのですか？</h3>
-        <ul>
-            <li><strong>他の人と競争:</strong> あなたのタイムを共有し、他のパズラーと比較しましょう</li>
-            <li><strong>リーダーボードと統計:</strong> 最速パズラー、最多組立パズル、最もアクティブなユーザーのランキングを発見しましょう</li>
-            <li><strong>ストップウォッチ:</strong> パズル組立の簡単なタイミングのための統合ストップウォッチを使用しましょう</li>
-            <li><strong>パズルを追加:</strong> 当サイトにないパズルをお持ちですか？追加してコミュニティとタイムを共有しましょう。</li>
-            <li><strong>パズリングコミュニティを構築:</strong> 成長するコミュニティに参加し、ヒント、コツ、友好的な競争を共有しましょう</li>
-            <li><strong>視野を広げる:</strong> オンライン、そして将来的にはオフラインでの競技会の開催を計画していますので、ライブでスキルを披露できます</li>
-        </ul>
-    help_us_grow_block: |
-        <h3>成長にご協力ください</h3>
-        <p>私たちのアプリは始まったばかりで、あなたのアイデア、フィードバック、バグ発見の手助けは貴重です。この初期段階で私たちに参加し、スピードパズリングの未来に直接影響を与えてください。</p>
-    start_today_block: |
-        <h3>今日から始めましょう</h3>
-        <p>初心者でも経験豊富なパズラーでも、私たちのプラットフォームはスキルを伸ばし、他の人と競い合う完璧な場所を提供します。私たちに参加し、スピードパズリングの未来の一部になりましょう！</p>
-    cta_sign_in: "サインイン"
-    cta_my_profile: "マイプロフィール"
-    cta_recent: "最近のタイム"
-
-ladder:
-    title: "リーダーボード"
-    meta:
-        title: "タイムリーダーボード"
-        description: "最速パズルタイムとプレイヤーランキングを表示するスピードパズリングリーダーボード。記録保持者を確認し、トップポジションを目指して競争しましょう。"
-        keywords: "スピードパズリングリーダーボード, 最速タイム, パズル記録, プレイヤーランキング, 競技結果, パズルチャンピオン"
-    overview: "概要"
-    recent_activity: "最近追加されたタイム"
-    solo: "ソロ"
-    duo: "デュオ"
-    team: "チーム"
-    most_solved_puzzle: "最多組立パズル"
-    most_active_puzzlers: "最も熱心なパズラー"
-    puzzle_solved_count: "解いたパズル数"
-    link_to_hub: "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
-
-filters:
-    button: "フィルター"
-    filter_by: "フィルター条件"
-    pieces_placeholder: "- ピース数 -"
-    manufacturer_placeholder: "- メーカー -"
-    less_than: "%count%未満"
-    more_than: "%count%以上"
-    text_search_placeholder: "パズル名またはコード..."
-    only_available: "貸出可能のみ"
-    only_with_time: "タイム入力済みのみ"
-    no_puzzle_matches_filters: "指定されたフィルターに一致するパズルがありません"
-    only_relax: "リラックスパズルのみ"
-    date_range: "期間"
-    date_from: "開始日"
-    date_to: "終了日"
-    time_filter: "タイムフィルター"
-    faster_than: "より速い"
-    slower_than: "より遅い"
-    minutes: "分"
-    reset: "フィルターをリセット"
-    all_manufacturers: "すべてのメーカー"
-    all_pieces: "すべてのピース数"
-
-sorting:
-    sort_by: "並び順"
-    newest_times: "最新"
-    oldest_times: "最古"
-    fastest_times: "最速"
-    slowest_times: "最遅"
-    most_solved: "最多解決"
-    least_solved: "最少解決"
-    a_z: "名前 A-Z"
-    z_a: "名前 Z-A"
-    fastest_ppm: "最速PPM"
-    slowest_ppm: "最遅PPM"
-
-puzzle_overview:
-    meta:
-        title: "スピードパズリングデータベース"
-        description: "500-1000+ピースパズルのスピードパズリングデータベースを閲覧。解決タイムを比較し、新しい挑戦を見つけ、進捗を追跡しましょう。"
-        keywords: "パズルデータベース, ジグソーパズルタイム, 500ピースパズル, 1000ピースパズル, パズルブランド, スピード解決"
-    title: "パズル"
-    missing_puzzle_info: "ここにパズルが見つからない場合、まだ誰も解いておらず、データベースにありません。新しいパズルはタイム追加時に入力できます。"
-
-stopwatch:
-    meta:
-        title: "ストップウォッチ"
-    title: "ストップウォッチ"
-    start: "開始"
-    stop: "停止"
-    continue: "続行"
-    reset: "リセット"
-    finish: "完了！タイム追加"
-    more_my_stopwatches: "他のマイストップウォッチ"
-    status:
-        not_started: "開始準備完了"
-        running: "実行中"
-        paused: "一時停止"
-        finished: "パズル完了"
-
-puzzle_add:
-    meta:
-        title: "パズル追加"
-    title: "追加..."
-    chosen_puzzle: "選択されたパズル:"
-    choose_puzzle: "パズルを選択"
-    puzzle_needed: "リストからパズルを選択するか、新しいものを追加する必要があります"
-    change_puzzle: "選択変更"
-    add_when_not_found_info: "リストにパズルが見つからない場合は、新しいものを追加してください。"
-    need_approve_info: "新しく追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
-    add_manufacturer: "新しいメーカーを追加"
-    not_in_list: "(リストにありません)"
-    choose_manufacturer: "リストからメーカーを選択"
-    time_from_stopwatch: "ストップウォッチからのタイム"
-    add_puzzler: "グループ協力者を追加"
-    group_puzzling: "ペア/グループでパズル"
-    competition_result: "大会結果"
-    teamplayer: "協力者"
-    player_code_info: "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
-    mode:
-        speed_puzzling: "スピードパズリング"
-        relax: "リラックス（タイムなし）"
-        to_collection: "コレクションに追加"
-
-forms:
-    choose_from_favorites: "- お気に入りから選択 -"
-    drop_file: "ファイルをここにドラッグ＆ドロップしてアップロード"
-    choose_file: "またはファイルを選択"
-    save: "保存"
-    cancel: "キャンセル"
-    submit: "送信"
-    reset: "リセット"
-    search: "検索"
-    clear: "クリア"
-    add_new_brand: "新しいブランドを追加："
-    confirm: "確認"
-    delete: "削除"
-    edit: "編集"
-    update: "更新"
-    create: "作成"
-    remove: "削除"
-    add: "追加"
-    close: "閉じる"
-    back: "戻る"
-    continue: "続行"
-    next: "次へ"
-    previous: "前へ"
-    yes: "はい"
-    no: "いいえ"
-    ok: "OK"
-    required_field: "この項目は必須です！"
-    max_characters: "最大500文字"
-    saving: "保存中..."
-    removing: "削除中..."
-    add_puzzle_to_collection:
-        choose_collection: "- コレクションを選択 -"
-        collection: "コレクション"
-        collection_help: "既存のコレクションを選択するか、新しいコレクション名を追加してください。"
-        comment: "コメント"
-        comment_placeholder: "このパズルについてのオプションコメント..."
-        puzzle_collection: "パズルコレクション（デフォルト）"
-        submit: "コレクションに追加"
-    empty_group_error: "自分だけでグループを作成することはできません。それはグループパズルではありません :-)"
-    too_high_ppm: "入力したタイムを確認してください。そんなに早くパズルを解くことは不可能です！ :-) タイムはHH:MM:SS形式で入力してください。入力したタイムは新世界記録になります！ :-)"
-    ppm_warning_title: "タイムを確認してください"
-    ppm_warning_too_fast: "ペースがとても速いようです！タイムが正しく入力されているか確認してください。"
-    ppm_warning_too_slow: "念のため確認です - 時間を正しく入力しましたか？時間と分が入れ替わることがあります。"
-    ppm_confirm_button: "はい、タイムは正しいです"
-    ppm_cancel_button: "確認させてください"
-    ppm_entered_time: "入力したタイム"
-    hours: "時間"
-    minutes: "分"
-    seconds: "秒"
-    unknown_error: "予期しないエラーが発生しました :(. 通知済みです。後でもう一度お試しください。"
-    name_help: "この名前でパズルを組み立て、すべてのコミュニティメンバーに表示されます。"
-    email_help: "メールアドレスは非公開で、どこにも表示されず、管理者が連絡する必要がある場合にのみ使用されます。"
-    location_help: "現在住んでいる場所（オプション）。"
-    location: "所在地"
-    nationality: "国籍"
-    country_most_common: "最も一般的"
-    country_all: "すべての国"
-    about_me: "自己紹介（バイオ）"
-    avatar: "アバター/写真"
-    search_puzzler: "名前、プレイヤーコード、または一部..."
-    time_format_placeholder: "HH:MM:SS"
-    time_required: "時間を入力してください"
-    hours_short: "時間"
-    minutes_short: "分"
-    seconds_short: "秒"
-    comment: "追加情報"
-    finished_puzzle_photo: "完成パズルの写真"
-    add_new_puzzle: "新しいパズルを追加 - リストにありません"
-    puzzle: "パズル"
-    puzzle_help: "既存のパズルを選択（名前、ブランドコード、ピース数で検索）するか、見つからない場合は新しいパズル名を追加してください。"
-    brand: "ブランド"
-    brand_help: "既存のブランドを選択するか、見つからない場合は新しいブランド名を入力してください。"
-    pieces_count: "ピース数"
-    puzzle_box_photo: "絵またはパズルボックスの写真"
-    date_finished: "完成日"
-    ean: "EANコード"
-    puzzle_identification_number: "メーカーコード"
-    puzzle_photo_is_required: "解決されたパズル、モチーフ、またはボックスの写真が必要です"
-    puzzle_photo_help: "パズルを正しく識別・割り当てできるよう、解決されたパズル、モチーフ、またはボックスの写真を添付してください。"
-    puzzle_choose_placeholder: "検索または新しいパズル名を入力"
-    puzzle_choose_brand_placeholder: "まずブランドを選択"
-    only_with_results: "タイム入力済みのパズルのみ"
-    only_solved_by_me: "私が解いたパズルのみ"
-    only_available: "借用可能のみ"
-    puzzle_search_placeholder: "名前、コード、EAN..."
-    tag: "タグ"
-    competition: "競技会 / イベント"
-    competition_help: "この結果が競技会やオンラインイベントからのものである場合は、競技会を選択してください。"
-    tags: "タグ"
-    feedback: "メッセージ"
-    feedback_help: "新機能や改善の提案、バグ報告、好きなこと嫌いなこと、頭に浮かんだことなら何でもお送りください..."
-    send_feedback: "送信"
-    first_attempt: "このパズルの初回組み立て"
-    first_attempt_help: "グループで組み立てる場合、誰も以前にこのパズルを組み立てていない場合のみ（ソロでも含む）"
-    unboxed: "箱の画像を見ずに組み立て"
-    unboxed_help: "箱や画像を参照せずにパズルを組み立てた場合はチェックしてください"
-    competition_participant: "競技会での氏名"
-    player_code: "プレイヤーコード"
-    player_code_help: "ユニークなプレイヤーコード - 最低3文字、最大8文字。文字と数字のみ、特殊文字やスペースは使用できません。"
-    global_search_placeholder: "パズルまたはプレイヤーを検索..."
-    private_profile: "プライベートプロフィール"
-    private_profile_help: "あなたの名前はどこにも表示されず、タイムは匿名で表示されます。"
-
-my_profile:
-    meta:
-        title: "マイプロフィール"
-    title: "マイプロフィール"
-    edit: "情報編集"
-    logout: "ログアウト"
-    myssing_name_info: "申し訳ございませんが、名前またはニックネームを記入していただけない場合、どのように表示すればよいかわかりません。したがって、すべての結果は非公開となります。"
-    public_info: "公開"
-    not_public_info: "非公開"
-    name: "名前/ニックネーム"
-    stopwatches: "マイストップウォッチ"
-    missing_name_info: "申し訳ございませんが、名前またはニックネームを記入していただけない場合、どのように表示すればよいかわかりません。したがって、すべての結果は非公開となります。"
-    share_mention_myspeedpuzzling: "タグ付け: <code>@MySpeedPuzzling</code>"
-    wjpc_connection: "競技会アカウント接続"
-
-notifications:
-    title: "通知"
-    mark_as_read: "既読にする"
-    mark_all_as_read: "すべて既読にする"
-    no_notifications: "通知がありません"
-    new_notification: "新しい通知"
-    solved_puzzle: "パズルを解きました"
-    solved_puzzle_with_time: "で"
-    lending:
-        borrowed_from_you: "%borrower%があなたのパズルを借りました"
-        lent_to_you: "%owner%があなたにパズルを貸しました"
-        passed_from_you: "パズルが%to%に渡されました"
-        passed_to_you: "%from%があなたにパズルを渡しました"
-        returned_to_you: "%holder%があなたのパズルを返却しました"
-        taken_back: "%owner%がパズルを取り戻しました"
-        your_puzzle_passed: "あなたのパズルが%from%から%to%に渡されました"
-    puzzle_report:
-        change_approved: "提案された変更が承認されました"
-        change_rejected: "提案された変更が却下されました"
-        merge_approved: "重複報告が承認され、パズルが統合されました"
-        merge_rejected: "重複報告が却下されました"
-
-membership:
-    meta:
-        title: "メンバーシップ"
-        description: ""
-    title: "メンバーシップ"
-    intro_text: "メンバーシップは、真のパズル愛好家のための専用機能にアクセスする方法です！メンバーシップを登録することで、プラットフォームの開発もサポートし、世界最高のコミュニティパズルプラットフォームを作成するという私たちのビジョンの達成を支援していただけます。"
-    redirect_to_stripe: "Stripe支払いゲートウェイにリダイレクトされます。"
-    subscription_active: "アクティブな登録、コミュニティの一員でいてくださりありがとうございます！"
-    membership_active: "アクティブなメンバーシップ、コミュニティの一員でいてくださりありがとうございます！"
-    membership_inactive: "メンバーシップはアクティブではありません"
-    membership_cancelling: "登録がキャンセルされており、メンバーシップは期間終了まで有効です"
-    free_membership_active: "無料メンバーシップがアクティブ（登録なし）"
-    membership_expired: "メンバーシップが期限切れです"
-    next_payment: "次回支払い"
-    membership_active_until: "メンバーシップ有効期限"
-    payment_portal_button: "登録管理（支払いポータル）"
-    description_title: "メンバーシップの特典は何ですか？"
-    choose_your_subscription: "登録を選択"
-    subscribe_for_monthly: "月額"
-    subscribe_for_yearly: "年額"
-    price_per_month: "€%price% / 月"
-    price_per_year: "€%price% / 年"
-    billing_portal_info: "支払いポータルでは、支払い詳細の更新、メンバーシップのキャンセル、請求書や領収書のダウンロードができます。"
-    manage_in_app_store: "App Storeで管理"
-    manage_in_play_store: "Play Storeで管理"
-    manage_subscription_ios_info: "iPhone/iPadの設定アプリでApple ID > サブスクリプションからサブスクリプションを管理できます。"
-    manage_subscription_android_info: "Google Play Storeの支払いと定期購入からサブスクリプションを管理できます。"
-    purchase_via_app_store: "お支払いはApple App Store経由で処理されます。"
-    purchase_via_play_store: "お支払いはGoogle Play Store経由で処理されます。"
-    full_description: |
-        <ul>
-            <li>プラットフォーム開発をサポートしてくださることへの大きな感謝</li>
-            <li>あなた専用のパーソナライズされたプレイヤーコード（プロフィールで変更可能）</li>
-            <li>メンバーシップバッジ</li>
-            <li>初回試行でのフィルタリング</li>
-            <li>国別フィルタリング</li>
-            <li>チャート</li>
-            <li>バーコードスキャナー</li>
-            <li>詳細統計</li>
-        </ul>
-        
-        <h3 class="h4">近日公開予定の機能は？</h3>
-        <ul>
-            <li>月次および年次レポート <small class="ms-1 text-muted">（近日公開）</small></li>
-            <li>公開mypuzzler.comプロフィール <small class="ms-1 text-muted">（近日公開）</small></li>
-            <li class="mt-2">メンバー専用の特別チャレンジ</li>
-            <li>メンバー間でのパズルの貸し借りと販売</li>
-            <li>ゲーミフィケーション - 経験値とレベルの獲得</li>
-            <li>様々な達成のためのバッジ</li>
-            <li>&hellip; その他多数、これはあなたのために準備している機能のほんの一部です！</li>
-        </ul>
-    members_exclusive_button: "メンバー限定"
-    members_exclusive_short: "メンバー"
-    modal:
-        title: "メンバー限定機能"
-        cta: "メンバーになる"
-        no_thanks: "結構です！"
-        text: |
-            <p>この機能と、あなたの体験を向上させるために設計された他の機能へのアクセスを解除しましょう。</p>
-            <p>今日メンバーになって、プラットフォームの開発をサポートし、スピードパズリングの旅をさらにエキサイティングにする専用機能をお楽しみください！</p>
-
-feedback:
-    title: "フィードバック"
-    message: "メッセージ"
-    send: "送信"
-    thank_you: "フィードバックありがとうございます！"
-    success_msg: "フィードバックを受け取りました。大変感謝しております！近日中にご連絡いたします。"
-
-export:
-    page_title: "データエクスポート"
-    heading: "あなたのデータをエクスポート"
-    feedback_message: "これは新機能です！ご意見をお聞かせください。"
-    feedback_link: "フィードバックを送信"
-    description: "お好みの形式でパズル完成タイムをダウンロードできます。あなたのデータはあなたのものです。"
-    format:
-        json: "JSONをダウンロード"
-        xlsx: "Excelをダウンロード"
-        csv: "CSVをダウンロード"
-        xml: "XMLをダウンロード"
-    data_included: "エクスポートに含まれるデータ"
-    data:
-        result_id: "結果ID"
-        puzzle_info: "パズル名、ブランド、ピース数"
-        solving_time: "完成時間（秒とHH:MM:SS形式）"
-        dates: "完成日と記録日"
-        type: "完成タイプ（ソロ、デュオ、チーム）"
-        team_members: "チームメンバー（グループ完成の場合）"
-        photo_url: "完成パズル写真のURL"
-        comment: "コメント"
-
-events:
-    title: "イベント"
-    meta:
-        title: "スピードパズリングイベント｜競技会"
-        description: "スピードパズリングイベント、競技会、トーナメントに参加しましょう。世界最高のパズラーと競争し、スキルをテストしてください。"
-        keywords: "スピードパズリングイベント, パズル競技会, パズルトーナメント, WJPC, ジグソーパズル選手権, 競技パズリング"
-    live: "現在開催中"
-    upcoming: "今後のイベント"
-    past: "過去のイベント"
-    website_link: "情報"
-    results_link: "結果"
-    registration_link: "登録"
-    competition_puzzles: "競技パズル"
-    no_puzzle_text: "パズルはまだありません...お楽しみに"
-
-puzzlers:
-    meta:
-        title: "パズラー"
-        description: "スピードパズリングコミュニティのプレイヤーを閲覧。プロフィール、統計、実績を表示し、新しい競争相手を見つけましょう。"
-        keywords: "パズラー, プレイヤープロフィール, スピードパズリングコミュニティ, 競争相手, プレイヤー統計"
-    title: "パズラー"
-    search_placeholder: "プレイヤー名またはコードで検索..."
-    most_favorite: "最も人気のパズラー"
-    by_country: "国別"
-    total_players: "合計プレイヤー"
-    results_for: "の検索結果"
-    no_matches_found: "該当するものが見つかりません"
-    my_favorites: "お気に入り"
-    most_popular: "最も人気"
-
-contact:
-    title: "お問い合わせ"
-    email: "メール"
-    message: "メッセージ"
-    send: "送信"
-    thank_you: "お問い合わせありがとうございます！"
-
-faq:
-    meta:
-        title: "よくある質問"
-        description: "スピードパズリングについてのよくある質問と回答。ルール、参加方法、プラットフォームの使い方について学びましょう。"
-        keywords: "よくある質問, スピードパズリングルール, ヘルプ, サポート"
-    title: "よくある質問"
-    intro_block: |
-        <p>あなたのフィードバックは私たちにとって非常に重要で、とても感謝しています！何かお伝えしたいことがございましたら、<a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>（技術的な問題については<a href="mailto:j.mikes@me.com">j.mikes@me.com</a>）または<a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>でご連絡ください。</p>
-        <p>私たちのソースコードはすべてオープンソースで、<a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>で公開されています。私たちは「シェアリングはケアリング」の哲学に従い、myspeedpuzzling.comに関するすべてをオープンに共有するよう努めています。</p>
-
-    question_fair_play: |
-    answer_fair_play: |
-        <h4 class="mb-3">タイムを入力する際に不正をしていないことをどのように知るのですか？</h4>
-        <p>正直に言うと - おそらくわからないでしょう。パズラーが自分でタイムを入力する公開リーダーボードでは、各パズラーの正直さと誠実さに依存しています。不正に入力された結果を本当に楽しめるでしょうか？</p>
-        <p>私たちと同じように、他のパズラーも主に楽しみのために組み立てており、このタイプの組み立てからのタイムは、他の人と比較し、競技会での成績を測るための大まかな目安として示されると想定しています。プラットフォームでは20分のタイムがあるのに、競技会では3時間かかったとしたら、疑わしく見えませんか？</p>
-        <p>将来的には、ビデオ録画などによるタイム検証が必要なレーティングリーグも計画しています。</p>
-        <p class="text-danger mb-0"><small>私たちのコミュニティには世界ジグソーパズル選手権のファイナリストで上位に入った方々が含まれているため、彼らのタイムを参考にできます。疑わしいタイムは監視され、不正が証明されれば容赦なく削除されます。不正行為を繰り返した場合、プレイヤーのプラットフォームへのアクセスが制限されます。</small></p>
-
-    question_qr: QRコードとmyspeedpuzzling.comのロゴが付いたパズルを受け取りました。どうすればよいですか？
-    answer_qr: |
-        <p>組み立てとタイム入力をできるだけ快適にするために、私たちの手を通ったすべてのパズルにQRコードを追加しています - スキャンすると、そのパズルのページに移動し、直接タイミングを開始したり、タイムを入力したりできます。</p>
-        <p class="mb-0">スピードパズリングの普及を手伝いたく、パズルにQRコード付きのチラシを追加したい場合は、ご連絡ください - 印刷できるPDFを送信するか、印刷したチラシを直接郵送します。</p>
-
-    question_add_time_for_missing_puzzle: プラットフォームにないパズルのタイムを追加できますか？
-    answer_add_time_for_missing_puzzle: |
-        <p>もちろんです！まだプラットフォームにないパズルを組み立てた場合、タイムを追加する際にオプションを切り替えてください：</p>
-        <div class="form-check form-switch mb-3">
-            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
-            <label class="form-check-label" for="switch-add-puzzle">パズルを手動で入力 - 不明なメーカーまたはリストにありません</label>
-        </div>
-        <p class="mb-0">その後、メーカーのリストから選択するオプションがあります。メーカーもデータベースにない場合は、自分で入力できます。</p>
-
-    question_edit_or_delete_time: 入力したタイムを編集または削除するにはどうすればよいですか？
-    answer_edit_or_delete_time: |
-        <p><a href="%link%">マイプロフィール</a>セクションで、入力された各タイムの横に編集リンクがあります（リンクは鉛筆アイコンのようになっています <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>）。</p>
-        <p class="mb-0">編集ページの一番下に、インターネット全体からその記録を永久に削除する<a class="btn btn-sm btn-outline-danger mx-2">マジックボタン</a>があります。</p>
-
-    question_button_start_solving: <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> 解き始める</a>ボタンは何をしますか？
-    answer_button_start_solving: |
-        <p class="mb-0">選択したパズルでストップウォッチを開きます - すぐに組み立てとタイミングを開始できます。</p>
-
-    question_button_add_my_time: <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> マイタイム追加</a>ボタンは何をしますか？
-    answer_button_add_my_time: |
-        <p class="mb-0">選択したパズルにタイムを追加する画面を開きます - 独自のストップウォッチを使用し、組み立てを終えたばかりの場合に適しています。過去に組み立てて、タイムを記録したい場合は、組み立てた日付も指定するオプションがあります。</p>
-
-    question_helping: お手伝いが必要ですか？
-    answer_helping: |
-        <p class="mb-0">もちろんです！スピードパズリングコミュニティの構築にどのように参加したいかのアイデアを持って私たちと連絡を取ってください。一緒に考えて、きっと何かを思いつくでしょう。</p>
-
-recent_activity:
-    title: "最近のアクティビティ"
-    latest_times: "最新のタイム"
-    no_activity: "最近のアクティビティがありません"
-
-compare_players:
-    title: "プレイヤー比較"
-    select_players: "比較するプレイヤーを選択"
-    comparison: "比較"
-    statistics: "統計"
-    head_to_head: "対戦成績"
-
-global_modal:
-    title: "World Jigsaw Puzzle Championship 2025"
-    text: |
-        <p>バリャドリッドで開催される世界ジグソーパズル選手権2025に参加されますか？</p>
-        <p>MySpeedPuzzlingアカウントをWJPCの名前とリンクして、競争相手をチェックし…あなたのタイムで彼らを驚かせましょう！</p>
-    button_cta: "アカウントを接続"
-    button_dismiss: "参加しません！"
-
-puzzlers_comparison:
-    meta:
-        title: "パズラー比較"
-    title: "パズラー比較"
-    nothing_to_compare: "残念ながら、両方のパズラーが組み立てた比較できるパズルがありません。"
-
-edit_time:
-    meta:
-        title: "パズルタイムデータ編集"
-    title: "パズルタイムデータ編集"
-    delete_button: "この組み立て記録を永久に削除し、なかったことにする！"
-    delete_modal_message: "確認のため..."
-    delete_modal_confirm: "本当に削除しますか？"
-    delete_modal_discard_button: "いいえ、残します"
-    delete_modal_confirm_button: "はい、削除します"
-
-error:
-    generic:
-        title: "何かが壊れました"
-        message: "何か問題が発生しました...エラーがあなた側ではないと思われる場合は、お知らせください。"
-    404:
-        title: "ページが見つかりません"
-        message: "残念ながら、リクエストされたページを見つけることができませんでした。URLを確認してください。"
-    500:
-        title: "不明なエラー"
-        message: "何か問題が発生しました - 通知済みで、できるだけ早く修正します"
-
-profile:
-    add_to_favorites: "お気に入りに追加"
-    remove_from_favorites: "お気に入りから削除"
-    compare: "タイム比較"
-    no_puzzles_solved: "解いたパズルがありませんか？挑戦してみて、どれだけできるか見てみましょう！できると信じています！"
-    not_filled: "入力されていません"
-    avatar: "アバター"
-    about_me: "自己紹介"
-    location: "所在地"
-    nationality: "国籍"
-    statistics: "統計"
-    statistics_time: "組み立てに費やした時間"
-    statistics_puzzles_solved: "解いたパズル数"
-    statistics_pieces_count: "組み立てたピース数"
-    favorite_puzzlers: "お気に入りパズラー"
-    no_favorite_puzzlers: "お気に入りパズラーがいません"
-    solved_puzzles: "解いたパズル"
-    solved_puzzles_solo: "個人"
-    solved_puzzles_group: "グループ組み立て"
-    recent_activity: "最近の<br>アクティビティ"
-    personal_info: "個人<br>情報"
-    private_profile_info_1: "このパズラーはタイムを共有しないことに決めました。しかし、私たちは遅いタイムや速いタイムはなく、一緒にクリックするのを待っているピースだけがあると主張します。"
-    private_profile_info_2: "もっと知りたいですか？直接会って、タイムを明かすよう説得してみてください。ここでお伝えできるのはそれだけです。"
-
-edit_profile:
-    meta:
-        title: "プロフィール編集"
-    title: "プロフィール編集"
-    player_code_change: "プレイヤーコード変更"
-    profile_visibility: "プロフィールの表示"
-
-puzzle_detail:
-    meta:
-        description: "マイスピードパズリングで%brand% %puzzle%（%pieces%ピース）パズルを探索。進捗を追跡し、タイムを比較し、コミュニティと一緒にパズルを征服しましょう。今日からスピードパズリング解決スプリーを始めましょう！"
-
-players_per_country:
-    meta:
-        title: "国別パズラー - %country%"
-    title: "国別パズラー - %country%"
-    link: "国別パズラー"
-
-flashes:
-    stopwatch_already_saved: "これらのストップウォッチは既に保存されています。"
-    collection_not_found: "お探しのコレクションは存在しません！"
-    puzzle_removed_from_collection: "パズルがコレクションから削除されました。"
-    puzzle_added_to_collection: "パズルがコレクションに追加されました。"
-    puzzle_needs_approve: "最近追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
-    time_added: "パズリングタイムを保存しました。"
-    tracking_added: "パズルの記録を保存しました。"
-    time_deleted: "すべての証拠を削除しました。今起こったことを誰も知ることはありません！"
-    profile_saved: "プロフィール変更が保存されました！"
-    time_edited: "編集された情報が保存されました。"
-    player_not_found: "探しているプレイヤーは当サイトに登録されていません！"
-    puzzle_not_found: "探しているパズルは当プラットフォームに存在しません！"
-    puzzler_added_to_favorites: "パズラーをお気に入りリストに追加しました。"
-    puzzler_removed_from_favorites: "パズラーをお気に入りリストから削除しました。"
-    can_not_favorite_yourself: "自分をお気に入りリストに追加することはできません。自分が自分のお気に入りパズラーであることは明らかです！"
-    player_already_in_favorites: "このパズラーは既にお気に入りリストにいるので、再度追加しません ;-)。"
-    player_not_in_favorites: "うーん、このパズラーはお気に入りにいないようなので、削除できません ;-)。"
-    competition_duplicate_connection: "何か問題があります :-( 既に他のMySpeedPuzzlingプロフィールに接続されている競技会アカウントを選択しました。心配しないでください、自動的に通知されており、何が問題かを確認します。"
-    competition_connection_saved: "素晴らしい！競技会アカウントがMySpeedPuzzlingプロフィールに正常に接続されました！"
-    membership_subscribed_successfully: "メンバーシップがアクティブになりました！"
-    non_unique_player_code: "申し訳ございませんが、このコードは既に使用されているようです。別のコードを選択してください。"
-    unknown_error: "申し訳ございませんが、何か問題が発生しました - 通知済みで、できるだけ早く修正を試みます。後でもう一度お試しください。"
-    exclusive_membership_feature: "この機能はメンバー限定です。使用したい場合は、メンバーシップを購入してください。"
-
-hub:
-    title: "ハブ"
-    meta:
-        title: "スピードパズリングハブ｜最新結果"
-        description: "最新結果、プレイヤーランキング、パズル統計を含むスピードパズリングハブ。最速解決者を確認し、コミュニティの進捗を追跡しましょう。"
-        keywords: "スピードパズリングハブ, 最新結果, パズルランキング, アクティブプレイヤー, パズル統計, 最近のアクティビティ"
-    welcome: "ようこそパズラー！"
-    welcome_back: "おかえりなさい"
-    recent_favorites_activity: "お気に入り<br>アクティビティ"
-    this_month: "今月"
-    last_month: "先月"
-    all_time: "全期間"
-    most_active_solo_players: "最もアクティブなソロプレイヤー"
-    most_solved_puzzle: "最も解かれたパズル"
-    statistics: "統計"
-    no_favorites: "お気に入りプレイヤーがいません。追加して、ここで彼らのアクティビティをフォローしましょう。"
-    not_logged: "ログインしていません - このプラットフォームが提供するすべての可能性を活用するには、ログインしてください。"
-    seo_suffix: "- スピードパズリングコミュニティ"
-
-statistics:
-    puzzle_solved: "解いたパズル"
-    total_pieces: "総ピース数"
-    time_spent: "解決に費やした時間"
-    longest_streak: "最長連続記録"
-    longest_streak_help: "連続でパズリングした最大日数"
-    most_solved_brand: "最も解いたブランド"
-    all_brands: "すべてのブランド"
-    no_results: |
-        パズルを解くのが好きなことは分かっています—基本的にパズルウィスパラーですからね。しかし、選択した期間では...何もありません。ゼロ。皆無。ナダ。<br>
-        何も解いていないか、プラットフォームに追加し忘れたか（正直、それはもっと困惑しますが）のいずれかです。<br>
-        パズルを手に取って、この悲劇的な展開を修正する時です！統計が隅で泣いています—愛を示してあげてください。
-
-dates:
-    all_time: "全期間"
-    year: "年"
-    months:
-        1: "1月"
-        2: "2月"
-        3: "3月"
-        4: "4月"
-        5: "5月"
-        6: "6月"
-        7: "7月"
-        8: "8月"
-        9: "9月"
-        10: "10月"
-        11: "11月"
-        12: "12月"
-
-badges:
-    title: "バッジ"
-    my_title: "マイバッジ"
-    badge:
-        supporter: "サポーター"
-
-
-scan:
-    meta:
-        title: "バーコードリーダー"
-    title: "バーコードリーダー"
-    beta_info: "これは新しい機能で、まだテスト中で改善に取り組んでいます。フィードバックをいただけると非常にありがたいです！"
-    instructions: "カメラをボックスのEAN（バーコード）に向けて運試しをしてください - パズルがデータベースにあれば見つけます ;-)"
-    not_found: "残念ながら、EAN %code%のパズルはデータベースにありません。タイムを記録して追加してください、感謝いたします。"
-    puzzle_ean_barcode: "パズルのEANバーコードをスキャン"
-    puzzle_form:
-        not_found: "EAN %ean% のパズルが見つかりません。名前で検索するか、新しいパズルとして追加してください。"
-        multiple_brands: "EAN %ean% に複数のブランドが見つかりました。ドロップダウンから選択してください。"
-        multiple_puzzles: "EAN %ean% に複数のパズルが見つかりました。ドロップダウンから選択してください。"
-
-wjpc2024:
-    meta:
-        title: "WJPC 2024"
-    title: "WJPC 2024"
-    intro: "今年のスピードパズリングイベントが始まります！競争相手を知るための統計をお届けします。提示されるすべての統計は、可能な限り関連性を保つため、過去3か月の500ピースパズルのみです。同じパズルを複数回解いた場合、最速のもののみを取ります！<a href=\"%link%\">プロフィール設定</a>でWJPCアカウントとプロフィールを接続してください。個人カテゴリーの競技者のみ。"
-    connected_participants: "接続済み参加者"
-    not_connected_participants: "参加者"
-    puzzle_solved: "解いたパズル"
-    average: "平均"
-    fastest: "最速"
-    no_participant_matches_filters: "検索クエリに一致する参加者がいません"
-    filter_by_name: "名前で検索"
-
-competition_connection:
-    meta:
-        title: "%competitionName%アカウント接続"
-    title: "%competitionName%アカウント接続"
-    back_to_competition: "競技会に戻る"
-    description: "競技会アカウントをMySpeedPuzzlingプロフィールと接続し、他の参加者と比べてどの位置にいるかを確認しましょう。統計を関連性のあるものにするため、過去3か月の500ピースパズルのみを統計に含めます。同じパズルを複数回解いた場合、最速のもののみを取ります！"
-
-added_time_recap:
-    title: "素晴らしいタイム、この調子で続けてください！"
-    add_time: "新しいタイムを追加"
-    the_same_puzzle: "同じパズルに"
-    puzzle_detail: "結果"
-
-added_tracking_recap:
-    meta:
-        title: "パズル記録済み"
-    title: "パズルの記録が完了しました！"
-    add_another: "別のパズルを記録"
-    the_same_puzzle: "同じパズルをもう一度記録"
-    puzzle_detail: "パズル詳細を見る"
-    manufacturer: "メーカー"
-    pieces: "ピース"
-    group_puzzlers: "一緒にパズルした人"
-
-global_search:
-    info: "新しい検索へようこそ！パズル名、ean、またはコードで検索。プレイヤーを名前またはコードで検索。フィードバックをお聞かせください。"
-    no_player_found: "プレイヤーが見つかりません :-("
-    no_puzzle_found: "パズルが見つかりません :-("
-
-membership_payment_cancelled:
-    meta:
-        title: "支払いキャンセル"
-        description: ""
-    title: "支払いキャンセル"
-    text: "支払い処理が中断されました、おそらくあなたによって :-)"
-    membership_link: "メンバーシップ概要に戻る"
-    payment_link: "支払いを再試行"
-
-terms_of_service:
-    meta:
-        title: "利用規約"
-        description: "MySpeedPuzzling.comプラットフォームの利用規約"
-    content: |
-        <h1>利用規約</h1>
-        <p>この利用規約は、MySpeedPuzzling.comプラットフォームでのサブスクリプション（メンバーシップ）の提供を規定します。重要な情報をすべて一箇所にまとめて、簡単に確認できるようにしたいと思います。</p>
-        <h2>1. 私たちについて</h2>
-        <ul>
-            <li><strong>提供者:</strong> Simona Mikešová（個人事業主）</li>
-            <li><strong>住所:</strong> Františka Formana 237/31, 700 30 Ostrava, Czech Republic</li>
-            <li><strong>ID番号:</strong> 06868878</li>
-            <li><strong>連絡先メール:</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
-        </ul>
-        <p>MySpeedPuzzling.comプラットフォームの運営者として、有料メンバーシップの購入と使用についてあなたの契約パートナーです。</p>
-        <h2>2. サービスの仕組み</h2>
-        <p>MySpeedPuzzling.comはジグソーパズル愛好家のためのオンラインプラットフォームです。さまざまな機能を提供していますが、アプリケーションのプレミアム部分はアクティブなメンバーシップを持つユーザーのみがアクセスできます。</p>
-        <ul>
-            <li>メンバーシップは仮想（デジタル）製品です - 支払い後、すぐに独占的な機能へのアクセスを得られます。</li>
-            <li>電子サービスであるため、物理的な配送や発送条件は適用されません。</li>
-            <li>メンバーシップの一部として利用できるコンテンツと機能は、時間の経過とともに変更される可能性があります - 継続的に改善しています。</li>
-        </ul>
-        <h2>3. 注文と契約の締結</h2>
-        <p>有料メンバーシップの購入を決定した場合、「メンバーシップ」セクションで月額サブスクリプションを選択するだけです。その後、Stripe支払いゲートウェイにリダイレクトされます。</p>
-        <ul>
-            <li><strong>支払い詳細:</strong> すべての支払い詳細は暗号化通信を使用してStripe経由で処理されます - 私たちはこの情報にアクセスできません。</li>
-            <li><strong>注文確認:</strong> 支払いが成功した瞬間に、あなたと私たちの間の契約が締結されます。その後、メンバーシップが即座にアクティブ化されます。</li>
-            <li><strong>請求書:</strong> 有料サブスクリプションの請求書は、Stripe支払いポータルから直接ダウンロードできます。</li>
-            <li><strong>さらなるメンバーシップ管理:</strong> 支払い方法の変更、キャンセル、または延長も、アカウントの「メンバーシップ」セクションからアクセスできるStripe支払いポータル経由で管理されます。</li>
-        </ul>
-        <h2>4. 価格と支払い条件</h2>
-        <ul>
-            <li><strong>メンバーシップ価格:</strong> すべての価格は付加価値税を含んで表示されています。支払いに使用する通貨によって、価格は多少変動する場合があります。</li>
-            <li><strong>支払い方法:</strong> Stripeはカード支払い、Apple Pay、Link をサポートしています（時間の経過とともに他の方法が追加される可能性があります）。</li>
-            <li><strong>定期支払い:</strong> これは月額サブスクリプションです。つまり、メンバーシップをキャンセルするまで毎月支払いが発生します。</li>
-        </ul>
-        <h2>5. キャンセルと返金</h2>
-        <ul>
-            <li><strong>いつでもメンバーシップをキャンセルできます:</strong> キャンセル後、前払い期間の終了まではアクセスを保持します。その期間が終了すると、それ以上の支払いは発生しません。</li>
-            <li><strong>返金:</strong> 現在の請求期間の返金を要求した場合、支払いに使用したのと同じ方法で返金し、メンバーシップは即座に終了します。</li>
-            <li><strong>処理速度:</strong> 返金と請求を迅速に処理します（通常次の営業日以内）、法律で要求される30日以内です。</li>
-            <li><strong>返金費用:</strong> 返金の手数料は私たちが負担します - あなたに満足していただきたいからです。</li>
-        </ul>
-        <h2>6. 請求</h2>
-        <p>サービスが適切な品質で提供されていないと感じたり、技術的な問題が発生した場合は、
-            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>までお問い合わせください。
-        </p>
-        <ul>
-            <li>請求は可能な限り迅速に処理し、通常1〜2営業日以内に対応します。</li>
-            <li>請求の最大解決時間は30日です。</li>
-        </ul>
-        <h2>7. 個人データ保護</h2>
-        <p>個人データの処理に関する情報は、プライバシー保護専用の<a href="%privacyPolicyLink%">別ページ</a>で提供しています。そこで、収集するデータ、処理する理由、処理方法についてのすべての詳細を確認できます。</p>
-        <h2>8. 最終規定</h2>
-        <ul>
-            <li>これらの条件はチェコ法に準拠し、争議はチェコ共和国の管轄裁判所によって解決されるものとします。</li>
-            <li>争議は発生しないと信じていますが、発生した場合は、チェコ貿易検査局（ČOI）に連絡するか、ヨーロッパオンライン争議解決（ODR）プラットフォームを使用できます。</li>
-            <li>条項の現在のバージョンは常にMySpeedPuzzling.comで利用できます。法律や運営上のニーズに合わせるために、合理的な変更を加える権利を留保します。</li>
-        </ul>
-        <p><em><small>最終更新: 2025年1月</small></em></p>
-
-privacy_policy:
-    meta:
-        title: "プライバシーポリシー"
-        description: "MySpeedPuzzling.comプラットフォームのプライバシーポリシー"
-    content: |
-        <h1>プライバシーポリシー</h1>
-        <p>この文書の目的は、MySpeedPuzzling.comで個人データをどのように取り扱うかをお知らせすることです。あなたの信頼とプライバシーを非常に大切にしています。</p>
-        <h2>1. 公開名</h2>
-        <p>MySpeedPuzzling.comに登録する際、<strong>公開名</strong>を選択できます - ニックネーム、略称、またはイニシャルでも構いません。この名前はウェブサイトのすべての訪問者に表示されます。より匿名でいたい場合は、名前を選択する際に注意してください。</p>
-        <h2>2. メール</h2>
-        <ul>
-            <li>ログインとプラットフォーム管理者との通信のためにメールアドレスを提供していただきます。</li>
-            <li><strong>メールアドレスは公開されません</strong> - プロフィールのどこにも表示されず、第三者がアクセスすることはできません。</li>
-            <li>メールは暗号化されたデータベースに保存され、アプリケーションの作成者のみがアクセスできます。</li>
-            <li>メールアドレスを他のエンティティと共有することはありません。</li>
-        </ul>
-        <h2>3. パスワード</h2>
-        <ul>
-            <li>パスワードは<strong>ハッシュ</strong>としてのみデータベースに保存されます - これは不可逆的な暗号化なので、管理者や開発者はその元の形を発見することはできません。</li>
-            <li>ログイン時、入力された情報はデータベースに保存されたハッシュと比較されます。</li>
-            <li>セキュリティ上の理由から、元のパスワードをメールで送信することはありません。必要に応じて、「パスワードを忘れた」プロセスを使用してリセットできます。</li>
-        </ul>
-        <h2>4. オプションの公開情報</h2>
-        <p>ユーザーは、より良いコミュニティ交流のために、プロフィールに追加の<strong>公開情報</strong>（例：市、国、ソーシャルメディアリンク、説明、アバター）を提供するオプションがあります。</p>
-        <ul>
-            <li>この情報はすべての訪問者に表示され、<strong>機密の個人データとは見なされません</strong>。</li>
-            <li>記入時に、この情報が公開されることが通知されます。</li>
-            <li>それでも、このデータは暗号化されたデータベースに保存されます。</li>
-        </ul>
-        <h2>5. 支払い情報</h2>
-        <ul>
-            <li>MySpeedPuzzling.comプラットフォームは<strong>支払い方法に関するデータを一切収集しません</strong> - すべての支払いはパートナー会社Stripeを通じて独占的に処理されます。</li>
-            <li>支払いカードの詳細、銀行口座情報、またはその他の金融データにアクセスすることはありません。</li>
-        </ul>
-        <h2>6. セキュリティとプライバシー</h2>
-        <ul>
-            <li>ユーザーのセキュリティが私たちの優先事項です - サーバーとデータベースは不正アクセス、データ漏洩、その他のサイバー脅威から保護されています。</li>
-            <li>個人データ（例：メールやオプションのプロフィール情報）は常に暗号化され、アプリケーションの作成者のみがアクセスできます。</li>
-            <li>すべての標準的なセキュリティ対策を維持し、セキュリティの改善に継続的に取り組んでいます。</li>
-        </ul>
-        <p>個人データ保護について質問がある場合や、何かが十分に明確でないと思われる場合は、<a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>までお問い合わせください。</p>
-        <p><em><small>最終更新: 2025年1月</small></em></p>
-
-countdown:
-    days: 日
-    hours: 時間
-    minutes: 分
-    seconds: 秒
-
-blog:
-    outage-2025-02-17:
-        title: MySpeedPuzzling史上最大の停止
-        content: |
-            <h2 class="h5">2月17日、MySpeedPuzzling史上最長の停止を経験しました...</h2>
-            <h4 class="h6">まず最初に、忍耐と信頼をいただいたすべての方に心から感謝いたします！MSPが動作していないことを知っていた7時間は、私たちにとって極めてストレスフルでした！</h4>
-            <p>今日、私たちはプラットフォーム全体のほぼ10時間の停止を経験しました。MySpeedPuzzlingの歴史上最長の停止です。私たちのせいではありませんでした...いや、そうだったのでしょうか？</p>
-            <p>100%透明性を目指しているため、何が起こったのかを段階的に説明します。</p>
-            <p>午前1時30分頃に就寝しました（残念ながら、すべてがダウンする直前でした）、MySpeedPuzzlingの新機能を完成させたばかりでした。午前5時頃、子供の一人がトイレに起きた時、Simonaは自動的に携帯で通知を確認しました—よく新しいタイムを投稿した人や、どれだけ早くパズルを解いたかを見ています。はい、朝の5時でも...しかし、不愉快な驚きに迎えられました：ページが読み込まれませんでした。彼女は私をつついて言いました：「MySpeedPuzzlingが動かない！」それを聞いて、私はすぐに目が覚めました。携帯を手に取って試してみましたが、本当に動きませんでした！ラップトップを手に取って詳しく調べました。午前1時59分に、自動監視通知を受け取りました。これは通常良いニュースではありません。残念ながら、就寝直前だったので見逃してしまいました。それに、行った変更は決して破壊的ではなく、そのような停止を引き起こすことはできませんでした。そして、ほぼ正午まで続いた月曜日の停止が始まりました。</p>
-            <h5>技術的詳細（技術者向け）:</h5>
-            <p><em>（これにより、サーバーインフラストラクチャーを垣間見ることができます）</em></p>
-            <p>1週間前、物理的なMySpeedPuzzlingサーバーにメールサーバーをインストールしました—これはAuth0から独自の認証サービスへの移行、ニュースレター、その他の機能の準備でした—月に数万通のメールを送信することは単なる散歩ではなく、準備が必要です。結果的に、そのメールサーバーが実際に犯人でしたが、先に進みましょう。</p>
-            <p>最初に発見したのは、ポート443と80がタイムアウトしていたことです。サーバーは複数のアプリケーションをホストしており、これはMSPだけでなくすべてに影響しました—不愉快でした。さらに厄介な発見は、SSH経由でサーバーにアクセスできないことでした—ポートもタイムアウトしていました。</p>
-            <p>どうしましょう？パニックが始まり、Simonaにこれは大きな問題だと告げました。</p>
-            <p>すぐにサーバープロバイダーに、この特定のサーバーが応答していないことを通知しました—その時点では、サーバーがまったく応答しなかったため、明らかに彼ら側の問題のように見えました。同じデータセンターの他のサーバーはまだアクセス可能でした。ハードウェアの問題、おそらく悪いネットワークカードやゆるいケーブル（以前にもありました...）、または疑わしい活動によるプロバイダーの禁止を疑いました。</p>
-            <p>プロバイダーは数分以内に、彼らの側では何も見えていないと返答しました。データセンターをチェックしましたが、サーバーは稼働し応答していました—彼らの観点から、すべて正常でした。素晴らしい、彼らは問題を見ていませんでしたが、MSPサーバーはまだ到達できず、ログインできませんでした...</p>
-            <p>すぐにサーバーと並行してレスキューシステムを起動し、そこからMSPサーバーのファイルシステムを正常にマウントし、大海原での針探しを始めました。停止が午前1時58分〜1時59分頃に発生したことを知っていました。その時間に変更されたファイルを探しました、ハッキングされた場合に備えて。何も見つかりませんでした。何も意味がなく、何も見つけられませんでした。午前8時頃、職場の同僚が手伝いに加わりました。一緒に、SMTP on port 25（メール送信用）が動作しており、タイムアウトしていないことを発見しました—自分にメールを送ることもでき、実際に配信されました。</p>
-            <p>それはさらに困惑させるだけでした—サーバーは稼働し動作していて、「単に」到達できないだけで、ポート80と443もブロックされていました。その時までに、ネットワーク設定に何らかの問題があることをほぼ確信していました—すべてはまだ「正常」に見えましたが、主要容疑者はメールサーバーでした！</p>
-            <p>そして実際、その通りでした。サーバー上のすべてはDockerコンテナで実行されています。Dockerを使ったことがある人なら、そのネットワーキングが厄介であることを知っています。選択したメールサーバーにはfail2banも含まれており、これは疑わしいIPアドレスからのアクセスをブロックするように設計されています—例えば、ログイン試行の失敗が多すぎたり、その他の脅威がある場合です。さらに2時間の診断をスキップしますが—基本的に、fail2banが適切に設定されておらず（デフォルト設定のまま）、UFWと組み合わせて、何らかの神秘的な方法でポート22、80、443のすべてのトラフィックをブロックしました—なぜそのようになったかは今でも完全には理解していません。</p>
-            <p>原因が分かれば、最終的な修正にはそれほど時間はかかりませんでした—メールサーバー（UFWを含む）をすばやくアンインストール、iptablesをフラッシュ、Dockerネットワーキングルールを再追加、すべてを数回「バウンス」、レスキューシステムを切断、すべてを再起動、そして...ついに、モニターに向かって悪態をついた苦悶の5時間後、MSPが正常に戻りました...</p>
-            <p>不要な詳細をいくつかスキップしました—その間に5分でDNSをCloudFlareプロキシに切り替え、停止についてのメッセージを表示するNode.jsワーカーを設定したことなど—空白ページがないように...</p>
-            <p>今のところ、メールサーバーの作業は脇に置いておき、「脇に」、MSPから離れた別のサーバーに設置することを知っています。一方で、「災害復旧」プロセスをテストするのは興味深かったです—ある時点で、このサーバーを地獄で燃やし、新しいサーバーですべてを回転させ、DNSレコードを更新するだけでよいと準備していたほど絶望的でした...幸い、最終的にはそれは不要でした。</p>
-            <p>PS. 人間の介入なしに1週間後、メールサーバーのおかげで本当に「自分で」壊れました...それはかなりのものです...</p>
-
-collections:
-    add_puzzle_here:
-        button: "パズルを追加"
-    add_puzzle_form:
-        title: "コレクションにパズルを追加"
-        button: "パズルを追加"
-        description: "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
-        submit: "コレクションに追加"
-        success: "パズルがコレクションに正常に追加されました。"
-    add_puzzle: "コレクションにパズルを追加"
-    add_to_collection: "コレクションに追加"
-    added_on: "%date%に追加"
-    already_in_system: "パズルは既にコレクションにあります"
-    already_in_system_message: "このパズルは既にパズルコレクションにあります。パズルを複数のコレクションに整理したいですか？メンバーシップでこの機能をアンロック！"
-    back_to_library: "パズルライブラリに戻る"
-    collection_not_found: "コレクションが見つかりません"
-    comment_help: "コレクション内のこのパズルについてオプションのコメントを追加してください。"
-    confirm_remove: "このパズルをコレクションから削除してもよろしいですか？"
-    copy_puzzle: "コレクションにパズルをコピー"
-    copy_puzzle_submit: "コピー"
-    copy_to_collection: "コレクションにコピー"
-    create:
-        button: "コレクションを作成"
-        meta:
-            title: "コレクションを作成"
-        submit: "作成"
-        title: "新しいコレクションを作成"
-    delete:
-        button: "削除"
-        confirm:
-            button: "コレクションを削除"
-            message: "コレクション%name%を本当に削除しますか？この操作は元に戻せず、このコレクション内のすべてのパズルも削除されます。"
-            title: "コレクションを削除"
-    edit:
-        button: "編集"
-        meta:
-            title: "コレクション%name%を編集"
-        submit: "変更を保存"
-        title: "コレクション%name%を編集"
-    edit_comment:
-        meta:
-            title: "コメントを編集 - %name%"
-        submit: "保存"
-        title: "コメントを編集"
-    edit_system:
-        info: "パズルコレクションの表示設定のみ変更できます。名前と説明は変更できません。"
-        meta:
-            title: "パズルコレクションを編集"
-        submit: "変更を保存"
-        title: "パズルコレクションを編集"
-    empty:
-        message: "最初のコレクションを作成して、お気に入りのパズルを整理しましょう。"
-        message_other: "%name%には公開コレクションがありません。"
-        title: "コレクションがありません"
-        title_other: "公開コレクションはありません"
-    flash:
-        comment_updated: "コメントが正常に更新されました。"
-        created: "コレクションが正常に作成されました。"
-        deleted: "コレクションが正常に削除されました。"
-        login_required_add: "コレクションにパズルを追加するにはログインが必要です。"
-        login_required_copy: "コレクションにパズルをコピーするにはログインが必要です。"
-        login_required_move: "コレクション間でパズルを移動するにはログインが必要です。"
-        membership_required: "コレクションの作成はプレミアム機能です。メンバーシップを取得して、無制限のコレクションでパズルを整理しましょう！"
-        puzzle_added: "パズルがコレクションに正常に追加されました。"
-        puzzle_removed: "パズルがコレクションから削除されました。"
-        system_updated: "パズルコレクションの表示設定が正常に更新されました。"
-        updated: "コレクションが正常に更新されました。"
-        puzzle_moved: "パズルがコレクションに正常に移動されました。"
-    form:
-        description: "説明"
-        name: "名前"
-        visibility_help: "公開コレクションはすべてのユーザーに表示され、非公開コレクションはあなただけに表示されます。"
-    items_count: "%count%個のパズル"
-    membership_required:
-        help_text: "パズルを複数のコレクションに整理したいですか？"
-        message: "メンバーシップで無制限のコレクションを作成してパズルを整理しましょう！"
-        title: "無制限のコレクションをアンロック"
-        toast: "コレクションの作成にはアクティブなメンバーシップが必要です。"
-        unlock_link: "メンバーシップでアンロック"
-    meta:
-        title: "パズルライブラリ"
-    move_puzzle: "コレクションにパズルを移動"
-    move_puzzle_submit: "移動"
-    move_to_collection: "コレクションに移動"
-    moving_from: "%collection%から移動中"
-    no_copy_target: "利用可能なコレクションがありません"
-    no_copy_target_message: "このパズルをコピーできる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
-    no_move_target: "利用可能なコレクションがありません"
-    no_move_target_message: "このパズルを移動できる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
-    no_puzzles: "このコレクションにパズルはありません"
-    no_puzzles_description: "このコレクションは空です。パズルを追加して始めましょう！"
-    private_page:
-        title: "プライベートコレクション"
-        message: "%name%のコレクションは非公開のため、閲覧できません。"
-    private_collection: "非公開コレクション"
-    private_collection_message: "%player%のコレクション「%collection%」は非公開で表示できません。"
-    private: "プライベート"
-    public: "公開"
-    change_to_public_hint: "共有するには公開に変更"
-    remove: "削除"
-    remove_from: "%collection%から削除"
-    remove_puzzle: "コレクションから削除"
-    select_collection_help: "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
-    system_name: "パズルコレクション"
-    title: "パズルライブラリ"
-    title_other: "%name%のパズルライブラリ"
-    visibility:
-        private: "非公開"
-        public: "公開"
-
-unsolved_puzzles:
-    description: "コレクションにあるがまだ完成していないパズル"
-    description_other: "%name%が所有しているがまだ完成していないパズル"
-    edit:
-        meta:
-            title: "未完成パズルの公開設定を編集"
-        submit: "変更を保存"
-        title: "未完成パズルの公開設定を編集"
-    empty:
-        message: "コレクション内のすべてのパズルが完成しました！"
-        title: "未完成のパズルはありません"
-    flash:
-        updated: "未完成パズルの公開設定が正常に更新されました。"
-    form:
-        visibility_help: "公開リストはすべてのユーザーに表示され、非公開リストはあなただけに表示されます。"
-    items_count: "%count%個のパズル"
-    meta:
-        title: "未完成のパズル"
-    name: "未完成のパズル"
-    private: "非公開の未完成パズル"
-    private_message: "%player%の未完成パズルリスト「%collection%」は非公開のため閲覧できません。"
-    title: "未完成のパズル"
-    title_other: "%name%の未完成のパズル"
-
-wish_list:
-    add:
-        button: "ウィッシュリストに追加"
-        success: "パズルがウィッシュリストに追加されました。"
-        title: "ウィッシュリストに追加"
-    already_in_list: "このパズルは既にウィッシュリストにあります。"
-    auto_remove_enabled: "自動削除有効"
-    description: "入手したいパズル"
-    description_other: "%name%が入手したいパズル"
-    edit:
-        meta:
-            title: "ウィッシュリストの表示設定を編集"
-        submit: "変更を保存"
-        title: "ウィッシュリストの表示設定を編集"
-    empty:
-        message: "ウィッシュリストにパズルを追加してください！"
-        message_other: "%name%のウィッシュリストは空です。"
-        title: "ウィッシュリストは空です"
-        title_other: "空のウィッシュリスト"
-    flash:
-        added: "パズルがウィッシュリストに追加されました。"
-        login_required: "ウィッシュリストを管理するにはログインが必要です。"
-        removed: "パズルがウィッシュリストから削除されました。"
-        updated: "ウィッシュリストの表示設定が正常に更新されました。"
-    form:
-        remove_on_add: "自動的にウィッシュリストから削除"
-        remove_on_add_help: "チェックすると、このパズルをコレクションに追加したり、解決タイムを追加したり、借りたりすると、ウィッシュリストから自動的に削除されます。"
-        visibility_help: "公開ウィッシュリストはすべてのユーザーに表示され、非公開はあなただけに表示されます。"
-    items_count: "%count%個のパズル"
-    login_required: "ウィッシュリストにパズルを追加するにはログインが必要です。"
-    meta:
-        title: "ウィッシュリスト"
-    name: "ウィッシュリスト"
-    private: "非公開ウィッシュリスト"
-    private_message: "%player%のウィッシュリストは非公開のため閲覧できません。"
-    on_wishlist: "ウィッシュリストに登録済み"
-    remove:
-        button: "ウィッシュリストから削除"
-        success: "パズルがウィッシュリストから削除されました。"
-    title: "ウィッシュリスト"
-    title_other: "%name%のウィッシュリスト"
-
-sell_swap_list:
-    add:
-        button: "売買・交換リストに追加"
-        success: "パズルが売買・交換リストに追加されました。"
-        title: "売買・交換リストに追加"
-    already_in_list: "このパズルは既に売買・交換リストにあります。"
-    back_to_list: "売買・交換リストに戻る"
-    condition:
-        like_new: "新品同様"
-        missing_pieces: "ピース欠け"
-        normal: "普通"
-        not_so_good: "やや難あり"
-    contact_notice: "購入または交換の手配については、出品者に直接お問い合わせください。"
-    description: "販売または交換用のパズル"
-    description_other: "%name%が販売または交換しているパズル"
-    not_in_collection: "まずコレクションに追加してください"
-    edit_item:
-        meta:
-            title: "売買・交換アイテムを編集"
-        submit: "変更を保存"
-        title: "アイテムを編集"
-    edit_settings:
-        meta:
-            title: "売買・交換リスト設定を編集"
-        submit: "変更を保存"
-        title: "売買・交換リスト設定を編集"
-    empty:
-        message: "売却または交換したいパズルを追加してください！"
-        message_other: "%name%の売買・交換リストは空です。"
-        title: "売買・交換リストは空です"
-        title_other: "空の売買・交換リスト"
-    filter:
-        all_types: "すべてのタイプ"
-        max_price: "最高価格"
-        min_price: "最低価格"
-    flash:
-        added: "パズルが売買・交換リストに追加されました。"
-        item_updated: "売買・交換リストのアイテムが正常に更新されました。"
-        login_required: "売買・交換リストを管理するにはログインが必要です。"
-        removed: "パズルが売買・交換リストから削除されました。"
-        settings_updated: "売買・交換リスト設定が正常に更新されました。"
-        updated: "売買・交換リスト設定が正常に更新されました。"
-        validation_error: "エラーを修正してもう一度お試しください。"
-    form:
-        comment: "コメント"
-        comment_placeholder: "このパズルに関する追加情報..."
-        condition: "状態"
-        condition_placeholder: "状態を選択..."
-        listing_type: "出品タイプ"
-        price: "価格"
-        price_help: "価格について相談したい場合や交換専用のアイテムの場合は空欄のままにしてください。通貨は売買・交換リスト設定で設定できます。"
-    history:
-        button: "履歴"
-        buyer: "購入者"
-        date: "日付"
-        empty: "まだ売却または交換したアイテムはありません。"
-        menu: "履歴"
-        price: "価格"
-        puzzle: "パズル"
-        title: "売却・交換済み履歴"
-        type: "タイプ"
-        unknown_buyer: "不明"
-    items_count: "%count%個のパズル"
-    listing_type:
-        both: "売却または交換"
-        sell: "売却"
-        swap: "交換"
-        free: "無料で差し上げます"
-    login_required: "売買・交換リストを管理するにはログインが必要です。"
-    mark_sold:
-        button: "売却・交換済みにする"
-        buyer_input: "購入者"
-        buyer_input_help: "購入者のプレイヤーコード（例：#ABC123）または名前を入力してください。不明の場合は空欄のままにしてください。"
-        buyer_input_placeholder: "#ABC123 または名前..."
-        confirm: "確認"
-        success: "パズルは売却・交換済みとしてマークされ、コレクションから削除されました。"
-        title: "売却・交換済みにする"
-        warning: "これによりパズルは売買・交換リストとすべてのコレクションから削除されます。"
-    membership_required:
-        message: "売買・交換リストはメンバー限定で利用できます。"
-        title: "メンバー限定機能"
-    meta:
-        title: "売買・交換リスト"
-    name: "売買・交換リスト"
-    remove:
-        button: "売買・交換リストから削除"
-        success: "パズルが売買・交換リストから削除されました。"
-    settings:
-        contact_info: "連絡先情報"
-        contact_info_help: "購入者はどのように連絡すればよいですか？"
-        contact_info_placeholder: "購入者はどのように連絡すればよいですか？"
-        contact_info_warning: "連絡先情報は公開されます。快適に共有できる情報のみを記入してください。"
-        currency: "通貨"
-        currency_custom: "カスタム通貨"
-        currency_custom_placeholder: "例：USD、GBP、CHF..."
-        currency_placeholder: "通貨を選択..."
-        custom_currency: "カスタム通貨"
-        custom_currency_help: "リストに通貨がない場合はこちらを使用してください。"
-        custom_currency_placeholder: "例：USD、GBP、CHF..."
-        description: "説明"
-        description_help: "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
-        description_placeholder: "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
-        info: "売買・交換リスト設定を構成します。この情報は潜在的な購入者に表示されます。"
-        shipping_info: "配送情報"
-        shipping_info_help: "配送オプションと費用について説明してください..."
-        shipping_info_placeholder: "配送オプションと費用について説明してください..."
-        title: "売買・交換リスト設定"
-    title: "売買・交換リスト"
-    title_other: "%name%の売買・交換リスト"
-
-puzzler_offers:
-    badge: "%count%件のオファー"
-    title: "パズラーのオファー"
-    meta:
-        description: "%count%人のパズラーが%brand% %puzzle%の販売または交換を提供しています"
-    column:
-        player: "プレイヤー"
-        type: "タイプ"
-        price: "価格"
-        condition: "状態"
-
-lend_borrow:
-    already_borrowed: "このパズルは既に借用リストにあります。"
-    already_borrowed_short: "借用済み"
-    already_lent: "このパズルは既に貸出中です。"
-    already_lent_short: "貸出済み"
-    borrow:
-        button: "借用元"
-        description: "このパズルを別のプレイヤーから借りたものとしてマークします。"
-        title: "借用としてマーク"
-    borrowed:
-        empty:
-            message: "借用中のパズルはありません。"
-            message_other: "%name%は借用中のパズルがありません。"
-            title: "借用中のパズルなし"
-            title_other: "借用中のパズルなし"
-    borrowed_count: "%count%個借用中"
-    borrowed_from: "%name%から"
-    description: "現在貸出中または借用中のパズル"
-    not_in_collection: "コレクションにありません"
-    edit_settings:
-        meta:
-            title: "貸出・借用設定を編集"
-        submit: "変更を保存"
-        title: "貸出・借用設定を編集"
-    flash:
-        borrowed: "パズルが借用としてマークされました。"
-        cannot_borrow_from_self: "自分から自分へパズルを借りることはできません。"
-        cannot_lend_to_self: "自分から自分へパズルを貸すことはできません。"
-        cannot_pass_to_self: "自分自身にパズルを渡すことはできません。"
-        lent: "パズルが正常に貸し出されました。"
-        login_required: "貸出リストを管理するにはログインが必要です。"
-        passed: "パズルが正常に受け渡されました。"
-        player_not_found: "プレイヤーが見つかりません。プレイヤーコードを確認してください。"
-        returned: "パズルが正常に所有者に返却されました。"
-        settings_updated: "貸出・借用設定が正常に更新されました。"
-        validation_error: "エラーを修正してもう一度お試しください。"
-    form:
-        borrower_code: "借用者のプレイヤーコードまたは名前"
-        borrower_code_help: "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
-        borrower_code_placeholder: "#ABC123 または 田中太郎"
-        new_holder_code: "新しい保持者のプレイヤーコードまたは名前"
-        new_holder_code_help: "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
-        new_holder_code_placeholder: "#ABC123 または 田中太郎"
-        notes: "メモ"
-        notes_placeholder: "この貸出に関するオプションのメモ..."
-        owner_code: "所有者のプレイヤーコードまたは名前"
-        owner_code_help: "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
-        owner_code_placeholder: "#ABC123 または 田中太郎"
-    lend:
-        button: "プレイヤーに貸す"
-        description: "このパズルを別のプレイヤーに貸し出します。相手はさらに他の人に渡したり、あなたに返却したりできます。"
-        title: "パズルを貸す"
-    lent:
-        empty:
-            message: "まだパズルを貸し出していません。パズルメニューを使用して他のプレイヤーにパズルを貸し出してください。"
-            message_other: "%name%はパズルを貸し出していません。"
-            title: "貸出中のパズルなし"
-            title_other: "貸出中のパズルなし"
-    lent_count: "%count%個貸出中"
-    lent_to: "%name%に貸出中"
-    login_required: "貸出リストを管理するにはログインが必要です。"
-    membership_required:
-        message: "パズルの貸出はメンバー限定で利用できます。"
-        title: "メンバー限定機能"
-    name: "貸出・借用"
-    pass:
-        button: "他の人に渡す"
-        description: "%puzzle%を別のプレイヤーに渡します。所有者は引き続き追跡できます。"
-        title: "パズルを渡す"
-    return:
-        button: "所有者に返却"
-        confirm_message: "%puzzle%を所有者に返却しますか？"
-        title: "パズルを返却"
-    tab:
-        borrowed: "借用中"
-        lent: "貸出中"
-    title: "貸出・借用"
-    view_holder: "現在の保持者を表示"
-    view_owner: "所有者を表示"
-
-solved_puzzles:
-    description: "完成させたすべてのパズル"
-    description_other: "%name%が完成させたすべてのパズル"
-    edit:
-        meta:
-            title: "完成パズルの公開設定を編集"
-        submit: "変更を保存"
-        title: "完成パズルの公開設定を編集"
-    empty:
-        message: "パズルを完成させるとここに表示されます！"
-        message_other: "%name%はまだパズルを完成させていません。"
-        title: "完成パズルなし"
-        title_other: "完成パズルなし"
-    flash:
-        updated: "完成パズルの公開設定が正常に更新されました。"
-    form:
-        visibility_help: "公開の完成パズルリストはすべてのユーザーに表示され、非公開はあなただけに表示されます。"
-    items_count: "%count%個のパズル"
-    meta:
-        title: "完成パズル"
-    name: "完成パズル"
-    private: "非公開の完成パズル"
-    private_message: "%player%の完成パズルリスト「%collection%」は非公開のため閲覧できません。"
-    title: "完成パズル"
-    title_other: "%name%の完成パズル"
-
-status:
-    borrowed: "借用中"
-    collection: "コレクション内"
-    for_sale: "販売中"
-    lent: "貸出中"
-    solved: "完成"
-    unsolved: "未完成"
-    wishlist: "ウィッシュリスト"
-
-image_editor:
-    title: "画像を編集"
-    rotate_left: "左に回転"
-    rotate_right: "右に回転"
-    apply: "適用"
-
-admin:
-    puzzle_change_request:
-        approved: "変更リクエストが承認され、パズルが更新されました。"
-        rejected: "変更リクエストが却下されました。"
-        rejection_reason_required: "却下理由は必須です。"
-    puzzle_merge_request:
-        approved: "統合リクエストが承認されました。パズルが統合されました。"
-        rejected: "統合リクエストが却下されました。"
-        rejection_reason_required: "却下理由は必須です。"
-        validation_failed: "統合先パズル、名前、ピース数は必須です。"
-
-pending_proposals:
-    badge: "保留中の提案"
-    go_to_admin: "管理画面へ"
-    no_proposals: "このパズルに対する保留中の提案はありません。"
-    reported_by: "報告者"
-    title: "保留中の提案"
-    type:
-        change_request: "変更リクエスト"
-        merge_request: "統合リクエスト"
-
-puzzle_report:
-    back_to_puzzle: "パズルに戻る"
-    dropdown:
-        suggest_change: "変更を提案"
-        suggest_change_description: "不足/誤ったデータまたは重複？"
-    flash:
-        changes_submitted: "提案された変更がレビューのために送信されました。ありがとうございます！"
-        duplicate_reported: "重複報告がレビューのために送信されました。ありがとうございます！"
-        login_required: "変更を提案するにはログインしてください。"
-        no_valid_duplicates: "パズルを自身の重複として報告することはできません。別のパズルを選択してください。"
-        pending_proposal_exists: "このパズルに対する提案はすでにレビュー待ちです。"
-        validation_error: "エラーを修正して再試行してください。"
-    form:
-        current_image: "現在の画像"
-        duplicate_url: "重複パズルのURL"
-        duplicate_url_help: "重複パズルのURLを貼り付けてください。"
-        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
-        ean: "EAN / バーコード"
-        ean_help: "パズルボックスのバーコード番号（通常13桁）。"
-        ean_placeholder: "例：4005556123456"
-        identification_number: "ブランドコード / SKU"
-        identification_number_help: "メーカーの製品コード（例：Ravensburgerパズルの19432）。"
-        identification_number_placeholder: "例：19432"
-        manufacturer: "メーカー"
-        manufacturer_placeholder: "メーカーを検索..."
-        name: "パズル名"
-        name_help: "パズルボックスに記載されている正しい名前を入力してください。複数の名前はカンマで区切ってください。"
-        name_placeholder: "パズル名を入力..."
-        or: "または"
-        photo: "新しい写真"
-        photo_example_ok: "OK"
-        photo_example_perfect: "完璧"
-        photo_example_wrong: "不可"
-        photo_help_1: "完成したパズルではなく、パズルボックスの画像を使用してください。"
-        photo_help_2: "良好な照明とピントを確保してください。"
-        photo_help_3: "ボックス全体ではなく、パズルの画像のみを切り抜いてください。"
-        photo_help_4: "マルチパックの場合、1つのパズルの画像のみを選択してください。"
-        photo_help_title: "写真ガイドライン："
-        photo_help_toggle: "良い写真のヒント"
-        pieces_count: "ピース数"
-        pieces_count_help: "正しいピース数を入力してください。"
-        search_manufacturer: "メーカーで検索"
-        search_manufacturer_placeholder: "メーカーを選択してパズルを閲覧..."
-        select_duplicate_error: "重複パズルを選択するか、パズルのURLを入力してください。"
-        select_manufacturer_first: "最初にメーカーを選択"
-        select_puzzle: "パズルを選択"
-        select_puzzle_placeholder: "パズルを検索..."
-        submit_changes: "変更を送信"
-        submit_duplicate: "重複として報告"
-    propose_changes:
-        description: "このパズルの情報の修正や改善を提案してください。すべての変更は管理者によってレビューされます。"
-    report_duplicate:
-        description: "このパズルが別のパズルの重複であることを報告してください。管理者が確認し、確認された場合はレコードを統合します。"
-        max_puzzles_info: "一度に最大%max%件のパズルを重複として報告できます。"
-    tab:
-        suggestions: "提案"
-        report_duplicate: "重複を報告"
-    title: "パズルの変更を提案"
+"menu":
+  "my_profile": "マイプロフィール"
+  "puzzle_add": "追加"
+  "stopwatch": "ストップウォッチ"
+  "puzzles_overview": "パズル"
+  "ladder": "リーダーボード"
+  "players": "プレイヤー"
+  "faq": "よくある質問"
+  "sign_in": "サインイン"
+  "hub": "ハブ"
+  "feedback": "フィードバック送信"
+  "support_us": "サポート"
+  "terms_of_service": "利用規約"
+  "privacy_policy": "プライバシーポリシー"
+  "membership": "メンバーシップ"
+  "search": "検索"
+  "statistics": "統計"
+  "favorite_puzzlers": "お気に入りプレイヤー"
+  "edit_profile": "プロフィール編集"
+  "change_player_code": "プレイヤーコード変更"
+  "profile": "プロフィール"
+  "events": "イベント"
+  "puzzle_library": "パズルライブラリ"
+  "export_data": "データエクスポート"
+"accessibility":
+  "toggle_navigation": "ナビゲーション切替"
+  "barcode_scanner": "バーコードスキャン"
+  "notifications_count": "通知 (%count%)"
+"navigation":
+  "home": "ホーム"
+"form":
+  "visibility": "表示設定"
+  "visibility_public": "公開"
+  "visibility_private": "非公開"
+"footer":
+  "created_with_love": "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
+  "about": "マイスピードパズリングは、すべてのパズル愛好家、特にスピードパズル愛好家のためのコミュニティプラットフォームです。<br>タイムを共有し、他の人と比較し、一緒に楽しむための究極の場所です。"
+  "popular_search": "人気検索"
+  "speed_puzzling_leaderboard": "スピードパズリングリーダーボード"
+  "speed_puzzling_players": "スピードパズリングプレイヤー"
+  "latest_puzzle_times": "最新のパズルタイム"
+  "750_piece_puzzles": "750ピースパズル"
+  "puzzle_add": "パズル追加"
+"puzzler_name": "名前"
+"puzzler": "パズラー"
+"puzzle": "パズル"
+"time": "タイム"
+"pieces_count": "%count%&nbsp;ピース"
+"show_more": "もっと見る"
+"show_less": "閉じる"
+"puzzle_solved": "完了"
+"puzzle_available": "貸出可能"
+"puzzle_not_available": "貸出不可"
+"add_solving": "記録を追加"
+"start_solving": "解き始める"
+"show_times": "タイム表示"
+"fastest_time_short": "最速: %time%"
+"average_time_short": "平均: %time%"
+"fastest_time": "最速:"
+"average_time": "平均:"
+"only_first_tries_filter": "初回のみ"
+"only_unboxed_filter": "箱なしのみ"
+"only_favorite_players_filter": "お気に入りのみ"
+"filtered_out_puzzlers_count_info": "初回情報のない<strong>%count%人のパズラー</strong>を非表示にしています。"
+"my_time": "マイタイム:"
+"puzzle_solved_count": "完了回数:"
+"puzzle_solved_times": "%count%回完了"
+"puzzle.relax_solvings_count": "リラックスモードで%count%回完成"
+"never_solved_puzzles": "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
+"show_more_solving_times": "もっと見る (%count%回)"
+"be_first_to_solve": "まだ誰もこれらのパズルを解いていません。最初の挑戦者になりましょう！"
+"be_first_to_group_solve": "これらのパズルはまだグループで解かれていません。最初のグループになりましょう！"
+"email": "メール"
+"facebook": "Facebook"
+"instagram": "Instagram"
+"search": "検索"
+"puzzle_waiting_for_approval": "最近追加されたパズルは管理者の承認を待っています - 通常追加から24時間以内です。ご辛抱をお願いします。"
+"puzzle_img_alt": "%puzzle% - パズル画像"
+"searching": "検索中..."
+"load_more": "さらに読み込む..."
+"back_to_top": "トップに戻る"
+"total_found": "合計発見数: %count%"
+"remaining": "残り: %puzzle%"
+"loading": "読み込み中"
+"any": "すべて"
+"all_pieces": "すべて"
+"solo_solved": "ソロ完了:"
+"first_attempt": "初回"
+"unboxed": "箱なし"
+"ranking_out_of": "の"
+"wjpc_participant": "WJPC 2024参加者 (%name%)"
+"share": "シェア"
+"edit": "編集"
+"delete": "削除"
+"active_membership": "アクティブメンバーシップ"
+"new_badge": "新着"
+"secret_puzzler_name": "秘密のパズラー"
+"right_now": "今すぐ"
+"badge":
+  "relax": "リラックス"
+  "suspicious": "確認が必要"
+"homepage":
+  "meta":
+    "title": "スピードパズリング - タイム記録＆競争"
+    "description": "究極のスピードパズリングコミュニティに参加しましょう！パズルタイムを記録し、世界中のプレイヤーと競争し、リーダーボードを登りましょう。今すぐ始めましょう！"
+    "keywords": "スピードパズリング, パズルタイム, ジグソーパズルコミュニティ, パズル解決競争, パズルリーダーボード"
+  "global_statistics": "私たち全員で<strong>%puzzles%</strong>個のパズルを解くのにこれだけの時間がかかりました。<br>それは驚くべき<strong>%pieces%</strong>ピースです。"
+  "title": "ようこそパズラー、スピードパズリングの世界へ！"
+  "intro_text": "スピードパズリングは、できるだけ早くパズルを組み立てることを目標とするエキサイティングなスポーツです。すべてのピースが重要で、毎秒が重要です。従来のパズル解決にレーストラックのアドレナリンを想像してみてください！私たちのプラットフォームは、時間だけでなく他のパズル愛好家とも対戦できる初のプラットフォームです。"
+  "why_block": "<h3>なぜ参加するのですか？</h3>\n<ul>\n    <li><strong>他の人と競争:</strong> あなたのタイムを共有し、他のパズラーと比較しましょう</li>\n    <li><strong>リーダーボードと統計:</strong> 最速パズラー、最多組立パズル、最もアクティブなユーザーのランキングを発見しましょう</li>\n    <li><strong>ストップウォッチ:</strong> パズル組立の簡単なタイミングのための統合ストップウォッチを使用しましょう</li>\n    <li><strong>パズルを追加:</strong> 当サイトにないパズルをお持ちですか？追加してコミュニティとタイムを共有しましょう。</li>\n    <li><strong>パズリングコミュニティを構築:</strong> 成長するコミュニティに参加し、ヒント、コツ、友好的な競争を共有しましょう</li>\n    <li><strong>視野を広げる:</strong> オンライン、そして将来的にはオフラインでの競技会の開催を計画していますので、ライブでスキルを披露できます</li>\n</ul>\n"
+  "help_us_grow_block": "<h3>成長にご協力ください</h3>\n<p>私たちのアプリは始まったばかりで、あなたのアイデア、フィードバック、バグ発見の手助けは貴重です。この初期段階で私たちに参加し、スピードパズリングの未来に直接影響を与えてください。</p>\n"
+  "start_today_block": "<h3>今日から始めましょう</h3>\n<p>初心者でも経験豊富なパズラーでも、私たちのプラットフォームはスキルを伸ばし、他の人と競い合う完璧な場所を提供します。私たちに参加し、スピードパズリングの未来の一部になりましょう！</p>\n"
+  "cta_sign_in": "サインイン"
+  "cta_my_profile": "マイプロフィール"
+  "cta_recent": "最近のタイム"
+"ladder":
+  "title": "リーダーボード"
+  "meta":
+    "title": "タイムリーダーボード"
+    "description": "最速パズルタイムとプレイヤーランキングを表示するスピードパズリングリーダーボード。記録保持者を確認し、トップポジションを目指して競争しましょう。"
+    "keywords": "スピードパズリングリーダーボード, 最速タイム, パズル記録, プレイヤーランキング, 競技結果, パズルチャンピオン"
+  "overview": "概要"
+  "recent_activity": "最近追加されたタイム"
+  "solo": "ソロ"
+  "duo": "デュオ"
+  "team": "チーム"
+  "most_solved_puzzle": "最多組立パズル"
+  "most_active_puzzlers": "最も熱心なパズラー"
+  "puzzle_solved_count": "解いたパズル数"
+  "link_to_hub": "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
+"filters":
+  "button": "フィルター"
+  "filter_by": "フィルター条件"
+  "pieces_placeholder": "- ピース数 -"
+  "manufacturer_placeholder": "- メーカー -"
+  "less_than": "%count%未満"
+  "more_than": "%count%以上"
+  "text_search_placeholder": "パズル名またはコード..."
+  "only_available": "貸出可能のみ"
+  "only_with_time": "タイム入力済みのみ"
+  "no_puzzle_matches_filters": "指定されたフィルターに一致するパズルがありません"
+  "only_relax": "リラックスパズルのみ"
+  "date_range": "期間"
+  "date_from": "開始日"
+  "date_to": "終了日"
+  "time_filter": "タイムフィルター"
+  "faster_than": "より速い"
+  "slower_than": "より遅い"
+  "minutes": "分"
+  "reset": "フィルターをリセット"
+  "all_manufacturers": "すべてのメーカー"
+  "all_pieces": "すべてのピース数"
+"sorting":
+  "sort_by": "並び順"
+  "newest_times": "最新"
+  "oldest_times": "最古"
+  "fastest_times": "最速"
+  "slowest_times": "最遅"
+  "most_solved": "最多解決"
+  "least_solved": "最少解決"
+  "a_z": "名前 A-Z"
+  "z_a": "名前 Z-A"
+  "fastest_ppm": "最速PPM"
+  "slowest_ppm": "最遅PPM"
+"puzzle_overview":
+  "meta":
+    "title": "スピードパズリングデータベース"
+    "description": "500-1000+ピースパズルのスピードパズリングデータベースを閲覧。解決タイムを比較し、新しい挑戦を見つけ、進捗を追跡しましょう。"
+    "keywords": "パズルデータベース, ジグソーパズルタイム, 500ピースパズル, 1000ピースパズル, パズルブランド, スピード解決"
+  "title": "パズル"
+  "missing_puzzle_info": "ここにパズルが見つからない場合、まだ誰も解いておらず、データベースにありません。新しいパズルはタイム追加時に入力できます。"
+"stopwatch":
+  "meta":
+    "title": "ストップウォッチ"
+  "title": "ストップウォッチ"
+  "start": "開始"
+  "stop": "停止"
+  "continue": "続行"
+  "reset": "リセット"
+  "finish": "完了！タイム追加"
+  "more_my_stopwatches": "他のマイストップウォッチ"
+  "status":
+    "not_started": "開始準備完了"
+    "running": "実行中"
+    "paused": "一時停止"
+    "finished": "パズル完了"
+"puzzle_add":
+  "meta":
+    "title": "パズル追加"
+  "title": "追加..."
+  "chosen_puzzle": "選択されたパズル:"
+  "choose_puzzle": "パズルを選択"
+  "puzzle_needed": "リストからパズルを選択するか、新しいものを追加する必要があります"
+  "change_puzzle": "選択変更"
+  "add_when_not_found_info": "リストにパズルが見つからない場合は、新しいものを追加してください。"
+  "need_approve_info": "新しく追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
+  "add_manufacturer": "新しいメーカーを追加"
+  "not_in_list": "(リストにありません)"
+  "choose_manufacturer": "リストからメーカーを選択"
+  "time_from_stopwatch": "ストップウォッチからのタイム"
+  "add_puzzler": "グループ協力者を追加"
+  "group_puzzling": "ペア/グループでパズル"
+  "competition_result": "大会結果"
+  "teamplayer": "協力者"
+  "player_code_info": "お気に入りから選択するか、プレイヤーのコード（#で始まる）を入力してください。パズラーがmyspeedpuzzling.comにアカウントを持っていない場合は、名前を入力してください。"
+  "mode":
+    "speed_puzzling": "スピードパズリング"
+    "relax": "リラックス（タイムなし）"
+    "to_collection": "コレクションに追加"
+"forms":
+  "choose_from_favorites": "- お気に入りから選択 -"
+  "drop_file": "ファイルをここにドラッグ＆ドロップしてアップロード"
+  "choose_file": "またはファイルを選択"
+  "save": "保存"
+  "cancel": "キャンセル"
+  "submit": "送信"
+  "reset": "リセット"
+  "search": "検索"
+  "clear": "クリア"
+  "add_new_brand": "新しいブランドを追加："
+  "confirm": "確認"
+  "delete": "削除"
+  "edit": "編集"
+  "update": "更新"
+  "create": "作成"
+  "remove": "削除"
+  "add": "追加"
+  "close": "閉じる"
+  "back": "戻る"
+  "continue": "続行"
+  "next": "次へ"
+  "previous": "前へ"
+  "yes": "はい"
+  "no": "いいえ"
+  "ok": "OK"
+  "required_field": "この項目は必須です！"
+  "max_characters": "最大500文字"
+  "saving": "保存中..."
+  "removing": "削除中..."
+  "add_puzzle_to_collection":
+    "choose_collection": "- コレクションを選択 -"
+    "collection": "コレクション"
+    "collection_help": "既存のコレクションを選択するか、新しいコレクション名を追加してください。"
+    "comment": "コメント"
+    "comment_placeholder": "このパズルについてのオプションコメント..."
+    "puzzle_collection": "パズルコレクション（デフォルト）"
+    "submit": "コレクションに追加"
+  "empty_group_error": "自分だけでグループを作成することはできません。それはグループパズルではありません :-)"
+  "too_high_ppm": "入力したタイムを確認してください。そんなに早くパズルを解くことは不可能です！ :-) タイムはHH:MM:SS形式で入力してください。入力したタイムは新世界記録になります！ :-)"
+  "ppm_warning_title": "タイムを確認してください"
+  "ppm_warning_too_fast": "ペースがとても速いようです！タイムが正しく入力されているか確認してください。"
+  "ppm_warning_too_slow": "念のため確認です - 時間を正しく入力しましたか？時間と分が入れ替わることがあります。"
+  "ppm_confirm_button": "はい、タイムは正しいです"
+  "ppm_cancel_button": "確認させてください"
+  "ppm_entered_time": "入力したタイム"
+  "hours": "時間"
+  "minutes": "分"
+  "seconds": "秒"
+  "unknown_error": "予期しないエラーが発生しました :(. 通知済みです。後でもう一度お試しください。"
+  "name_help": "この名前でパズルを組み立て、すべてのコミュニティメンバーに表示されます。"
+  "email_help": "メールアドレスは非公開で、どこにも表示されず、管理者が連絡する必要がある場合にのみ使用されます。"
+  "location_help": "現在住んでいる場所（オプション）。"
+  "location": "所在地"
+  "nationality": "国籍"
+  "country_most_common": "最も一般的"
+  "country_all": "すべての国"
+  "about_me": "自己紹介（バイオ）"
+  "avatar": "アバター/写真"
+  "search_puzzler": "名前、プレイヤーコード、または一部..."
+  "time_format_placeholder": "HH:MM:SS"
+  "time_required": "時間を入力してください"
+  "hours_short": "時間"
+  "minutes_short": "分"
+  "seconds_short": "秒"
+  "comment": "追加情報"
+  "finished_puzzle_photo": "完成パズルの写真"
+  "add_new_puzzle": "新しいパズルを追加 - リストにありません"
+  "puzzle": "パズル"
+  "puzzle_help": "既存のパズルを選択（名前、ブランドコード、ピース数で検索）するか、見つからない場合は新しいパズル名を追加してください。"
+  "brand": "ブランド"
+  "brand_help": "既存のブランドを選択するか、見つからない場合は新しいブランド名を入力してください。"
+  "pieces_count": "ピース数"
+  "puzzle_box_photo": "絵またはパズルボックスの写真"
+  "date_finished": "完成日"
+  "ean": "EANコード"
+  "puzzle_identification_number": "メーカーコード"
+  "puzzle_photo_is_required": "解決されたパズル、モチーフ、またはボックスの写真が必要です"
+  "puzzle_photo_help": "パズルを正しく識別・割り当てできるよう、解決されたパズル、モチーフ、またはボックスの写真を添付してください。"
+  "puzzle_choose_placeholder": "検索または新しいパズル名を入力"
+  "puzzle_choose_brand_placeholder": "まずブランドを選択"
+  "only_with_results": "タイム入力済みのパズルのみ"
+  "only_solved_by_me": "私が解いたパズルのみ"
+  "only_available": "借用可能のみ"
+  "puzzle_search_placeholder": "名前、コード、EAN..."
+  "tag": "タグ"
+  "competition": "競技会 / イベント"
+  "competition_help": "この結果が競技会やオンラインイベントからのものである場合は、競技会を選択してください。"
+  "tags": "タグ"
+  "feedback": "メッセージ"
+  "feedback_help": "新機能や改善の提案、バグ報告、好きなこと嫌いなこと、頭に浮かんだことなら何でもお送りください..."
+  "send_feedback": "送信"
+  "first_attempt": "このパズルの初回組み立て"
+  "first_attempt_help": "グループで組み立てる場合、誰も以前にこのパズルを組み立てていない場合のみ（ソロでも含む）"
+  "unboxed": "箱の画像を見ずに組み立て"
+  "unboxed_help": "箱や画像を参照せずにパズルを組み立てた場合はチェックしてください"
+  "competition_participant": "競技会での氏名"
+  "player_code": "プレイヤーコード"
+  "player_code_help": "ユニークなプレイヤーコード - 最低3文字、最大8文字。文字と数字のみ、特殊文字やスペースは使用できません。"
+  "global_search_placeholder": "パズルまたはプレイヤーを検索..."
+  "private_profile": "プライベートプロフィール"
+  "private_profile_help": "あなたの名前はどこにも表示されず、タイムは匿名で表示されます。"
+"my_profile":
+  "meta":
+    "title": "マイプロフィール"
+  "title": "マイプロフィール"
+  "edit": "情報編集"
+  "logout": "ログアウト"
+  "myssing_name_info": "申し訳ございませんが、名前またはニックネームを記入していただけない場合、どのように表示すればよいかわかりません。したがって、すべての結果は非公開となります。"
+  "public_info": "公開"
+  "not_public_info": "非公開"
+  "name": "名前/ニックネーム"
+  "stopwatches": "マイストップウォッチ"
+  "missing_name_info": "申し訳ございませんが、名前またはニックネームを記入していただけない場合、どのように表示すればよいかわかりません。したがって、すべての結果は非公開となります。"
+  "share_mention_myspeedpuzzling": "タグ付け: <code>@MySpeedPuzzling</code>"
+  "wjpc_connection": "競技会アカウント接続"
+"notifications":
+  "title": "通知"
+  "mark_as_read": "既読にする"
+  "mark_all_as_read": "すべて既読にする"
+  "no_notifications": "通知がありません"
+  "new_notification": "新しい通知"
+  "solved_puzzle": "パズルを解きました"
+  "solved_puzzle_with_time": "で"
+  "lending":
+    "borrowed_from_you": "%borrower%があなたのパズルを借りました"
+    "lent_to_you": "%owner%があなたにパズルを貸しました"
+    "passed_from_you": "パズルが%to%に渡されました"
+    "passed_to_you": "%from%があなたにパズルを渡しました"
+    "returned_to_you": "%holder%があなたのパズルを返却しました"
+    "taken_back": "%owner%がパズルを取り戻しました"
+    "your_puzzle_passed": "あなたのパズルが%from%から%to%に渡されました"
+  "puzzle_report":
+    "change_approved": "提案された変更が承認されました"
+    "change_rejected": "提案された変更が却下されました"
+    "merge_approved": "重複報告が承認され、パズルが統合されました"
+    "merge_rejected": "重複報告が却下されました"
+  "conversation_request":
+    "general": "%player%さんから会話リクエストが届きました"
+    "marketplace": "%player%さんから%puzzle%についてメッセージが届きました"
+"membership":
+  "meta":
+    "title": "メンバーシップ"
+    "description": ""
+  "title": "メンバーシップ"
+  "intro_text": "メンバーシップは、真のパズル愛好家のための専用機能にアクセスする方法です！メンバーシップを登録することで、プラットフォームの開発もサポートし、世界最高のコミュニティパズルプラットフォームを作成するという私たちのビジョンの達成を支援していただけます。"
+  "redirect_to_stripe": "Stripe支払いゲートウェイにリダイレクトされます。"
+  "subscription_active": "アクティブな登録、コミュニティの一員でいてくださりありがとうございます！"
+  "membership_active": "アクティブなメンバーシップ、コミュニティの一員でいてくださりありがとうございます！"
+  "membership_inactive": "メンバーシップはアクティブではありません"
+  "membership_cancelling": "登録がキャンセルされており、メンバーシップは期間終了まで有効です"
+  "free_membership_active": "無料メンバーシップがアクティブ（登録なし）"
+  "membership_expired": "メンバーシップが期限切れです"
+  "next_payment": "次回支払い"
+  "membership_active_until": "メンバーシップ有効期限"
+  "payment_portal_button": "登録管理（支払いポータル）"
+  "description_title": "メンバーシップの特典は何ですか？"
+  "choose_your_subscription": "登録を選択"
+  "subscribe_for_monthly": "月額"
+  "subscribe_for_yearly": "年額"
+  "price_per_month": "€%price% / 月"
+  "price_per_year": "€%price% / 年"
+  "billing_portal_info": "支払いポータルでは、支払い詳細の更新、メンバーシップのキャンセル、請求書や領収書のダウンロードができます。"
+  "manage_in_app_store": "App Storeで管理"
+  "manage_in_play_store": "Play Storeで管理"
+  "manage_subscription_ios_info": "iPhone/iPadの設定アプリでApple ID > サブスクリプションからサブスクリプションを管理できます。"
+  "manage_subscription_android_info": "Google Play Storeの支払いと定期購入からサブスクリプションを管理できます。"
+  "purchase_via_app_store": "お支払いはApple App Store経由で処理されます。"
+  "purchase_via_play_store": "お支払いはGoogle Play Store経由で処理されます。"
+  "full_description": "<ul>\n    <li>プラットフォーム開発をサポートしてくださることへの大きな感謝</li>\n    <li>あなた専用のパーソナライズされたプレイヤーコード（プロフィールで変更可能）</li>\n    <li>メンバーシップバッジ</li>\n    <li>初回試行でのフィルタリング</li>\n    <li>国別フィルタリング</li>\n    <li>チャート</li>\n    <li>バーコードスキャナー</li>\n    <li>詳細統計</li>\n</ul>\n\n<h3 class=\"h4\">近日公開予定の機能は？</h3>\n<ul>\n    <li>月次および年次レポート <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li>公開mypuzzler.comプロフィール <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li class=\"mt-2\">メンバー専用の特別チャレンジ</li>\n    <li>メンバー間でのパズルの貸し借りと販売</li>\n    <li>ゲーミフィケーション - 経験値とレベルの獲得</li>\n    <li>様々な達成のためのバッジ</li>\n    <li>&hellip; その他多数、これはあなたのために準備している機能のほんの一部です！</li>\n</ul>\n"
+  "members_exclusive_button": "メンバー限定"
+  "members_exclusive_short": "メンバー"
+  "modal":
+    "title": "メンバー限定機能"
+    "cta": "メンバーになる"
+    "no_thanks": "結構です！"
+    "text": "<p>この機能と、あなたの体験を向上させるために設計された他の機能へのアクセスを解除しましょう。</p>\n<p>今日メンバーになって、プラットフォームの開発をサポートし、スピードパズリングの旅をさらにエキサイティングにする専用機能をお楽しみください！</p>\n"
+  "have_voucher_code": "バウチャーコードをお持ちですか？"
+  "redeem_voucher": "バウチャーを利用する"
+"feedback":
+  "title": "フィードバック"
+  "message": "メッセージ"
+  "send": "送信"
+  "thank_you": "フィードバックありがとうございます！"
+  "success_msg": "フィードバックを受け取りました。大変感謝しております！近日中にご連絡いたします。"
+"export":
+  "page_title": "データエクスポート"
+  "heading": "あなたのデータをエクスポート"
+  "feedback_message": "これは新機能です！ご意見をお聞かせください。"
+  "feedback_link": "フィードバックを送信"
+  "description": "お好みの形式でパズル完成タイムをダウンロードできます。あなたのデータはあなたのものです。"
+  "format":
+    "json": "JSONをダウンロード"
+    "xlsx": "Excelをダウンロード"
+    "csv": "CSVをダウンロード"
+    "xml": "XMLをダウンロード"
+  "data_included": "エクスポートに含まれるデータ"
+  "data":
+    "result_id": "結果ID"
+    "puzzle_info": "パズル名、ブランド、ピース数"
+    "solving_time": "完成時間（秒とHH:MM:SS形式）"
+    "dates": "完成日と記録日"
+    "type": "完成タイプ（ソロ、デュオ、チーム）"
+    "team_members": "チームメンバー（グループ完成の場合）"
+    "photo_url": "完成パズル写真のURL"
+    "comment": "コメント"
+"events":
+  "title": "イベント"
+  "meta":
+    "title": "スピードパズリングイベント｜競技会"
+    "description": "スピードパズリングイベント、競技会、トーナメントに参加しましょう。世界最高のパズラーと競争し、スキルをテストしてください。"
+    "keywords": "スピードパズリングイベント, パズル競技会, パズルトーナメント, WJPC, ジグソーパズル選手権, 競技パズリング"
+  "live": "現在開催中"
+  "upcoming": "今後のイベント"
+  "past": "過去のイベント"
+  "website_link": "情報"
+  "results_link": "結果"
+  "registration_link": "登録"
+  "competition_puzzles": "競技パズル"
+  "no_puzzle_text": "パズルはまだありません...お楽しみに"
+"puzzlers":
+  "meta":
+    "title": "パズラー"
+    "description": "スピードパズリングコミュニティのプレイヤーを閲覧。プロフィール、統計、実績を表示し、新しい競争相手を見つけましょう。"
+    "keywords": "パズラー, プレイヤープロフィール, スピードパズリングコミュニティ, 競争相手, プレイヤー統計"
+  "title": "パズラー"
+  "search_placeholder": "プレイヤー名またはコードで検索..."
+  "most_favorite": "最も人気のパズラー"
+  "by_country": "国別"
+  "total_players": "合計プレイヤー"
+  "results_for": "の検索結果"
+  "no_matches_found": "該当するものが見つかりません"
+  "my_favorites": "お気に入り"
+  "most_popular": "最も人気"
+"contact":
+  "title": "お問い合わせ"
+  "email": "メール"
+  "message": "メッセージ"
+  "send": "送信"
+  "thank_you": "お問い合わせありがとうございます！"
+"faq":
+  "meta":
+    "title": "よくある質問"
+    "description": "スピードパズリングについてのよくある質問と回答。ルール、参加方法、プラットフォームの使い方について学びましょう。"
+    "keywords": "よくある質問, スピードパズリングルール, ヘルプ, サポート"
+  "title": "よくある質問"
+  "intro_block": "<p>あなたのフィードバックは私たちにとって非常に重要で、とても感謝しています！何かお伝えしたいことがございましたら、<a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>（技術的な問題については<a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a>）または<a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagram</a>でご連絡ください。</p>\n<p>私たちのソースコードはすべてオープンソースで、<a href=\"https://github.com/MySpeedPuzzling\">GitHub SpeedPuzzling</a>で公開されています。私たちは「シェアリングはケアリング」の哲学に従い、myspeedpuzzling.comに関するすべてをオープンに共有するよう努めています。</p>\n"
+  "question_fair_play": ""
+  "answer_fair_play": "<h4 class=\"mb-3\">タイムを入力する際に不正をしていないことをどのように知るのですか？</h4>\n<p>正直に言うと - おそらくわからないでしょう。パズラーが自分でタイムを入力する公開リーダーボードでは、各パズラーの正直さと誠実さに依存しています。不正に入力された結果を本当に楽しめるでしょうか？</p>\n<p>私たちと同じように、他のパズラーも主に楽しみのために組み立てており、このタイプの組み立てからのタイムは、他の人と比較し、競技会での成績を測るための大まかな目安として示されると想定しています。プラットフォームでは20分のタイムがあるのに、競技会では3時間かかったとしたら、疑わしく見えませんか？</p>\n<p>将来的には、ビデオ録画などによるタイム検証が必要なレーティングリーグも計画しています。</p>\n<p class=\"text-danger mb-0\"><small>私たちのコミュニティには世界ジグソーパズル選手権のファイナリストで上位に入った方々が含まれているため、彼らのタイムを参考にできます。疑わしいタイムは監視され、不正が証明されれば容赦なく削除されます。不正行為を繰り返した場合、プレイヤーのプラットフォームへのアクセスが制限されます。</small></p>\n"
+  "question_qr": "QRコードとmyspeedpuzzling.comのロゴが付いたパズルを受け取りました。どうすればよいですか？"
+  "answer_qr": "<p>組み立てとタイム入力をできるだけ快適にするために、私たちの手を通ったすべてのパズルにQRコードを追加しています - スキャンすると、そのパズルのページに移動し、直接タイミングを開始したり、タイムを入力したりできます。</p>\n<p class=\"mb-0\">スピードパズリングの普及を手伝いたく、パズルにQRコード付きのチラシを追加したい場合は、ご連絡ください - 印刷できるPDFを送信するか、印刷したチラシを直接郵送します。</p>\n"
+  "question_add_time_for_missing_puzzle": "プラットフォームにないパズルのタイムを追加できますか？"
+  "answer_add_time_for_missing_puzzle": "<p>もちろんです！まだプラットフォームにないパズルを組み立てた場合、タイムを追加する際にオプションを切り替えてください：</p>\n<div class=\"form-check form-switch mb-3\">\n    <input type=\"checkbox\" class=\"form-check-input\" id=\"switch-add-puzzle\">\n    <label class=\"form-check-label\" for=\"switch-add-puzzle\">パズルを手動で入力 - 不明なメーカーまたはリストにありません</label>\n</div>\n<p class=\"mb-0\">その後、メーカーのリストから選択するオプションがあります。メーカーもデータベースにない場合は、自分で入力できます。</p>\n"
+  "question_edit_or_delete_time": "入力したタイムを編集または削除するにはどうすればよいですか？"
+  "answer_edit_or_delete_time": "<p><a href=\"%link%\">マイプロフィール</a>セクションで、入力された各タイムの横に編集リンクがあります（リンクは鉛筆アイコンのようになっています <span class=\"btn btn-sm btn-outline-dark px-2 py-1 border-0\"><i class=\"ci-edit\"></i></span>）。</p>\n<p class=\"mb-0\">編集ページの一番下に、インターネット全体からその記録を永久に削除する<a class=\"btn btn-sm btn-outline-danger mx-2\">マジックボタン</a>があります。</p>\n"
+  "question_button_start_solving": "<a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-time\"></i> 解き始める</a>ボタンは何をしますか？"
+  "answer_button_start_solving": "<p class=\"mb-0\">選択したパズルでストップウォッチを開きます - すぐに組み立てとタイミングを開始できます。</p>\n"
+  "question_button_add_my_time": "<a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> マイタイム追加</a>ボタンは何をしますか？"
+  "answer_button_add_my_time": "<p class=\"mb-0\">選択したパズルにタイムを追加する画面を開きます - 独自のストップウォッチを使用し、組み立てを終えたばかりの場合に適しています。過去に組み立てて、タイムを記録したい場合は、組み立てた日付も指定するオプションがあります。</p>\n"
+  "question_helping": "お手伝いが必要ですか？"
+  "answer_helping": "<p class=\"mb-0\">もちろんです！スピードパズリングコミュニティの構築にどのように参加したいかのアイデアを持って私たちと連絡を取ってください。一緒に考えて、きっと何かを思いつくでしょう。</p>\n"
+"recent_activity":
+  "title": "最近のアクティビティ"
+  "latest_times": "最新のタイム"
+  "no_activity": "最近のアクティビティがありません"
+"compare_players":
+  "title": "プレイヤー比較"
+  "select_players": "比較するプレイヤーを選択"
+  "comparison": "比較"
+  "statistics": "統計"
+  "head_to_head": "対戦成績"
+"global_modal":
+  "title": "マーケットプレイスが登場！"
+  "text": "<p>パズルを買いたい、売りたい、交換したいと思ったことはありませんか？今まで以上に簡単になりました！</p>\n<p>新しい<strong>マーケットプレイス</strong>をご覧ください — パズルを出品したり、お得な商品を見つけたり、プラットフォーム上で他のパズラーと直接チャットできます。ぜひご感想をお聞かせください！</p>\n"
+  "button_cta": "マーケットプレイスを見る"
+  "button_dismiss": "また後で"
+"puzzlers_comparison":
+  "meta":
+    "title": "パズラー比較"
+  "title": "パズラー比較"
+  "nothing_to_compare": "残念ながら、両方のパズラーが組み立てた比較できるパズルがありません。"
+"edit_time":
+  "meta":
+    "title": "パズルタイムデータ編集"
+  "title": "パズルタイムデータ編集"
+  "delete_button": "この組み立て記録を永久に削除し、なかったことにする！"
+  "delete_modal_message": "確認のため..."
+  "delete_modal_confirm": "本当に削除しますか？"
+  "delete_modal_discard_button": "いいえ、残します"
+  "delete_modal_confirm_button": "はい、削除します"
+"error":
+  "generic":
+    "title": "何かが壊れました"
+    "message": "何か問題が発生しました...エラーがあなた側ではないと思われる場合は、お知らせください。"
+  404:
+    "title": "ページが見つかりません"
+    "message": "残念ながら、リクエストされたページを見つけることができませんでした。URLを確認してください。"
+  500:
+    "title": "不明なエラー"
+    "message": "何か問題が発生しました - 通知済みで、できるだけ早く修正します"
+"profile":
+  "add_to_favorites": "お気に入りに追加"
+  "remove_from_favorites": "お気に入りから削除"
+  "compare": "タイム比較"
+  "no_puzzles_solved": "解いたパズルがありませんか？挑戦してみて、どれだけできるか見てみましょう！できると信じています！"
+  "not_filled": "入力されていません"
+  "avatar": "アバター"
+  "about_me": "自己紹介"
+  "location": "所在地"
+  "nationality": "国籍"
+  "statistics": "統計"
+  "statistics_time": "組み立てに費やした時間"
+  "statistics_puzzles_solved": "解いたパズル数"
+  "statistics_pieces_count": "組み立てたピース数"
+  "favorite_puzzlers": "お気に入りパズラー"
+  "no_favorite_puzzlers": "お気に入りパズラーがいません"
+  "solved_puzzles": "解いたパズル"
+  "solved_puzzles_solo": "個人"
+  "solved_puzzles_group": "グループ組み立て"
+  "recent_activity": "最近の<br>アクティビティ"
+  "personal_info": "個人<br>情報"
+  "private_profile_info_1": "このパズラーはタイムを共有しないことに決めました。しかし、私たちは遅いタイムや速いタイムはなく、一緒にクリックするのを待っているピースだけがあると主張します。"
+  "private_profile_info_2": "もっと知りたいですか？直接会って、タイムを明かすよう説得してみてください。ここでお伝えできるのはそれだけです。"
+"edit_profile":
+  "meta":
+    "title": "プロフィール編集"
+  "title": "プロフィール編集"
+  "player_code_change": "プレイヤーコード変更"
+  "profile_visibility": "プロフィールの表示"
+  "allow_direct_messages": "他のユーザーからのダイレクトメッセージを許可する"
+  "email_notifications": "未読メッセージについてメール通知を送信する"
+  "messaging_notifications": "メッセージと通知"
+"puzzle_detail":
+  "meta":
+    "description": "マイスピードパズリングで%brand% %puzzle%（%pieces%ピース）パズルを探索。進捗を追跡し、タイムを比較し、コミュニティと一緒にパズルを征服しましょう。今日からスピードパズリング解決スプリーを始めましょう！"
+"players_per_country":
+  "meta":
+    "title": "国別パズラー - %country%"
+  "title": "国別パズラー - %country%"
+  "link": "国別パズラー"
+"flashes":
+  "stopwatch_already_saved": "これらのストップウォッチは既に保存されています。"
+  "collection_not_found": "お探しのコレクションは存在しません！"
+  "puzzle_removed_from_collection": "パズルがコレクションから削除されました。"
+  "puzzle_added_to_collection": "パズルがコレクションに追加されました。"
+  "puzzle_needs_approve": "最近追加されたパズルは管理者の承認後に公開表示されます - 通常追加から24時間以内です。"
+  "time_added": "パズリングタイムを保存しました。"
+  "tracking_added": "パズルの記録を保存しました。"
+  "time_deleted": "すべての証拠を削除しました。今起こったことを誰も知ることはありません！"
+  "profile_saved": "プロフィール変更が保存されました！"
+  "time_edited": "編集された情報が保存されました。"
+  "player_not_found": "探しているプレイヤーは当サイトに登録されていません！"
+  "puzzle_not_found": "探しているパズルは当プラットフォームに存在しません！"
+  "puzzler_added_to_favorites": "パズラーをお気に入りリストに追加しました。"
+  "puzzler_removed_from_favorites": "パズラーをお気に入りリストから削除しました。"
+  "can_not_favorite_yourself": "自分をお気に入りリストに追加することはできません。自分が自分のお気に入りパズラーであることは明らかです！"
+  "player_already_in_favorites": "このパズラーは既にお気に入りリストにいるので、再度追加しません ;-)。"
+  "player_not_in_favorites": "うーん、このパズラーはお気に入りにいないようなので、削除できません ;-)。"
+  "competition_duplicate_connection": "何か問題があります :-( 既に他のMySpeedPuzzlingプロフィールに接続されている競技会アカウントを選択しました。心配しないでください、自動的に通知されており、何が問題かを確認します。"
+  "competition_connection_saved": "素晴らしい！競技会アカウントがMySpeedPuzzlingプロフィールに正常に接続されました！"
+  "membership_subscribed_successfully": "メンバーシップがアクティブになりました！"
+  "non_unique_player_code": "申し訳ございませんが、このコードは既に使用されているようです。別のコードを選択してください。"
+  "unknown_error": "申し訳ございませんが、何か問題が発生しました - 通知済みで、できるだけ早く修正を試みます。後でもう一度お試しください。"
+  "exclusive_membership_feature": "この機能はメンバー限定です。使用したい場合は、メンバーシップを購入してください。"
+"hub":
+  "title": "ハブ"
+  "meta":
+    "title": "スピードパズリングハブ｜最新結果"
+    "description": "最新結果、プレイヤーランキング、パズル統計を含むスピードパズリングハブ。最速解決者を確認し、コミュニティの進捗を追跡しましょう。"
+    "keywords": "スピードパズリングハブ, 最新結果, パズルランキング, アクティブプレイヤー, パズル統計, 最近のアクティビティ"
+  "welcome": "ようこそパズラー！"
+  "welcome_back": "おかえりなさい"
+  "recent_favorites_activity": "お気に入り<br>アクティビティ"
+  "this_month": "今月"
+  "last_month": "先月"
+  "all_time": "全期間"
+  "most_active_solo_players": "最もアクティブなソロプレイヤー"
+  "most_solved_puzzle": "最も解かれたパズル"
+  "statistics": "統計"
+  "no_favorites": "お気に入りプレイヤーがいません。追加して、ここで彼らのアクティビティをフォローしましょう。"
+  "not_logged": "ログインしていません - このプラットフォームが提供するすべての可能性を活用するには、ログインしてください。"
+  "seo_suffix": "- スピードパズリングコミュニティ"
+"statistics":
+  "puzzle_solved": "解いたパズル"
+  "total_pieces": "総ピース数"
+  "time_spent": "解決に費やした時間"
+  "longest_streak": "最長連続記録"
+  "longest_streak_help": "連続でパズリングした最大日数"
+  "most_solved_brand": "最も解いたブランド"
+  "all_brands": "すべてのブランド"
+  "no_results": "パズルを解くのが好きなことは分かっています—基本的にパズルウィスパラーですからね。しかし、選択した期間では...何もありません。ゼロ。皆無。ナダ。<br>\n何も解いていないか、プラットフォームに追加し忘れたか（正直、それはもっと困惑しますが）のいずれかです。<br>\nパズルを手に取って、この悲劇的な展開を修正する時です！統計が隅で泣いています—愛を示してあげてください。\n"
+"dates":
+  "all_time": "全期間"
+  "year": "年"
+  "months":
+    1: "1月"
+    2: "2月"
+    3: "3月"
+    4: "4月"
+    5: "5月"
+    6: "6月"
+    7: "7月"
+    8: "8月"
+    9: "9月"
+    10: "10月"
+    11: "11月"
+    12: "12月"
+"badges":
+  "title": "バッジ"
+  "my_title": "マイバッジ"
+  "badge":
+    "supporter": "サポーター"
+"scan":
+  "meta":
+    "title": "バーコードリーダー"
+  "title": "バーコードリーダー"
+  "beta_info": "これは新しい機能で、まだテスト中で改善に取り組んでいます。フィードバックをいただけると非常にありがたいです！"
+  "instructions": "カメラをボックスのEAN（バーコード）に向けて運試しをしてください - パズルがデータベースにあれば見つけます ;-)"
+  "not_found": "残念ながら、EAN %code%のパズルはデータベースにありません。タイムを記録して追加してください、感謝いたします。"
+  "puzzle_ean_barcode": "パズルのEANバーコードをスキャン"
+  "puzzle_form":
+    "not_found": "EAN %ean% のパズルが見つかりません。名前で検索するか、新しいパズルとして追加してください。"
+    "multiple_brands": "EAN %ean% に複数のブランドが見つかりました。ドロップダウンから選択してください。"
+    "multiple_puzzles": "EAN %ean% に複数のパズルが見つかりました。ドロップダウンから選択してください。"
+"wjpc2024":
+  "meta":
+    "title": "WJPC 2024"
+  "title": "WJPC 2024"
+  "intro": "今年のスピードパズリングイベントが始まります！競争相手を知るための統計をお届けします。提示されるすべての統計は、可能な限り関連性を保つため、過去3か月の500ピースパズルのみです。同じパズルを複数回解いた場合、最速のもののみを取ります！<a href=\"%link%\">プロフィール設定</a>でWJPCアカウントとプロフィールを接続してください。個人カテゴリーの競技者のみ。"
+  "connected_participants": "接続済み参加者"
+  "not_connected_participants": "参加者"
+  "puzzle_solved": "解いたパズル"
+  "average": "平均"
+  "fastest": "最速"
+  "no_participant_matches_filters": "検索クエリに一致する参加者がいません"
+  "filter_by_name": "名前で検索"
+"competition_connection":
+  "meta":
+    "title": "%competitionName%アカウント接続"
+  "title": "%competitionName%アカウント接続"
+  "back_to_competition": "競技会に戻る"
+  "description": "競技会アカウントをMySpeedPuzzlingプロフィールと接続し、他の参加者と比べてどの位置にいるかを確認しましょう。統計を関連性のあるものにするため、過去3か月の500ピースパズルのみを統計に含めます。同じパズルを複数回解いた場合、最速のもののみを取ります！"
+"added_time_recap":
+  "title": "素晴らしいタイム、この調子で続けてください！"
+  "add_time": "新しいタイムを追加"
+  "the_same_puzzle": "同じパズルに"
+  "puzzle_detail": "結果"
+"added_tracking_recap":
+  "meta":
+    "title": "パズル記録済み"
+  "title": "パズルの記録が完了しました！"
+  "add_another": "別のパズルを記録"
+  "the_same_puzzle": "同じパズルをもう一度記録"
+  "puzzle_detail": "パズル詳細を見る"
+  "manufacturer": "メーカー"
+  "pieces": "ピース"
+  "group_puzzlers": "一緒にパズルした人"
+"global_search":
+  "info": "新しい検索へようこそ！パズル名、ean、またはコードで検索。プレイヤーを名前またはコードで検索。フィードバックをお聞かせください。"
+  "no_player_found": "プレイヤーが見つかりません :-("
+  "no_puzzle_found": "パズルが見つかりません :-("
+"membership_payment_cancelled":
+  "meta":
+    "title": "支払いキャンセル"
+    "description": ""
+  "title": "支払いキャンセル"
+  "text": "支払い処理が中断されました、おそらくあなたによって :-)"
+  "membership_link": "メンバーシップ概要に戻る"
+  "payment_link": "支払いを再試行"
+"terms_of_service":
+  "meta":
+    "title": "利用規約"
+    "description": "MySpeedPuzzling.comプラットフォームの利用規約"
+  "content": "<h1>利用規約</h1>\n<p>この利用規約は、MySpeedPuzzling.comプラットフォームでのサブスクリプション（メンバーシップ）の提供を規定します。重要な情報をすべて一箇所にまとめて、簡単に確認できるようにしたいと思います。</p>\n<h2>1. 私たちについて</h2>\n<ul>\n    <li><strong>提供者:</strong> Simona Mikešová（個人事業主）</li>\n    <li><strong>住所:</strong> Františka Formana 237/31, 700 30 Ostrava, Czech Republic</li>\n    <li><strong>ID番号:</strong> 06868878</li>\n    <li><strong>連絡先メール:</strong> <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a></li>\n</ul>\n<p>MySpeedPuzzling.comプラットフォームの運営者として、有料メンバーシップの購入と使用についてあなたの契約パートナーです。</p>\n<h2>2. サービスの仕組み</h2>\n<p>MySpeedPuzzling.comはジグソーパズル愛好家のためのオンラインプラットフォームです。さまざまな機能を提供していますが、アプリケーションのプレミアム部分はアクティブなメンバーシップを持つユーザーのみがアクセスできます。</p>\n<ul>\n    <li>メンバーシップは仮想（デジタル）製品です - 支払い後、すぐに独占的な機能へのアクセスを得られます。</li>\n    <li>電子サービスであるため、物理的な配送や発送条件は適用されません。</li>\n    <li>メンバーシップの一部として利用できるコンテンツと機能は、時間の経過とともに変更される可能性があります - 継続的に改善しています。</li>\n</ul>\n<h2>3. 注文と契約の締結</h2>\n<p>有料メンバーシップの購入を決定した場合、「メンバーシップ」セクションで月額サブスクリプションを選択するだけです。その後、Stripe支払いゲートウェイにリダイレクトされます。</p>\n\
+    <ul>\n    <li><strong>支払い詳細:</strong> すべての支払い詳細は暗号化通信を使用してStripe経由で処理されます - 私たちはこの情報にアクセスできません。</li>\n    <li><strong>注文確認:</strong> 支払いが成功した瞬間に、あなたと私たちの間の契約が締結されます。その後、メンバーシップが即座にアクティブ化されます。</li>\n    <li><strong>請求書:</strong> 有料サブスクリプションの請求書は、Stripe支払いポータルから直接ダウンロードできます。</li>\n    <li><strong>さらなるメンバーシップ管理:</strong> 支払い方法の変更、キャンセル、または延長も、アカウントの「メンバーシップ」セクションからアクセスできるStripe支払いポータル経由で管理されます。</li>\n</ul>\n<h2>4. 価格と支払い条件</h2>\n<ul>\n    <li><strong>メンバーシップ価格:</strong> すべての価格は付加価値税を含んで表示されています。支払いに使用する通貨によって、価格は多少変動する場合があります。</li>\n    <li><strong>支払い方法:</strong> Stripeはカード支払い、Apple Pay、Link をサポートしています（時間の経過とともに他の方法が追加される可能性があります）。</li>\n    <li><strong>定期支払い:</strong> これは月額サブスクリプションです。つまり、メンバーシップをキャンセルするまで毎月支払いが発生します。</li>\n</ul>\n<h2>5. キャンセルと返金</h2>\n<ul>\n    <li><strong>いつでもメンバーシップをキャンセルできます:</strong> キャンセル後、前払い期間の終了まではアクセスを保持します。その期間が終了すると、それ以上の支払いは発生しません。</li>\n    <li><strong>返金:</strong> 現在の請求期間の返金を要求した場合、支払いに使用したのと同じ方法で返金し、メンバーシップは即座に終了します。</li>\n    <li><strong>処理速度:</strong>\
+    \ 返金と請求を迅速に処理します（通常次の営業日以内）、法律で要求される30日以内です。</li>\n    <li><strong>返金費用:</strong> 返金の手数料は私たちが負担します - あなたに満足していただきたいからです。</li>\n</ul>\n<h2>6. 請求</h2>\n<p>サービスが適切な品質で提供されていないと感じたり、技術的な問題が発生した場合は、\n    <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>までお問い合わせください。\n</p>\n<ul>\n    <li>請求は可能な限り迅速に処理し、通常1〜2営業日以内に対応します。</li>\n    <li>請求の最大解決時間は30日です。</li>\n</ul>\n<h2>7. 個人データ保護</h2>\n<p>個人データの処理に関する情報は、プライバシー保護専用の<a href=\"%privacyPolicyLink%\">別ページ</a>で提供しています。そこで、収集するデータ、処理する理由、処理方法についてのすべての詳細を確認できます。</p>\n<h2>8. 最終規定</h2>\n<ul>\n    <li>これらの条件はチェコ法に準拠し、争議はチェコ共和国の管轄裁判所によって解決されるものとします。</li>\n    <li>争議は発生しないと信じていますが、発生した場合は、チェコ貿易検査局（ČOI）に連絡するか、ヨーロッパオンライン争議解決（ODR）プラットフォームを使用できます。</li>\n    <li>条項の現在のバージョンは常にMySpeedPuzzling.comで利用できます。法律や運営上のニーズに合わせるために、合理的な変更を加える権利を留保します。</li>\n</ul>\n<p><em><small>最終更新: 2025年1月</small></em></p>\n"
+"privacy_policy":
+  "meta":
+    "title": "プライバシーポリシー"
+    "description": "MySpeedPuzzling.comプラットフォームのプライバシーポリシー"
+  "content": "<h1>プライバシーポリシー</h1>\n<p>この文書の目的は、MySpeedPuzzling.comで個人データをどのように取り扱うかをお知らせすることです。あなたの信頼とプライバシーを非常に大切にしています。</p>\n<h2>1. 公開名</h2>\n<p>MySpeedPuzzling.comに登録する際、<strong>公開名</strong>を選択できます - ニックネーム、略称、またはイニシャルでも構いません。この名前はウェブサイトのすべての訪問者に表示されます。より匿名でいたい場合は、名前を選択する際に注意してください。</p>\n<h2>2. メール</h2>\n<ul>\n    <li>ログインとプラットフォーム管理者との通信のためにメールアドレスを提供していただきます。</li>\n    <li><strong>メールアドレスは公開されません</strong> - プロフィールのどこにも表示されず、第三者がアクセスすることはできません。</li>\n    <li>メールは暗号化されたデータベースに保存され、アプリケーションの作成者のみがアクセスできます。</li>\n    <li>メールアドレスを他のエンティティと共有することはありません。</li>\n</ul>\n<h2>3. パスワード</h2>\n<ul>\n    <li>パスワードは<strong>ハッシュ</strong>としてのみデータベースに保存されます - これは不可逆的な暗号化なので、管理者や開発者はその元の形を発見することはできません。</li>\n    <li>ログイン時、入力された情報はデータベースに保存されたハッシュと比較されます。</li>\n    <li>セキュリティ上の理由から、元のパスワードをメールで送信することはありません。必要に応じて、「パスワードを忘れた」プロセスを使用してリセットできます。</li>\n</ul>\n<h2>4. オプションの公開情報</h2>\n<p>ユーザーは、より良いコミュニティ交流のために、プロフィールに追加の<strong>公開情報</strong>（例：市、国、ソーシャルメディアリンク、説明、アバター）を提供するオプションがあります。</p>\n<ul>\n    <li>この情報はすべての訪問者に表示され、<strong>機密の個人データとは見なされません</strong>。</li>\n\
+    \    <li>記入時に、この情報が公開されることが通知されます。</li>\n    <li>それでも、このデータは暗号化されたデータベースに保存されます。</li>\n</ul>\n<h2>5. 支払い情報</h2>\n<ul>\n    <li>MySpeedPuzzling.comプラットフォームは<strong>支払い方法に関するデータを一切収集しません</strong> - すべての支払いはパートナー会社Stripeを通じて独占的に処理されます。</li>\n    <li>支払いカードの詳細、銀行口座情報、またはその他の金融データにアクセスすることはありません。</li>\n</ul>\n<h2>6. セキュリティとプライバシー</h2>\n<ul>\n    <li>ユーザーのセキュリティが私たちの優先事項です - サーバーとデータベースは不正アクセス、データ漏洩、その他のサイバー脅威から保護されています。</li>\n    <li>個人データ（例：メールやオプションのプロフィール情報）は常に暗号化され、アプリケーションの作成者のみがアクセスできます。</li>\n    <li>すべての標準的なセキュリティ対策を維持し、セキュリティの改善に継続的に取り組んでいます。</li>\n</ul>\n<p>個人データ保護について質問がある場合や、何かが十分に明確でないと思われる場合は、<a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>までお問い合わせください。</p>\n<p><em><small>最終更新: 2025年1月</small></em></p>\n"
+"countdown":
+  "days": "日"
+  "hours": "時間"
+  "minutes": "分"
+  "seconds": "秒"
+"blog":
+  "outage-2025-02-17":
+    "title": "MySpeedPuzzling史上最大の停止"
+    "content": "<h2 class=\"h5\">2月17日、MySpeedPuzzling史上最長の停止を経験しました...</h2>\n<h4 class=\"h6\">まず最初に、忍耐と信頼をいただいたすべての方に心から感謝いたします！MSPが動作していないことを知っていた7時間は、私たちにとって極めてストレスフルでした！</h4>\n<p>今日、私たちはプラットフォーム全体のほぼ10時間の停止を経験しました。MySpeedPuzzlingの歴史上最長の停止です。私たちのせいではありませんでした...いや、そうだったのでしょうか？</p>\n<p>100%透明性を目指しているため、何が起こったのかを段階的に説明します。</p>\n<p>午前1時30分頃に就寝しました（残念ながら、すべてがダウンする直前でした）、MySpeedPuzzlingの新機能を完成させたばかりでした。午前5時頃、子供の一人がトイレに起きた時、Simonaは自動的に携帯で通知を確認しました—よく新しいタイムを投稿した人や、どれだけ早くパズルを解いたかを見ています。はい、朝の5時でも...しかし、不愉快な驚きに迎えられました：ページが読み込まれませんでした。彼女は私をつついて言いました：「MySpeedPuzzlingが動かない！」それを聞いて、私はすぐに目が覚めました。携帯を手に取って試してみましたが、本当に動きませんでした！ラップトップを手に取って詳しく調べました。午前1時59分に、自動監視通知を受け取りました。これは通常良いニュースではありません。残念ながら、就寝直前だったので見逃してしまいました。それに、行った変更は決して破壊的ではなく、そのような停止を引き起こすことはできませんでした。そして、ほぼ正午まで続いた月曜日の停止が始まりました。</p>\n<h5>技術的詳細（技術者向け）:</h5>\n<p><em>（これにより、サーバーインフラストラクチャーを垣間見ることができます）</em></p>\n<p>1週間前、物理的なMySpeedPuzzlingサーバーにメールサーバーをインストールしました—これはAuth0から独自の認証サービスへの移行、ニュースレター、その他の機能の準備でした—月に数万通のメールを送信することは単なる散歩ではなく、準備が必要です。結果的に、そのメールサーバーが実際に犯人でしたが、先に進みましょう。</p>\n\
+      <p>最初に発見したのは、ポート443と80がタイムアウトしていたことです。サーバーは複数のアプリケーションをホストしており、これはMSPだけでなくすべてに影響しました—不愉快でした。さらに厄介な発見は、SSH経由でサーバーにアクセスできないことでした—ポートもタイムアウトしていました。</p>\n<p>どうしましょう？パニックが始まり、Simonaにこれは大きな問題だと告げました。</p>\n<p>すぐにサーバープロバイダーに、この特定のサーバーが応答していないことを通知しました—その時点では、サーバーがまったく応答しなかったため、明らかに彼ら側の問題のように見えました。同じデータセンターの他のサーバーはまだアクセス可能でした。ハードウェアの問題、おそらく悪いネットワークカードやゆるいケーブル（以前にもありました...）、または疑わしい活動によるプロバイダーの禁止を疑いました。</p>\n<p>プロバイダーは数分以内に、彼らの側では何も見えていないと返答しました。データセンターをチェックしましたが、サーバーは稼働し応答していました—彼らの観点から、すべて正常でした。素晴らしい、彼らは問題を見ていませんでしたが、MSPサーバーはまだ到達できず、ログインできませんでした...</p>\n<p>すぐにサーバーと並行してレスキューシステムを起動し、そこからMSPサーバーのファイルシステムを正常にマウントし、大海原での針探しを始めました。停止が午前1時58分〜1時59分頃に発生したことを知っていました。その時間に変更されたファイルを探しました、ハッキングされた場合に備えて。何も見つかりませんでした。何も意味がなく、何も見つけられませんでした。午前8時頃、職場の同僚が手伝いに加わりました。一緒に、SMTP on port 25（メール送信用）が動作しており、タイムアウトしていないことを発見しました—自分にメールを送ることもでき、実際に配信されました。</p>\n<p>それはさらに困惑させるだけでした—サーバーは稼働し動作していて、「単に」到達できないだけで、ポート80と443もブロックされていました。その時までに、ネットワーク設定に何らかの問題があることをほぼ確信していました—すべてはまだ「正常」に見えましたが、主要容疑者はメールサーバーでした！</p>\n<p>そして実際、その通りでした。サーバー上のすべてはDockerコンテナで実行されています。Dockerを使ったことがある人なら、そのネットワーキングが厄介であることを知っています。選択したメールサーバーにはfail2banも含まれており、これは疑わしいIPアドレスからのアクセスをブロックするように設計されています—例えば、ログイン試行の失敗が多すぎたり、その他の脅威がある場合です。さらに2時間の診断をスキップしますが—基本的に、fail2banが適切に設定されておらず（デフォルト設定のまま）、UFWと組み合わせて、何らかの神秘的な方法でポート22、80、443のすべてのトラフィックをブロックしました—なぜそのようになったかは今でも完全には理解していません。</p>\n\
+      <p>原因が分かれば、最終的な修正にはそれほど時間はかかりませんでした—メールサーバー（UFWを含む）をすばやくアンインストール、iptablesをフラッシュ、Dockerネットワーキングルールを再追加、すべてを数回「バウンス」、レスキューシステムを切断、すべてを再起動、そして...ついに、モニターに向かって悪態をついた苦悶の5時間後、MSPが正常に戻りました...</p>\n<p>不要な詳細をいくつかスキップしました—その間に5分でDNSをCloudFlareプロキシに切り替え、停止についてのメッセージを表示するNode.jsワーカーを設定したことなど—空白ページがないように...</p>\n<p>今のところ、メールサーバーの作業は脇に置いておき、「脇に」、MSPから離れた別のサーバーに設置することを知っています。一方で、「災害復旧」プロセスをテストするのは興味深かったです—ある時点で、このサーバーを地獄で燃やし、新しいサーバーですべてを回転させ、DNSレコードを更新するだけでよいと準備していたほど絶望的でした...幸い、最終的にはそれは不要でした。</p>\n<p>PS. 人間の介入なしに1週間後、メールサーバーのおかげで本当に「自分で」壊れました...それはかなりのものです...</p>\n"
+"collections":
+  "add_puzzle_here":
+    "button": "パズルを追加"
+  "add_puzzle_form":
+    "title": "コレクションにパズルを追加"
+    "button": "パズルを追加"
+    "description": "既存のパズルを選択するか、新しいパズルをコレクションに追加してください。"
+    "submit": "コレクションに追加"
+    "success": "パズルがコレクションに正常に追加されました。"
+  "add_puzzle": "コレクションにパズルを追加"
+  "add_to_collection": "コレクションに追加"
+  "added_on": "%date%に追加"
+  "already_in_system": "パズルは既にコレクションにあります"
+  "already_in_system_message": "このパズルは既にパズルコレクションにあります。パズルを複数のコレクションに整理したいですか？メンバーシップでこの機能をアンロック！"
+  "back_to_library": "パズルライブラリ"
+  "collection_not_found": "コレクションが見つかりません"
+  "comment_help": "コレクション内のこのパズルについてオプションのコメントを追加してください。"
+  "confirm_remove": "このパズルをコレクションから削除してもよろしいですか？"
+  "copy_puzzle": "コレクションにパズルをコピー"
+  "copy_puzzle_submit": "コピー"
+  "copy_to_collection": "コレクションにコピー"
+  "create":
+    "button": "コレクションを作成"
+    "meta":
+      "title": "コレクションを作成"
+    "submit": "作成"
+    "title": "新しいコレクションを作成"
+  "delete":
+    "button": "削除"
+    "confirm":
+      "button": "コレクションを削除"
+      "message": "コレクション%name%を本当に削除しますか？この操作は元に戻せず、このコレクション内のすべてのパズルも削除されます。"
+      "title": "コレクションを削除"
+  "edit":
+    "button": "編集"
+    "meta":
+      "title": "コレクション%name%を編集"
+    "submit": "変更を保存"
+    "title": "コレクション%name%を編集"
+  "edit_comment":
+    "meta":
+      "title": "コメントを編集 - %name%"
+    "submit": "保存"
+    "title": "コメントを編集"
+  "edit_system":
+    "info": "パズルコレクションの表示設定のみ変更できます。名前と説明は変更できません。"
+    "meta":
+      "title": "パズルコレクションを編集"
+    "submit": "変更を保存"
+    "title": "パズルコレクションを編集"
+  "empty":
+    "message": "最初のコレクションを作成して、お気に入りのパズルを整理しましょう。"
+    "message_other": "%name%には公開コレクションがありません。"
+    "title": "コレクションがありません"
+    "title_other": "公開コレクションはありません"
+  "flash":
+    "comment_updated": "コメントが正常に更新されました。"
+    "created": "コレクションが正常に作成されました。"
+    "deleted": "コレクションが正常に削除されました。"
+    "login_required_add": "コレクションにパズルを追加するにはログインが必要です。"
+    "login_required_copy": "コレクションにパズルをコピーするにはログインが必要です。"
+    "login_required_move": "コレクション間でパズルを移動するにはログインが必要です。"
+    "membership_required": "コレクションの作成はプレミアム機能です。メンバーシップを取得して、無制限のコレクションでパズルを整理しましょう！"
+    "puzzle_added": "パズルがコレクションに正常に追加されました。"
+    "puzzle_removed": "パズルがコレクションから削除されました。"
+    "system_updated": "パズルコレクションの表示設定が正常に更新されました。"
+    "updated": "コレクションが正常に更新されました。"
+    "puzzle_moved": "パズルがコレクションに正常に移動されました。"
+  "form":
+    "description": "説明"
+    "name": "名前"
+    "visibility_help": "公開コレクションはすべてのユーザーに表示され、非公開コレクションはあなただけに表示されます。"
+  "items_count": "%count%個のパズル"
+  "membership_required":
+    "help_text": "パズルを複数のコレクションに整理したいですか？"
+    "message": "メンバーシップで無制限のコレクションを作成してパズルを整理しましょう！"
+    "title": "無制限のコレクションをアンロック"
+    "toast": "コレクションの作成にはアクティブなメンバーシップが必要です。"
+    "unlock_link": "メンバーシップでアンロック"
+  "meta":
+    "title": "パズルライブラリ"
+  "move_puzzle": "コレクションにパズルを移動"
+  "move_puzzle_submit": "移動"
+  "move_to_collection": "コレクションに移動"
+  "moving_from": "%collection%から移動中"
+  "no_copy_target": "利用可能なコレクションがありません"
+  "no_copy_target_message": "このパズルをコピーできる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
+  "no_move_target": "利用可能なコレクションがありません"
+  "no_move_target_message": "このパズルを移動できる他のコレクションがありません。パズルを整理するためのカスタムコレクションを作成してください。"
+  "no_puzzles": "このコレクションにパズルはありません"
+  "no_puzzles_description": "このコレクションは空です。パズルを追加して始めましょう！"
+  "private_page":
+    "title": "プライベートコレクション"
+    "message": "%name%のコレクションは非公開のため、閲覧できません。"
+  "private_collection": "非公開コレクション"
+  "private_collection_message": "%player%のコレクション「%collection%」は非公開で表示できません。"
+  "private": "プライベート"
+  "public": "公開"
+  "change_to_public_hint": "共有するには公開に変更"
+  "remove": "削除"
+  "remove_from": "%collection%から削除"
+  "remove_puzzle": "コレクションから削除"
+  "select_collection_help": "コレクションを選択するか、空のままでデフォルトのパズルコレクションに追加します"
+  "system_name": "パズルコレクション"
+  "title": "パズルライブラリ"
+  "title_other": "%name%のパズルライブラリ"
+  "visibility":
+    "private": "非公開"
+    "public": "公開"
+"unsolved_puzzles":
+  "description": "コレクションにあるがまだ完成していないパズル"
+  "description_other": "%name%が所有しているがまだ完成していないパズル"
+  "edit":
+    "meta":
+      "title": "未完成パズルの公開設定を編集"
+    "submit": "変更を保存"
+    "title": "未完成パズルの公開設定を編集"
+  "empty":
+    "message": "コレクション内のすべてのパズルが完成しました！"
+    "title": "未完成のパズルはありません"
+  "flash":
+    "updated": "未完成パズルの公開設定が正常に更新されました。"
+  "form":
+    "visibility_help": "公開リストはすべてのユーザーに表示され、非公開リストはあなただけに表示されます。"
+  "items_count": "%count%個のパズル"
+  "meta":
+    "title": "未完成のパズル"
+  "name": "未完成のパズル"
+  "private": "非公開の未完成パズル"
+  "private_message": "%player%の未完成パズルリスト「%collection%」は非公開のため閲覧できません。"
+  "title": "未完成のパズル"
+  "title_other": "%name%の未完成のパズル"
+"wish_list":
+  "add":
+    "button": "ウィッシュリストに追加"
+    "success": "パズルがウィッシュリストに追加されました。"
+    "title": "ウィッシュリストに追加"
+  "already_in_list": "このパズルは既にウィッシュリストにあります。"
+  "auto_remove_enabled": "自動削除有効"
+  "description": "入手したいパズル"
+  "description_other": "%name%が入手したいパズル"
+  "edit":
+    "meta":
+      "title": "ウィッシュリストの表示設定を編集"
+    "submit": "変更を保存"
+    "title": "ウィッシュリストの表示設定を編集"
+  "empty":
+    "message": "ウィッシュリストにパズルを追加してください！"
+    "message_other": "%name%のウィッシュリストは空です。"
+    "title": "ウィッシュリストは空です"
+    "title_other": "空のウィッシュリスト"
+  "flash":
+    "added": "パズルがウィッシュリストに追加されました。"
+    "login_required": "ウィッシュリストを管理するにはログインが必要です。"
+    "removed": "パズルがウィッシュリストから削除されました。"
+    "updated": "ウィッシュリストの表示設定が正常に更新されました。"
+  "form":
+    "remove_on_add": "自動的にウィッシュリストから削除"
+    "remove_on_add_help": "チェックすると、このパズルをコレクションに追加したり、解決タイムを追加したり、借りたりすると、ウィッシュリストから自動的に削除されます。"
+    "visibility_help": "公開ウィッシュリストはすべてのユーザーに表示され、非公開はあなただけに表示されます。"
+  "items_count": "%count%個のパズル"
+  "login_required": "ウィッシュリストにパズルを追加するにはログインが必要です。"
+  "meta":
+    "title": "ウィッシュリスト"
+  "name": "ウィッシュリスト"
+  "private": "非公開ウィッシュリスト"
+  "private_message": "%player%のウィッシュリストは非公開のため閲覧できません。"
+  "on_wishlist": "ウィッシュリストに登録済み"
+  "remove":
+    "button": "ウィッシュリストから削除"
+    "success": "パズルがウィッシュリストから削除されました。"
+  "title": "ウィッシュリスト"
+  "title_other": "%name%のウィッシュリスト"
+"sell_swap_list":
+  "add":
+    "button": "売買・交換リストに追加"
+    "success": "パズルが売買・交換リストに追加されました。"
+    "title": "売買・交換リストに追加"
+  "already_in_list": "このパズルは既に売買・交換リストにあります。"
+  "back_to_list": "売買・交換リストに戻る"
+  "condition":
+    "like_new": "新品同様"
+    "missing_pieces": "ピース欠け"
+    "normal": "普通"
+    "not_so_good": "やや難あり"
+  "description": "販売または交換用のパズル"
+  "description_other": "%name%が販売または交換しているパズル"
+  "not_in_collection": "まずコレクションに追加してください"
+  "edit_item":
+    "meta":
+      "title": "売買・交換アイテムを編集"
+    "submit": "変更を保存"
+    "title": "アイテムを編集"
+  "edit_settings":
+    "meta":
+      "title": "売買・交換リスト設定を編集"
+    "submit": "変更を保存"
+    "title": "売買・交換リスト設定を編集"
+  "empty":
+    "message": "売却または交換したいパズルを追加してください！"
+    "message_other": "%name%の売買・交換リストは空です。"
+    "title": "売買・交換リストは空です"
+    "title_other": "空の売買・交換リスト"
+  "filter":
+    "all_types": "すべてのタイプ"
+    "max_price": "最高価格"
+    "min_price": "最低価格"
+  "flash":
+    "added": "パズルが売買・交換リストに追加されました。"
+    "item_updated": "売買・交換リストのアイテムが正常に更新されました。"
+    "login_required": "売買・交換リストを管理するにはログインが必要です。"
+    "removed": "パズルが売買・交換リストから削除されました。"
+    "settings_updated": "売買・交換リスト設定が正常に更新されました。"
+    "updated": "売買・交換リスト設定が正常に更新されました。"
+    "validation_error": "エラーを修正してもう一度お試しください。"
+  "form":
+    "comment": "コメント"
+    "comment_placeholder": "このパズルに関する追加情報..."
+    "condition": "状態"
+    "condition_placeholder": "状態を選択..."
+    "listing_type": "出品タイプ"
+    "price": "価格"
+    "price_help": "価格について相談したい場合や交換専用のアイテムの場合は空欄のままにしてください。通貨は売買・交換リスト設定で設定できます。"
+    "publish_on_marketplace": "マーケットプレイスに公開"
+    "publish_on_marketplace_help": "有効にすると、このアイテムは公開マーケットプレイスにも表示されます。"
+  "history":
+    "button": "履歴"
+    "buyer": "購入者"
+    "date": "日付"
+    "empty": "まだ売却または交換したアイテムはありません。"
+    "menu": "履歴"
+    "price": "価格"
+    "puzzle": "パズル"
+    "title": "売却・交換済み履歴"
+    "type": "タイプ"
+    "unknown_buyer": "不明"
+  "items_count": "%count%個のパズル"
+  "listing_type":
+    "both": "売却または交換"
+    "sell": "売却"
+    "swap": "交換"
+    "free": "無料で差し上げます"
+  "login_required": "売買・交換リストを管理するにはログインが必要です。"
+  "mark_sold":
+    "button": "売却・交換済みにする"
+    "buyer_input": "購入者"
+    "buyer_input_help": "購入者のプレイヤーコード（例：#ABC123）または名前を入力してください。不明の場合は空欄のままにしてください。"
+    "buyer_input_placeholder": "#ABC123 または名前..."
+    "confirm": "確認"
+    "success": "パズルは売却・交換済みとしてマークされ、コレクションから削除されました。"
+    "title": "売却・交換済みにする"
+    "warning": "これによりパズルは売買・交換リストとすべてのコレクションから削除されます。"
+  "membership_required":
+    "message": "売買・交換リストはメンバー限定で利用できます。"
+    "title": "メンバー限定機能"
+  "meta":
+    "title": "売買・交換リスト"
+  "name": "売買・交換リスト"
+  "remove":
+    "button": "売買・交換リストから削除"
+    "success": "パズルが売買・交換リストから削除されました。"
+  "settings":
+    "contact_info": "連絡先情報"
+    "contact_info_help": "プラットフォーム外で連絡を希望する場合"
+    "contact_info_placeholder": "例：メール、電話、Instagram..."
+    "contact_info_warning": "連絡先情報は公開されます。快適に共有できる情報のみを記入してください。"
+    "currency": "通貨"
+    "currency_custom": "カスタム通貨"
+    "currency_custom_placeholder": "例：USD、GBP、CHF..."
+    "currency_placeholder": "通貨を選択..."
+    "custom_currency": "カスタム通貨"
+    "custom_currency_help": "リストに通貨がない場合はこちらを使用してください。"
+    "custom_currency_placeholder": "例：USD、GBP、CHF..."
+    "description": "説明"
+    "description_help": "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
+    "description_placeholder": "出品ポリシー、希望する支払い方法などについて購入者に伝えましょう。"
+    "shipping_info": "配送情報"
+    "shipping_info_help": "配送オプションと費用について説明してください..."
+    "shipping_info_placeholder": "配送オプションと費用について説明してください..."
+    "title": "売買・交換リスト設定"
+    "region":
+      "central_europe": "中央ヨーロッパ"
+      "eastern_europe": "東ヨーロッパ"
+      "north_america": "北アメリカ"
+      "northern_europe": "北ヨーロッパ"
+      "rest_of_world": "その他の地域"
+      "southern_europe": "南ヨーロッパ"
+      "western_europe": "西ヨーロッパ"
+    "shipping_cost": "送料情報"
+    "shipping_cost_placeholder": "例：50 EUR以上で送料無料、一律5 EUR"
+    "shipping_countries": "発送先の国"
+    "ships_to": "発送先"
+  "title": "売買・交換リスト"
+  "title_other": "%name%の売買・交換リスト"
+  "mark_reserved":
+    "button": "予約済みにする"
+    "confirm": "予約を確認"
+    "reserved_for_input": "予約先"
+    "reserved_for_input_help": "プレイヤーコード（例：#ABC123）または名前を入力してください。不明な場合は空欄にしてください。"
+    "reserved_for_input_placeholder": "#ABC123または名前..."
+    "title": "予約済みにする"
+  "on_marketplace": "マーケットプレイス上"
+  "remove_reservation":
+    "button": "予約を解除"
+  "reservation_removed.success": "パズルの予約が解除され、再び利用可能になりました。"
+  "reserved": "予約済み"
+  "reserved.success": "リスティングが予約済みとしてマークされました。"
+  "settings_alert":
+    "cta": "設定を完了"
+    "missing_currency": "通貨を設定"
+    "missing_shipping_countries": "発送国を追加"
+    "subtitle": "マーケットプレイスでパズルが見つけられるように、これらの手順を完了してください。"
+    "title": "もう少しです！"
+"puzzler_offers":
+  "badge": "%count%件のオファー"
+  "title": "パズラーのオファー"
+  "meta":
+    "description": "%count%人のパズラーが%brand% %puzzle%の販売または交換を提供しています"
+  "column":
+    "player": "プレイヤー"
+    "type": "タイプ"
+    "price": "価格"
+    "condition": "状態"
+    "comment": "コメント"
+  "offers_link": "オファー (%count%)"
+  "view_all": "%count%件のオファーをすべて見る"
+  "view_on_marketplace": "マーケットプレイスで見る"
+"lend_borrow":
+  "already_borrowed": "このパズルは既に借用リストにあります。"
+  "already_borrowed_short": "借用済み"
+  "already_lent": "このパズルは既に貸出中です。"
+  "already_lent_short": "貸出済み"
+  "borrow":
+    "button": "借用元"
+    "description": "このパズルを別のプレイヤーから借りたものとしてマークします。"
+    "title": "借用としてマーク"
+  "borrowed":
+    "empty":
+      "message": "借用中のパズルはありません。"
+      "message_other": "%name%は借用中のパズルがありません。"
+      "title": "借用中のパズルなし"
+      "title_other": "借用中のパズルなし"
+  "borrowed_count": "%count%個借用中"
+  "borrowed_from": "%name%から"
+  "description": "現在貸出中または借用中のパズル"
+  "not_in_collection": "コレクションにありません"
+  "edit_settings":
+    "meta":
+      "title": "貸出・借用設定を編集"
+    "submit": "変更を保存"
+    "title": "貸出・借用設定を編集"
+  "flash":
+    "borrowed": "パズルが借用としてマークされました。"
+    "cannot_borrow_from_self": "自分から自分へパズルを借りることはできません。"
+    "cannot_lend_to_self": "自分から自分へパズルを貸すことはできません。"
+    "cannot_pass_to_self": "自分自身にパズルを渡すことはできません。"
+    "lent": "パズルが正常に貸し出されました。"
+    "login_required": "貸出リストを管理するにはログインが必要です。"
+    "passed": "パズルが正常に受け渡されました。"
+    "player_not_found": "プレイヤーが見つかりません。プレイヤーコードを確認してください。"
+    "returned": "パズルが正常に所有者に返却されました。"
+    "settings_updated": "貸出・借用設定が正常に更新されました。"
+    "validation_error": "エラーを修正してもう一度お試しください。"
+  "form":
+    "borrower_code": "借用者のプレイヤーコードまたは名前"
+    "borrower_code_help": "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
+    "borrower_code_placeholder": "#ABC123 または 田中太郎"
+    "new_holder_code": "新しい保持者のプレイヤーコードまたは名前"
+    "new_holder_code_help": "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
+    "new_holder_code_placeholder": "#ABC123 または 田中太郎"
+    "notes": "メモ"
+    "notes_placeholder": "この貸出に関するオプションのメモ..."
+    "owner_code": "所有者のプレイヤーコードまたは名前"
+    "owner_code_help": "登録ユーザーの場合は#コード（例：#ABC123）を使用してください。未登録の方の場合は名前を入力してください。"
+    "owner_code_placeholder": "#ABC123 または 田中太郎"
+  "lend":
+    "button": "プレイヤーに貸す"
+    "description": "このパズルを別のプレイヤーに貸し出します。相手はさらに他の人に渡したり、あなたに返却したりできます。"
+    "title": "パズルを貸す"
+  "lent":
+    "empty":
+      "message": "まだパズルを貸し出していません。パズルメニューを使用して他のプレイヤーにパズルを貸し出してください。"
+      "message_other": "%name%はパズルを貸し出していません。"
+      "title": "貸出中のパズルなし"
+      "title_other": "貸出中のパズルなし"
+  "lent_count": "%count%個貸出中"
+  "lent_to": "%name%に貸出中"
+  "login_required": "貸出リストを管理するにはログインが必要です。"
+  "membership_required":
+    "message": "パズルの貸出はメンバー限定で利用できます。"
+    "title": "メンバー限定機能"
+  "name": "貸出・借用"
+  "pass":
+    "button": "他の人に渡す"
+    "description": "%puzzle%を別のプレイヤーに渡します。所有者は引き続き追跡できます。"
+    "title": "パズルを渡す"
+  "return":
+    "button": "所有者に返却"
+    "confirm_message": "%puzzle%を所有者に返却しますか？"
+    "title": "パズルを返却"
+  "tab":
+    "borrowed": "借用中"
+    "lent": "貸出中"
+  "title": "貸出・借用"
+  "view_holder": "現在の保持者を表示"
+  "view_owner": "所有者を表示"
+"solved_puzzles":
+  "description": "完成させたすべてのパズル"
+  "description_other": "%name%が完成させたすべてのパズル"
+  "edit":
+    "meta":
+      "title": "完成パズルの公開設定を編集"
+    "submit": "変更を保存"
+    "title": "完成パズルの公開設定を編集"
+  "empty":
+    "message": "パズルを完成させるとここに表示されます！"
+    "message_other": "%name%はまだパズルを完成させていません。"
+    "title": "完成パズルなし"
+    "title_other": "完成パズルなし"
+  "flash":
+    "updated": "完成パズルの公開設定が正常に更新されました。"
+  "form":
+    "visibility_help": "公開の完成パズルリストはすべてのユーザーに表示され、非公開はあなただけに表示されます。"
+  "items_count": "%count%個のパズル"
+  "meta":
+    "title": "完成パズル"
+  "name": "完成パズル"
+  "private": "非公開の完成パズル"
+  "private_message": "%player%の完成パズルリスト「%collection%」は非公開のため閲覧できません。"
+  "title": "完成パズル"
+  "title_other": "%name%の完成パズル"
+"status":
+  "borrowed": "借用中"
+  "collection": "コレクション内"
+  "for_sale": "販売中"
+  "lent": "貸出中"
+  "solved": "完成"
+  "unsolved": "未完成"
+  "wishlist": "ウィッシュリスト"
+"image_editor":
+  "title": "画像を編集"
+  "rotate_left": "左に回転"
+  "rotate_right": "右に回転"
+  "apply": "適用"
+"admin":
+  "puzzle_change_request":
+    "approved": "変更リクエストが承認され、パズルが更新されました。"
+    "rejected": "変更リクエストが却下されました。"
+    "rejection_reason_required": "却下理由は必須です。"
+  "puzzle_merge_request":
+    "approved": "統合リクエストが承認されました。パズルが統合されました。"
+    "rejected": "統合リクエストが却下されました。"
+    "rejection_reason_required": "却下理由は必須です。"
+    "validation_failed": "統合先パズル、名前、ピース数は必須です。"
+"pending_proposals":
+  "badge": "保留中の提案"
+  "go_to_admin": "管理画面へ"
+  "no_proposals": "このパズルに対する保留中の提案はありません。"
+  "reported_by": "報告者"
+  "title": "保留中の提案"
+  "type":
+    "change_request": "変更リクエスト"
+    "merge_request": "統合リクエスト"
+"puzzle_report":
+  "back_to_puzzle": "パズルに戻る"
+  "dropdown":
+    "suggest_change": "変更を提案"
+    "suggest_change_description": "不足/誤ったデータまたは重複？"
+  "flash":
+    "changes_submitted": "提案された変更がレビューのために送信されました。ありがとうございます！"
+    "duplicate_reported": "重複報告がレビューのために送信されました。ありがとうございます！"
+    "login_required": "変更を提案するにはログインしてください。"
+    "no_valid_duplicates": "パズルを自身の重複として報告することはできません。別のパズルを選択してください。"
+    "pending_proposal_exists": "このパズルに対する提案はすでにレビュー待ちです。"
+    "validation_error": "エラーを修正して再試行してください。"
+  "form":
+    "current_image": "現在の画像"
+    "duplicate_url": "重複パズルのURL"
+    "duplicate_url_help": "重複パズルのURLを貼り付けてください。"
+    "duplicate_url_placeholder": "https://www.myspeedpuzzling.com/puzzle/..."
+    "ean": "EAN / バーコード"
+    "ean_help": "パズルボックスのバーコード番号（通常13桁）。"
+    "ean_placeholder": "例：4005556123456"
+    "identification_number": "ブランドコード / SKU"
+    "identification_number_help": "メーカーの製品コード（例：Ravensburgerパズルの19432）。"
+    "identification_number_placeholder": "例：19432"
+    "manufacturer": "メーカー"
+    "manufacturer_placeholder": "メーカーを検索..."
+    "name": "パズル名"
+    "name_help": "パズルボックスに記載されている正しい名前を入力してください。複数の名前はカンマで区切ってください。"
+    "name_placeholder": "パズル名を入力..."
+    "or": "または"
+    "photo": "新しい写真"
+    "photo_example_ok": "OK"
+    "photo_example_perfect": "完璧"
+    "photo_example_wrong": "不可"
+    "photo_help_1": "完成したパズルではなく、パズルボックスの画像を使用してください。"
+    "photo_help_2": "良好な照明とピントを確保してください。"
+    "photo_help_3": "ボックス全体ではなく、パズルの画像のみを切り抜いてください。"
+    "photo_help_4": "マルチパックの場合、1つのパズルの画像のみを選択してください。"
+    "photo_help_title": "写真ガイドライン："
+    "photo_help_toggle": "良い写真のヒント"
+    "pieces_count": "ピース数"
+    "pieces_count_help": "正しいピース数を入力してください。"
+    "search_manufacturer": "メーカーで検索"
+    "search_manufacturer_placeholder": "メーカーを選択してパズルを閲覧..."
+    "select_duplicate_error": "重複パズルを選択するか、パズルのURLを入力してください。"
+    "select_manufacturer_first": "最初にメーカーを選択"
+    "select_puzzle": "パズルを選択"
+    "select_puzzle_placeholder": "パズルを検索..."
+    "submit_changes": "変更を送信"
+    "submit_duplicate": "重複として報告"
+  "propose_changes":
+    "description": "このパズルの情報の修正や改善を提案してください。すべての変更は管理者によってレビューされます。"
+  "report_duplicate":
+    "description": "このパズルが別のパズルの重複であることを報告してください。管理者が確認し、確認された場合はレコードを統合します。"
+    "max_puzzles_info": "一度に最大%max%件のパズルを重複として報告できます。"
+  "tab":
+    "suggestions": "提案"
+    "report_duplicate": "重複を報告"
+  "title": "パズルの変更を提案"
+"back_to": "戻る"
+"edit_my_puzzle_offer": "パズルオファーを編集"
+"messaging":
+  "accept": "承認"
+  "accept_disclaimer": "承認すると、送信者にあなたがアクティブでメッセージを読んだことが表示されます。"
+  "actions":
+    "reserved": "予約済み"
+    "sold_swapped": "売却/交換済み"
+    "to_someone_else": "他の人へ"
+    "to_this_puzzler": "このパズラーへ"
+  "back_to_messages": "メッセージ"
+  "block_confirm": "このユーザーをブロックしてもよろしいですか？"
+  "block_user": "ユーザーをブロック"
+  "blocked_on": "ブロック日"
+  "blocked_users": "ブロックしたユーザー"
+  "cancel": "キャンセル"
+  "cannot_contact_yourself": "自分自身には連絡できません。"
+  "cannot_message_user": "このユーザーにメッセージを送ることはできません。"
+  "conversation_partners": "- マーケットプレイスの会話から -"
+  "conversation_with": "%name%との会話"
+  "conversations": "会話"
+  "direct_messages_disabled": "このユーザーはダイレクトメッセージを受け付けていません。"
+  "ignore": "無視"
+  "ignored": "無視済み"
+  "ignored_notice": "この会話リクエストは無視されました。"
+  "ignored_status": "無視済み"
+  "interested_in_puzzle": "%name%があなたのパズルに興味を持っています"
+  "max_characters": "最大2000文字。"
+  "message_empty": "メッセージは空にできません。"
+  "message_label": "メッセージ"
+  "new_message": "新しいメッセージ"
+  "no_blocked_users": "ブロックしたユーザーはいません。"
+  "no_conversations": "まだ会話がありません。"
+  "no_conversations_yet": "まだ会話がありません。"
+  "no_ignored_conversations": "無視した会話はありません。"
+  "no_messages_yet": "まだメッセージがありません。会話を始めましょう！"
+  "no_pending_requests": "保留中のメッセージリクエストはありません。"
+  "no_requests": "保留中のリクエストはありません。"
+  "pending_notice": "この会話リクエストは承認待ちです。"
+  "pending_request_exists": "このユーザーとの保留中のメッセージリクエストが既にあります。"
+  "pending_request_notice": "これはメッセージリクエストです。"
+  "pending_status": "保留中"
+  "rate_pending": "評価"
+  "rate_transaction": "取引を評価"
+  "read_status": "既読"
+  "report": "報告"
+  "report_button": "報告を送信"
+  "report_confirm": "この会話を報告してもよろしいですか？"
+  "report_conversation": "会話を報告"
+  "report_reason": "理由"
+  "report_reason_placeholder": "この会話を報告する理由を説明してください..."
+  "report_submit": "報告を送信"
+  "request_accepted": "メッセージリクエストが承認されました。"
+  "request_ignored": "メッセージリクエストが無視されました。"
+  "request_sent": "メッセージリクエストが正常に送信されました。"
+  "requests": "リクエスト"
+  "send": "送信"
+  "send_failed": "メッセージの送信に失敗しました。もう一度お試しください。"
+  "send_message": "メッセージを送信"
+  "send_placeholder": "メッセージを入力..."
+  "sent_status": "送信済み"
+  "system":
+    "listing_reservation_removed": "このパズルの予約が解除され、再び利用可能になりました。"
+    "listing_reserved": "このパズルは予約されました。"
+    "listing_reserved_for_someone_else": "このパズルは他の人に予約されました。"
+    "listing_reserved_for_this_puzzler": "このパズルはこのパズラーに予約されました。"
+    "listing_reserved_for_you": "このパズルはあなたに予約されました。"
+    "listing_sold": "このパズルは他の人に売却/交換されました。"
+    "listing_sold_to_someone_else": "このパズルは他の人に売却/交換されました。"
+    "listing_sold_to_this_puzzler": "このパズルをこのパズラーに売却/交換しました。"
+    "listing_sold_to_you": "このパズルはあなたに売却/交換されました。"
+    "preview":
+      "listing_reservation_removed": "パズルが再び利用可能になりました"
+      "listing_reserved": "パズルが予約されました"
+      "listing_sold": "パズルが売却/交換されました"
+  "title": "メッセージ"
+  "type_message": "メッセージを入力..."
+  "typing": "入力中..."
+  "unblock": "ブロック解除"
+  "unblock_confirm": "このユーザーのブロックを解除してもよろしいですか？"
+  "user_blocked": "ユーザーがブロックされました。"
+  "user_unblocked": "ユーザーのブロックが解除されました。"
+  "view": "表示"
+  "waiting_for_acceptance": "%name%がメッセージリクエストを承認するのを待っています。"
+  "wants_to_message": "%name%があなたにメッセージを送りたがっています"
+  "write_message_placeholder": "メッセージを書く..."
+  "you_prefix": "あなた："
+  "your_rating": "あなたの評価"
+"rating":
+  "already_rated": "この取引は既に評価済みです。"
+  "average": "平均評価"
+  "back_to_profile": "プロフィールに戻る"
+  "bought_from": "購入先"
+  "cancel": "キャンセル"
+  "cannot_rate": "この取引を評価できません。既に評価済みか、評価期間が終了している可能性があります。"
+  "count": "%count%件の評価"
+  "count_singular": "1件の評価"
+  "expired": "評価期間が終了しました（30日間）。"
+  "invalid_stars": "1から5の星の評価を選択してください。"
+  "no_ratings": "まだ評価がありません。"
+  "not_allowed": "この取引を評価する権限がありません。"
+  "optional_note": "任意。最大500文字。"
+  "rate_transaction": "この取引を評価"
+  "rate_your_transaction": "取引を評価してください"
+  "review_label": "レビュー（任意）"
+  "review_placeholder": "体験を共有してください..."
+  "role":
+    "buyer": "購入者"
+    "seller": "販売者"
+  "sold": "売却済み"
+  "sold_to": "売却先"
+  "stars_label": "評価"
+  "submit_button": "評価を送信"
+  "swapped": "交換済み"
+  "swapped_with": "交換相手"
+  "thank_you": "評価ありがとうございます！"
+  "title": "評価"
+  "title_for_player": "%name%の評価"
+  "view_all": "すべて見る"
+"marketplace":
+  "all": "すべて"
+  "all_brands": "すべてのブランド"
+  "all_conditions": "すべてのコンディション"
+  "all_countries": "すべての国"
+  "all_types": "すべてのタイプ"
+  "condition":
+    "like_new": "新品同様"
+    "missing_pieces": "ピース欠品あり"
+    "normal": "普通"
+    "not_so_good": "あまり良くない"
+  "contact_seller": "販売者に連絡"
+  "disclaimer": "MySpeedPuzzlingは販売者ではなく、取引について一切の責任を負いません。私たちは人と人をつなぐだけです。常に注意し、前払いでお金を送らないでください。"
+  "filter":
+    "brand": "ブランド"
+    "condition": "コンディション"
+    "filters": "フィルター"
+    "pieces": "ピース"
+    "price": "価格"
+    "search_placeholder": "パズルを検索..."
+    "set_country_link": "プロフィールを編集)"
+    "ship_to_my_country": "自国への発送"
+    "ship_to_my_country_disabled": "自国への発送（国を設定してください"
+    "ships_to": "発送先"
+    "sort": "並び替え"
+    "type": "タイプ"
+  "how_it_works":
+    "back_to_marketplace": "マーケットプレイス"
+    "browse_marketplace": "マーケットプレイスを見る"
+    "community":
+      "description": "私たちは皆、パズルが大好きだからここにいます。パズルは喜びをもたらすものであり、このマーケットプレイスも同じです。親切に、忍耐強く、世界中のパズル愛好家とのつながりを楽しんでください。"
+      "title": "フレンドリーに楽しみましょう！"
+    "intro": "MySpeedPuzzlingマーケットプレイスは、パズル愛好家がパズルを売買、交換、譲渡するためにつながる場所です。始めるために必要なことすべてをご紹介します。"
+    "safety":
+      "block_info": "不適切な行為に遭遇した場合、会話をブロックできます。相手はブロックされたことを知ることはありません。"
+      "description": "MySpeedPuzzlingは取引について一切の責任を負いません。パズラーをつなぐことが目的ですが、すべての取引は当事者間で行われます。金銭取引には常に注意し、適切な取り決めなしに支払いを送らないでください。"
+      "title": "安全に利用する"
+    "step1":
+      "description": "コレクション内の任意のパズルに移動し、売却/交換リストに追加します。パズル詳細ページ、パズルライブラリ、またはコレクションから直接行えます。他のパズラーが見つけられるように「マーケットプレイスに表示」をチェックしてください。"
+      "title": "パズルを出品する"
+    "step2":
+      "description": "出品前に、発送先の国、希望通貨、オプションで送料や連絡先情報を入力してください。これにより購入者が何を期待できるかわかります。"
+      "title": "プロフィールを設定する"
+    "step3":
+      "description": "内蔵チャットを使用して、プラットフォーム上で興味のある購入者や販売者と直接コミュニケーションを取れます。プラットフォーム外でやり取りすることもできます。"
+      "title": "パズラーとチャットする"
+    "step4":
+      "description": "取引に合意したら、パズルを予約済みとしてマークします。これにより、取引が完了するまで他のパズラーにそのアイテムが予約されていることが伝わります。"
+      "title": "パズルを予約する"
+    "step5":
+      "description": "パズルが売却または交換されたら、完了としてマークします。パズルはコレクションから自動的に削除され、購入者は直接自分のコレクションに追加できます。"
+      "title": "取引を完了する"
+    "step6":
+      "description": "取引後、相手のパズラーを評価することを忘れないでください！評価はコミュニティの信頼を築き、他の人に取引体験がどうだったかを示します。"
+      "title": "評価を残す"
+    "title": "マーケットプレイスの使い方"
+  "how_it_works_button": "使い方は？"
+  "listing_type":
+    "both": "売却 / 交換"
+    "free": "無料"
+    "sell": "売却"
+    "swap": "交換"
+  "load_more": "もっと読み込む"
+  "manage_my_offers": "オファーを管理"
+  "max": "最大"
+  "meta":
+    "description": "MySpeedPuzzlingマーケットプレイスで売却、交換、無料のパズルを探しましょう。"
+  "min": "最小"
+  "my_offers": "マイオファー"
+  "no_results": "フィルターに一致するリスティングが見つかりませんでした。"
+  "pcs": "ピース"
+  "price_not_disclosed": "価格未定"
+  "reserved": "予約済み"
+  "result": "合計1件の結果"
+  "results": "合計%count%件の結果"
+  "search_placeholder": "パズル名、EAN..."
+  "shipping_cost": "送料"
+  "show_all": "すべて表示"
+  "showing_offers_for": "表示中のオファー"
+  "sort":
+    "name_asc": "名前 A-Z"
+    "name_desc": "名前 Z-A"
+    "newest": "新しい順"
+    "price_asc": "価格が安い順"
+    "price_desc": "価格が高い順"
+    "relevance": "関連性"
+  "title": "マーケットプレイス"
+"moderation":
+  "ban_lifted": "マーケットプレイスの禁止が解除されました。"
+  "listing_removed": "リスティングが削除されました。"
+  "marketplace_banned": "ユーザーがマーケットプレイスから禁止されました。"
+  "report_dismissed": "報告が却下されました。"
+  "report_resolved": "報告が解決されました。"
+  "report_submitted": "報告が正常に送信されました。チームが確認します。"
+  "user_muted": "ユーザーが%days%日間ミュートされました。"
+  "user_unmuted": "ユーザーのミュートが解除されました。"
+  "warning_issued": "警告が発行されました。"

@@ -1,0 +1,11 @@
+{# Parameters: avatar (string|null), size (int, default 48), class (string, default '') #}
+{% set size = size|default(48) %}
+{% set class = class|default('') %}
+
+{% if avatar %}
+    <img src="{{ avatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle {{ class }}" style="width: {{ size }}px; height: {{ size }}px; min-width: {{ size }}px; min-height: {{ size }}px; object-fit: cover;">
+{% else %}
+    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center {{ class }}" style="width: {{ size }}px; height: {{ size }}px;">
+        <i class="bi bi-person text-white"{% if size < 40 %} style="font-size: 0.8rem;"{% endif %}></i>
+    </div>
+{% endif %}

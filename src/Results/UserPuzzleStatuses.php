@@ -21,6 +21,8 @@ readonly final class UserPuzzleStatuses
      * @param array<string, string> $lentToNames Mapping puzzleId -> holderName (who has the puzzle)
      * @param array<string, string> $borrowedFromNames Mapping puzzleId -> ownerName (who lent the puzzle)
      * @param array<string, string> $sellSwapTypes Mapping puzzleId -> listingType (sell, swap, both)
+     * @param list<string> $sellSwapReserved List of puzzle IDs that are reserved
+     * @param array<string, string> $sellSwapReservedNames Mapping puzzleId -> reservee player name
      */
     public function __construct(
         public array $solved,
@@ -37,6 +39,8 @@ readonly final class UserPuzzleStatuses
         public array $lentToNames = [],
         public array $borrowedFromNames = [],
         public array $sellSwapTypes = [],
+        public array $sellSwapReserved = [],
+        public array $sellSwapReservedNames = [],
     ) {
     }
 

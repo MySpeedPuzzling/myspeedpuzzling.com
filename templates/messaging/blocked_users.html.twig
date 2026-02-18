@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'messaging.blocked_users'|trans }}{% endblock %}
+
+{% block content %}
+{% include '_return_back_button.html.twig' with {fallbackUrl: path('conversations_list'), fallbackTitle: 'messaging.back_to_messages'|trans} %}
+
+<h1 class="h3 mb-4"><i class="bi bi-slash-circle me-2"></i>{{ 'messaging.blocked_users'|trans }}</h1>
+
+{% if blocked_users is empty %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-person-check fs-1 d-block mb-3"></i>
+        <p>{{ 'messaging.no_blocked_users'|trans }}</p>
+    </div>
+{% else %}
+    <div class="list-group">
+        {% for user in blocked_users %}
+            <div class="list-group-item d-flex align-items-center justify-content-between py-3 gap-2">
+                <div class="d-flex align-items-center min-width-0">
+                    <div class="me-2 me-sm-3 flex-shrink-0">
+                        {{ include('messaging/_avatar.html.twig', {avatar: user.blocked_avatar, size: 48}) }}
+                    </div>
+                    <div class="min-width-0">
+                        <a href="{{ path('player_profile', {playerId: user.blocked_id}) }}" class="fw-bold text-decoration-none">
+                            {{ user.blocked_name ?? user.blocked_code }}
+                        </a>
+                        {% if user.blocked_country %}
+                            <span class="fi fi-{{ user.blocked_country }} shadow-custom ms-1" style="font-size: 0.75rem;"></span>
+                        {% endif %}
+                        <div class="text-muted small text-truncate">{{ 'messaging.blocked_on'|trans }} {{ user.blocked_at|format_datetime('medium', 'none') }}</div>
+                    </div>
+                </div>
+                <form action="{{ path('unblock_user', {playerId: user.blocked_id}) }}" method="post" class="flex-shrink-0">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('{{ 'messaging.unblock_confirm'|trans }}')">
+                        {{ 'messaging.unblock'|trans }}
+                    </button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

@@ -10,6 +10,7 @@ export default class extends Controller {
         if (select.value !== '') {
             input.value = `#${select.value}`;
             input.setAttribute('readonly', true);
+            this.selectTargets.forEach(s => { if (s !== select) s.value = ''; });
         } else {
             input.value = '';
             input.removeAttribute('readonly');

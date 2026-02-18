@@ -148,7 +148,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - After changing PHP code ALWAYS run checks to make sure everything works: `docker compose exec web composer run phpstan`, `docker compose exec web composer run cs-fix`, `docker compose exec web vendor/bin/phpunit --exclude-group panther`, `docker compose exec web php bin/console doctrine:schema:validate`, `docker compose exec web php bin/console cache:warmup`.
 - When renaming database tables (in doctrine migrations), always make sure to go through the raw SQL Queries (in directory `src/Query/`) and if the table was renamed, update the queries.
 - Never run migrations "doctrine:migrations:migrate" yourself - leave it to me or ask explicitely
-- Never write migrations yourself - always generate them using command, unless explicitely asked to create custom index or something like that
+- Never write migrations yourself - always generate them using command, unless explicitely asked to create custom index or something like that, because Doctrine no longer needs comments like `DC2Type:datetime_immutable` - we have newest version of doctrine
 - **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.
 - Always use Uuid::uuid7() to create new id.
 - When thrown exception is extending `NotFoundHttpException` or uses `WithHttpStatus` attribute, not need to catch and return response like this:

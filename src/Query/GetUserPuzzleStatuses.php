@@ -36,30 +36,30 @@ final class GetUserPuzzleStatuses implements ResetInterface
         // Fetch all statuses in one query using UNION ALL
         // Includes holder/owner names for lent/borrowed and listing type for sell/swap
         $query = <<<SQL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId OR (team IS NOT NULL AND EXISTS (SELECT 1 FROM json_array_elements(team -> 'puzzlers') AS puzzler WHERE puzzler ->> 'player_id' = :playerId))
+SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'solved' as status FROM puzzle_solving_time WHERE player_id = :playerId OR (team IS NOT NULL AND EXISTS (SELECT 1 FROM json_array_elements(team -> 'puzzlers') AS puzzler WHERE puzzler ->> 'player_id' = :playerId))
 UNION ALL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
+SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'wishlist' as status FROM wish_list_item WHERE player_id = :playerId
 UNION ALL
-SELECT ci.puzzle_id, NULL::text as lent_puzzle_id, COALESCE(c.id::text, '__system_collection__') as collection_id, c.name as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, 'collection' as status
+SELECT ci.puzzle_id, NULL::text as lent_puzzle_id, COALESCE(c.id::text, '__system_collection__') as collection_id, c.name as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'collection' as status
 FROM collection_item ci
 LEFT JOIN collection c ON c.id = ci.collection_id
 WHERE ci.player_id = :playerId
 UNION ALL
-SELECT lp.puzzle_id, lp.id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, COALESCE(owner.name, lp.owner_name, '') as owner_name, NULL::text as listing_type, 'borrowed' as status
+SELECT lp.puzzle_id, lp.id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, NULL::text as holder_name, COALESCE(owner.name, lp.owner_name, '') as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'borrowed' as status
 FROM lent_puzzle lp
 LEFT JOIN player owner ON lp.owner_player_id = owner.id
 WHERE lp.current_holder_player_id = :playerId
 AND (lp.owner_player_id IS NULL OR lp.owner_player_id != :playerId)
 UNION ALL
-SELECT lp.puzzle_id, lp.id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, COALESCE(holder.name, lp.current_holder_name, '') as holder_name, NULL::text as owner_name, NULL::text as listing_type, 'lent' as status
+SELECT lp.puzzle_id, lp.id::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, NULL::text as sell_swap_item_id, COALESCE(holder.name, lp.current_holder_name, '') as holder_name, NULL::text as owner_name, NULL::text as listing_type, NULL::boolean as reserved, 'lent' as status
 FROM lent_puzzle lp
 LEFT JOIN player holder ON lp.current_holder_player_id = holder.id
 WHERE lp.owner_player_id = :playerId
 UNION ALL
-SELECT puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, id::text as sell_swap_item_id, NULL::text as holder_name, NULL::text as owner_name, listing_type, 'sell_swap' as status FROM sell_swap_list_item WHERE player_id = :playerId
+SELECT ssli.puzzle_id, NULL::text as lent_puzzle_id, NULL::text as collection_id, NULL::text as collection_name, ssli.id::text as sell_swap_item_id, NULL::text as holder_name, COALESCE(rp.name, '#' || UPPER(rp.code), '') as owner_name, ssli.listing_type, ssli.reserved, 'sell_swap' as status FROM sell_swap_list_item ssli LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id WHERE ssli.player_id = :playerId
 SQL;
 
-        /** @var array<array{puzzle_id: string, lent_puzzle_id: string|null, collection_id: string|null, collection_name: string|null, sell_swap_item_id: string|null, holder_name: string|null, owner_name: string|null, listing_type: string|null, status: string}> $rows */
+        /** @var array<array{puzzle_id: string, lent_puzzle_id: string|null, collection_id: string|null, collection_name: string|null, sell_swap_item_id: string|null, holder_name: string|null, owner_name: string|null, listing_type: string|null, reserved: bool|null, status: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, ['playerId' => $playerId])
             ->fetchAllAssociative();
@@ -82,6 +82,10 @@ SQL;
         $borrowedFromNames = [];
         /** @var array<string, string> $sellSwapTypes */
         $sellSwapTypes = [];
+        /** @var array<string, bool> $sellSwapReserved */
+        $sellSwapReserved = [];
+        /** @var array<string, string> $sellSwapReservedNames */
+        $sellSwapReservedNames = [];
 
         foreach ($rows as $row) {
             $puzzleId = $row['puzzle_id'];
@@ -129,6 +133,12 @@ SQL;
                     if ($row['listing_type'] !== null) {
                         $sellSwapTypes[$puzzleId] = $row['listing_type'];
                     }
+                    if ($row['reserved']) {
+                        $sellSwapReserved[$puzzleId] = true;
+                        if ($row['owner_name'] !== null && $row['owner_name'] !== '') {
+                            $sellSwapReservedNames[$puzzleId] = $row['owner_name'];
+                        }
+                    }
                     break;
             }
         }
@@ -161,6 +171,8 @@ SQL;
             lentToNames: $lentToNames,
             borrowedFromNames: $borrowedFromNames,
             sellSwapTypes: $sellSwapTypes,
+            sellSwapReserved: array_keys($sellSwapReserved),
+            sellSwapReservedNames: $sellSwapReservedNames,
         );
 
         $this->cache[$playerId] = $result;

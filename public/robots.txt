@@ -22,3 +22,5 @@ Disallow: /en/add-player-to-favorites
 Disallow: /en/add-puzzle-to-collection
 Disallow: /en/membership
 Disallow: /en/feedback
+
+Clean-param: return&return_url&return_title

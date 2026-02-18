@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
+use SpeedPuzzling\Web\Exceptions\MarketplaceBanned;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzleToSellSwapList;
@@ -28,10 +29,16 @@ readonly final class AddPuzzleToSellSwapListHandler
     /**
      * @throws PlayerNotFound
      * @throws PuzzleNotFound
+     * @throws MarketplaceBanned
      */
     public function __invoke(AddPuzzleToSellSwapList $message): void
     {
         $player = $this->playerRepository->get($message->playerId);
+
+        if ($player->marketplaceBanned) {
+            throw new MarketplaceBanned();
+        }
+
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
 
         $existingItem = $this->sellSwapListItemRepository->findByPlayerAndPuzzle($player, $puzzle);
@@ -41,6 +48,7 @@ readonly final class AddPuzzleToSellSwapListHandler
             $existingItem->changePrice($message->price);
             $existingItem->changeCondition($message->condition);
             $existingItem->changeComment($message->comment);
+            $existingItem->changePublishedOnMarketplace($message->publishedOnMarketplace);
             return;
         }
 
@@ -53,6 +61,7 @@ readonly final class AddPuzzleToSellSwapListHandler
             $message->condition,
             $message->comment,
             new DateTimeImmutable(),
+            $message->publishedOnMarketplace,
         );
 
         $this->sellSwapListItemRepository->save($sellSwapListItem);

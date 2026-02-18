@@ -40,13 +40,14 @@
         {{ encore_entry_link_tags('app') }}
 
         {% set currentRoute = app.request.attributes.get('_route') %}
-        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all) %}
-        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'en'}) %}
-        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'cs'}) %}
-        {% set routeParamsEs = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'es'}) %}
-        {% set routeParamsJa = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'ja'}) %}
-        {% set routeParamsFr = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'fr'}) %}
-        {% set routeParamsDe = app.request.attributes.get('_route_params')|default({})|merge(app.request.query.all)|merge({'_locale': 'de'}) %}
+        {% set cleanQuery = app.request.query.all|filter((v, k) => k not in ['return', 'return_url', 'return_title']) %}
+        {% set routeParams = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery) %}
+        {% set routeParamsEn = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'en'}) %}
+        {% set routeParamsCs = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'cs'}) %}
+        {% set routeParamsEs = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'es'}) %}
+        {% set routeParamsJa = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'ja'}) %}
+        {% set routeParamsFr = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'fr'}) %}
+        {% set routeParamsDe = app.request.attributes.get('_route_params')|default({})|merge(cleanQuery)|merge({'_locale': 'de'}) %}
 
         {% if currentRoute %}
             <link rel="alternate" hreflang="cs-CZ" href="{{ url(currentRoute, routeParamsCs) }}">
@@ -317,6 +318,13 @@
                             <div class="navbar-tool-text ms-n3"><small>{{ 'menu.puzzle_add'|trans }}</small></div>
                         </a>
 
+                        {% if logged_user.profile is not null %}
+                            {% set unread_messages_count = get_conversations.countUnreadForPlayer(logged_user.profile.playerId) %}
+                            <div class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-3">
+                                {{ include('messaging/_unread_badge.html.twig', {count: unread_messages_count}) }}
+                            </div>
+                        {% endif %}
+
                         {% set notifications_count = notifications_count|default(null) ?: logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) :0 %}
 
                         <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
@@ -337,45 +345,61 @@
                         <hr class="d-lg-none my-2">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
                                     <i class="me-1 me-lg-0 bi bi-house-door"></i>
-                                    {{ 'menu.hub'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.hub'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.hub'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
                                     <i class="me-1 me-lg-0 bi bi-puzzle"></i>
-                                    {{ 'menu.puzzles_overview'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.puzzles_overview'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.puzzles_overview'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
+                                    <i class="me-1 me-lg-0 bi bi-shop position-relative">
+                                        <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
+                                    </i>
+                                    <small class="d-none d-lg-block">Marketplace</small>
+                                    <span class="d-lg-none">Marketplace <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
                                     <i class="me-1 me-lg-0 bi bi-trophy"></i>
-                                    {{ 'menu.ladder'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.ladder'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.ladder'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
                                     <i class="me-1 me-lg-0 bi bi-people"></i>
-                                    {{ 'menu.players'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.players'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.players'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
                                     <i class="me-1 me-lg-0 ci-calendar"></i>
-                                    {{ 'menu.events'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.events'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.events'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
                                     <i class="me-1 me-lg-0 ci-time"></i>
-                                    {{ 'menu.stopwatch'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.stopwatch'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.stopwatch'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
                                     <i class="me-1 me-lg-0 bi bi-patch-question"></i>
-                                    {{ 'menu.faq'|trans }}
+                                    <small class="d-none d-lg-block">{{ 'menu.faq'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'menu.faq'|trans }}</span>
                                 </a>
                             </li>
                         </ul>
@@ -408,7 +432,7 @@
             {% endfor %}
 
             {% block full_content %}
-                <section class="container px-3 pt-2 pt-md-3 pt-lg-4">
+                <section class="container px-3 pt-2 pt-md-3 pt-lg-4 mb-4">
                     {% block content %}{% endblock %}
                 </section>
             {% endblock %}
@@ -426,6 +450,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('puzzles') }}" class="widget-list-link">{{ 'menu.puzzles_overview'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('marketplace') }}" class="widget-list-link">Marketplace</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('ladder') }}" class="widget-list-link">{{ 'menu.ladder'|trans }}</a>
@@ -608,7 +635,7 @@
             </div>
         </div>
 
-        {% if false %}
+        {% if logged_user.profile and not logged_user.profile.modalDisplayed %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
@@ -619,7 +646,7 @@
                         <div class="modal-body">
                             <div class="fs-sm">{{ 'global_modal.text'|trans|raw }}</div>
 
-                            <a href="{{ path('competition_connection', {'slug': 'world-jigsaw-puzzle-championship-2025'}) }}" class="btn btn-sm btn-primary d-inline-block me-2 btn-shadow" type="submit">{{ 'global_modal.button_cta'|trans }}</a>
+                            <a href="{{ path('marketplace') }}" class="btn btn-sm btn-primary d-inline-block me-2 btn-shadow"><i class="bi bi-shop me-1"></i>{{ 'global_modal.button_cta'|trans }}</a>
                             <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">{{ 'global_modal.button_dismiss'|trans }}</button>
                         </div>
                     </div>
@@ -666,5 +693,12 @@
                 </div>
             </div>
         </div>
+
+        {% if logged_user.profile is not null %}
+            <div data-controller="mercure-hub"
+                 data-mercure-hub-mercure-url-value="{{ mercure_public_url }}"
+                 data-mercure-hub-topics-value="{{ mercure_subscribe_topics(logged_user.profile.playerId)|json_encode|e('html_attr') }}"
+                 style="display: none;"></div>
+        {% endif %}
     </body>
 </html>

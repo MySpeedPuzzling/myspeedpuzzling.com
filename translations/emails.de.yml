@@ -46,3 +46,16 @@ subscription_renewed:
         <p>Wenn du die Details deines Abonnements aktualisieren oder überprüfen möchtest, kannst du dies auf der <a href="%membershipUrl%">Mitgliedschaftsseite</a> tun.</p>
         <p>Wir arbeiten ständig daran, neue Funktionen für unsere Mitglieder zu verbessern und hinzuzufügen. Wenn es etwas gibt, was wir besser machen können, lass es uns wissen.</p>
         <p>Nochmals vielen Dank für deine Unterstützung. Wir wünschen dir viel schnelles Speed Puzzling und fantastische Ergebnisse!</p>
+
+unread_messages:
+    subject: "Du hast ungelesene Nachrichten auf MySpeedPuzzling"
+    title: "Du hast ungelesene Nachrichten"
+    greeting: "Hallo %playerName%,"
+    intro: "Du hast ungelesene Nachrichten:"
+    message_line: "%count% Nachricht(en) von %senderName%"
+    message_line_with_puzzle: "%count% Nachricht(en) von %senderName% (zu: %puzzleName%)"
+    view_messages: "Nachrichten anzeigen"
+    pending_requests_also: "Du hast auch %count% neue Nachrichtenanfrage(n)."
+    pending_requests_only: "Du hast %count% neue Nachrichtenanfrage(n)."
+    view_requests: "Nachrichtenanfragen anzeigen"
+    opt_out: 'Du kannst diese Benachrichtigungen in deinen <a href="%settingsUrl%">Profileinstellungen</a> deaktivieren.'

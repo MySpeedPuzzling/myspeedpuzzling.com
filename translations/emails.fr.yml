@@ -46,3 +46,16 @@ subscription_renewed:
         <p>Si vous souhaitez mettre à jour ou réviser les détails de votre abonnement, vous pouvez le faire sur la <a href="%membershipUrl%">page adhésion</a>.</p>
         <p>Nous travaillons constamment à l'amélioration et à l'ajout de nouvelles fonctionnalités pour nos membres. S'il y a quelque chose que nous pouvons faire mieux, faites-le nous savoir.</p>
         <p>Encore une fois, merci pour votre soutien. Nous vous souhaitons beaucoup de speed puzzling rapide et d'excellents résultats !</p>
+
+unread_messages:
+    subject: "Vous avez des messages non lus sur MySpeedPuzzling"
+    title: "Vous avez des messages non lus"
+    greeting: "Bonjour %playerName%,"
+    intro: "Vous avez des messages non lus qui vous attendent :"
+    message_line: "%count% message(s) de %senderName%"
+    message_line_with_puzzle: "%count% message(s) de %senderName% (a propos de : %puzzleName%)"
+    view_messages: "Voir vos messages"
+    pending_requests_also: "Vous avez egalement %count% nouvelle(s) demande(s) de message."
+    pending_requests_only: "Vous avez %count% nouvelle(s) demande(s) de message."
+    view_requests: "Voir les demandes de message"
+    opt_out: 'Vous pouvez desactiver ces notifications dans les <a href="%settingsUrl%">parametres de votre profil</a>.'

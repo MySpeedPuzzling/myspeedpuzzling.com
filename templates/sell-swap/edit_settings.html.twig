@@ -5,23 +5,16 @@
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
+    {% include '_return_back_button.html.twig' %}
+
     <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
+        <div class="col-md-10 col-lg-8">
             <div class="card shadow-lg">
                 <div class="card-header">
                     <h3 class="mb-0">{{ 'sell_swap_list.settings.title'|trans }}</h3>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-info mb-4">
-                        <i class="bi bi-info-circle me-1"></i>
-                        {{ 'sell_swap_list.settings.info'|trans }}
-                    </div>
-
                     {{ form_start(form) }}
-
-                    <div class="mb-3">
-                        {{ form_row(form.description) }}
-                    </div>
 
                     <div class="row" data-controller="conditional-field" data-conditional-field-trigger-value="custom">
                         <div class="col-md-6 mb-3">
@@ -37,8 +30,20 @@
                         </div>
                     </div>
 
+                    <div class="mb-3" data-controller="country-autocomplete">
+                        {{ form_row(form.shippingCountries) }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_row(form.description) }}
+                    </div>
+
                     <div class="mb-3">
                         {{ form_row(form.shippingInfo) }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_row(form.shippingCost) }}
                     </div>
 
                     <div class="mb-4">

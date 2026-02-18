@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\PuzzlerOffer;
 use SpeedPuzzling\Web\Results\SellSwapListItemOverview;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
@@ -31,6 +31,10 @@ SELECT
     ssli.condition,
     ssli.comment,
     ssli.added_at,
+    ssli.reserved,
+    ssli.reserved_for_player_id,
+    COALESCE(rp.name, '#' || UPPER(rp.code)) as reserved_for_player_name,
+    ssli.published_on_marketplace,
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.alternative_name as puzzle_alternative_name,
@@ -42,6 +46,7 @@ SELECT
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
 LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
+LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
 WHERE ssli.player_id = :playerId
 ORDER BY ssli.added_at DESC
 SQL;
@@ -58,6 +63,10 @@ SQL;
              *     condition: string,
              *     comment: string|null,
              *     added_at: string,
+             *     reserved: bool,
+             *     reserved_for_player_id: string|null,
+             *     reserved_for_player_name: string|null,
+             *     published_on_marketplace: bool,
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_alternative_name: string|null,
@@ -84,8 +93,93 @@ SQL;
                 condition: PuzzleCondition::from($row['condition']),
                 comment: $row['comment'],
                 addedAt: new DateTimeImmutable($row['added_at']),
+                reserved: (bool) $row['reserved'],
+                reservedForPlayerId: $row['reserved_for_player_id'],
+                reservedForPlayerName: $row['reserved_for_player_name'],
+                publishedOnMarketplace: (bool) $row['published_on_marketplace'],
             );
         }, $data);
+    }
+
+    public function byItemId(string $itemId): SellSwapListItemOverview
+    {
+        $query = <<<SQL
+SELECT
+    ssli.id as sell_swap_list_item_id,
+    ssli.listing_type,
+    ssli.price,
+    ssli.condition,
+    ssli.comment,
+    ssli.added_at,
+    ssli.reserved,
+    ssli.reserved_for_player_id,
+    COALESCE(rp.name, '#' || UPPER(rp.code)) as reserved_for_player_name,
+    ssli.published_on_marketplace,
+    p.id as puzzle_id,
+    p.name as puzzle_name,
+    p.alternative_name as puzzle_alternative_name,
+    p.identification_number as puzzle_identification_number,
+    p.ean,
+    p.pieces_count,
+    p.image,
+    m.name as manufacturer_name
+FROM sell_swap_list_item ssli
+JOIN puzzle p ON ssli.puzzle_id = p.id
+LEFT JOIN manufacturer m ON p.manufacturer_id = m.id
+LEFT JOIN player rp ON ssli.reserved_for_player_id = rp.id
+WHERE ssli.id = :itemId
+SQL;
+
+        $row = $this->database
+            ->executeQuery($query, ['itemId' => $itemId])
+            ->fetchAssociative();
+
+        if ($row === false) {
+            throw new \SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound();
+        }
+
+        /** @var array{
+         *     sell_swap_list_item_id: string,
+         *     listing_type: string,
+         *     price: string|null,
+         *     condition: string,
+         *     comment: string|null,
+         *     added_at: string,
+         *     reserved: bool,
+         *     reserved_for_player_id: string|null,
+         *     reserved_for_player_name: string|null,
+         *     published_on_marketplace: bool,
+         *     puzzle_id: string,
+         *     puzzle_name: string,
+         *     puzzle_alternative_name: string|null,
+         *     puzzle_identification_number: string|null,
+         *     ean: string|null,
+         *     pieces_count: int,
+         *     image: string|null,
+         *     manufacturer_name: string|null,
+         * } $row
+         */
+
+        return new SellSwapListItemOverview(
+            sellSwapListItemId: $row['sell_swap_list_item_id'],
+            puzzleId: $row['puzzle_id'],
+            puzzleName: $row['puzzle_name'],
+            puzzleAlternativeName: $row['puzzle_alternative_name'],
+            puzzleIdentificationNumber: $row['puzzle_identification_number'],
+            ean: $row['ean'],
+            piecesCount: $row['pieces_count'],
+            manufacturerName: $row['manufacturer_name'],
+            image: $row['image'],
+            listingType: ListingType::from($row['listing_type']),
+            price: $row['price'] !== null ? (float) $row['price'] : null,
+            condition: PuzzleCondition::from($row['condition']),
+            comment: $row['comment'],
+            addedAt: new DateTimeImmutable($row['added_at']),
+            reserved: (bool) $row['reserved'],
+            reservedForPlayerId: $row['reserved_for_player_id'],
+            reservedForPlayerName: $row['reserved_for_player_name'],
+            publishedOnMarketplace: (bool) $row['published_on_marketplace'],
+        );
     }
 
     public function countByPlayerId(string $playerId): int
@@ -119,76 +213,33 @@ SQL;
     }
 
     /**
-     * @return array<PuzzlerOffer>
+     * @param string[] $puzzleIds
+     * @return array<string, int> puzzleId => count
      */
-    public function byPuzzleId(string $puzzleId): array
+    public function countByPuzzleIds(array $puzzleIds): array
     {
+        if ($puzzleIds === []) {
+            return [];
+        }
+
         $query = <<<SQL
-SELECT
-    ssli.id as sell_swap_list_item_id,
-    ssli.listing_type,
-    ssli.price,
-    ssli.condition,
-    ssli.comment,
-    ssli.added_at,
-    pl.id as player_id,
-    pl.name as player_name,
-    pl.code as player_code,
-    pl.avatar as player_avatar,
-    pl.country as player_country,
-    pl.sell_swap_list_settings
-FROM sell_swap_list_item ssli
-JOIN player pl ON ssli.player_id = pl.id
-WHERE ssli.puzzle_id = :puzzleId
-ORDER BY ssli.added_at DESC
+SELECT puzzle_id, COUNT(*) as offer_count
+FROM sell_swap_list_item
+WHERE puzzle_id IN (:puzzleIds)
+GROUP BY puzzle_id
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['puzzleId' => $puzzleId])
+            ->executeQuery($query, ['puzzleIds' => $puzzleIds], ['puzzleIds' => ArrayParameterType::STRING])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): PuzzlerOffer {
-            /** @var array{
-             *     sell_swap_list_item_id: string,
-             *     listing_type: string,
-             *     price: string|null,
-             *     condition: string,
-             *     comment: string|null,
-             *     added_at: string,
-             *     player_id: string,
-             *     player_name: string|null,
-             *     player_code: string,
-             *     player_avatar: string|null,
-             *     player_country: string|null,
-             *     sell_swap_list_settings: string|null,
-             * } $row
-             */
+        $counts = [];
+        foreach ($data as $row) {
+            /** @var array{puzzle_id: string, offer_count: int|string} $row */
+            $counts[$row['puzzle_id']] = (int) $row['offer_count'];
+        }
 
-            $currency = null;
-            $customCurrency = null;
-            if ($row['sell_swap_list_settings'] !== null) {
-                /** @var array{currency?: string|null, custom_currency?: string|null} $settings */
-                $settings = json_decode($row['sell_swap_list_settings'], true);
-                $currency = $settings['currency'] ?? null;
-                $customCurrency = $settings['custom_currency'] ?? null;
-            }
-
-            return new PuzzlerOffer(
-                sellSwapListItemId: $row['sell_swap_list_item_id'],
-                listingType: ListingType::from($row['listing_type']),
-                price: $row['price'] !== null ? (float) $row['price'] : null,
-                condition: PuzzleCondition::from($row['condition']),
-                comment: $row['comment'],
-                addedAt: new DateTimeImmutable($row['added_at']),
-                playerId: $row['player_id'],
-                playerName: $row['player_name'],
-                playerCode: $row['player_code'],
-                playerAvatar: $row['player_avatar'],
-                playerCountry: $row['player_country'],
-                currency: $currency,
-                customCurrency: $customCurrency,
-            );
-        }, $data);
+        return $counts;
     }
 
     public function countByPuzzleId(string $puzzleId): int

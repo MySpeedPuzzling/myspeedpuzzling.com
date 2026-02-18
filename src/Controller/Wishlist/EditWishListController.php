@@ -80,7 +80,11 @@ final class EditWishListController extends AbstractController
             ? $this->generateUrl('wish_list_detail', ['playerId' => $playerId])
             : $this->generateUrl('puzzle_library', ['playerId' => $playerId]);
 
-        return $this->render('wishlist/edit.html.twig', [
+        $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
+            ? 'wishlist/_edit_modal.html.twig'
+            : 'wishlist/edit.html.twig';
+
+        return $this->render($template, [
             'form' => $form,
             'player' => $loggedPlayer,
             'cancelUrl' => $cancelUrl,

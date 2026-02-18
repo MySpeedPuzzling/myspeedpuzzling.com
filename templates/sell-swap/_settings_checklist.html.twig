@@ -1,0 +1,53 @@
+{#
+    Checklist card for missing sell/swap settings (currency, shipping countries).
+
+    Variables:
+        settings: SellSwapListSettings|null
+        editUrl: string - URL for the "Complete setup" button
+#}
+{% set hasCurrency = settings is not null and (settings.currency or settings.customCurrency) %}
+{% set hasShipping = settings is not null and settings.shippingCountries is not empty %}
+
+<div class="card mb-4 border-primary bg-primary bg-opacity-10 shadow-custom">
+    <div class="card-body py-3">
+        <div class="d-flex align-items-start gap-3">
+            <div class="flex-shrink-0 d-none d-sm-block">
+                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="bi bi-gear text-white fs-5"></i>
+                </div>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div>
+                        <h6 class="mb-0">{{ 'sell_swap_list.settings_alert.title'|trans }}</h6>
+                        <small class="text-muted">{{ 'sell_swap_list.settings_alert.subtitle'|trans }}</small>
+                    </div>
+                    <a href="{{ editUrl }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-primary flex-shrink-0">
+                        <i class="ci-edit me-1"></i>{{ 'sell_swap_list.settings_alert.cta'|trans }}
+                    </a>
+                </div>
+
+                <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-4">
+                    <div class="d-flex align-items-center gap-2">
+                        {% if hasCurrency %}
+                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            <span class="text-muted" style="font-size: 0.875rem;">{{ 'sell_swap_list.settings_alert.missing_currency'|trans }}</span>
+                        {% else %}
+                            <i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>
+                            <span class="fw-medium" style="font-size: 0.875rem;">{{ 'sell_swap_list.settings_alert.missing_currency'|trans }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if hasShipping %}
+                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            <span class="text-muted" style="font-size: 0.875rem;">{{ 'sell_swap_list.settings_alert.missing_shipping_countries'|trans }}</span>
+                        {% else %}
+                            <i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>
+                            <span class="fw-medium" style="font-size: 0.875rem;">{{ 'sell_swap_list.settings_alert.missing_shipping_countries'|trans }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

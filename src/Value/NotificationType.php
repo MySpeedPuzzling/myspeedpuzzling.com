@@ -22,4 +22,10 @@ enum NotificationType: string
     case PuzzleChangeRequestRejected = 'PuzzleChangeRequestRejected';
     case PuzzleMergeRequestApproved = 'PuzzleMergeRequestApproved';
     case PuzzleMergeRequestRejected = 'PuzzleMergeRequestRejected';
+
+    // Transaction rating notifications
+    case RateYourTransaction = 'RateYourTransaction';
+
+    // Conversation notifications
+    case NewConversationRequest = 'NewConversationRequest';
 }

@@ -1,0 +1,30 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">
+            {{ 'rating.title_for_player'|trans({'%name%': player.playerName ?? ('#' ~ player.code)}) }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        {% if summary is not null %}
+            <div class="d-flex align-items-center gap-2 mb-3">
+                {% include 'rating/_rating_stars.html.twig' with {stars: summary.averageRating} %}
+                <span class="fw-bold">{{ summary.averageRating|number_format(1) }}</span>
+                <span class="text-muted">({{ summary.ratingCount == 1 ? 'rating.count_singular'|trans : 'rating.count'|trans({'%count%': summary.ratingCount}) }})</span>
+            </div>
+        {% endif %}
+
+        {% if ratings is empty %}
+            <div class="alert alert-info mb-0">
+                {{ 'rating.no_ratings'|trans }}
+            </div>
+        {% else %}
+            <div style="max-height: 400px; overflow-y: auto;">
+                {% for rating in ratings %}
+                    {% include 'rating/_rating_card.html.twig' with {rating: rating} %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</turbo-frame>

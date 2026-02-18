@@ -100,7 +100,11 @@ final class EditCollectionController extends AbstractController
             ? $this->generateUrl('collection_detail', ['collectionId' => $collectionId])
             : $this->generateUrl('puzzle_library', ['playerId' => $player->playerId]);
 
-        return $this->render('collections/edit.html.twig', [
+        $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
+            ? 'collections/_edit_modal.html.twig'
+            : 'collections/edit.html.twig';
+
+        return $this->render($template, [
             'form' => $form,
             'collection' => $collectionOverview,
             'player' => $player,

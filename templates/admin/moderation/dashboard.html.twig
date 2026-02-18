@@ -1,0 +1,96 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Moderation Dashboard{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-4">Moderation Dashboard</h1>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'pending' ? 'active' : '' }}"
+               href="{{ path('admin_moderation_dashboard', {tab: 'pending'}) }}">
+                Pending
+                {% if counts.pending > 0 %}
+                    <span class="badge bg-warning text-dark">{{ counts.pending }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'all' ? 'active' : '' }}"
+               href="{{ path('admin_moderation_dashboard', {tab: 'all'}) }}">
+                All Reports
+                {% if counts.all > 0 %}
+                    <span class="badge bg-secondary">{{ counts.all }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if reports is empty %}
+        <div class="alert alert-info">
+            No {{ active_tab }} reports.
+        </div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="d-none d-md-table-header-group">
+                        <tr>
+                            <th>Reporter</th>
+                            <th>Reported User</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Reported</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                            <tr>
+                                <td>
+                                    <div>{{ report.reporterName }}</div>
+                                    <small class="text-muted">#{{ report.reporterCode }}</small>
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            {{ report.reportedAt|ago }}
+                                            &bull;
+                                            <span class="badge bg-{{ report.status.value == 'pending' ? 'warning text-dark' : (report.status.value == 'resolved' ? 'success' : (report.status.value == 'dismissed' ? 'secondary' : 'info')) }}">
+                                                {{ report.status.value|capitalize }}
+                                            </span>
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>{{ report.reportedPlayerName }}</div>
+                                    <small class="text-muted">#{{ report.reportedPlayerCode }}</small>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 250px;">
+                                        {{ report.reason }}
+                                    </div>
+                                    {% if report.puzzleName %}
+                                        <small class="text-muted">Puzzle: {{ report.puzzleName }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge bg-{{ report.status.value == 'pending' ? 'warning text-dark' : (report.status.value == 'resolved' ? 'success' : (report.status.value == 'dismissed' ? 'secondary' : 'info')) }}">
+                                        {{ report.status.value|capitalize }}
+                                    </span>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ report.reportedAt|ago }}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ path('admin_report_detail', {reportId: report.reportId}) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

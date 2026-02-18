@@ -32,7 +32,29 @@ body {
 
 main {
     flex-grow: 1;
-    padding-top: 101px; // 130px
+    padding-top: 101px;
+
+    @media (min-width: 992px) {
+        padding-top: 97px;
+    }
+}
+
+@media (min-width: 992px) {
+    .navbar-nav .nav-link {
+        line-height: 1.2;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+
+        > i {
+            font-size: 1.15rem;
+            height: 23px;
+            line-height: 23px;
+        }
+
+        > small {
+            font-size: 0.8rem;
+        }
+    }
 }
 
 .stopwatch {
@@ -176,7 +198,7 @@ td.rank {
 }
 
 .shadow-custom {
-    box-shadow: rgba(0, 0, 0, .25) 0 0 15px 0;
+    box-shadow: rgba(0, 0, 0, .16) 0 0 13px 0;
     //border: 1px solid #ddd;
 }
 
@@ -969,9 +991,21 @@ header {
     box-shadow: 0 0 75px -10px rgba(254, 105, 106, .5) !important;
 }
 
+.conversation-unread {
+    background-color: rgba($primary, 0.07) !important;
+    border-left: 3px solid $primary !important;
+}
+
 .collection-comment-truncated {
     display: -webkit-box;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+@include media-breakpoint-down(md) {
+    .small-tabs .nav-link {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.85rem;
+    }
 }

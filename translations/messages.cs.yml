@@ -1,1418 +1,1448 @@
-menu:
-    my_profile: "Můj profil"
-    puzzle_add: "Přidat"
-    stopwatch: "Stopky"
-    puzzles_overview: "Puzzle"
-    ladder: "Žebříček"
-    players: "Hráči"
-    faq: "Časté dotazy"
-    sign_in: "Přihlásit se"
-    hub: "Hub"
-    feedback: "Zpětná vazba"
-    support_us: "Podpořte nás"
-    terms_of_service: "Obchodní podmínky"
-    privacy_policy: "Ochrana osobních údajů"
-    membership: "Členství"
-    search: "Hledej"
-    statistics: "Statistiky"
-    favorite_puzzlers: "Oblíbení puzzleři"
-    edit_profile: "Upravit profil"
-    change_player_code: "Změnit kód hráče"
-    profile: "Profil"
-    puzzle_library: "Puzzle knihovna"
-    events: "Eventy"
-    export_data: "Export dat"
-
-accessibility:
-    toggle_navigation: "Přepnout navigaci"
-    barcode_scanner: "Skenovat čárový kód"
-    notifications_count: "Oznámení (%count%)"
-
-form:
-    visibility: "Viditelnost"
-    visibility_public: "Veřejná"
-    visibility_private: "Soukromá"
-
-footer:
-    created_with_love: "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
-    about: "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence.<br>Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívání si zábavy ze skládání puzzlí společně."
-    popular_search: "Často hledané"
-    speed_puzzling_leaderboard: "Speed Puzzling Žebříček"
-    speed_puzzling_players: "Speed Puzzling Hráči"
-    latest_puzzle_times: "Nejnovější Časy Puzzlí"
-    750_piece_puzzles: "750 Dílkové Puzzle"
-    puzzle_add: "Přidat puzzle"
-
-puzzler_name: "Jméno"
-puzzler: "Puzzler"
-puzzle: "Puzzle"
-time: "Čas"
-pieces_count: "%count%&nbsp;dílků"
-show_more: "Zobrazit více"
-show_less: "Skrýt"
-puzzle_solved: "poskládáno"
-puzzle_available: "k zapůjčení"
-puzzle_not_available: "nejsou k dispozici"
-add_solving: "Přidat skládání"
-start_solving: "Začít skládat"
-show_times: "Zobrazit časy"
-fastest_time_short: "Top: %time%"
-average_time_short: "Průměr: %time%"
-fastest_time: "Nejrychlejší:"
-average_time: "Průměrný:"
-only_first_tries_filter: "Pouze 1. pokusy"
-only_unboxed_filter: "Pouze naslepo"
-only_favorite_players_filter: "Pouze oblíbení hráči"
-filtered_out_puzzlers_count_info: "Schováno <strong>%count% puzzlerů</strong> bez infa o 1. pokusu."
-my_time: "Můj čas:"
-puzzle_solved_count: "Počet složení:"
-puzzle_solved_times: "skládáno %count%&times;"
-puzzle.relax_solvings_count: "%count%x složeno v relax módu"
-never_solved_puzzles: "Tyto puzzle ještě nikdo neskládal, buď první!"
-show_more_solving_times: "Více (%count%x)"
-be_first_to_solve: "Tyto puzzle ještě nikdo neskládal. Buď první!"
-be_first_to_group_solve: "Tyto puzzle ještě nikdo skupinově neskládal. Buďte první!"
-email: "E-mail"
-facebook: "Facebook"
-instagram: "Instagram"
-search: "Hledat"
-puzzle_waiting_for_approval: "Nově přidané puzzle čekající na schválení administrátorem - obvykle do 24 hodin od přidání. Děkujeme za trpělivost."
-puzzle_img_alt: "%puzzle% - obrázek puzzlí"
-searching: "Vyhledávám..."
-load_more: "Načíst více..."
-back_to_top: "Zpět nahoru"
-total_found: "Celkem nalezeno: %count%"
-remaining: "Zbývá: %puzzle%"
-loading: "Načítám"
-any: "Libovolný"
-all_pieces: "Vše"
-solo_solved: "Skládáno SOLO:"
-first_attempt: "1. pokus"
-unboxed: "Naslepo"
-ranking_out_of: "z"
-wjpc_participant: "Účastník (%name%)"
-share: "Sdílet"
-edit: "Upravit"
-delete: "Smazat"
-active_membership: "Aktivní členství"
-new_badge: "Nové"
-secret_puzzler_name: "Utajený Puzzler"
-right_now: "Právě teď"
-
-badge:
-    relax: "Relax"
-    suspicious: "Vyžaduje ověření"
-
-homepage:
-    meta:
-        title: "Speed Puzzling - Sdílej a porovnávej časy"
-        description: "Připoj se k největší speed puzzling komunitě! Sleduj časy skládání, soutěž s hráči z celého světa a šplhej po žebříčku. Začni dnes!"
-        keywords: "speed puzzling, speedpuzzling, časy puzzlí, puzzle komunita, soutěž ve skládání puzzlí, puzzle žebříček"
-    global_statistics: "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
-
-    title: "Vítej ve světě Speed Puzzlingu!"
-    intro_text: "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
-    why_block: |
-        <h3>Proč se zapojit?</h3>
-        <ul>
-            <li><strong>Soutěžte s ostatními:</strong> Zaznamenávejte své časy a porovnávejte je s ostatními puzzlaři</li>
-            <li><strong>Žebříčky a statistiky:</strong> Objevte žebříčky nejrychlejších puzzlařů, nejskládanějších puzzlí a nejaktivnějších uživatelů</li>
-            <li><strong>Půjčovna puzzlí:</strong> Pouze za poštovné a balné si můžete vypůjčit puzzle, poskládat je na čas a zadat svůj výsledek, abyste se mohli porovnat s ostatními</li>
-            <li><strong>Stopky:</strong> Využijte naše integrované stopky pro snadné měření času vašeho skládání</li>
-            <li><strong>Přidejte své puzzle:</strong> Máte puzzle, které na naší stránce chybí? Přidejte ho a podělte se o své časy s komunitou.</li>
-            <li><strong>Budujte svou puzzlařskou komunitu:</strong> Připojte se k naší rostoucí komunitě a sdílejte tipy, triky a přátelskou rivalitu</li>
-            <li><strong>Rozšiřujte své horizonty:</strong> Plánujeme pořádat soutěže, jak online, tak v budoucnu i offline, abyste mohli své dovednosti ukázat naživo</li>
-        </ul>
-    help_us_grow_block: |
-        <h3>Pomozte nám růst</h3>
-        <p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>
-    start_today_block: |
-        <h3>Začněte dnes</h3>
-        <p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>
-    cta_sign_in: "Přihlásit se"
-    cta_my_profile: "Můj profil"
-    cta_recent: "Nejnovější časy"
-
-ladder:
-    title: "Žebříček"
-    meta:
-        title: "Žebříček časů"
-        description: "Speed puzzling žebříček ukazující nejrychlejší časy skládání a pořadí hráčů. Zjisti kdo drží rekordy a soutěž o špičkové pozice."
-        keywords: "speed puzzling žebříček, nejrychlejší časy, puzzle rekordy, pořadí hráčů, výsledky soutěží, puzzle šampióni"
-    overview: "Přehled"
-    recent_activity: "Poslední přidané časy"
-    solo: "Solo"
-    duo: "Duo"
-    team: "Team"
-    most_solved_puzzle: "Nejskládanější puzzle"
-    most_active_puzzlers: "Nejzapálenější puzzleři"
-    puzzle_solved_count: "Složených puzzlí"
-    link_to_hub: "Hledáte nejskládanější puzzle nebo nejaktivnější hráče? Přesunuli jsme je&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">do nového Hubu</a>!"
-
-filters:
-    button: "Filtry"
-    filter_by: "Filtrovat podle"
-    pieces_placeholder: "- Dílků -"
-    manufacturer_placeholder: "- Výrobce -"
-    less_than: "Méně než %count%"
-    more_than: "Více než %count%"
-    text_search_placeholder: "Název puzzlí nebo kód..."
-    only_available: "Pouze k zapůjčení"
-    only_with_time: "Pouze se zadaným časem"
-    no_puzzle_matches_filters: "Žádné puzzle neodpovídají zadaným filtrům"
-    only_relax: "Pouze relax skládání"
-    date_range: "Období"
-    date_from: "Od"
-    date_to: "Do"
-    time_filter: "Filtr času"
-    faster_than: "Rychlejší než"
-    slower_than: "Pomalejší než"
-    minutes: "min"
-    reset: "Resetovat filtry"
-    all_manufacturers: "Všichni výrobci"
-    all_pieces: "Všechny dílky"
-
-sorting:
-    sort_by: "Řadit podle"
-    newest_times: "Nejnovější"
-    oldest_times: "Nejstarší"
-    fastest_times: "Nejrychlejší"
-    slowest_times: "Nejpomalejší"
-    most_solved: "Nejskládanější"
-    least_solved: "Nejméně skládané"
-    a_z: "Název A-Z"
-    z_a: "Název Z-A"
-    fastest_ppm: "Nejrychlejší PPM"
-    slowest_ppm: "Nejpomalejší PPM"
-
-puzzle_overview:
-    meta:
-        title: "Speed Puzzling Databáze"
-        description: "Procházej databázi speed puzzling s puzzle 500-1000+ dílků. Porovnávej časy skládání, najdi nové výzvy a sleduj svůj pokrok."
-        keywords: "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
-    title: "Puzzle"
-    missing_puzzle_info: "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
-
-stopwatch:
-    meta:
-        title: "Stopky"
-    title: "Stopky"
-    start: "Start"
-    stop: "Stop"
-    continue: "Pokračovat"
-    reset: "Vynulovat"
-    finish: "Doskládáno! Přidat čas"
-    more_my_stopwatches: "Další moje stopky"
-    status:
-        not_started: "Připravené ke startu"
-        running: "Puštěné"
-        paused: "Zastavené"
-        finished: "Složené puzzle"
-
-puzzle_add:
-    meta:
-        title: "Přidat puzzle"
-    title: "Přidat..."
-    chosen_puzzle: "Vybrané puzzle:"
-    choose_puzzle: "Vyberte puzzle"
-    puzzle_needed: "Musíte vybrat puzzle ze seznamu nebo přidat nové"
-    change_puzzle: "Změnit výběr"
-    add_when_not_found_info: "Pokud puzzle v seznamu nenajdete, prosím přidejte nové."
-    need_approve_info: "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
-    add_manufacturer: "Přidat nového výrobce"
-    not_in_list: "(není v seznamu)"
-    choose_manufacturer: "Vybrat výrobce ze seznamu"
-    time_from_stopwatch: "Čas ze stopek"
-    add_puzzler: "Přidat skupinového skládájícího"
-    group_puzzling: "Skládání ve dvojici/skupině"
-    competition_result: "Výsledek ze soutěže"
-    teamplayer: "Spoluskládající"
-    player_code_info: "Vyberte z oblíbených nebo zadejte kód hráče (začíná na #). Pokud skládající nemá účet na myspeedpuzzling.com, zadejte prosím jeho jméno."
-    mode:
-        speed_puzzling: "Speed Puzzling"
-        relax: "Relax (bez času)"
-        to_collection: "Puzzle do kolekce"
-
-forms:
-    choose_from_favorites: "- Vybrat z oblíbených -"
-    saving: "Ukládání..."
-    removing: "Odebírání..."
-    drop_file: "Přetáhněte sem soubor pro nahrání"
-    choose_file: "Nebo vyberte soubor"
-    save: "Uložit"
-    cancel: "Zrušit"
-    close: "Zavřít"
-    add_new_brand: "Přidat novou značku:"
-    max_characters: "Maximálně 500 znaků"
-    required_field: "Toto pole je povinné!"
-    empty_group_error: "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
-    too_high_ppm: "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
-    ppm_warning_title: "Prosím ověřte zadaný čas"
-    ppm_warning_too_fast: "Váš čas se zdá velmi rychlý! Zkontrolujte prosím, zda jste čas zadali správně."
-    ppm_warning_too_slow: "Jen rychlá kontrola - zadali jste čas správně? Někdy se mohou zaměnit hodiny a minuty."
-    ppm_confirm_button: "Ano, čas je správný"
-    ppm_cancel_button: "Chci zkontrolovat"
-    ppm_entered_time: "Zadali jste"
-    hours: "hodin"
-    minutes: "minut"
-    seconds: "sekund"
-    unknown_error: "Došlo k nějaké neočekávané chybě :(. Byli jsme notifikování. Prosím zkuste to později."
-    name_help: "Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity."
-    email_help: "Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor."
-    location_help: "Místo, kde aktuálně pobýváte (nepovinné)."
-    location: "Lokace"
-    nationality: "Národnost"
-    country_most_common: "Nejčastější"
-    country_all: "Všechny státy"
-    about_me: "O mně (bio)"
-    avatar: "Avatar/foto"
-    search_puzzler: "Jméno, kód hráče nebo část..."
-    time_format_placeholder: "HH:MM:SS"
-    time_required: "Zadejte čas"
-    hours_short: "hod"
-    minutes_short: "min"
-    seconds_short: "sek"
-    comment: "Doplňující info"
-    finished_puzzle_photo: "Foto poskládaných puzzlí"
-    add_new_puzzle: "Přidat nové puzzle - nejsou v seznamu"
-    puzzle: "Puzzle"
-    puzzle_help: "Vyberte existující puzzle (hledejte podle jména, kódu výrobce, počtu dílků) nebo zadejte název nových puzzlí, pokud nenajdete."
-    brand: "Výrobce"
-    brand_help: "Vyberte existujícího výrobce nebo zadejte název nového výrobce, pokud nenajdete."
-    pieces_count: "Počet dílků"
-    puzzle_box_photo: "Foto motivu nebo krabice od puzzlí"
-    date_finished: "Datum doskládání"
-    ean: "EAN kód"
-    puzzle_identification_number: "Kód od výrobce"
-    puzzle_photo_is_required: "Foto poskládaných puzzlí, motivu nebo krabice je povinné"
-    puzzle_photo_help: "Prosím přidejte fotografii poskládaných puzzlí, motivu nebo krabice, abychom mohli nové správně puzzle identifikovat a zařadit."
-    puzzle_choose_placeholder: "Vyhledat, nebo zadejte název nových puzzlí"
-    puzzle_choose_brand_placeholder: "První vyberte výrobce"
-    only_with_results: "Pouze puzzle se zadaným časem"
-    only_solved_by_me: "Pouze mnou poskládané puzzle"
-    only_available: "Pouze k zapůjčení"
-    puzzle_search_placeholder: "Název, kód, EAN..."
-    tag: "Tag"
-    competition: "Soutěž / událost"
-    competition_help: "Vyberte soutěž, pokud tento výsledek pochází ze soutěže nebo online události."
-    tags: "Tagy"
-    feedback: "Zpráva"
-    feedback_help: "Pošlete nám návrh na novou funkci nebo zlepšení, report chyby, co se vám (ne)líbí, může to být cokoliv, co vás napadne..."
-    send_feedback: "Odeslat"
-    first_attempt: "Tvé první skládání těchto puzzlí v životě"
-    first_attempt_help: "Pokud jste skládali ve skupině, pak pouze pokud tyto puzzle nikdo předtím neskládal, ani sám"
-    unboxed: "Složeno bez pohledu na krabici"
-    unboxed_help: "Zaškrtni, pokud jsi puzzle složil/a bez koukání na obrázek na krabici"
-    competition_participant: "Vaše jméno na soutěži"
-    player_code: "Kód hráče"
-    player_code_help: "Unikátní kód hráče - minimálně 3 znaky, maximálně 8 znaků. Může obsahovat pouze písmena a číslice, bez speciálních znaků nebo mezer."
-    global_search_placeholder: "Hledat puzzle nebo hráče..."
-    private_profile: "Skrytý profil"
-    private_profile_help: "Vaše jméno nebude nikde uvedeno a časy budou prezentovány jako anonymní."
-    add: "Přidat"
-    back: "Zpět"
-    clear: "Vymazat"
-    confirm: "Potvrdit"
-    continue: "Pokračovat"
-    create: "Vytvořit"
-    delete: "Smazat"
-    edit: "Upravit"
-    next: "Další"
-    no: "Ne"
-    ok: "OK"
-    previous: "Předchozí"
-    remove: "Odebrat"
-    reset: "Obnovit"
-    search: "Hledat"
-    submit: "Odeslat"
-    update: "Aktualizovat"
-    yes: "Ano"
-    add_puzzle_to_collection:
-        collection: "Kolekce"
-        collection_help: "Vyberte existující kolekci nebo zadejte název nové kolekce."
-        comment: "Komentář"
-        comment_placeholder: "Volitelný komentář k tomuto puzzle..."
-        submit: "Přidat do kolekce"
-        puzzle_collection: "Puzzle kolekce (Výchozí)"
-        choose_collection: "- Vyberte kolekci -"
-puzzlers_comparison:
-    meta:
-        title: "Porovnání puzzlerů"
-    title: "Porovnání puzzlerů"
-    nothing_to_compare: "Bohužel nemáte žádné puzzle k porovnání, které byly poskládány oběma puzzlery."
-
-compare_players:
-    comparison: "Porovnání"
-    head_to_head: "Přímé srovnání"
-    select_players: "Vyberte hráče k porovnání"
-    statistics: "Statistiky"
-    title: "Porovnání hráčů"
-
-contact:
-    email: "E-mail"
-    message: "Zpráva"
-    send: "Odeslat"
-    thank_you: "Děkujeme za vaši zprávu!"
-    title: "Kontakt"
-
-recent_activity:
-    latest_times: "Nejnovější časy"
-    no_activity: "Žádná nedávná aktivita"
-    title: "Nedávná aktivita"
-
-edit_time:
-    meta:
-        title: "Úprava údajů o skládání"
-    title: "Úprava údajů o skládání"
-    delete_button: "Nenávratně smazat tento záznam o skládání a dělat, jakože se to nikdy nestalo!"
-    delete_modal_message: "Jen pro jistotu..."
-    delete_modal_confirm: "Opravdu smazat?"
-    delete_modal_discard_button: "Ne, ponechat"
-    delete_modal_confirm_button: "Ano, smazat"
-
-error:
-    generic:
-        title: "Něco se rozbilo"
-        message: "Něco se nepovedlo... pokud jste přesvědčeni, že chyba není na vaší straně, prosím napište nám."
-    404:
-        title: "Stránka nenalezena"
-        message: "Bohužel jsme nenašli vámi požadovanou stránku. Zkontrolujte prosím URL adresu.."
-    500:
-        title: "Neznámá chyba"
-        message: "Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji"
-
-export:
-    page_title: "Export dat"
-    heading: "Export tvých dat"
-    feedback_message: "Toto je nová funkce! Budeme rádi za tvou zpětnou vazbu."
-    feedback_link: "Pošli nám zpětnou vazbu"
-    description: "Stáhni si všechny své časy skládání puzzlí ve formátu dle tvého výběru. Tvá data patří tobě."
-    format:
-        json: "Stáhnout JSON"
-        xlsx: "Stáhnout Excel"
-        csv: "Stáhnout CSV"
-        xml: "Stáhnout XML"
-    data_included: "Co je zahrnuto v exportu?"
-    data:
-        result_id: "ID výsledku"
-        puzzle_info: "Název puzzle, značka a počet dílků"
-        solving_time: "Čas skládání (sekundy a formát HH:MM:SS)"
-        dates: "Datum dokončení a datum záznamu"
-        type: "Typ skládání (sólo, duo nebo tým)"
-        team_members: "Členové týmu (při skupinovém skládání)"
-        photo_url: "URL fotky složeného puzzle"
-        comment: "Tvůj komentář"
-
-events:
-    title: "Události"
-    meta:
-        title: "Speed Puzzling Události | Soutěže"
-        description: "Připoj se k speed puzzling událostem, soutěžím a turnajům. Soutěž s nejlepšími puzzlery světa a testuj své dovednosti."
-        keywords: "speed puzzling události, puzzle soutěže, puzzle turnaje, WJPC, mistrovství v puzzlích, soutěžní skládání"
-    live: "Právě probíhající"
-    upcoming: "Nadcházející"
-    past: "Proběhlé"
-    website_link: "Info"
-    results_link: "Výsledky"
-    registration_link: "Registrace"
-    competition_puzzles: "Soutěžní puzzle"
-    no_puzzle_text: Zatím tu žádné puzzle nejsou… Zůstaňte naladěni.</strong>
-
-faq:
-    meta:
-        title: "Speed Puzzling FAQ | Sledovat"
-        description: "Speed puzzling FAQ pokrývající jak sledovat časy skládání, soutěžit s ostatními a zlepšovat své dovednosti. Začni dnes!"
-        keywords: "speed puzzling FAQ, jak rychle skládat puzzle, sledování časů, měření puzzlí, tipy na rychlé skládání, průvodce soutěží"
-    title: "Časté dotazy"
-    intro_block: |
-        <p>Zpětná vazba je pro nás velmi důležitá a moc si jí vážíme! Pokud máte cokoliv, co byste nám rádi sdělili, napište nám prosím na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (případně na <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> ohledně technickým záležitostí) nebo na <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagramu</a>.</p>
-        <p>Veškeré naše zdrojové kódy jsou open-source a veřejné na <a href="https://github.com/MySpeedPuzzling">GitHubu SpeedPuzzling</a>. Zastáváme filizofii &quot;sharing is caring&quot; a vše ohledně myspeedpuzzling.com se snažíme otevřeně sdílet.</p>
-
-    question_fair_play: Jak se dozvíte, že při zadávání času nepodvádím?
-    answer_fair_play: |
-        <p>Upřímně řečeno - pravděpodobně nedozvíme. U veřejného žebříčku, kde si puzzleři zadávají časy sami, se spoléháme na čestnost a poctivost každého jednotlivého puzzlaře. Měli byste snad radost z nepoctivého podvodně zadaného výsledku?</p>
-        <p>Předpokládáme, že stejně jako my, i ostatní puzzleři skládají především pro radost a časy z tohoto typu skládání jsou orientační pro představu, jak si stojíme v porovnání s ostatními a naostro si změříme síly během nějaké soutěže. Řekněte sami, nevypadalo by podezřele, pokud na platformě budu mít čas 20 minut ale během soutěže složím puzzle za 3 hodiny?</p>
-        <p>Do budoucna plánujeme také hodnocené ligy, kde bude vyžadováno ověření času například pomocí videozáznamu.</p>
-        <p class="text-danger mb-0"><small>Protože jsou v naší komunitě i finalisté World Jigsaw Championship, kteří se umístili na předních příčkách, můžeme jejich časy brát jako referenční. Podezřelé časy, budeme sledovat a pokud se prokáže podvod, tak bez milosti také mazat. Při opakovaném podvádění bude hráči přístup na platformu omezen.</small></p>
-
-    question_qr: Dostaly se ke mě puzzle s QR kódem a logem myspeedpuzzling.com, co s tím?
-    answer_qr: |
-        <p>Abychom vám skládání a zadávání časů co nejvíce zpříjemnili, na všechny puzzle které nám projdou pod rukou přidáváme QR kód - po naskenování se dostanete na stránku s danými puzzlemi, kde můžete pomocí tlačítek rovnou začít stopovat a nebo zadat váš čas.</p>
-        <p class="mb-0">Pokud byste nám chtěli pomoci šířit osvětu ohledně speedpuzzlingu a do svých puzzlí přidat letáček s QR kódem, prosím napište nám - pošleme vám PDF které si můžete vytisknout, případně pošleme poštou přímo vytištěné letáčky.</p>
-
-    question_add_time_for_missing_puzzle: Můžu přidat čas i k puzzlím, které na platformě nejsou?
-    answer_add_time_for_missing_puzzle: |
-        <p>Rozhodně! Pokud jste skládali puzzle, které u nás na platformě ještě nejsou, při přidávání času překlikněte na možnost:</p>
-        <div class="form-check form-switch mb-3">
-            <input type="checkbox" class="form-check-input" id="switch-add-puzzle">
-            <label class="form-check-label" for="switch-add-puzzle">Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu</label>
-        </div>
-        <p class="mb-0">Následně máte možnost vybrat ze seznamu výrobců. Pokud ani výrobce není v databázi, můžete opět zadat sami.</p>
-
-    question_edit_or_delete_time: Jak upravím nebo smažu zadaný čas?
-    answer_edit_or_delete_time: |
-        <p>V sekci <a href="%link%">Můj profil</a> u každého zadaného času najdete odkaz na editaci (odkaz má podobu ikonky tužky <span class="btn btn-sm btn-outline-dark px-2 py-1 border-0"><i class="ci-edit"></i></span>).</p>
-        <p class="mb-0">Na stránce s editací je úplně dole <a class="btn btn-sm btn-outline-danger mx-2">kouzelné tlačítko</a> jenž záznam jednou a provždy smaže z celého internetu.</p>
-
-    question_button_start_solving: Co dělá tlačítko <a class="btn btn-accent btn-sm mx-2"><i class="ci-time"></i> Začít skládat</a>?
-    answer_button_start_solving: |
-        <p class="mb-0">Otevře stopky s vybranými puzzlemi - můžete rovnou začít skládat a stopovat čas.</p>
-
-    question_button_add_my_time: Co dělá tlačítko <a class="btn btn-accent btn-sm mx-2"><i class="ci-add"></i> Přidat můj čas</a>?
-    answer_button_add_my_time: |
-        <p class="mb-0">Otevře přidání vašeho času k vybraným puzzlím - vhodné pokud používáte vlastní stopky a právě jste doskládali. Pokud jste doskládali v minulosti a chcete zaznamenat čas, máte možnost uvést i datum, kdy jste skládali.</p>
-
-    question_helping: Můžu přiložit ruku k dílu?
-    answer_helping: |
-        <p class="mb-0">Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>
-
-profile:
-    add_to_favorites: "Přidat do oblíbených"
-    remove_from_favorites: "Odebrat z oblíbených"
-    compare: "Porovnat časy"
-    no_puzzles_solved: "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
-    not_filled: "Nevyplněno"
-    avatar: "Avatar"
-    about_me: "O mně"
-    location: "Lokace"
-    nationality: "Národnost"
-    statistics: "Statistiky"
-    statistics_time: "Čas strávený skládáním"
-    statistics_puzzles_solved: "Počet složených puzzlí"
-    statistics_pieces_count: "Počet složených dílků"
-    favorite_puzzlers: "Oblíbení puzzleři"
-    no_favorite_puzzlers: "Žádní oblíbení puzzleři"
-    solved_puzzles: "Poskládané puzzle"
-    solved_puzzles_solo: "Jednotlivec"
-    solved_puzzles_group: "Skupinové skládání"
-    recent_activity: "Poslední<br>aktivita"
-    personal_info: "Osobní<br>info"
-    private_profile_info_1: "Rozhodl se nesdílet své časy. My však tvrdíme, že neexistují pomalé ani rychlé časy - jen dílky, které je třeba složit."
-    private_profile_info_2: "Chceš vědět víc? Potkej ho osobně a zkus ho přesvědčit, aby se podělil. Tady ti nic dalšího prozradit nemůžeme."
-
-my_profile:
-    meta:
-        title: "Můj profil"
-    title: "Můj profil"
-    edit: "Upravit údaje"
-    logout: "Odhlásit se"
-    myssing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
-    public_info: "veřejné"
-    not_public_info: "neveřejné"
-    name: "Jméno/přezdívka"
-    stopwatches: "Moje stopky"
-    missing_name_info: "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
-    share_mention_myspeedpuzzling: "Označ nás:"
-    wjpc_connection: "Propojení soutěžního účtu"
-
-edit_profile:
-    meta:
-        title: "Úprava profilu"
-    title: "Úprava profilu"
-    player_code_change: "Změna kódu hráče"
-    profile_visibility: "Viditelnost profilu"
-
-puzzle_detail:
-    meta:
-        description: "Prozkoumejte puzzle %brand% %puzzle% (%pieces% dílků) na My Speed Puzzling. Sledujte postup, porovnávejte časy a zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
-
-puzzlers:
-    meta:
-        title: "Speed Puzzling Hráči | Výsledky"
-        description: "Objevuj speed puzzling hráče, porovnávej výsledky a žebříčky. Sleduj oblíbené puzzlery a jejich nejnovější časy skládání."
-        keywords: "speed puzzling hráči, puzzleři, skládači puzzlí, výsledky hráčů, puzzle komunita, časy skládání"
-    title: "Puzzleři"
-    results_for: "Výsledky vyhledávání pro výraz"
-    no_matches_found: "Nebyly nalezeny žádné shody"
-    my_favorites: "Moji oblíbení"
-    most_popular: "Nejpopulárnější"
-    by_country: "Podle země"
-    most_favorite: "Nejoblíbenější puzzleři"
-    search_placeholder: "Hledat jméno hráče nebo kód..."
-    total_players: "Celkem hráčů"
-
-players_per_country:
-    meta:
-        title: "Puzzleři ze země - %country%"
-    title:  "Puzzleři ze země - %country%"
-    link: "Puzzleři dle země"
-
-flashes:
-    stopwatch_already_saved: "Tyto stopky byly již uloženy."
-    puzzle_needs_approve: "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
-    time_added: "Skládání jsme zaznamenali."
-    time_deleted: "Smazali jsme veškeré důkazy. Nikdo se nikdy nedozví, co se právě stalo!"
-    profile_saved: "Změna profilu uložena!"
-    time_edited: "Upravené údaje jsme uložili."
-    player_not_found: "Hráč, kterého jste zkoušeli hledat, u nás není!"
-    puzzle_not_found: "Puzzle, které jste zkoušeli hledat, u nás nejsou!"
-    puzzler_added_to_favorites: "Puzzlera jsme ti přidali do seznamu oblíbených."
-    puzzler_removed_from_favorites: "Puzzlera jsme ti odebrali ze seznamu oblíbených."
-    can_not_favorite_yourself: "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
-    player_already_in_favorites: "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
-    player_not_in_favorites: "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
-    competition_duplicate_connection: "Něco je špatně :-( vybrali jste soutěžní účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
-    competition_connection_saved: "Super! Soutěžní účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
-    membership_subscribed_successfully: "členství je nyní aktivní!"
-    non_unique_player_code: "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
-    unknown_error: "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
-    exclusive_membership_feature: "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
-    puzzle_removed_from_collection: "Puzzle bylo odebráno z kolekce."
-    puzzle_added_to_collection: "Puzzle bylo přidáno do kolekce."
-    tracking_added: "Záznam o puzzle jsme uložili."
-    collection_not_found: "Kolekce, kterou jste hledali, u nás není!"
-
-hub:
-    title: "Hub"
-    meta:
-        title: "Speed Puzzling Hub | Výsledky"
-        description: "Speed puzzling hub s nejnovějšími výsledky, žebříčky hráčů a statistikami puzzlí. Zjisti kdo skládá nejrychleji a sleduj pokrok komunity."
-        keywords: "speed puzzling hub, nejnovější výsledky, puzzle žebříčky, aktivní hráči, statistiky puzzlí, aktivita"
-    welcome: "Vítej puzzlere!"
-    welcome_back: "Vítej zpět"
-    recent_favorites_activity: "Aktivita<br>oblíbených"
-    this_month: "Tento<br>měsíc"
-    last_month: "Minulý<br>měsíc"
-    all_time: "Za celou<br>dobu"
-    most_active_solo_players: "Nejaktivnější SOLO hráči"
-    most_solved_puzzle: "Nejskládanější puzzle"
-    statistics: "Statistiky"
-    no_favorites: "Nemáte žádné hráče v oblíbených. Přidejte si a sledujte zde jejich aktivitu."
-    not_logged: "Nejste přihlášení - pro využití plného potenciálu toho, co vám platforma nabízí se přihlašte."
-    seo_suffix: "- Speed Puzzling Komunita"
-
-statistics:
-    puzzle_solved: "Složených puzzlí"
-    total_pieces: "Celkem dílků"
-    time_spent: "Čas strávený skládáním"
-    longest_streak: "Nejdelší série"
-    longest_streak_help: "Max po sobě jdoucích dní puzzlování"
-    most_solved_brand: "Nejskládanější značka"
-    all_brands: "Všechny značky"
-    no_results: |
-        Víme, že miluješ skládání puzzlí — jsi v podstatě zašeptávač puzzlí. Ale za vybrané časové období… nic. Nula. Prázdno. Nicota.<br>
-        Buď jsi žádné puzzle neskládal, nebo jsi ho zapomněl přidat na platformu (což je možná ještě větší záhada).<br>
-        Je čas vzít nějaké puzzle a napravit tenhle tragický dějový zvrat! Tvoje statistiky pláčou v rohu — dopřej jim trochu lásky.
-dates:
-    all_time: "Za celou dobu"
-    year: "Rok"
-    months:
-        1: "Leden"
-        2: "Únor"
-        3: "Březen"
-        4: "Duben"
-        5: "Květen"
-        6: "Červen"
-        7: "Červenec"
-        8: "Srpen"
-        9: "Září"
-        10: "Říjen"
-        11: "Listopad"
-        12: "Prosinec"
-
-feedback:
-    title: "Poslat zpětnou vazbu"
-    success_msg: "Obdrželi jsme vaši zpětnu vazbu, moc si jí vážíme! Brzy se vám ozveme."
-    message: "Zpráva"
-    send: "Odeslat"
-    thank_you: "Děkujeme za vaši zpětnou vazbu!"
-
-notifications:
-    title: "Notifikace"
-    solved_puzzle_with_time: "za"
-    solved_puzzle: "{0,1} poskládal puzzle|[2,Inf] poskládali puzzle"
-    no_notifications: "Zatím nemáte žádné notifikace. Přihlašte se k odběru hráčů přidáním do oblíbených."
-    mark_all_as_read: "Označit vše jako přečtené"
-    mark_as_read: "Označit jako přečtené"
-    new_notification: "Nová notifikace"
-    lending:
-        lent_to_you: "%owner% vám půjčil puzzle"
-        borrowed_from_you: "%borrower% si od vás vypůjčil puzzle"
-        returned_to_you: "%holder% vám vrátil puzzle"
-        taken_back: "%owner% si vzal puzzle zpět"
-        passed_to_you: "%from% vám předal puzzle"
-        passed_from_you: "Puzzle bylo předáno hráči %to%"
-        your_puzzle_passed: "Vaše puzzle bylo předáno od %from% hráči %to%"
-    puzzle_report:
-        change_approved: "Vaše navrhované změny byly schváleny"
-        change_rejected: "Vaše navrhované změny byly zamítnuty"
-        merge_approved: "Váš report duplikátu byl schválen a puzzle byla sloučena"
-        merge_rejected: "Váš report duplikátu byl zamítnut"
-
-badges:
-    title: "Odznaky"
-    my_title: "Mé odznaky"
-    badge:
-        supporter: "Podporovatel"
-
-
-scan:
-    meta:
-        title: "Čtečka čárových kódů"
-    title: "Čtečka čárových kódů"
-    beta_info: "Toto je úplně nová funkce, kterou stále ještě ladíme. Budeme velmi vděční za váš feedback."
-    instructions: "Namiřte vaší kameru na EAN (čárový kód) na krabic a zkuste své štěstí - pokud jsou puzzle v naší databázi, najdeme je ;-)."
-    not_found: "Bohužel puzzle s EAN %code% u nás nejsou. Budeme velmi vděční, pokud k nám přidáte svůj čas s těmito puzzlemi."
-    puzzle_ean_barcode: "Naskenovat EAN kód puzzle"
-    puzzle_form:
-        not_found: "Puzzle s EAN %ean% nebylo nalezeno. Zkuste hledat podle názvu nebo přidejte nové puzzle."
-        multiple_brands: "Pro EAN %ean% bylo nalezeno více značek. Vyberte jednu z nabídky."
-        multiple_puzzles: "Pro EAN %ean% bylo nalezeno více puzzlí. Vyberte jedno z nabídky."
-
-wjpc2024:
-    meta:
-        title: "WJPC 2024"
-    title: "WJPC 2024"
-    intro: "Speed Puzzling událost roku je tady! Přinášíme vám statistiky, abyste mohli prozkoumat, proti komu budete soutěžit. Všechny statistiky zde, se počítají pouze z 500-dílkových puzzlí složených za poslední 3 měsíce, aby byly co nejvíce relevantní. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Propojte si váš profil s WJPC účtem v nastavení <a href=\"%link%\">vašeho profilu</a>. Pouze pro soutěžící v kategorii jednotlivců."
-    connected_participants: "Propojení účastníci"
-    not_connected_participants: "Účastníci"
-    puzzle_solved: "Puzzlí složeno"
-    average: "Průměr"
-    fastest: "Nej"
-    no_participant_matches_filters: "Žádný účastník neodpovídá zadanému vyhledávání"
-    filter_by_name: "Vyhledávej podle jména"
-
-competition_connection:
-    meta:
-        title: "%competitionName% - propojení účtu"
-    title: "%competitionName% - propojení účtu"
-    back_to_competition: "Zpět na soutěž"
-    description: "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
-
-global_modal:
-    title: "World Jigsaw Puzzle Championship 2025"
-    text: |
-        <p>Účastníš se mistrovství světa ve skládání puzzlí 2025 ve Valladolidu?</p>
-        <p>Propoj si svůj MySpeedPuzzling účet se jménem z WJPC, omrkni svou konkurenci… a rovnou ji svými časy pořádně vystraš!</p>
-    button_cta: "Propojit můj účet"
-    button_dismiss: "Nebudu tam soutěžit!"
-
-added_time_recap:
-    title: "Skvělý čas, jen tak dál!"
-    add_time: "Přidat další čas"
-    the_same_puzzle: "Ke stejným puzzlím"
-    puzzle_detail: "Výsledky"
-
-added_tracking_recap:
-    meta:
-        title: "Puzzle zaznamenáno"
-    title: "Puzzle úspěšně zaznamenáno!"
-    add_another: "Zaznamenat další puzzle"
-    the_same_puzzle: "Zaznamenat stejné puzzle znovu"
-    puzzle_detail: "Zobrazit detail puzzle"
-    manufacturer: "Výrobce"
-    pieces: "Dílky"
-    group_puzzlers: "Skládáno s"
-
-global_search:
-    info: "Přivítejte nové vyhledávání! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
-    no_player_found: "Nenalezen žádný hráč :-("
-    no_puzzle_found: "Nenalezeny žádné puzzle :-("
-
-membership:
-    meta:
-        title: "Členství"
-        description: ""
-    title: "Členství"
-    intro_text: "Členství je způsob jak získat přístup k exkluzivním funkcím pro opravdové puzzle nadšence! Předplacením členství zároveň podpoříte vývoj platformy a tím i naši vizi tvořit tu nejlepší komunitní puzzle platformu na světě."
-    redirect_to_stripe: "Budete přesměrování na platební bránu Stripe"
-    subscription_active: "Aktivní předplatné, děkujeme že jste součástí!"
-    membership_active: "Aktivní členství, děkujeme že jste součástí!"
-    membership_inactive: "Členství není aktivní"
-    membership_cancelling: "Předplatné bylo zrušeno, členství je aktivní do konce období"
-    free_membership_active: "Aktivní členství zdarma (bez předplatného)"
-    membership_expired: "Vaše členství vypršelo"
-    next_payment: "Příští platba"
-    membership_active_until: "Platnost členství do"
-    payment_portal_button: "Upravit předplatné (platební portál)"
-    description_title: "Jaké jsou výhody členství?"
-    choose_your_subscription: "Vyber si předplatné"
-    subscribe_for_monthly: "Měsíčně za"
-    subscribe_for_yearly: "Ročně za"
-    price_per_month: "%price% Kč / měsíc"
-    price_per_year: "%price% Kč / rok"
-    billing_portal_info: "Na platebním portále můžete měnit platební své údaje, zrušit členství, stáhnout faktury nebo účtenky."
-    manage_in_app_store: "Spravovat v App Store"
-    manage_in_play_store: "Spravovat v Play Store"
-    manage_subscription_ios_info: "Spravujte své předplatné v Nastavení vašeho iPhonu/iPadu pod Apple ID > Předplatné."
-    manage_subscription_android_info: "Spravujte své předplatné v Google Play Store pod Platby a předplatná."
-    purchase_via_app_store: "Platba bude zpracována přes Apple App Store."
-    purchase_via_play_store: "Platba bude zpracována přes Google Play Store."
-    full_description: |
-        <ul>
-            <li>Velký dík za podporu vývoje platformy</li>
-            <li>Vlastní personalizovaný kód hráče (můžete změnit na svém profilu)</li>
-            <li>Odznak člena</li>
-            <li>Filtrování podle prvních pokusů</li>
-            <li>Filtrování podle země</li>
-            <li>Grafy</li>
-            <li>Čtečka čárových kódů</li>
-            <li>Detailní statistiky</li>
-        </ul>
-
-        <h3 class="h4">Na co se můžete brzy těšit?</h3>
-        <ul>
-            <li>Měsíční a roční reporty <small class="ms-1 text-muted">(brzy)</small></li>
-            <li>Veřejný mypuzzler.com profil <small class="ms-1 text-muted">(brzy)</small></li>
-            <li class="mt-2">Speciální výzvy pouze pro členy</li>
-            <li>Půjčování a prodej puzzlí mezi členy</li>
-            <li>Gamifikace - sbírání zkušeností a úrovní</li>
-            <li>Odznaky za různé úspěchy</li>
-            <li>&hellip; a mnoho dalšího, toto je pouze malá ochutnávka toho, co pro vás chystáme!</li>
-        </ul>
-    members_exclusive_button: "Exkluzivně pro členy"
-    members_exclusive_short: "Pro členy"
-    modal:
-        title: Exkluzivní funkce pro členy
-        cta: Stát se členem
-        no_thanks: Ne, děkuji!
-        text: |
-            <p>Odemkněte přístup k této a dalším funkcím, které vylepší váš zážitek.</p>
-            <p>Staňte se členem ještě dnes, podpořte vývoj platformy a užívejte si exkluzivní funkce, které udělají vaši speed puzzling cestu ještě zábavnější!</p>
-
-membership_payment_cancelled:
-    meta:
-        title: "Platba byla zrušena"
-        description: ""
-    title: "Platba byla zrušena"
-    text: "Platební proces byl přerušen, nejspíše vámi :-)."
-    membership_link: "Zpět na přehled o členství"
-    payment_link: "Opakovat platbu"
-
-terms_of_service:
-    meta:
-        title: "Obchodní podmínky"
-        description: "Obchodní podmínky platformy MySpeedPuzzling.com"
-    content: |
-        <h1>Obchodní podmínky</h1>
-        <p>Tyto obchodní podmínky upravují poskytování předplatného (členství) na platformě MySpeedPuzzling.com. Chceme, abyste měli všechny důležité informace na jednom místě a mohli si je jednoduše projít.</p>
-        <h2>1. Kdo jsme</h2>
-        <ul>
-            <li><strong>Provozovatel:</strong> Simona Mikešová (OSVČ)</li>
-            <li><strong>Sídlo:</strong> Františka Formana 237/31, 700 30 Ostrava, Česká republika</li>
-            <li><strong>IČ:</strong> 06868878</li>
-            <li><strong>Kontaktní e-mail:</strong> <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a></li>
-        </ul>
-        <p>Jako provozovatel platformy MySpeedPuzzling.com jsme vaším smluvním partnerem pro nákup a využívání placeného členství.</p>
-        <h2>2. Jak služba funguje</h2>
-        <p>MySpeedPuzzling.com je online platforma pro nadšence do skládání puzzlí. Nabízíme různé funkce, přičemž prémiové části aplikace jsou přístupné pouze uživatelům s aktivním členstvím.</p>
-        <ul>
-            <li>Členství je virtuální (digitální) produkt – po zaplacení získáte okamžitý přístup k exkluzivním funkcím.</li>
-            <li>Protože jde o elektronickou službu, nevztahují se na ni žádné fyzické dodací či přepravní podmínky.</li>
-            <li>Obsah a funkce dostupné v rámci členství se mohou v čase měnit – snažíme se je průběžně vylepšovat.</li>
-        </ul>
-        <h2>3. Objednávka a uzavření smlouvy</h2>
-        <p>Pokud se rozhodnete pro placené členství, stačí v sekci „Členství“ vybrat měsíční předplatné. Poté budete přesměrováni na platební bránu Stripe.</p>
-        <ul>
-            <li><strong>Platební údaje:</strong> Veškeré platební údaje zpracovává za šifrovaného spojení služba Stripe – my k těmto údajům nemáme přístup.</li>
-            <li><strong>Potvrzení objednávky:</strong> Ke uzavření smlouvy mezi vámi a námi dojde v okamžiku úspěšného provedení platby. Poté vám bude okamžitě aktivováno členství.</li>
-            <li><strong>Faktura:</strong> Fakturu za zaplacené předplatné si můžete stáhnout přímo v platebním portále Stripe.</li>
-            <li><strong>Další správa členství:</strong> Změny platební metody, zrušení nebo prodloužení probíhá rovněž přes platební portál Stripe. Na tento portál se dostanete přes sekci „Členství“ ve vašem účtu.</li>
-        </ul>
-        <h2>4. Ceny a platební podmínky</h2>
-        <ul>
-            <li><strong>Cena členství:</strong> Cena je vždy uvedena včetně DPH. V závislosti na měně, ve které platbu provádíte, se mohou ceny mírně lišit.</li>
-            <li><strong>Platební metody:</strong> Stripe podporuje platby kartou, Apple Pay a Link (další metody se mohou postupně přidávat).</li>
-            <li><strong>Opakovaná platba:</strong> Jde o měsíční předplatné, což znamená, že se platba opakuje každý měsíc, dokud členství nezrušíte.</li>
-        </ul>
-        <h2>5. Zrušení a vrácení peněz</h2>
-        <ul>
-            <li><strong>Kdykoliv můžete své předplatné zrušit:</strong> Po zrušení předplatného vám zůstává přístup do konce předplaceného období. Po jeho uplynutí už se vám nic nestrhává.</li>
-            <li><strong>Vracení peněz:</strong> Pokud požádáte o vrácení peněz za aktuální běžící období, vrátíme vám platbu stejným způsobem, jakým jste ji uhradili, a vaše členství se ihned ukončí.</li>
-            <li><strong>Rychlost vyřízení:</strong> Vrácení a reklamace zpracováváme obratem (obvykle do druhého pracovního dne), nejpozději do 30 dnů, jak stanovuje zákon.</li>
-            <li><strong>Náklady na vrácení:</strong> Jakékoliv poplatky za vrácení neseme my – chceme, abyste byli spokojení.</li>
-        </ul>
-        <h2>6. Reklamace</h2>
-        <p>V případě, že máte pocit, že vám služba nebyla poskytnuta v odpovídající kvalitě nebo máte technické potíže, ozvěte se nám na e-mail
-            <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.
-        </p>
-        <ul>
-            <li>Reklamace vyřizujeme co nejdříve, typicky do 1–2 pracovních dnů.</li>
-            <li>Maximální lhůta k vyřízení reklamace je 30 dní.</li>
-        </ul>
-
-        <h2>7. Ochrana osobních údajů</h2>
-        <p>O zpracování osobních údajů informujeme na <a href="%privacyPolicyLink%">samostatné stránce</a>, která se věnuje ochraně soukromí. Tam najdete všechny podrobnosti o tom, jaké údaje shromažďujeme, proč je zpracováváme a jak s nimi nakládáme.</p>
-
-        <h2>8. Závěrečná ustanovení</h2>
-        <ul>
-            <li>Tyto podmínky se řídí českým právem a případné spory se řeší u příslušných soudů České republiky.</li>
-            <li>Věříme, že žádné spory nebudou, ale pokud by přece jen nastaly, můžete se obrátit na Českou obchodní inspekci (ČOI) nebo využít evropskou platformu pro mimosoudní řešení sporů (ODR).</li>
-            <li>Aktuální znění podmínek je vždy dostupné na MySpeedPuzzling.com. Vyhrazujeme si právo je v přiměřeném rozsahu měnit, abychom je udrželi v souladu s legislativou nebo provozními potřebami.</li>
-        </ul>
-        <p><em><small>Poslední aktualizace: leden 2025</small></em></p>
-
-privacy_policy:
-    meta:
-        title: "Zásady ochrany osobních údajů"
-        description: "Zásady ochrany osobních údajů platformy MySpeedPuzzling.com"
-    content: |
-        <h1>Zásady ochrany osobních údajů</h1>
-        <p>Cílem tohoto dokumentu je informovat vás o tom, jakým způsobem na MySpeedPuzzling.com nakládáme s vašimi osobními údaji, které nám svěříte. Velmi si vážíme vaší důvěry a soukromí.</p>
-        <h2>1. Veřejné jméno</h2>
-        <p>Při registraci na MySpeedPuzzling.com si můžete zvolit své <strong>veřejné jméno</strong> – může to být přezdívka, zkratka nebo iniciály. Toto jméno se zobrazí všem návštěvníkům webové stránky. Proto buďte prosím opatrní při výběru jména, pokud si přejete zůstat více v anonymitě.</p>
-        <h2>2. E-mail</h2>
-        <ul>
-            <li>E-mail zadáváte pro účely přihlašování a komunikace s administrátory platformy.</li>
-            <li><strong>E-mail je neveřejný</strong> – nezobrazuje se nikde v profilu a není přístupný třetím stranám.</li>
-            <li>E-mail je uložen v šifrované databázi a přístup k němu mají pouze autoři aplikace.</li>
-            <li>Žádným dalším subjektům váš e-mail neposkytujeme.</li>
-        </ul>
-        <h2>3. Heslo</h2>
-        <ul>
-            <li>Heslo je v naší databázi uloženo pouze ve formě <strong>hashe</strong> – jedná se o nevratné zašifrování, takže nikdo z administrátorů ani z vývojářů nemůže zjistit jeho původní znění.</li>
-            <li>Při přihlašování se váš zadaný údaj pouze porovnává s hashem uloženým v databázi.</li>
-            <li>Z bezpečnostních důvodů proto nikdy nezasíláme původní heslo e-mailem; v případě potřeby si jej můžete obnovit pomocí procesu „Zapomenuté heslo“.</li>
-        </ul>
-        <h2>4. Volitelné veřejné údaje</h2>
-        <p>Uživatel má možnost vyplnit na svém profilu další <strong>veřejné informace</strong> (např. město, stát, odkazy na sociální sítě, popisek, avatar), které slouží k lepší interakci v komunitě.</p>
-        <ul>
-            <li>Tyto údaje se zobrazují všem návštěvníkům a <strong>nejsou považovány za citlivé</strong> osobní údaje.</li>
-            <li>Při vyplňování jste upozorněni, že se jedná o veřejné informace.</li>
-            <li>Přesto jsou i tyto údaje ukládány v naší šifrované databázi.</li>
-        </ul>
-        <h2>5. Platební údaje</h2>
-        <ul>
-            <li>Platforma MySpeedPuzzling.com <strong>neshromažďuje žádné údaje o platebních metodách</strong> – všechny platby jsou zpracovávány výhradně přes partnerskou společnost Stripe.</li>
-            <li>Nikdy nemáme přístup k vašim platebním kartám, bankovním údajům ani jiným finančním údajům.</li>
-        </ul>
-        <h2>6. Zabezpečení a soukromí</h2>
-        <ul>
-            <li>Bezpečí našich uživatelů je pro nás prioritou – servery a databáze jsou chráněny proti neoprávněným přístupům, únikům dat a jiným kybernetickým hrozbám.</li>
-            <li>Vaše osobní údaje (např. e-mail či volitelné profilové údaje) jsou vždy šifrovány a mají k nim přístup pouze autoři aplikace.</li>
-            <li>Zachováváme všechny běžné bezpečnostní standardy a na zabezpečení neustále pracujeme.</li>
-        </ul>
-        <p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a>.</p>
-        <p><em><small>Poslední aktualizace: leden 2025</small></em></p>
-
-countdown:
-    days: dny
-    hours: hod
-    minutes: min
-    seconds: sek
-
-blog:
-    outage-2025-02-17:
-        title: Největší výpadek v historii MySpeedPuzzling
-        content: |
-            <h2 class="h5">Dne 17.2. jsme měli nejdelší výpadek v historii MySpeedPuzzling ...</h2>
-            <h4 class="h6">Nejdříve ze všeho vám chci všem moc poděkovat za vaší trpělivost a důvěru! Věřte, že těch 7 hodin kdy jsme věděli, že MSP nefunguje, pro nás bylo velmi stresujících!</h4>
-            <p>Dnes jsme měli téměř 10 hodin výpadek celé platformy. Jedná se o nejdelší výpadek v historii MySpeedPuzzlingu. Nebyla to naše chyba... nebo jo?</p>
-            <p>Protože se snažíme být 100% transparentní, popíšeme vše jak se stalo, krok za krokem.</p>
-            <p>Šel jsem spát zhruba v 1:30 (bohužel chvilku předtím, než se to celé stalo), kdy jsem dokončil další z novinek na MySpeedPuzzling. Kolem 5 ráno, kdy se jedno z dětí vzbudilo na toaletu, Simona automaticky zkontrolovala na elefonu notifikace, často se dívá kdo přidal nové časy a jak rychle stihl puzzle složit. Ano i v 5 ráno... Čekalo ji však nemilé překvapení - stránka, která se nenačítá. Simona do mě strčila se slovy: MySpeedPuzzling nefunguje! Taková slova mě velmi rychle probrala. Beru do ruky telefon, zkouším a opravdu, nefunguje! Jdu pro notebook, zkontrolovat blíže co se děje. V 1:59 v noci nám přišla automatická notifikace z monitoringu, to většinou nevěstí nic nového. Bohužel jsem si jí nevšiml, protože jsem šel spát chvíli předtím. Navíc úprava, kterou jsem prováděl nebyla vůbec destruktivního rázu a nemohla způsobit takovýto výpadek. Takto tedy začal náš pondělní výpadek, který trval téměř až do 12:00.</p>
-            <h5>Technické detaily pro geeky:</h5>
-            <p><em>(pomůže vám to nahlédnout do naší serverové infrastruktury)</em></p>
-            <p>Před týdnem, jsem instaloval na náš MySpeedPuzzling fyzický server i mail server - jako přípravu na migraci z Auth0 na vlastní autentizační službu + newsletter a další věci - posílat desetitisíce e-mailů měsíčně už není en tak a je potřeba se na to řádně připravit. Jak se nakonec ukázalo, může za to právě onen Mail server, ale nepředbíhejme.</p>
-            <p>První zjištění bylo, že timeoutují porty 443 a 80 - na celém serveru běží více aplikací a týkalo se to všech aplikací, nejen MSP - to je nemilé. Další, o dost nepříjemnější zjištění bylo, že se na server nedostanu pomocí SH - port také timeoutoval.</p>
-            <p>Co teď? Začíná panika a říkám Simoně, že tohle je průšvih.</p>
-            <p>Okamžitě notifikuji poskytovatele serveru s tím, že tento server nefunguje - vše v tuto chvíli vypadalo na jasný problém u poskytovatele, protože server se vůbec nehlásil, zatímco ostatní servery ve stejné serverovně byly tále dostupné - mé podezření padlo na hardwarovou chybu, třeba síťová karta, vykopnutý kabel (i to už se mí už v minulosti stalo...), nebo zabanování ze strany poskytovatele z důvodů podezřelé aktivity.</p>
-            <p>Poskytovatel reagoval do pár minut, že u nich nic neevidují, byli se podívat v serverovně, server běží a hlásí se - z jeho pohledu vše v pořádku. Skvělé, vše je v pořádku, ale MSP server je nedostupný a nedá se na něj řihlásit...</p>
-            <p>Rychle jsem nahodil rescue systém vedle serveru, ze kterého jsem se úspěšně namountoval filesystém MSP serveru a začalo hledání v kupce sena. Věděl jsem, že k výpadku došlo cca v 1:58-1:59. Začal jsem hledat změněné oubory v tom čase, jestli nás třeba někdo náhodou nehacknul. Nic jsem nenašel. Celé to vůbec nedávalo smysl a nedařilo se mi nic najít. Kolem 8:00 se ke mě přidal kolega z práce, aby mi pomohl. Společně jsme zjistili, že SMTP na portu 25 (ten slouží k odesílání e-mailů) běží a netimeoutuje - dokonce jsem si byl schopen poslat e-mail a ten opravdu byl doručen.</p>
-            <p>O to více jsme byli oba zmatení - server tedy běží a funguje, "pouze" se na něj nedá přihlásit a jsou zablokované také porty 80 a 443. Teď už jsme si byli téměř jistí, že za to může problém v nastavení sítě - stále vše ale ypadalo "normálně", ale měli jsme hlavního podezřelého - Mail server!</p>
-            <p>A taky že ano. Vše na serveru nám běží v Docker containerech, kdo Docker zná, ten možná ví, že jeho síťování může být složité. Mail server, který jsem zvolil, používá jako jednu z komponent také fail2ban, která má za cíl akázat přístupy z podezřelých IP adres - například příliš mnoho neúspěšných pokusů o přihlášení nebo jiné hrozby. Přeskočím další asi 2 hodiny jak jsem k tomu přišel - komponenta fail2ban nebyla správně nakonfigurována (byla ponechána ve výchozím nastavení) a v kombinaci s UFW nějakým záhadným způsobem zablokovala veškerý traffic na zmíněných portech 22, 80 a 443 - i když stále pořádně nechápeme proč se to stalo takhle.</p>
-            <p>Protože teď už jsem znal příčinu, finální řešení nezabralo tolik času - rychle odinstalovat mail server včetně UFW, flushnout iptables, přidat znovu pravidla pro síťování dockeru, všechno párkrát "otočit", odpojit rescue ystém, vše znovu vyrestartovat a... konečně po nekonečných 5 hodinách nadávání za monitorem, MSP opět funguje tak jak má...</p>
-            <p>Přeskočil jsem některé zbytečné detaily, například, že mezitím jsem v během 5 minut změnil DNS na CloudFlare proxy, kam jsem nahodil Node.js worker se zprávou, že máme výpadek - alespoň aby tam nezůstala prázdná stránka...</p>
-            <p>Práci na Mail serveru zatím odkládám a navíc už vím, že bude "bokem", na samostatném serveru mimo MSP. Na jednu stranu bylo zábavné, vyzkoušet si "disaster recovery" proces - kdy v jedné chvíli jsem byl natolik zoufalý, že sem byl připraven na to, že tento server shoří v pekle, rozjedu to během chvilky na novém a jen změním DNS záznamy... naštěstí to nakonec nebylo potřeba.</p>
-            <p>PS. ono se to opravdu rozbilo "samo" vlivem mail serveru, po týdnu, bez lidského zásahu... to je teda něco...</p>
-            <p>PS2. jste stateční, pokud jste to dočetli až sem :-).</p>
-
-navigation:
-    home: "Domů"
-
-collections:
-    meta:
-        title: "Puzzle knihovna"
-    title: "Puzzle knihovna"
-    title_other: "Puzzle knihovna uživatele %name%"
-    create:
-        button: "Vytvořit kolekci"
-        title: "Vytvořit novou kolekci"
-        meta:
-            title: "Vytvořit kolekci"
-        submit: "Vytvořit"
-    edit:
-        button: "Upravit"
-        title: "Upravit kolekci %name%"
-        meta:
-            title: "Upravit kolekci %name%"
-        submit: "Uložit změny"
-    delete:
-        button: "Smazat"
-        confirm:
-            title: "Smazat kolekci"
-            message: "Opravdu chcete smazat kolekci %name%? Tato akce je nevratná a smaže se také všechny puzzle v této kolekci."
-            button: "Smazat kolekci"
-    form:
-        name: "Název"
-        description: "Popis"
-        visibility_help: "Veřejné kolekce jsou viditelné pro všechny uživatele, soukromé pouze pro vás."
-    flash:
-        created: "Kolekce byla úspěšně vytvořena."
-        updated: "Kolekce byla úspěšně upravena."
-        deleted: "Kolekce byla úspěšně smazána."
-        system_updated: "Viditelnost puzzle kolekce byla úspěšně upravena."
-        comment_updated: "Komentář byl úspěšně upraven."
-        membership_required: "Vytváření kolekcí je prémiová funkce. Získejte členství a organizujte své puzzle do neomezeného množství kolekcí!"
-        puzzle_added: "Puzzle bylo úspěšně přidáno do kolekce."
-        puzzle_removed: "Puzzle bylo odebráno z kolekce."
-        login_required_add: "Pro přidávání puzzlí do kolekcí musíte být přihlášeni."
-        login_required_copy: "Pro kopírování puzzlí do kolekcí musíte být přihlášeni."
-        login_required_move: "Pro přesouvání puzzlí mezi kolekcemi musíte být přihlášeni."
-        puzzle_moved: "Puzzle bylo úspěšně přesunuto do kolekce."
-    membership_required:
-        title: "Odemkněte neomezené kolekce"
-        message: "Vytvářejte neomezené množství kolekcí pro organizaci vašich puzzle s členstvím!"
-        toast: "Vytváření kolekcí vyžaduje aktivní členství."
-        help_text: "Chcete organizovat puzzle do více kolekcí?"
-        unlock_link: "Odemknout s členstvím"
-    empty:
-        title: "Nemáte žádné kolekce"
-        message: "Vytvořte svoji první kolekci a začněte organizovat vaše oblíbené puzzle."
-        title_other: "Žádné veřejné kolekce"
-        message_other: "%name% nemá žádné veřejné kolekce."
-    visibility:
-        public: "Veřejná"
-        private: "Soukromá"
-    public: "Veřejná"
-    change_to_public_hint: "Změňte na veřejnou pro sdílení"
-    system_name: "Puzzle kolekce"
-    already_in_system: "Puzzle je již ve vaší kolekci"
-    already_in_system_message: "Toto puzzle již máte v Puzzle kolekci. Chcete organizovat puzzle do více kolekcí? Odemkněte tuto funkci s členstvím!"
-    add_to_collection: "Přidat do kolekce"
-    add_puzzle_here:
-        button: "Přidat puzzle"
-    remove_from: "Odebrat z %collection%"
-    remove: "Odebrat"
-    confirm_remove: "Opravdu chcete odebrat toto puzzle z kolekce?"
-    items_count: "%count% puzzlí"
-    no_puzzles: "V této kolekci nejsou žádná puzzle"
-    no_puzzles_description: "Tato kolekce je prázdná. Přidejte nějaká puzzle pro začátek!"
-    added_on: "Přidáno %date%"
-    back_to_library: "Zpět do knihovny puzzlí"
-    select_collection_help: "Vyberte kolekci nebo nechte prázdné pro přidání do výchozí Puzzle kolekce"
-    private_collection: "Soukromá kolekce"
-    private_collection_message: "Kolekce \"%collection%\" hráče %player% je soukromá a nelze ji zobrazit."
-    collection_not_found: "Kolekce nenalezena"
-    edit_system:
-        title: "Upravit puzzle kolekci"
-        meta:
-            title: "Upravit puzzle kolekci"
-        submit: "Uložit změny"
-        info: "Můžete změnit pouze viditelnost vaší Puzzle kolekce. Název a popis nelze upravit."
-    edit_comment:
-        title: "Upravit komentář"
-        meta:
-            title: "Upravit komentář - %name%"
-        submit: "Uložit"
-    remove_puzzle: "Odebrat z kolekce"
-    move_puzzle: "Přesunout puzzle do kolekce"
-    copy_puzzle: "Zkopírovat puzzle do kolekce"
-    move_to_collection: "Přesunout do kolekce"
-    copy_to_collection: "Zkopírovat do kolekce"
-    moving_from: "Přesouváno z %collection%"
-    move_puzzle_submit: "Přesunout"
-    copy_puzzle_submit: "Zkopírovat"
-    no_move_target: "Žádné dostupné kolekce"
-    no_move_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle přesunout. Vytvořte si vlastní kolekce pro organizaci puzzlí."
-    no_copy_target: "Žádné dostupné kolekce"
-    no_copy_target_message: "Nejsou žádné další kolekce, kam by šlo puzzle zkopírovat. Vytvořte si vlastní kolekce pro organizaci puzzlí."
-    comment_help: "Přidejte volitelný komentář k tomuto puzzle ve vaší kolekci."
-    private: "Soukromá"
-    add_puzzle: "Přidat puzzle do kolekce"
-    private_page:
-        title: "Soukromá kolekce"
-        message: "Kolekce hráče %name% je soukromá a nelze ji zobrazit."
-    add_puzzle_form:
-        title: "Přidat puzzle do kolekce"
-        button: "Přidat puzzle"
-        description: "Vyberte existující puzzle nebo přidejte nové do své kolekce."
-        submit: "Přidat do kolekce"
-        success: "Puzzle bylo úspěšně přidáno do kolekce."
-
-unsolved_puzzles:
-    description: "Puzzle ve vaší sbírce, které jste ještě nesložili"
-    description_other: "Puzzle, které %name% vlastní, ale ještě nesložil/a"
-    edit:
-        meta:
-            title: "Upravit viditelnost nesložených puzzlí"
-        submit: "Uložit změny"
-        title: "Upravit viditelnost nesložených puzzlí"
-    empty:
-        message: "Všechny puzzle ve vaší sbírce byly složeny!"
-        title: "Žádné nesložené puzzle"
-    flash:
-        updated: "Viditelnost nesložených puzzlí byla úspěšně aktualizována."
-    form:
-        visibility_help: "Veřejný seznam nesložených puzzlí je viditelný pro všechny uživatele, soukromý pouze pro vás."
-    items_count: "%count% puzzlí"
-    meta:
-        title: "Nesložené puzzle"
-    name: "Nesložené puzzle"
-    private: "Soukromé nesložené puzzle"
-    private_message: 'Seznam nesložených puzzlí "%collection%" od %player% je soukromý a nelze jej zobrazit.'
-    title: "Nesložené puzzle"
-    title_other: "Nesložené puzzle uživatele %name%"
-
-puzzler_offers:
-    badge: "%count% nabídek"
-    title: "Nabídky puzzlerů"
-    meta:
-        description: "%count% puzzlerů nabízí %brand% %puzzle% k prodeji nebo výměně"
-    column:
-        player: "Hráč"
-        type: "Typ"
-        price: "Cena"
-        condition: "Stav"
-
-lend_borrow:
-    name: "Půjčování"
-    title: "Půjčování"
-    description: "Puzzles aktuálně půjčené nebo vypůjčené"
-    lent_count: "%count% půjčeno"
-    borrowed_count: "%count% vypůjčeno"
-    tab:
-        lent: "Půjčeno"
-        borrowed: "Vypůjčeno"
-    lent_to: "Půjčeno %name%"
-    borrowed_from: "Od %name%"
-    view_holder: "Zobrazit aktuálního držitele"
-    view_owner: "Zobrazit majitele"
-    lent:
-        empty:
-            title: "Žádná půjčená puzzle"
-            message: "Zatím jste nepůjčil/a žádná puzzle. Použijte nabídku puzzle k půjčení jiným hráčům."
-            title_other: "Žádná půjčená puzzle"
-            message_other: "%name% nepůjčil/a žádná puzzle."
-    borrowed:
-        empty:
-            title: "Žádná vypůjčená puzzle"
-            message: "Nemáte žádná vypůjčená puzzle."
-            title_other: "Žádná vypůjčená puzzle"
-            message_other: "%name% si nevypůjčil/a žádná puzzle."
-    not_in_collection: "Není ve vaší sbírce"
-    form:
-        borrower_code: "Kód hráče nebo jméno příjemce"
-        borrower_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
-        borrower_code_placeholder: "#ABC123 nebo Jan Novák"
-        owner_code: "Kód hráče nebo jméno majitele"
-        owner_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
-        owner_code_placeholder: "#ABC123 nebo Jan Novák"
-        notes: "Poznámky"
-        notes_placeholder: "Volitelné poznámky k půjčce..."
-        new_holder_code: "Kód hráče nebo jméno nového držitele"
-        new_holder_code_help: "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
-        new_holder_code_placeholder: "#ABC123 nebo Jan Novák"
-    lend:
-        title: "Půjčit puzzle"
-        button: "Půjčit hráči"
-        description: "Půjčte toto puzzle jinému hráči. Bude moci puzzle předat dál nebo vám ho vrátit."
-    borrow:
-        title: "Označit jako vypůjčené"
-        button: "Vypůjčeno od"
-        description: "Označte toto puzzle jako vypůjčené od jiného hráče."
-    pass:
-        title: "Předat puzzle"
-        button: "Předat někomu dalšímu"
-        description: "Předejte %puzzle% jinému hráči. Majitel bude stále moci puzzle sledovat."
-    return:
-        title: "Vrátit puzzle"
-        button: "Vrátit majiteli"
-        confirm_message: "Vrátit %puzzle% jeho majiteli?"
-    membership_required:
-        title: "Funkce pouze pro členy"
-        message: "Půjčování puzzle je dostupné výhradně členům."
-    already_lent: "Toto puzzle je již půjčené."
-    already_lent_short: "Již půjčeno"
-    already_borrowed: "Toto puzzle je již ve vašem seznamu vypůjčených."
-    already_borrowed_short: "Již vypůjčeno"
-    login_required: "Pro správu půjčování musíte být přihlášen/a."
-    edit_settings:
-        title: "Upravit nastavení půjčování"
-        meta:
-            title: "Upravit nastavení půjčování"
-        submit: "Uložit změny"
-    flash:
-        lent: "Puzzle bylo úspěšně půjčeno."
-        passed: "Puzzle bylo úspěšně předáno."
-        returned: "Puzzle bylo úspěšně vráceno majiteli."
-        borrowed: "Puzzle bylo označeno jako vypůjčené."
-        settings_updated: "Nastavení půjčování bylo úspěšně aktualizováno."
-        login_required: "Pro správu půjčování musíte být přihlášen/a."
-        validation_error: "Opravte prosím chyby a zkuste to znovu."
-        player_not_found: "Hráč nenalezen. Zkontrolujte prosím kód hráče."
-        cannot_lend_to_self: "Nemůžete si půjčit puzzle sami sobě."
-        cannot_borrow_from_self: "Nemůžete si vypůjčit puzzle od sebe sama."
-        cannot_pass_to_self: "Nemůžete předat puzzle sami sobě."
-
-wish_list:
-    meta:
-        title: "Seznam přání"
-    title: "Seznam přání"
-    title_other: "Seznam přání hráče %name%"
-    name: "Seznam přání"
-    description: "Puzzle, která chcete získat"
-    description_other: "Puzzle, která %name% chce získat"
-    items_count: "%count% puzzlí"
-    empty:
-        title: "Váš seznam přání je prázdný"
-        message: "Přidejte puzzle, která chcete získat, do svého seznamu přání!"
-        title_other: "Prázdný seznam přání"
-        message_other: "Seznam přání hráče %name% je prázdný."
-    add:
-        title: "Přidat na seznam přání"
-        button: "Přidat na seznam přání"
-        success: "Puzzle bylo přidáno na váš seznam přání."
-    remove:
-        button: "Odebrat ze seznamu přání"
-        success: "Puzzle bylo odebráno z vašeho seznamu přání."
-    already_in_list: "Toto puzzle je již ve vašem seznamu přání."
-    private: "Soukromý seznam přání"
-    private_message: "Seznam přání hráče %player% je soukromý a nelze jej zobrazit."
-    on_wishlist: "Na seznamu přání"
-    auto_remove_enabled: "Automatické odebrání povoleno"
-    edit:
-        title: "Upravit viditelnost seznamu přání"
-        submit: "Uložit změny"
-        meta:
-            title: "Upravit viditelnost seznamu přání"
-    form:
-        visibility_help: "Veřejný seznam přání je viditelný pro všechny uživatele, soukromý pouze pro vás."
-        remove_on_add: "Automaticky odebrat ze seznamu přání"
-        remove_on_add_help: "Pokud je zaškrtnuto, toto puzzle bude automaticky odebráno z vašeho seznamu přání, když jej přidáte do jakékoli kolekce, přidáte čas skládání nebo si jej vypůjčíte."
-    flash:
-        added: "Puzzle bylo přidáno na váš seznam přání."
-        removed: "Puzzle bylo odebráno z vašeho seznamu přání."
-        updated: "Viditelnost seznamu přání byla úspěšně aktualizována."
-        login_required: "Pro správu seznamu přání musíte být přihlášeni."
-    login_required: "Pro přidávání puzzlí na seznam přání musíte být přihlášeni."
-
-sell_swap_list:
-    meta:
-        title: "Seznam k prodeji/výměně"
-    title: "Seznam k prodeji/výměně"
-    title_other: "Seznam k prodeji/výměně hráče %name%"
-    name: "Seznam k prodeji/výměně"
-    description: "Puzzle k prodeji nebo výměně"
-    description_other: "Puzzle, která %name% prodává nebo vyměňuje"
-    items_count: "%count% puzzlí"
-    empty:
-        title: "Váš seznam k prodeji/výměně je prázdný"
-        message: "Přidejte puzzle, která chcete prodat nebo vyměnit!"
-        title_other: "Prázdný seznam k prodeji/výměně"
-        message_other: "Seznam k prodeji/výměně hráče %name% je prázdný."
-    add:
-        title: "Přidat na seznam k prodeji/výměně"
-        button: "Přidat na seznam k prodeji/výměně"
-        success: "Puzzle bylo přidáno na váš seznam k prodeji/výměně."
-    remove:
-        button: "Odebrat ze seznamu k prodeji/výměně"
-        success: "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
-    already_in_list: "Toto puzzle je již ve vašem seznamu k prodeji/výměně."
-    not_in_collection: "Nejdříve přidejte do sbírky"
-    contact_notice: "Kontaktujte prodejce přímo pro domluvení nákupu nebo výměny."
-    back_to_list: "Zpět na seznam k prodeji/výměně"
-    membership_required:
-        title: "Funkce pouze pro členy"
-        message: "Seznam k prodeji/výměně je dostupný výhradně členům."
-    login_required: "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
-    listing_type:
-        sell: "Prodej"
-        swap: "Výměna"
-        both: "Prodej i výměna"
-        free: "Zdarma k odběru"
-    condition:
-        like_new: "Jako nové"
-        normal: "Normální"
-        not_so_good: "Není v nejlepším stavu"
-        missing_pieces: "Chybějící dílky"
-    form:
-        listing_type: "Typ nabídky"
-        condition: "Stav"
-        condition_placeholder: "Vyberte stav..."
-        price: "Cena"
-        price_help: "Nechte prázdné, pokud preferujete domluvit cenu nebo pouze pro výměnu. Měnu můžete nastavit v nastavení seznamu k prodeji/výměně."
-        comment: "Komentář"
-        comment_placeholder: "Jakékoli další informace o tomto puzzle..."
-    settings:
-        title: "Nastavení seznamu k prodeji/výměně"
-        info: "Nakonfigurujte nastavení svého seznamu k prodeji/výměně. Tyto informace budou zobrazeny potenciálním kupcům."
-        description: "Popis"
-        description_help: "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
-        description_placeholder: "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
-        contact_info: "Kontaktní informace"
-        contact_info_help: "Jak vás mají kupci kontaktovat?"
-        contact_info_placeholder: "Jak vás mají kupci kontaktovat?"
-        contact_info_warning: "Vaše kontaktní informace budou veřejně viditelné. Sdílejte pouze to, s čím jste spokojeni."
-        shipping_info: "Informace o doručení"
-        shipping_info_help: "Popište vaše možnosti doručení a ceny..."
-        shipping_info_placeholder: "Popište vaše možnosti doručení a ceny..."
-        currency: "Měna"
-        currency_placeholder: "Vyberte měnu..."
-        currency_custom: "Vlastní měna"
-        custom_currency: "Vlastní měna"
-        custom_currency_help: "Použijte toto, pokud vaše měna není v seznamu výše."
-        custom_currency_placeholder: "např. USD, GBP, CHF..."
-        currency_custom_placeholder: "např. USD, GBP, CHF..."
-    edit_settings:
-        title: "Upravit nastavení seznamu k prodeji/výměně"
-        submit: "Uložit změny"
-        meta:
-            title: "Upravit nastavení seznamu k prodeji/výměně"
-    edit_item:
-        title: "Upravit položku"
-        submit: "Uložit změny"
-        meta:
-            title: "Upravit položku k prodeji/výměně"
-    filter:
-        all_types: "Všechny typy"
-        min_price: "Min. cena"
-        max_price: "Max. cena"
-    mark_sold:
-        title: "Označit jako prodáno/vyměněno"
-        button: "Označit jako prodáno/vyměněno"
-        confirm: "Potvrdit"
-        warning: "Toto odebere puzzle z vašeho seznamu k prodeji/výměně a ze všech vašich kolekcí."
-        success: "Puzzle bylo označeno jako prodáno/vyměněno a odebráno z vašich kolekcí."
-        buyer_input: "Kupec"
-        buyer_input_help: "Zadejte kód hráče kupce (např. #ABC123) nebo jméno. Nechte prázdné, pokud není známo."
-        buyer_input_placeholder: "#ABC123 nebo jméno..."
-    history:
-        title: "Historie prodaných/vyměněných"
-        button: "Historie"
-        menu: "Historie"
-        empty: "Zatím žádné prodané nebo vyměněné položky."
-        puzzle: "Puzzle"
-        date: "Datum"
-        price: "Cena"
-        buyer: "Kupec"
-        type: "Typ"
-        unknown_buyer: "Neznámý"
-    flash:
-        added: "Puzzle bylo přidáno na váš seznam k prodeji/výměně."
-        removed: "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
-        updated: "Nastavení seznamu k prodeji/výměně bylo úspěšně aktualizováno."
-        settings_updated: "Nastavení seznamu k prodeji/výměně bylo úspěšně aktualizováno."
-        item_updated: "Položka seznamu k prodeji/výměně byla úspěšně aktualizována."
-        login_required: "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
-        validation_error: "Opravte prosím chyby a zkuste to znovu."
-
-solved_puzzles:
-    meta:
-        title: "Složené puzzle"
-    name: "Složené puzzle"
-    title: "Složené puzzle"
-    title_other: "Složené puzzle uživatele %name%"
-    description: "Všechny puzzle, které jste dokončili"
-    description_other: "Všechny puzzle, které dokončil(a) %name%"
-    items_count: "%count% puzzle"
-    private: "Soukromé složené puzzle"
-    private_message: "Seznam složených puzzlí \"%collection%\" od %player% je soukromý a nelze jej zobrazit."
-    empty:
-        title: "Žádné složené puzzle"
-        message: "Začněte skládat puzzle a uvidíte je zde!"
-        title_other: "Žádné složené puzzle"
-        message_other: "%name% zatím žádné puzzle nesložil(a)."
-    edit:
-        meta:
-            title: "Upravit viditelnost složených puzzlí"
-        title: "Upravit viditelnost složených puzzlí"
-        submit: "Uložit změny"
-    form:
-        visibility_help: "Veřejný seznam složených puzzlí je viditelný pro všechny, soukromý pouze pro vás."
-    flash:
-        updated: "Viditelnost složených puzzlí byla úspěšně aktualizována."
-
-status:
-    solved: "Složeno"
-    wishlist: "Na přání"
-    unsolved: "Nesloženo"
-    collection: "V kolekci"
-    borrowed: "Půjčeno"
-    lent: "Půjčeno"
-    for_sale: "Na prodej"
-
-image_editor:
-    title: "Upravit obrázek"
-    rotate_left: "Otočit doleva"
-    rotate_right: "Otočit doprava"
-    apply: "Použít"
-
-admin:
-    puzzle_change_request:
-        approved: "Žádost o změnu byla schválena a puzzle aktualizováno."
-        rejected: "Žádost o změnu byla zamítnuta."
-        rejection_reason_required: "Důvod zamítnutí je povinný."
-    puzzle_merge_request:
-        approved: "Žádost o sloučení byla schválena. Puzzle byla sloučena."
-        rejected: "Žádost o sloučení byla zamítnuta."
-        rejection_reason_required: "Důvod zamítnutí je povinný."
-        validation_failed: "Je vyžadováno cílové puzzle, název a počet dílků."
-
-pending_proposals:
-    badge: "Čekající návrh"
-    go_to_admin: "Přejít do administrace"
-    no_proposals: "Žádné čekající návrhy pro toto puzzle."
-    reported_by: "Nahlásil"
-    title: "Čekající návrhy"
-    type:
-        change_request: "Žádost o změnu"
-        merge_request: "Žádost o sloučení"
-
-puzzle_report:
-    back_to_puzzle: "Zpět na puzzle"
-    dropdown:
-        suggest_change: "Navrhnout změnu"
-        suggest_change_description: "Chybějící/nesprávné údaje nebo duplikát?"
-    flash:
-        changes_submitted: "Vaše navrhované změny byly odeslány ke kontrole. Děkujeme!"
-        duplicate_reported: "Váš report duplikátu byl odeslán ke kontrole. Děkujeme!"
-        login_required: "Pro návrh změn se prosím přihlaste."
-        no_valid_duplicates: "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
-        pending_proposal_exists: "Návrh pro toto puzzle již čeká na kontrolu."
-        validation_error: "Opravte prosím chyby a zkuste to znovu."
-    form:
-        current_image: "Aktuální obrázek"
-        duplicate_url: "URL duplikovaného puzzle"
-        duplicate_url_help: "Vložte URL duplikovaného puzzle."
-        duplicate_url_placeholder: "https://www.myspeedpuzzling.com/puzzle/..."
-        ean: "EAN / Čárový kód"
-        ean_help: "Číslo čárového kódu na krabici puzzle (obvykle 13 číslic)."
-        ean_placeholder: "např. 4005556123456"
-        identification_number: "Kód značky / SKU"
-        identification_number_help: "Kód produktu výrobce (např. 19432 pro puzzle Ravensburger)."
-        identification_number_placeholder: "např. 19432"
-        manufacturer: "Výrobce"
-        manufacturer_placeholder: "Hledat výrobce..."
-        name: "Název puzzle"
-        name_help: "Zadejte správný název podle krabice puzzle. Pro více názvů použijte čárku."
-        name_placeholder: "Zadejte název puzzle..."
-        or: "nebo"
-        photo: "Nová fotka"
-        photo_example_ok: "OK"
-        photo_example_perfect: "Perfektní"
-        photo_example_wrong: "Špatně"
-        photo_help_1: "Použijte obrázek z krabice puzzle, ne složené puzzle."
-        photo_help_2: "Zajistěte dobré osvětlení a ostrost."
-        photo_help_3: "Ořízněte pouze na obrázek puzzle, ne celou krabici."
-        photo_help_4: "U multipacků vyberte pouze obrázek jednoho puzzle."
-        photo_help_title: "Pokyny pro fotografii:"
-        photo_help_toggle: "Tipy pro dobrou fotografii"
-        pieces_count: "Počet dílků"
-        pieces_count_help: "Zadejte správný počet dílků."
-        search_manufacturer: "Hledat podle výrobce"
-        search_manufacturer_placeholder: "Vyberte výrobce pro procházení puzzle..."
-        select_duplicate_error: "Vyberte prosím duplikované puzzle nebo zadejte URL puzzle."
-        select_manufacturer_first: "Nejprve vyberte výrobce"
-        select_puzzle: "Vybrat puzzle"
-        select_puzzle_placeholder: "Hledat puzzle..."
-        submit_changes: "Odeslat změny"
-        submit_duplicate: "Nahlásit jako duplikát"
-    propose_changes:
-        description: "Navrhněte opravy nebo vylepšení informací o tomto puzzle. Všechny změny budou zkontrolovány administrátorem."
-    report_duplicate:
-        description: "Nahlaste, že toto puzzle je duplikátem jiného puzzle. Administrátor zkontroluje a sloučí záznamy, pokud se potvrdí."
-        max_puzzles_info: "Můžete najednou nahlásit až %max% puzzle jako duplikáty."
-    tab:
-        suggestions: "Návrhy"
-        report_duplicate: "Nahlásit duplikát"
-    title: "Navrhnout změnu puzzle"
+"menu":
+  "my_profile": "Můj profil"
+  "puzzle_add": "Přidat"
+  "stopwatch": "Stopky"
+  "puzzles_overview": "Puzzle"
+  "ladder": "Žebříček"
+  "players": "Hráči"
+  "faq": "Časté dotazy"
+  "sign_in": "Přihlásit se"
+  "hub": "Hub"
+  "feedback": "Zpětná vazba"
+  "support_us": "Podpořte nás"
+  "terms_of_service": "Obchodní podmínky"
+  "privacy_policy": "Ochrana osobních údajů"
+  "membership": "Členství"
+  "search": "Hledej"
+  "statistics": "Statistiky"
+  "favorite_puzzlers": "Oblíbení puzzleři"
+  "edit_profile": "Upravit profil"
+  "change_player_code": "Změnit kód hráče"
+  "profile": "Profil"
+  "puzzle_library": "Puzzle knihovna"
+  "events": "Eventy"
+  "export_data": "Export dat"
+"accessibility":
+  "toggle_navigation": "Přepnout navigaci"
+  "barcode_scanner": "Skenovat čárový kód"
+  "notifications_count": "Oznámení (%count%)"
+"form":
+  "visibility": "Viditelnost"
+  "visibility_public": "Veřejná"
+  "visibility_private": "Soukromá"
+"footer":
+  "created_with_love": "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
+  "about": "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence.<br>Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívání si zábavy ze skládání puzzlí společně."
+  "popular_search": "Často hledané"
+  "speed_puzzling_leaderboard": "Speed Puzzling Žebříček"
+  "speed_puzzling_players": "Speed Puzzling Hráči"
+  "latest_puzzle_times": "Nejnovější Časy Puzzlí"
+  "750_piece_puzzles": "750 Dílkové Puzzle"
+  "puzzle_add": "Přidat puzzle"
+"puzzler_name": "Jméno"
+"puzzler": "Puzzler"
+"puzzle": "Puzzle"
+"time": "Čas"
+"pieces_count": "%count%&nbsp;dílků"
+"show_more": "Zobrazit více"
+"show_less": "Skrýt"
+"puzzle_solved": "poskládáno"
+"puzzle_available": "k zapůjčení"
+"puzzle_not_available": "nejsou k dispozici"
+"add_solving": "Přidat skládání"
+"start_solving": "Začít skládat"
+"show_times": "Zobrazit časy"
+"fastest_time_short": "Top: %time%"
+"average_time_short": "Průměr: %time%"
+"fastest_time": "Nejrychlejší:"
+"average_time": "Průměrný:"
+"only_first_tries_filter": "Pouze 1. pokusy"
+"only_unboxed_filter": "Pouze naslepo"
+"only_favorite_players_filter": "Pouze oblíbení hráči"
+"filtered_out_puzzlers_count_info": "Schováno <strong>%count% puzzlerů</strong> bez infa o 1. pokusu."
+"my_time": "Můj čas:"
+"puzzle_solved_count": "Počet složení:"
+"puzzle_solved_times": "skládáno %count%&times;"
+"puzzle.relax_solvings_count": "%count%x složeno v relax módu"
+"never_solved_puzzles": "Tyto puzzle ještě nikdo neskládal, buď první!"
+"show_more_solving_times": "Více (%count%x)"
+"be_first_to_solve": "Tyto puzzle ještě nikdo neskládal. Buď první!"
+"be_first_to_group_solve": "Tyto puzzle ještě nikdo skupinově neskládal. Buďte první!"
+"email": "E-mail"
+"facebook": "Facebook"
+"instagram": "Instagram"
+"search": "Hledat"
+"puzzle_waiting_for_approval": "Nově přidané puzzle čekající na schválení administrátorem - obvykle do 24 hodin od přidání. Děkujeme za trpělivost."
+"puzzle_img_alt": "%puzzle% - obrázek puzzlí"
+"searching": "Vyhledávám..."
+"load_more": "Načíst více..."
+"back_to_top": "Zpět nahoru"
+"total_found": "Celkem nalezeno: %count%"
+"remaining": "Zbývá: %puzzle%"
+"loading": "Načítám"
+"any": "Libovolný"
+"all_pieces": "Vše"
+"solo_solved": "Skládáno SOLO:"
+"first_attempt": "1. pokus"
+"unboxed": "Naslepo"
+"ranking_out_of": "z"
+"wjpc_participant": "Účastník (%name%)"
+"share": "Sdílet"
+"edit": "Upravit"
+"delete": "Smazat"
+"active_membership": "Aktivní členství"
+"new_badge": "Nové"
+"secret_puzzler_name": "Utajený Puzzler"
+"right_now": "Právě teď"
+"badge":
+  "relax": "Relax"
+  "suspicious": "Vyžaduje ověření"
+"homepage":
+  "meta":
+    "title": "Speed Puzzling - Sdílej a porovnávej časy"
+    "description": "Připoj se k největší speed puzzling komunitě! Sleduj časy skládání, soutěž s hráči z celého světa a šplhej po žebříčku. Začni dnes!"
+    "keywords": "speed puzzling, speedpuzzling, časy puzzlí, puzzle komunita, soutěž ve skládání puzzlí, puzzle žebříček"
+  "global_statistics": "Tolik času nám všem zabralo poskládat <strong>%puzzles%</strong>&nbsp;puzzlí.<br>To je neuvěřitelných <strong>%pieces%</strong>&nbsp;dílků."
+  "title": "Vítej ve světě Speed Puzzlingu!"
+  "intro_text": "Speed Puzzling je vzrušující sport, kde je cílem skládat puzzle co nejrychleji. Každý dílek se počítá, každá vteřina rozhoduje. Představte si tradiční skládání puzzle, ale s adrenalinem závodní dráhy! Naše platforma je první svého druhu - místo, kde můžete své dovednosti ve skládání puzzle měřit nejen proti času, ale také proti ostatním puzzle nadšencům."
+  "why_block": "<h3>Proč se zapojit?</h3>\n<ul>\n    <li><strong>Soutěžte s ostatními:</strong> Zaznamenávejte své časy a porovnávejte je s ostatními puzzlaři</li>\n    <li><strong>Žebříčky a statistiky:</strong> Objevte žebříčky nejrychlejších puzzlařů, nejskládanějších puzzlí a nejaktivnějších uživatelů</li>\n    <li><strong>Půjčovna puzzlí:</strong> Pouze za poštovné a balné si můžete vypůjčit puzzle, poskládat je na čas a zadat svůj výsledek, abyste se mohli porovnat s ostatními</li>\n    <li><strong>Stopky:</strong> Využijte naše integrované stopky pro snadné měření času vašeho skládání</li>\n    <li><strong>Přidejte své puzzle:</strong> Máte puzzle, které na naší stránce chybí? Přidejte ho a podělte se o své časy s komunitou.</li>\n    <li><strong>Budujte svou puzzlařskou komunitu:</strong> Připojte se k naší rostoucí komunitě a sdílejte tipy, triky a přátelskou rivalitu</li>\n    <li><strong>Rozšiřujte své horizonty:</strong> Plánujeme pořádat soutěže, jak online, tak v budoucnu i\
+    \ offline, abyste mohli své dovednosti ukázat naživo</li>\n</ul>\n"
+  "help_us_grow_block": "<h3>Pomozte nám růst</h3>\n<p>Naše aplikace je teprve v začátcích a vaše nápady, zpětná vazba a pomoc při odhalování chyb jsou neocenitelné. Připojte se k nám v této rané fázi a mějte přímý vliv na budoucí podobu speed puzzlingu.</p>\n"
+  "start_today_block": "<h3>Začněte dnes</h3>\n<p>Ať už jste začátečník nebo zkušený puzzlař, naše platforma vám nabízí ideální místo pro rozvoj vašich dovedností a měření sil s ostatními. Připojte se k nám a staňte se součástí budoucnosti speed puzzlingu!</p>\n"
+  "cta_sign_in": "Přihlásit se"
+  "cta_my_profile": "Můj profil"
+  "cta_recent": "Nejnovější časy"
+"ladder":
+  "title": "Žebříček"
+  "meta":
+    "title": "Žebříček časů"
+    "description": "Speed puzzling žebříček ukazující nejrychlejší časy skládání a pořadí hráčů. Zjisti kdo drží rekordy a soutěž o špičkové pozice."
+    "keywords": "speed puzzling žebříček, nejrychlejší časy, puzzle rekordy, pořadí hráčů, výsledky soutěží, puzzle šampióni"
+  "overview": "Přehled"
+  "recent_activity": "Poslední přidané časy"
+  "solo": "Solo"
+  "duo": "Duo"
+  "team": "Team"
+  "most_solved_puzzle": "Nejskládanější puzzle"
+  "most_active_puzzlers": "Nejzapálenější puzzleři"
+  "puzzle_solved_count": "Složených puzzlí"
+  "link_to_hub": "Hledáte nejskládanější puzzle nebo nejaktivnější hráče? Přesunuli jsme je&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">do nového Hubu</a>!"
+"filters":
+  "button": "Filtry"
+  "filter_by": "Filtrovat podle"
+  "pieces_placeholder": "- Dílků -"
+  "manufacturer_placeholder": "- Výrobce -"
+  "less_than": "Méně než %count%"
+  "more_than": "Více než %count%"
+  "text_search_placeholder": "Název puzzlí nebo kód..."
+  "only_available": "Pouze k zapůjčení"
+  "only_with_time": "Pouze se zadaným časem"
+  "no_puzzle_matches_filters": "Žádné puzzle neodpovídají zadaným filtrům"
+  "only_relax": "Pouze relax skládání"
+  "date_range": "Období"
+  "date_from": "Od"
+  "date_to": "Do"
+  "time_filter": "Filtr času"
+  "faster_than": "Rychlejší než"
+  "slower_than": "Pomalejší než"
+  "minutes": "min"
+  "reset": "Resetovat filtry"
+  "all_manufacturers": "Všichni výrobci"
+  "all_pieces": "Všechny dílky"
+"sorting":
+  "sort_by": "Řadit podle"
+  "newest_times": "Nejnovější"
+  "oldest_times": "Nejstarší"
+  "fastest_times": "Nejrychlejší"
+  "slowest_times": "Nejpomalejší"
+  "most_solved": "Nejskládanější"
+  "least_solved": "Nejméně skládané"
+  "a_z": "Název A-Z"
+  "z_a": "Název Z-A"
+  "fastest_ppm": "Nejrychlejší PPM"
+  "slowest_ppm": "Nejpomalejší PPM"
+"puzzle_overview":
+  "meta":
+    "title": "Speed Puzzling Databáze"
+    "description": "Procházej databázi speed puzzling s puzzle 500-1000+ dílků. Porovnávej časy skládání, najdi nové výzvy a sleduj svůj pokrok."
+    "keywords": "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
+  "title": "Puzzle"
+  "missing_puzzle_info": "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
+"stopwatch":
+  "meta":
+    "title": "Stopky"
+  "title": "Stopky"
+  "start": "Start"
+  "stop": "Stop"
+  "continue": "Pokračovat"
+  "reset": "Vynulovat"
+  "finish": "Doskládáno! Přidat čas"
+  "more_my_stopwatches": "Další moje stopky"
+  "status":
+    "not_started": "Připravené ke startu"
+    "running": "Puštěné"
+    "paused": "Zastavené"
+    "finished": "Složené puzzle"
+"puzzle_add":
+  "meta":
+    "title": "Přidat puzzle"
+  "title": "Přidat..."
+  "chosen_puzzle": "Vybrané puzzle:"
+  "choose_puzzle": "Vyberte puzzle"
+  "puzzle_needed": "Musíte vybrat puzzle ze seznamu nebo přidat nové"
+  "change_puzzle": "Změnit výběr"
+  "add_when_not_found_info": "Pokud puzzle v seznamu nenajdete, prosím přidejte nové."
+  "need_approve_info": "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
+  "add_manufacturer": "Přidat nového výrobce"
+  "not_in_list": "(není v seznamu)"
+  "choose_manufacturer": "Vybrat výrobce ze seznamu"
+  "time_from_stopwatch": "Čas ze stopek"
+  "add_puzzler": "Přidat skupinového skládájícího"
+  "group_puzzling": "Skládání ve dvojici/skupině"
+  "competition_result": "Výsledek ze soutěže"
+  "teamplayer": "Spoluskládající"
+  "player_code_info": "Vyberte z oblíbených nebo zadejte kód hráče (začíná na #). Pokud skládající nemá účet na myspeedpuzzling.com, zadejte prosím jeho jméno."
+  "mode":
+    "speed_puzzling": "Speed Puzzling"
+    "relax": "Relax (bez času)"
+    "to_collection": "Puzzle do kolekce"
+"forms":
+  "choose_from_favorites": "- Vybrat z oblíbených -"
+  "saving": "Ukládání..."
+  "removing": "Odebírání..."
+  "drop_file": "Přetáhněte sem soubor pro nahrání"
+  "choose_file": "Nebo vyberte soubor"
+  "save": "Uložit"
+  "cancel": "Zrušit"
+  "close": "Zavřít"
+  "add_new_brand": "Přidat novou značku:"
+  "max_characters": "Maximálně 500 znaků"
+  "required_field": "Toto pole je povinné!"
+  "empty_group_error": "Nelze vytvořit skupinu pouze sám se sebou, to pak není skupinové skládání :-)"
+  "too_high_ppm": "Prosím zkontrolujte si zadaný čas, takhle rychle puzzle určitě složit nedokážete! Čas se zadává ve formátu HH:MM:SS. Vámi zadaný čas by byl nový světový rekord! :-)"
+  "ppm_warning_title": "Prosím ověřte zadaný čas"
+  "ppm_warning_too_fast": "Váš čas se zdá velmi rychlý! Zkontrolujte prosím, zda jste čas zadali správně."
+  "ppm_warning_too_slow": "Jen rychlá kontrola - zadali jste čas správně? Někdy se mohou zaměnit hodiny a minuty."
+  "ppm_confirm_button": "Ano, čas je správný"
+  "ppm_cancel_button": "Chci zkontrolovat"
+  "ppm_entered_time": "Zadali jste"
+  "hours": "hodin"
+  "minutes": "minut"
+  "seconds": "sekund"
+  "unknown_error": "Došlo k nějaké neočekávané chybě :(. Byli jsme notifikování. Prosím zkuste to později."
+  "name_help": "Pod tímto jménem budete skládat puzzle a uvidí ho všichni členové komunity."
+  "email_help": "Váš e-mail je neveřejný, nikde se nezobrazuje a slouží pouze pro případ, aby vás mohl kontaktovat administrátor."
+  "location_help": "Místo, kde aktuálně pobýváte (nepovinné)."
+  "location": "Lokace"
+  "nationality": "Národnost"
+  "country_most_common": "Nejčastější"
+  "country_all": "Všechny státy"
+  "about_me": "O mně (bio)"
+  "avatar": "Avatar/foto"
+  "search_puzzler": "Jméno, kód hráče nebo část..."
+  "time_format_placeholder": "HH:MM:SS"
+  "time_required": "Zadejte čas"
+  "hours_short": "hod"
+  "minutes_short": "min"
+  "seconds_short": "sek"
+  "comment": "Doplňující info"
+  "finished_puzzle_photo": "Foto poskládaných puzzlí"
+  "add_new_puzzle": "Přidat nové puzzle - nejsou v seznamu"
+  "puzzle": "Puzzle"
+  "puzzle_help": "Vyberte existující puzzle (hledejte podle jména, kódu výrobce, počtu dílků) nebo zadejte název nových puzzlí, pokud nenajdete."
+  "brand": "Výrobce"
+  "brand_help": "Vyberte existujícího výrobce nebo zadejte název nového výrobce, pokud nenajdete."
+  "pieces_count": "Počet dílků"
+  "puzzle_box_photo": "Foto motivu nebo krabice od puzzlí"
+  "date_finished": "Datum doskládání"
+  "ean": "EAN kód"
+  "puzzle_identification_number": "Kód od výrobce"
+  "puzzle_photo_is_required": "Foto poskládaných puzzlí, motivu nebo krabice je povinné"
+  "puzzle_photo_help": "Prosím přidejte fotografii poskládaných puzzlí, motivu nebo krabice, abychom mohli nové správně puzzle identifikovat a zařadit."
+  "puzzle_choose_placeholder": "Vyhledat, nebo zadejte název nových puzzlí"
+  "puzzle_choose_brand_placeholder": "První vyberte výrobce"
+  "only_with_results": "Pouze puzzle se zadaným časem"
+  "only_solved_by_me": "Pouze mnou poskládané puzzle"
+  "only_available": "Pouze k zapůjčení"
+  "puzzle_search_placeholder": "Název, kód, EAN..."
+  "tag": "Tag"
+  "competition": "Soutěž / událost"
+  "competition_help": "Vyberte soutěž, pokud tento výsledek pochází ze soutěže nebo online události."
+  "tags": "Tagy"
+  "feedback": "Zpráva"
+  "feedback_help": "Pošlete nám návrh na novou funkci nebo zlepšení, report chyby, co se vám (ne)líbí, může to být cokoliv, co vás napadne..."
+  "send_feedback": "Odeslat"
+  "first_attempt": "Tvé první skládání těchto puzzlí v životě"
+  "first_attempt_help": "Pokud jste skládali ve skupině, pak pouze pokud tyto puzzle nikdo předtím neskládal, ani sám"
+  "unboxed": "Složeno bez pohledu na krabici"
+  "unboxed_help": "Zaškrtni, pokud jsi puzzle složil/a bez koukání na obrázek na krabici"
+  "competition_participant": "Vaše jméno na soutěži"
+  "player_code": "Kód hráče"
+  "player_code_help": "Unikátní kód hráče - minimálně 3 znaky, maximálně 8 znaků. Může obsahovat pouze písmena a číslice, bez speciálních znaků nebo mezer."
+  "global_search_placeholder": "Hledat puzzle nebo hráče..."
+  "private_profile": "Skrytý profil"
+  "private_profile_help": "Vaše jméno nebude nikde uvedeno a časy budou prezentovány jako anonymní."
+  "add": "Přidat"
+  "back": "Zpět"
+  "clear": "Vymazat"
+  "confirm": "Potvrdit"
+  "continue": "Pokračovat"
+  "create": "Vytvořit"
+  "delete": "Smazat"
+  "edit": "Upravit"
+  "next": "Další"
+  "no": "Ne"
+  "ok": "OK"
+  "previous": "Předchozí"
+  "remove": "Odebrat"
+  "reset": "Obnovit"
+  "search": "Hledat"
+  "submit": "Odeslat"
+  "update": "Aktualizovat"
+  "yes": "Ano"
+  "add_puzzle_to_collection":
+    "collection": "Kolekce"
+    "collection_help": "Vyberte existující kolekci nebo zadejte název nové kolekce."
+    "comment": "Komentář"
+    "comment_placeholder": "Volitelný komentář k tomuto puzzle..."
+    "submit": "Přidat do kolekce"
+    "puzzle_collection": "Puzzle kolekce (Výchozí)"
+    "choose_collection": "- Vyberte kolekci -"
+"puzzlers_comparison":
+  "meta":
+    "title": "Porovnání puzzlerů"
+  "title": "Porovnání puzzlerů"
+  "nothing_to_compare": "Bohužel nemáte žádné puzzle k porovnání, které byly poskládány oběma puzzlery."
+"compare_players":
+  "comparison": "Porovnání"
+  "head_to_head": "Přímé srovnání"
+  "select_players": "Vyberte hráče k porovnání"
+  "statistics": "Statistiky"
+  "title": "Porovnání hráčů"
+"contact":
+  "email": "E-mail"
+  "message": "Zpráva"
+  "send": "Odeslat"
+  "thank_you": "Děkujeme za vaši zprávu!"
+  "title": "Kontakt"
+"recent_activity":
+  "latest_times": "Nejnovější časy"
+  "no_activity": "Žádná nedávná aktivita"
+  "title": "Nedávná aktivita"
+"edit_time":
+  "meta":
+    "title": "Úprava údajů o skládání"
+  "title": "Úprava údajů o skládání"
+  "delete_button": "Nenávratně smazat tento záznam o skládání a dělat, jakože se to nikdy nestalo!"
+  "delete_modal_message": "Jen pro jistotu..."
+  "delete_modal_confirm": "Opravdu smazat?"
+  "delete_modal_discard_button": "Ne, ponechat"
+  "delete_modal_confirm_button": "Ano, smazat"
+"error":
+  "generic":
+    "title": "Něco se rozbilo"
+    "message": "Něco se nepovedlo... pokud jste přesvědčeni, že chyba není na vaší straně, prosím napište nám."
+  404:
+    "title": "Stránka nenalezena"
+    "message": "Bohužel jsme nenašli vámi požadovanou stránku. Zkontrolujte prosím URL adresu.."
+  500:
+    "title": "Neznámá chyba"
+    "message": "Něco se nepovedlo - přišla nám notifikace a opravíme co nejrychleji"
+"export":
+  "page_title": "Export dat"
+  "heading": "Export tvých dat"
+  "feedback_message": "Toto je nová funkce! Budeme rádi za tvou zpětnou vazbu."
+  "feedback_link": "Pošli nám zpětnou vazbu"
+  "description": "Stáhni si všechny své časy skládání puzzlí ve formátu dle tvého výběru. Tvá data patří tobě."
+  "format":
+    "json": "Stáhnout JSON"
+    "xlsx": "Stáhnout Excel"
+    "csv": "Stáhnout CSV"
+    "xml": "Stáhnout XML"
+  "data_included": "Co je zahrnuto v exportu?"
+  "data":
+    "result_id": "ID výsledku"
+    "puzzle_info": "Název puzzle, značka a počet dílků"
+    "solving_time": "Čas skládání (sekundy a formát HH:MM:SS)"
+    "dates": "Datum dokončení a datum záznamu"
+    "type": "Typ skládání (sólo, duo nebo tým)"
+    "team_members": "Členové týmu (při skupinovém skládání)"
+    "photo_url": "URL fotky složeného puzzle"
+    "comment": "Tvůj komentář"
+"events":
+  "title": "Události"
+  "meta":
+    "title": "Speed Puzzling Události | Soutěže"
+    "description": "Připoj se k speed puzzling událostem, soutěžím a turnajům. Soutěž s nejlepšími puzzlery světa a testuj své dovednosti."
+    "keywords": "speed puzzling události, puzzle soutěže, puzzle turnaje, WJPC, mistrovství v puzzlích, soutěžní skládání"
+  "live": "Právě probíhající"
+  "upcoming": "Nadcházející"
+  "past": "Proběhlé"
+  "website_link": "Info"
+  "results_link": "Výsledky"
+  "registration_link": "Registrace"
+  "competition_puzzles": "Soutěžní puzzle"
+  "no_puzzle_text": "Zatím tu žádné puzzle nejsou… Zůstaňte naladěni.</strong>"
+"faq":
+  "meta":
+    "title": "Speed Puzzling FAQ | Sledovat"
+    "description": "Speed puzzling FAQ pokrývající jak sledovat časy skládání, soutěžit s ostatními a zlepšovat své dovednosti. Začni dnes!"
+    "keywords": "speed puzzling FAQ, jak rychle skládat puzzle, sledování časů, měření puzzlí, tipy na rychlé skládání, průvodce soutěží"
+  "title": "Časté dotazy"
+  "intro_block": "<p>Zpětná vazba je pro nás velmi důležitá a moc si jí vážíme! Pokud máte cokoliv, co byste nám rádi sdělili, napište nám prosím na <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a> (případně na <a href=\"mailto:j.mikes@me.com\">j.mikes@me.com</a> ohledně technickým záležitostí) nebo na <a href=\"https://www.instagram.com/myspeedpuzzling/\" target=\"_blank\">Instagramu</a>.</p>\n<p>Veškeré naše zdrojové kódy jsou open-source a veřejné na <a href=\"https://github.com/MySpeedPuzzling\">GitHubu SpeedPuzzling</a>. Zastáváme filizofii &quot;sharing is caring&quot; a vše ohledně myspeedpuzzling.com se snažíme otevřeně sdílet.</p>\n"
+  "question_fair_play": "Jak se dozvíte, že při zadávání času nepodvádím?"
+  "answer_fair_play": "<p>Upřímně řečeno - pravděpodobně nedozvíme. U veřejného žebříčku, kde si puzzleři zadávají časy sami, se spoléháme na čestnost a poctivost každého jednotlivého puzzlaře. Měli byste snad radost z nepoctivého podvodně zadaného výsledku?</p>\n<p>Předpokládáme, že stejně jako my, i ostatní puzzleři skládají především pro radost a časy z tohoto typu skládání jsou orientační pro představu, jak si stojíme v porovnání s ostatními a naostro si změříme síly během nějaké soutěže. Řekněte sami, nevypadalo by podezřele, pokud na platformě budu mít čas 20 minut ale během soutěže složím puzzle za 3 hodiny?</p>\n<p>Do budoucna plánujeme také hodnocené ligy, kde bude vyžadováno ověření času například pomocí videozáznamu.</p>\n<p class=\"text-danger mb-0\"><small>Protože jsou v naší komunitě i finalisté World Jigsaw Championship, kteří se umístili na předních příčkách, můžeme jejich časy brát jako referenční. Podezřelé časy, budeme sledovat a pokud se prokáže podvod, tak bez milosti\
+    \ také mazat. Při opakovaném podvádění bude hráči přístup na platformu omezen.</small></p>\n"
+  "question_qr": "Dostaly se ke mě puzzle s QR kódem a logem myspeedpuzzling.com, co s tím?"
+  "answer_qr": "<p>Abychom vám skládání a zadávání časů co nejvíce zpříjemnili, na všechny puzzle které nám projdou pod rukou přidáváme QR kód - po naskenování se dostanete na stránku s danými puzzlemi, kde můžete pomocí tlačítek rovnou začít stopovat a nebo zadat váš čas.</p>\n<p class=\"mb-0\">Pokud byste nám chtěli pomoci šířit osvětu ohledně speedpuzzlingu a do svých puzzlí přidat letáček s QR kódem, prosím napište nám - pošleme vám PDF které si můžete vytisknout, případně pošleme poštou přímo vytištěné letáčky.</p>\n"
+  "question_add_time_for_missing_puzzle": "Můžu přidat čas i k puzzlím, které na platformě nejsou?"
+  "answer_add_time_for_missing_puzzle": "<p>Rozhodně! Pokud jste skládali puzzle, které u nás na platformě ještě nejsou, při přidávání času překlikněte na možnost:</p>\n<div class=\"form-check form-switch mb-3\">\n    <input type=\"checkbox\" class=\"form-check-input\" id=\"switch-add-puzzle\">\n    <label class=\"form-check-label\" for=\"switch-add-puzzle\">Zadat puzzle ručně - neznám výrobce nebo nejsou v seznamu</label>\n</div>\n<p class=\"mb-0\">Následně máte možnost vybrat ze seznamu výrobců. Pokud ani výrobce není v databázi, můžete opět zadat sami.</p>\n"
+  "question_edit_or_delete_time": "Jak upravím nebo smažu zadaný čas?"
+  "answer_edit_or_delete_time": "<p>V sekci <a href=\"%link%\">Můj profil</a> u každého zadaného času najdete odkaz na editaci (odkaz má podobu ikonky tužky <span class=\"btn btn-sm btn-outline-dark px-2 py-1 border-0\"><i class=\"ci-edit\"></i></span>).</p>\n<p class=\"mb-0\">Na stránce s editací je úplně dole <a class=\"btn btn-sm btn-outline-danger mx-2\">kouzelné tlačítko</a> jenž záznam jednou a provždy smaže z celého internetu.</p>\n"
+  "question_button_start_solving": "Co dělá tlačítko <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-time\"></i> Začít skládat</a>?"
+  "answer_button_start_solving": "<p class=\"mb-0\">Otevře stopky s vybranými puzzlemi - můžete rovnou začít skládat a stopovat čas.</p>\n"
+  "question_button_add_my_time": "Co dělá tlačítko <a class=\"btn btn-accent btn-sm mx-2\"><i class=\"ci-add\"></i> Přidat můj čas</a>?"
+  "answer_button_add_my_time": "<p class=\"mb-0\">Otevře přidání vašeho času k vybraným puzzlím - vhodné pokud používáte vlastní stopky a právě jste doskládali. Pokud jste doskládali v minulosti a chcete zaznamenat čas, máte možnost uvést i datum, kdy jste skládali.</p>\n"
+  "question_helping": "Můžu přiložit ruku k dílu?"
+  "answer_helping": "<p class=\"mb-0\">Jasně! Spojte se s námi, ideálně s představou, jak byste se rádi do budování speed puzzling komunity zapojili, dáme hlavy dohromady a určitě něco vymyslíme.</p>\n"
+"profile":
+  "add_to_favorites": "Přidat do oblíbených"
+  "remove_from_favorites": "Odebrat z oblíbených"
+  "compare": "Porovnat časy"
+  "no_puzzles_solved": "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
+  "not_filled": "Nevyplněno"
+  "avatar": "Avatar"
+  "about_me": "O mně"
+  "location": "Lokace"
+  "nationality": "Národnost"
+  "statistics": "Statistiky"
+  "statistics_time": "Čas strávený skládáním"
+  "statistics_puzzles_solved": "Počet složených puzzlí"
+  "statistics_pieces_count": "Počet složených dílků"
+  "favorite_puzzlers": "Oblíbení puzzleři"
+  "no_favorite_puzzlers": "Žádní oblíbení puzzleři"
+  "solved_puzzles": "Poskládané puzzle"
+  "solved_puzzles_solo": "Jednotlivec"
+  "solved_puzzles_group": "Skupinové skládání"
+  "recent_activity": "Poslední<br>aktivita"
+  "personal_info": "Osobní<br>info"
+  "private_profile_info_1": "Rozhodl se nesdílet své časy. My však tvrdíme, že neexistují pomalé ani rychlé časy - jen dílky, které je třeba složit."
+  "private_profile_info_2": "Chceš vědět víc? Potkej ho osobně a zkus ho přesvědčit, aby se podělil. Tady ti nic dalšího prozradit nemůžeme."
+"my_profile":
+  "meta":
+    "title": "Můj profil"
+  "title": "Můj profil"
+  "edit": "Upravit údaje"
+  "logout": "Odhlásit se"
+  "myssing_name_info": "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
+  "public_info": "veřejné"
+  "not_public_info": "neveřejné"
+  "name": "Jméno/přezdívka"
+  "stopwatches": "Moje stopky"
+  "missing_name_info": "Je nám líto, ale pokud si nevyplníš jméno nebo přezdívku, nevíme jak tě prezentovat. Proto, jsou všechny tvé výsledky neveřejné."
+  "share_mention_myspeedpuzzling": "Označ nás:"
+  "wjpc_connection": "Propojení soutěžního účtu"
+"edit_profile":
+  "meta":
+    "title": "Úprava profilu"
+  "title": "Úprava profilu"
+  "player_code_change": "Změna kódu hráče"
+  "profile_visibility": "Viditelnost profilu"
+  "allow_direct_messages": "Povolit ostatním uživatelům posílat mi přímé zprávy"
+  "email_notifications": "Posílat mi e-mailová upozornění o nepřečtených zprávách"
+  "messaging_notifications": "Zprávy a upozornění"
+"puzzle_detail":
+  "meta":
+    "description": "Prozkoumejte puzzle %brand% %puzzle% (%pieces% dílků) na My Speed Puzzling. Sledujte postup, porovnávejte časy a zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
+"puzzlers":
+  "meta":
+    "title": "Speed Puzzling Hráči | Výsledky"
+    "description": "Objevuj speed puzzling hráče, porovnávej výsledky a žebříčky. Sleduj oblíbené puzzlery a jejich nejnovější časy skládání."
+    "keywords": "speed puzzling hráči, puzzleři, skládači puzzlí, výsledky hráčů, puzzle komunita, časy skládání"
+  "title": "Puzzleři"
+  "results_for": "Výsledky vyhledávání pro výraz"
+  "no_matches_found": "Nebyly nalezeny žádné shody"
+  "my_favorites": "Moji oblíbení"
+  "most_popular": "Nejpopulárnější"
+  "by_country": "Podle země"
+  "most_favorite": "Nejoblíbenější puzzleři"
+  "search_placeholder": "Hledat jméno hráče nebo kód..."
+  "total_players": "Celkem hráčů"
+"players_per_country":
+  "meta":
+    "title": "Puzzleři ze země - %country%"
+  "title": "Puzzleři ze země - %country%"
+  "link": "Puzzleři dle země"
+"flashes":
+  "stopwatch_already_saved": "Tyto stopky byly již uloženy."
+  "puzzle_needs_approve": "Nově přidané puzzle se budou veřejně zobrazovat až po schválení administrátorem - obvykle do 24 hodin od přidání."
+  "time_added": "Skládání jsme zaznamenali."
+  "time_deleted": "Smazali jsme veškeré důkazy. Nikdo se nikdy nedozví, co se právě stalo!"
+  "profile_saved": "Změna profilu uložena!"
+  "time_edited": "Upravené údaje jsme uložili."
+  "player_not_found": "Hráč, kterého jste zkoušeli hledat, u nás není!"
+  "puzzle_not_found": "Puzzle, které jste zkoušeli hledat, u nás nejsou!"
+  "puzzler_added_to_favorites": "Puzzlera jsme ti přidali do seznamu oblíbených."
+  "puzzler_removed_from_favorites": "Puzzlera jsme ti odebrali ze seznamu oblíbených."
+  "can_not_favorite_yourself": "Nemůžeš přidat sám sebe do seznamu oblíbených. Je přeci jasné, že ty jsi tvůj vlastní nejoblíbenější puzzler!"
+  "player_already_in_favorites": "Tento puzzler je již na seznamu tvých oblíbených, podruhé ho tam tedy přidávat nebudeme ;-)."
+  "player_not_in_favorites": "Hmm, nenašli jsme tohoto puzzlera ve tvých oblíbených, nemůžeme ho tedy odebrat ;-)."
+  "competition_duplicate_connection": "Něco je špatně :-( vybrali jste soutěžní účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
+  "competition_connection_saved": "Super! Soutěžní účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
+  "membership_subscribed_successfully": "členství je nyní aktivní!"
+  "non_unique_player_code": "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
+  "unknown_error": "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
+  "exclusive_membership_feature": "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."
+  "puzzle_removed_from_collection": "Puzzle bylo odebráno z kolekce."
+  "puzzle_added_to_collection": "Puzzle bylo přidáno do kolekce."
+  "tracking_added": "Záznam o puzzle jsme uložili."
+  "collection_not_found": "Kolekce, kterou jste hledali, u nás není!"
+"hub":
+  "title": "Hub"
+  "meta":
+    "title": "Speed Puzzling Hub | Výsledky"
+    "description": "Speed puzzling hub s nejnovějšími výsledky, žebříčky hráčů a statistikami puzzlí. Zjisti kdo skládá nejrychleji a sleduj pokrok komunity."
+    "keywords": "speed puzzling hub, nejnovější výsledky, puzzle žebříčky, aktivní hráči, statistiky puzzlí, aktivita"
+  "welcome": "Vítej puzzlere!"
+  "welcome_back": "Vítej zpět"
+  "recent_favorites_activity": "Aktivita<br>oblíbených"
+  "this_month": "Tento<br>měsíc"
+  "last_month": "Minulý<br>měsíc"
+  "all_time": "Za celou<br>dobu"
+  "most_active_solo_players": "Nejaktivnější SOLO hráči"
+  "most_solved_puzzle": "Nejskládanější puzzle"
+  "statistics": "Statistiky"
+  "no_favorites": "Nemáte žádné hráče v oblíbených. Přidejte si a sledujte zde jejich aktivitu."
+  "not_logged": "Nejste přihlášení - pro využití plného potenciálu toho, co vám platforma nabízí se přihlašte."
+  "seo_suffix": "- Speed Puzzling Komunita"
+"statistics":
+  "puzzle_solved": "Složených puzzlí"
+  "total_pieces": "Celkem dílků"
+  "time_spent": "Čas strávený skládáním"
+  "longest_streak": "Nejdelší série"
+  "longest_streak_help": "Max po sobě jdoucích dní puzzlování"
+  "most_solved_brand": "Nejskládanější značka"
+  "all_brands": "Všechny značky"
+  "no_results": "Víme, že miluješ skládání puzzlí — jsi v podstatě zašeptávač puzzlí. Ale za vybrané časové období… nic. Nula. Prázdno. Nicota.<br>\nBuď jsi žádné puzzle neskládal, nebo jsi ho zapomněl přidat na platformu (což je možná ještě větší záhada).<br>\nJe čas vzít nějaké puzzle a napravit tenhle tragický dějový zvrat! Tvoje statistiky pláčou v rohu — dopřej jim trochu lásky.\n"
+"dates":
+  "all_time": "Za celou dobu"
+  "year": "Rok"
+  "months":
+    1: "Leden"
+    2: "Únor"
+    3: "Březen"
+    4: "Duben"
+    5: "Květen"
+    6: "Červen"
+    7: "Červenec"
+    8: "Srpen"
+    9: "Září"
+    10: "Říjen"
+    11: "Listopad"
+    12: "Prosinec"
+"feedback":
+  "title": "Poslat zpětnou vazbu"
+  "success_msg": "Obdrželi jsme vaši zpětnu vazbu, moc si jí vážíme! Brzy se vám ozveme."
+  "message": "Zpráva"
+  "send": "Odeslat"
+  "thank_you": "Děkujeme za vaši zpětnou vazbu!"
+"notifications":
+  "title": "Notifikace"
+  "solved_puzzle_with_time": "za"
+  "solved_puzzle": "{0,1} poskládal puzzle|[2,Inf] poskládali puzzle"
+  "no_notifications": "Zatím nemáte žádné notifikace. Přihlašte se k odběru hráčů přidáním do oblíbených."
+  "mark_all_as_read": "Označit vše jako přečtené"
+  "mark_as_read": "Označit jako přečtené"
+  "new_notification": "Nová notifikace"
+  "lending":
+    "lent_to_you": "%owner% vám půjčil puzzle"
+    "borrowed_from_you": "%borrower% si od vás vypůjčil puzzle"
+    "returned_to_you": "%holder% vám vrátil puzzle"
+    "taken_back": "%owner% si vzal puzzle zpět"
+    "passed_to_you": "%from% vám předal puzzle"
+    "passed_from_you": "Puzzle bylo předáno hráči %to%"
+    "your_puzzle_passed": "Vaše puzzle bylo předáno od %from% hráči %to%"
+  "puzzle_report":
+    "change_approved": "Vaše navrhované změny byly schváleny"
+    "change_rejected": "Vaše navrhované změny byly zamítnuty"
+    "merge_approved": "Váš report duplikátu byl schválen a puzzle byla sloučena"
+    "merge_rejected": "Váš report duplikátu byl zamítnut"
+  "conversation_request":
+    "general": "%player% vám poslal žádost o konverzaci"
+    "marketplace": "%player% vám poslal zprávu o %puzzle%"
+"badges":
+  "title": "Odznaky"
+  "my_title": "Mé odznaky"
+  "badge":
+    "supporter": "Podporovatel"
+"scan":
+  "meta":
+    "title": "Čtečka čárových kódů"
+  "title": "Čtečka čárových kódů"
+  "beta_info": "Toto je úplně nová funkce, kterou stále ještě ladíme. Budeme velmi vděční za váš feedback."
+  "instructions": "Namiřte vaší kameru na EAN (čárový kód) na krabic a zkuste své štěstí - pokud jsou puzzle v naší databázi, najdeme je ;-)."
+  "not_found": "Bohužel puzzle s EAN %code% u nás nejsou. Budeme velmi vděční, pokud k nám přidáte svůj čas s těmito puzzlemi."
+  "puzzle_ean_barcode": "Naskenovat EAN kód puzzle"
+  "puzzle_form":
+    "not_found": "Puzzle s EAN %ean% nebylo nalezeno. Zkuste hledat podle názvu nebo přidejte nové puzzle."
+    "multiple_brands": "Pro EAN %ean% bylo nalezeno více značek. Vyberte jednu z nabídky."
+    "multiple_puzzles": "Pro EAN %ean% bylo nalezeno více puzzlí. Vyberte jedno z nabídky."
+"wjpc2024":
+  "meta":
+    "title": "WJPC 2024"
+  "title": "WJPC 2024"
+  "intro": "Speed Puzzling událost roku je tady! Přinášíme vám statistiky, abyste mohli prozkoumat, proti komu budete soutěžit. Všechny statistiky zde, se počítají pouze z 500-dílkových puzzlí složených za poslední 3 měsíce, aby byly co nejvíce relevantní. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem! Propojte si váš profil s WJPC účtem v nastavení <a href=\"%link%\">vašeho profilu</a>. Pouze pro soutěžící v kategorii jednotlivců."
+  "connected_participants": "Propojení účastníci"
+  "not_connected_participants": "Účastníci"
+  "puzzle_solved": "Puzzlí složeno"
+  "average": "Průměr"
+  "fastest": "Nej"
+  "no_participant_matches_filters": "Žádný účastník neodpovídá zadanému vyhledávání"
+  "filter_by_name": "Vyhledávej podle jména"
+"competition_connection":
+  "meta":
+    "title": "%competitionName% - propojení účtu"
+  "title": "%competitionName% - propojení účtu"
+  "back_to_competition": "Zpět na soutěž"
+  "description": "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
+"global_modal":
+  "title": "Marketplace je tady!"
+  "text": "<p>Chtěli jste někdy koupit, prodat nebo vyměnit puzzle? Teď je to jednodušší než kdy dřív!</p>\n<p>Prozkoumejte zbrusu nový <strong>Marketplace</strong> — nabídněte své puzzle k prodeji, najděte skvělé nabídky a komunikujte s ostatními puzzlaři přímo na platformě. Budeme rádi za vaši zpětnou vazbu!</p>\n"
+  "button_cta": "Prozkoumat Marketplace"
+  "button_dismiss": "Možná později"
+"added_time_recap":
+  "title": "Skvělý čas, jen tak dál!"
+  "add_time": "Přidat další čas"
+  "the_same_puzzle": "Ke stejným puzzlím"
+  "puzzle_detail": "Výsledky"
+"added_tracking_recap":
+  "meta":
+    "title": "Puzzle zaznamenáno"
+  "title": "Puzzle úspěšně zaznamenáno!"
+  "add_another": "Zaznamenat další puzzle"
+  "the_same_puzzle": "Zaznamenat stejné puzzle znovu"
+  "puzzle_detail": "Zobrazit detail puzzle"
+  "manufacturer": "Výrobce"
+  "pieces": "Dílky"
+  "group_puzzlers": "Skládáno s"
+"global_search":
+  "info": "Přivítejte nové vyhledávání! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
+  "no_player_found": "Nenalezen žádný hráč :-("
+  "no_puzzle_found": "Nenalezeny žádné puzzle :-("
+"membership":
+  "meta":
+    "title": "Členství"
+    "description": ""
+  "title": "Členství"
+  "intro_text": "Členství je způsob jak získat přístup k exkluzivním funkcím pro opravdové puzzle nadšence! Předplacením členství zároveň podpoříte vývoj platformy a tím i naši vizi tvořit tu nejlepší komunitní puzzle platformu na světě."
+  "redirect_to_stripe": "Budete přesměrování na platební bránu Stripe"
+  "subscription_active": "Aktivní předplatné, děkujeme že jste součástí!"
+  "membership_active": "Aktivní členství, děkujeme že jste součástí!"
+  "membership_inactive": "Členství není aktivní"
+  "membership_cancelling": "Předplatné bylo zrušeno, členství je aktivní do konce období"
+  "free_membership_active": "Aktivní členství zdarma (bez předplatného)"
+  "membership_expired": "Vaše členství vypršelo"
+  "next_payment": "Příští platba"
+  "membership_active_until": "Platnost členství do"
+  "payment_portal_button": "Upravit předplatné (platební portál)"
+  "description_title": "Jaké jsou výhody členství?"
+  "choose_your_subscription": "Vyber si předplatné"
+  "subscribe_for_monthly": "Měsíčně za"
+  "subscribe_for_yearly": "Ročně za"
+  "price_per_month": "%price% Kč / měsíc"
+  "price_per_year": "%price% Kč / rok"
+  "billing_portal_info": "Na platebním portále můžete měnit platební své údaje, zrušit členství, stáhnout faktury nebo účtenky."
+  "manage_in_app_store": "Spravovat v App Store"
+  "manage_in_play_store": "Spravovat v Play Store"
+  "manage_subscription_ios_info": "Spravujte své předplatné v Nastavení vašeho iPhonu/iPadu pod Apple ID > Předplatné."
+  "manage_subscription_android_info": "Spravujte své předplatné v Google Play Store pod Platby a předplatná."
+  "purchase_via_app_store": "Platba bude zpracována přes Apple App Store."
+  "purchase_via_play_store": "Platba bude zpracována přes Google Play Store."
+  "full_description": "<ul>\n    <li>Velký dík za podporu vývoje platformy</li>\n    <li>Vlastní personalizovaný kód hráče (můžete změnit na svém profilu)</li>\n    <li>Odznak člena</li>\n    <li>Filtrování podle prvních pokusů</li>\n    <li>Filtrování podle země</li>\n    <li>Grafy</li>\n    <li>Čtečka čárových kódů</li>\n    <li>Detailní statistiky</li>\n</ul>\n\n<h3 class=\"h4\">Na co se můžete brzy těšit?</h3>\n<ul>\n    <li>Měsíční a roční reporty <small class=\"ms-1 text-muted\">(brzy)</small></li>\n    <li>Veřejný mypuzzler.com profil <small class=\"ms-1 text-muted\">(brzy)</small></li>\n    <li class=\"mt-2\">Speciální výzvy pouze pro členy</li>\n    <li>Půjčování a prodej puzzlí mezi členy</li>\n    <li>Gamifikace - sbírání zkušeností a úrovní</li>\n    <li>Odznaky za různé úspěchy</li>\n    <li>&hellip; a mnoho dalšího, toto je pouze malá ochutnávka toho, co pro vás chystáme!</li>\n</ul>\n"
+  "members_exclusive_button": "Exkluzivně pro členy"
+  "members_exclusive_short": "Pro členy"
+  "modal":
+    "title": "Exkluzivní funkce pro členy"
+    "cta": "Stát se členem"
+    "no_thanks": "Ne, děkuji!"
+    "text": "<p>Odemkněte přístup k této a dalším funkcím, které vylepší váš zážitek.</p>\n<p>Staňte se členem ještě dnes, podpořte vývoj platformy a užívejte si exkluzivní funkce, které udělají vaši speed puzzling cestu ještě zábavnější!</p>\n"
+  "have_voucher_code": "Máte slevový kód?"
+  "redeem_voucher": "Uplatnit voucher"
+"membership_payment_cancelled":
+  "meta":
+    "title": "Platba byla zrušena"
+    "description": ""
+  "title": "Platba byla zrušena"
+  "text": "Platební proces byl přerušen, nejspíše vámi :-)."
+  "membership_link": "Zpět na přehled o členství"
+  "payment_link": "Opakovat platbu"
+"terms_of_service":
+  "meta":
+    "title": "Obchodní podmínky"
+    "description": "Obchodní podmínky platformy MySpeedPuzzling.com"
+  "content": "<h1>Obchodní podmínky</h1>\n<p>Tyto obchodní podmínky upravují poskytování předplatného (členství) na platformě MySpeedPuzzling.com. Chceme, abyste měli všechny důležité informace na jednom místě a mohli si je jednoduše projít.</p>\n<h2>1. Kdo jsme</h2>\n<ul>\n    <li><strong>Provozovatel:</strong> Simona Mikešová (OSVČ)</li>\n    <li><strong>Sídlo:</strong> Františka Formana 237/31, 700 30 Ostrava, Česká republika</li>\n    <li><strong>IČ:</strong> 06868878</li>\n    <li><strong>Kontaktní e-mail:</strong> <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a></li>\n</ul>\n<p>Jako provozovatel platformy MySpeedPuzzling.com jsme vaším smluvním partnerem pro nákup a využívání placeného členství.</p>\n<h2>2. Jak služba funguje</h2>\n<p>MySpeedPuzzling.com je online platforma pro nadšence do skládání puzzlí. Nabízíme různé funkce, přičemž prémiové části aplikace jsou přístupné pouze uživatelům s aktivním členstvím.</p>\n<ul>\n    <li>Členství je virtuální (digitální)\
+    \ produkt – po zaplacení získáte okamžitý přístup k exkluzivním funkcím.</li>\n    <li>Protože jde o elektronickou službu, nevztahují se na ni žádné fyzické dodací či přepravní podmínky.</li>\n    <li>Obsah a funkce dostupné v rámci členství se mohou v čase měnit – snažíme se je průběžně vylepšovat.</li>\n</ul>\n<h2>3. Objednávka a uzavření smlouvy</h2>\n<p>Pokud se rozhodnete pro placené členství, stačí v sekci „Členství“ vybrat měsíční předplatné. Poté budete přesměrováni na platební bránu Stripe.</p>\n<ul>\n    <li><strong>Platební údaje:</strong> Veškeré platební údaje zpracovává za šifrovaného spojení služba Stripe – my k těmto údajům nemáme přístup.</li>\n    <li><strong>Potvrzení objednávky:</strong> Ke uzavření smlouvy mezi vámi a námi dojde v okamžiku úspěšného provedení platby. Poté vám bude okamžitě aktivováno členství.</li>\n    <li><strong>Faktura:</strong> Fakturu za zaplacené předplatné si můžete stáhnout přímo v platebním portále Stripe.</li>\n    <li><strong>Další správa\
+    \ členství:</strong> Změny platební metody, zrušení nebo prodloužení probíhá rovněž přes platební portál Stripe. Na tento portál se dostanete přes sekci „Členství“ ve vašem účtu.</li>\n</ul>\n<h2>4. Ceny a platební podmínky</h2>\n<ul>\n    <li><strong>Cena členství:</strong> Cena je vždy uvedena včetně DPH. V závislosti na měně, ve které platbu provádíte, se mohou ceny mírně lišit.</li>\n    <li><strong>Platební metody:</strong> Stripe podporuje platby kartou, Apple Pay a Link (další metody se mohou postupně přidávat).</li>\n    <li><strong>Opakovaná platba:</strong> Jde o měsíční předplatné, což znamená, že se platba opakuje každý měsíc, dokud členství nezrušíte.</li>\n</ul>\n<h2>5. Zrušení a vrácení peněz</h2>\n<ul>\n    <li><strong>Kdykoliv můžete své předplatné zrušit:</strong> Po zrušení předplatného vám zůstává přístup do konce předplaceného období. Po jeho uplynutí už se vám nic nestrhává.</li>\n    <li><strong>Vracení peněz:</strong> Pokud požádáte o vrácení peněz za aktuální\
+    \ běžící období, vrátíme vám platbu stejným způsobem, jakým jste ji uhradili, a vaše členství se ihned ukončí.</li>\n    <li><strong>Rychlost vyřízení:</strong> Vrácení a reklamace zpracováváme obratem (obvykle do druhého pracovního dne), nejpozději do 30 dnů, jak stanovuje zákon.</li>\n    <li><strong>Náklady na vrácení:</strong> Jakékoliv poplatky za vrácení neseme my – chceme, abyste byli spokojení.</li>\n</ul>\n<h2>6. Reklamace</h2>\n<p>V případě, že máte pocit, že vám služba nebyla poskytnuta v odpovídající kvalitě nebo máte technické potíže, ozvěte se nám na e-mail\n    <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.\n</p>\n<ul>\n    <li>Reklamace vyřizujeme co nejdříve, typicky do 1–2 pracovních dnů.</li>\n    <li>Maximální lhůta k vyřízení reklamace je 30 dní.</li>\n</ul>\n\n<h2>7. Ochrana osobních údajů</h2>\n<p>O zpracování osobních údajů informujeme na <a href=\"%privacyPolicyLink%\">samostatné stránce</a>, která se věnuje ochraně soukromí. Tam najdete\
+    \ všechny podrobnosti o tom, jaké údaje shromažďujeme, proč je zpracováváme a jak s nimi nakládáme.</p>\n\n<h2>8. Závěrečná ustanovení</h2>\n<ul>\n    <li>Tyto podmínky se řídí českým právem a případné spory se řeší u příslušných soudů České republiky.</li>\n    <li>Věříme, že žádné spory nebudou, ale pokud by přece jen nastaly, můžete se obrátit na Českou obchodní inspekci (ČOI) nebo využít evropskou platformu pro mimosoudní řešení sporů (ODR).</li>\n    <li>Aktuální znění podmínek je vždy dostupné na MySpeedPuzzling.com. Vyhrazujeme si právo je v přiměřeném rozsahu měnit, abychom je udrželi v souladu s legislativou nebo provozními potřebami.</li>\n</ul>\n<p><em><small>Poslední aktualizace: leden 2025</small></em></p>\n"
+"privacy_policy":
+  "meta":
+    "title": "Zásady ochrany osobních údajů"
+    "description": "Zásady ochrany osobních údajů platformy MySpeedPuzzling.com"
+  "content": "<h1>Zásady ochrany osobních údajů</h1>\n<p>Cílem tohoto dokumentu je informovat vás o tom, jakým způsobem na MySpeedPuzzling.com nakládáme s vašimi osobními údaji, které nám svěříte. Velmi si vážíme vaší důvěry a soukromí.</p>\n<h2>1. Veřejné jméno</h2>\n<p>Při registraci na MySpeedPuzzling.com si můžete zvolit své <strong>veřejné jméno</strong> – může to být přezdívka, zkratka nebo iniciály. Toto jméno se zobrazí všem návštěvníkům webové stránky. Proto buďte prosím opatrní při výběru jména, pokud si přejete zůstat více v anonymitě.</p>\n<h2>2. E-mail</h2>\n<ul>\n    <li>E-mail zadáváte pro účely přihlašování a komunikace s administrátory platformy.</li>\n    <li><strong>E-mail je neveřejný</strong> – nezobrazuje se nikde v profilu a není přístupný třetím stranám.</li>\n    <li>E-mail je uložen v šifrované databázi a přístup k němu mají pouze autoři aplikace.</li>\n    <li>Žádným dalším subjektům váš e-mail neposkytujeme.</li>\n</ul>\n<h2>3. Heslo</h2>\n<ul>\n    <li>Heslo\
+    \ je v naší databázi uloženo pouze ve formě <strong>hashe</strong> – jedná se o nevratné zašifrování, takže nikdo z administrátorů ani z vývojářů nemůže zjistit jeho původní znění.</li>\n    <li>Při přihlašování se váš zadaný údaj pouze porovnává s hashem uloženým v databázi.</li>\n    <li>Z bezpečnostních důvodů proto nikdy nezasíláme původní heslo e-mailem; v případě potřeby si jej můžete obnovit pomocí procesu „Zapomenuté heslo“.</li>\n</ul>\n<h2>4. Volitelné veřejné údaje</h2>\n<p>Uživatel má možnost vyplnit na svém profilu další <strong>veřejné informace</strong> (např. město, stát, odkazy na sociální sítě, popisek, avatar), které slouží k lepší interakci v komunitě.</p>\n<ul>\n    <li>Tyto údaje se zobrazují všem návštěvníkům a <strong>nejsou považovány za citlivé</strong> osobní údaje.</li>\n    <li>Při vyplňování jste upozorněni, že se jedná o veřejné informace.</li>\n    <li>Přesto jsou i tyto údaje ukládány v naší šifrované databázi.</li>\n</ul>\n<h2>5. Platební údaje</h2>\n\
+    <ul>\n    <li>Platforma MySpeedPuzzling.com <strong>neshromažďuje žádné údaje o platebních metodách</strong> – všechny platby jsou zpracovávány výhradně přes partnerskou společnost Stripe.</li>\n    <li>Nikdy nemáme přístup k vašim platebním kartám, bankovním údajům ani jiným finančním údajům.</li>\n</ul>\n<h2>6. Zabezpečení a soukromí</h2>\n<ul>\n    <li>Bezpečí našich uživatelů je pro nás prioritou – servery a databáze jsou chráněny proti neoprávněným přístupům, únikům dat a jiným kybernetickým hrozbám.</li>\n    <li>Vaše osobní údaje (např. e-mail či volitelné profilové údaje) jsou vždy šifrovány a mají k nim přístup pouze autoři aplikace.</li>\n    <li>Zachováváme všechny běžné bezpečnostní standardy a na zabezpečení neustále pracujeme.</li>\n</ul>\n<p>Pokud máte jakékoliv dotazy k ochraně osobních údajů nebo si nejste jisti, zda je něco dostatečně srozumitelné, kontaktujte nás na <a href=\"mailto:simona@speedpuzzling.cz\">simona@speedpuzzling.cz</a>.</p>\n<p><em><small>Poslední\
+    \ aktualizace: leden 2025</small></em></p>\n"
+"countdown":
+  "days": "dny"
+  "hours": "hod"
+  "minutes": "min"
+  "seconds": "sek"
+"blog":
+  "outage-2025-02-17":
+    "title": "Největší výpadek v historii MySpeedPuzzling"
+    "content": "<h2 class=\"h5\">Dne 17.2. jsme měli nejdelší výpadek v historii MySpeedPuzzling ...</h2>\n<h4 class=\"h6\">Nejdříve ze všeho vám chci všem moc poděkovat za vaší trpělivost a důvěru! Věřte, že těch 7 hodin kdy jsme věděli, že MSP nefunguje, pro nás bylo velmi stresujících!</h4>\n<p>Dnes jsme měli téměř 10 hodin výpadek celé platformy. Jedná se o nejdelší výpadek v historii MySpeedPuzzlingu. Nebyla to naše chyba... nebo jo?</p>\n<p>Protože se snažíme být 100% transparentní, popíšeme vše jak se stalo, krok za krokem.</p>\n<p>Šel jsem spát zhruba v 1:30 (bohužel chvilku předtím, než se to celé stalo), kdy jsem dokončil další z novinek na MySpeedPuzzling. Kolem 5 ráno, kdy se jedno z dětí vzbudilo na toaletu, Simona automaticky zkontrolovala na elefonu notifikace, často se dívá kdo přidal nové časy a jak rychle stihl puzzle složit. Ano i v 5 ráno... Čekalo ji však nemilé překvapení - stránka, která se nenačítá. Simona do mě strčila se slovy: MySpeedPuzzling nefunguje! Taková\
+      \ slova mě velmi rychle probrala. Beru do ruky telefon, zkouším a opravdu, nefunguje! Jdu pro notebook, zkontrolovat blíže co se děje. V 1:59 v noci nám přišla automatická notifikace z monitoringu, to většinou nevěstí nic nového. Bohužel jsem si jí nevšiml, protože jsem šel spát chvíli předtím. Navíc úprava, kterou jsem prováděl nebyla vůbec destruktivního rázu a nemohla způsobit takovýto výpadek. Takto tedy začal náš pondělní výpadek, který trval téměř až do 12:00.</p>\n<h5>Technické detaily pro geeky:</h5>\n<p><em>(pomůže vám to nahlédnout do naší serverové infrastruktury)</em></p>\n<p>Před týdnem, jsem instaloval na náš MySpeedPuzzling fyzický server i mail server - jako přípravu na migraci z Auth0 na vlastní autentizační službu + newsletter a další věci - posílat desetitisíce e-mailů měsíčně už není en tak a je potřeba se na to řádně připravit. Jak se nakonec ukázalo, může za to právě onen Mail server, ale nepředbíhejme.</p>\n<p>První zjištění bylo, že timeoutují porty 443 a 80\
+      \ - na celém serveru běží více aplikací a týkalo se to všech aplikací, nejen MSP - to je nemilé. Další, o dost nepříjemnější zjištění bylo, že se na server nedostanu pomocí SH - port také timeoutoval.</p>\n<p>Co teď? Začíná panika a říkám Simoně, že tohle je průšvih.</p>\n<p>Okamžitě notifikuji poskytovatele serveru s tím, že tento server nefunguje - vše v tuto chvíli vypadalo na jasný problém u poskytovatele, protože server se vůbec nehlásil, zatímco ostatní servery ve stejné serverovně byly tále dostupné - mé podezření padlo na hardwarovou chybu, třeba síťová karta, vykopnutý kabel (i to už se mí už v minulosti stalo...), nebo zabanování ze strany poskytovatele z důvodů podezřelé aktivity.</p>\n<p>Poskytovatel reagoval do pár minut, že u nich nic neevidují, byli se podívat v serverovně, server běží a hlásí se - z jeho pohledu vše v pořádku. Skvělé, vše je v pořádku, ale MSP server je nedostupný a nedá se na něj řihlásit...</p>\n<p>Rychle jsem nahodil rescue systém vedle serveru,\
+      \ ze kterého jsem se úspěšně namountoval filesystém MSP serveru a začalo hledání v kupce sena. Věděl jsem, že k výpadku došlo cca v 1:58-1:59. Začal jsem hledat změněné oubory v tom čase, jestli nás třeba někdo náhodou nehacknul. Nic jsem nenašel. Celé to vůbec nedávalo smysl a nedařilo se mi nic najít. Kolem 8:00 se ke mě přidal kolega z práce, aby mi pomohl. Společně jsme zjistili, že SMTP na portu 25 (ten slouží k odesílání e-mailů) běží a netimeoutuje - dokonce jsem si byl schopen poslat e-mail a ten opravdu byl doručen.</p>\n<p>O to více jsme byli oba zmatení - server tedy běží a funguje, \"pouze\" se na něj nedá přihlásit a jsou zablokované také porty 80 a 443. Teď už jsme si byli téměř jistí, že za to může problém v nastavení sítě - stále vše ale ypadalo \"normálně\", ale měli jsme hlavního podezřelého - Mail server!</p>\n<p>A taky že ano. Vše na serveru nám běží v Docker containerech, kdo Docker zná, ten možná ví, že jeho síťování může být složité. Mail server, který jsem zvolil,\
+      \ používá jako jednu z komponent také fail2ban, která má za cíl akázat přístupy z podezřelých IP adres - například příliš mnoho neúspěšných pokusů o přihlášení nebo jiné hrozby. Přeskočím další asi 2 hodiny jak jsem k tomu přišel - komponenta fail2ban nebyla správně nakonfigurována (byla ponechána ve výchozím nastavení) a v kombinaci s UFW nějakým záhadným způsobem zablokovala veškerý traffic na zmíněných portech 22, 80 a 443 - i když stále pořádně nechápeme proč se to stalo takhle.</p>\n<p>Protože teď už jsem znal příčinu, finální řešení nezabralo tolik času - rychle odinstalovat mail server včetně UFW, flushnout iptables, přidat znovu pravidla pro síťování dockeru, všechno párkrát \"otočit\", odpojit rescue ystém, vše znovu vyrestartovat a... konečně po nekonečných 5 hodinách nadávání za monitorem, MSP opět funguje tak jak má...</p>\n<p>Přeskočil jsem některé zbytečné detaily, například, že mezitím jsem v během 5 minut změnil DNS na CloudFlare proxy, kam jsem nahodil Node.js worker\
+      \ se zprávou, že máme výpadek - alespoň aby tam nezůstala prázdná stránka...</p>\n<p>Práci na Mail serveru zatím odkládám a navíc už vím, že bude \"bokem\", na samostatném serveru mimo MSP. Na jednu stranu bylo zábavné, vyzkoušet si \"disaster recovery\" proces - kdy v jedné chvíli jsem byl natolik zoufalý, že sem byl připraven na to, že tento server shoří v pekle, rozjedu to během chvilky na novém a jen změním DNS záznamy... naštěstí to nakonec nebylo potřeba.</p>\n<p>PS. ono se to opravdu rozbilo \"samo\" vlivem mail serveru, po týdnu, bez lidského zásahu... to je teda něco...</p>\n<p>PS2. jste stateční, pokud jste to dočetli až sem :-).</p>\n"
+"navigation":
+  "home": "Domů"
+"collections":
+  "meta":
+    "title": "Puzzle knihovna"
+  "title": "Puzzle knihovna"
+  "title_other": "Puzzle knihovna uživatele %name%"
+  "create":
+    "button": "Vytvořit kolekci"
+    "title": "Vytvořit novou kolekci"
+    "meta":
+      "title": "Vytvořit kolekci"
+    "submit": "Vytvořit"
+  "edit":
+    "button": "Upravit"
+    "title": "Upravit kolekci %name%"
+    "meta":
+      "title": "Upravit kolekci %name%"
+    "submit": "Uložit změny"
+  "delete":
+    "button": "Smazat"
+    "confirm":
+      "title": "Smazat kolekci"
+      "message": "Opravdu chcete smazat kolekci %name%? Tato akce je nevratná a smaže se také všechny puzzle v této kolekci."
+      "button": "Smazat kolekci"
+  "form":
+    "name": "Název"
+    "description": "Popis"
+    "visibility_help": "Veřejné kolekce jsou viditelné pro všechny uživatele, soukromé pouze pro vás."
+  "flash":
+    "created": "Kolekce byla úspěšně vytvořena."
+    "updated": "Kolekce byla úspěšně upravena."
+    "deleted": "Kolekce byla úspěšně smazána."
+    "system_updated": "Viditelnost puzzle kolekce byla úspěšně upravena."
+    "comment_updated": "Komentář byl úspěšně upraven."
+    "membership_required": "Vytváření kolekcí je prémiová funkce. Získejte členství a organizujte své puzzle do neomezeného množství kolekcí!"
+    "puzzle_added": "Puzzle bylo úspěšně přidáno do kolekce."
+    "puzzle_removed": "Puzzle bylo odebráno z kolekce."
+    "login_required_add": "Pro přidávání puzzlí do kolekcí musíte být přihlášeni."
+    "login_required_copy": "Pro kopírování puzzlí do kolekcí musíte být přihlášeni."
+    "login_required_move": "Pro přesouvání puzzlí mezi kolekcemi musíte být přihlášeni."
+    "puzzle_moved": "Puzzle bylo úspěšně přesunuto do kolekce."
+  "membership_required":
+    "title": "Odemkněte neomezené kolekce"
+    "message": "Vytvářejte neomezené množství kolekcí pro organizaci vašich puzzle s členstvím!"
+    "toast": "Vytváření kolekcí vyžaduje aktivní členství."
+    "help_text": "Chcete organizovat puzzle do více kolekcí?"
+    "unlock_link": "Odemknout s členstvím"
+  "empty":
+    "title": "Nemáte žádné kolekce"
+    "message": "Vytvořte svoji první kolekci a začněte organizovat vaše oblíbené puzzle."
+    "title_other": "Žádné veřejné kolekce"
+    "message_other": "%name% nemá žádné veřejné kolekce."
+  "visibility":
+    "public": "Veřejná"
+    "private": "Soukromá"
+  "public": "Veřejná"
+  "change_to_public_hint": "Změňte na veřejnou pro sdílení"
+  "system_name": "Puzzle kolekce"
+  "already_in_system": "Puzzle je již ve vaší kolekci"
+  "already_in_system_message": "Toto puzzle již máte v Puzzle kolekci. Chcete organizovat puzzle do více kolekcí? Odemkněte tuto funkci s členstvím!"
+  "add_to_collection": "Přidat do kolekce"
+  "add_puzzle_here":
+    "button": "Přidat puzzle"
+  "remove_from": "Odebrat z %collection%"
+  "remove": "Odebrat"
+  "confirm_remove": "Opravdu chcete odebrat toto puzzle z kolekce?"
+  "items_count": "%count% puzzlí"
+  "no_puzzles": "V této kolekci nejsou žádná puzzle"
+  "no_puzzles_description": "Tato kolekce je prázdná. Přidejte nějaká puzzle pro začátek!"
+  "added_on": "Přidáno %date%"
+  "back_to_library": "Knihovna puzzlí"
+  "select_collection_help": "Vyberte kolekci nebo nechte prázdné pro přidání do výchozí Puzzle kolekce"
+  "private_collection": "Soukromá kolekce"
+  "private_collection_message": "Kolekce \"%collection%\" hráče %player% je soukromá a nelze ji zobrazit."
+  "collection_not_found": "Kolekce nenalezena"
+  "edit_system":
+    "title": "Upravit puzzle kolekci"
+    "meta":
+      "title": "Upravit puzzle kolekci"
+    "submit": "Uložit změny"
+    "info": "Můžete změnit pouze viditelnost vaší Puzzle kolekce. Název a popis nelze upravit."
+  "edit_comment":
+    "title": "Upravit komentář"
+    "meta":
+      "title": "Upravit komentář - %name%"
+    "submit": "Uložit"
+  "remove_puzzle": "Odebrat z kolekce"
+  "move_puzzle": "Přesunout puzzle do kolekce"
+  "copy_puzzle": "Zkopírovat puzzle do kolekce"
+  "move_to_collection": "Přesunout do kolekce"
+  "copy_to_collection": "Zkopírovat do kolekce"
+  "moving_from": "Přesouváno z %collection%"
+  "move_puzzle_submit": "Přesunout"
+  "copy_puzzle_submit": "Zkopírovat"
+  "no_move_target": "Žádné dostupné kolekce"
+  "no_move_target_message": "Nejsou žádné další kolekce, kam by šlo puzzle přesunout. Vytvořte si vlastní kolekce pro organizaci puzzlí."
+  "no_copy_target": "Žádné dostupné kolekce"
+  "no_copy_target_message": "Nejsou žádné další kolekce, kam by šlo puzzle zkopírovat. Vytvořte si vlastní kolekce pro organizaci puzzlí."
+  "comment_help": "Přidejte volitelný komentář k tomuto puzzle ve vaší kolekci."
+  "private": "Soukromá"
+  "add_puzzle": "Přidat puzzle do kolekce"
+  "private_page":
+    "title": "Soukromá kolekce"
+    "message": "Kolekce hráče %name% je soukromá a nelze ji zobrazit."
+  "add_puzzle_form":
+    "title": "Přidat puzzle do kolekce"
+    "button": "Přidat puzzle"
+    "description": "Vyberte existující puzzle nebo přidejte nové do své kolekce."
+    "submit": "Přidat do kolekce"
+    "success": "Puzzle bylo úspěšně přidáno do kolekce."
+"unsolved_puzzles":
+  "description": "Puzzle ve vaší sbírce, které jste ještě nesložili"
+  "description_other": "Puzzle, které %name% vlastní, ale ještě nesložil/a"
+  "edit":
+    "meta":
+      "title": "Upravit viditelnost nesložených puzzlí"
+    "submit": "Uložit změny"
+    "title": "Upravit viditelnost nesložených puzzlí"
+  "empty":
+    "message": "Všechny puzzle ve vaší sbírce byly složeny!"
+    "title": "Žádné nesložené puzzle"
+  "flash":
+    "updated": "Viditelnost nesložených puzzlí byla úspěšně aktualizována."
+  "form":
+    "visibility_help": "Veřejný seznam nesložených puzzlí je viditelný pro všechny uživatele, soukromý pouze pro vás."
+  "items_count": "%count% puzzlí"
+  "meta":
+    "title": "Nesložené puzzle"
+  "name": "Nesložené puzzle"
+  "private": "Soukromé nesložené puzzle"
+  "private_message": "Seznam nesložených puzzlí \"%collection%\" od %player% je soukromý a nelze jej zobrazit."
+  "title": "Nesložené puzzle"
+  "title_other": "Nesložené puzzle uživatele %name%"
+"puzzler_offers":
+  "badge": "%count% nabídek"
+  "title": "Nabídky puzzlerů"
+  "meta":
+    "description": "%count% puzzlerů nabízí %brand% %puzzle% k prodeji nebo výměně"
+  "column":
+    "player": "Hráč"
+    "type": "Typ"
+    "price": "Cena"
+    "condition": "Stav"
+    "comment": "Komentář"
+  "offers_link": "Nabídky (%count%)"
+  "view_all": "Zobrazit všech %count% nabídek"
+  "view_on_marketplace": "Zobrazit na tržišti"
+"lend_borrow":
+  "name": "Půjčování"
+  "title": "Půjčování"
+  "description": "Puzzles aktuálně půjčené nebo vypůjčené"
+  "lent_count": "%count% půjčeno"
+  "borrowed_count": "%count% vypůjčeno"
+  "tab":
+    "lent": "Půjčeno"
+    "borrowed": "Vypůjčeno"
+  "lent_to": "Půjčeno %name%"
+  "borrowed_from": "Od %name%"
+  "view_holder": "Zobrazit aktuálního držitele"
+  "view_owner": "Zobrazit majitele"
+  "lent":
+    "empty":
+      "title": "Žádná půjčená puzzle"
+      "message": "Zatím jste nepůjčil/a žádná puzzle. Použijte nabídku puzzle k půjčení jiným hráčům."
+      "title_other": "Žádná půjčená puzzle"
+      "message_other": "%name% nepůjčil/a žádná puzzle."
+  "borrowed":
+    "empty":
+      "title": "Žádná vypůjčená puzzle"
+      "message": "Nemáte žádná vypůjčená puzzle."
+      "title_other": "Žádná vypůjčená puzzle"
+      "message_other": "%name% si nevypůjčil/a žádná puzzle."
+  "not_in_collection": "Není ve vaší sbírce"
+  "form":
+    "borrower_code": "Kód hráče nebo jméno příjemce"
+    "borrower_code_help": "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
+    "borrower_code_placeholder": "#ABC123 nebo Jan Novák"
+    "owner_code": "Kód hráče nebo jméno majitele"
+    "owner_code_help": "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
+    "owner_code_placeholder": "#ABC123 nebo Jan Novák"
+    "notes": "Poznámky"
+    "notes_placeholder": "Volitelné poznámky k půjčce..."
+    "new_holder_code": "Kód hráče nebo jméno nového držitele"
+    "new_holder_code_help": "Pro registrované uživatele použijte #kód (např. #ABC123). Pro neregistrované osoby zadejte jejich jméno."
+    "new_holder_code_placeholder": "#ABC123 nebo Jan Novák"
+  "lend":
+    "title": "Půjčit puzzle"
+    "button": "Půjčit hráči"
+    "description": "Půjčte toto puzzle jinému hráči. Bude moci puzzle předat dál nebo vám ho vrátit."
+  "borrow":
+    "title": "Označit jako vypůjčené"
+    "button": "Vypůjčeno od"
+    "description": "Označte toto puzzle jako vypůjčené od jiného hráče."
+  "pass":
+    "title": "Předat puzzle"
+    "button": "Předat někomu dalšímu"
+    "description": "Předejte %puzzle% jinému hráči. Majitel bude stále moci puzzle sledovat."
+  "return":
+    "title": "Vrátit puzzle"
+    "button": "Vrátit majiteli"
+    "confirm_message": "Vrátit %puzzle% jeho majiteli?"
+  "membership_required":
+    "title": "Funkce pouze pro členy"
+    "message": "Půjčování puzzle je dostupné výhradně členům."
+  "already_lent": "Toto puzzle je již půjčené."
+  "already_lent_short": "Již půjčeno"
+  "already_borrowed": "Toto puzzle je již ve vašem seznamu vypůjčených."
+  "already_borrowed_short": "Již vypůjčeno"
+  "login_required": "Pro správu půjčování musíte být přihlášen/a."
+  "edit_settings":
+    "title": "Upravit nastavení půjčování"
+    "meta":
+      "title": "Upravit nastavení půjčování"
+    "submit": "Uložit změny"
+  "flash":
+    "lent": "Puzzle bylo úspěšně půjčeno."
+    "passed": "Puzzle bylo úspěšně předáno."
+    "returned": "Puzzle bylo úspěšně vráceno majiteli."
+    "borrowed": "Puzzle bylo označeno jako vypůjčené."
+    "settings_updated": "Nastavení půjčování bylo úspěšně aktualizováno."
+    "login_required": "Pro správu půjčování musíte být přihlášen/a."
+    "validation_error": "Opravte prosím chyby a zkuste to znovu."
+    "player_not_found": "Hráč nenalezen. Zkontrolujte prosím kód hráče."
+    "cannot_lend_to_self": "Nemůžete si půjčit puzzle sami sobě."
+    "cannot_borrow_from_self": "Nemůžete si vypůjčit puzzle od sebe sama."
+    "cannot_pass_to_self": "Nemůžete předat puzzle sami sobě."
+"wish_list":
+  "meta":
+    "title": "Seznam přání"
+  "title": "Seznam přání"
+  "title_other": "Seznam přání hráče %name%"
+  "name": "Seznam přání"
+  "description": "Puzzle, která chcete získat"
+  "description_other": "Puzzle, která %name% chce získat"
+  "items_count": "%count% puzzlí"
+  "empty":
+    "title": "Váš seznam přání je prázdný"
+    "message": "Přidejte puzzle, která chcete získat, do svého seznamu přání!"
+    "title_other": "Prázdný seznam přání"
+    "message_other": "Seznam přání hráče %name% je prázdný."
+  "add":
+    "title": "Přidat na seznam přání"
+    "button": "Přidat na seznam přání"
+    "success": "Puzzle bylo přidáno na váš seznam přání."
+  "remove":
+    "button": "Odebrat ze seznamu přání"
+    "success": "Puzzle bylo odebráno z vašeho seznamu přání."
+  "already_in_list": "Toto puzzle je již ve vašem seznamu přání."
+  "private": "Soukromý seznam přání"
+  "private_message": "Seznam přání hráče %player% je soukromý a nelze jej zobrazit."
+  "on_wishlist": "Na seznamu přání"
+  "auto_remove_enabled": "Automatické odebrání povoleno"
+  "edit":
+    "title": "Upravit viditelnost seznamu přání"
+    "submit": "Uložit změny"
+    "meta":
+      "title": "Upravit viditelnost seznamu přání"
+  "form":
+    "visibility_help": "Veřejný seznam přání je viditelný pro všechny uživatele, soukromý pouze pro vás."
+    "remove_on_add": "Automaticky odebrat ze seznamu přání"
+    "remove_on_add_help": "Pokud je zaškrtnuto, toto puzzle bude automaticky odebráno z vašeho seznamu přání, když jej přidáte do jakékoli kolekce, přidáte čas skládání nebo si jej vypůjčíte."
+  "flash":
+    "added": "Puzzle bylo přidáno na váš seznam přání."
+    "removed": "Puzzle bylo odebráno z vašeho seznamu přání."
+    "updated": "Viditelnost seznamu přání byla úspěšně aktualizována."
+    "login_required": "Pro správu seznamu přání musíte být přihlášeni."
+  "login_required": "Pro přidávání puzzlí na seznam přání musíte být přihlášeni."
+"sell_swap_list":
+  "meta":
+    "title": "Seznam k prodeji/výměně"
+  "title": "Seznam k prodeji/výměně"
+  "title_other": "Seznam k prodeji/výměně hráče %name%"
+  "name": "Seznam k prodeji/výměně"
+  "description": "Puzzle k prodeji nebo výměně"
+  "description_other": "Puzzle, která %name% prodává nebo vyměňuje"
+  "items_count": "%count% puzzlí"
+  "empty":
+    "title": "Váš seznam k prodeji/výměně je prázdný"
+    "message": "Přidejte puzzle, která chcete prodat nebo vyměnit!"
+    "title_other": "Prázdný seznam k prodeji/výměně"
+    "message_other": "Seznam k prodeji/výměně hráče %name% je prázdný."
+  "add":
+    "title": "Přidat na seznam k prodeji/výměně"
+    "button": "Přidat na seznam k prodeji/výměně"
+    "success": "Puzzle bylo přidáno na váš seznam k prodeji/výměně."
+  "remove":
+    "button": "Odebrat ze seznamu k prodeji/výměně"
+    "success": "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
+  "already_in_list": "Toto puzzle je již ve vašem seznamu k prodeji/výměně."
+  "not_in_collection": "Nejdříve přidejte do sbírky"
+  "back_to_list": "Zpět na seznam k prodeji/výměně"
+  "membership_required":
+    "title": "Funkce pouze pro členy"
+    "message": "Seznam k prodeji/výměně je dostupný výhradně členům."
+  "login_required": "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
+  "listing_type":
+    "sell": "Prodej"
+    "swap": "Výměna"
+    "both": "Prodej i výměna"
+    "free": "Zdarma k odběru"
+  "condition":
+    "like_new": "Jako nové"
+    "normal": "Normální"
+    "not_so_good": "Není v nejlepším stavu"
+    "missing_pieces": "Chybějící dílky"
+  "form":
+    "listing_type": "Typ nabídky"
+    "condition": "Stav"
+    "condition_placeholder": "Vyberte stav..."
+    "price": "Cena"
+    "price_help": "Nechte prázdné, pokud preferujete domluvit cenu nebo pouze pro výměnu. Měnu můžete nastavit v nastavení seznamu k prodeji/výměně."
+    "comment": "Komentář"
+    "comment_placeholder": "Jakékoli další informace o tomto puzzle..."
+    "publish_on_marketplace": "Zveřejnit na tržišti"
+    "publish_on_marketplace_help": "Když je povoleno, tato položka se zobrazí také na veřejném tržišti."
+  "settings":
+    "title": "Nastavení seznamu k prodeji/výměně"
+    "description": "Popis"
+    "description_help": "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
+    "description_placeholder": "Řekněte kupcům o vašich pravidlech nabídek, preferovaných způsobech platby atd."
+    "contact_info": "Kontaktní informace"
+    "contact_info_help": "Pokud chcete být kontaktováni mimo platformu"
+    "contact_info_placeholder": "např. email, telefon, Instagram..."
+    "contact_info_warning": "Vaše kontaktní informace budou veřejně viditelné. Sdílejte pouze to, s čím jste spokojeni."
+    "shipping_info": "Informace o doručení"
+    "shipping_info_help": "Popište vaše možnosti doručení a ceny..."
+    "shipping_info_placeholder": "Popište vaše možnosti doručení a ceny..."
+    "currency": "Měna"
+    "currency_placeholder": "Vyberte měnu..."
+    "currency_custom": "Vlastní měna"
+    "custom_currency": "Vlastní měna"
+    "custom_currency_help": "Použijte toto, pokud vaše měna není v seznamu výše."
+    "custom_currency_placeholder": "např. USD, GBP, CHF..."
+    "currency_custom_placeholder": "např. USD, GBP, CHF..."
+    "region":
+      "central_europe": "Střední Evropa"
+      "eastern_europe": "Východní Evropa"
+      "north_america": "Severní Amerika"
+      "northern_europe": "Severní Evropa"
+      "rest_of_world": "Zbytek světa"
+      "southern_europe": "Jižní Evropa"
+      "western_europe": "Západní Evropa"
+    "shipping_cost": "Informace o ceně dopravy"
+    "shipping_cost_placeholder": "např. Doprava zdarma nad 50 EUR, paušální sazba 5 EUR"
+    "shipping_countries": "Země, do kterých zasíláte"
+    "ships_to": "Zasílá do"
+  "edit_settings":
+    "title": "Upravit nastavení seznamu k prodeji/výměně"
+    "submit": "Uložit změny"
+    "meta":
+      "title": "Upravit nastavení seznamu k prodeji/výměně"
+  "edit_item":
+    "title": "Upravit položku"
+    "submit": "Uložit změny"
+    "meta":
+      "title": "Upravit položku k prodeji/výměně"
+  "filter":
+    "all_types": "Všechny typy"
+    "min_price": "Min. cena"
+    "max_price": "Max. cena"
+  "mark_sold":
+    "title": "Označit jako prodáno/vyměněno"
+    "button": "Označit jako prodáno/vyměněno"
+    "confirm": "Potvrdit"
+    "warning": "Toto odebere puzzle z vašeho seznamu k prodeji/výměně a ze všech vašich kolekcí."
+    "success": "Puzzle bylo označeno jako prodáno/vyměněno a odebráno z vašich kolekcí."
+    "buyer_input": "Kupec"
+    "buyer_input_help": "Zadejte kód hráče kupce (např. #ABC123) nebo jméno. Nechte prázdné, pokud není známo."
+    "buyer_input_placeholder": "#ABC123 nebo jméno..."
+  "history":
+    "title": "Historie prodaných/vyměněných"
+    "button": "Historie"
+    "menu": "Historie"
+    "empty": "Zatím žádné prodané nebo vyměněné položky."
+    "puzzle": "Puzzle"
+    "date": "Datum"
+    "price": "Cena"
+    "buyer": "Kupec"
+    "type": "Typ"
+    "unknown_buyer": "Neznámý"
+  "flash":
+    "added": "Puzzle bylo přidáno na váš seznam k prodeji/výměně."
+    "removed": "Puzzle bylo odebráno z vašeho seznamu k prodeji/výměně."
+    "updated": "Nastavení seznamu k prodeji/výměně bylo úspěšně aktualizováno."
+    "settings_updated": "Nastavení seznamu k prodeji/výměně bylo úspěšně aktualizováno."
+    "item_updated": "Položka seznamu k prodeji/výměně byla úspěšně aktualizována."
+    "login_required": "Pro správu seznamu k prodeji/výměně musíte být přihlášeni."
+    "validation_error": "Opravte prosím chyby a zkuste to znovu."
+  "mark_reserved":
+    "button": "Označit jako rezervované"
+    "confirm": "Potvrdit rezervaci"
+    "reserved_for_input": "Rezervováno pro"
+    "reserved_for_input_help": "Zadejte kód hráče (např. #ABC123) nebo jméno. Nechte prázdné, pokud neznáte."
+    "reserved_for_input_placeholder": "#ABC123 nebo jméno..."
+    "title": "Označit jako rezervované"
+  "on_marketplace": "Na tržišti"
+  "remove_reservation":
+    "button": "Zrušit rezervaci"
+  "reservation_removed.success": "Puzzle již není rezervované a je opět dostupné."
+  "reserved": "REZERVOVÁNO"
+  "reserved.success": "Nabídka byla označena jako rezervovaná."
+  "settings_alert":
+    "cta": "Dokončit nastavení"
+    "missing_currency": "Nastavte měnu"
+    "missing_shipping_countries": "Přidejte země pro zasílání"
+    "subtitle": "Dokončete prosím tyto kroky, aby vaše puzzle mohly být nalezeny na tržišti."
+    "title": "Už to bude!"
+"solved_puzzles":
+  "meta":
+    "title": "Složené puzzle"
+  "name": "Složené puzzle"
+  "title": "Složené puzzle"
+  "title_other": "Složené puzzle uživatele %name%"
+  "description": "Všechny puzzle, které jste dokončili"
+  "description_other": "Všechny puzzle, které dokončil(a) %name%"
+  "items_count": "%count% puzzle"
+  "private": "Soukromé složené puzzle"
+  "private_message": "Seznam složených puzzlí \"%collection%\" od %player% je soukromý a nelze jej zobrazit."
+  "empty":
+    "title": "Žádné složené puzzle"
+    "message": "Začněte skládat puzzle a uvidíte je zde!"
+    "title_other": "Žádné složené puzzle"
+    "message_other": "%name% zatím žádné puzzle nesložil(a)."
+  "edit":
+    "meta":
+      "title": "Upravit viditelnost složených puzzlí"
+    "title": "Upravit viditelnost složených puzzlí"
+    "submit": "Uložit změny"
+  "form":
+    "visibility_help": "Veřejný seznam složených puzzlí je viditelný pro všechny, soukromý pouze pro vás."
+  "flash":
+    "updated": "Viditelnost složených puzzlí byla úspěšně aktualizována."
+"status":
+  "solved": "Složeno"
+  "wishlist": "Na přání"
+  "unsolved": "Nesloženo"
+  "collection": "V kolekci"
+  "borrowed": "Půjčeno"
+  "lent": "Půjčeno"
+  "for_sale": "Na prodej"
+"image_editor":
+  "title": "Upravit obrázek"
+  "rotate_left": "Otočit doleva"
+  "rotate_right": "Otočit doprava"
+  "apply": "Použít"
+"admin":
+  "puzzle_change_request":
+    "approved": "Žádost o změnu byla schválena a puzzle aktualizováno."
+    "rejected": "Žádost o změnu byla zamítnuta."
+    "rejection_reason_required": "Důvod zamítnutí je povinný."
+  "puzzle_merge_request":
+    "approved": "Žádost o sloučení byla schválena. Puzzle byla sloučena."
+    "rejected": "Žádost o sloučení byla zamítnuta."
+    "rejection_reason_required": "Důvod zamítnutí je povinný."
+    "validation_failed": "Je vyžadováno cílové puzzle, název a počet dílků."
+"pending_proposals":
+  "badge": "Čekající návrh"
+  "go_to_admin": "Přejít do administrace"
+  "no_proposals": "Žádné čekající návrhy pro toto puzzle."
+  "reported_by": "Nahlásil"
+  "title": "Čekající návrhy"
+  "type":
+    "change_request": "Žádost o změnu"
+    "merge_request": "Žádost o sloučení"
+"puzzle_report":
+  "back_to_puzzle": "Zpět na puzzle"
+  "dropdown":
+    "suggest_change": "Navrhnout změnu"
+    "suggest_change_description": "Chybějící/nesprávné údaje nebo duplikát?"
+  "flash":
+    "changes_submitted": "Vaše navrhované změny byly odeslány ke kontrole. Děkujeme!"
+    "duplicate_reported": "Váš report duplikátu byl odeslán ke kontrole. Děkujeme!"
+    "login_required": "Pro návrh změn se prosím přihlaste."
+    "no_valid_duplicates": "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
+    "pending_proposal_exists": "Návrh pro toto puzzle již čeká na kontrolu."
+    "validation_error": "Opravte prosím chyby a zkuste to znovu."
+  "form":
+    "current_image": "Aktuální obrázek"
+    "duplicate_url": "URL duplikovaného puzzle"
+    "duplicate_url_help": "Vložte URL duplikovaného puzzle."
+    "duplicate_url_placeholder": "https://www.myspeedpuzzling.com/puzzle/..."
+    "ean": "EAN / Čárový kód"
+    "ean_help": "Číslo čárového kódu na krabici puzzle (obvykle 13 číslic)."
+    "ean_placeholder": "např. 4005556123456"
+    "identification_number": "Kód značky / SKU"
+    "identification_number_help": "Kód produktu výrobce (např. 19432 pro puzzle Ravensburger)."
+    "identification_number_placeholder": "např. 19432"
+    "manufacturer": "Výrobce"
+    "manufacturer_placeholder": "Hledat výrobce..."
+    "name": "Název puzzle"
+    "name_help": "Zadejte správný název podle krabice puzzle. Pro více názvů použijte čárku."
+    "name_placeholder": "Zadejte název puzzle..."
+    "or": "nebo"
+    "photo": "Nová fotka"
+    "photo_example_ok": "OK"
+    "photo_example_perfect": "Perfektní"
+    "photo_example_wrong": "Špatně"
+    "photo_help_1": "Použijte obrázek z krabice puzzle, ne složené puzzle."
+    "photo_help_2": "Zajistěte dobré osvětlení a ostrost."
+    "photo_help_3": "Ořízněte pouze na obrázek puzzle, ne celou krabici."
+    "photo_help_4": "U multipacků vyberte pouze obrázek jednoho puzzle."
+    "photo_help_title": "Pokyny pro fotografii:"
+    "photo_help_toggle": "Tipy pro dobrou fotografii"
+    "pieces_count": "Počet dílků"
+    "pieces_count_help": "Zadejte správný počet dílků."
+    "search_manufacturer": "Hledat podle výrobce"
+    "search_manufacturer_placeholder": "Vyberte výrobce pro procházení puzzle..."
+    "select_duplicate_error": "Vyberte prosím duplikované puzzle nebo zadejte URL puzzle."
+    "select_manufacturer_first": "Nejprve vyberte výrobce"
+    "select_puzzle": "Vybrat puzzle"
+    "select_puzzle_placeholder": "Hledat puzzle..."
+    "submit_changes": "Odeslat změny"
+    "submit_duplicate": "Nahlásit jako duplikát"
+  "propose_changes":
+    "description": "Navrhněte opravy nebo vylepšení informací o tomto puzzle. Všechny změny budou zkontrolovány administrátorem."
+  "report_duplicate":
+    "description": "Nahlaste, že toto puzzle je duplikátem jiného puzzle. Administrátor zkontroluje a sloučí záznamy, pokud se potvrdí."
+    "max_puzzles_info": "Můžete najednou nahlásit až %max% puzzle jako duplikáty."
+  "tab":
+    "suggestions": "Návrhy"
+    "report_duplicate": "Nahlásit duplikát"
+  "title": "Navrhnout změnu puzzle"
+"back_to": "Zpět na"
+"edit_my_puzzle_offer": "Upravit mou nabídku puzzlí"
+"messaging":
+  "accept": "Přijmout"
+  "accept_disclaimer": "Když přijmete, odesílatel uvidí, že jste aktivní a přečetli jste zprávy."
+  "actions":
+    "reserved": "Rezervováno"
+    "sold_swapped": "Prodáno/vyměněno"
+    "to_someone_else": "Někomu jinému"
+    "to_this_puzzler": "Tomuto puzzlerovi"
+  "back_to_messages": "Zprávy"
+  "block_confirm": "Opravdu chcete zablokovat tohoto uživatele?"
+  "block_user": "Zablokovat uživatele"
+  "blocked_on": "Zablokováno dne"
+  "blocked_users": "Zablokovaní uživatelé"
+  "cancel": "Zrušit"
+  "cannot_contact_yourself": "Nemůžete kontaktovat sami sebe."
+  "cannot_message_user": "Tomuto uživateli nemůžete poslat zprávu."
+  "conversation_partners": "- Z konverzací na tržišti -"
+  "conversation_with": "Konverzace s %name%"
+  "conversations": "Konverzace"
+  "direct_messages_disabled": "Tento uživatel nepřijímá přímé zprávy."
+  "ignore": "Ignorovat"
+  "ignored": "Ignorováno"
+  "ignored_notice": "Tato žádost o konverzaci byla ignorována."
+  "ignored_status": "Ignorováno"
+  "interested_in_puzzle": "%name% má zájem o vaše puzzle"
+  "max_characters": "Maximálně 2000 znaků."
+  "message_empty": "Zpráva nemůže být prázdná."
+  "message_label": "Zpráva"
+  "new_message": "Nová zpráva"
+  "no_blocked_users": "Nezablokovali jste žádné uživatele."
+  "no_conversations": "Zatím nemáte žádné konverzace."
+  "no_conversations_yet": "Zatím žádné konverzace."
+  "no_ignored_conversations": "Žádné ignorované konverzace."
+  "no_messages_yet": "Zatím žádné zprávy. Začněte konverzaci!"
+  "no_pending_requests": "Žádné čekající žádosti o zprávu."
+  "no_requests": "Nemáte žádné čekající žádosti."
+  "pending_notice": "Tato žádost o konverzaci čeká na schválení."
+  "pending_request_exists": "S tímto uživatelem již máte čekající žádost o zprávu."
+  "pending_request_notice": "Toto je žádost o zprávu."
+  "pending_status": "Čeká"
+  "rate_pending": "Ohodnotit"
+  "rate_transaction": "Ohodnotit transakci"
+  "read_status": "Přečteno"
+  "report": "Nahlásit"
+  "report_button": "Odeslat hlášení"
+  "report_confirm": "Opravdu chcete nahlásit tuto konverzaci?"
+  "report_conversation": "Nahlásit konverzaci"
+  "report_reason": "Důvod"
+  "report_reason_placeholder": "Popište, proč tuto konverzaci nahlašujete..."
+  "report_submit": "Odeslat hlášení"
+  "request_accepted": "Žádost o zprávu byla přijata."
+  "request_ignored": "Žádost o zprávu byla ignorována."
+  "request_sent": "Žádost o zprávu byla úspěšně odeslána."
+  "requests": "Žádosti"
+  "send": "Odeslat"
+  "send_failed": "Odeslání zprávy se nezdařilo. Zkuste to prosím znovu."
+  "send_message": "Odeslat zprávu"
+  "send_placeholder": "Napište zprávu..."
+  "sent_status": "Odesláno"
+  "system":
+    "listing_reservation_removed": "Toto puzzle již není rezervované a je opět dostupné."
+    "listing_reserved": "Toto puzzle bylo rezervováno."
+    "listing_reserved_for_someone_else": "Toto puzzle bylo rezervováno pro někoho jiného."
+    "listing_reserved_for_this_puzzler": "Toto puzzle bylo rezervováno pro tohoto puzzlera."
+    "listing_reserved_for_you": "Toto puzzle bylo rezervováno pro vás."
+    "listing_sold": "Toto puzzle bylo prodáno/vyměněno někomu jinému."
+    "listing_sold_to_someone_else": "Toto puzzle bylo prodáno/vyměněno někomu jinému."
+    "listing_sold_to_this_puzzler": "Toto puzzle jste prodali/vyměnili tomuto puzzlerovi."
+    "listing_sold_to_you": "Toto puzzle bylo prodáno/vyměněno vám."
+    "preview":
+      "listing_reservation_removed": "Puzzle je opět dostupné"
+      "listing_reserved": "Puzzle bylo rezervováno"
+      "listing_sold": "Puzzle bylo prodáno/vyměněno"
+  "title": "Zprávy"
+  "type_message": "Napište zprávu..."
+  "typing": "píše..."
+  "unblock": "Odblokovat"
+  "unblock_confirm": "Opravdu chcete odblokovat tohoto uživatele?"
+  "user_blocked": "Uživatel byl zablokován."
+  "user_unblocked": "Uživatel byl odblokován."
+  "view": "Zobrazit"
+  "waiting_for_acceptance": "Čeká se, až %name% přijme vaši žádost o zprávu."
+  "wants_to_message": "%name% vám chce poslat zprávu"
+  "write_message_placeholder": "Napište zprávu..."
+  "you_prefix": "Vy:"
+  "your_rating": "Vaše hodnocení"
+"rating":
+  "already_rated": "Tuto transakci jste již ohodnotili."
+  "average": "Průměrné hodnocení"
+  "back_to_profile": "Zpět na profil"
+  "bought_from": "Koupeno od"
+  "cancel": "Zrušit"
+  "cannot_rate": "Tuto transakci nemůžete ohodnotit. Mohla již být ohodnocena nebo vypršela lhůta pro hodnocení."
+  "count": "%count% hodnocení"
+  "count_singular": "1 hodnocení"
+  "expired": "Lhůta pro hodnocení vypršela (30 dní)."
+  "invalid_stars": "Vyberte prosím hodnocení od 1 do 5 hvězdiček."
+  "no_ratings": "Zatím žádná hodnocení."
+  "not_allowed": "Nemáte oprávnění hodnotit tuto transakci."
+  "optional_note": "Volitelné. Max 500 znaků."
+  "rate_transaction": "Ohodnotit tuto transakci"
+  "rate_your_transaction": "Ohodnoťte svou transakci"
+  "review_label": "Recenze (volitelné)"
+  "review_placeholder": "Podělte se o své zkušenosti..."
+  "role":
+    "buyer": "Kupující"
+    "seller": "Prodávající"
+  "sold": "Prodáno"
+  "sold_to": "Prodáno"
+  "stars_label": "Hodnocení"
+  "submit_button": "Odeslat hodnocení"
+  "swapped": "Vyměněno"
+  "swapped_with": "Vyměněno s"
+  "thank_you": "Děkujeme za vaše hodnocení!"
+  "title": "Hodnocení"
+  "title_for_player": "Hodnocení pro %name%"
+  "view_all": "Zobrazit vše"
+"marketplace":
+  "all": "Vše"
+  "all_brands": "Všechny značky"
+  "all_conditions": "Všechny stavy"
+  "all_countries": "Všechny země"
+  "all_types": "Všechny typy"
+  "condition":
+    "like_new": "Jako nové"
+    "missing_pieces": "Chybějící díly"
+    "normal": "Normální"
+    "not_so_good": "Nedobrý stav"
+  "contact_seller": "Kontaktovat prodejce"
+  "disclaimer": "MySpeedPuzzling není prodejce a nenese odpovědnost za transakce. Pouze propojujeme lidi. Buďte vždy opatrní a neposílejte peníze předem."
+  "filter":
+    "brand": "Značka"
+    "condition": "Stav"
+    "filters": "Filtry"
+    "pieces": "Dílky"
+    "price": "Cena"
+    "search_placeholder": "Hledat puzzle..."
+    "set_country_link": "Upravit profil)"
+    "ship_to_my_country": "Zasílá do mé země"
+    "ship_to_my_country_disabled": "Zasílá do mé země (nastavte svou zemi v"
+    "ships_to": "Zasílá do"
+    "sort": "Řazení"
+    "type": "Typ"
+  "how_it_works":
+    "back_to_marketplace": "Tržiště"
+    "browse_marketplace": "Procházet tržiště"
+    "community":
+      "description": "Všichni jsme tu, protože milujeme puzzle. Puzzle mají přinášet radost, a to platí i pro toto tržiště. Buďte laskaví, trpěliví a užívejte si propojení s puzzlery z celého světa."
+      "title": "Buďte přátelští a bavte se!"
+    "intro": "Tržiště MySpeedPuzzling je místo, kde se milovníci puzzlí propojují, aby prodávali, vyměňovali nebo darovali puzzle. Zde je vše, co potřebujete vědět."
+    "safety":
+      "block_info": "Pokud narazíte na nevhodné chování, můžete konverzaci zablokovat. Druhá osoba se nikdy nedozví, že byla zablokována."
+      "description": "MySpeedPuzzling nenese odpovědnost za žádné transakce. Jsme tu, abychom propojili puzzlery, ale všechny dohody jsou mezi vámi a druhou stranou. Buďte vždy opatrní s peněžními transakcemi a nikdy neposílejte platbu bez řádné dohody."
+      "title": "Buďte v bezpečí"
+    "step1":
+      "description": "Přejděte na libovolné puzzle ve své sbírce a přidejte jej do seznamu k prodeji/výměně. Můžete to udělat ze stránky detailu puzzle, vaší knihovny puzzlí nebo přímo ze sbírky. Nezapomeňte zaškrtnout \"Zobrazit na tržišti\", aby vás ostatní puzzleři mohli najít."
+      "title": "Přidejte puzzle"
+    "step2":
+      "description": "Před přidáním vyplňte země, do kterých zasíláte, preferovanou měnu a volitelně náklady na dopravu a kontaktní údaje. To pomůže kupujícím vědět, co mohou očekávat."
+      "title": "Nastavte svůj profil"
+    "step3":
+      "description": "Použijte vestavěný chat ke komunikaci přímo se zájemci přímo zde na platformě. Můžete si také domluvit věci mimo platformu, pokud preferujete - je to na vás."
+      "title": "Chatujte s puzzlery"
+    "step4":
+      "description": "Když se dohodnete na obchodu, označte puzzle jako rezervované. To ostatním puzzlerům dá vědět, že položka je zamluvena, zatímco probíhá transakce."
+      "title": "Rezervujte puzzle"
+    "step5":
+      "description": "Jakmile bylo puzzle prodáno nebo vyměněno, označte jej jako dokončené. Puzzle bude automaticky odstraněno z vaší sbírky a kupující si jej může přidat přímo do své."
+      "title": "Dokončete transakci"
+    "step6":
+      "description": "Po dokončení transakce nezapomeňte ohodnotit druhého puzzlera! Hodnocení pomáhají budovat důvěru v komunitě a ukazují ostatním, jak zkušenost proběhla."
+      "title": "Zanechte hodnocení"
+    "title": "Jak funguje tržiště"
+  "how_it_works_button": "Jak to funguje?"
+  "listing_type":
+    "both": "Prodej / Výměna"
+    "free": "Zdarma"
+    "sell": "Prodej"
+    "swap": "Výměna"
+  "load_more": "Načíst další"
+  "manage_my_offers": "Spravovat moje nabídky"
+  "max": "Max"
+  "meta":
+    "description": "Procházejte puzzle k prodeji, výměně nebo zdarma na tržišti MySpeedPuzzling."
+  "min": "Min"
+  "my_offers": "Moje nabídky"
+  "no_results": "Nebyly nalezeny žádné nabídky odpovídající vašim filtrům."
+  "pcs": "dílků"
+  "price_not_disclosed": "Cena neuvedena"
+  "reserved": "REZERVOVÁNO"
+  "result": "Celkem 1 výsledek"
+  "results": "Celkem %count% výsledků"
+  "search_placeholder": "Název puzzle, EAN..."
+  "shipping_cost": "Doprava"
+  "show_all": "Zobrazit vše"
+  "showing_offers_for": "Zobrazeny nabídky pro"
+  "sort":
+    "name_asc": "Název A-Z"
+    "name_desc": "Název Z-A"
+    "newest": "Nejnovější"
+    "price_asc": "Cena vzestupně"
+    "price_desc": "Cena sestupně"
+    "relevance": "Relevance"
+  "title": "Tržiště"
+"moderation":
+  "ban_lifted": "Zákaz na tržišti byl zrušen."
+  "listing_removed": "Nabídka byla odstraněna."
+  "marketplace_banned": "Uživatel byl zablokován na tržišti."
+  "report_dismissed": "Hlášení bylo zamítnuto."
+  "report_resolved": "Hlášení bylo vyřešeno."
+  "report_submitted": "Hlášení bylo úspěšně odesláno. Náš tým jej posoudí."
+  "user_muted": "Uživatel byl ztlumen na %days% dní."
+  "user_unmuted": "Ztlumení uživatele bylo zrušeno."
+  "warning_issued": "Varování bylo vydáno."

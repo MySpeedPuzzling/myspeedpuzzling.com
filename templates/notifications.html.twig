@@ -74,6 +74,62 @@
                                         </a>
                                     {% endif %}
                                 </td>
+                            {% elseif notification.isRatingNotification %}
+                                {# Transaction rating notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <i class="bi bi-star-fill fs-3 text-warning"></i>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    <span>Rate your transaction with
+                                        <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.ratingOtherPlayerId}) }}">{{ notification.ratingOtherPlayerName }}</a>
+                                        for <strong>{{ notification.ratingPuzzleName }}</strong>
+                                    </span>
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    <a href="{{ path('rate_transaction', {soldSwappedItemId: notification.soldSwappedItemId}) }}" class="btn btn-sm btn-warning">
+                                        <i class="bi bi-star"></i> Rate
+                                    </a>
+                                </td>
+                            {% elseif notification.isConversationRequestNotification %}
+                                {# Conversation request notification #}
+                                <td class="text-center" style="width: 60px;">
+                                    <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}">
+                                        {% if notification.conversationInitiatorAvatar is not null %}
+                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.conversationInitiatorAvatar|imagine_filter('puzzle_small') }}">
+                                        {% else %}
+                                            <span class="avatar-name rounded-circle">{{ notification.conversationInitiatorName|slice(0, 1)|upper }}</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+
+                                <td class="align-middle fs-sm text-muted">
+                                    <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
+                                    {% if notification.conversationIsMarketplace and notification.conversationPuzzleName is not null %}
+                                        {{ 'notifications.conversation_request.marketplace'|trans({
+                                            '%player%': '<a class="text-decoration-underline" href="' ~ path('conversation_detail', {conversationId: notification.conversationId}) ~ '">' ~ notification.conversationInitiatorName ~ '</a>',
+                                            '%puzzle%': notification.conversationPuzzleName
+                                        })|raw }}
+                                    {% else %}
+                                        {{ 'notifications.conversation_request.general'|trans({
+                                            '%player%': '<a class="text-decoration-underline" href="' ~ path('conversation_detail', {conversationId: notification.conversationId}) ~ '">' ~ notification.conversationInitiatorName ~ '</a>'
+                                        })|raw }}
+                                    {% endif %}
+                                </td>
+
+                                <td class="" style="width: 80px;">
+                                    {% if notification.conversationIsMarketplace and notification.conversationPuzzleImage is not null %}
+                                        <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}">
+                                            <img alt="{{ notification.conversationPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.conversationPuzzleImage|imagine_filter('puzzle_small') }}">
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-chat-dots"></i>
+                                        </a>
+                                    {% endif %}
+                                </td>
                             {% elseif notification.isLendingNotification %}
                                 {# Lending notification #}
                                 <td class="text-center" style="width: 60px;">

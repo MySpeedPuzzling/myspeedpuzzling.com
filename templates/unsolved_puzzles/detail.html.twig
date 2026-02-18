@@ -6,18 +6,14 @@
     <twig:PlayerHeader player="{{ player }}" />
 
 <div data-controller="collection-items collection-filter">
-    <div class="mb-3">
-        <a href="{{ path('puzzle_library', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-secondary">
-            <i class="ci-arrow-left me-1"></i> {{ 'collections.back_to_library'|trans }}
-        </a>
-    </div>
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('puzzle_library', {playerId: player.playerId}), fallbackTitle: 'collections.back_to_library'|trans} %}
 
     <div class="d-flex flex-column flex-sm-row align-items-start justify-content-between gap-2 mb-4">
         <div>
             <h1 class="h3 mb-0 d-flex align-items-center">
                 <span><i class="ci-time me-2"></i>{{ collection.name }}</span>
                 {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
-                    <a href="{{ path('edit_unsolved_puzzles', {playerId: player.playerId}) }}" class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2 text-decoration-underline">
+                    <a href="{{ path('edit_unsolved_puzzles', {playerId: player.playerId, 'return': path('unsolved_puzzles_detail', {playerId: player.playerId}), 'return_title': collection.name}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="fs-sm fw-normal {{ collection.visibility.value == 'public' ? 'text-primary' : 'text-muted' }} ms-2 me-2 text-decoration-underline">
                         <i class="{{ collection.visibility.value == 'public' ? 'ci-eye' : 'ci-locked' }} me-1"></i>{{ collection.visibility.value == 'public' ? 'collections.public'|trans : 'collections.private'|trans }}
                     </a>
                     {% if collection.visibility.value != 'public' %}
@@ -43,7 +39,7 @@
                 {{ include('_share_button.html.twig', {share_url: url('unsolved_puzzles_detail', {playerId: player.playerId})}) }}
             {% endif %}
             {% if logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
-                <a href="{{ path('edit_unsolved_puzzles', {playerId: player.playerId}) }}" class="btn btn-sm btn-outline-primary">
+                <a href="{{ path('edit_unsolved_puzzles', {playerId: player.playerId, 'return': path('unsolved_puzzles_detail', {playerId: player.playerId}), 'return_title': collection.name}) }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-outline-primary">
                     <i class="ci-edit me-1"></i> {{ 'edit'|trans }}
                 </a>
             {% endif %}

@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Moderation History - {{ player.playerName }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex align-items-center mb-4">
+        <a href="{{ path('admin_moderation_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">Back</a>
+        <h1 class="h3 mb-0">Moderation History: {{ player.playerName }} <small class="text-muted">#{{ player.code }}</small></h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">Current Status</h5>
+                </div>
+                <div class="card-body">
+                    {% if active_mute %}
+                        <div class="alert alert-warning mb-2">
+                            Messaging muted until {{ active_mute.expiresAt|date('Y-m-d H:i') }}
+                            <form action="{{ path('admin_unmute_user', {playerId: player.playerId}) }}" method="post" class="mt-2">
+                                <button type="submit" class="btn btn-sm btn-outline-warning">Lift Mute</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-2">Not muted</p>
+                    {% endif %}
+
+                    <div class="mt-3">
+                        <strong>Actions:</strong>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <form action="{{ path('admin_mute_user', {playerId: player.playerId}) }}" method="post" class="d-inline">
+                                <input type="hidden" name="reason" value="Admin action">
+                                <input type="hidden" name="days" value="7">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Mute 7d</button>
+                            </form>
+                            <form action="{{ path('admin_ban_marketplace', {playerId: player.playerId}) }}" method="post" class="d-inline">
+                                <input type="hidden" name="reason" value="Admin action">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Ban Marketplace</button>
+                            </form>
+                            <form action="{{ path('admin_lift_ban', {playerId: player.playerId}) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-success">Lift Ban</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="mb-0">Action History</h5>
+                </div>
+                {% if actions is empty %}
+                    <div class="card-body">
+                        <p class="text-muted mb-0">No moderation actions recorded.</p>
+                    </div>
+                {% else %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Action</th>
+                                    <th>Admin</th>
+                                    <th>Reason</th>
+                                    <th>Date</th>
+                                    <th>Expires</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for action in actions %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-{{ action.actionType.value == 'warning' ? 'warning text-dark' : (action.actionType.value == 'marketplace_ban' or action.actionType.value == 'listing_removed' ? 'danger' : (action.actionType.value == 'mute_lifted' or action.actionType.value == 'ban_lifted' ? 'success' : 'info')) }}">
+                                                {{ action.actionType.value|replace({'_': ' '})|capitalize }}
+                                            </span>
+                                        </td>
+                                        <td>{{ action.adminName }}</td>
+                                        <td>{{ action.reason|default('-') }}</td>
+                                        <td>{{ action.performedAt|ago }}</td>
+                                        <td>
+                                            {% if action.expiresAt %}
+                                                {{ action.expiresAt|date('Y-m-d H:i') }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

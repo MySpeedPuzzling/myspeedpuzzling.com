@@ -3,8 +3,9 @@
 
     Parameters:
     - puzzle_id: The puzzle ID
+    - item_id: The sell-swap list item ID
     - message: Toast message
-    - context: 'detail' (puzzle detail page), 'list' (sell-swap list), or 'collection-detail'
+    - context: 'detail' (puzzle detail page), 'list' (sell-swap list), 'marketplace', or 'collection-detail'
 
     For collection-detail context, additional parameters:
     - item: CollectionItemOverview - full item data for card replacement
@@ -75,6 +76,9 @@
         </template>
     </turbo-stream>
     {% endif %}
+{% elseif context|default('detail') == 'marketplace' %}
+    {# Marketplace page: remove the card #}
+    <turbo-stream action="remove" target="marketplace-listing-{{ item_id }}"></turbo-stream>
 {% else %}
     {# Default/detail context: just remove the item #}
     {{ include('_library_item_stream.html.twig', {

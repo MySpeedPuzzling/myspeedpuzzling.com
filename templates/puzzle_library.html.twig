@@ -92,7 +92,7 @@
                                     <ul class="dropdown-menu">
                                         {% if collection.collectionId %}
                                             <li>
-                                                <a class="dropdown-item" href="{{ path('edit_collection', {'collectionId': collection.collectionId}) }}">
+                                                <a class="dropdown-item" href="{{ path('edit_collection', {'collectionId': collection.collectionId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                     <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                 </a>
                                             </li>
@@ -105,7 +105,7 @@
                                         {% elseif collection.isLendBorrowList %}
                                             {% if logged_user.profile.activeMembership %}
                                                 <li>
-                                                    <a class="dropdown-item" href="{{ path('edit_lend_borrow_list_settings', {'playerId': player.playerId}) }}">
+                                                    <a class="dropdown-item" href="{{ path('edit_lend_borrow_list_settings', {'playerId': player.playerId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                         <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                     </a>
                                                 </li>
@@ -119,7 +119,7 @@
                                         {% elseif collection.isSellSwapList %}
                                             {% if logged_user.profile.activeMembership %}
                                                 <li>
-                                                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_settings', {'playerId': player.playerId}) }}">
+                                                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_settings', {'playerId': player.playerId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                         <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                     </a>
                                                 </li>
@@ -137,25 +137,25 @@
                                             {% endif %}
                                         {% elseif collection.isWishList %}
                                             <li>
-                                                <a class="dropdown-item" href="{{ path('edit_wish_list', {'playerId': player.playerId}) }}">
+                                                <a class="dropdown-item" href="{{ path('edit_wish_list', {'playerId': player.playerId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                     <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                 </a>
                                             </li>
                                         {% elseif collection.isUnsolvedPuzzles %}
                                             <li>
-                                                <a class="dropdown-item" href="{{ path('edit_unsolved_puzzles', {'playerId': player.playerId}) }}">
+                                                <a class="dropdown-item" href="{{ path('edit_unsolved_puzzles', {'playerId': player.playerId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                     <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                 </a>
                                             </li>
                                         {% elseif collection.isSolvedPuzzles %}
                                             <li>
-                                                <a class="dropdown-item" href="{{ path('edit_solved_puzzles', {'playerId': player.playerId}) }}">
+                                                <a class="dropdown-item" href="{{ path('edit_solved_puzzles', {'playerId': player.playerId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                     <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                 </a>
                                             </li>
                                         {% else %}
                                             <li>
-                                                <a class="dropdown-item" href="{{ path('edit_system_collection', {'playerId': player.playerId}) }}">
+                                                <a class="dropdown-item" href="{{ path('edit_system_collection', {'playerId': player.playerId, 'return': path('puzzle_library', {playerId: player.playerId}), 'return_title': 'collections.meta.title'|trans}) }}" data-turbo="true" data-turbo-frame="modal-frame">
                                                     <i class="bi bi-pencil me-1"></i>{{ 'collections.edit.button'|trans }}
                                                 </a>
                                             </li>

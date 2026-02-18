@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Conversation Log{% endblock %}
+
+{% block content %}
+    <div class="d-flex align-items-center mb-4">
+        <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary me-3">Back</a>
+        <h1 class="h3 mb-0">Conversation Log</h1>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            {% if messages is empty %}
+                <p class="text-muted mb-0">No messages in this conversation.</p>
+            {% else %}
+                {% for message in messages %}
+                    <div class="d-flex mb-3 {{ not loop.last ? 'pb-3 border-bottom' : '' }}">
+                        {% if message.senderAvatar %}
+                            <img src="{{ message.senderAvatar|puzzle_image('puzzle_small') }}"
+                                 alt=""
+                                 class="rounded-circle me-3 flex-shrink-0"
+                                 style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle me-3 flex-shrink-0 bg-secondary d-flex align-items-center justify-content-center"
+                                 style="width: 40px; height: 40px;">
+                                <span class="text-white fw-bold">{{ message.senderName|default('?')|first|upper }}</span>
+                            </div>
+                        {% endif %}
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong>{{ message.senderName|default('Unknown') }}</strong>
+                                <small class="text-muted">
+                                    {{ message.sentAt|date('Y-m-d H:i:s') }}
+                                    {% if message.readAt %}
+                                        <span class="text-success ms-1" title="Read at {{ message.readAt|date('Y-m-d H:i:s') }}">Read</span>
+                                    {% else %}
+                                        <span class="text-warning ms-1">Unread</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <p class="mb-0">{{ message.content|nl2br }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

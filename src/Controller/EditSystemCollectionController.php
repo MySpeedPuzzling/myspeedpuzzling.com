@@ -77,7 +77,11 @@ final class EditSystemCollectionController extends AbstractController
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
-        return $this->render('collections/edit_system.html.twig', [
+        $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
+            ? 'collections/_edit_system_modal.html.twig'
+            : 'collections/edit_system.html.twig';
+
+        return $this->render($template, [
             'form' => $form,
             'player' => $player,
             'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),

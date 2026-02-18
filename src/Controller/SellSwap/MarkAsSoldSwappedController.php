@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\FormData\MarkAsSoldSwappedFormData;
 use SpeedPuzzling\Web\FormType\MarkAsSoldSwappedFormType;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
+use SpeedPuzzling\Web\Query\GetConversationPartnersForListing;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
@@ -32,6 +33,7 @@ final class MarkAsSoldSwappedController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private GetConversationPartnersForListing $getConversationPartnersForListing,
         readonly private GetCollectionItems $getCollectionItems,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetUnsolvedPuzzles $getUnsolvedPuzzles,
@@ -133,12 +135,14 @@ final class MarkAsSoldSwappedController extends AbstractController
 
         // Handle GET - show modal/form
         $favoritePlayers = $this->getFavoritePlayers->forPlayerId($loggedPlayer->playerId);
+        $conversationPartners = $this->getConversationPartnersForListing->forListingAndSeller($itemId, $loggedPlayer->playerId);
 
         $templateParams = [
             'item_id' => $itemId,
             'puzzle_id' => $puzzleId,
             'form' => $form,
             'favorite_players' => $favoritePlayers,
+            'conversation_partners' => $conversationPartners,
             'context' => $request->query->getString('context', 'detail'),
             'collection_id' => $request->query->getString('collection_id', ''),
         ];

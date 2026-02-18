@@ -34,6 +34,19 @@ import 'bootstrap-icons/font/bootstrap-icons.min.css';
 import './feedback_modal.js'
 import './turbo-stream-actions.js'
 
+// After Turbo morph/render, cached images lose the "loaded" class.
+// Re-check all lazy images and mark already-complete ones as loaded.
+function revealCachedLazyImages() {
+    document.querySelectorAll('img.lazy-img:not(.loaded)').forEach(function (img) {
+        if (img.complete && img.naturalWidth > 0) {
+            img.classList.add('loaded');
+        }
+    });
+}
+document.addEventListener('turbo:render', revealCachedLazyImages);
+document.addEventListener('turbo:morph', revealCachedLazyImages);
+document.addEventListener('turbo:frame-render', revealCachedLazyImages);
+
 import zoomPlugin from 'chartjs-plugin-zoom';
 
 // register globally for all charts

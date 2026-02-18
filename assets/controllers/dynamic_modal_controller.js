@@ -42,6 +42,9 @@ export default class extends Controller {
 
         // Listen for programmatic close events
         document.addEventListener('modal:close', this.handleClose);
+
+        // Clear frame content only after close animation finishes
+        this.element.addEventListener('hidden.bs.modal', this.handleHidden);
     }
 
     disconnect() {
@@ -50,6 +53,7 @@ export default class extends Controller {
         this.observer?.disconnect();
         document.removeEventListener('keydown', this.handleKeydown);
         document.removeEventListener('modal:close', this.handleClose);
+        this.element.removeEventListener('hidden.bs.modal', this.handleHidden);
     }
 
     handleBeforeFetch = () => {
@@ -82,11 +86,25 @@ export default class extends Controller {
         this.close();
     };
 
+    handleHidden = () => {
+        this.frameTarget.innerHTML = '';
+        document.body.classList.remove('modal-open');
+    };
+
     open() {
         // Don't open modal if frame is empty (safety check for edge cases)
         if (this.frameTarget.innerHTML.trim() === '') {
             return;
         }
+
+        // Dynamic modal size: check first child for data-modal-size
+        const dialog = this.element.querySelector('.modal-dialog');
+        const sizeEl = this.frameTarget.querySelector('[data-modal-size]');
+        dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
+        if (sizeEl) {
+            dialog.classList.add(sizeEl.dataset.modalSize);
+        }
+
         this.modal.show();
         document.body.classList.add('modal-open');
     }
@@ -94,8 +112,7 @@ export default class extends Controller {
     close() {
         this.pendingOpen = false;
         this.modal.hide();
-        document.body.classList.remove('modal-open');
-        this.frameTarget.innerHTML = '';
+        // Content and body class cleanup deferred to handleHidden (after animation)
     }
 
     isOpen() {

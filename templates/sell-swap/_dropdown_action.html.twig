@@ -4,9 +4,41 @@
     {# Puzzle is already in sell/swap list - show manage actions #}
     {% if hasMembership %}
         {% set collection_id = currentCollectionId|default('') %}
+        {% set item_id = puzzle_statuses.sellSwapItemIds[puzzle_id] %}
+        <li>
+            <a class="dropdown-item"
+               href="{{ path('edit_sell_swap_list_item', {itemId: item_id}) }}?context={{ context }}{% if currentCollectionId is defined and currentCollectionId %}&collection_id={{ currentCollectionId }}{% endif %}"
+               data-turbo="true"
+               data-turbo-frame="modal-frame">
+                <i class="bi bi-pencil me-1"></i> {{ 'edit_my_puzzle_offer'|trans }}
+            </a>
+        </li>
+        {% if puzzle_id in puzzle_statuses.sellSwapReserved %}
+            <li>
+                <form action="{{ path('sell_swap_remove_reservation', {itemId: item_id}) }}" method="post" data-turbo="true">
+                    <input type="hidden" name="context" value="{{ context }}">
+                    {% if currentCollectionId is defined and currentCollectionId %}<input type="hidden" name="collection_id" value="{{ currentCollectionId }}">{% endif %}
+                    <button type="submit" class="dropdown-item">
+                        <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                        {% if puzzle_statuses.sellSwapReservedNames[puzzle_id] is defined %}
+                            <small class="text-muted">({{ puzzle_statuses.sellSwapReservedNames[puzzle_id] }})</small>
+                        {% endif %}
+                    </button>
+                </form>
+            </li>
+        {% else %}
+            <li>
+                <a class="dropdown-item text-warning"
+                   href="{{ path('sell_swap_mark_reserved', {itemId: item_id}) }}?context={{ context }}{% if currentCollectionId is defined and currentCollectionId %}&collection_id={{ currentCollectionId }}{% endif %}"
+                   data-turbo="true"
+                   data-turbo-frame="modal-frame">
+                    <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
+                </a>
+            </li>
+        {% endif %}
         <li>
             <a class="dropdown-item text-success"
-               href="{{ path('sellswap_mark_sold', {itemId: puzzle_statuses.sellSwapItemIds[puzzle_id]}) }}?context={{ context }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
+               href="{{ path('sellswap_mark_sold', {itemId: item_id}) }}?context={{ context }}{% if collection_id %}&collection_id={{ collection_id }}{% endif %}"
                data-turbo="true"
                data-turbo-frame="modal-frame">
                 <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}

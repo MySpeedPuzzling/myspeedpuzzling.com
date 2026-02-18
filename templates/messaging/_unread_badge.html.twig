@@ -1,0 +1,9 @@
+<div id="unread-badge-container">
+    <a class="navbar-tool {% if app.request.pathInfo starts with '/en/messages' %}active{% endif %}" href="{{ path('conversations_list') }}" aria-label="Messages">
+        <div class="navbar-tool-icon-box {{ count > 0 ? 'bg-secondary' }}">
+            <span class="navbar-tool-label {{ count == 0 ? 'bg-secondary text-dark' }}">{{ count }}</span>
+            <i class="navbar-tool-icon ci-mail" aria-hidden="true"></i>
+        </div>
+        <div class="navbar-tool-text ms-n3 d-none"><small>Messages</small></div>
+    </a>
+</div>

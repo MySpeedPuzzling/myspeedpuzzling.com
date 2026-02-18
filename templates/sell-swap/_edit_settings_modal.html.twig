@@ -1,0 +1,69 @@
+<turbo-frame id="modal-frame">
+    <div data-modal-size="modal-lg">
+        <div class="modal-header">
+            <h5 class="modal-title">{{ 'sell_swap_list.settings.title'|trans }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            {{ form_start(form, {
+                action: path('edit_sell_swap_list_settings', {playerId: player.playerId, 'return': cancelUrl}),
+                attr: {'data-turbo': 'false'}
+            }) }}
+
+            <div class="row" data-controller="conditional-field" data-conditional-field-trigger-value="custom">
+                <div class="col-md-6 mb-2">
+                    {{ form_row(form.currency, {
+                        attr: {'data-action': 'change->conditional-field#toggle', 'class': 'form-select form-select-sm'}
+                    }) }}
+                </div>
+                <div class="col-md-6 mb-2 d-none" data-conditional-field-target="conditionalElement">
+                    {{ form_row(form.customCurrency, {
+                        attr: {'class': 'form-control form-control-sm'}
+                    }) }}
+                    <small class="form-text text-muted">
+                        {{ 'sell_swap_list.settings.custom_currency_help'|trans }}
+                    </small>
+                </div>
+            </div>
+
+            <div class="mb-2" data-controller="country-autocomplete">
+                {{ form_row(form.shippingCountries) }}
+            </div>
+
+            <div class="mb-2">
+                {{ form_row(form.description, {
+                    attr: {'rows': 2, 'class': 'form-control form-control-sm'}
+                }) }}
+            </div>
+
+            <div class="mb-2">
+                {{ form_row(form.shippingInfo, {
+                    attr: {'rows': 2, 'class': 'form-control form-control-sm'}
+                }) }}
+            </div>
+
+            <div class="mb-2">
+                {{ form_row(form.shippingCost, {
+                    attr: {'class': 'form-control form-control-sm'}
+                }) }}
+            </div>
+
+            <div class="mb-3">
+                {{ form_row(form.contactInfo, {
+                    attr: {'class': 'form-control form-control-sm'}
+                }) }}
+                <div class="alert alert-warning mt-2 small py-1 px-2">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    {{ 'sell_swap_list.settings.contact_info_warning'|trans }}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}</button>
+            </div>
+
+            {{ form_end(form) }}
+        </div>
+    </div>
+</turbo-frame>

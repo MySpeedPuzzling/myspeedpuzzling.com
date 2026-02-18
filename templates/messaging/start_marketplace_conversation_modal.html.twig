@@ -1,0 +1,189 @@
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">
+            {% if conversation is defined and conversation is not null %}
+                {{ recipient.playerName ?? recipient.code }}
+            {% else %}
+                {{ 'messaging.new_message'|trans }}
+            {% endif %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    {% if conversation is defined and conversation is not null %}
+        {# Existing conversation - show chat history #}
+        <div class="modal-body p-0" data-controller="messaging conversation-realtime"
+             data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
+             data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
+             data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}"
+             data-conversation-realtime-mercure-url-value="{{ mercure_public_url }}"
+        >
+            {# Puzzle context #}
+            <div class="d-flex align-items-center bg-light py-2 px-3 border-bottom">
+                {% if puzzle.puzzleImage %}
+                    <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-2" style="max-width: 40px; max-height: 40px; object-fit: contain;">
+                {% endif %}
+                <div>
+                    <span class="fw-bold small">{{ puzzle.puzzleName }}</span>
+                    <div class="text-muted" style="font-size: 0.7rem;">
+                        {{ puzzle.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if puzzle.manufacturerName %} &middot; {{ puzzle.manufacturerName }}{% endif %}
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
+                        {% if sell_swap_list_item.price and sell_swap_list_item.listingType.value != 'free' and sell_swap_list_item.listingType.value != 'swap' %}
+                            {% set sellerSettings = sell_swap_list_item.player.sellSwapListSettings %}
+                            <span class="fw-bold text-dark" style="font-size: 0.7rem;">{{ sell_swap_list_item.price }} {{ sellerSettings ? (sellerSettings.customCurrency ?? sellerSettings.currency ?? '') : '' }}</span>
+                        {% endif %}
+
+                        {% if sell_swap_list_item.listingType.value == 'sell' %}
+                            <span class="badge bg-success" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
+                        {% elseif sell_swap_list_item.listingType.value == 'swap' %}
+                            <span class="badge bg-info" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
+                        {% elseif sell_swap_list_item.listingType.value == 'both' %}
+                            <span class="badge bg-primary" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
+                        {% elseif sell_swap_list_item.listingType.value == 'free' %}
+                            <span class="badge bg-danger" style="font-size: 0.6rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
+                        {% endif %}
+
+                        <span class="badge bg-secondary" style="font-size: 0.6rem;">{{ ('marketplace.condition.' ~ sell_swap_list_item.condition.value)|trans }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="max-height: 350px; overflow-y: auto;" id="messages-container"
+                 class="p-3"
+                 data-messaging-target="messages"
+                 data-conversation-realtime-target="messages"
+                 {{ turbo_stream_listen('/messages/' ~ conversation.id ~ '/user/' ~ logged_user.profile.playerId) }}
+                 data-symfony--ux-turbo--mercure-turbo-stream-with-credentials-value="true">
+
+                {% if conversation.status.value in ['pending', 'ignored'] and is_recipient %}
+                    {% for message in messages %}
+                        {{ include('messaging/_message_bubble.html.twig') }}
+                    {% endfor %}
+
+                    <div class="text-center py-3">
+                        <p class="text-muted mb-2 small">{{ 'messaging.accept_disclaimer'|trans }}</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <form action="{{ path('accept_conversation', {conversationId: conversation.id}) }}" method="post">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    <i class="bi bi-check-lg me-1"></i> {{ 'messaging.accept'|trans }}
+                                </button>
+                            </form>
+                            {% if conversation.status.value == 'pending' %}
+                                <form action="{{ path('ignore_conversation', {conversationId: conversation.id}) }}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye-slash me-1"></i> {{ 'messaging.ignore'|trans }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% elseif conversation.status.value in ['pending', 'ignored'] and not is_recipient %}
+                    {% for message in messages %}
+                        {{ include('messaging/_message_bubble.html.twig') }}
+                    {% endfor %}
+
+                    <div class="text-center py-2 text-muted">
+                        <i class="bi bi-hourglass-split d-block mb-1"></i>
+                        <p class="small mb-0">{{ 'messaging.waiting_for_acceptance'|trans({'%name%': recipient.playerName ?? recipient.code}) }}</p>
+                    </div>
+                {% elseif conversation.status.value == 'accepted' %}
+                    {% if messages is empty %}
+                        <div class="text-center py-3 text-muted">
+                            <p class="mb-0">{{ 'messaging.no_messages_yet'|trans }}</p>
+                        </div>
+                    {% else %}
+                        {% for message in messages %}
+                            {{ include('messaging/_message_bubble.html.twig') }}
+                        {% endfor %}
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            {% if conversation.status.value == 'accepted' or (conversation.status.value in ['pending', 'ignored'] and not is_recipient) %}
+                <div class="border-top position-relative p-3" style="background-color: #f5f5f5;">
+                    <div class="d-flex align-items-center text-muted small position-absolute d-none" style="top: -24px; left: 12px;"
+                         data-conversation-realtime-target="typingIndicator">
+                        <div class="typing-dots me-2"><span></span><span></span><span></span></div>
+                        <span>{{ 'messaging.typing'|trans }}</span>
+                    </div>
+                    <form method="post"
+                          action="{{ path('start_marketplace_conversation', {sellSwapListItemId: sell_swap_list_item.id}) }}"
+                          data-turbo="true"
+                          data-turbo-frame="modal-frame"
+                          class="d-flex gap-2">
+                        <textarea name="message" class="form-control" rows="1" placeholder="{{ 'messaging.type_message'|trans }}" maxlength="2000" required data-action="keydown->messaging#submitOnEnter input->conversation-realtime#handleInput"></textarea>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-send"></i>
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        {# New conversation form #}
+        <div class="modal-body">
+            {# Seller info with avatar #}
+            <div class="d-flex align-items-center mb-3 bg-light rounded">
+                {{ include('messaging/_avatar.html.twig', {avatar: recipient.avatar, size: 40, class: 'me-2'}) }}
+                <div>
+                    <strong>{{ recipient.playerName ?? recipient.code }}</strong>
+                    {% if recipient.country %}
+                        <span class="fi fi-{{ recipient.country }} shadow-custom ms-1"></span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Puzzle context #}
+            <div class="d-flex align-items-center mb-3 bg-light rounded">
+                {% if puzzle.puzzleImage %}
+                    <img src="{{ puzzle.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded me-3" style="max-width: 80px;">
+                {% endif %}
+                <div>
+                    <div class="fw-bold">{{ puzzle.puzzleName }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">
+                        {{ puzzle.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if puzzle.manufacturerName %} &middot; {{ puzzle.manufacturerName }}{% endif %}
+                    </div>
+                    <div class="d-flex align-items-center flex-wrap gap-1 mt-1">
+                        {% if sell_swap_list_item.price and sell_swap_list_item.listingType.value != 'free' and sell_swap_list_item.listingType.value != 'swap' %}
+                            {% set sellerSettings = sell_swap_list_item.player.sellSwapListSettings %}
+                            <span class="fw-bold text-dark" style="font-size: 0.75rem;">{{ sell_swap_list_item.price }} {{ sellerSettings ? (sellerSettings.customCurrency ?? sellerSettings.currency ?? '') : '' }}</span>
+                        {% endif %}
+
+                        {% if sell_swap_list_item.listingType.value == 'sell' %}
+                            <span class="badge bg-success" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
+                        {% elseif sell_swap_list_item.listingType.value == 'swap' %}
+                            <span class="badge bg-info" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
+                        {% elseif sell_swap_list_item.listingType.value == 'both' %}
+                            <span class="badge bg-primary" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
+                        {% elseif sell_swap_list_item.listingType.value == 'free' %}
+                            <span class="badge bg-danger" style="font-size: 0.65rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
+                        {% endif %}
+
+                        <span class="badge bg-secondary" style="font-size: 0.65rem;">{{ ('marketplace.condition.' ~ sell_swap_list_item.condition.value)|trans }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {# Message form #}
+            <form method="post"
+                  action="{{ path('start_marketplace_conversation', {sellSwapListItemId: sell_swap_list_item.id}) }}"
+                  data-turbo="true"
+                  data-turbo-frame="modal-frame">
+                <div class="mb-3">
+                    <label for="message" class="form-label">{{ 'messaging.message_label'|trans }}</label>
+                    <textarea name="message" id="message" class="form-control" rows="3" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}"></textarea>
+                    <div class="form-text">{{ 'messaging.max_characters'|trans }}</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send me-1"></i> {{ 'messaging.send_message'|trans }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        {{ 'messaging.cancel'|trans }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+</turbo-frame>

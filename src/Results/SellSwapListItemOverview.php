@@ -25,6 +25,10 @@ readonly final class SellSwapListItemOverview
         public PuzzleCondition $condition,
         public null|string $comment,
         public DateTimeImmutable $addedAt,
+        public bool $reserved,
+        public null|string $reservedForPlayerId,
+        public null|string $reservedForPlayerName,
+        public bool $publishedOnMarketplace = true,
     ) {
     }
 }

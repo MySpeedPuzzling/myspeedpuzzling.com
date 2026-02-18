@@ -87,6 +87,7 @@ final class AddPuzzleToSellSwapListController extends AbstractController
                 price: $formData->price,
                 condition: $formData->condition,
                 comment: $formData->comment,
+                publishedOnMarketplace: $formData->publishedOnMarketplace,
             ));
 
             // Check if this is a Turbo request

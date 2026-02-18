@@ -1,0 +1,23 @@
+{% if message.isSystemMessage %}
+    {{ include('messaging/_system_message_bubble.html.twig') }}
+{% else %}
+<div class="d-flex mb-3 {{ message.isOwnMessage ? 'justify-content-end' : 'justify-content-start' }}" data-message-id="{{ message.messageId }}">
+    {% if not message.isOwnMessage %}
+        {{ include('messaging/_avatar.html.twig', {avatar: message.senderAvatar, size: 32, class: 'me-2 flex-shrink-0 align-self-end'}) }}
+    {% endif %}
+
+    <div class="d-flex flex-column {{ message.isOwnMessage ? 'align-items-end' : 'align-items-start' }}" style="max-width: 75%;">
+        <div class="px-3 py-2 rounded-3 chat-bubble {{ message.isOwnMessage ? 'bg-primary text-white chat-bubble--own' : 'chat-bubble--other' }}">
+            <div style="white-space: pre-wrap; word-break: break-word;">{{ message.content }}</div>
+        </div>
+        <div class="text-muted mt-1" style="font-size: 0.7rem;">
+            {{ message.sentAt|date('H:i') }}
+            {% if message.isOwnMessage and message.readAt %}
+                <i class="bi bi-check2-all message-status-icon ms-1 text-success" title="{{ 'messaging.read_status'|trans }}"></i>
+            {% elseif message.isOwnMessage %}
+                <i class="bi bi-check2 message-status-icon ms-1" title="{{ 'messaging.sent_status'|trans }}"></i>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}

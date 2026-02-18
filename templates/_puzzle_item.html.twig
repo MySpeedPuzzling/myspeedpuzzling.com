@@ -89,7 +89,8 @@
 
                 {{ include('puzzle/_dropdown_actions.html.twig', {
                     puzzle_id: puzzle.puzzleId,
-                    puzzle_statuses: puzzle_statuses
+                    puzzle_statuses: puzzle_statuses,
+                    offer_counts: offer_counts|default({}),
                 }) }}
             </ul>
         </div>

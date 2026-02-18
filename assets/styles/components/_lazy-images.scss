@@ -16,6 +16,16 @@
   &.lazy-img-80 { max-width: 80px; max-height: 80px; }
   &.lazy-img-90 { max-width: 90px; max-height: 90px; }
   &.lazy-img-100 { max-width: 100px; max-height: 100px; }
+
+  // Marketplace listing card: fixed height for consistent card layout
+  &.lazy-img-marketplace {
+    max-width: 90px;
+    height: 66px;
+
+    .lazy-img {
+      height: 66px;
+    }
+  }
 }
 
 // Image inside wrapper

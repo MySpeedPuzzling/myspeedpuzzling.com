@@ -77,7 +77,11 @@ final class EditUnsolvedPuzzlesController extends AbstractController
             return $this->redirectToRoute('puzzle_library', ['playerId' => $playerId]);
         }
 
-        return $this->render('unsolved_puzzles/edit.html.twig', [
+        $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
+            ? 'unsolved_puzzles/_edit_modal.html.twig'
+            : 'unsolved_puzzles/edit.html.twig';
+
+        return $this->render($template, [
             'form' => $form,
             'player' => $player,
             'cancelUrl' => $this->generateUrl('puzzle_library', ['playerId' => $playerId]),

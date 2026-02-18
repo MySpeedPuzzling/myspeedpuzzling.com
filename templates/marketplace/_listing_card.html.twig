@@ -1,0 +1,155 @@
+<div class="card h-100 shadow position-relative">
+    {% if item.reserved %}
+        <div class="position-absolute start-0 top-0" style="z-index: 2;">
+            {% if logged_user.profile is not null and logged_user.profile.playerId is same as item.sellerId and item.reservedForPlayerName is not null %}
+                <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}"
+                   class="badge bg-dark text-light px-2 py-1 mt-2 text-decoration-none"
+                   style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem; letter-spacing: 0.03em;"
+                   data-turbo="true"
+                   data-turbo-frame="modal-frame">{{ 'marketplace.reserved'|trans }}<br><i class="bi bi-envelope me-1"></i>{{ item.reservedForPlayerName|length > 10 ? item.reservedForPlayerName|slice(0, 10) ~ '…' : item.reservedForPlayerName }}</a>
+            {% else %}
+                <span class="badge bg-dark text-light px-2 py-1 mt-2" style="border-radius: 0 0 0.375rem 0; font-size: 0.8rem; letter-spacing: 0.03em;">{{ 'marketplace.reserved'|trans }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if logged_user.profile is not null and logged_user.profile.playerId is same as item.sellerId %}
+        <div class="dropdown position-absolute" style="top: 0.25rem; right: 0.25rem;">
+            <button class="btn btn-outline-primary shadow btn-xs dropdown-toggle"
+                    type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed">
+                <i class="ci-menu"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{{ path('edit_sell_swap_list_item', {itemId: item.itemId}) }}">
+                        <i class="bi bi-pencil me-1"></i> {{ 'edit'|trans }}
+                    </a>
+                </li>
+                {% if item.reserved %}
+                    <li>
+                        <form action="{{ path('sell_swap_remove_reservation', {itemId: item.itemId}) }}" method="post" data-turbo="true">
+                            <input type="hidden" name="context" value="marketplace">
+                            <button type="submit" class="dropdown-item">
+                                <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                                {% if item.reservedForPlayerName is not null %}
+                                    <small class="text-muted">({{ item.reservedForPlayerName }})</small>
+                                {% endif %}
+                            </button>
+                        </form>
+                    </li>
+                {% else %}
+                    <li>
+                        <a class="dropdown-item text-warning"
+                           href="{{ path('sell_swap_mark_reserved', {itemId: item.itemId}) }}?context=marketplace"
+                           data-turbo="true"
+                           data-turbo-frame="modal-frame">
+                            <i class="bi bi-bookmark-check me-1"></i> {{ 'sell_swap_list.mark_reserved.button'|trans }}
+                        </a>
+                    </li>
+                {% endif %}
+                <li>
+                    <a class="dropdown-item text-success"
+                       href="{{ path('sellswap_mark_sold', {itemId: item.itemId}) }}?context=marketplace"
+                       data-turbo="true"
+                       data-turbo-frame="modal-frame">
+                        <i class="bi bi-check-circle me-1"></i> {{ 'sell_swap_list.mark_sold.button'|trans }}
+                    </a>
+                </li>
+                <li>
+                    <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}" method="post">
+                        <button type="submit" class="dropdown-item text-danger">
+                            <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="card-body p-2 d-flex flex-column">
+        <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId, return: marketplaceReturnUrl|default(path('marketplace')), return_title: 'marketplace.title'|trans}) }}" class="text-decoration-none">
+            {# Row 1: Image + Puzzle info #}
+            <div class="d-flex gap-2 mb-1">
+                <div class="flex-shrink-0 text-center" style="width: 90px;">
+                    {{ lazy_puzzle_image(
+                        item.puzzleImage,
+                        'puzzle_small',
+                        item.puzzleName,
+                        999,
+                        90,
+                        'rounded lazy-img-marketplace' ~ (item.reserved ? ' grayscale' : '')
+                    ) }}
+                </div>
+
+                <div class="flex-grow-1 min-width-0">
+                    <h6 class="card-title mb-0 text-dark" style="padding-right: 45px; font-size: 0.8rem; line-height: 125% !important;" title="{{ item.puzzleName }}">
+                        {{ item.puzzleName|length > 55 ? item.puzzleName|slice(0, 52) ~ '...' : item.puzzleName }}
+                    </h6>
+
+                    <div class="fs-xs text-muted">
+                        {{ item.piecesCount }} {{ 'marketplace.pcs'|trans }}{% if item.manufacturerName %} &middot; {{ item.manufacturerName }}{% endif %}
+                    </div>
+
+                    <div class="mt-1 d-flex align-items-center flex-wrap gap-1">
+                        {% if item.listingType != 'free' and item.listingType != 'swap' %}
+                            {% if item.price is not null and item.price > 0 %}
+                                <span class="fw-bold text-dark" style="font-size: 0.8rem;">{{ item.price }} {{ item.sellerCustomCurrency ?? item.sellerCurrency ?? '' }}</span>
+                            {% else %}
+                                <small class="text-muted"><i class="bi bi-exclamation-circle me-1"></i>{{ 'marketplace.price_not_disclosed'|trans }}</small>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if item.listingType == 'sell' %}
+                            <span class="badge bg-success" style="font-size: 0.75rem;">{{ 'marketplace.listing_type.sell'|trans }}</span>
+                        {% elseif item.listingType == 'swap' %}
+                            <span class="badge bg-info" style="font-size: 0.75rem;">{{ 'marketplace.listing_type.swap'|trans }}</span>
+                        {% elseif item.listingType == 'both' %}
+                            <span class="badge bg-primary" style="font-size: 0.75rem;">{{ 'marketplace.listing_type.both'|trans }}</span>
+                        {% elseif item.listingType == 'free' %}
+                            <span class="badge bg-danger" style="font-size: 0.75rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
+                        {% endif %}
+
+                        {% if item.condition == 'like_new' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.like_new'|trans }}</span>
+                        {% elseif item.condition == 'normal' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.normal'|trans }}</span>
+                        {% elseif item.condition == 'not_so_good' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.not_so_good'|trans }}</span>
+                        {% elseif item.condition == 'missing_pieces' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.missing_pieces'|trans }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        {# Row 2: Comment #}
+        {% if item.comment %}
+            <div class="fs-xs text-muted mb-1">{{ item.comment|length > 80 ? item.comment|slice(0, 77) ~ '...' : item.comment }}</div>
+        {% endif %}
+
+        {# Row 3: Seller + Rating #}
+        <div class="mt-auto d-flex align-items-center pt-1">
+            <a href="{{ path('sell_swap_list_detail', {playerId: item.sellerId, return: marketplaceReturnUrl|default(path('marketplace')), return_title: 'marketplace.title'|trans}) }}" class="d-flex align-items-center min-width-0 text-primary text-decoration-underline">
+                {% if item.sellerAvatar %}
+                    <img src="{{ item.sellerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle me-1 flex-shrink-0" style="width: 20px; height: 20px; object-fit: cover;">
+                {% endif %}
+                <small class="text-truncate">{{ item.sellerName ?? item.sellerCode }}</small>
+                {% if item.sellerCountry %}
+                    <small class="fi fi-{{ item.sellerCountry }} shadow-custom ms-1 flex-shrink-0"></small>
+                {% endif %}
+            </a>
+            {% if item.sellerRatingCount is defined and item.sellerRatingCount > 0 %}
+                <a href="{{ path('player_ratings', {playerId: item.sellerId}) }}" class="btn btn-outline-warning btn-sm ms-1 flex-shrink-0 py-0 px-1" style="font-size: 0.7rem;" title="{{ item.sellerAverageRating|number_format(1) }} ({{ item.sellerRatingCount }})" data-turbo="true" data-turbo-frame="modal-frame">
+                    <i class="bi bi-star-fill"></i> {{ item.sellerAverageRating|number_format(1) }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if logged_user.profile is not null and logged_user.profile.playerId is not same as item.sellerId %}
+        <a href="{{ path('start_marketplace_conversation', {sellSwapListItemId: item.itemId}) }}" class="btn btn-outline-primary shadow btn-xs position-absolute" style="top: 0.25rem; right: 0.25rem;" title="{{ 'marketplace.contact_seller'|trans }}" data-turbo="true" data-turbo-frame="modal-frame">
+            <i class="bi bi-envelope"></i>
+        </a>
+    {% endif %}
+</div>

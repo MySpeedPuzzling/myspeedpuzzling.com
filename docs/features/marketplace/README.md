@@ -21,7 +21,7 @@ A fully-featured puzzle marketplace where users can browse, search, and filter a
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Marketplace access | Browse free, list/chat requires membership | Maximizes exposure, incentivizes membership |
+| Marketplace access | Browse free, listing requires membership, chat open to all registered users | Maximizes exposure, incentivizes membership for listing |
 | Currency | Per-seller currency (existing pattern) | Simple, no conversion complexity |
 | Chat safety | Full moderation suite | Accept/deny, block, report, admin dashboard |
 | Transaction tracking | Connect + mark completed + mutual ratings | Builds trust and marketplace credibility |

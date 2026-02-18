@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
+use SpeedPuzzling\Web\Value\SellSwapListSettings;
 
 final class SellSwapListItemFixture extends Fixture implements DependentFixtureInterface
 {
@@ -26,6 +27,9 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
     public const string SELLSWAP_07 = '018d000b-0000-0000-0000-000000000007';
     public const string SELLSWAP_08 = '018d000b-0000-0000-0000-000000000008';
     public const string SELLSWAP_09 = '018d000b-0000-0000-0000-000000000009';
+    public const string SELLSWAP_10 = '018d000b-0000-0000-0000-000000000010';
+    public const string SELLSWAP_11 = '018d000b-0000-0000-0000-000000000011';
+    public const string SELLSWAP_12 = '018d000b-0000-0000-0000-000000000012';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -37,6 +41,17 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         // Players with membership who can use sell/swap feature
         $player3 = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
         $player5 = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
+
+        // Set up shipping countries for sellers
+        // player5 (gb) ships to gb, cz, de
+        $player5->changeSellSwapListSettings(new SellSwapListSettings(
+            shippingCountries: ['gb', 'cz', 'de'],
+        ));
+
+        // player3 (cz) ships to cz, sk only
+        $player3->changeSellSwapListSettings(new SellSwapListSettings(
+            shippingCountries: ['cz', 'sk'],
+        ));
 
         // Puzzles from player5's collection
         $puzzle500_01 = $this->getReference(PuzzleFixture::PUZZLE_500_01, Puzzle::class);
@@ -77,7 +92,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         $manager->persist($item02);
         $this->addReference(self::SELLSWAP_02, $item02);
 
-        // Both sell and swap, normal condition, with comment
+        // Both sell and swap, normal condition, with comment, RESERVED
         $item03 = $this->createSellSwapListItem(
             id: self::SELLSWAP_03,
             player: $player5,
@@ -88,10 +103,11 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Open to offers',
             daysAgo: 15,
         );
+        $item03->markAsReserved();
         $manager->persist($item03);
         $this->addReference(self::SELLSWAP_03, $item03);
 
-        // Sell only, not so good condition, with comment
+        // Sell only, not so good condition, with comment, RESERVED for a specific player
         $item04 = $this->createSellSwapListItem(
             id: self::SELLSWAP_04,
             player: $player5,
@@ -102,10 +118,11 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Some wear on box',
             daysAgo: 10,
         );
+        $item04->markAsReserved(Uuid::fromString(PlayerFixture::PLAYER_ADMIN));
         $manager->persist($item04);
         $this->addReference(self::SELLSWAP_04, $item04);
 
-        // Swap only, like new condition, no comment
+        // Swap only, like new condition, no comment, RESERVED (all offers on this puzzle are reserved)
         $item05 = $this->createSellSwapListItem(
             id: self::SELLSWAP_05,
             player: $player5,
@@ -116,6 +133,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: null,
             daysAgo: 5,
         );
+        $item05->markAsReserved();
         $manager->persist($item05);
         $this->addReference(self::SELLSWAP_05, $item05);
 
@@ -177,6 +195,51 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         );
         $manager->persist($item09);
         $this->addReference(self::SELLSWAP_09, $item09);
+
+        // SELLSWAP_10: PLAYER_ADMIN also listing PUZZLE_500_01 (multiple offers on same puzzle)
+        $item10 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_10,
+            player: $player3,
+            puzzle: $puzzle500_01,
+            listingType: ListingType::Both,
+            price: 22.00,
+            condition: PuzzleCondition::Normal,
+            comment: 'Good condition, complete',
+            daysAgo: 6,
+        );
+        $manager->persist($item10);
+        $this->addReference(self::SELLSWAP_10, $item10);
+
+        // SELLSWAP_11: PLAYER_ADMIN also listing PUZZLE_1000_01 (multiple offers, mixed reservation)
+        // SELLSWAP_03 on the same puzzle is reserved, this one is NOT reserved
+        $item11 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_11,
+            player: $player3,
+            puzzle: $puzzle1000_01,
+            listingType: ListingType::Sell,
+            price: 40.00,
+            condition: PuzzleCondition::LikeNew,
+            comment: null,
+            daysAgo: 4,
+        );
+        $manager->persist($item11);
+        $this->addReference(self::SELLSWAP_11, $item11);
+
+        // SELLSWAP_12: PLAYER_ADMIN also listing PUZZLE_1000_02, RESERVED
+        // Combined with SELLSWAP_05 (also reserved), this puzzle has ONLY reserved offers
+        $item12 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_12,
+            player: $player3,
+            puzzle: $puzzle1000_02,
+            listingType: ListingType::Sell,
+            price: 30.00,
+            condition: PuzzleCondition::Normal,
+            comment: null,
+            daysAgo: 3,
+        );
+        $item12->markAsReserved();
+        $manager->persist($item12);
+        $this->addReference(self::SELLSWAP_12, $item12);
 
         $manager->flush();
     }

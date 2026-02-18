@@ -94,7 +94,11 @@ final class EditLendBorrowListSettingsController extends AbstractController
             ? $this->generateUrl('lend_borrow_list_detail', ['playerId' => $playerId])
             : $this->generateUrl('puzzle_library', ['playerId' => $playerId]);
 
-        return $this->render('lend-borrow/edit_settings.html.twig', [
+        $template = $request->headers->get('Turbo-Frame') === 'modal-frame'
+            ? 'lend-borrow/_edit_settings_modal.html.twig'
+            : 'lend-borrow/edit_settings.html.twig';
+
+        return $this->render($template, [
             'form' => $form,
             'player' => $player,
             'cancelUrl' => $cancelUrl,

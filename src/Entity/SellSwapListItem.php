@@ -50,6 +50,18 @@ class SellSwapListItem
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $addedAt,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+        public bool $publishedOnMarketplace = true,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+        public bool $reserved = false,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $reservedAt = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(type: UuidType::NAME, nullable: true)]
+        public null|UuidInterface $reservedForPlayerId = null,
     ) {
     }
 
@@ -71,5 +83,24 @@ class SellSwapListItem
     public function changeComment(null|string $comment): void
     {
         $this->comment = $comment;
+    }
+
+    public function changePublishedOnMarketplace(bool $publishedOnMarketplace): void
+    {
+        $this->publishedOnMarketplace = $publishedOnMarketplace;
+    }
+
+    public function markAsReserved(null|UuidInterface $reservedForPlayerId = null): void
+    {
+        $this->reserved = true;
+        $this->reservedAt = new DateTimeImmutable();
+        $this->reservedForPlayerId = $reservedForPlayerId;
+    }
+
+    public function removeReservation(): void
+    {
+        $this->reserved = false;
+        $this->reservedAt = null;
+        $this->reservedForPlayerId = null;
     }
 }

@@ -52,6 +52,11 @@ final class RemoveReservationController extends AbstractController
         assert($loggedPlayer !== null);
 
         $sellSwapListItem = $this->sellSwapListItemRepository->get($itemId);
+
+        if ($sellSwapListItem->player->id->toString() !== $loggedPlayer->playerId) {
+            throw $this->createAccessDeniedException();
+        }
+
         $puzzleId = $sellSwapListItem->puzzle->id->toString();
 
         $this->messageBus->dispatch(

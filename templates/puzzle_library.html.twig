@@ -1,12 +1,12 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'collections.meta.title'|trans }}{% endblock %}
+{% block title %}{{ isOwnProfile ? 'collections.meta.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />
 
     <div class="d-md-flex justify-content-between align-items-start mb-4">
-        <h2>{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h2>
+        <h1 class="h2">{{ isOwnProfile ? 'collections.title'|trans : 'collections.title_other'|trans({'%name%': player.playerName}) }}</h1>
         {% if isOwnProfile %}
             <div class="d-flex gap-2">
                 <a href="{{ path('puzzle_add') }}?mode=collection" class="btn btn-sm btn-outline-primary">

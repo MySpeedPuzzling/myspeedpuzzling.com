@@ -108,7 +108,7 @@
                                             {% if puzzle.time is not null %}
                                                 {{ puzzle.time|puzzlingTime }}
                                                 <br>
-                                                <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
+                                                <small class="text-muted"><time datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time></small>
                                                 <br>
                                                 <small>
                                                     <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
@@ -121,7 +121,7 @@
                                                     <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
                                                 </span>
                                                 <br>
-                                                <small class="text-muted">{{ puzzle.finishedAt|date('d.m.Y') }}</small>
+                                                <small class="text-muted"><time datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time></small>
                                             {% endif %}
 
                                             {% if puzzle.firstAttempt %}

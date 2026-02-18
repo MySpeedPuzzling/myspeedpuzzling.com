@@ -40,8 +40,31 @@ return App::config([
                     ],
                 ],
             ],
+            'puzzle_small_webp' => [
+                'quality' => 82,
+                'format' => 'webp',
+                'filters' => [
+                    'auto_rotate' => true,
+                    'thumbnail' => [
+                        'size' => [200, 200],
+                        'mode' => 'inset',
+                    ],
+                ],
+            ],
             'puzzle_medium' => [
                 'quality' => 91,
+                'filters' => [
+                    'auto_rotate' => true,
+                    'thumbnail' => [
+                        'size' => [400, 400],
+                        'mode' => 'inset',
+                        'allow_upscale' => false,
+                    ],
+                ],
+            ],
+            'puzzle_medium_webp' => [
+                'quality' => 85,
+                'format' => 'webp',
                 'filters' => [
                     'auto_rotate' => true,
                     'thumbnail' => [

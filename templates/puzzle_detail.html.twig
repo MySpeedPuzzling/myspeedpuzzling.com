@@ -2,6 +2,7 @@
 
 {% block title %}{{ puzzle.manufacturerName }} {{ puzzle.puzzleName }} {{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}{% endblock %}
 {% block meta_description %}{{ 'puzzle_detail.meta.description'|trans({ '%puzzle%': puzzle.puzzleName, '%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount }) }}{% endblock %}
+{% block og_image %}{% if puzzle.puzzleImage is not null %}{{ absolute_url(puzzle.puzzleImage|imagine_filter('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig') }}

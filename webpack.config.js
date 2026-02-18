@@ -41,7 +41,7 @@ Encore
      */
     .cleanupOutputBeforeBuild()
     .enableBuildNotifications()
-    .enableSourceMaps()
+    .enableSourceMaps(!Encore.isProduction())
     .enableVersioning(Encore.isProduction())
 
     .configureBabelPresetEnv((config) => {

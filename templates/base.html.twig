@@ -14,7 +14,19 @@
 
         {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 
-        <link rel="manifest" href="{{ asset('manifest.json') }}">
+        <meta property="og:title" content="{% block og_title %}{{ block('title') }}{% if app.request.pathInfo != path('homepage') %} | MySpeedPuzzling{% endif %}{% endblock %}">
+        <meta property="og:description" content="{{ block('meta_description') is not empty ? block('meta_description') : 'homepage.meta.description'|trans }}">
+        <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+        <meta property="og:image" content="{% block og_image %}{{ absolute_url(asset('img/speedpuzzling-logo.png')) }}{% endblock %}">
+        <meta property="og:url" content="{{ app.request.uri }}">
+        <meta property="og:site_name" content="MySpeedPuzzling">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="{{ block('og_title') }}">
+        <meta name="twitter:description" content="{{ block('meta_description') is not empty ? block('meta_description') : 'homepage.meta.description'|trans }}">
+        <meta name="twitter:image" content="{{ block('og_image') }}">
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
         <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}?v=2">
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v=2">
@@ -59,33 +71,6 @@
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
 
-        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
-        <script defer>
-            (function() {
-                var initPolyfill = function() {
-                    try {
-                        if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-                            window.BarcodeDetector.getSupportedFormats().then(function() {
-                            }).catch(function() {
-                                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                            });
-                            return;
-                        }
-                    } catch (e) {}
-                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                };
-
-                if ('requestIdleCallback' in window) {
-                    requestIdleCallback(initPolyfill, { timeout: 2000 });
-                } else {
-                    window.addEventListener('load', function() {
-                        setTimeout(initPolyfill, 100);
-                    });
-                }
-            })();
-        </script>
-
         {{ encore_entry_script_tags('app') }}
 
         <!-- JSON-LD Structured Data -->
@@ -125,6 +110,7 @@
     <body class="lang-{{ app.request.locale }}"
           data-controller="gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
+        <a href="#main-content" class="visually-hidden-focusable">Skip to content</a>
         {% if is_web() %}
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
@@ -382,7 +368,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
                                     <i class="me-1 me-lg-0 ci-calendar"></i>
                                     <small class="d-none d-lg-block">{{ 'menu.events'|trans }}</small>
                                     <span class="d-lg-none">{{ 'menu.events'|trans }}</span>
@@ -415,7 +401,7 @@
         </div>
         #}
 
-        <main>
+        <main id="main-content">
             <div data-global-search-target="searchBar" class="global-search">
                 <twig:GlobalSearch />
             </div>

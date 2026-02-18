@@ -28,6 +28,11 @@
   }
 }
 
+// Picture element should not affect layout
+.lazy-img-wrapper picture {
+  display: contents;
+}
+
 // Image inside wrapper
 .lazy-img {
   max-width: 100%;

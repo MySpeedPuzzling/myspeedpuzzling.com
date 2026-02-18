@@ -23,4 +23,34 @@ Disallow: /en/add-puzzle-to-collection
 Disallow: /en/membership
 Disallow: /en/feedback
 
+Disallow: /es/mi-perfil
+Disallow: /es/anadir-tiempo
+Disallow: /es/cronometro
+Disallow: /es/notificaciones
+Disallow: /es/comparar-con-puzzlero
+Disallow: /es/anadir-jugador-a-favoritos
+Disallow: /es/colecciones
+Disallow: /es/membresia
+Disallow: /es/comentarios
+
+Disallow: /fr/mon-profil
+Disallow: /fr/ajouter-temps
+Disallow: /fr/chronometre
+Disallow: /fr/notifications
+Disallow: /fr/comparer-avec-puzzleur
+Disallow: /fr/ajouter-joueur-favoris
+Disallow: /fr/collections
+Disallow: /fr/adhesion
+Disallow: /fr/commentaires
+
+Disallow: /de/mein-profil
+Disallow: /de/zeit-hinzufuegen
+Disallow: /de/stoppuhr
+Disallow: /de/benachrichtigungen
+Disallow: /de/vergleich-mit-puzzler
+Disallow: /de/spieler-zu-favoriten-hinzufuegen
+Disallow: /de/sammlungen
+Disallow: /de/mitgliedschaft
+Disallow: /de/feedback
+
 Clean-param: return&return_url&return_title

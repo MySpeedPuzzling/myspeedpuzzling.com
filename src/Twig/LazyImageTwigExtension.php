@@ -65,13 +65,21 @@ final class LazyImageTwigExtension extends AbstractExtension
             $extraAttrs = ' onload="this.classList.add(\'loaded\')"';
         }
 
+        $webpSrc = $this->getWebpSrc($path, $filter);
+        $webpSource = $webpSrc !== null
+            ? sprintf('<source srcset="%s" type="image/webp">', htmlspecialchars($webpSrc, ENT_QUOTES, 'UTF-8'))
+            : '';
+
         return sprintf(
-            '<span class="%s"><img src="%s" alt="%s" loading="%s" class="%s"%s></span>',
+            '<span class="%s"><picture>%s<img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d"%s></picture></span>',
             htmlspecialchars($wrapperClasses, ENT_QUOTES, 'UTF-8'),
+            $webpSource,
             htmlspecialchars($src, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($alt, ENT_QUOTES, 'UTF-8'),
             $loading,
             $imgClasses,
+            $size,
+            $size,
             $extraAttrs,
         );
     }
@@ -83,6 +91,17 @@ final class LazyImageTwigExtension extends AbstractExtension
         }
 
         return $this->cacheManager->getBrowserPath($path, $filter);
+    }
+
+    private function getWebpSrc(null|string $path, string $filter): null|string
+    {
+        if ($path === null) {
+            return null;
+        }
+
+        $webpFilter = $filter . '_webp';
+
+        return $this->cacheManager->getBrowserPath($path, $webpFilter);
     }
 
     private function getSizeClass(int $size): string

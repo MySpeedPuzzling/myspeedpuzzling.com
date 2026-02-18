@@ -96,9 +96,9 @@ readonly final class ClaimVoucherHandler
             $membership = $this->membershipRepository->getByPlayerId($player->id->toString());
 
             if ($membership->stripeSubscriptionId !== null && $membership->endsAt === null) {
-                // Active Stripe subscription: pause it, update billing date, keep endsAt null
-                $this->pauseStripeSubscription($membership->stripeSubscriptionId, $voucherEndDate);
-                $membership->billingPeriodEndsAt = $voucherEndDate;
+                // Active Stripe subscription: extend billing via trial_end (works for both monthly and yearly)
+                $trialEnd = $this->applyFreeMonthsToSubscription($membership->stripeSubscriptionId, $voucher->monthsValue);
+                $membership->billingPeriodEndsAt = $trialEnd;
             } else {
                 $this->extendMembership($membership, $now, $voucher->monthsValue);
 
@@ -223,18 +223,27 @@ readonly final class ClaimVoucherHandler
         $membership->endsAt = $newEndsAt;
     }
 
-    private function pauseStripeSubscription(string $subscriptionId, \DateTimeImmutable $pauseUntil): void
+    private function applyFreeMonthsToSubscription(string $subscriptionId, int $months): \DateTimeImmutable
     {
+        $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
+        $currentPeriodEnd = $subscription->items->data[0]->current_period_end;
+
+        $trialEnd = (new \DateTimeImmutable())
+            ->setTimestamp($currentPeriodEnd)
+            ->add(new DateInterval('P' . $months . 'M'));
+
         $this->stripeClient->subscriptions->update($subscriptionId, [
-            'pause_collection' => [
-                'behavior' => 'void',
-                'resumes_at' => $pauseUntil->getTimestamp(),
-            ],
+            'trial_end' => $trialEnd->getTimestamp(),
+            'proration_behavior' => 'none',
         ]);
 
-        $this->logger->info('Stripe subscription paused for voucher', [
+        $this->logger->info('Stripe subscription trial_end set for voucher', [
             'subscription_id' => $subscriptionId,
-            'resumes_at' => $pauseUntil->format('Y-m-d H:i:s'),
+            'current_period_end' => date('Y-m-d H:i:s', $currentPeriodEnd),
+            'trial_end' => $trialEnd->format('Y-m-d H:i:s'),
+            'months_added' => $months,
         ]);
+
+        return $trialEnd;
     }
 }

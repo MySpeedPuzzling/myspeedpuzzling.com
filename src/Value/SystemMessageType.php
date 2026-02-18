@@ -9,6 +9,7 @@ enum SystemMessageType: string
     case ListingReserved = 'listing_reserved';
     case ListingReservationRemoved = 'listing_reservation_removed';
     case ListingSold = 'listing_sold';
+    case ListingRemoved = 'listing_removed';
 
     public static function resolveTranslationKey(self $type, null|string $targetPlayerId, null|string $viewerId, null|string $otherParticipantId = null): string
     {
@@ -26,6 +27,7 @@ enum SystemMessageType: string
                 $targetPlayerId !== null => 'messaging.system.listing_sold_to_someone_else',
                 default => 'messaging.system.listing_sold',
             },
+            self::ListingRemoved => 'messaging.system.listing_removed',
         };
     }
 }

@@ -1301,10 +1301,12 @@
     "listing_sold_to_someone_else": "Toto puzzle bylo prodáno/vyměněno někomu jinému."
     "listing_sold_to_this_puzzler": "Toto puzzle jste prodali/vyměnili tomuto puzzlerovi."
     "listing_sold_to_you": "Toto puzzle bylo prodáno/vyměněno vám."
+    "listing_removed": "Tato nabídka byla odstraněna prodejcem."
     "preview":
       "listing_reservation_removed": "Puzzle je opět dostupné"
       "listing_reserved": "Puzzle bylo rezervováno"
       "listing_sold": "Puzzle bylo prodáno/vyměněno"
+      "listing_removed": "Nabídka byla odstraněna"
   "title": "Zprávy"
   "type_message": "Napište zprávu..."
   "typing": "píše..."

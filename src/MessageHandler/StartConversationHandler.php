@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ChatMessage;
@@ -19,6 +18,7 @@ use SpeedPuzzling\Web\Message\SendMessage;
 use SpeedPuzzling\Web\Message\StartConversation;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
+use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\SellSwapListItemRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
@@ -38,10 +38,10 @@ readonly final class StartConversationHandler
         private ChatMessageRepository $chatMessageRepository,
         private UserBlockRepository $userBlockRepository,
         private SellSwapListItemRepository $sellSwapListItemRepository,
+        private NotificationRepository $notificationRepository,
         private MercureNotifier $mercureNotifier,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
-        private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
     ) {
     }
@@ -182,7 +182,7 @@ readonly final class StartConversationHandler
                 $this->clock->now(),
                 targetConversation: $conversation,
             );
-            $this->entityManager->persist($notification);
+            $this->notificationRepository->save($notification);
 
             try {
                 $this->mercureNotifier->notifyNewConversationRequest($conversation);

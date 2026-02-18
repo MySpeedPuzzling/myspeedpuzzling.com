@@ -1541,10 +1541,12 @@ messaging:
         listing_sold_to_this_puzzler: "You sold/swapped this puzzle to this puzzler."
         listing_sold_to_someone_else: "This puzzle was sold/swapped to someone else."
         listing_sold: "This puzzle was sold/swapped to someone else."
+        listing_removed: "This listing has been removed by the seller."
         preview:
             listing_reserved: "Puzzle was reserved"
             listing_reservation_removed: "Puzzle is available again"
             listing_sold: "Puzzle was sold/swapped"
+            listing_removed: "Listing was removed"
     rate_transaction: "Rate transaction"
     your_rating: "Your rating"
     rate_pending: "Rate"

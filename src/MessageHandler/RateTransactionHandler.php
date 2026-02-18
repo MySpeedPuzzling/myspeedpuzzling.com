@@ -37,6 +37,10 @@ readonly final class RateTransactionHandler
         $soldSwappedItem = $this->soldSwappedItemRepository->get($message->soldSwappedItemId);
         $reviewer = $this->playerRepository->get($message->reviewerId);
 
+        if ($message->stars < 1 || $message->stars > 5) {
+            throw new TransactionRatingNotAllowed('Stars must be between 1 and 5.');
+        }
+
         // Determine reviewer role
         $sellerId = $soldSwappedItem->seller->id->toString();
         $buyerPlayer = $soldSwappedItem->buyerPlayer;

@@ -16,6 +16,11 @@ readonly final class NotificationRepository
     ) {
     }
 
+    public function save(Notification $notification): void
+    {
+        $this->entityManager->persist($notification);
+    }
+
     public function markNotificationAsReadForPlayer(string $playerId): void
     {
         $qb = $this->entityManager->createQueryBuilder();

@@ -14,11 +14,14 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\TransactionCompleted;
 use SpeedPuzzling\Web\Value\ListingType;
 
 #[Entity]
-class SoldSwappedItem
+class SoldSwappedItem implements EntityWithEvents
 {
+    use HasEvents;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -49,5 +52,10 @@ class SoldSwappedItem
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $soldAt,
     ) {
+        $this->recordThat(new TransactionCompleted(
+            soldSwappedItemId: $this->id,
+            sellerId: $this->seller->id,
+            buyerPlayerId: $this->buyerPlayer?->id,
+        ));
     }
 }

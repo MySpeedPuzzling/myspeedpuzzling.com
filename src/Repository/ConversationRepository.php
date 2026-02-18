@@ -90,16 +90,6 @@ readonly final class ConversationRepository
         return $conversations[0] ?? null;
     }
 
-    public function findByInitiatorRecipientAndItem(Player $initiator, Player $recipient, null|SellSwapListItem $sellSwapListItem): null|Conversation
-    {
-        return $this->entityManager->getRepository(Conversation::class)
-            ->findOneBy([
-                'initiator' => $initiator,
-                'recipient' => $recipient,
-                'sellSwapListItem' => $sellSwapListItem,
-            ]);
-    }
-
     /**
      * @return array<Conversation>
      */

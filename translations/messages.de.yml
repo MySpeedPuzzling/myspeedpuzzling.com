@@ -1303,10 +1303,12 @@
     "listing_sold_to_someone_else": "Dieses Puzzle wurde an jemand anderen verkauft/getauscht."
     "listing_sold_to_this_puzzler": "Sie haben dieses Puzzle an diesen Puzzler verkauft/getauscht."
     "listing_sold_to_you": "Dieses Puzzle wurde an Sie verkauft/getauscht."
+    "listing_removed": "Dieses Angebot wurde vom Verkäufer entfernt."
     "preview":
       "listing_reservation_removed": "Puzzle ist wieder verfügbar"
       "listing_reserved": "Puzzle wurde reserviert"
       "listing_sold": "Puzzle wurde verkauft/getauscht"
+      "listing_removed": "Angebot wurde entfernt"
   "title": "Nachrichten"
   "type_message": "Nachricht schreiben..."
   "typing": "tippt..."

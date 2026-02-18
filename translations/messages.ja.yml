@@ -1292,10 +1292,12 @@
     "listing_sold_to_someone_else": "このパズルは他の人に売却/交換されました。"
     "listing_sold_to_this_puzzler": "このパズルをこのパズラーに売却/交換しました。"
     "listing_sold_to_you": "このパズルはあなたに売却/交換されました。"
+    "listing_removed": "この出品は出品者によって削除されました。"
     "preview":
       "listing_reservation_removed": "パズルが再び利用可能になりました"
       "listing_reserved": "パズルが予約されました"
       "listing_sold": "パズルが売却/交換されました"
+      "listing_removed": "出品が削除されました"
   "title": "メッセージ"
   "type_message": "メッセージを入力..."
   "typing": "入力中..."

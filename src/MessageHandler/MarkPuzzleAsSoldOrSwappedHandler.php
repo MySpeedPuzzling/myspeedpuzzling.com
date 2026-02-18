@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\SoldSwappedItem;
-use SpeedPuzzling\Web\Events\TransactionCompleted;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\SellSwapListItemNotFound;
 use SpeedPuzzling\Web\Message\MarkPuzzleAsSoldOrSwapped;
@@ -20,7 +19,6 @@ use SpeedPuzzling\Web\Repository\WishListItemRepository;
 use SpeedPuzzling\Web\Services\SystemMessageSender;
 use SpeedPuzzling\Web\Value\SystemMessageType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class MarkPuzzleAsSoldOrSwappedHandler
@@ -31,7 +29,6 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
         private CollectionItemRepository $collectionItemRepository,
         private WishListItemRepository $wishListItemRepository,
         private PlayerRepository $playerRepository,
-        private MessageBusInterface $messageBus,
         private SystemMessageSender $systemMessageSender,
     ) {
     }
@@ -58,7 +55,7 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
             $buyerName = $buyerData['name'];
         }
 
-        // Create history record
+        // Create history record (TransactionCompleted domain event is dispatched from entity after flush)
         $soldSwappedItem = new SoldSwappedItem(
             Uuid::uuid7(),
             $item->player,
@@ -98,13 +95,6 @@ readonly final class MarkPuzzleAsSoldOrSwappedHandler
         if ($wishListItem !== null) {
             $this->wishListItemRepository->delete($wishListItem);
         }
-
-        // Dispatch event so both parties get a "rate your transaction" notification
-        $this->messageBus->dispatch(new TransactionCompleted(
-            soldSwappedItemId: $soldSwappedItem->id,
-            sellerId: $item->player->id,
-            buyerPlayerId: $buyerPlayer?->id,
-        ));
     }
 
     /**

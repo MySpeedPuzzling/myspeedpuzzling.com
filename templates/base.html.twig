@@ -71,6 +71,33 @@
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
 
+        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
+        <script defer>
+            (function() {
+                var initPolyfill = function() {
+                    try {
+                        if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
+                            window.BarcodeDetector.getSupportedFormats().then(function() {
+                            }).catch(function() {
+                                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                            });
+                            return;
+                        }
+                    } catch (e) {}
+                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                };
+
+                if ('requestIdleCallback' in window) {
+                    requestIdleCallback(initPolyfill, { timeout: 2000 });
+                } else {
+                    window.addEventListener('load', function() {
+                        setTimeout(initPolyfill, 100);
+                    });
+                }
+            })();
+        </script>
+
         {{ encore_entry_script_tags('app') }}
 
         <!-- JSON-LD Structured Data -->

@@ -1,39 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import Barcoder from 'barcoder';
 
-let polyfillPromise = null;
-
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-async function ensureBarcodeDetector() {
-    if (window.BarcodeDetector) {
-        try {
-            await window.BarcodeDetector.getSupportedFormats();
-            return;
-        } catch (e) {
-            // Native BarcodeDetector not functional, load polyfill
-        }
-    }
-
-    if (!polyfillPromise) {
-        polyfillPromise = (async () => {
-            await loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
-            await loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
-            window.BarcodeDetector = window.barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-        })();
-    }
-
-    return polyfillPromise;
-}
-
 export default class extends Controller {
     static targets = [
         "video",
@@ -88,7 +55,7 @@ export default class extends Controller {
         }
     }
 
-    async initCamera() {
+    initCamera() {
         // Check if we're in a native app - use native scanner instead
         if (window.isNativeApp) {
             this.openNativeScanner();
@@ -106,13 +73,6 @@ export default class extends Controller {
 
         if (this.hasResultsTarget) {
             this.resultsTarget.classList.add('d-none');
-        }
-
-        try {
-            await ensureBarcodeDetector();
-        } catch (error) {
-            console.error('Failed to load barcode detector:', error);
-            return;
         }
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -344,17 +304,10 @@ export default class extends Controller {
     /**
      * Fallback method to use web scanner when native bridge is not available.
      */
-    async initWebScanner() {
+    initWebScanner() {
         this.wrapperTarget.classList.remove('d-none');
         this.scanBuffer = [];
         this.lastPushTime = 0;
-
-        try {
-            await ensureBarcodeDetector();
-        } catch (error) {
-            console.error('Failed to load barcode detector:', error);
-            return;
-        }
 
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {

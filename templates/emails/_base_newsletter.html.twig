@@ -1,3 +1,5 @@
+{# Base newsletter template - use as a starting point for newsletter emails #}
+{# Copy this template and fill in the title and body sections #}
 {% trans_default_domain 'emails' %}
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
     <wrapper>
@@ -7,14 +9,16 @@
             <row>
                 <columns>
                     <spacer size-sm="24"></spacer>
-                    <h3>{{ 'subscription_renewed.title'|trans }}</h3>
+                    {# Newsletter title goes here #}
+                    <h3>Newsletter Title</h3>
                     <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 
+            {# Newsletter body rows go here - can have multiple rows with different column layouts #}
             <row>
                 <columns>
-                    {{ 'subscription_renewed.content'|trans({'%nextBillingPeriod%': nextBillingPeriod, '%membershipUrl%': url('membership')})|raw }}
+                    <p>Newsletter content goes here.</p>
                 </columns>
             </row>
 

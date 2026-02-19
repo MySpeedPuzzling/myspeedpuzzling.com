@@ -2,10 +2,13 @@
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
     <wrapper>
         <container>
+            {{ include('emails/_header.html.twig') }}
+
             <row>
                 <columns>
-                    <spacer size-sm="10"></spacer>
+                    <spacer size-sm="24"></spacer>
                     <h3>{{ 'membership_cancelled.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 

@@ -72,10 +72,10 @@ table, tr, td {
 @media only screen {
   html {
     min-height: 100%;
-    background: #f3f3f3; } }
+    background: #e5e5e5; } }
 
 table.body {
-  background: #f3f3f3;
+  background: #e5e5e5;
   height: 100%;
   width: 100%; }
 
@@ -826,8 +826,8 @@ p,
 td,
 th,
 a {
-  color: #0a0a0a;
-  font-family: Helvetica, Arial, sans-serif;
+  color: #4b566b;
+  font-family: Rubik, Helvetica, Arial, sans-serif;
   font-weight: normal;
   padding: 0;
   margin: 0;
@@ -841,9 +841,9 @@ h3,
 h4,
 h5,
 h6 {
-  color: inherit;
+  color: #373f50;
   word-wrap: normal;
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: Rubik, Helvetica, Arial, sans-serif;
   font-weight: normal;
   margin-bottom: 10px;
   Margin-bottom: 10px; }
@@ -891,17 +891,17 @@ p {
 
 small {
   font-size: 80%;
-  color: #cacaca; }
+  color: #7d879c; }
 
 a {
-  color: #f34770;
+  color: #fe696a;
   text-decoration: none; }
   a:hover {
-    color: #147dc2; }
+    color: #e55e5f; }
   a:active {
-    color: #147dc2; }
+    color: #e55e5f; }
   a:visited {
-    color: #f34770; }
+    color: #fe696a; }
 
 h1 a,
 h1 a:visited,
@@ -915,14 +915,14 @@ h5 a,
 h5 a:visited,
 h6 a,
 h6 a:visited {
-  color: #f34770; }
+  color: #fe696a; }
 
 pre {
-  background: #f3f3f3;
+  background: #f3f5f9;
   margin: 30px 0;
   Margin: 30px 0; }
   pre code {
-    color: #cacaca; }
+    color: #7d879c; }
     pre code span.callout {
       color: #8a8a8a;
       font-weight: bold; }
@@ -937,7 +937,7 @@ table.hr {
     max-width: 580px;
     border-top: 0;
     border-right: 0;
-    border-bottom: 1px solid #0a0a0a;
+    border-bottom: 1px solid #e3e9ef;
     border-left: 0;
     margin: 20px auto;
     Margin: 20px auto;
@@ -955,7 +955,7 @@ span.preheader {
   visibility: hidden;
   mso-hide: all !important;
   font-size: 1px;
-  color: #f3f3f3;
+  color: #f3f5f9;
   line-height: 1px;
   max-height: 0px;
   max-width: 0px;
@@ -969,18 +969,19 @@ table.button {
   table.button table td {
     text-align: left;
     color: #fefefe;
-    background: #f34770;
-    border: 2px solid #f34770; }
+    background: transparent;
+    border: none; }
     table.button table td a {
-      font-family: Helvetica, Arial, sans-serif;
+      font-family: Rubik, Helvetica, Arial, sans-serif;
       font-size: 16px;
       font-weight: bold;
       color: #fefefe;
+      background: #fe696a;
       text-decoration: none;
       display: inline-block;
-      padding: 8px 16px 8px 16px;
-      border: 0 solid #f34770;
-      border-radius: 3px; }
+      padding: 10px 24px 10px 24px;
+      border: none;
+      border-radius: 8px; }
   table.button.radius table td {
     border-radius: 3px;
     border: none; }
@@ -1038,13 +1039,14 @@ table.button.expanded {
 table.button:hover table td,
 table.button:visited table td,
 table.button:active table td {
-  background: #147dc2;
+  background: transparent;
   color: #fefefe; }
 
 table.button:hover table a,
 table.button:visited table a,
 table.button:active table a {
-  border: 0 solid #147dc2; }
+  background: #e55e5f;
+  border: none; }
 
 table.button.secondary table td {
   background: #777777;
@@ -1160,7 +1162,7 @@ table.menu {
     padding-right: 10px; }
     table.menu td.menu-item a,
     table.menu th.menu-item a {
-      color: #f34770; }
+      color: #fe696a; }
 
 table.menu.vertical td.menu-item,
 table.menu.vertical th.menu-item {
@@ -1346,3 +1348,5 @@ body.outlook p {
     table.button.small-expand center,
     table.button.small-expanded center {
       min-width: 0; } }
+
+

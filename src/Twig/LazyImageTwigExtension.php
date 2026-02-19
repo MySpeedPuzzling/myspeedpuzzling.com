@@ -44,9 +44,11 @@ final class LazyImageTwigExtension extends AbstractExtension
         int $position = 999,
         int $size = 80,
         string $class = '',
+        null|int $maxHeight = null,
     ): string {
         $src = $this->getImageSrc($path, $filter);
         $sizeClass = $this->getSizeClass($size);
+        $maxHeight ??= $size;
 
         // First 4 images are above-the-fold (eager loading)
         $isEager = $position <= 4;
@@ -71,15 +73,18 @@ final class LazyImageTwigExtension extends AbstractExtension
             : '';
 
         return sprintf(
-            '<span class="%s"><picture>%s<img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d"%s></picture></span>',
+            '<span class="%s" style="width:%dpx;height:%dpx"><picture>%s<img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d" style="max-height:%dpx"%s></picture></span>',
             htmlspecialchars($wrapperClasses, ENT_QUOTES, 'UTF-8'),
+            $size,
+            $maxHeight,
             $webpSource,
             htmlspecialchars($src, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($alt, ENT_QUOTES, 'UTF-8'),
             $loading,
             $imgClasses,
             $size,
-            $size,
+            $maxHeight,
+            $maxHeight,
             $extraAttrs,
         );
     }

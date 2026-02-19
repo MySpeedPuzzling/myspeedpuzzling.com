@@ -14,12 +14,12 @@
 
         {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 
-        <meta property="og:title" content="{% block og_title %}{{ block('title') }}{% if app.request.pathInfo != path('homepage') %} | MySpeedPuzzling{% endif %}{% endblock %}">
+        <meta property="og:title" content="{% block og_title %}{{ block('title') }}{% if app.request.pathInfo != path('homepage') %} | My Speed Puzzling{% endif %}{% endblock %}">
         <meta property="og:description" content="{{ block('meta_description') is not empty ? block('meta_description') : 'homepage.meta.description'|trans }}">
         <meta property="og:type" content="{% block og_type %}website{% endblock %}">
         <meta property="og:image" content="{% block og_image %}{{ absolute_url(asset('img/speedpuzzling-logo.png')) }}{% endblock %}">
         <meta property="og:url" content="{{ app.request.uri }}">
-        <meta property="og:site_name" content="MySpeedPuzzling">
+        <meta property="og:site_name" content="My Speed Puzzling">
         <meta name="twitter:card" content="summary">
         <meta name="twitter:title" content="{{ block('og_title') }}">
         <meta name="twitter:description" content="{{ block('meta_description') is not empty ? block('meta_description') : 'homepage.meta.description'|trans }}">

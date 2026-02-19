@@ -13,11 +13,11 @@
             <div class="flex-shrink-0 puzzle-detail-image text-center me-2 me-md-3">
                 <div class="gallery">
                     {% if puzzle.puzzleImage is not null %}
-                        <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
+                        <a class="gallery-item gallery-item-inline-block" href="{{ uploaded_asset(puzzle.puzzleImage) }}">
                             <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}">
                         </a>
                     {% else %}
-                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" class="rounded-2">
+                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" >
                     {% endif %}
                 </div>
             </div>

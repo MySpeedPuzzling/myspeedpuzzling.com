@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -11,17 +12,19 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 {
     private GetPlayersWithUnreadMessages $query;
+    private Connection $connection;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $container = self::getContainer();
         $this->query = $container->get(GetPlayersWithUnreadMessages::class);
+        $this->connection = $container->get(Connection::class);
     }
 
     public function testFindsPlayersWithUnreadMessagesOlderThanThreshold(): void
     {
-        $players = $this->query->findPlayersToNotify(12);
+        $players = $this->query->findPlayersToNotify();
 
         // PLAYER_REGULAR has unread messages from ADMIN (sent 1 day and 2 days ago) in accepted conversation
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -30,7 +33,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testDoesNotFindPlayersWhoseMessagesAreAllRead(): void
     {
-        $players = $this->query->findPlayersToNotify(12);
+        $players = $this->query->findPlayersToNotify();
 
         // PLAYER_ADMIN - all messages from REGULAR are read in the accepted conversation
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -39,7 +42,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testDoesNotFindPlayersAlreadyNotifiedAboutSameUnreadBatch(): void
     {
-        $players = $this->query->findPlayersToNotify(12);
+        $players = $this->query->findPlayersToNotify();
 
         // PLAYER_WITH_FAVORITES has a MessageNotificationLog entry covering their unread messages
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -48,7 +51,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testDoesNotFindPlayersWithoutEmail(): void
     {
-        $players = $this->query->findPlayersToNotify(12);
+        $players = $this->query->findPlayersToNotify();
 
         // All returned players should have an email
         foreach ($players as $player) {
@@ -58,7 +61,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testReturnsCorrectUnreadCount(): void
     {
-        $players = $this->query->findPlayersToNotify(12);
+        $players = $this->query->findPlayersToNotify();
 
         $regularPlayer = null;
         foreach ($players as $player) {
@@ -92,6 +95,51 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
         self::assertSame(2, $adminSummary->unreadCount);
         // The accepted conversation has no puzzle linked
         self::assertNull($adminSummary->puzzleName);
+    }
+
+    public function testPlayerWithLongerFrequencyIsNotNotifiedTooEarly(): void
+    {
+        // Change PLAYER_REGULAR to 1_week frequency
+        $this->connection->executeStatement(
+            "UPDATE player SET email_notification_frequency = '1_week' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $players = $this->query->findPlayersToNotify();
+
+        // PLAYER_REGULAR has unread messages only ~2 days old, which is less than 1 week
+        $playerIds = array_map(static fn ($p) => $p->playerId, $players);
+        self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
+    }
+
+    public function testPlayerWithShorterFrequencyIsNotified(): void
+    {
+        // Change PLAYER_REGULAR to 6_hours frequency
+        $this->connection->executeStatement(
+            "UPDATE player SET email_notification_frequency = '6_hours' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $players = $this->query->findPlayersToNotify();
+
+        // PLAYER_REGULAR has unread messages >6 hours old, should be notified
+        $playerIds = array_map(static fn ($p) => $p->playerId, $players);
+        self::assertContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
+    }
+
+    public function testPendingRequestsRespectPlayerFrequency(): void
+    {
+        // Change PLAYER_REGULAR to 1_week frequency
+        $this->connection->executeStatement(
+            "UPDATE player SET email_notification_frequency = '1_week' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $players = $this->query->findPlayersWithPendingRequestsToNotify();
+
+        // Pending requests are ~2 days old, which is less than 1 week
+        $playerIds = array_map(static fn ($p) => $p->playerId, $players);
+        self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
     }
 
     public function testUnreadSummaryIncludesPuzzleNameForMarketplaceConversation(): void

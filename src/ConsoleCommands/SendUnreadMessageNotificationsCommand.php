@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
 use SpeedPuzzling\Web\Message\SendUnreadNotificationEmail;
+use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -15,12 +16,13 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsCommand(
     name: 'myspeedpuzzling:messages:notify-unread',
-    description: 'Send email notifications for unread messages older than X hours',
+    description: 'Send email notifications for unread messages and notifications',
 )]
 final class SendUnreadMessageNotificationsCommand extends Command
 {
     public function __construct(
         readonly private GetPlayersWithUnreadMessages $getPlayersWithUnreadMessages,
+        readonly private GetNotifications $getNotifications,
         readonly private MessageBusInterface $commandBus,
     ) {
         parent::__construct();
@@ -30,8 +32,8 @@ final class SendUnreadMessageNotificationsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $playersToNotify = $this->getPlayersWithUnreadMessages->findPlayersToNotify(36);
-        $pendingRequestNotifications = $this->getPlayersWithUnreadMessages->findPlayersWithPendingRequestsToNotify(36);
+        $playersToNotify = $this->getPlayersWithUnreadMessages->findPlayersToNotify();
+        $pendingRequestNotifications = $this->getPlayersWithUnreadMessages->findPlayersWithPendingRequestsToNotify();
 
         // Index pending requests by player ID for easy lookup
         $pendingByPlayer = [];
@@ -89,8 +91,9 @@ final class SendUnreadMessageNotificationsCommand extends Command
             }
 
             $pendingRequestCount = $pendingNotification !== null ? $pendingNotification->pendingCount : 0;
+            $unreadNotificationCount = $this->getNotifications->countUnreadForPlayer($playerId);
 
-            if (count($summaries) === 0 && $pendingRequestCount === 0) {
+            if (count($summaries) === 0 && $pendingRequestCount === 0 && $unreadNotificationCount === 0) {
                 $skippedCount++;
                 continue;
             }
@@ -102,6 +105,7 @@ final class SendUnreadMessageNotificationsCommand extends Command
                 playerLocale: $playerLocale,
                 summaries: $summaries,
                 pendingRequestCount: $pendingRequestCount,
+                unreadNotificationCount: $unreadNotificationCount,
                 oldestUnreadAt: $unreadNotification?->oldestUnreadAt,
                 oldestPendingAt: $pendingNotification?->oldestPendingAt,
             ));

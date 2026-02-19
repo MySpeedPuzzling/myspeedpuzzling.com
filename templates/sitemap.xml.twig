@@ -2,7 +2,6 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
     {% for urlInfo in urls %}
         <url>
-            <lastmod>{{ 'now'|date('Y-m-d') }}</lastmod>
             {% for locale, url in urlInfo %}
                 {% if loop.first %}
                     <loc>{{ url }}</loc>

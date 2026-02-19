@@ -1,6 +1,7 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'hub.title'|trans }}{% endblock %}
+{% block title %}{{ 'hub.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'hub.meta.description'|trans }}{% endblock %}
 
 {% block content %}
     <h1 class="h3 mb-0">
@@ -20,7 +21,7 @@
                 <li class="nav-item">
                     <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
                         <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</h6>
+                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'profile.recent_activity'|trans|raw }}</span>
                         </div>
                     </a>
                 </li>
@@ -28,7 +29,7 @@
                 <li class="nav-item">
                     <a class="nav-link" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
                         <div class="text-center">
-                            <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans|raw }}</h6>
+                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans|raw }}</span>
                         </div>
                     </a>
                 </li>

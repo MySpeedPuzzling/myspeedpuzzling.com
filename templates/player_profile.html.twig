@@ -1,8 +1,11 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - {{ 'menu.profile'|trans }}{% endblock %}
+{% block og_type %}profile{% endblock %}
+{% block og_image %}{% if player.avatar is not null %}{{ absolute_url(player.avatar|imagine_filter('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
+    <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
     <twig:PlayerHeader player="{{ player }}" />
 
     <div class="row">

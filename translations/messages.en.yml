@@ -429,9 +429,8 @@ faq:
         <p>Your feedback is very important to us and we appreciate it greatly! If you have anything you'd like to tell us, please write to us at <a href="mailto:simona@speedpuzzling.cz">simona@speedpuzzling.cz</a> (or at <a href="mailto:j.mikes@me.com">j.mikes@me.com</a> for technical matters) or on <a href="https://www.instagram.com/myspeedpuzzling/" target="_blank">Instagram</a>.</p>
         <p>All our source codes are open-source and public on <a href="https://github.com/MySpeedPuzzling">GitHub SpeedPuzzling</a>. We adhere to the philosophy of "sharing is caring" and strive to share everything about myspeedpuzzling.com openly.</p>
 
-    question_fair_play: |
+    question_fair_play: "How do you know I'm not cheating when entering times?"
     answer_fair_play: |
-        <h4 class="mb-3">How do you know I'm not cheating when entering times?</h4>
         <p>Honestly - we probably won't. In the public leaderboard, where puzzlers enter times themselves, we rely on the honesty and integrity of each individual puzzler. Would you really enjoy a dishonestly entered result?</p>
         <p>We assume that, like us, other puzzlers assemble primarily for the joy of it, and the times from this type of assembly are indicative for a rough idea of how we compare to others and will measure up during some competition. Tell me, wouldn't it look suspicious if I had a time of 20 minutes on the platform but took 3 hours during a competition?</p>
         <p>In the future, we also plan rated leagues, where time verification might be required, for example, through video recording.</p>

@@ -5,7 +5,7 @@
 // Wrapper with fixed dimensions - contains the image
 .lazy-img-wrapper {
   display: inline-flex;
-  align-items: flex-start;      // Align to top
+  align-items: center;
   justify-content: center;      // Center horizontally
   background-color: #e9ecef;    // Placeholder background
 
@@ -26,6 +26,11 @@
       height: 66px;
     }
   }
+}
+
+// Picture element should not affect layout
+.lazy-img-wrapper picture {
+  display: contents;
 }
 
 // Image inside wrapper

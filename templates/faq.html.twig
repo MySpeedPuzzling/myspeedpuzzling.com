@@ -4,43 +4,24 @@
 
 {% block json_ld %}
 {{ parent() }}
+{% set faq_items = ['fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
+{% set faq_params = {'%link%': path('my_profile')} %}
 <script type="application/ld+json">
 {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
+        {% for item in faq_items %}
         {
             "@type": "Question",
-            "name": "{{ 'faq.question_fair_play'|trans|striptags }}",
+            "name": {{ ('faq.question_' ~ item)|trans(faq_params)|striptags|json_encode|raw }},
             "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "{{ 'faq.answer_fair_play'|trans|striptags }}"
+                "text": {{ ('faq.answer_' ~ item)|trans(faq_params)|striptags|json_encode|raw }}
             }
-        },
-        {
-            "@type": "Question", 
-            "name": "{{ 'faq.question_qr'|trans|striptags }}",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "{{ 'faq.answer_qr'|trans|striptags }}"
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "{{ 'faq.question_add_time_for_missing_puzzle'|trans|striptags }}",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "{{ 'faq.answer_add_time_for_missing_puzzle'|trans|striptags }}"
-            }
-        },
-        {
-            "@type": "Question",
-            "name": "{{ 'faq.question_edit_or_delete_time'|trans|striptags }}",
-            "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "{{ 'faq.answer_edit_or_delete_time'|trans|striptags }}"
-            }
-        }
+        }{% if not loop.last %},{% endif %}
+
+        {% endfor %}
     ]
 }
 </script>
@@ -52,16 +33,17 @@
     {{ 'faq.intro_block'|trans|raw }}
 
     <div class="accordion accordion-faq my-3">
+        {% set faq_body_params = {'%link%': path('my_profile')} %}
         {% for item in ['fair_play', 'qr', 'add_time_for_missing_puzzle', 'edit_or_delete_time', 'button_start_solving', 'button_add_my_time', 'helping'] %}
             <div class="accordion-item my-2 shadow">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">
-                        {{ ('faq.question_' ~ item)|trans|raw }}
+                        {{ ('faq.question_' ~ item)|trans(faq_body_params)|raw }}
                     </button>
                 </h2>
                 <div id="item-{{ item }}" class="accordion-collapse collapse">
                     <div class="accordion-body">
-                        {{ ('faq.answer_' ~ item)|trans|raw }}
+                        {{ ('faq.answer_' ~ item)|trans(faq_body_params)|raw }}
                     </div>
                 </div>
             </div>

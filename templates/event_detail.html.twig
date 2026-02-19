@@ -33,19 +33,19 @@
                 {% if event.link or event.registrationLink or event.resultsLink %}
                     <div class="col-sm-6 mt-2 mt-sm-0">
                         {% if event.link %}
-                            <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
+                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
                                 <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}
                             </a>
                         {% endif %}
 
                         {% if event.registrationLink %}
-                            <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
+                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
                                 <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}
                             </a>
                         {% endif %}
 
                         {% if event.resultsLink %}
-                            <a target="_blank" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
+                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
                                 <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}
                             </a>
                         {% endif %}

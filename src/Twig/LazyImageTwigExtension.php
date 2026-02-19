@@ -44,9 +44,11 @@ final class LazyImageTwigExtension extends AbstractExtension
         int $position = 999,
         int $size = 80,
         string $class = '',
+        null|int $maxHeight = null,
     ): string {
         $src = $this->getImageSrc($path, $filter);
         $sizeClass = $this->getSizeClass($size);
+        $maxHeight ??= $size;
 
         // First 4 images are above-the-fold (eager loading)
         $isEager = $position <= 4;
@@ -65,13 +67,24 @@ final class LazyImageTwigExtension extends AbstractExtension
             $extraAttrs = ' onload="this.classList.add(\'loaded\')"';
         }
 
+        $webpSrc = $this->getWebpSrc($path, $filter);
+        $webpSource = $webpSrc !== null
+            ? sprintf('<source srcset="%s" type="image/webp">', htmlspecialchars($webpSrc, ENT_QUOTES, 'UTF-8'))
+            : '';
+
         return sprintf(
-            '<span class="%s"><img src="%s" alt="%s" loading="%s" class="%s"%s></span>',
+            '<span class="%s" style="width:%dpx;height:%dpx"><picture>%s<img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d" style="max-height:%dpx"%s></picture></span>',
             htmlspecialchars($wrapperClasses, ENT_QUOTES, 'UTF-8'),
+            $size,
+            $maxHeight,
+            $webpSource,
             htmlspecialchars($src, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($alt, ENT_QUOTES, 'UTF-8'),
             $loading,
             $imgClasses,
+            $size,
+            $maxHeight,
+            $maxHeight,
             $extraAttrs,
         );
     }
@@ -83,6 +96,17 @@ final class LazyImageTwigExtension extends AbstractExtension
         }
 
         return $this->cacheManager->getBrowserPath($path, $filter);
+    }
+
+    private function getWebpSrc(null|string $path, string $filter): null|string
+    {
+        if ($path === null) {
+            return null;
+        }
+
+        $webpFilter = $filter . '_webp';
+
+        return $this->cacheManager->getBrowserPath($path, $webpFilter);
     }
 
     private function getSizeClass(int $size): string

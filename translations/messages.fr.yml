@@ -435,7 +435,16 @@
   "player_code_change": "Changer le code joueur"
   "profile_visibility": "Visibilité du profil"
   "allow_direct_messages": "Autoriser les autres utilisateurs à m'envoyer des messages directs"
-  "email_notifications": "M'envoyer des notifications par e-mail pour les messages non lus"
+  "email_notifications": "Activer les résumés par e-mail des messages non lus et demandes"
+  "email_notification_frequency": "Fréquence du résumé par e-mail"
+  "email_frequency_help": "À quelle fréquence recevoir des e-mails sur les messages non lus, les demandes en attente et les notifications"
+  "frequency_6_hours": "Toutes les 6 heures"
+  "frequency_12_hours": "Toutes les 12 heures"
+  "frequency_24_hours": "Toutes les 24 heures"
+  "frequency_48_hours": "Toutes les 48 heures"
+  "frequency_1_week": "Une fois par semaine"
+  "newsletter_enabled": "Recevoir les newsletters"
+  "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Fréquence prévue : pas plus d'une fois par mois."
   "messaging_notifications": "Messagerie et notifications"
 "puzzle_detail":
   "meta":

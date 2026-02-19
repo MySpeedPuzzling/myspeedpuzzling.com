@@ -58,4 +58,6 @@ unread_messages:
     pending_requests_also: "Du hast auch %count% neue Nachrichtenanfrage(n)."
     pending_requests_only: "Du hast %count% neue Nachrichtenanfrage(n)."
     view_requests: "Nachrichtenanfragen anzeigen"
-    opt_out: 'Du kannst diese Benachrichtigungen in deinen <a href="%settingsUrl%">Profileinstellungen</a> deaktivieren.'
+    notifications_section: "Du hast auch %count% ungelesene Benachrichtigung(en)."
+    view_notifications: "Benachrichtigungen anzeigen"
+    opt_out: 'Du kannst diese Benachrichtigungen deaktivieren oder die Häufigkeit in deinen <a href="%settingsUrl%">Profileinstellungen</a> ändern.'

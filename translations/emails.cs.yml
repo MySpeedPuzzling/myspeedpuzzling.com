@@ -58,4 +58,6 @@ unread_messages:
     pending_requests_also: "Take mate %count% novych zadosti o zpravu."
     pending_requests_only: "Mate %count% novych zadosti o zpravu."
     view_requests: "Zobrazit zadosti o zpravu"
-    opt_out: 'Tato upozorneni muzete vypnout v <a href="%settingsUrl%">nastaveni profilu</a>.'
+    notifications_section: "Máte také %count% nepřečtených upozornění."
+    view_notifications: "Zobrazit upozornění"
+    opt_out: 'Tato upozornění můžete vypnout nebo změnit jejich frekvenci v <a href="%settingsUrl%">nastavení profilu</a>.'

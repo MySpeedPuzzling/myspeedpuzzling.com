@@ -51,9 +51,21 @@
                                 {{ 'unread_messages.view_messages'|trans }}
                             </button>
                         </center>
+
+                        <spacer size-sm="10"></spacer>
                     {% endif %}
 
-                    <spacer size-sm="10"></spacer>
+                    {% if unreadNotificationCount is defined and unreadNotificationCount > 0 %}
+                        <p>{{ 'unread_messages.notifications_section'|trans({'%count%': unreadNotificationCount}) }}</p>
+
+                        <center>
+                            <button href="{{ url('notifications') }}">
+                                {{ 'unread_messages.view_notifications'|trans }}
+                            </button>
+                        </center>
+
+                        <spacer size-sm="10"></spacer>
+                    {% endif %}
 
                     <p><small>{{ 'unread_messages.opt_out'|trans({'%settingsUrl%': url('edit_profile')})|raw }}</small></p>
                 </columns>

@@ -48,6 +48,7 @@ final class SendUnreadNotificationEmailHandlerTest extends KernelTestCase
                 ),
             ],
             pendingRequestCount: 0,
+            unreadNotificationCount: 0,
             oldestUnreadAt: new DateTimeImmutable('-2 days'),
             oldestPendingAt: null,
         ));
@@ -68,6 +69,7 @@ final class SendUnreadNotificationEmailHandlerTest extends KernelTestCase
             playerLocale: 'en',
             summaries: [],
             pendingRequestCount: 1,
+            unreadNotificationCount: 0,
             oldestUnreadAt: null,
             oldestPendingAt: new DateTimeImmutable('-2 days'),
         ));
@@ -97,6 +99,7 @@ final class SendUnreadNotificationEmailHandlerTest extends KernelTestCase
                 ),
             ],
             pendingRequestCount: 1,
+            unreadNotificationCount: 0,
             oldestUnreadAt: new DateTimeImmutable('-2 days'),
             oldestPendingAt: new DateTimeImmutable('-2 days'),
         ));
@@ -119,6 +122,7 @@ final class SendUnreadNotificationEmailHandlerTest extends KernelTestCase
             playerLocale: 'en',
             summaries: [],
             pendingRequestCount: 1,
+            unreadNotificationCount: 0,
             oldestUnreadAt: null,
             oldestPendingAt: new DateTimeImmutable('-2 days'),
         ));
@@ -147,6 +151,7 @@ final class SendUnreadNotificationEmailHandlerTest extends KernelTestCase
                 ),
             ],
             pendingRequestCount: 0,
+            unreadNotificationCount: 0,
             oldestUnreadAt: new DateTimeImmutable('-2 days'),
             oldestPendingAt: null,
         ));

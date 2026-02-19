@@ -58,4 +58,6 @@ unread_messages:
     pending_requests_also: "%count%件の新しいメッセージリクエストもあります。"
     pending_requests_only: "%count%件の新しいメッセージリクエストがあります。"
     view_requests: "メッセージリクエストを見る"
-    opt_out: 'これらの通知は<a href="%settingsUrl%">プロフィール設定</a>でオフにできます。'
+    notifications_section: "%count%件の未読通知もあります。"
+    view_notifications: "通知を見る"
+    opt_out: 'これらの通知はオフにしたり、頻度を変更したりできます。<a href="%settingsUrl%">プロフィール設定</a>から変更してください。'

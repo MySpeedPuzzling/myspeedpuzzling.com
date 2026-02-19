@@ -537,7 +537,16 @@
   "player_code_change": "プレイヤーコード変更"
   "profile_visibility": "プロフィールの表示"
   "allow_direct_messages": "他のユーザーからのダイレクトメッセージを許可する"
-  "email_notifications": "未読メッセージについてメール通知を送信する"
+  "email_notifications": "未読メッセージとリクエストのメールダイジェストを有効にする"
+  "email_notification_frequency": "メールダイジェストの頻度"
+  "email_frequency_help": "未読メッセージ、保留中のリクエスト、通知に関するメール更新の受信頻度"
+  "frequency_6_hours": "6時間ごと"
+  "frequency_12_hours": "12時間ごと"
+  "frequency_24_hours": "24時間ごと"
+  "frequency_48_hours": "48時間ごと"
+  "frequency_1_week": "週に1回"
+  "newsletter_enabled": "ニュースレターを受信する"
+  "newsletter_help": "プラットフォームの新機能などについてのニュースレターを不定期にお送りします。想定頻度：月1回以下。"
   "messaging_notifications": "メッセージと通知"
 "puzzle_detail":
   "meta":

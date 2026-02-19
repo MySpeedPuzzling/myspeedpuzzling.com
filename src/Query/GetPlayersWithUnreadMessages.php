@@ -12,6 +12,17 @@ use SpeedPuzzling\Web\Results\UnreadMessageSummary;
 
 readonly final class GetPlayersWithUnreadMessages
 {
+    private const string FREQUENCY_INTERVAL_CASE = <<<SQL
+    CASE p.email_notification_frequency
+        WHEN '6_hours' THEN INTERVAL '6 hours'
+        WHEN '12_hours' THEN INTERVAL '12 hours'
+        WHEN '24_hours' THEN INTERVAL '24 hours'
+        WHEN '48_hours' THEN INTERVAL '48 hours'
+        WHEN '1_week' THEN INTERVAL '7 days'
+        ELSE INTERVAL '24 hours'
+    END
+SQL;
+
     public function __construct(
         private Connection $database,
     ) {
@@ -20,8 +31,10 @@ readonly final class GetPlayersWithUnreadMessages
     /**
      * @return UnreadMessageNotification[]
      */
-    public function findPlayersToNotify(int $hoursThreshold): array
+    public function findPlayersToNotify(): array
     {
+        $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
+
         $query = <<<SQL
 SELECT
     p.id as player_id,
@@ -38,7 +51,7 @@ WHERE p.email IS NOT NULL
   AND c.status = 'accepted'
   AND cm.sender_id != p.id
   AND cm.read_at IS NULL
-  AND cm.sent_at < NOW() - CAST(:hours AS INTERVAL)
+  AND cm.sent_at < NOW() - {$frequencyInterval}
   AND NOT EXISTS (
       SELECT 1 FROM user_block ub
       WHERE ub.blocker_id = p.id
@@ -47,7 +60,7 @@ WHERE p.email IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM message_notification_log mnl
       WHERE mnl.player_id = p.id
-      AND mnl.sent_at > NOW() - INTERVAL '24 hours'
+      AND mnl.sent_at > NOW() - {$frequencyInterval}
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(cm.sent_at) > COALESCE(
@@ -59,9 +72,7 @@ HAVING MIN(cm.sent_at) > COALESCE(
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query, [
-                'hours' => $hoursThreshold . ' hours',
-            ])
+            ->executeQuery($query)
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): UnreadMessageNotification {
@@ -89,8 +100,10 @@ SQL;
     /**
      * @return PendingRequestNotification[]
      */
-    public function findPlayersWithPendingRequestsToNotify(int $hoursThreshold): array
+    public function findPlayersWithPendingRequestsToNotify(): array
     {
+        $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
+
         $query = <<<SQL
 SELECT
     p.id as player_id,
@@ -104,7 +117,7 @@ JOIN conversation c ON c.recipient_id = p.id
 WHERE p.email IS NOT NULL
   AND p.email_notifications_enabled = true
   AND c.status = 'pending'
-  AND c.created_at < NOW() - CAST(:hours AS INTERVAL)
+  AND c.created_at < NOW() - {$frequencyInterval}
   AND NOT EXISTS (
       SELECT 1 FROM user_block ub
       WHERE ub.blocker_id = p.id
@@ -113,7 +126,7 @@ WHERE p.email IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM request_notification_log rnl
       WHERE rnl.player_id = p.id
-      AND rnl.sent_at > NOW() - INTERVAL '24 hours'
+      AND rnl.sent_at > NOW() - {$frequencyInterval}
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(c.created_at) > COALESCE(
@@ -125,9 +138,7 @@ HAVING MIN(c.created_at) > COALESCE(
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query, [
-                'hours' => $hoursThreshold . ' hours',
-            ])
+            ->executeQuery($query)
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): PendingRequestNotification {

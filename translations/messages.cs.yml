@@ -449,7 +449,16 @@
   "player_code_change": "Změna kódu hráče"
   "profile_visibility": "Viditelnost profilu"
   "allow_direct_messages": "Povolit ostatním uživatelům posílat mi přímé zprávy"
-  "email_notifications": "Posílat mi e-mailová upozornění o nepřečtených zprávách"
+  "email_notifications": "Povolit e-mailové souhrny nepřečtených zpráv a žádostí"
+  "email_notification_frequency": "Frekvence e-mailových souhrnů"
+  "email_frequency_help": "Jak často dostávat e-mailové aktualizace o nepřečtených zprávách, čekajících žádostech a upozorněních"
+  "frequency_6_hours": "Každých 6 hodin"
+  "frequency_12_hours": "Každých 12 hodin"
+  "frequency_24_hours": "Každých 24 hodin"
+  "frequency_48_hours": "Každých 48 hodin"
+  "frequency_1_week": "Jednou týdně"
+  "newsletter_enabled": "Dostávat newsletter"
+  "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Očekávaná frekvence: maximálně 1x měsíčně."
   "messaging_notifications": "Zprávy a upozornění"
 "puzzle_detail":
   "meta":

@@ -26,5 +26,7 @@ readonly final class EditMessagingSettingsHandler
 
         $player->changeAllowDirectMessages($message->allowDirectMessages);
         $player->changeEmailNotificationsEnabled($message->emailNotificationsEnabled);
+        $player->changeEmailNotificationFrequency($message->emailNotificationFrequency);
+        $player->changeNewsletterEnabled($message->newsletterEnabled);
     }
 }

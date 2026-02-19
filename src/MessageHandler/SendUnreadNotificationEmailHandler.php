@@ -47,6 +47,7 @@ readonly final class SendUnreadNotificationEmailHandler
                 'playerName' => $message->playerName,
                 'summaries' => $message->summaries,
                 'pendingRequestCount' => $message->pendingRequestCount,
+                'unreadNotificationCount' => $message->unreadNotificationCount,
                 'locale' => $message->playerLocale ?? 'en',
             ]);
 

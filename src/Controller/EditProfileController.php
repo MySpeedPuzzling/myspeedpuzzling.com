@@ -146,6 +146,8 @@ final class EditProfileController extends AbstractController
                     $player->playerId,
                     $messagingSettingsFormData->allowDirectMessages,
                     $messagingSettingsFormData->emailNotificationsEnabled,
+                    $messagingSettingsFormData->emailNotificationFrequency,
+                    $messagingSettingsFormData->newsletterEnabled,
                 )
             );
 

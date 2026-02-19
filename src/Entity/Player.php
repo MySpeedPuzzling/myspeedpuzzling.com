@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerIsAlreadyInFavorites;
 use SpeedPuzzling\Web\Exceptions\PlayerIsNotInFavorites;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
+use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
 
@@ -130,6 +131,14 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $emailNotificationsEnabled = true;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: EmailNotificationFrequency::class, options: ['default' => '24_hours'])]
+    public EmailNotificationFrequency $emailNotificationFrequency = EmailNotificationFrequency::TwentyFourHours;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => true])]
+    public bool $newsletterEnabled = true;
 
     public function __construct(
         #[Id]
@@ -308,6 +317,16 @@ class Player
     public function changeEmailNotificationsEnabled(bool $enabled): void
     {
         $this->emailNotificationsEnabled = $enabled;
+    }
+
+    public function changeEmailNotificationFrequency(EmailNotificationFrequency $frequency): void
+    {
+        $this->emailNotificationFrequency = $frequency;
+    }
+
+    public function changeNewsletterEnabled(bool $enabled): void
+    {
+        $this->newsletterEnabled = $enabled;
     }
 
     public function isMessagingMuted(): bool

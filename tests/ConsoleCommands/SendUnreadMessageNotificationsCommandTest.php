@@ -62,8 +62,8 @@ final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
         // Create a second player with the same email as PLAYER_REGULAR
         $duplicatePlayerId = Uuid::uuid7()->toString();
         $this->connection->executeStatement(
-            "INSERT INTO player (id, code, user_id, email, name, email_notifications_enabled, registered_at, is_private, is_admin, messaging_muted, marketplace_banned, puzzle_collection_visibility, unsolved_puzzles_visibility, wish_list_visibility, lend_borrow_list_visibility, solved_puzzles_visibility, allow_direct_messages, rating_count, modal_displayed, favorite_players)
-            VALUES (:id, :code, :user_id, :email, :name, true, :registered_at, false, false, false, false, 'private', 'private', 'private', 'private', 'private', true, 0, false, '[]')",
+            "INSERT INTO player (id, code, user_id, email, name, email_notifications_enabled, email_notification_frequency, newsletter_enabled, registered_at, is_private, is_admin, messaging_muted, marketplace_banned, puzzle_collection_visibility, unsolved_puzzles_visibility, wish_list_visibility, lend_borrow_list_visibility, solved_puzzles_visibility, allow_direct_messages, rating_count, modal_displayed, favorite_players)
+            VALUES (:id, :code, :user_id, :email, :name, true, '24_hours', true, :registered_at, false, false, false, false, 'private', 'private', 'private', 'private', 'private', true, 0, false, '[]')",
             [
                 'id' => $duplicatePlayerId,
                 'code' => 'duplicate_player',

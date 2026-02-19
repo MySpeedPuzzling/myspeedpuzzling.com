@@ -8,18 +8,53 @@ export default class extends Controller {
     }
 
     connect() {
-        this._updateVisibility();
+        const checkbox = this.element.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            this._updateCheckboxVisibility();
+        } else {
+            this._updateVisibility();
+        }
 
-        // Listen for changes on radio buttons and selects within this controller
+        // Listen for changes on radio buttons, selects and checkboxes within this controller
+        // Ignore events from inside the conditional element (e.g. a select inside the toggled area)
         this.element.addEventListener('change', (event) => {
+            if (this.hasConditionalElementTarget && this.conditionalElementTarget.contains(event.target)) {
+                return;
+            }
+
             if (event.target.matches('input[type="radio"], select')) {
                 this._updateVisibility(event.target.value);
+            } else if (event.target.matches('input[type="checkbox"]')) {
+                this._updateCheckboxVisibility(event.target.checked);
             }
         });
     }
 
     toggle(event) {
-        this._updateVisibility(event.target.value);
+        if (event.target.matches('input[type="checkbox"]')) {
+            this._updateCheckboxVisibility(event.target.checked);
+        } else {
+            this._updateVisibility(event.target.value);
+        }
+    }
+
+    _updateCheckboxVisibility(checked = null) {
+        if (!this.hasConditionalElementTarget) {
+            return;
+        }
+
+        if (checked === null) {
+            const checkbox = this.element.querySelector('input[type="checkbox"]');
+            checked = checkbox ? checkbox.checked : false;
+        }
+
+        const shouldShow = this.hideOnValue ? !checked : checked;
+
+        if (shouldShow) {
+            this.conditionalElementTarget.classList.remove('d-none');
+        } else {
+            this.conditionalElementTarget.classList.add('d-none');
+        }
     }
 
     _updateVisibility(value = null) {

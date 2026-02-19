@@ -58,4 +58,6 @@ unread_messages:
     pending_requests_also: "You also have %count% new messaging request(s)."
     pending_requests_only: "You have %count% new messaging request(s)."
     view_requests: "View messaging requests"
-    opt_out: 'You can turn off these notifications in your <a href="%settingsUrl%">profile settings</a>.'
+    notifications_section: "You also have %count% unread notification(s)."
+    view_notifications: "View notifications"
+    opt_out: 'You can turn off these notifications or change the frequency in your <a href="%settingsUrl%">profile settings</a>.'

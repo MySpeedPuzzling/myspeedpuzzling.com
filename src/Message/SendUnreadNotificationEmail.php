@@ -19,6 +19,7 @@ readonly final class SendUnreadNotificationEmail
         public null|string $playerLocale,
         public array $summaries,
         public int $pendingRequestCount,
+        public int $unreadNotificationCount,
         public null|DateTimeImmutable $oldestUnreadAt,
         public null|DateTimeImmutable $oldestPendingAt,
     ) {

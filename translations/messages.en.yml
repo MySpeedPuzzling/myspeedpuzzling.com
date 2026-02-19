@@ -514,7 +514,16 @@ edit_profile:
     profile_visibility: "Profile visibility"
     messaging_notifications: "Messaging & Notifications"
     allow_direct_messages: "Allow other users to message me directly"
-    email_notifications: "Send me email notifications about unread messages"
+    email_notifications: "Enable email digest for unread messages and requests"
+    email_notification_frequency: "Email digest frequency"
+    email_frequency_help: "How often to receive email updates about unread messages, pending requests, and notifications"
+    frequency_6_hours: "Every 6 hours"
+    frequency_12_hours: "Every 12 hours"
+    frequency_24_hours: "Every 24 hours"
+    frequency_48_hours: "Every 48 hours"
+    frequency_1_week: "Once a week"
+    newsletter_enabled: "Receive newsletters"
+    newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. Expected frequency: no more than 1 per month."
 
 puzzle_detail:
     meta:

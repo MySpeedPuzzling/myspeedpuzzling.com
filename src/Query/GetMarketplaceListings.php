@@ -29,6 +29,7 @@ readonly final class GetMarketplaceListings
         null|float $priceMax = null,
         null|PuzzleCondition $condition = null,
         null|string $shipsToCountry = null,
+        null|string $sellerCountry = null,
         null|string $sellerId = null,
         null|string $puzzleId = null,
         string $sort = 'newest',
@@ -168,6 +169,12 @@ WHERE ssli.published_on_marketplace = true';
             $query .= "
     AND (pl.sell_swap_list_settings->'shipping_countries')::jsonb @> :countryJson::jsonb";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
+        }
+
+        if ($sellerCountry !== null && $sellerCountry !== '') {
+            $query .= '
+    AND pl.country = :sellerCountry';
+            $params['sellerCountry'] = $sellerCountry;
         }
 
         if ($sellerId !== null && $sellerId !== '') {
@@ -411,6 +418,7 @@ SQL;
         null|float $priceMax = null,
         null|PuzzleCondition $condition = null,
         null|string $shipsToCountry = null,
+        null|string $sellerCountry = null,
         null|string $sellerId = null,
         null|string $puzzleId = null,
     ): int {
@@ -486,6 +494,12 @@ WHERE ssli.published_on_marketplace = true';
             $query .= "
     AND (pl.sell_swap_list_settings->'shipping_countries')::jsonb @> :countryJson::jsonb";
             $params['countryJson'] = json_encode($shipsToCountry, JSON_THROW_ON_ERROR);
+        }
+
+        if ($sellerCountry !== null && $sellerCountry !== '') {
+            $query .= '
+    AND pl.country = :sellerCountry';
+            $params['sellerCountry'] = $sellerCountry;
         }
 
         if ($sellerId !== null && $sellerId !== '') {

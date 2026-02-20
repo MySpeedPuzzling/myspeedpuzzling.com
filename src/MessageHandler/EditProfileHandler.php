@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -21,6 +22,7 @@ readonly final class EditProfileHandler
         private Filesystem $filesystem,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private ImageOptimizer $imageOptimizer,
     ) {
     }
 
@@ -36,6 +38,8 @@ readonly final class EditProfileHandler
             $extension = $message->avatar->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
             $avatarPath = "avatars/{$player->id->toString()}-$timestamp.$extension";
+
+            $this->imageOptimizer->optimize($message->avatar->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->avatar->getPathname(), 'rb');

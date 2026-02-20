@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Message\AddPuzzle;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -29,6 +30,7 @@ readonly final class AddPuzzleHandler
         private Filesystem $filesystem,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private ImageOptimizer $imageOptimizer,
     ) {
     }
 
@@ -59,6 +61,8 @@ readonly final class AddPuzzleHandler
             $extension = $message->puzzlePhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
             $puzzlePhotoPath = "$message->puzzleId-$timestamp.$extension";
+
+            $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->puzzlePhoto->getPathname(), 'rb');

@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Message\AddPuzzleTracking;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -29,6 +30,7 @@ readonly final class AddPuzzleTrackingHandler
         private PuzzlersGrouping $puzzlersGrouping,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
+        private ImageOptimizer $imageOptimizer,
     ) {
     }
 
@@ -50,6 +52,8 @@ readonly final class AddPuzzleTrackingHandler
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/$player->id/$trackingId-$timestamp.$extension";
+
+            $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');

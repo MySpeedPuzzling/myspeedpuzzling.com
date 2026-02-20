@@ -10,9 +10,11 @@ use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -54,6 +56,9 @@ final class MarketplaceListing
     public bool $shipToMyCountry = false;
 
     #[LiveProp(writable: true, url: true)]
+    public string $sellerCountry = '';
+
+    #[LiveProp(writable: true, url: true)]
     public string $sort = 'newest';
 
     #[LiveProp(writable: true, url: true)]
@@ -78,6 +83,7 @@ final class MarketplaceListing
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private UrlGeneratorInterface $urlGenerator,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -115,6 +121,7 @@ final class MarketplaceListing
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
             shipsToCountry: $this->getShipsToCountry(),
+            sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->puzzleId !== '' ? $this->puzzleId : null,
             sort: $this->sort,
@@ -141,6 +148,7 @@ final class MarketplaceListing
             priceMax: $this->priceMax,
             condition: $this->getConditionEnum(),
             shipsToCountry: $this->getShipsToCountry(),
+            sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
             sellerId: $this->getMyOffersSellerId(),
             puzzleId: $this->puzzleId !== '' ? $this->puzzleId : null,
         );
@@ -265,6 +273,10 @@ final class MarketplaceListing
             $params['shipToMyCountry'] = '1';
         }
 
+        if ($this->sellerCountry !== '') {
+            $params['sellerCountry'] = $this->sellerCountry;
+        }
+
         if ($this->sort !== 'newest') {
             $params['sort'] = $this->sort;
         }
@@ -303,7 +315,77 @@ final class MarketplaceListing
         return md5(serialize([
             $this->search, $this->manufacturer, $this->piecesMin, $this->piecesMax,
             $this->listingType, $this->priceMin, $this->priceMax, $this->condition,
-            $this->shipToMyCountry, $this->sort, $this->myOffers, $this->puzzleId,
+            $this->shipToMyCountry, $this->sellerCountry, $this->sort, $this->myOffers, $this->puzzleId,
         ]));
+    }
+
+    /**
+     * @return array<string, array<string, string>>
+     */
+    public function getCountryChoicesGroupedByRegion(): array
+    {
+        $centralEurope = [
+            CountryCode::cz, CountryCode::sk, CountryCode::pl, CountryCode::hu,
+            CountryCode::at, CountryCode::si, CountryCode::ch, CountryCode::li,
+        ];
+
+        $westernEurope = [
+            CountryCode::de, CountryCode::fr, CountryCode::nl, CountryCode::be,
+            CountryCode::lu, CountryCode::ie, CountryCode::gb, CountryCode::mc,
+        ];
+
+        $southernEurope = [
+            CountryCode::es, CountryCode::pt, CountryCode::it, CountryCode::gr,
+            CountryCode::hr, CountryCode::ba, CountryCode::rs, CountryCode::me,
+            CountryCode::mk, CountryCode::al, CountryCode::mt, CountryCode::cy,
+        ];
+
+        $northernEurope = [
+            CountryCode::se, CountryCode::no, CountryCode::dk, CountryCode::fi,
+            CountryCode::is, CountryCode::ee, CountryCode::lv, CountryCode::lt,
+        ];
+
+        $easternEurope = [
+            CountryCode::ro, CountryCode::bg, CountryCode::ua, CountryCode::md,
+            CountryCode::by,
+        ];
+
+        $northAmerica = [
+            CountryCode::us, CountryCode::ca, CountryCode::mx,
+        ];
+
+        $groups = [
+            $this->translator->trans('sell_swap_list.settings.region.central_europe') => $centralEurope,
+            $this->translator->trans('sell_swap_list.settings.region.western_europe') => $westernEurope,
+            $this->translator->trans('sell_swap_list.settings.region.southern_europe') => $southernEurope,
+            $this->translator->trans('sell_swap_list.settings.region.northern_europe') => $northernEurope,
+            $this->translator->trans('sell_swap_list.settings.region.eastern_europe') => $easternEurope,
+            $this->translator->trans('sell_swap_list.settings.region.north_america') => $northAmerica,
+        ];
+
+        $usedCodes = [];
+        foreach ($groups as $countries) {
+            foreach ($countries as $country) {
+                $usedCodes[] = $country->name;
+            }
+        }
+
+        $restOfWorld = [];
+        foreach (CountryCode::cases() as $country) {
+            if (!in_array($country->name, $usedCodes, true)) {
+                $restOfWorld[] = $country;
+            }
+        }
+
+        $groups[$this->translator->trans('sell_swap_list.settings.region.rest_of_world')] = $restOfWorld;
+
+        $choices = [];
+        foreach ($groups as $groupName => $countries) {
+            foreach ($countries as $country) {
+                $choices[$groupName][$country->name] = $country->value;
+            }
+        }
+
+        return $choices;
     }
 }

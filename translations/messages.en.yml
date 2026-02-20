@@ -1610,6 +1610,7 @@ marketplace:
         ship_to_my_country: "Ship to my country"
         ship_to_my_country_disabled: "Ship to my country (set your country in"
         set_country_link: "Edit profile)"
+        country: "Country"
     sort:
         newest: "Newest"
         price_asc: "Price asc"

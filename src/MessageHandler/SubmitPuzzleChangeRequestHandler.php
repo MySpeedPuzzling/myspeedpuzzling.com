@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -30,6 +31,7 @@ readonly final class SubmitPuzzleChangeRequestHandler
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private PuzzleImageNamer $puzzleImageNamer,
+        private ImageOptimizer $imageOptimizer,
     ) {
     }
 
@@ -57,6 +59,8 @@ readonly final class SubmitPuzzleChangeRequestHandler
                 $message->proposedPiecesCount,
                 $extension,
             );
+
+            $this->imageOptimizer->optimize($message->proposedPhoto->getPathname());
 
             $stream = fopen($message->proposedPhoto->getPathname(), 'rb');
             $this->filesystem->writeStream($proposedImagePath, $stream);

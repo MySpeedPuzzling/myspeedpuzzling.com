@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -34,6 +35,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private CompetitionRepository $competitionRepository,
+        private ImageOptimizer $imageOptimizer,
     ) {
     }
 
@@ -77,6 +79,8 @@ readonly final class AddPuzzleSolvingTimeHandler
             $extension = $message->finishedPuzzlesPhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
             $finishedPuzzlePhotoPath = "players/$player->id/$solvingTimeId-$timestamp.$extension";
+
+            $this->imageOptimizer->optimize($message->finishedPuzzlesPhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->finishedPuzzlesPhoto->getPathname(), 'rb');

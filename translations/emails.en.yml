@@ -49,16 +49,15 @@ subscription_renewed:
         <p>Once again, thank you for your support. We wish you lots of fast speed puzzling and amazing results!</p>
 
 unread_messages:
-    subject: "You have unread messages on MySpeedPuzzling"
-    title: "You have unread messages"
+    subject: "Someone messaged you on MySpeedPuzzling"
+    title: "You have new messages waiting"
     greeting: "Hi %playerName%,"
-    intro: "You have new unread messages:"
-    message_line: "%count% message(s) from %senderName%"
-    message_line_with_puzzle: "%count% message(s) from %senderName% (about: %puzzleName%)"
-    view_messages: "View your messages"
-    pending_requests_also: "You also have %count% new message request(s)."
-    pending_requests_only: "You have %count% new message request(s)."
-    view_requests: "View messaging requests"
-    notifications_section: "You also have %count% new unread notification(s)."
-    view_notifications: "View notifications"
-    opt_out: 'You can turn off these notifications or change the frequency in your <a href="%settingsUrl%">profile settings</a>.'
+    intro: "Someone reached out to you since your last visit. Here's what's waiting for you:"
+    message_line: "%count% new message(s) from %senderName%"
+    message_line_with_puzzle: "%count% new message(s) from %senderName% about %puzzleName%"
+    view_messages: "Read your messages"
+    pending_requests_also: "You also have %count% new conversation request(s) — someone wants to connect with you!"
+    pending_requests_only: "Someone wants to reach you! You have %count% new conversation request(s) waiting for your approval."
+    pending_requests_context: "These could be about a puzzle from the marketplace, a question about your collection, or just a fellow puzzler saying hi."
+    view_requests: "Review conversation requests"
+    opt_out: 'You can manage these email notifications in your <a href="%settingsUrl%">profile settings</a>.'

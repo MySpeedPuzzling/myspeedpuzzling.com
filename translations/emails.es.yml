@@ -49,16 +49,15 @@ subscription_renewed:
         <p>Una vez más, gracias por tu apoyo. ¡Te deseamos mucho speed puzzling rápido y resultados increíbles!</p>
 
 unread_messages:
-    subject: "Tienes mensajes sin leer en MySpeedPuzzling"
-    title: "Tienes mensajes sin leer"
+    subject: "Alguien te escribió en MySpeedPuzzling"
+    title: "Tienes nuevos mensajes esperando"
     greeting: "Hola %playerName%,"
-    intro: "Tienes nuevos mensajes sin leer:"
-    message_line: "%count% mensaje(s) de %senderName%"
-    message_line_with_puzzle: "%count% mensaje(s) de %senderName% (sobre: %puzzleName%)"
-    view_messages: "Ver tus mensajes"
-    pending_requests_also: "Tambien tienes %count% nueva(s) solicitud(es) de mensaje."
-    pending_requests_only: "Tienes %count% nueva(s) solicitud(es) de mensaje."
-    view_requests: "Ver solicitudes de mensaje"
-    notifications_section: "También tienes %count% nueva(s) notificación(es) sin leer."
-    view_notifications: "Ver notificaciones"
-    opt_out: 'Puedes desactivar estas notificaciones o cambiar la frecuencia en la <a href="%settingsUrl%">configuración de tu perfil</a>.'
+    intro: "Alguien se comunicó contigo desde tu última visita. Esto es lo que te espera:"
+    message_line: "%count% mensaje(s) nuevo(s) de %senderName%"
+    message_line_with_puzzle: "%count% mensaje(s) nuevo(s) de %senderName% sobre %puzzleName%"
+    view_messages: "Leer tus mensajes"
+    pending_requests_also: "También tienes %count% nueva(s) solicitud(es) de conversación — ¡alguien quiere conectar contigo!"
+    pending_requests_only: "¡Alguien quiere contactarte! Tienes %count% nueva(s) solicitud(es) de conversación esperando tu aprobación."
+    pending_requests_context: "Podrían ser sobre un puzzle del marketplace, una pregunta sobre tu colección, o simplemente un puzzlero saludando."
+    view_requests: "Revisar solicitudes de conversación"
+    opt_out: 'Puedes gestionar estas notificaciones por correo en la <a href="%settingsUrl%">configuración de tu perfil</a>.'

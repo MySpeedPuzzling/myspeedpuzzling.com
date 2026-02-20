@@ -49,16 +49,15 @@ subscription_renewed:
         <p>Nochmals vielen Dank für deine Unterstützung. Wir wünschen dir viel schnelles Speed Puzzling und fantastische Ergebnisse!</p>
 
 unread_messages:
-    subject: "Du hast ungelesene Nachrichten auf MySpeedPuzzling"
-    title: "Du hast ungelesene Nachrichten"
+    subject: "Jemand hat dir auf MySpeedPuzzling geschrieben"
+    title: "Du hast neue Nachrichten, die auf dich warten"
     greeting: "Hallo %playerName%,"
-    intro: "Du hast neue ungelesene Nachrichten:"
-    message_line: "%count% Nachricht(en) von %senderName%"
-    message_line_with_puzzle: "%count% Nachricht(en) von %senderName% (zu: %puzzleName%)"
-    view_messages: "Nachrichten anzeigen"
-    pending_requests_also: "Du hast auch %count% neue Nachrichtenanfrage(n)."
-    pending_requests_only: "Du hast %count% neue Nachrichtenanfrage(n)."
-    view_requests: "Nachrichtenanfragen anzeigen"
-    notifications_section: "Du hast auch %count% neue ungelesene Benachrichtigung(en)."
-    view_notifications: "Benachrichtigungen anzeigen"
-    opt_out: 'Du kannst diese Benachrichtigungen deaktivieren oder die Häufigkeit in deinen <a href="%settingsUrl%">Profileinstellungen</a> ändern.'
+    intro: "Seit deinem letzten Besuch hat sich jemand bei dir gemeldet. Hier ist, was auf dich wartet:"
+    message_line: "%count% neue Nachricht(en) von %senderName%"
+    message_line_with_puzzle: "%count% neue Nachricht(en) von %senderName% zu %puzzleName%"
+    view_messages: "Nachrichten lesen"
+    pending_requests_also: "Du hast auch %count% neue Konversationsanfrage(n) — jemand möchte sich mit dir verbinden!"
+    pending_requests_only: "Jemand möchte dich erreichen! Du hast %count% neue Konversationsanfrage(n), die auf deine Genehmigung warten."
+    pending_requests_context: "Es könnte um ein Puzzle vom Marktplatz gehen, eine Frage zu deiner Sammlung oder einfach ein Gruß von einem Puzzler."
+    view_requests: "Konversationsanfragen ansehen"
+    opt_out: 'Du kannst diese E-Mail-Benachrichtigungen in deinen <a href="%settingsUrl%">Profileinstellungen</a> verwalten.'

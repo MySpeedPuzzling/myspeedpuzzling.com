@@ -49,16 +49,15 @@ subscription_renewed:
         <p>Ještě jednou děkujeme za vaši podporu. Přejeme spoustu rychle poskládaných puzzlí a skvělých výsledků!</p>
 
 unread_messages:
-    subject: "Mate neprectenezpravy na MySpeedPuzzling"
-    title: "Mate neprectene zpravy"
+    subject: "Někdo vám napsal na MySpeedPuzzling"
+    title: "Máte nové zprávy, které čekají"
     greeting: "Ahoj %playerName%,"
-    intro: "Máte nové nepřečtené zprávy:"
-    message_line: "%count% zprav(a/y) od %senderName%"
-    message_line_with_puzzle: "%count% zprav(a/y) od %senderName% (ohledne: %puzzleName%)"
-    view_messages: "Zobrazit zpravy"
-    pending_requests_also: "Také máte %count% nových žádostí o zprávu."
-    pending_requests_only: "Máte %count% nových žádostí o zprávu."
-    view_requests: "Zobrazit zadosti o zpravu"
-    notifications_section: "Máte také %count% nových nepřečtených upozornění."
-    view_notifications: "Zobrazit upozornění"
-    opt_out: 'Tato upozornění můžete vypnout nebo změnit jejich frekvenci v <a href="%settingsUrl%">nastavení profilu</a>.'
+    intro: "Od vaší poslední návštěvy se vám někdo ozval. Tady je, co na vás čeká:"
+    message_line: "%count% nová/é zpráva/y od %senderName%"
+    message_line_with_puzzle: "%count% nová/é zpráva/y od %senderName% ohledně %puzzleName%"
+    view_messages: "Přečíst zprávy"
+    pending_requests_also: "Máte také %count% nových žádostí o konverzaci — někdo se s vámi chce spojit!"
+    pending_requests_only: "Někdo se vám snaží napsat! Máte %count% nových žádostí o konverzaci čekajících na vaše schválení."
+    pending_requests_context: "Může jít o puzzle z tržiště, dotaz ohledně vaší sbírky, nebo jen pozdrav od puzzlera."
+    view_requests: "Zobrazit žádosti o konverzaci"
+    opt_out: 'Tato e-mailová upozornění můžete spravovat v <a href="%settingsUrl%">nastavení profilu</a>.'

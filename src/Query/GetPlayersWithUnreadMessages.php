@@ -166,47 +166,6 @@ SQL;
     }
 
     /**
-     * @return string[]
-     */
-    public function findPlayersWithUnreadNotificationsToNotify(int $limit): array
-    {
-        $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
-
-        $query = <<<SQL
-SELECT
-    p.id as player_id
-FROM player p
-JOIN notification n ON n.player_id = p.id
-WHERE p.email IS NOT NULL
-  AND p.email_notifications_enabled = true
-  AND n.read_at IS NULL
-  AND n.notified_at < NOW() - {$frequencyInterval}
-  AND NOT EXISTS (
-      SELECT 1 FROM digest_email_log del
-      WHERE del.player_id = p.id
-      AND del.sent_at > NOW() - {$frequencyInterval}
-  )
-GROUP BY p.id
-HAVING MIN(n.notified_at) > COALESCE(
-    (SELECT MAX(del.oldest_unread_notification_at)
-     FROM digest_email_log del
-     WHERE del.player_id = p.id),
-    '1970-01-01'::timestamptz
-)
-LIMIT {$limit}
-SQL;
-
-        $rows = $this->database
-            ->executeQuery($query)
-            ->fetchAllAssociative();
-
-        return array_map(static function (array $row): string {
-            /** @var array{player_id: string} $row */
-            return $row['player_id'];
-        }, $rows);
-    }
-
-    /**
      * @return UnreadMessageSummary[]
      */
     public function getUnreadSummaryForPlayer(string $playerId): array

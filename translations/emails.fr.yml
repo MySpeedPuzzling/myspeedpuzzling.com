@@ -49,16 +49,15 @@ subscription_renewed:
         <p>Encore une fois, merci pour votre soutien. Nous vous souhaitons beaucoup de speed puzzling rapide et d'excellents résultats !</p>
 
 unread_messages:
-    subject: "Vous avez des messages non lus sur MySpeedPuzzling"
-    title: "Vous avez des messages non lus"
+    subject: "Quelqu'un vous a écrit sur MySpeedPuzzling"
+    title: "Vous avez de nouveaux messages en attente"
     greeting: "Bonjour %playerName%,"
-    intro: "Vous avez de nouveaux messages non lus :"
-    message_line: "%count% message(s) de %senderName%"
-    message_line_with_puzzle: "%count% message(s) de %senderName% (a propos de : %puzzleName%)"
-    view_messages: "Voir vos messages"
-    pending_requests_also: "Vous avez egalement %count% nouvelle(s) demande(s) de message."
-    pending_requests_only: "Vous avez %count% nouvelle(s) demande(s) de message."
-    view_requests: "Voir les demandes de message"
-    notifications_section: "Vous avez également %count% nouvelle(s) notification(s) non lue(s)."
-    view_notifications: "Voir les notifications"
-    opt_out: 'Vous pouvez désactiver ces notifications ou modifier la fréquence dans les <a href="%settingsUrl%">paramètres de votre profil</a>.'
+    intro: "Quelqu'un vous a contacté depuis votre dernière visite. Voici ce qui vous attend :"
+    message_line: "%count% nouveau(x) message(s) de %senderName%"
+    message_line_with_puzzle: "%count% nouveau(x) message(s) de %senderName% à propos de %puzzleName%"
+    view_messages: "Lire vos messages"
+    pending_requests_also: "Vous avez également %count% nouvelle(s) demande(s) de conversation — quelqu'un souhaite échanger avec vous !"
+    pending_requests_only: "Quelqu'un souhaite vous contacter ! Vous avez %count% nouvelle(s) demande(s) de conversation en attente de votre approbation."
+    pending_requests_context: "Il pourrait s'agir d'un puzzle du marketplace, d'une question sur votre collection, ou simplement d'un puzzleur qui dit bonjour."
+    view_requests: "Voir les demandes de conversation"
+    opt_out: 'Vous pouvez gérer ces notifications par e-mail dans les <a href="%settingsUrl%">paramètres de votre profil</a>.'

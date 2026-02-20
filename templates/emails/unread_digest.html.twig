@@ -30,25 +30,7 @@
                                 </li>
                             {% endfor %}
                         </ul>
-                    {% endif %}
 
-                    {% if pendingRequestCount is defined and pendingRequestCount > 0 %}
-                        {% if summaries is not empty %}
-                            <p>{{ 'unread_messages.pending_requests_also'|trans({'%count%': pendingRequestCount}) }}</p>
-                        {% else %}
-                            <p>{{ 'unread_messages.pending_requests_only'|trans({'%count%': pendingRequestCount}) }}</p>
-                        {% endif %}
-
-                        <center>
-                            <button href="{{ url('conversations_list', {tab: 'requests'}) }}">
-                                {{ 'unread_messages.view_requests'|trans }}
-                            </button>
-                        </center>
-
-                        <spacer size-sm="10"></spacer>
-                    {% endif %}
-
-                    {% if summaries is not empty %}
                         <center>
                             <button href="{{ url('conversations_list') }}">
                                 {{ 'unread_messages.view_messages'|trans }}
@@ -58,12 +40,18 @@
                         <spacer size-sm="10"></spacer>
                     {% endif %}
 
-                    {% if unreadNotificationCount is defined and unreadNotificationCount > 0 %}
-                        <p>{{ 'unread_messages.notifications_section'|trans({'%count%': unreadNotificationCount}) }}</p>
+                    {% if pendingRequestCount is defined and pendingRequestCount > 0 %}
+                        {% if summaries is not empty %}
+                            <p>{{ 'unread_messages.pending_requests_also'|trans({'%count%': pendingRequestCount}) }}</p>
+                        {% else %}
+                            <p>{{ 'unread_messages.pending_requests_only'|trans({'%count%': pendingRequestCount}) }}</p>
+                        {% endif %}
+
+                        <p><small>{{ 'unread_messages.pending_requests_context'|trans }}</small></p>
 
                         <center>
-                            <button href="{{ url('notifications') }}">
-                                {{ 'unread_messages.view_notifications'|trans }}
+                            <button href="{{ url('conversations_list', {tab: 'requests'}) }}">
+                                {{ 'unread_messages.view_requests'|trans }}
                             </button>
                         </center>
 

@@ -49,16 +49,15 @@ subscription_renewed:
         <p>再度、サポートしてくださりありがとうございます。高速スピードパズリングと素晴らしい結果をお祈りしています！</p>
 
 unread_messages:
-    subject: "MySpeedPuzzlingで未読メッセージがあります"
-    title: "未読メッセージがあります"
+    subject: "MySpeedPuzzlingで誰かからメッセージが届いています"
+    title: "新しいメッセージが届いています"
     greeting: "%playerName%さん、こんにちは"
-    intro: "新しい未読メッセージがあります："
-    message_line: "%senderName%からの%count%件のメッセージ"
-    message_line_with_puzzle: "%senderName%からの%count%件のメッセージ（%puzzleName%について）"
-    view_messages: "メッセージを見る"
-    pending_requests_also: "%count%件の新しいメッセージリクエストもあります。"
-    pending_requests_only: "%count%件の新しいメッセージリクエストがあります。"
-    view_requests: "メッセージリクエストを見る"
-    notifications_section: "%count%件の新しい未読通知もあります。"
-    view_notifications: "通知を見る"
-    opt_out: 'これらの通知はオフにしたり、頻度を変更したりできます。<a href="%settingsUrl%">プロフィール設定</a>から変更してください。'
+    intro: "前回の訪問以降、誰かからメッセージが届いています。お待ちしている内容はこちらです："
+    message_line: "%senderName%からの新しいメッセージ%count%件"
+    message_line_with_puzzle: "%senderName%からの%puzzleName%に関する新しいメッセージ%count%件"
+    view_messages: "メッセージを読む"
+    pending_requests_also: "%count%件の新しい会話リクエストもあります — 誰かがあなたとつながりたがっています！"
+    pending_requests_only: "誰かがあなたに連絡したがっています！承認待ちの新しい会話リクエストが%count%件あります。"
+    pending_requests_context: "マーケットプレイスのパズルについて、コレクションへの質問、またはパズラー仲間からの挨拶かもしれません。"
+    view_requests: "会話リクエストを確認する"
+    opt_out: 'これらのメール通知は<a href="%settingsUrl%">プロフィール設定</a>から管理できます。'

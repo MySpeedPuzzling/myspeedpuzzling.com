@@ -15,7 +15,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsCommand(
     name: 'myspeedpuzzling:send-unread-digest-emails',
-    description: 'Send digest emails about unread messages, pending message requests, and unread notifications',
+    description: 'Send digest emails about unread messages and pending message requests',
 )]
 final class SendUnreadDigestEmailsCommand extends Command
 {
@@ -33,13 +33,11 @@ final class SendUnreadDigestEmailsCommand extends Command
 
         $playersWithUnreadMessages = $this->getPlayersWithUnreadMessages->findPlayersToNotify($this->maxEmailsPerRun);
         $playersWithPendingRequests = $this->getPlayersWithUnreadMessages->findPlayersWithPendingRequestsToNotify($this->maxEmailsPerRun);
-        $playersWithUnreadNotifications = $this->getPlayersWithUnreadMessages->findPlayersWithUnreadNotificationsToNotify($this->maxEmailsPerRun);
 
         // Collect all unique player IDs
         $allPlayerIds = array_unique(array_merge(
             array_map(static fn ($n) => $n->playerId, $playersWithUnreadMessages),
             array_map(static fn ($n) => $n->playerId, $playersWithPendingRequests),
-            $playersWithUnreadNotifications,
         ));
 
         if (count($allPlayerIds) === 0) {
@@ -60,17 +58,7 @@ final class SendUnreadDigestEmailsCommand extends Command
             }
         }
 
-        // For notification-only players, we don't have email info from the bulk query,
-        // so we include them and let the handler do the final check
         $playerIdsToDispatch = array_unique(array_values($emailIndex));
-
-        // Add notification-only players that aren't already covered by email dedup
-        $coveredPlayerIds = array_flip($playerIdsToDispatch);
-        foreach ($playersWithUnreadNotifications as $playerId) {
-            if (!isset($coveredPlayerIds[$playerId])) {
-                $playerIdsToDispatch[] = $playerId;
-            }
-        }
 
         $dispatchedCount = 0;
         foreach ($playerIdsToDispatch as $playerId) {

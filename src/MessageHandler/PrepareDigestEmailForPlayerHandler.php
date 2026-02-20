@@ -10,7 +10,6 @@ use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\DigestEmailLog;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
-use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
 use SpeedPuzzling\Web\Repository\DigestEmailLogRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -26,7 +25,6 @@ readonly final class PrepareDigestEmailForPlayerHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private GetPlayersWithUnreadMessages $getPlayersWithUnreadMessages,
-        private GetNotifications $getNotifications,
         private DigestEmailLogRepository $digestEmailLogRepository,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
@@ -53,9 +51,8 @@ readonly final class PrepareDigestEmailForPlayerHandler
 
         $summaries = $this->getPlayersWithUnreadMessages->getUnreadSummaryForPlayer($message->playerId);
         $pendingRequestCount = $this->getPlayersWithUnreadMessages->countPendingRequestsForPlayer($message->playerId);
-        $unreadNotificationCount = $this->getNotifications->countUnreadForPlayer($message->playerId);
 
-        if (count($summaries) === 0 && $pendingRequestCount === 0 && $unreadNotificationCount === 0) {
+        if (count($summaries) === 0 && $pendingRequestCount === 0) {
             return;
         }
 
@@ -65,10 +62,6 @@ readonly final class PrepareDigestEmailForPlayerHandler
 
         $oldestPendingRequestAt = $pendingRequestCount > 0
             ? $this->getPlayersWithUnreadMessages->getOldestPendingRequestAtForPlayer($message->playerId)
-            : null;
-
-        $oldestUnreadNotificationAt = $unreadNotificationCount > 0
-            ? $this->getNotifications->getOldestUnreadNotifiedAtForPlayer($message->playerId)
             : null;
 
         $subject = $this->translator->trans(
@@ -87,7 +80,6 @@ readonly final class PrepareDigestEmailForPlayerHandler
                 'playerName' => $player->name,
                 'summaries' => $summaries,
                 'pendingRequestCount' => $pendingRequestCount,
-                'unreadNotificationCount' => $unreadNotificationCount,
                 'locale' => $player->locale ?? 'en',
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'notifications');
@@ -100,7 +92,6 @@ readonly final class PrepareDigestEmailForPlayerHandler
             sentAt: $this->clock->now(),
             oldestUnreadMessageAt: $oldestUnreadMessageAt,
             oldestPendingRequestAt: $oldestPendingRequestAt,
-            oldestUnreadNotificationAt: $oldestUnreadNotificationAt,
         );
 
         $this->digestEmailLogRepository->save($log);

@@ -45,6 +45,7 @@ readonly final class NotifyAboutFailedPaymentHandler
                 ->subject($subject)
                 ->htmlTemplate('emails/subscription_payment_failed.html.twig')
                 ->context([]);
+            $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
             $this->mailer->send($email);
         } catch (MembershipNotFound) {

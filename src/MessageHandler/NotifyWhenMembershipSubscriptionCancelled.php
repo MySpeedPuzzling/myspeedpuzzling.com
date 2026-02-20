@@ -45,6 +45,7 @@ readonly final class NotifyWhenMembershipSubscriptionCancelled
             ->context([
                 'membershipExpiresAt' => $membership->endsAt?->format('d.m.Y H:i'),
             ]);
+        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
         $this->mailer->send($email);
     }

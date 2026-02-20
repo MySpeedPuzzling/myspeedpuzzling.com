@@ -51,6 +51,7 @@ readonly final class NotifyWhenMembershipStarted
                 ->context([
                     'membershipExpiresAt' => $membership->endsAt?->format('d.m.Y'),
                 ]);
+            $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
             $this->mailer->send($email);
         }
@@ -70,6 +71,7 @@ readonly final class NotifyWhenMembershipStarted
                 ->context([
                     'nextBillingPeriod' => $membership->billingPeriodEndsAt->format('d.m.Y H:i'),
                 ]);
+            $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
             $this->mailer->send($email);
         }

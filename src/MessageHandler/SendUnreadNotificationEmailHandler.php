@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Repository\RequestNotificationLogRepository;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Mime\Address;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
@@ -39,6 +40,7 @@ readonly final class SendUnreadNotificationEmailHandler
         );
 
         $email = (new TemplatedEmail())
+            ->from(new Address('notify@notify.myspeedpuzzling.com', 'MySpeedPuzzling'))
             ->to($message->playerEmail)
             ->locale($message->playerLocale ?? 'en')
             ->subject($subject)
@@ -50,6 +52,7 @@ readonly final class SendUnreadNotificationEmailHandler
                 'unreadNotificationCount' => $message->unreadNotificationCount,
                 'locale' => $message->playerLocale ?? 'en',
             ]);
+        $email->getHeaders()->addTextHeader('X-Transport', 'notifications');
 
         $this->mailer->send($email);
 

@@ -54,3 +54,19 @@ document.addEventListener('chartjs:init', function (event) {
     const Chart = event.detail.Chart;
     Chart.register(zoomPlugin);
 });
+
+// Service Worker registration (skip in native apps)
+if (!window.isNativeApp && 'serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(function (registration) {
+                // Check for updates every 60 minutes (for long-lived tabs like stopwatch)
+                setInterval(function () {
+                    registration.update();
+                }, 60 * 60 * 1000);
+            })
+            .catch(function (error) {
+                console.warn('SW registration failed:', error);
+            });
+    });
+}

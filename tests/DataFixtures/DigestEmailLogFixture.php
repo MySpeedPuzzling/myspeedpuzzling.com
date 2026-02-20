@@ -9,10 +9,10 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\MessageNotificationLog;
+use SpeedPuzzling\Web\Entity\DigestEmailLog;
 use SpeedPuzzling\Web\Entity\Player;
 
-final class MessageNotificationLogFixture extends Fixture implements DependentFixtureInterface
+final class DigestEmailLogFixture extends Fixture implements DependentFixtureInterface
 {
     public const string LOG_FOR_FAVORITES_PLAYER = '018d0010-0000-0000-0000-000000000001';
 
@@ -30,7 +30,7 @@ final class MessageNotificationLogFixture extends Fixture implements DependentFi
         // This means they should NOT be notified again for the same batch
         $playerWithFavorites = $this->getReference(PlayerFixture::PLAYER_WITH_FAVORITES, Player::class);
 
-        $log = new MessageNotificationLog(
+        $log = new DigestEmailLog(
             id: Uuid::fromString(self::LOG_FOR_FAVORITES_PLAYER),
             player: $playerWithFavorites,
             sentAt: $now->modify('-1 day'),

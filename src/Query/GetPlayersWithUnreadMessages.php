@@ -58,15 +58,15 @@ WHERE p.email IS NOT NULL
       AND ub.blocked_id = CASE WHEN c.initiator_id = p.id THEN c.recipient_id ELSE c.initiator_id END
   )
   AND NOT EXISTS (
-      SELECT 1 FROM message_notification_log mnl
-      WHERE mnl.player_id = p.id
-      AND mnl.sent_at > NOW() - {$frequencyInterval}
+      SELECT 1 FROM digest_email_log del
+      WHERE del.player_id = p.id
+      AND del.sent_at > NOW() - {$frequencyInterval}
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(cm.sent_at) > COALESCE(
-    (SELECT MAX(mnl.oldest_unread_message_at)
-     FROM message_notification_log mnl
-     WHERE mnl.player_id = p.id),
+    (SELECT MAX(del.oldest_unread_message_at)
+     FROM digest_email_log del
+     WHERE del.player_id = p.id),
     '1970-01-01'::timestamptz
 )
 SQL;
@@ -124,15 +124,15 @@ WHERE p.email IS NOT NULL
       AND ub.blocked_id = c.initiator_id
   )
   AND NOT EXISTS (
-      SELECT 1 FROM request_notification_log rnl
-      WHERE rnl.player_id = p.id
-      AND rnl.sent_at > NOW() - {$frequencyInterval}
+      SELECT 1 FROM digest_email_log del
+      WHERE del.player_id = p.id
+      AND del.sent_at > NOW() - {$frequencyInterval}
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(c.created_at) > COALESCE(
-    (SELECT MAX(rnl.oldest_pending_request_at)
-     FROM request_notification_log rnl
-     WHERE rnl.player_id = p.id),
+    (SELECT MAX(del.oldest_pending_request_at)
+     FROM digest_email_log del
+     WHERE del.player_id = p.id),
     '1970-01-01'::timestamptz
 )
 SQL;
@@ -160,6 +160,46 @@ SQL;
                 oldestPendingAt: new DateTimeImmutable($row['oldest_pending_at']),
                 pendingCount: (int) $row['pending_count'],
             );
+        }, $rows);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function findPlayersWithUnreadNotificationsToNotify(): array
+    {
+        $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
+
+        $query = <<<SQL
+SELECT
+    p.id as player_id
+FROM player p
+JOIN notification n ON n.player_id = p.id
+WHERE p.email IS NOT NULL
+  AND p.email_notifications_enabled = true
+  AND n.read_at IS NULL
+  AND n.notified_at < NOW() - {$frequencyInterval}
+  AND NOT EXISTS (
+      SELECT 1 FROM digest_email_log del
+      WHERE del.player_id = p.id
+      AND del.sent_at > NOW() - {$frequencyInterval}
+  )
+GROUP BY p.id
+HAVING MIN(n.notified_at) > COALESCE(
+    (SELECT MAX(del.oldest_unread_notification_at)
+     FROM digest_email_log del
+     WHERE del.player_id = p.id),
+    '1970-01-01'::timestamptz
+)
+SQL;
+
+        $rows = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): string {
+            /** @var array{player_id: string} $row */
+            return $row['player_id'];
         }, $rows);
     }
 
@@ -216,5 +256,70 @@ SQL;
                 conversationId: $row['conversation_id'],
             );
         }, $rows);
+    }
+
+    public function countPendingRequestsForPlayer(string $playerId): int
+    {
+        $query = <<<SQL
+SELECT COUNT(c.id)
+FROM conversation c
+WHERE c.recipient_id = :playerId
+  AND c.status = 'pending'
+  AND NOT EXISTS (
+      SELECT 1 FROM user_block ub
+      WHERE ub.blocker_id = :playerId
+      AND ub.blocked_id = c.initiator_id
+  )
+SQL;
+
+        $count = $this->database
+            ->executeQuery($query, ['playerId' => $playerId])
+            ->fetchOne();
+        assert(is_int($count));
+
+        return $count;
+    }
+
+    public function getOldestUnreadMessageAtForPlayer(string $playerId): null|DateTimeImmutable
+    {
+        $query = <<<SQL
+SELECT MIN(cm.sent_at)
+FROM chat_message cm
+JOIN conversation c ON c.id = cm.conversation_id
+WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
+  AND c.status = 'accepted'
+  AND cm.sender_id != :playerId
+  AND cm.read_at IS NULL
+SQL;
+
+        $result = $this->database
+            ->executeQuery($query, ['playerId' => $playerId])
+            ->fetchOne();
+
+        if (!is_string($result)) {
+            return null;
+        }
+
+        return new DateTimeImmutable($result);
+    }
+
+    public function getOldestPendingRequestAtForPlayer(string $playerId): null|DateTimeImmutable
+    {
+        $query = <<<SQL
+SELECT MIN(c.created_at)
+FROM conversation c
+WHERE c.recipient_id = :playerId
+  AND c.status = 'pending'
+SQL;
+
+        $result = $this->database
+            ->executeQuery($query, ['playerId' => $playerId])
+            ->fetchOne();
+
+        if (!is_string($result)) {
+            return null;
+        }
+
+        return new DateTimeImmutable($result);
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use SpeedPuzzling\Web\Message\SendUnreadNotificationEmail;
+use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 
 return App::config([
     'framework' => [
@@ -15,7 +15,7 @@ return App::config([
                 ],
             ],
             'routing' => [
-                SendUnreadNotificationEmail::class => 'sync',
+                PrepareDigestEmailForPlayer::class => 'sync',
             ],
         ],
     ],

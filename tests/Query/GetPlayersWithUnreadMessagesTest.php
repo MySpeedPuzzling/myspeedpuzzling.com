@@ -44,7 +44,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
     {
         $players = $this->query->findPlayersToNotify();
 
-        // PLAYER_WITH_FAVORITES has a MessageNotificationLog entry covering their unread messages
+        // PLAYER_WITH_FAVORITES has a DigestEmailLog entry covering their unread messages
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
         self::assertNotContains(PlayerFixture::PLAYER_WITH_FAVORITES, $playerIds);
     }

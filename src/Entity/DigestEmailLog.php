@@ -18,7 +18,7 @@ use Ramsey\Uuid\UuidInterface;
 
 #[Entity]
 #[Index(columns: ['player_id'])]
-class MessageNotificationLog
+class DigestEmailLog
 {
     public function __construct(
         #[Id]
@@ -33,8 +33,14 @@ class MessageNotificationLog
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $sentAt,
         #[Immutable]
-        #[Column(type: Types::DATETIME_IMMUTABLE)]
-        public DateTimeImmutable $oldestUnreadMessageAt,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $oldestUnreadMessageAt = null,
+        #[Immutable]
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $oldestPendingRequestAt = null,
+        #[Immutable]
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $oldestUnreadNotificationAt = null,
     ) {
     }
 }

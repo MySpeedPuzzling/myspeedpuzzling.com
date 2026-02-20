@@ -20,7 +20,7 @@ readonly final class GetNotifications
 SELECT
     COUNT(id)
 FROM notification
-WHERE player_id = :playerId 
+WHERE player_id = :playerId
     AND read_at IS NULL
 SQL;
 
@@ -32,6 +32,28 @@ SQL;
         assert(is_int($count));
 
         return $count;
+    }
+
+    public function getOldestUnreadNotifiedAtForPlayer(string $playerId): null|\DateTimeImmutable
+    {
+        $query = <<<SQL
+SELECT MIN(notified_at)
+FROM notification
+WHERE player_id = :playerId
+    AND read_at IS NULL
+SQL;
+
+        $result = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
+            ->fetchOne();
+
+        if (!is_string($result)) {
+            return null;
+        }
+
+        return new \DateTimeImmutable($result);
     }
 
     /**

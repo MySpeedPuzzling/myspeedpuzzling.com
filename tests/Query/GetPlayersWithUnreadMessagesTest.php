@@ -24,7 +24,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testFindsPlayersWithUnreadMessagesOlderThanThreshold(): void
     {
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         // PLAYER_REGULAR has unread messages from ADMIN (sent 1 day and 2 days ago) in accepted conversation
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -33,7 +33,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testDoesNotFindPlayersWhoseMessagesAreAllRead(): void
     {
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         // PLAYER_ADMIN - all messages from REGULAR are read in the accepted conversation
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -42,7 +42,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testDoesNotFindPlayersAlreadyNotifiedAboutSameUnreadBatch(): void
     {
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         // PLAYER_WITH_FAVORITES has a DigestEmailLog entry covering their unread messages
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -51,7 +51,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testDoesNotFindPlayersWithoutEmail(): void
     {
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         // All returned players should have an email
         foreach ($players as $player) {
@@ -61,7 +61,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
     public function testReturnsCorrectUnreadCount(): void
     {
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         $regularPlayer = null;
         foreach ($players as $player) {
@@ -105,7 +105,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         // PLAYER_REGULAR has unread messages only ~2 days old, which is less than 1 week
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -120,7 +120,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
-        $players = $this->query->findPlayersToNotify();
+        $players = $this->query->findPlayersToNotify(50);
 
         // PLAYER_REGULAR has unread messages >6 hours old, should be notified
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
@@ -135,7 +135,7 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
-        $players = $this->query->findPlayersWithPendingRequestsToNotify();
+        $players = $this->query->findPlayersWithPendingRequestsToNotify(50);
 
         // Pending requests are ~2 days old, which is less than 1 week
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);

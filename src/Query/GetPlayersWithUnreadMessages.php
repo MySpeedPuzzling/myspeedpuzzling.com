@@ -31,7 +31,7 @@ SQL;
     /**
      * @return UnreadMessageNotification[]
      */
-    public function findPlayersToNotify(): array
+    public function findPlayersToNotify(int $limit): array
     {
         $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
 
@@ -69,6 +69,7 @@ HAVING MIN(cm.sent_at) > COALESCE(
      WHERE del.player_id = p.id),
     '1970-01-01'::timestamptz
 )
+LIMIT {$limit}
 SQL;
 
         $rows = $this->database
@@ -100,7 +101,7 @@ SQL;
     /**
      * @return PendingRequestNotification[]
      */
-    public function findPlayersWithPendingRequestsToNotify(): array
+    public function findPlayersWithPendingRequestsToNotify(int $limit): array
     {
         $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
 
@@ -135,6 +136,7 @@ HAVING MIN(c.created_at) > COALESCE(
      WHERE del.player_id = p.id),
     '1970-01-01'::timestamptz
 )
+LIMIT {$limit}
 SQL;
 
         $rows = $this->database
@@ -166,7 +168,7 @@ SQL;
     /**
      * @return string[]
      */
-    public function findPlayersWithUnreadNotificationsToNotify(): array
+    public function findPlayersWithUnreadNotificationsToNotify(int $limit): array
     {
         $frequencyInterval = self::FREQUENCY_INTERVAL_CASE;
 
@@ -191,6 +193,7 @@ HAVING MIN(n.notified_at) > COALESCE(
      WHERE del.player_id = p.id),
     '1970-01-01'::timestamptz
 )
+LIMIT {$limit}
 SQL;
 
         $rows = $this->database

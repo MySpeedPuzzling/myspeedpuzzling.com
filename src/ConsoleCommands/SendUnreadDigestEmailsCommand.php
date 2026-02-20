@@ -22,6 +22,7 @@ final class SendUnreadDigestEmailsCommand extends Command
     public function __construct(
         readonly private GetPlayersWithUnreadMessages $getPlayersWithUnreadMessages,
         readonly private MessageBusInterface $commandBus,
+        private readonly int $maxEmailsPerRun = 10,
     ) {
         parent::__construct();
     }
@@ -30,9 +31,9 @@ final class SendUnreadDigestEmailsCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $playersWithUnreadMessages = $this->getPlayersWithUnreadMessages->findPlayersToNotify();
-        $playersWithPendingRequests = $this->getPlayersWithUnreadMessages->findPlayersWithPendingRequestsToNotify();
-        $playersWithUnreadNotifications = $this->getPlayersWithUnreadMessages->findPlayersWithUnreadNotificationsToNotify();
+        $playersWithUnreadMessages = $this->getPlayersWithUnreadMessages->findPlayersToNotify($this->maxEmailsPerRun);
+        $playersWithPendingRequests = $this->getPlayersWithUnreadMessages->findPlayersWithPendingRequestsToNotify($this->maxEmailsPerRun);
+        $playersWithUnreadNotifications = $this->getPlayersWithUnreadMessages->findPlayersWithUnreadNotificationsToNotify($this->maxEmailsPerRun);
 
         // Collect all unique player IDs
         $allPlayerIds = array_unique(array_merge(
@@ -73,6 +74,10 @@ final class SendUnreadDigestEmailsCommand extends Command
 
         $dispatchedCount = 0;
         foreach ($playerIdsToDispatch as $playerId) {
+            if ($dispatchedCount >= $this->maxEmailsPerRun) {
+                break;
+            }
+
             $this->commandBus->dispatch(new PrepareDigestEmailForPlayer(
                 playerId: $playerId,
             ));

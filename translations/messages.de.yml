@@ -1366,7 +1366,7 @@
   "all": "Alle"
   "all_brands": "Alle Marken"
   "all_conditions": "Alle Zustände"
-  "all_countries": "Alle Länder"
+  "all_countries": "Beliebiges Land"
   "all_types": "Alle Typen"
   "condition":
     "like_new": "Wie neu"
@@ -1383,6 +1383,7 @@
     "price": "Preis"
     "search_placeholder": "Puzzles suchen..."
     "set_country_link": "Profil bearbeiten)"
+    "country": "Land des Verkäufers"
     "ship_to_my_country": "In mein Land versenden"
     "ship_to_my_country_disabled": "In mein Land versenden (Land einstellen in"
     "ships_to": "Versendet nach"

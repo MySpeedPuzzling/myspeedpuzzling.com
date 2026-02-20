@@ -1366,7 +1366,7 @@
   "all": "Todo"
   "all_brands": "Todas las marcas"
   "all_conditions": "Todos los estados"
-  "all_countries": "Todos los países"
+  "all_countries": "Cualquier país"
   "all_types": "Todos los tipos"
   "condition":
     "like_new": "Como nuevo"
@@ -1383,6 +1383,7 @@
     "price": "Precio"
     "search_placeholder": "Buscar puzzles..."
     "set_country_link": "Editar perfil)"
+    "country": "País del vendedor"
     "ship_to_my_country": "Envío a mi país"
     "ship_to_my_country_disabled": "Envío a mi país (configura tu país en"
     "ships_to": "Envía a"

@@ -12,9 +12,13 @@ export default class extends Controller {
                 },
                 item: function(data, escape) {
                     const icon = data.$option ? data.$option.getAttribute('data-icon') : null;
-                    return `<div>${icon ? `<i class="${escape(icon)} shadow-custom me-1"></i> ` : ''}${escape(data.text)}</div>`;
+                    return `<div>${icon ? `<i class="${escape(icon)} shadow-custom me-1 flex-shrink-0"></i> ` : ''}${escape(data.text)}</div>`;
                 }
             }
+        });
+
+        this.tomSelect.on('change', () => {
+            this.tomSelect.blur();
         });
     }
 

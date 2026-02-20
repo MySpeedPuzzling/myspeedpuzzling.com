@@ -1595,7 +1595,7 @@ marketplace:
     title: "Marketplace"
     meta:
         description: "Browse puzzles for sale, swap, or free on the MySpeedPuzzling marketplace."
-    all_countries: "All countries"
+    all_countries: "Any country"
     pcs: "pcs"
     filter:
         search_placeholder: "Search puzzles..."
@@ -1610,7 +1610,7 @@ marketplace:
         ship_to_my_country: "Ship to my country"
         ship_to_my_country_disabled: "Ship to my country (set your country in"
         set_country_link: "Edit profile)"
-        country: "Country"
+        country: "Seller country"
     sort:
         newest: "Newest"
         price_asc: "Price asc"

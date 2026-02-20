@@ -528,6 +528,46 @@ button[data-submit-prevention-target] {
     }
 }
 
+.marketplace-country-filter-wrapper {
+    .ts-wrapper {
+        .ts-control {
+            min-height: auto;
+            padding: 0.25rem 2rem 0.25rem 0.5rem !important;
+            font-size: 0.875rem;
+            position: relative;
+
+            > div {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            > input {
+                position: absolute;
+                left: 0.5rem;
+                top: 0;
+                height: 100%;
+                width: calc(100% - 2rem) !important;
+                z-index: 1;
+            }
+        }
+
+        &.input-active .ts-control > .item {
+            opacity: 0.2;
+        }
+
+        .ts-dropdown {
+            font-size: 0.875rem;
+
+            .option, .optgroup-header {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    }
+}
+
 .btn-outline-primary {
     background: #fff;
 

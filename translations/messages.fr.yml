@@ -1367,7 +1367,7 @@
   "all": "Tout"
   "all_brands": "Toutes les marques"
   "all_conditions": "Tous les états"
-  "all_countries": "Tous les pays"
+  "all_countries": "N'importe quel pays"
   "all_types": "Tous les types"
   "condition":
     "like_new": "Comme neuf"
@@ -1384,6 +1384,7 @@
     "price": "Prix"
     "search_placeholder": "Rechercher des puzzles..."
     "set_country_link": "Modifier le profil)"
+    "country": "Pays du vendeur"
     "ship_to_my_country": "Expédier dans mon pays"
     "ship_to_my_country_disabled": "Expédier dans mon pays (définissez votre pays dans"
     "ships_to": "Expédie vers"

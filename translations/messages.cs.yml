@@ -1364,7 +1364,7 @@
   "all": "Vše"
   "all_brands": "Všechny značky"
   "all_conditions": "Všechny stavy"
-  "all_countries": "Všechny země"
+  "all_countries": "Jakákoliv země"
   "all_types": "Všechny typy"
   "condition":
     "like_new": "Jako nové"
@@ -1381,6 +1381,7 @@
     "price": "Cena"
     "search_placeholder": "Hledat puzzle..."
     "set_country_link": "Upravit profil)"
+    "country": "Země prodejce"
     "ship_to_my_country": "Zasílá do mé země"
     "ship_to_my_country_disabled": "Zasílá do mé země (nastavte svou zemi v"
     "ships_to": "Zasílá do"

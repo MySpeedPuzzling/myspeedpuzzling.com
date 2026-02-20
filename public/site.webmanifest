@@ -1,6 +1,6 @@
 {
-    "name": "My Speed Puzzling",
-    "short_name": "Puzzling",
+    "name": "MySpeedPuzzling",
+    "short_name": "MySpeedPuzzling",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",

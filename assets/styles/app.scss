@@ -30,6 +30,14 @@ body {
     min-height: 100vh;
 }
 
+// Prevent iOS overscroll bounce in standalone PWA mode
+// which causes fixed-position header to visually shift during scroll
+@media (display-mode: standalone) {
+    html, body {
+        overscroll-behavior-y: none;
+    }
+}
+
 main {
     flex-grow: 1;
     padding-top: 101px;

@@ -14,12 +14,6 @@ const NETWORK_ONLY_PATHS = [
     '/_profiler/',   // Symfony Profiler
 ];
 
-const NETWORK_ONLY_HOSTS = [
-    'cdn.auth0.com',
-    'js.stripe.com',
-    'api.stripe.com',
-];
-
 // ─── Install ────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
     event.waitUntil(
@@ -68,8 +62,15 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(request.url);
 
-    // Network-only: external auth/payment hosts
-    if (NETWORK_ONLY_HOSTS.some((host) => url.hostname === host)) return;
+    // Skip cross-origin requests — let the browser's native HTTP cache handle them.
+    // CDN images (img.myspeedpuzzling.com) have their own Cache-Control headers via Traefik.
+    // Exception: Google Fonts are cache-first below (immutable, great offline win).
+    if (url.origin !== self.location.origin) {
+        if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+            event.respondWith(cacheFirst(request, STATIC_CACHE));
+        }
+        return;
+    }
 
     // Network-only: specific paths
     if (NETWORK_ONLY_PATHS.some((path) => url.pathname.startsWith(path))) return;
@@ -110,7 +111,7 @@ async function cacheFirst(request, cacheName) {
     if (cached) return cached;
 
     const response = await fetch(request);
-    if (response.ok) {
+    if (response.ok || response.type === 'opaque') {
         const cache = await caches.open(cacheName);
         cache.put(request, response.clone());
     }

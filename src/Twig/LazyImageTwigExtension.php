@@ -40,7 +40,7 @@ final class LazyImageTwigExtension extends AbstractExtension
     public function lazyPuzzleImage(
         null|string $path,
         string $filter,
-        string $alt,
+        null|string $alt,
         int $position = 999,
         int $size = 80,
         string $class = '',
@@ -79,7 +79,7 @@ final class LazyImageTwigExtension extends AbstractExtension
             $maxHeight,
             $webpSource,
             htmlspecialchars($src, ENT_QUOTES, 'UTF-8'),
-            htmlspecialchars($alt, ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($alt ?? '', ENT_QUOTES, 'UTF-8'),
             $loading,
             $imgClasses,
             $size,

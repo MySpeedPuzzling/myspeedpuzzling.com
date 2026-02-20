@@ -11,7 +11,7 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
-final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
+final class SendUnreadDigestEmailsCommandTest extends KernelTestCase
 {
     private CommandTester $commandTester;
     private Connection $connection;
@@ -20,7 +20,7 @@ final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
     {
         $kernel = self::bootKernel();
         $application = new Application($kernel);
-        $command = $application->find('myspeedpuzzling:messages:notify-unread');
+        $command = $application->find('myspeedpuzzling:send-unread-digest-emails');
         $this->commandTester = new CommandTester($command);
         $this->connection = self::getContainer()->get(Connection::class);
     }
@@ -30,16 +30,15 @@ final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
         $this->commandTester->execute([]);
 
         self::assertSame(0, $this->commandTester->getStatusCode());
-        self::assertStringContainsString('notification', $this->commandTester->getDisplay());
+        self::assertStringContainsString('Dispatched', $this->commandTester->getDisplay());
     }
 
-    public function testPlayerWithBothUnreadAndPendingGetsExactlyOneEmail(): void
+    public function testCommandDispatchesForEligiblePlayers(): void
     {
-        // PLAYER_REGULAR has unread messages (accepted conv) AND pending requests
         $this->commandTester->execute([]);
 
         $output = $this->commandTester->getDisplay();
-        self::assertStringContainsString('Sent 1 notification', $output);
+        self::assertStringContainsString('Dispatched 1 digest email', $output);
     }
 
     public function testCommandIsIdempotent(): void
@@ -98,38 +97,27 @@ final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
         $output = $this->commandTester->getDisplay();
 
         // Should send only 1 email even though 2 players share the same email
-        self::assertStringContainsString('Sent 1 notification', $output);
+        self::assertStringContainsString('Dispatched 1 digest email', $output);
     }
 
-    public function testNotificationLogsAreCreatedAfterSending(): void
+    public function testDigestEmailLogIsCreatedAfterSending(): void
     {
-        /** @var int $messageLogsBefore */
-        $messageLogsBefore = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM message_notification_log WHERE player_id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR],
-        );
-        /** @var int $requestLogsBefore */
-        $requestLogsBefore = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM request_notification_log WHERE player_id = :id',
+        /** @var int $logsBefore */
+        $logsBefore = $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM digest_email_log WHERE player_id = :id',
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
         $this->commandTester->execute([]);
 
-        /** @var int $messageLogsAfter */
-        $messageLogsAfter = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM message_notification_log WHERE player_id = :id',
-            ['id' => PlayerFixture::PLAYER_REGULAR],
-        );
-        /** @var int $requestLogsAfter */
-        $requestLogsAfter = $this->connection->fetchOne(
-            'SELECT COUNT(*) FROM request_notification_log WHERE player_id = :id',
+        /** @var int $logsAfter */
+        $logsAfter = $this->connection->fetchOne(
+            'SELECT COUNT(*) FROM digest_email_log WHERE player_id = :id',
             ['id' => PlayerFixture::PLAYER_REGULAR],
         );
 
         // PLAYER_REGULAR has both unread messages and pending requests
-        self::assertSame($messageLogsBefore + 1, $messageLogsAfter);
-        self::assertSame($requestLogsBefore + 1, $requestLogsAfter);
+        self::assertSame($logsBefore + 1, $logsAfter);
     }
 
     public function testPlayerNotifiedRecentlyIsNotNotifiedAgain(): void
@@ -137,7 +125,7 @@ final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
         // First run sends notification and creates log
         $this->commandTester->execute([]);
         $firstOutput = $this->commandTester->getDisplay();
-        self::assertStringContainsString('Sent 1', $firstOutput);
+        self::assertStringContainsString('Dispatched 1', $firstOutput);
 
         // Simulate a new unread message arriving after the first notification
         // (but still within 24h cooldown period)
@@ -153,5 +141,34 @@ final class SendUnreadMessageNotificationsCommandTest extends KernelTestCase
         $this->commandTester->execute([]);
         $secondOutput = $this->commandTester->getDisplay();
         self::assertStringContainsString('No players to notify', $secondOutput);
+    }
+
+    public function testPlayerWithNotificationsDisabledIsSkipped(): void
+    {
+        // Disable notifications for PLAYER_REGULAR
+        $this->connection->executeStatement(
+            'UPDATE player SET email_notifications_enabled = false WHERE id = :id',
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $this->commandTester->execute([]);
+        $output = $this->commandTester->getDisplay();
+
+        self::assertStringContainsString('No players to notify', $output);
+    }
+
+    public function testPlayerWithWeeklyFrequencyIsNotNotifiedTooEarly(): void
+    {
+        // Change PLAYER_REGULAR to 1_week frequency
+        $this->connection->executeStatement(
+            "UPDATE player SET email_notification_frequency = '1_week' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $this->commandTester->execute([]);
+        $output = $this->commandTester->getDisplay();
+
+        // PLAYER_REGULAR has unread messages only ~2 days old, which is less than 1 week
+        self::assertStringContainsString('No players to notify', $output);
     }
 }

@@ -45,6 +45,7 @@ readonly final class NotifyWhenMembershipSubscriptionRenewed
             ->context([
                 'nextBillingPeriod' => $membership->billingPeriodEndsAt?->format('d.m.Y H:i'),
             ]);
+        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
         $this->mailer->send($email);
     }

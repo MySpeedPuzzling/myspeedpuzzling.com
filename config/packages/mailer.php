@@ -7,12 +7,15 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 return App::config([
     'framework' => [
         'mailer' => [
-            'dsn' => '%env(MAILER_DSN)%',
+            'transports' => [
+                'transactional' => '%env(MAILER_TRANSACTIONAL_DSN)%',
+                'notifications' => '%env(MAILER_NOTIFICATIONS_DSN)%',
+            ],
             'envelope' => [
-                'sender' => 'robot@speedpuzzling.cz',
+                'sender' => 'robot@mail.myspeedpuzzling.com',
             ],
             'headers' => [
-                'From' => 'MySpeedPuzzling <robot@speedpuzzling.cz>',
+                'From' => 'MySpeedPuzzling <robot@mail.myspeedpuzzling.com>',
             ],
         ],
     ],

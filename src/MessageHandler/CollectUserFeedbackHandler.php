@@ -35,6 +35,7 @@ readonly final class CollectUserFeedbackHandler
                 'url' => $message->url,
                 'message' => $message->message,
             ]);
+        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
         $this->mailer->send($email);
     }

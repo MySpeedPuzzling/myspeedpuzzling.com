@@ -134,6 +134,12 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **Premium Membership**: Stripe-powered subscription management
 - **Multi-language**: When adding new features, always do it only in English unless explicitly asked to translate to other locales 
 
+### Service Worker (PWA)
+- The service worker is at `public/service-worker.js` with a `CACHE_VERSION` constant
+- **Bump `CACHE_VERSION`** when changing: the service worker fetch/caching logic itself, the offline page (`public/offline.html`), or any non-content-hashed static assets served from the same origin
+- **No bump needed** for `/build/*` asset changes — those are content-hashed by Webpack Encore and cached by URL, so new builds get new URLs automatically
+- The service worker uses cache-first for `/build/*`, network-first for HTML navigation, and stale-while-revalidate for images
+
 ### Turbo Configuration
 - **IMPORTANT**: Turbo is globally disabled via `data-turbo="false"` on the `<html>` element in `base.html.twig`
 - To use Turbo on specific links or forms, you MUST explicitly enable it with `data-turbo="true"`

@@ -75,28 +75,34 @@
 
         <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
-        <script defer>
+        <script>
             (function() {
                 var initPolyfill = function() {
+                    var polyfillAvailable = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+
                     try {
                         if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-                            window.BarcodeDetector.getSupportedFormats().then(function() {
+                            window.BarcodeDetector.getSupportedFormats().then(function(formats) {
+                                if (formats.indexOf('ean_13') === -1 && polyfillAvailable) {
+                                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                                }
                             }).catch(function() {
-                                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                                if (polyfillAvailable) {
+                                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                                }
                             });
                             return;
                         }
                     } catch (e) {}
-                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+
+                    if (polyfillAvailable) {
+                        window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                    }
                 };
 
-                if ('requestIdleCallback' in window) {
-                    requestIdleCallback(initPolyfill, { timeout: 2000 });
-                } else {
-                    window.addEventListener('load', function() {
-                        setTimeout(initPolyfill, 100);
-                    });
-                }
+                window.addEventListener('load', function() {
+                    setTimeout(initPolyfill, 100);
+                });
             })();
         </script>
 

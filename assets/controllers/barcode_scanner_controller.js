@@ -62,6 +62,12 @@ export default class extends Controller {
             return;
         }
 
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error('Camera API not available');
+            alert('Camera is not available in this browser. Please try reloading the page.');
+            return;
+        }
+
         this.wrapperTarget.classList.remove('d-none');
         this.toggleButtonTarget.classList.add('active');
         this.scanBuffer = [];
@@ -75,10 +81,10 @@ export default class extends Controller {
             this.resultsTarget.classList.add('d-none');
         }
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
             .then(stream => {
                 this.videoTarget.srcObject = stream;
-                this.videoTarget.play();
+                this.videoTarget.play().catch(err => console.error('Video play failed:', err));
                 this.scanning = true;
 
                 this.videoTarget.addEventListener('loadedmetadata', () => {
@@ -86,40 +92,59 @@ export default class extends Controller {
                     this.overlayTarget.height = this.videoTarget.videoHeight;
                 }, { once: true });
 
-                // --- Zoom Setup ---
-                const videoTrack = stream.getVideoTracks()[0];
-                const capabilities = videoTrack.getCapabilities();
-                if (capabilities.zoom) {
-                    this.zoomSupported = true;
-                    this.videoTrack = videoTrack;
-                    this.zoomCapabilities = capabilities.zoom;
-                    // Clamp default zoom (2) between min and max.
-                    const defaultZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2));
-                    videoTrack.applyConstraints({
-                        advanced: [{ zoom: defaultZoom }]
-                    })
-                        .then(() => {
-                            this.currentZoom = defaultZoom;
-                            if (this.hasZoomContainerTarget) {
-                                this.zoomContainerTarget.classList.remove('d-none');
-                                this.updateZoomUI();
-                            }
-                        })
-                        .catch(err => console.error('Failed to apply zoom constraint:', err));
-                } else if (this.hasZoomContainerTarget) {
-                    // Hide zoom UI if zoom is not supported.
-                    this.zoomContainerTarget.classList.add('d-none');
-                }
-                // --- End Zoom Setup ---
-
+                this.setupZoom(stream);
                 this.scanLoop();
             })
             .catch(error => {
                 console.error('Error accessing the camera:', error);
+                this.stopScanning();
             });
     }
 
+    setupZoom(stream) {
+        try {
+            const videoTrack = stream.getVideoTracks()[0];
+            if (!videoTrack || typeof videoTrack.getCapabilities !== 'function') {
+                if (this.hasZoomContainerTarget) {
+                    this.zoomContainerTarget.classList.add('d-none');
+                }
+                return;
+            }
+
+            const capabilities = videoTrack.getCapabilities();
+            if (capabilities.zoom) {
+                this.zoomSupported = true;
+                this.videoTrack = videoTrack;
+                this.zoomCapabilities = capabilities.zoom;
+                const defaultZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2));
+                videoTrack.applyConstraints({
+                    advanced: [{ zoom: defaultZoom }]
+                })
+                    .then(() => {
+                        this.currentZoom = defaultZoom;
+                        if (this.hasZoomContainerTarget) {
+                            this.zoomContainerTarget.classList.remove('d-none');
+                            this.updateZoomUI();
+                        }
+                    })
+                    .catch(err => console.error('Failed to apply zoom constraint:', err));
+            } else if (this.hasZoomContainerTarget) {
+                this.zoomContainerTarget.classList.add('d-none');
+            }
+        } catch (err) {
+            console.error('Zoom setup failed:', err);
+            if (this.hasZoomContainerTarget) {
+                this.zoomContainerTarget.classList.add('d-none');
+            }
+        }
+    }
+
     async scanLoop() {
+        if (typeof BarcodeDetector === 'undefined') {
+            console.error('BarcodeDetector is not available');
+            return;
+        }
+
         const barcodeDetector = new BarcodeDetector({ formats: ['ean_8', 'ean_13'] });
         const ctx = this.overlayTarget.getContext('2d');
 
@@ -305,14 +330,20 @@ export default class extends Controller {
      * Fallback method to use web scanner when native bridge is not available.
      */
     initWebScanner() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error('Camera API not available');
+            alert('Camera is not available in this browser. Please try reloading the page.');
+            return;
+        }
+
         this.wrapperTarget.classList.remove('d-none');
         this.scanBuffer = [];
         this.lastPushTime = 0;
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
             .then(stream => {
                 this.videoTarget.srcObject = stream;
-                this.videoTarget.play();
+                this.videoTarget.play().catch(err => console.error('Video play failed:', err));
                 this.scanning = true;
 
                 this.videoTarget.addEventListener('loadedmetadata', () => {
@@ -320,31 +351,12 @@ export default class extends Controller {
                     this.overlayTarget.height = this.videoTarget.videoHeight;
                 }, { once: true });
 
-                // Zoom setup for fallback
-                const videoTrack = stream.getVideoTracks()[0];
-                const capabilities = videoTrack.getCapabilities();
-                if (capabilities.zoom) {
-                    this.zoomSupported = true;
-                    this.videoTrack = videoTrack;
-                    this.zoomCapabilities = capabilities.zoom;
-                    const defaultZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2));
-                    videoTrack.applyConstraints({ advanced: [{ zoom: defaultZoom }] })
-                        .then(() => {
-                            this.currentZoom = defaultZoom;
-                            if (this.hasZoomContainerTarget) {
-                                this.zoomContainerTarget.classList.remove('d-none');
-                                this.updateZoomUI();
-                            }
-                        })
-                        .catch(err => console.error('Failed to apply zoom constraint:', err));
-                } else if (this.hasZoomContainerTarget) {
-                    this.zoomContainerTarget.classList.add('d-none');
-                }
-
+                this.setupZoom(stream);
                 this.scanLoop();
             })
             .catch(error => {
                 console.error('Error accessing the camera:', error);
+                this.stopScanning();
             });
     }
 

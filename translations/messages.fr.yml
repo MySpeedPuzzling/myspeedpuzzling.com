@@ -1323,6 +1323,7 @@
       "listing_removed": "L'annonce a été supprimée"
   "title": "Messages"
   "type_message": "Écrivez un message..."
+  "shift_enter_hint": "Shift+Enter pour un saut de ligne"
   "typing": "écrit..."
   "unblock": "Débloquer"
   "unblock_confirm": "Êtes-vous sûr de vouloir débloquer cet utilisateur ?"

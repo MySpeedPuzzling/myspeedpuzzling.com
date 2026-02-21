@@ -1515,6 +1515,7 @@ messaging:
     view: "View"
     no_messages_yet: "No messages yet. Start the conversation!"
     type_message: "Type a message..."
+    shift_enter_hint: "Shift+Enter for a new line"
     message_label: "Message"
     write_message_placeholder: "Write your message..."
     max_characters: "Maximum 2000 characters."

@@ -1322,6 +1322,7 @@
       "listing_removed": "Angebot wurde entfernt"
   "title": "Nachrichten"
   "type_message": "Nachricht schreiben..."
+  "shift_enter_hint": "Shift+Enter für eine neue Zeile"
   "typing": "tippt..."
   "unblock": "Entsperren"
   "unblock_confirm": "Sind Sie sicher, dass Sie diesen Benutzer entsperren möchten?"

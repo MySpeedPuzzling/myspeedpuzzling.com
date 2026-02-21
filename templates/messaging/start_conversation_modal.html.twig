@@ -86,6 +86,7 @@
                             <i class="bi bi-send"></i>
                         </button>
                     </form>
+                    <div class="text-muted d-none d-md-block mt-1" style="font-size: 0.7rem;"><i class="bi bi-info-circle me-1"></i>{{ 'messaging.shift_enter_hint'|trans }}</div>
                 </div>
             {% endif %}
         </div>
@@ -110,6 +111,7 @@
                     <label for="message" class="form-label">{{ 'messaging.message_label'|trans }}</label>
                     <textarea name="message" id="message" class="form-control" rows="3" maxlength="2000" required placeholder="{{ 'messaging.write_message_placeholder'|trans }}"></textarea>
                     <div class="form-text">{{ 'messaging.max_characters'|trans }}</div>
+                    <div class="form-text d-none d-md-block"><i class="bi bi-info-circle me-1"></i>{{ 'messaging.shift_enter_hint'|trans }}</div>
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">

@@ -1320,6 +1320,7 @@
       "listing_removed": "Nabídka byla odstraněna"
   "title": "Zprávy"
   "type_message": "Napište zprávu..."
+  "shift_enter_hint": "Shift+Enter pro nový řádek"
   "typing": "píše..."
   "unblock": "Odblokovat"
   "unblock_confirm": "Opravdu chcete odblokovat tohoto uživatele?"

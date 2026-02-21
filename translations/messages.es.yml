@@ -1322,6 +1322,7 @@
       "listing_removed": "La oferta fue eliminada"
   "title": "Mensajes"
   "type_message": "Escribe un mensaje..."
+  "shift_enter_hint": "Shift+Enter para nueva línea"
   "typing": "escribiendo..."
   "unblock": "Desbloquear"
   "unblock_confirm": "¿Estás seguro de que quieres desbloquear a este usuario?"

@@ -1311,6 +1311,7 @@
       "listing_removed": "出品が削除されました"
   "title": "メッセージ"
   "type_message": "メッセージを入力..."
+  "shift_enter_hint": "Shift+Enterで改行"
   "typing": "入力中..."
   "unblock": "ブロック解除"
   "unblock_confirm": "このユーザーのブロックを解除してもよろしいですか？"

@@ -153,6 +153,80 @@
                            data-collection-filter-target="priceMax"
                            data-action="input->collection-filter#filter">
                 </div>
+
+                <div class="col-12 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-all" checked
+                                   data-collection-filter-target="piecesRadio"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-all">{{ 'all_pieces'|trans }}</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-0-499"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="0-499"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-0-499">&lt; 500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-500"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="500"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-500">500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-501-999"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="501-999"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-501-999">501-999</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1000"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1000"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1000">1000</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1001-1499"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1001-1499"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1001-1499">1001-1499</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1500"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1500"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1500">1500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-1501-1999"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="1501-1999"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-1501-1999">1501-1999</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-2000"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="2000"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-2000">2000</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" name="pieces-filter" id="pieces-2001"
+                                   data-collection-filter-target="piecesRadio"
+                                   data-range="2001-"
+                                   data-action="change->collection-filter#filter">
+                            <label class="form-option-label" for="pieces-2001">&gt; 2000</label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     {% endif %}

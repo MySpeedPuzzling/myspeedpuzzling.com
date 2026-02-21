@@ -3,11 +3,7 @@
 {% block title %}Change Request - {{ request.puzzleName }}{% endblock %}
 
 {% block content %}
-    <div class="mb-2">
-        <a href="{{ path('admin_puzzle_change_requests') }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
-            <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> Back to list
-        </a>
-    </div>
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_change_requests'), fallbackTitle: 'Change requests'} %}
 
     <div class="row">
         <div class="col-lg-8">
@@ -46,11 +42,23 @@
 
                     {# Changes comparison #}
                     <h5 class="mb-3">Proposed Changes</h5>
+
+                    {% if request.status.value == 'pending' %}
+                    <form id="approveForm"
+                          action="{{ path('admin_approve_puzzle_change_request', {id: request.id}) }}"
+                          method="post">
+                    {% endif %}
+
                     <div class="table-responsive">
                     <table class="table table-bordered mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 20%;">Field</th>
+                                {% if request.status.value == 'pending' %}
+                                    <th style="width: 5%;">
+                                        <input type="checkbox" id="selectAll" checked>
+                                    </th>
+                                {% endif %}
+                                <th style="width: {% if request.status.value == 'pending' %}15{% else %}20{% endif %}%;">Field</th>
                                 <th style="width: 40%;">Original</th>
                                 <th style="width: 40%;">Proposed</th>
                             </tr>
@@ -58,14 +66,26 @@
                         <tbody>
                             {% if request.hasNameChange() %}
                                 <tr>
+                                    {% if request.status.value == 'pending' %}
+                                        <td><input type="checkbox" name="field_name" value="1" class="field-checkbox" checked></td>
+                                    {% endif %}
                                     <td><strong>Name</strong></td>
                                     <td>{{ request.originalName }}</td>
-                                    <td class="table-warning">{{ request.proposedName }}</td>
+                                    <td class="table-warning">
+                                        {% if request.status.value == 'pending' %}
+                                            <input type="text" name="override_name" value="{{ request.proposedName }}" class="form-control form-control-sm">
+                                        {% else %}
+                                            {{ request.proposedName }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endif %}
 
                             {% if request.hasManufacturerChange() %}
                                 <tr>
+                                    {% if request.status.value == 'pending' %}
+                                        <td><input type="checkbox" name="field_manufacturer" value="1" class="field-checkbox" checked></td>
+                                    {% endif %}
                                     <td><strong>Manufacturer</strong></td>
                                     <td>{{ request.originalManufacturerName|default('Not set') }}</td>
                                     <td class="table-warning">{{ request.proposedManufacturerName }}</td>
@@ -74,30 +94,60 @@
 
                             {% if request.hasPiecesCountChange() %}
                                 <tr>
+                                    {% if request.status.value == 'pending' %}
+                                        <td><input type="checkbox" name="field_piecesCount" value="1" class="field-checkbox" checked></td>
+                                    {% endif %}
                                     <td><strong>Pieces</strong></td>
                                     <td>{{ request.originalPiecesCount }}</td>
-                                    <td class="table-warning">{{ request.proposedPiecesCount }}</td>
+                                    <td class="table-warning">
+                                        {% if request.status.value == 'pending' %}
+                                            <input type="number" name="override_piecesCount" value="{{ request.proposedPiecesCount }}" class="form-control form-control-sm">
+                                        {% else %}
+                                            {{ request.proposedPiecesCount }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endif %}
 
                             {% if request.hasEanChange() %}
                                 <tr>
+                                    {% if request.status.value == 'pending' %}
+                                        <td><input type="checkbox" name="field_ean" value="1" class="field-checkbox" checked></td>
+                                    {% endif %}
                                     <td><strong>EAN</strong></td>
                                     <td>{{ request.originalEan|default('Not set') }}</td>
-                                    <td class="table-warning">{{ request.proposedEan }}</td>
+                                    <td class="table-warning">
+                                        {% if request.status.value == 'pending' %}
+                                            <input type="text" name="override_ean" value="{{ request.proposedEan }}" class="form-control form-control-sm">
+                                        {% else %}
+                                            {{ request.proposedEan }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endif %}
 
                             {% if request.hasIdentificationNumberChange() %}
                                 <tr>
+                                    {% if request.status.value == 'pending' %}
+                                        <td><input type="checkbox" name="field_identificationNumber" value="1" class="field-checkbox" checked></td>
+                                    {% endif %}
                                     <td><strong>Brand Code</strong></td>
                                     <td>{{ request.originalIdentificationNumber|default('Not set') }}</td>
-                                    <td class="table-warning">{{ request.proposedIdentificationNumber }}</td>
+                                    <td class="table-warning">
+                                        {% if request.status.value == 'pending' %}
+                                            <input type="text" name="override_identificationNumber" value="{{ request.proposedIdentificationNumber }}" class="form-control form-control-sm">
+                                        {% else %}
+                                            {{ request.proposedIdentificationNumber }}
+                                        {% endif %}
+                                    </td>
                                 </tr>
                             {% endif %}
 
                             {% if request.hasImageChange() %}
                                 <tr>
+                                    {% if request.status.value == 'pending' %}
+                                        <td><input type="checkbox" name="field_image" value="1" class="field-checkbox" checked></td>
+                                    {% endif %}
                                     <td><strong>Image</strong></td>
                                     <td>
                                         {% if request.originalImage %}
@@ -139,13 +189,9 @@
                     {% if request.status.value == 'pending' %}
                         <hr class="my-4">
                         <div class="d-flex gap-2">
-                            <form action="{{ path('admin_approve_puzzle_change_request', {id: request.id}) }}"
-                                  method="post"
-                                  class="d-inline">
-                                <button type="submit" class="btn btn-success">
-                                    <i class="bi bi-check-lg me-1"></i> Approve Changes
-                                </button>
-                            </form>
+                            <button type="submit" class="btn btn-success" id="approveButton">
+                                <i class="bi bi-check-lg me-1"></i> Approve Selected Changes
+                            </button>
 
                             <button type="button"
                                     class="btn btn-danger"
@@ -154,6 +200,7 @@
                                 <i class="bi bi-x-lg me-1"></i> Reject
                             </button>
                         </div>
+                    </form>
                     {% endif %}
                 </div>
             </div>
@@ -224,5 +271,34 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.field-checkbox');
+        const approveButton = document.getElementById('approveButton');
+
+        function updateApproveButton() {
+            const anyChecked = Array.from(checkboxes).some(function (cb) { return cb.checked; });
+            approveButton.disabled = !anyChecked;
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                checkboxes.forEach(function (cb) { cb.checked = selectAll.checked; });
+                updateApproveButton();
+            });
+        }
+
+        checkboxes.forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                selectAll.checked = Array.from(checkboxes).every(function (c) { return c.checked; });
+                updateApproveButton();
+            });
+        });
+
+        updateApproveButton();
+    });
+</script>
 {% endif %}
 {% endblock %}

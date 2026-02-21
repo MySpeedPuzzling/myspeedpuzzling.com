@@ -29,7 +29,7 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         $this->puzzleRepository = $container->get(PuzzleRepository::class);
     }
 
-    public function testApprovingChangeRequestUpdatesPuzzle(): void
+    public function testApprovingAllFieldsUpdatesPuzzle(): void
     {
         $changeRequest = $this->changeRequestRepository->get(PuzzleReportFixture::CHANGE_REQUEST_PENDING);
         $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
@@ -38,11 +38,12 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         self::assertSame(PuzzleReportStatus::Pending, $changeRequest->status);
         self::assertNotSame('Updated Puzzle Name', $puzzle->name);
 
-        // Dispatch the approve message
+        // Dispatch the approve message with all fields selected
         $this->messageBus->dispatch(
             new ApprovePuzzleChangeRequest(
                 changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
                 reviewerId: PlayerFixture::PLAYER_ADMIN,
+                selectedFields: ['name', 'ean'],
             ),
         );
 
@@ -58,5 +59,49 @@ final class ApprovePuzzleChangeRequestHandlerTest extends KernelTestCase
         // Verify the puzzle was updated with proposed changes
         self::assertSame('Updated Puzzle Name', $puzzle->name);
         self::assertSame('1234567890123', $puzzle->ean);
+    }
+
+    public function testSelectiveApprovalOnlyAppliesSelectedFields(): void
+    {
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
+        $originalName = $puzzle->name;
+
+        // Only approve EAN, skip name
+        $this->messageBus->dispatch(
+            new ApprovePuzzleChangeRequest(
+                changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                selectedFields: ['ean'],
+            ),
+        );
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
+
+        // Name should remain unchanged
+        self::assertSame($originalName, $puzzle->name);
+        // EAN should be updated
+        self::assertSame('1234567890123', $puzzle->ean);
+    }
+
+    public function testOverrideValuesAreUsedInsteadOfProposed(): void
+    {
+        // Approve name with an override value
+        $this->messageBus->dispatch(
+            new ApprovePuzzleChangeRequest(
+                changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+                reviewerId: PlayerFixture::PLAYER_ADMIN,
+                selectedFields: ['name', 'ean'],
+                overrides: [
+                    'name' => 'Admin Corrected Name',
+                    'ean' => '9999999999999',
+                ],
+            ),
+        );
+
+        $puzzle = $this->puzzleRepository->get(PuzzleFixture::PUZZLE_500_01);
+
+        // Overridden values should be used
+        self::assertSame('Admin Corrected Name', $puzzle->name);
+        self::assertSame('9999999999999', $puzzle->ean);
     }
 }

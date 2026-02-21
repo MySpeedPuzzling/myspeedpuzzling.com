@@ -3,11 +3,7 @@
 {% block title %}Merge Request - {{ request.sourcePuzzleName }}{% endblock %}
 
 {% block content %}
-    <div class="mb-2">
-        <a href="{{ path('admin_puzzle_merge_requests') }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
-            <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> Back to list
-        </a>
-    </div>
+    {% include '_return_back_button.html.twig' with {fallbackUrl: path('admin_puzzle_merge_requests'), fallbackTitle: 'Merge requests'} %}
 
     <div class="card shadow mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">

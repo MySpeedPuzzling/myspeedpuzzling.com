@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -29,7 +30,7 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
         methods: ['POST'],
     )]
     #[IsGranted(AdminAccessVoter::ADMIN_ACCESS)]
-    public function __invoke(string $id): Response
+    public function __invoke(string $id, Request $request): Response
     {
         $player = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -37,10 +38,41 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        $allFields = ['name', 'manufacturer', 'piecesCount', 'ean', 'identificationNumber', 'image'];
+        $selectedFields = [];
+
+        foreach ($allFields as $field) {
+            if ($request->request->get('field_' . $field) !== null) {
+                $selectedFields[] = $field;
+            }
+        }
+
+        $overrides = [];
+
+        foreach (['name', 'piecesCount', 'ean', 'identificationNumber'] as $field) {
+            if (!in_array($field, $selectedFields, true)) {
+                continue;
+            }
+
+            $value = $request->request->get('override_' . $field);
+
+            if (!is_string($value) || $value === '') {
+                continue;
+            }
+
+            if ($field === 'piecesCount') {
+                $overrides[$field] = (int) $value;
+            } else {
+                $overrides[$field] = $value;
+            }
+        }
+
         $this->messageBus->dispatch(
             new ApprovePuzzleChangeRequest(
                 changeRequestId: $id,
                 reviewerId: $player->playerId,
+                selectedFields: $selectedFields,
+                overrides: $overrides,
             ),
         );
 

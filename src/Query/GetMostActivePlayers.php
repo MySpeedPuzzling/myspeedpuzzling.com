@@ -120,8 +120,8 @@ FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN puzzle ON puzzle_solving_time.puzzle_id = puzzle.id
 WHERE puzzle_solving_time.puzzling_type = 'solo'
-    AND puzzle_solving_time.tracked_at >= :startDate
-    AND puzzle_solving_time.tracked_at < :endDate
+    AND puzzle_solving_time.finished_at >= :startDate
+    AND puzzle_solving_time.finished_at < :endDate
 GROUP BY player.id
 ORDER BY solved_puzzles_count DESC, total_pieces_count DESC, total_seconds DESC
 LIMIT :limit

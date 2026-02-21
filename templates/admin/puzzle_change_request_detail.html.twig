@@ -151,19 +151,27 @@
                                     <td><strong>Image</strong></td>
                                     <td>
                                         {% if request.originalImage %}
-                                            <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
-                                                 alt="Original"
-                                                 class="img-thumbnail"
-                                                 style="max-height: 100px;">
+                                            <div class="gallery">
+                                                <a class="gallery-item gallery-item-inline-block" href="{{ uploaded_asset(request.originalImage) }}">
+                                                    <img src="{{ request.originalImage|puzzle_image('puzzle_small') }}"
+                                                         alt="Original"
+                                                         class="img-thumbnail"
+                                                         style="max-height: 100px;">
+                                                </a>
+                                            </div>
                                         {% else %}
                                             <span class="text-muted">No image</span>
                                         {% endif %}
                                     </td>
                                     <td class="table-warning">
-                                        <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
-                                             alt="Proposed"
-                                             class="img-thumbnail"
-                                             style="max-height: 100px;">
+                                        <div class="gallery">
+                                            <a class="gallery-item gallery-item-inline-block" href="{{ uploaded_asset(request.proposedImage) }}">
+                                                <img src="{{ request.proposedImage|puzzle_image('puzzle_small') }}"
+                                                     alt="Proposed"
+                                                     class="img-thumbnail"
+                                                     style="max-height: 100px;">
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             {% endif %}

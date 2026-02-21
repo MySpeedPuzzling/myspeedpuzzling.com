@@ -7,7 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 return App::config([
     'league_oauth2_server' => [
         'authorization_server' => [
-            'private_key' => '%env(resolve:OAUTH2_PRIVATE_KEY)%',
+            'private_key' => '%env(OAUTH2_PRIVATE_KEY)%',
             'private_key_passphrase' => '%env(default::OAUTH2_PASSPHRASE)%',
             'encryption_key' => '%env(OAUTH2_ENCRYPTION_KEY)%',
             'access_token_ttl' => 'PT1H',
@@ -21,7 +21,7 @@ return App::config([
             'require_code_challenge_for_public_clients' => true,
         ],
         'resource_server' => [
-            'public_key' => '%env(resolve:OAUTH2_PUBLIC_KEY)%',
+            'public_key' => '%env(OAUTH2_PUBLIC_KEY)%',
         ],
         'scopes' => [
             'available' => [

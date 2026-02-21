@@ -52,7 +52,7 @@ final class GetPlayerResultsController extends AbstractController
                     'manufacturer_name' => $puzzle->manufacturerName,
                     'pieces_count' => $puzzle->piecesCount,
                     'time_seconds' => $puzzle->time,
-                    'finished_at' => $puzzle->finishedAt->format('c'),
+                    'finished_at' => $puzzle->finishedAt?->format('c'),
                     'first_attempt' => $puzzle->firstAttempt,
                     'puzzle_image' => $puzzle->puzzleImage,
                     'comment' => $puzzle->comment,

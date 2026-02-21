@@ -62,28 +62,26 @@ final readonly class OAuth2TestHelper
 
         $accessTokenManager->save($accessToken);
 
-        return self::generateJwt($container, $identifier, $expiry, $clientId, $userIdentifier, $scopes);
+        return self::generateJwt($identifier, $expiry, $clientId, $userIdentifier, $scopes);
     }
 
     /**
      * @param array<non-empty-string> $scopes
      */
     private static function generateJwt(
-        ContainerInterface $container,
         string $identifier,
         DateTimeImmutable $expiry,
         string $clientId,
         null|string $userIdentifier,
         array $scopes,
     ): string {
-        /** @var string $projectDir */
-        $projectDir = $container->getParameter('kernel.project_dir');
-        $privateKeyPath = $projectDir . '/config/jwt/private.pem';
+        /** @var non-empty-string $privateKey */
+        $privateKey = $_ENV['OAUTH2_PRIVATE_KEY'];
 
         $configuration = Configuration::forAsymmetricSigner(
             new Sha256(),
-            InMemory::file($privateKeyPath),
-            InMemory::file($privateKeyPath), // Public key not needed for signing
+            InMemory::plainText($privateKey),
+            InMemory::plainText($privateKey), // Public key not needed for signing
         );
 
         $now = new DateTimeImmutable();

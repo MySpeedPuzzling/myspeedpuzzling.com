@@ -282,6 +282,8 @@
   "pieces_count": "Número de piezas"
   "puzzle_box_photo": "Foto de la imagen o caja del rompecabezas"
   "date_finished": "Fecha completada"
+  "do_not_remember_date": "No recuerdo la fecha"
+  "finished_at_required_for_speed": "La fecha completada es obligatoria para speed puzzling."
   "ean": "Código EAN"
   "puzzle_identification_number": "Código del fabricante"
   "puzzle_photo_is_required": "Se requiere foto del rompecabezas resuelto, motivo o caja"

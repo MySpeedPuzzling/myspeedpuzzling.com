@@ -17,6 +17,9 @@ export default class extends Controller {
         'collectionSection',   // Collection fields (Collection only)
         'newCollectionFields', // New collection name/visibility (Collection, when creating new)
         'collectionInput',     // The collection tom-select input
+        'noDateCheckboxSection', // "I don't remember the date" checkbox (Relax only)
+        'dateLabel',           // Label for date field (gets .required class in speed mode)
+        'dateFieldSection',    // Date picker wrapper (hidden when "no date" checked)
     ];
 
     static values = {
@@ -26,6 +29,7 @@ export default class extends Controller {
 
     connect() {
         this.updateVisibility();
+        this._initNoDateCheckbox();
 
         // Watch for collection field changes to show/hide new collection fields
         if (this.hasCollectionSectionTarget) {
@@ -94,6 +98,30 @@ export default class extends Controller {
         if (this.hasCollectionSectionTarget) {
             this.collectionSectionTarget.classList.toggle('d-none', !isCollection);
         }
+
+        // Date label gets .required class in speed mode
+        if (this.hasDateLabelTarget) {
+            this.dateLabelTarget.classList.toggle('required', isSpeed);
+        }
+
+        // "I don't remember the date" checkbox (Relax only)
+        if (this.hasNoDateCheckboxSectionTarget) {
+            this.noDateCheckboxSectionTarget.classList.toggle('d-none', !isRelax);
+        }
+
+        // Hide date field when checkbox is checked in relax mode
+        if (this.hasDateFieldSectionTarget && this.hasNoDateCheckboxSectionTarget) {
+            const checkbox = this.noDateCheckboxSectionTarget.querySelector('input[type="checkbox"]');
+            const isNoDate = isRelax && checkbox && checkbox.checked;
+            this.dateFieldSectionTarget.classList.toggle('d-none', isNoDate);
+        }
+    }
+
+    toggleNoDate() {
+        if (this.hasDateFieldSectionTarget && this.hasNoDateCheckboxSectionTarget) {
+            const checkbox = this.noDateCheckboxSectionTarget.querySelector('input[type="checkbox"]');
+            this.dateFieldSectionTarget.classList.toggle('d-none', checkbox && checkbox.checked);
+        }
     }
 
     handleCollectionChange(event) {
@@ -109,6 +137,23 @@ export default class extends Controller {
     isUuid(value) {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         return uuidRegex.test(value);
+    }
+
+    _initNoDateCheckbox() {
+        // When editing a relax entry with no finishedAt, pre-check the checkbox and hide date field
+        if (this.modeValue !== 'relax') return;
+        if (!this.hasNoDateCheckboxSectionTarget) return;
+
+        const datePicker = this.element.querySelector('.date-picker');
+        if (datePicker && !datePicker.value) {
+            const checkbox = this.noDateCheckboxSectionTarget.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = true;
+                if (this.hasDateFieldSectionTarget) {
+                    this.dateFieldSectionTarget.classList.add('d-none');
+                }
+            }
+        }
     }
 
     _autoSelectSingleOption(event) {

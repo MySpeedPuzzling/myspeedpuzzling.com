@@ -32,7 +32,7 @@ readonly final class PerCategoryStatistics
             $piecesCount = $result->piecesCount;
             $time = $result->time;
             $manufacturerName = $result->manufacturerName;
-            $finishedDate = $result->finishedAt->format('Y-m-d');
+            $finishedDate = ($result->finishedAt ?? $result->trackedAt)->format('Y-m-d');
 
             $totalPieces += $piecesCount;
 

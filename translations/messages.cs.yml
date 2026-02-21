@@ -255,6 +255,8 @@
   "pieces_count": "Počet dílků"
   "puzzle_box_photo": "Foto motivu nebo krabice od puzzlí"
   "date_finished": "Datum doskládání"
+  "do_not_remember_date": "Nepamatuji si datum"
+  "finished_at_required_for_speed": "Datum doskládání je povinné pro speed puzzling."
   "ean": "EAN kód"
   "puzzle_identification_number": "Kód od výrobce"
   "puzzle_photo_is_required": "Foto poskládaných puzzlí, motivu nebo krabice je povinné"

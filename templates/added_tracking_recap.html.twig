@@ -45,9 +45,11 @@
                         <strong>{{ 'added_tracking_recap.manufacturer'|trans }}:</strong> {{ tracked_puzzle.manufacturerName }}<br>
                         <strong>{{ 'added_tracking_recap.pieces'|trans }}:</strong> {{ tracked_puzzle.piecesCount }}
                     </p>
-                    <p class="mb-2">
-                        <strong>{{ 'forms.date_finished'|trans }}:</strong> {{ tracked_puzzle.finishedAt|format_date('medium') }}
-                    </p>
+                    {% if tracked_puzzle.finishedAt is not null %}
+                        <p class="mb-2">
+                            <strong>{{ 'forms.date_finished'|trans }}:</strong> {{ tracked_puzzle.finishedAt|format_date('medium') }}
+                        </p>
+                    {% endif %}
                     {% if tracked_puzzle.comment %}
                         <p class="mb-2">
                             <strong>{{ 'forms.comment'|trans }}:</strong> {{ tracked_puzzle.comment }}

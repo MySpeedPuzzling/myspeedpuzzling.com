@@ -177,15 +177,21 @@
                         </div>
 
                         {# Date field - Speed + Relax #}
-                        <div class="col-sm mb-3">
-                            {{ form_label(solving_time_form.finishedAt) }}
+                        <div class="col-sm mb-3" data-puzzle-add-form-target="dateFieldSection">
+                            {{ form_label(solving_time_form.finishedAt, null, {'label_attr': {'data-puzzle-add-form-target': 'dateLabel'}}) }}
                             <div class="input-group">
                                 {{ form_widget(solving_time_form.finishedAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
-                                <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3"></i>
+                                <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
                             </div>
                             {{ form_help(solving_time_form.finishedAt) }}
                             {{ form_errors(solving_time_form.finishedAt) }}
                         </div>
+                    </div>
+
+                    {# "I do not remember the date" toggle - Relax only #}
+                    <div class="form-check form-switch" data-puzzle-add-form-target="noDateCheckboxSection">
+                        <input type="checkbox" class="form-check-input" id="no-date-checkbox" name="no_remember_date" value="1" data-action="puzzle-add-form#toggleNoDate">
+                        <label class="form-check-label" for="no-date-checkbox">{{ 'forms.do_not_remember_date'|trans }}</label>
                     </div>
 
                     {# First attempt - Speed Puzzling only #}

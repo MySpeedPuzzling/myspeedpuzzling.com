@@ -109,8 +109,10 @@
                                             {% if puzzle.time is not null %}
                                                 {{ puzzle.time|puzzlingTime }}
                                                 <br>
-                                                <small class="text-muted"><time datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time></small>
-                                                <br>
+                                                {% if puzzle.finishedAt is not null %}
+                                                    <small class="text-muted"><time datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time></small>
+                                                    <br>
+                                                {% endif %}
                                                 <small>
                                                     <span class="text-muted">PPM</span> {{ ppm(puzzle.time, puzzle.piecesCount) }}
                                                     {% if puzzle.players is not null %}
@@ -121,8 +123,10 @@
                                                 <span class="badge rounded-pill bg-secondary">
                                                     <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
                                                 </span>
-                                                <br>
-                                                <small class="text-muted"><time datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time></small>
+                                                {% if puzzle.finishedAt is not null %}
+                                                    <br>
+                                                    <small class="text-muted"><time datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time></small>
+                                                {% endif %}
                                             {% endif %}
 
                                             {% if puzzle.firstAttempt %}

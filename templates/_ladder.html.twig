@@ -76,8 +76,10 @@
 
                 <td class="with-ppm text-end text-nowrap">
                     <span style="color: #000;">{{ solving_time.time|puzzlingTime }}</span>
-                    <br>
-                    <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                    {% if solving_time.finishedAt is not null %}
+                        <br>
+                        <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                    {% endif %}
                     <br>
                     <small class="text-nowrap">
                         <span class="text-muted">PPM</span> {{ ppm(solving_time.time, solving_time.piecesCount) }}

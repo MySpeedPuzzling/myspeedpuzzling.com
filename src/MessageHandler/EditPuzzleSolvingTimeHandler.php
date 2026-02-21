@@ -64,7 +64,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             }
         }
 
-        $finishedAt = $message->finishedAt ?? $solvingTime->finishedAt;
+        $finishedAt = $message->finishedAt;
 
         $seconds = null;
         if ($message->time !== null) {

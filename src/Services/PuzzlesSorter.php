@@ -50,6 +50,22 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * Get effective finishedAt for sorting, falling back to trackedAt for SolvedPuzzle.
+     */
+    private static function getEffectiveFinishedAt(PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $item): \DateTimeImmutable
+    {
+        if ($item->finishedAt !== null) {
+            return $item->finishedAt;
+        }
+
+        if ($item instanceof SolvedPuzzle) {
+            return $item->trackedAt;
+        }
+
+        return new \DateTimeImmutable('@0');
+    }
+
+    /**
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<string, non-empty-array<SolvedPuzzle>>
      */
@@ -68,7 +84,7 @@ readonly final class PuzzlesSorter
                 $fastestPuzzle = array_shift($puzzles);
 
                 // Sort the remaining puzzles by finishedAt
-                usort($puzzles, static fn(SolvedPuzzle $a, SolvedPuzzle $b): int => $b->finishedAt <=> $a->finishedAt);
+                usort($puzzles, static fn(SolvedPuzzle $a, SolvedPuzzle $b): int => ($b->finishedAt ?? $b->trackedAt) <=> ($a->finishedAt ?? $a->trackedAt));
 
                 // Prepend the fastest puzzle to the sorted array
                 array_unshift($puzzles, $fastestPuzzle);
@@ -102,7 +118,7 @@ readonly final class PuzzlesSorter
             }
 
             // Oldest first if no first try found
-            return $a->finishedAt <=> $b->finishedAt;
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $solvedPuzzles;
@@ -135,11 +151,14 @@ readonly final class PuzzlesSorter
     public function sortByFinishedAt(array $solvedPuzzles): array
     {
         usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
-            if ($a->finishedAt->getTimestamp() === $b->finishedAt->getTimestamp()) {
+            $aDate = self::getEffectiveFinishedAt($a);
+            $bDate = self::getEffectiveFinishedAt($b);
+
+            if ($aDate->getTimestamp() === $bDate->getTimestamp()) {
                 return self::compareTimesAscending($a->time, $b->time);
             }
 
-            return $a->finishedAt <=> $b->finishedAt;
+            return $aDate <=> $bDate;
         });
 
         return $solvedPuzzles;
@@ -159,7 +178,7 @@ readonly final class PuzzlesSorter
                 return $timeComparison;
             }
 
-            return $a->finishedAt <=> $b->finishedAt;
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $solvedPuzzles;
@@ -185,9 +204,9 @@ readonly final class PuzzlesSorter
      */
     public function sortByNewest(array $solvedPuzzles): array
     {
-        usort($solvedPuzzles, function (SolvedPuzzle $a, SolvedPuzzle $b): int {
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             // Compare DateTime objects by timestamp in descending order (newest first).
-            return $b->finishedAt->getTimestamp() <=> $a->finishedAt->getTimestamp();
+            return self::getEffectiveFinishedAt($b)->getTimestamp() <=> self::getEffectiveFinishedAt($a)->getTimestamp();
         });
 
         return $solvedPuzzles;
@@ -199,9 +218,9 @@ readonly final class PuzzlesSorter
      */
     public function sortByOldest(array $solvedPuzzles): array
     {
-        usort($solvedPuzzles, function (SolvedPuzzle $a, SolvedPuzzle $b): int {
+        usort($solvedPuzzles, static function (SolvedPuzzle $a, SolvedPuzzle $b): int {
             // Compare DateTime objects by timestamp in ascending order (oldest first).
-            return $a->finishedAt->getTimestamp() <=> $b->finishedAt->getTimestamp();
+            return self::getEffectiveFinishedAt($a)->getTimestamp() <=> self::getEffectiveFinishedAt($b)->getTimestamp();
         });
 
         return $solvedPuzzles;
@@ -273,7 +292,7 @@ readonly final class PuzzlesSorter
                 return $ppmComparison;
             }
 
-            return $a->finishedAt <=> $b->finishedAt;
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $solvedPuzzles;
@@ -327,7 +346,7 @@ readonly final class PuzzlesSorter
                 return $ppmComparison;
             }
 
-            return $a->finishedAt <=> $b->finishedAt;
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $groupedSolvedPuzzles;
@@ -561,7 +580,7 @@ readonly final class PuzzlesSorter
 
                 // Sort the remaining by finishedAt descending
                 usort($puzzles, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
-                    return $b->finishedAt <=> $a->finishedAt;
+                    return self::getEffectiveFinishedAt($b) <=> self::getEffectiveFinishedAt($a);
                 });
 
                 // Put the first item back on top
@@ -625,7 +644,7 @@ readonly final class PuzzlesSorter
                 return $timeComparison;
             }
 
-            return $a->finishedAt <=> $b->finishedAt;
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $groupedSolvedPuzzles;
@@ -660,7 +679,7 @@ readonly final class PuzzlesSorter
                 return $timeComparison;
             }
 
-            return $a->finishedAt <=> $b->finishedAt;
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
         });
 
         return $groupedSolvedPuzzles;
@@ -682,14 +701,14 @@ readonly final class PuzzlesSorter
         }
 
         // 2) Sort groups by first result
-        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB): int {
             /** @var non-empty-array<SolvedPuzzle> $groupedA */
             /** @var non-empty-array<SolvedPuzzle> $groupedB */
 
             $a = $groupedA[array_key_first($groupedA)];
             $b = $groupedB[array_key_first($groupedB)];
 
-            return $b->finishedAt->getTimestamp() <=> $a->finishedAt->getTimestamp();
+            return self::getEffectiveFinishedAt($b)->getTimestamp() <=> self::getEffectiveFinishedAt($a)->getTimestamp();
         });
 
         return $groupedSolvedPuzzles;
@@ -711,14 +730,14 @@ readonly final class PuzzlesSorter
         }
 
         // 2) Sort groups by first result
-        usort($groupedSolvedPuzzles, function (array $groupedA, array $groupedB): int {
+        usort($groupedSolvedPuzzles, static function (array $groupedA, array $groupedB): int {
             /** @var non-empty-array<SolvedPuzzle> $groupedA */
             /** @var non-empty-array<SolvedPuzzle> $groupedB */
 
             $a = $groupedA[array_key_first($groupedA)];
             $b = $groupedB[array_key_first($groupedB)];
 
-            return $a->finishedAt->getTimestamp() <=> $b->finishedAt->getTimestamp();
+            return self::getEffectiveFinishedAt($a)->getTimestamp() <=> self::getEffectiveFinishedAt($b)->getTimestamp();
         });
 
         return $groupedSolvedPuzzles;

@@ -82,9 +82,9 @@ final class GetPlayerResultsController extends AbstractController
             'puzzle_pieces' => $result->piecesCount,
             'puzzle_image' => $result->puzzleImage,
             'puzzle_brand' => $result->manufacturerName,
-            'finished_at' => $result->finishedAt->format(DATE_ATOM),
-            'finished_at_alt_format' => $result->finishedAt->format('d/m/Y'),
-            'finished_at_ago' => $this->relativeTimeFormatter->formatDiff($result->finishedAt),
+            'finished_at' => $result->finishedAt?->format(DATE_ATOM),
+            'finished_at_alt_format' => $result->finishedAt?->format('d/m/Y'),
+            'finished_at_ago' => $result->finishedAt !== null ? $this->relativeTimeFormatter->formatDiff($result->finishedAt) : null,
             'solved_times' => $result->solvedTimes,
         ];
 

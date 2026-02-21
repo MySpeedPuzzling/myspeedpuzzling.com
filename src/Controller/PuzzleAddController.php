@@ -176,6 +176,10 @@ final class PuzzleAddController extends AbstractController
             $userId = $user->getUserIdentifier();
             $mode = $data->mode;
 
+            if ($mode === PuzzleAddMode::Relax && $request->request->has('no_remember_date')) {
+                $data->finishedAt = null;
+            }
+
             // Step 1: Handle new puzzle creation (all modes)
             $newPuzzleCreated = false;
             if (

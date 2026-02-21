@@ -119,7 +119,7 @@ SQL;
          *     pieces_count: int,
          *     comment: null|string,
          *     players: null|string,
-         *     finished_at: string,
+         *     finished_at: null|string,
          *     finished_puzzle_photo: string,
          *     first_attempt: bool,
          *     unboxed: bool,
@@ -208,13 +208,13 @@ SQL;
 
         if ($dateFrom !== null) {
             $query .= <<<SQL
-    AND puzzle_solving_time.finished_at >= :dateFrom
+    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) >= :dateFrom
 SQL;
         }
 
         if ($dateTo !== null) {
             $query .= <<<SQL
-    AND puzzle_solving_time.finished_at <= :dateTo
+    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) <= :dateTo
 SQL;
         }
 
@@ -249,7 +249,7 @@ SQL;
              *     tracked_at: string,
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
-             *     finished_at: string,
+             *     finished_at: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     solved_times: int,
@@ -290,13 +290,13 @@ SQL;
 
         if ($dateFrom !== null) {
             $query .= <<<SQL
-    AND puzzle_solving_time.finished_at >= :dateFrom
+    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) >= :dateFrom
 SQL;
         }
 
         if ($dateTo !== null) {
             $query .= <<<SQL
-    AND puzzle_solving_time.finished_at <= :dateTo
+    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) <= :dateTo
 SQL;
         }
 
@@ -372,7 +372,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
-             *     finished_at: string,
+             *     finished_at: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     competition_id: null|string,
@@ -419,13 +419,13 @@ SQL;
 
         if ($dateFrom !== null) {
             $query .= <<<SQL
-    AND puzzle_solving_time.finished_at >= :dateFrom
+    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) >= :dateFrom
 SQL;
         }
 
         if ($dateTo !== null) {
             $query .= <<<SQL
-    AND puzzle_solving_time.finished_at <= :dateTo
+    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) <= :dateTo
 SQL;
         }
 
@@ -501,7 +501,7 @@ SQL;
              *     finished_puzzle_photo: null|string,
              *     puzzle_identification_number: null|string,
              *     tracked_at: string,
-             *     finished_at: string,
+             *     finished_at: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     competition_id: null|string,
@@ -580,7 +580,7 @@ WHERE puzzle.id = :puzzleId
     puzzle_solving_time.player_id = :playerId
     OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
   )
-ORDER BY puzzle_solving_time.finished_at DESC
+ORDER BY COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) DESC
 LIMIT 1
 SQL;
 
@@ -605,7 +605,7 @@ SQL;
          *     pieces_count: int,
          *     manufacturer_name: null|string,
          *     image: null|string,
-         *     finished_at: string,
+         *     finished_at: null|string,
          * } $data
          */
 
@@ -618,7 +618,7 @@ SQL;
             piecesCount: $data['pieces_count'],
             manufacturerName: $data['manufacturer_name'],
             image: $data['image'],
-            finishedAt: new DateTimeImmutable($data['finished_at']),
+            finishedAt: $data['finished_at'] !== null ? new DateTimeImmutable($data['finished_at']) : null,
         );
     }
 
@@ -651,7 +651,7 @@ FROM puzzle_solving_time
 WHERE
     puzzle_solving_time.player_id = :playerId
     OR (puzzle_solving_time.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-ORDER BY puzzle.name ASC, puzzle.id, puzzle_solving_time.finished_at DESC
+ORDER BY puzzle.name ASC, puzzle.id, COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) DESC
 SQL;
 
         $data = $this->database
@@ -671,7 +671,7 @@ SQL;
              *     pieces_count: int,
              *     manufacturer_name: null|string,
              *     image: null|string,
-             *     finished_at: string,
+             *     finished_at: null|string,
              * } $row
              */
 
@@ -684,7 +684,7 @@ SQL;
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
-                finishedAt: new DateTimeImmutable($row['finished_at']),
+                finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
             );
         }, $data);
     }

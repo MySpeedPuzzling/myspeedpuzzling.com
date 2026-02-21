@@ -78,7 +78,7 @@ SQL;
          *     pieces_count: int,
          *     comment: null|string,
          *     players: null|string,
-         *     finished_at: string,
+         *     finished_at: null|string,
          *     finished_puzzle_photo: null|string,
          * } $row
          */

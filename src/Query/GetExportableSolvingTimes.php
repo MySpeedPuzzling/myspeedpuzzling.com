@@ -63,7 +63,7 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 WHERE
     pst.player_id = :playerId
     OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-ORDER BY pst.finished_at DESC, tracked_at DESC
+ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, tracked_at DESC
 SQL;
 
         /**
@@ -74,7 +74,7 @@ SQL;
          *     brand_name: string,
          *     pieces_count: int,
          *     seconds_to_solve: null|int,
-         *     finished_at: string,
+         *     finished_at: null|string,
          *     tracked_at: string,
          *     first_attempt: bool,
          *     unboxed: bool,

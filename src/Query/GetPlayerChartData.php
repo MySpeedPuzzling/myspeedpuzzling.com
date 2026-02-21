@@ -93,7 +93,7 @@ SQL;
 
         $query = <<<SQL
 SELECT 
-    DATE_TRUNC(:period, pst.finished_at) AS period,
+    DATE_TRUNC(:period, COALESCE(pst.finished_at, pst.tracked_at)) AS period,
     AVG(pst.seconds_to_solve) AS time
 FROM puzzle_solving_time pst
 INNER JOIN puzzle p ON pst.puzzle_id = p.id

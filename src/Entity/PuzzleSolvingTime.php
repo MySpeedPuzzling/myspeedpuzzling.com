@@ -57,8 +57,8 @@ class PuzzleSolvingTime implements EntityWithEvents
         public bool $verified,
         #[Column(type: PuzzlersGroupDoctrineType::NAME, nullable: true)]
         public null|PuzzlersGroup $team,
-        #[Column(type: Types::DATETIME_IMMUTABLE)]
-        public DateTimeImmutable $finishedAt,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $finishedAt,
         #[Column(type: Types::TEXT, nullable: true)]
         public null|string $comment,
         #[Column(nullable: true)]
@@ -90,7 +90,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         null|int $seconds,
         null|string $comment,
         null|PuzzlersGroup $puzzlersGroup,
-        DateTimeImmutable $finishedAt,
+        null|DateTimeImmutable $finishedAt,
         null|string $finishedPuzzlePhoto,
         bool $firstAttempt,
         bool $unboxed,

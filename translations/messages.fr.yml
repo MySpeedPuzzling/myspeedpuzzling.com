@@ -283,6 +283,8 @@
   "pieces_count": "Nombre de pièces"
   "puzzle_box_photo": "Photo de l'image ou de la boîte du puzzle"
   "date_finished": "Date de terminaison"
+  "do_not_remember_date": "Je ne me souviens pas de la date"
+  "finished_at_required_for_speed": "La date de terminaison est obligatoire pour le speed puzzling."
   "ean": "Code EAN"
   "puzzle_identification_number": "Code du fabricant"
   "puzzle_photo_is_required": "Une photo du puzzle résolu, du motif ou de la boîte est obligatoire"

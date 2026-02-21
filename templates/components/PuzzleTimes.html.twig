@@ -212,8 +212,10 @@
 
                         <td class="text-end with-ppm">
                             {{ aggregated_solver[0].time|puzzlingTime }}
-                            <br>
-                            <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
+                            {% if aggregated_solver[0].finishedAt is not null %}
+                                <br>
+                                <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
+                            {% endif %}
                             <br>
                             <small><span class="text-muted">PPM</span> {{ ppm(aggregated_solver[0].time, this.piecesCount) }}</small>
 
@@ -253,8 +255,10 @@
                                         {% if not loop.first %}
                                             <span class="d-inline-block mt-1">
                                                         {{ solving_time.time|puzzlingTime }}
-                                                        <br>
-                                                        <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                        {% if solving_time.finishedAt is not null %}
+                                                            <br>
+                                                            <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
+                                                        {% endif %}
                                                         <br>
                                                         <small>
                                                             <span class="text-muted">PPM</span> {{ ppm(solving_time.time, this.piecesCount) }}

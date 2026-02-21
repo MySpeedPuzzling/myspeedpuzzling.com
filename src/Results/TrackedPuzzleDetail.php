@@ -23,7 +23,7 @@ readonly final class TrackedPuzzleDetail
         public null|string $comment,
         /** @var null|array<Puzzler> */
         public null|array $players,
-        public DateTimeImmutable $finishedAt,
+        public null|DateTimeImmutable $finishedAt,
         public null|string $finishedPuzzlePhoto,
     ) {
     }
@@ -42,7 +42,7 @@ readonly final class TrackedPuzzleDetail
      *     pieces_count: int,
      *     comment: null|string,
      *     players: null|string,
-     *     finished_at: string,
+     *     finished_at: null|string,
      *     finished_puzzle_photo: null|string,
      *  } $row
      */
@@ -66,7 +66,7 @@ readonly final class TrackedPuzzleDetail
             puzzleImage: $row['puzzle_image'],
             comment: $row['comment'],
             players: $players,
-            finishedAt: new DateTimeImmutable($row['finished_at']),
+            finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
             finishedPuzzlePhoto: $row['finished_puzzle_photo'],
         );
     }

@@ -106,6 +106,10 @@ final class EditTimeController extends AbstractController
         $editTimeForm->handleRequest($request);
 
         if ($isGroupPuzzlersValid === true && $editTimeForm->isSubmitted() && $editTimeForm->isValid()) {
+            if ($data->mode === PuzzleAddMode::Relax && $request->request->has('no_remember_date')) {
+                $data->finishedAt = null;
+            }
+
             try {
                 $this->messageBus->dispatch(
                     EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),

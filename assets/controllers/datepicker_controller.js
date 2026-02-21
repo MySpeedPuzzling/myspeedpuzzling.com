@@ -33,5 +33,6 @@ export default class extends Controller {
 
             flatpickr(picker[i], options);
         }
+
     }
 }

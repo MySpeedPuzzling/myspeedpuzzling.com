@@ -63,6 +63,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
     public const string TIME_42 = '018d0006-0000-0000-0000-000000000042';
     public const string TIME_43 = '018d0006-0000-0000-0000-000000000043';
     public const string TIME_44 = '018d0006-0000-0000-0000-000000000044';
+    public const string TIME_46_RELAX_NO_FINISHED_AT = '018d0006-0000-0000-0000-000000000046';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -332,6 +333,20 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         $manager->persist($time44);
         $this->addReference(self::TIME_44, $time44);
 
+        // Relax solving time without finishedAt (user cleared the date)
+        $time46 = $this->createPuzzleSolvingTime(
+            id: self::TIME_46_RELAX_NO_FINISHED_AT,
+            player: $player1, // PLAYER_REGULAR
+            puzzle: $puzzle1000_02,
+            secondsToSolve: null,
+            daysAgo: 3,
+            verified: false,
+            firstAttempt: false,
+            finishedAt: null,
+        );
+        $manager->persist($time46);
+        $this->addReference(self::TIME_46_RELAX_NO_FINISHED_AT, $time46);
+
         $manager->flush();
     }
 
@@ -349,7 +364,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         string $id,
         Player $player,
         Puzzle $puzzle,
-        int $secondsToSolve,
+        null|int $secondsToSolve,
         int $daysAgo,
         bool $verified,
         bool $firstAttempt,
@@ -358,10 +373,13 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         null|PuzzlersGroup $team = null,
         null|string $comment = null,
         null|int $missingPieces = null,
+        null|\DateTimeImmutable|false $finishedAt = false,
     ): PuzzleSolvingTime {
         $now = $this->clock->now();
         $trackedAt = $now->modify("-{$daysAgo} days");
-        $finishedAt = $trackedAt;
+
+        // false = use default (trackedAt), null = explicitly null, DateTimeImmutable = custom value
+        $resolvedFinishedAt = $finishedAt === false ? $trackedAt : $finishedAt;
 
         return new PuzzleSolvingTime(
             id: Uuid::fromString($id),
@@ -371,7 +389,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
             trackedAt: $trackedAt,
             verified: $verified,
             team: $team,
-            finishedAt: $finishedAt,
+            finishedAt: $resolvedFinishedAt,
             comment: $comment,
             finishedPuzzlePhoto: null,
             firstAttempt: $firstAttempt,

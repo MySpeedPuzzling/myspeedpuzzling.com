@@ -282,6 +282,8 @@
   "pieces_count": "ピース数"
   "puzzle_box_photo": "絵またはパズルボックスの写真"
   "date_finished": "完成日"
+  "do_not_remember_date": "日付を覚えていません"
+  "finished_at_required_for_speed": "スピードパズルでは完成日が必須です。"
   "ean": "EANコード"
   "puzzle_identification_number": "メーカーコード"
   "puzzle_photo_is_required": "解決されたパズル、モチーフ、またはボックスの写真が必要です"

@@ -300,6 +300,8 @@ forms:
     pieces_count: "Number of pieces"
     puzzle_box_photo: "Photo of the picture or puzzle box"
     date_finished: "Date completed"
+    do_not_remember_date: "I do not remember the date"
+    finished_at_required_for_speed: "Date completed is required for speed puzzling."
     ean: "EAN code"
     puzzle_identification_number: "Manufacturer's code"
     puzzle_photo_is_required: "Photo of solved puzzle, motif or box is required"

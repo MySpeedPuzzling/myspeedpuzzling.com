@@ -52,7 +52,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         $solvingTimeId = $message->timeId;
         $finishedPuzzlePhotoPath = null;
         $trackedAt = $this->clock->now();
-        $finishedAt = $message->finishedAt ?? $trackedAt;
+        $finishedAt = $message->finishedAt;
         $solvingTime = SolvingTime::fromUserInput($message->time);
         $puzzlersCount = 1;
         $competition = null;

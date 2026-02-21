@@ -124,7 +124,7 @@ SQL;
              *     comment: null|string,
              *     puzzle_identification_number: null|string,
              *     players: null|string,
-             *     finished_at: string,
+             *     finished_at: null|string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     is_private: bool,

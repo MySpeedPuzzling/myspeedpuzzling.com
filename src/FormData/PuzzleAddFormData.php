@@ -9,10 +9,12 @@ use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
 use Symfony\Component\Validator\Constraints\Range;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final class PuzzleAddFormData
 {
@@ -100,5 +102,15 @@ final class PuzzleAddFormData
     public function __construct()
     {
         $this->finishedAt = new DateTimeImmutable();
+    }
+
+    #[Callback]
+    public function validateFinishedAtForSpeed(ExecutionContextInterface $context): void
+    {
+        if ($this->mode === PuzzleAddMode::SpeedPuzzling && $this->finishedAt === null) {
+            $context->buildViolation('forms.finished_at_required_for_speed')
+                ->atPath('finishedAt')
+                ->addViolation();
+        }
     }
 }

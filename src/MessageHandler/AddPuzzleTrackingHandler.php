@@ -46,7 +46,7 @@ readonly final class AddPuzzleTrackingHandler
         $trackingId = $message->trackingId;
         $finishedPuzzlePhotoPath = null;
         $trackedAt = $this->clock->now();
-        $finishedAt = $message->finishedAt ?? $trackedAt;
+        $finishedAt = $message->finishedAt;
 
         if ($message->finishedPuzzlesPhoto !== null) {
             $extension = $message->finishedPuzzlesPhoto->guessExtension();

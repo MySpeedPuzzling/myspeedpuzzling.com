@@ -218,7 +218,7 @@ final class PlayerSolvedPuzzles
                 }
 
                 // Date range filter
-                if ($this->matchesDateRange($puzzle->finishedAt) === false) {
+                if ($this->matchesDateRange($puzzle->finishedAt ?? $puzzle->trackedAt) === false) {
                     return false;
                 }
 

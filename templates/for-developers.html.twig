@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'for_developers.meta.title'|trans }}{% endblock %}
+
+{% block meta_description %}{{ 'for_developers.meta.description'|trans }}{% endblock %}
+
+{% block content %}
+    <h1>For Developers / API</h1>
+
+    <p class="lead mb-4">
+        Building something and want to connect with MySpeedPuzzling?
+        Great idea, let's build something interesting together!
+    </p>
+
+    <h2>What can you do?</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Authenticate as a user</h5>
+                    <p class="card-text">
+                        Make requests on behalf of users, access their results,
+                        add times/results &mdash; great for competition integrations!
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Service-to-service communication</h5>
+                    <p class="card-text">
+                        Read any user's results, statistics,
+                        or puzzle statistics without user interaction.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2>OAuth2 Authentication</h2>
+
+    <p class="mb-4">
+        We provide a full OAuth2 server supporting authorization code, client credentials,
+        and refresh token grants. Want to obtain a client key and secret?
+        Reach out to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.
+    </p>
+
+    <h2>See it in action</h2>
+
+    <p class="mb-2">
+        Check out our live demo application to see how the OAuth2 integration works:
+    </p>
+
+    <ul class="mb-4">
+        <li>
+            <strong>Live demo:</strong>
+            <a href="https://oauth2-demo.myspeedpuzzling.com" target="_blank" rel="noopener">oauth2-demo.myspeedpuzzling.com</a>
+        </li>
+        <li>
+            <strong>Source code (PHP):</strong>
+            <a href="https://github.com/MySpeedPuzzling/oauth2-client-demo-application" target="_blank" rel="noopener">GitHub</a>
+        </li>
+    </ul>
+
+    <h2>API Documentation</h2>
+
+    <p class="mb-4">
+        Public OpenAPI documentation is coming soon. In the meantime, feel free to reach out
+        and we'll help you get started.
+    </p>
+
+    <h2>Need something custom?</h2>
+
+    <p>
+        We are very flexible and react fast. If you need to change or add anything,
+        we'll be more than happy to help and support you in building the next awesome thing.
+    </p>
+
+    <p>
+        Contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.
+    </p>
+{% endblock %}

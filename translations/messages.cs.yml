@@ -22,6 +22,7 @@
   "puzzle_library": "Puzzle knihovna"
   "events": "Eventy"
   "export_data": "Export dat"
+  "for_developers": "Pro vývojáře"
 "accessibility":
   "toggle_navigation": "Přepnout navigaci"
   "barcode_scanner": "Skenovat čárový kód"
@@ -385,6 +386,10 @@
   "registration_link": "Registrace"
   "competition_puzzles": "Soutěžní puzzle"
   "no_puzzle_text": "Zatím tu žádné puzzle nejsou… Zůstaňte naladěni.</strong>"
+"for_developers":
+  "meta":
+    "title": "Pro vývojáře / API | MySpeedPuzzling"
+    "description": "Vytvářejte integrace s MySpeedPuzzling pomocí našeho OAuth2 API."
 "faq":
   "meta":
     "title": "Speed Puzzling FAQ | Sledovat"

@@ -22,6 +22,7 @@
   "puzzle_library": "Puzzlebibliothek"
   "events": "Veranstaltungen"
   "export_data": "Daten exportieren"
+  "for_developers": "Für Entwickler"
 "accessibility":
   "toggle_navigation": "Navigation umschalten"
   "barcode_scanner": "Barcode scannen"
@@ -368,6 +369,10 @@
   "registration_link": "Registrieren"
   "competition_puzzles": "Wettbewerbs-Puzzles"
   "no_puzzle_text": "Hier sind noch keine Puzzles... Bleiben Sie dran"
+"for_developers":
+  "meta":
+    "title": "Für Entwickler / API | MySpeedPuzzling"
+    "description": "Erstellen Sie Integrationen mit MySpeedPuzzling über unsere OAuth2-API."
 "faq":
   "meta":
     "title": "Speed Puzzling FAQ | Verfolgen & Konkurrieren"

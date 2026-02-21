@@ -22,6 +22,7 @@
   "events": "イベント"
   "puzzle_library": "パズルライブラリ"
   "export_data": "データエクスポート"
+  "for_developers": "開発者向け"
 "accessibility":
   "toggle_navigation": "ナビゲーション切替"
   "barcode_scanner": "バーコードスキャン"
@@ -449,6 +450,10 @@
   "message": "メッセージ"
   "send": "送信"
   "thank_you": "お問い合わせありがとうございます！"
+"for_developers":
+  "meta":
+    "title": "開発者向け / API | MySpeedPuzzling"
+    "description": "OAuth2 APIを使用してMySpeedPuzzlingとの統合を構築しましょう。"
 "faq":
   "meta":
     "title": "よくある質問"

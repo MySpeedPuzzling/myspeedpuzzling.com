@@ -22,6 +22,7 @@ menu:
     puzzle_library: "Puzzle library"
     events: "Events"
     export_data: "Export data"
+    for_developers: "For Developers"
 
 accessibility:
     toggle_navigation: "Toggle navigation"
@@ -420,6 +421,11 @@ events:
     competition_puzzles: "Competition puzzles"
     no_puzzle_text: No puzzles here… yet! Stay tuned
 
+
+for_developers:
+    meta:
+        title: "For Developers / API | MySpeedPuzzling"
+        description: "Build integrations with MySpeedPuzzling using our OAuth2 API. Authenticate users, access results, statistics, and more."
 
 faq:
     meta:

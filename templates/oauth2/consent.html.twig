@@ -31,18 +31,18 @@
                     } %}
 
                     <p class="fw-medium mb-2">This application will be able to:</p>
-                    <ul class="list-unstyled mb-4">
-                        <li class="d-flex align-items-start py-2">
-                            <i class="ci-user text-success me-2 mt-1"></i>
+                    <div class="list-group mb-4">
+                        <div class="list-group-item d-flex align-items-center py-3">
+                            <i class="ci-user text-success me-3 fs-5"></i>
                             <span>{{ scope_labels['profile:read'].label }}</span>
-                        </li>
+                        </div>
                         {% for scope in scopes|filter(s => s != 'profile:read') %}
-                            <li class="d-flex align-items-start py-2">
-                                <i class="{{ scope_labels[scope].icon|default('ci-check') }} text-success me-2 mt-1"></i>
+                            <div class="list-group-item d-flex align-items-center py-3">
+                                <i class="{{ scope_labels[scope].icon|default('ci-check') }} text-success me-3 fs-5"></i>
                                 <span>{{ scope_labels[scope].label|default(scope) }}</span>
-                            </li>
+                            </div>
                         {% endfor %}
-                    </ul>
+                    </div>
 
                     <form method="post">
                         <div class="d-grid gap-2">

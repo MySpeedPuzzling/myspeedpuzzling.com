@@ -126,6 +126,17 @@ For working with test fixtures, see `.claude/fixtures.md` for complete documenta
 Feature design documents and implementation plans are in `docs/features/`. Each feature has its own directory with detailed specifications, entity designs, and step-by-step implementation guides.
 - **Marketplace**: `docs/features/marketplace/` — Centralized marketplace, messaging, ratings, shipping settings, admin moderation
 
+### OAuth2 Server
+- Powered by `league/oauth2-server-bundle`
+- Endpoints: `/oauth2/authorize` (custom controller), `/oauth2/token` (bundle controller)
+- API firewall (`^/api/v1/`) uses stateless Bearer token authentication
+- Scopes: `profile:read` (default), `results:read`, `statistics:read`, `collections:read`
+- Grants: `authorization_code`, `client_credentials`, `refresh_token` (password and implicit disabled)
+- PKCE required for public clients only; confidential clients use client secret
+- API endpoints: `GET /api/v1/me`, `GET /api/v1/players/{id}/results`, `GET /api/v1/players/{id}/statistics`
+- User consent is tracked in `oauth2_user_consent` table (auto-approves previously consented scopes)
+- Manage clients: `php bin/console myspeedpuzzling:oauth2:create-client`, `php bin/console myspeedpuzzling:oauth2:list-clients`
+
 ### Notable Features
 - **Puzzle Time Tracking**: Sophisticated stopwatch with pause/resume and verification
 - **Competition Management**: WJPC (World Jigsaw Puzzle Championship) integration

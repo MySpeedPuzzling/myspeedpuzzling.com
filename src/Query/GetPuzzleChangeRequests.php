@@ -53,7 +53,7 @@ SQL;
      */
     public function allPending(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Pending);
+        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC');
     }
 
     /**
@@ -61,7 +61,7 @@ SQL;
      */
     public function allApproved(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Approved);
+        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC');
     }
 
     /**
@@ -69,7 +69,7 @@ SQL;
      */
     public function allRejected(): array
     {
-        return $this->byStatus(PuzzleReportStatus::Rejected);
+        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC');
     }
 
     public function byId(string $id): null|PuzzleChangeRequestOverview
@@ -129,7 +129,7 @@ SQL;
     /**
      * @return array<PuzzleChangeRequestOverview>
      */
-    private function byStatus(PuzzleReportStatus $status): array
+    private function byStatus(PuzzleReportStatus $status, string $orderBy): array
     {
         $query = <<<SQL
 SELECT
@@ -170,7 +170,7 @@ LEFT JOIN player reviewer ON reviewer.id = pcr.reviewed_by_id
 LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_id
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
 WHERE pcr.status = :status
-ORDER BY pcr.submitted_at DESC
+ORDER BY {$orderBy}
 SQL;
 
         $rows = $this->database->fetchAllAssociative($query, [

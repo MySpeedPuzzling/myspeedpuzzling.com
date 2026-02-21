@@ -166,15 +166,11 @@
                     <h5 class="mb-0">Reporter</h5>
                 </div>
                 <div class="card-body">
-                    {% if request.reporterName %}
-                        <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
-                            {{ request.reporterName }}
-                        </a>
-                        {% if request.reporterCode %}
-                            <span class="text-muted">#{{ request.reporterCode }}</span>
-                        {% endif %}
-                    {% else %}
-                        <span class="text-muted">Unknown user</span>
+                    <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
+                        {{ request.reporterName ?? '#' ~ request.reporterCode }}
+                    </a>
+                    {% if request.reporterName and request.reporterCode %}
+                        <span class="text-muted">#{{ request.reporterCode }}</span>
                     {% endif %}
                     <br>
                     <small class="text-muted">Submitted: {{ request.submittedAt|ago }}</small>

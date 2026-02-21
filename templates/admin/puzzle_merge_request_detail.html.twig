@@ -25,15 +25,11 @@
             {# Reporter info #}
             <div class="mb-4">
                 <strong>Reported by:</strong>
-                {% if request.reporterName %}
-                    <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
-                        {{ request.reporterName }}
-                    </a>
-                    {% if request.reporterCode %}
-                        <span class="text-muted">#{{ request.reporterCode }}</span>
-                    {% endif %}
-                {% else %}
-                    <span class="text-muted">Unknown user</span>
+                <a href="{{ path('player_profile', {playerId: request.reporterId}) }}" target="_blank">
+                    {{ request.reporterName ?? '#' ~ request.reporterCode }}
+                </a>
+                {% if request.reporterName and request.reporterCode %}
+                    <span class="text-muted">#{{ request.reporterCode }}</span>
                 {% endif %}
                 <span class="text-muted ms-3">{{ request.submittedAt|ago }}</span>
             </div>

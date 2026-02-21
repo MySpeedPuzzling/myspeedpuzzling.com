@@ -80,9 +80,7 @@
                                     <div class="d-md-none mt-1">
                                         <small class="text-muted">
                                             {{ request.submittedAt|ago }}
-                                            {% if request.reporterName %}
-                                                &bull; <a href="{{ path('player_profile', {playerId: request.reporterId}) }}">{{ request.reporterName }}</a>
-                                            {% endif %}
+                                            &bull; <a href="{{ path('player_profile', {playerId: request.reporterId}) }}">{{ request.reporterName ? request.reporterName ~ ' #' ~ request.reporterCode : '#' ~ request.reporterCode }}</a>
                                         </small>
                                     </div>
                                     {% if active_tab != 'pending' and request.reviewedAt %}
@@ -108,16 +106,12 @@
                                     </div>
                                 </td>
                                 <td class="d-none d-md-table-cell">
-                                    {% if request.reporterName %}
-                                        <a href="{{ path('player_profile', {playerId: request.reporterId}) }}"
-                                           target="_blank">
-                                            {{ request.reporterName }}
-                                        </a>
-                                        {% if request.reporterCode %}
-                                            <br><small class="text-muted">#{{ request.reporterCode }}</small>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-muted">Unknown</span>
+                                    <a href="{{ path('player_profile', {playerId: request.reporterId}) }}"
+                                       target="_blank">
+                                        {{ request.reporterName ?? '#' ~ request.reporterCode }}
+                                    </a>
+                                    {% if request.reporterName and request.reporterCode %}
+                                        <br><small class="text-muted">#{{ request.reporterCode }}</small>
                                     {% endif %}
                                 </td>
                                 <td class="d-none d-md-table-cell">

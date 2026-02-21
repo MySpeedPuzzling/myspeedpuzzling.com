@@ -467,6 +467,12 @@
   "newsletter_enabled": "Dostávat newsletter"
   "newsletter_help": "Občas vám pošleme newsletter o novinkách na platformě, většinou o nových funkcích. Očekávaná frekvence: maximálně 1x měsíčně."
   "messaging_notifications": "Zprávy a upozornění"
+  "connected_applications": "Propojené aplikace"
+  "connected_applications_description": "Aplikace, kterým jste povolili přístup k vašemu účtu."
+  "consented_at": "Povoleno"
+  "last_used_at": "Naposledy použito"
+  "revoke_access": "Odvolat"
+  "revoke_confirm": "Opravdu chcete odvolat přístup pro tuto aplikaci?"
 "puzzle_detail":
   "meta":
     "description": "Prozkoumejte puzzle %brand% %puzzle% (%pieces% dílků) na My Speed Puzzling. Sledujte postup, porovnávejte časy a zdolávejte puzzle s naší komunitou. Začněte svou speed puzzling řešitelskou jízdu již dnes!"
@@ -513,6 +519,7 @@
   "puzzle_added_to_collection": "Puzzle bylo přidáno do kolekce."
   "tracking_added": "Záznam o puzzle jsme uložili."
   "collection_not_found": "Kolekce, kterou jste hledali, u nás není!"
+  "oauth2_consent_revoked": "Přístup aplikace byl odvolán."
 "hub":
   "title": "Hub"
   "meta":

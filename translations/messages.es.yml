@@ -391,6 +391,12 @@
   "newsletter_enabled": "Recibir boletines"
   "newsletter_help": "Ocasionalmente enviaremos un boletín sobre novedades en la plataforma, generalmente explicando nuevas funciones. Frecuencia esperada: no más de 1 al mes."
   "messaging_notifications": "Mensajes y notificaciones"
+  "connected_applications": "Aplicaciones conectadas"
+  "connected_applications_description": "Aplicaciones que has autorizado para acceder a tu cuenta."
+  "consented_at": "Autorizado"
+  "last_used_at": "Último uso"
+  "revoke_access": "Revocar"
+  "revoke_confirm": "¿Estás seguro de que quieres revocar el acceso para esta aplicación?"
 "puzzle_detail":
   "meta":
     "description": "Explora el rompecabezas %brand% %puzzle% (%pieces% piezas) en My Speed Puzzling. Rastrea el progreso, compara tiempos y conquista rompecabezas con nuestra comunidad. ¡Comienza tu frenesí de resolución de speed puzzling hoy!"
@@ -498,6 +504,7 @@
   "non_unique_player_code": "Lo sentimos, pero parece que este código ya está tomado. Por favor elige otro."
   "unknown_error": "Lo sentimos, pero algo salió mal - hemos sido notificados e intentaremos arreglarlo tan pronto como sea posible. Por favor intenta de nuevo más tarde."
   "exclusive_membership_feature": "Esta característica es exclusiva solo para miembros. Si quieres usarla, por favor compra una membresía."
+  "oauth2_consent_revoked": "El acceso de la aplicación ha sido revocado."
 "hub":
   "title": "Hub"
   "meta":

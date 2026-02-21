@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
 use SpeedPuzzling\Web\Message\EditProfile;
+use SpeedPuzzling\Web\Query\GetPlayerOAuth2Consents;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,6 +39,7 @@ final class EditProfileController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private LoggerInterface $logger,
+        readonly private GetPlayerOAuth2Consents $getPlayerOAuth2Consents,
     ) {
     }
 
@@ -156,12 +158,15 @@ final class EditProfileController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $oauth2Consents = $this->getPlayerOAuth2Consents->byPlayerId($player->playerId);
+
         return $this->render('edit-profile.html.twig', [
             'player' => $player,
             'edit_profile_form' => $editProfileForm,
             'edit_code_form' => $editCodeForm,
             'edit_visibility_form' => $editVisibilityForm,
             'messaging_settings_form' => $messagingSettingsForm,
+            'oauth2_consents' => $oauth2Consents,
         ]);
     }
 }

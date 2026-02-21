@@ -453,6 +453,12 @@
   "newsletter_enabled": "Recevoir les newsletters"
   "newsletter_help": "Nous enverrons occasionnellement une newsletter sur les nouveautés de la plateforme, généralement pour expliquer les nouvelles fonctionnalités. Fréquence prévue : pas plus d'une fois par mois."
   "messaging_notifications": "Messagerie et notifications"
+  "connected_applications": "Applications connectées"
+  "connected_applications_description": "Applications que vous avez autorisées à accéder à votre compte."
+  "consented_at": "Autorisé"
+  "last_used_at": "Dernière utilisation"
+  "revoke_access": "Révoquer"
+  "revoke_confirm": "Êtes-vous sûr de vouloir révoquer l'accès pour cette application ?"
 "puzzle_detail":
   "meta":
     "description": "Explorez le puzzle %brand% %puzzle% (%pieces% pièces) sur My Speed Puzzling. Suivez les progrès, comparez les temps et conquérez les puzzles avec notre communauté. Commencez votre série de résolution speed puzzling aujourd'hui !"
@@ -499,6 +505,7 @@
   "non_unique_player_code": "Nous sommes désolés, mais il semble que ce code soit déjà pris. Veuillez en choisir un autre."
   "unknown_error": "Nous sommes désolés, mais quelque chose a mal tourné - nous avons été notifiés et essaierons de corriger cela dès que possible. Veuillez réessayer plus tard."
   "exclusive_membership_feature": "Cette fonctionnalité est exclusive aux membres seulement. Si vous voulez l'utiliser, veuillez souscrire une adhésion."
+  "oauth2_consent_revoked": "L'accès de l'application a été révoqué."
 "hub":
   "title": "Centre"
   "meta":

@@ -450,6 +450,12 @@
   "newsletter_enabled": "Newsletter erhalten"
   "newsletter_help": "Wir senden gelegentlich einen Newsletter über Neuigkeiten auf der Plattform, meist über neue Funktionen. Erwartete Häufigkeit: maximal 1x pro Monat."
   "messaging_notifications": "Nachrichten & Benachrichtigungen"
+  "connected_applications": "Verbundene Anwendungen"
+  "connected_applications_description": "Anwendungen, denen Sie Zugriff auf Ihr Konto gewährt haben."
+  "consented_at": "Autorisiert"
+  "last_used_at": "Zuletzt verwendet"
+  "revoke_access": "Widerrufen"
+  "revoke_confirm": "Sind Sie sicher, dass Sie den Zugriff für diese Anwendung widerrufen möchten?"
 "puzzle_detail":
   "meta":
     "description": "Erkunden Sie Puzzle %brand% %puzzle% (%pieces% Teile) auf My Speed Puzzling. Verfolgen Sie Fortschritte, vergleichen Sie Zeiten und erobern Sie Puzzles mit unserer Community. Starten Sie heute Ihre Speed Puzzling Lösungs-Serie!"
@@ -496,6 +502,7 @@
   "non_unique_player_code": "Es tut uns leid, aber es scheint, dass dieser Code bereits vergeben ist. Bitte wählen Sie einen anderen."
   "unknown_error": "Es tut uns leid, aber etwas ist schief gelaufen - wir wurden benachrichtigt und werden versuchen, es so schnell wie möglich zu beheben. Bitte versuchen Sie es später erneut."
   "exclusive_membership_feature": "Diese Funktion ist ausschließlich für Mitglieder. Wenn Sie sie nutzen möchten, kaufen Sie bitte eine Mitgliedschaft."
+  "oauth2_consent_revoked": "Der Zugriff der Anwendung wurde widerrufen."
 "hub":
   "title": "Hub"
   "meta":

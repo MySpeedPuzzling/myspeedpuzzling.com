@@ -555,6 +555,12 @@
   "newsletter_enabled": "ニュースレターを受信する"
   "newsletter_help": "プラットフォームの新機能などについてのニュースレターを不定期にお送りします。想定頻度：月1回以下。"
   "messaging_notifications": "メッセージと通知"
+  "connected_applications": "接続済みアプリケーション"
+  "connected_applications_description": "アカウントへのアクセスを許可したアプリケーション。"
+  "consented_at": "承認日"
+  "last_used_at": "最終使用日"
+  "revoke_access": "取り消し"
+  "revoke_confirm": "このアプリケーションのアクセスを取り消してもよろしいですか？"
 "puzzle_detail":
   "meta":
     "description": "マイスピードパズリングで%brand% %puzzle%（%pieces%ピース）パズルを探索。進捗を追跡し、タイムを比較し、コミュニティと一緒にパズルを征服しましょう。今日からスピードパズリング解決スプリーを始めましょう！"
@@ -587,6 +593,7 @@
   "non_unique_player_code": "申し訳ございませんが、このコードは既に使用されているようです。別のコードを選択してください。"
   "unknown_error": "申し訳ございませんが、何か問題が発生しました - 通知済みで、できるだけ早く修正を試みます。後でもう一度お試しください。"
   "exclusive_membership_feature": "この機能はメンバー限定です。使用したい場合は、メンバーシップを購入してください。"
+  "oauth2_consent_revoked": "アプリケーションのアクセスが取り消されました。"
 "hub":
   "title": "ハブ"
   "meta":

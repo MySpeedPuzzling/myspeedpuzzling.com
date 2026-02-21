@@ -532,6 +532,12 @@ edit_profile:
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
     newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. Expected frequency: no more than 1 per month."
+    connected_applications: "Connected Applications"
+    connected_applications_description: "Applications you have authorized to access your account."
+    consented_at: "Authorized"
+    last_used_at: "Last used"
+    revoke_access: "Revoke"
+    revoke_confirm: "Are you sure you want to revoke access for this application?"
 
 puzzle_detail:
     meta:
@@ -582,6 +588,7 @@ flashes:
     exclusive_membership_feature: "This feature is exclusive to members only. If you want to use it, please purchase a membership."
     puzzle_removed_from_collection: "Puzzle has been removed from the collection."
     puzzle_added_to_collection: "Puzzle has been added to the collection."
+    oauth2_consent_revoked: "Application access has been revoked."
 
 hub:
     title: "Hub"

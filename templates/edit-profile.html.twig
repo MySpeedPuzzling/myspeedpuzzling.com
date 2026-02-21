@@ -87,6 +87,36 @@
                     {{ form_end(edit_visibility_form) }}
                 {% endif %}
             </div>
+
+            {% if oauth2_consents is not empty %}
+                <div class="card card-body shadow-lg my-3">
+                    <h3 class="h5">{{ 'edit_profile.connected_applications'|trans }}</h3>
+                    <p class="text-muted fs-sm mb-3">{{ 'edit_profile.connected_applications_description'|trans }}</p>
+
+                    {% for consent in oauth2_consents %}
+                        <div class="d-flex justify-content-between align-items-start{% if not loop.last %} mb-3 pb-3 border-bottom{% endif %}">
+                            <div>
+                                <strong>{{ consent.clientName }}</strong>
+                                <div class="fs-sm text-muted mt-1">
+                                    {{ 'edit_profile.consented_at'|trans }}: {{ consent.consentedAt|date('j. n. Y') }}
+                                    {% if consent.lastUsedAt is not null %}
+                                        <br>{{ 'edit_profile.last_used_at'|trans }}: {{ consent.lastUsedAt|date('j. n. Y') }}
+                                    {% endif %}
+                                </div>
+                                <div class="mt-1">
+                                    {% for scope in consent.scopes %}
+                                        <span class="badge bg-secondary">{{ scope }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <form method="post" action="{{ path('revoke_oauth2_consent', {consentId: consent.id}) }}" onsubmit="return confirm('{{ 'edit_profile.revoke_confirm'|trans }}')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('revoke_oauth2_consent_' ~ consent.id) }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.revoke_access'|trans }}</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
 
         <div class="col-sm-6">

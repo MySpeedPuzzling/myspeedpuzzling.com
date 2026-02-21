@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
@@ -15,9 +14,7 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
-use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class SubmitPuzzleChangeRequestHandler
@@ -28,9 +25,7 @@ readonly final class SubmitPuzzleChangeRequestHandler
         private PlayerRepository $playerRepository,
         private ManufacturerRepository $manufacturerRepository,
         private Filesystem $filesystem,
-        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
-        private PuzzleImageNamer $puzzleImageNamer,
         private ImageOptimizer $imageOptimizer,
     ) {
     }
@@ -46,19 +41,11 @@ readonly final class SubmitPuzzleChangeRequestHandler
             $proposedManufacturer = $this->manufacturerRepository->get($message->proposedManufacturerId);
         }
 
-        // Handle image upload with SEO-friendly naming
+        // Store proposed image with temporary name - proper SEO name is assigned on approval
         $proposedImagePath = null;
         if ($message->proposedPhoto !== null) {
             $extension = $message->proposedPhoto->guessExtension() ?? 'jpg';
-            $brandName = $proposedManufacturer !== null
-                ? $proposedManufacturer->name
-                : ($puzzle->manufacturer !== null ? $puzzle->manufacturer->name : 'puzzle');
-            $proposedImagePath = $this->puzzleImageNamer->generateFilename(
-                $brandName,
-                $message->proposedName,
-                $message->proposedPiecesCount,
-                $extension,
-            );
+            $proposedImagePath = "proposal-{$message->changeRequestId}.{$extension}";
 
             $this->imageOptimizer->optimize($message->proposedPhoto->getPathname());
 
@@ -68,8 +55,6 @@ readonly final class SubmitPuzzleChangeRequestHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-
-            $this->messageBus->dispatch(new WarmupCache($proposedImagePath));
         }
 
         $changeRequest = new PuzzleChangeRequest(

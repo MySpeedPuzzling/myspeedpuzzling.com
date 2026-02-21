@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
+use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -15,8 +17,10 @@ use SpeedPuzzling\Web\Message\ApprovePuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class ApprovePuzzleChangeRequestHandler
@@ -27,6 +31,9 @@ readonly final class ApprovePuzzleChangeRequestHandler
         private PlayerRepository $playerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private Filesystem $filesystem,
+        private PuzzleImageNamer $puzzleImageNamer,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -81,7 +88,28 @@ readonly final class ApprovePuzzleChangeRequestHandler
         );
 
         if (in_array('image', $selectedFields, true) && $changeRequest->proposedImage !== null) {
-            $puzzle->image = $changeRequest->proposedImage;
+            $brandName = $puzzle->manufacturer !== null ? $puzzle->manufacturer->name : 'puzzle';
+            $extension = pathinfo($changeRequest->proposedImage, PATHINFO_EXTENSION) ?: 'jpg';
+
+            $newImagePath = $this->puzzleImageNamer->generateFilename(
+                $brandName,
+                $puzzle->name,
+                $puzzle->piecesCount,
+                $extension,
+            );
+
+            // If generated name matches current puzzle image, force unique name for browser cache busting
+            if ($newImagePath === $puzzle->image) {
+                $uuid = substr(Uuid::uuid7()->toString(), 0, 8);
+                $pathInfo = pathinfo($newImagePath);
+                $newImagePath = $pathInfo['filename'] . "-$uuid." . ($pathInfo['extension'] ?? 'jpg');
+            }
+
+            $this->filesystem->copy($changeRequest->proposedImage, $newImagePath);
+            $this->filesystem->delete($changeRequest->proposedImage);
+
+            $puzzle->image = $newImagePath;
+            $this->messageBus->dispatch(new WarmupCache($newImagePath));
         }
 
         // Mark request as approved

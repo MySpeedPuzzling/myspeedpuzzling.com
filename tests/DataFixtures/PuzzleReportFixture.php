@@ -20,6 +20,7 @@ final class PuzzleReportFixture extends Fixture implements DependentFixtureInter
     public const string CHANGE_REQUEST_PENDING = '018e0000-0000-0000-0000-000000000001';
     public const string CHANGE_REQUEST_APPROVED = '018e0000-0000-0000-0000-000000000002';
     public const string CHANGE_REQUEST_REJECTED = '018e0000-0000-0000-0000-000000000003';
+    public const string CHANGE_REQUEST_WITH_IMAGE = '018e0000-0000-0000-0000-000000000004';
 
     public const string MERGE_REQUEST_PENDING = '018e0001-0000-0000-0000-000000000001';
     public const string MERGE_REQUEST_APPROVED = '018e0001-0000-0000-0000-000000000002';
@@ -108,6 +109,28 @@ final class PuzzleReportFixture extends Fixture implements DependentFixtureInter
         $rejectedChange->reject($adminPlayer, $now, 'Not a valid change');
         $manager->persist($rejectedChange);
         $this->addReference(self::CHANGE_REQUEST_REJECTED, $rejectedChange);
+
+        // Pending change request with proposed image
+        $changeWithImage = new PuzzleChangeRequest(
+            id: Uuid::fromString(self::CHANGE_REQUEST_WITH_IMAGE),
+            puzzle: $puzzle500_02,
+            reporter: $regularPlayer,
+            submittedAt: $now,
+            proposedName: 'New Image Puzzle',
+            proposedManufacturer: $ravensburger,
+            proposedPiecesCount: 500,
+            proposedEan: null,
+            proposedIdentificationNumber: null,
+            proposedImage: 'proposal-' . self::CHANGE_REQUEST_WITH_IMAGE . '.jpg',
+            originalName: $puzzle500_02->name,
+            originalManufacturerId: $puzzle500_02->manufacturer?->id,
+            originalPiecesCount: $puzzle500_02->piecesCount,
+            originalEan: $puzzle500_02->ean,
+            originalIdentificationNumber: $puzzle500_02->identificationNumber,
+            originalImage: $puzzle500_02->image,
+        );
+        $manager->persist($changeWithImage);
+        $this->addReference(self::CHANGE_REQUEST_WITH_IMAGE, $changeWithImage);
 
         // Pending merge request
         $pendingMerge = new PuzzleMergeRequest(

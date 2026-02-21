@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -24,6 +25,7 @@ readonly final class RejectPuzzleChangeRequestHandler
         private PlayerRepository $playerRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private Filesystem $filesystem,
     ) {
     }
 
@@ -37,6 +39,11 @@ readonly final class RejectPuzzleChangeRequestHandler
         $reviewer = $this->playerRepository->get($message->reviewerId);
 
         $changeRequest->reject($reviewer, $this->clock->now(), $message->rejectionReason);
+
+        // Delete proposal image if exists
+        if ($changeRequest->proposedImage !== null && $this->filesystem->fileExists($changeRequest->proposedImage)) {
+            $this->filesystem->delete($changeRequest->proposedImage);
+        }
 
         // Create notification for reporter
         $notification = new Notification(

@@ -46,8 +46,7 @@ final readonly class SentryFlushListener
 
         // Only log warning for non-success statuses (success and skipped are expected)
         if (
-            (string) $status !== (string) ResultStatus::success()
-            && (string) $status !== (string) ResultStatus::skipped()
+            (string) $status !== (string) ResultStatus::success() && (string) $status !== (string) ResultStatus::skipped()
         ) {
             $this->logger->warning('Sentry flush returned non-success status', [
                 'status' => (string) $status,

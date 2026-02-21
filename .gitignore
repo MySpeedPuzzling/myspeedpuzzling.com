@@ -48,3 +48,7 @@ CLAUDE.local.md
 
 # Translation checker output
 translations-missing.json
+
+###> league/oauth2-server-bundle ###
+/config/jwt/*.pem
+###< league/oauth2-server-bundle ###

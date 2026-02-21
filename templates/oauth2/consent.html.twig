@@ -5,54 +5,61 @@
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Authorization Request</h4>
-                </div>
-                <div class="card-body">
-                    <p class="lead">
-                        <strong>{{ client.name }}</strong> wants to access your MySpeedPuzzling account.
+        <div class="col-md-7 col-lg-5">
+            <div class="text-center mb-4">
+                <img width="64" src="{{ asset('img/speedpuzzling-logo.svg') }}" alt="MySpeedPuzzling">
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="text-center mb-3">Authorization Request</h5>
+
+                    <p class="text-center mb-4">
+                        <strong>{{ client.name }}</strong> wants to access your account.
                     </p>
 
-                    <p>Logged in as: <strong>{{ player.name ?? player.code }}</strong></p>
+                    <div class="d-flex align-items-center bg-light rounded-3 p-3 mb-4">
+                        <i class="ci-user fs-5 text-muted me-2"></i>
+                        <span class="text-muted">Logged in as</span>&nbsp;<strong>{{ player.name ?? player.code }}</strong>
+                    </div>
 
-                    <hr>
+                    {% set scope_labels = {
+                        'profile:read': {'icon': 'ci-user', 'label': 'View your profile information (name, avatar, country)'},
+                        'results:read': {'icon': 'ci-time', 'label': 'View your puzzle solving results'},
+                        'statistics:read': {'icon': 'ci-increase', 'label': 'View your statistics'},
+                        'collections:read': {'icon': 'ci-view-grid', 'label': 'View your puzzle collections'},
+                    } %}
 
-                    <h6>This application is requesting access to:</h6>
-                    <ul class="list-group list-group-flush mb-4">
-                        {% for scope in scopes %}
-                            <li class="list-group-item">
-                                {% if scope == 'profile:read' %}
-                                    View your profile information (name, avatar, country)
-                                {% elseif scope == 'results:read' %}
-                                    View your puzzle solving results
-                                {% elseif scope == 'statistics:read' %}
-                                    View your statistics
-                                {% elseif scope == 'collections:read' %}
-                                    View your puzzle collections
-                                {% else %}
-                                    {{ scope }}
-                                {% endif %}
+                    <p class="fw-medium mb-2">This application will be able to:</p>
+                    <ul class="list-unstyled mb-4">
+                        <li class="d-flex align-items-start py-2">
+                            <i class="ci-user text-success me-2 mt-1"></i>
+                            <span>{{ scope_labels['profile:read'].label }}</span>
+                        </li>
+                        {% for scope in scopes|filter(s => s != 'profile:read') %}
+                            <li class="d-flex align-items-start py-2">
+                                <i class="{{ scope_labels[scope].icon|default('ci-check') }} text-success me-2 mt-1"></i>
+                                <span>{{ scope_labels[scope].label|default(scope) }}</span>
                             </li>
                         {% endfor %}
                     </ul>
 
                     <form method="post">
                         <div class="d-grid gap-2">
-                            <button type="submit" name="consent" value="approve" class="btn btn-success btn-lg">
+                            <button type="submit" name="consent" value="approve" class="btn btn-accent btn-lg">
                                 Authorize
                             </button>
-                            <button type="submit" name="consent" value="deny" class="btn btn-outline-danger">
+                            <button type="submit" name="consent" value="deny" class="btn btn-outline-secondary">
                                 Deny
                             </button>
                         </div>
                     </form>
                 </div>
-                <div class="card-footer text-muted small">
-                    You can revoke access at any time from your account settings.
-                </div>
             </div>
+
+            <p class="text-center text-muted small mt-3">
+                You can revoke access at any time from your account settings.
+            </p>
         </div>
     </div>
 </div>

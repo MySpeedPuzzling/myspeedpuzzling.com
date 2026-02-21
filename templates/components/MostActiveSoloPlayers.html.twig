@@ -3,42 +3,33 @@
 
     <ul class="nav nav-fill nav-tabs mt-0" role="tablist">
         <li class="nav-item">
-            <a class="nav-link {{ this.timespan == 'this_month' ? 'active' }}"
-               href="#"
+            <button class="nav-link {{ this.timespan == 'this_month' ? 'active' }}"
                data-action="live#action"
                data-live-action-param="changeTimespan"
                data-live-timespan-param="this_month"
             >
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
-                </div>
-            </a>
+                <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+            </button>
         </li>
 
         <li class="nav-item">
-            <a class="nav-link {{ this.timespan == 'last_month' ? 'active' }}"
-               href="#"
+            <button class="nav-link {{ this.timespan == 'last_month' ? 'active' }}"
                data-action="live#action"
                data-live-action-param="changeTimespan"
                data-live-timespan-param="last_month"
             >
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
-                </div>
-            </a>
+                <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+            </button>
         </li>
 
         <li class="nav-item">
-            <a class="nav-link {{ this.timespan == 'all_time' ? 'active' }}"
-               href="#"
+            <button class="nav-link {{ this.timespan == 'all_time' ? 'active' }}"
                data-action="live#action"
                data-live-action-param="changeTimespan"
                data-live-timespan-param="all_time"
             >
-                <div class="text-center">
-                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
-                </div>
-            </a>
+                <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+            </button>
         </li>
     </ul>
 
@@ -99,25 +90,19 @@
 
         <ul class="nav nav-fill nav-tabs mt-0" role="tablist">
             <li class="nav-item">
-                <a class="nav-link active" href="#">
-                    <div class="text-center">
-                        <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
-                    </div>
-                </a>
+                <button class="nav-link active">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.this_month'|trans|raw }}</h6>
+                </button>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <div class="text-center">
-                        <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
-                    </div>
-                </a>
+                <button class="nav-link">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.last_month'|trans|raw }}</h6>
+                </button>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
-                    <div class="text-center">
-                        <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
-                    </div>
-                </a>
+                <button class="nav-link">
+                    <h6 class="media-tab-title text-nowrap pt-2 mb-0">{{ 'hub.all_time'|trans|raw }}</h6>
+                </button>
             </li>
         </ul>
 

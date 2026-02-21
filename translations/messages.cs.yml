@@ -1192,6 +1192,7 @@
     "changes_submitted": "Vaše navrhované změny byly odeslány ke kontrole. Děkujeme!"
     "duplicate_reported": "Váš report duplikátu byl odeslán ke kontrole. Děkujeme!"
     "login_required": "Pro návrh změn se prosím přihlaste."
+    "no_changes": "Nebyly provedeny žádné změny. Před odesláním prosím upravte alespoň jedno pole."
     "no_valid_duplicates": "Nemůžete nahlásit puzzle jako duplikát samo sebe. Vyberte prosím jiné puzzle."
     "pending_proposal_exists": "Návrh pro toto puzzle již čeká na kontrolu."
     "validation_error": "Opravte prosím chyby a zkuste to znovu."

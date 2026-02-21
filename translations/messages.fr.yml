@@ -1195,6 +1195,7 @@
     "changes_submitted": "Vos modifications suggérées ont été soumises pour examen. Merci !"
     "duplicate_reported": "Votre signalement de doublon a été soumis pour examen. Merci !"
     "login_required": "Veuillez vous connecter pour suggérer des modifications."
+    "no_changes": "Aucune modification n'a été effectuée. Veuillez modifier au moins un champ avant de soumettre."
     "no_valid_duplicates": "Vous ne pouvez pas signaler un puzzle comme doublon de lui-même. Veuillez sélectionner un puzzle différent."
     "pending_proposal_exists": "Une proposition pour ce puzzle est déjà en attente d'examen."
     "validation_error": "Veuillez corriger les erreurs et réessayer."

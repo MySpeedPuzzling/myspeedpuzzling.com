@@ -1449,6 +1449,7 @@ puzzle_report:
         validation_error: "Please fix the errors and try again."
         login_required: "Please log in to suggest changes."
         pending_proposal_exists: "A proposal for this puzzle is already pending review."
+        no_changes: "No changes were made. Please modify at least one field before submitting."
         no_valid_duplicates: "You cannot report a puzzle as a duplicate of itself. Please select a different puzzle."
 
 admin:

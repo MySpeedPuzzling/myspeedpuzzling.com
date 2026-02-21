@@ -94,6 +94,32 @@ final class ProposeChangesController extends AbstractController
             /** @var ProposePuzzleChangesFormData $formData */
             $formData = $proposeForm->getData();
 
+            // Check if any values actually changed
+            $hasChanges = $formData->name !== $puzzle->puzzleName
+                || $formData->manufacturerId !== $puzzle->manufacturerId
+                || $formData->piecesCount !== $puzzle->piecesCount
+                || $formData->ean !== $puzzle->puzzleEan
+                || $formData->identificationNumber !== $puzzle->puzzleIdentificationNumber
+                || $formData->photo !== null;
+
+            if (!$hasChanges) {
+                $warningMessage = $this->translator->trans('puzzle_report.flash.no_changes');
+
+                if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                    return $this->render('puzzle-report/_stream.html.twig', [
+                        'puzzle_id' => $puzzleId,
+                        'message' => $warningMessage,
+                        'type' => 'warning',
+                    ]);
+                }
+
+                $this->addFlash('warning', $warningMessage);
+
+                return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $puzzleId]);
+            }
+
             $changeRequestId = Uuid::uuid7()->toString();
 
             $this->messageBus->dispatch(new SubmitPuzzleChangeRequest(

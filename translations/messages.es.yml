@@ -1194,6 +1194,7 @@
     "changes_submitted": "Tus cambios sugeridos han sido enviados para revisión. ¡Gracias!"
     "duplicate_reported": "Tu reporte de duplicado ha sido enviado para revisión. ¡Gracias!"
     "login_required": "Por favor inicia sesión para sugerir cambios."
+    "no_changes": "No se realizaron cambios. Por favor modifica al menos un campo antes de enviar."
     "no_valid_duplicates": "No puedes reportar un puzzle como duplicado de sí mismo. Por favor selecciona un puzzle diferente."
     "pending_proposal_exists": "Ya existe una propuesta pendiente de revisión para este puzzle."
     "validation_error": "Por favor corrige los errores e intenta de nuevo."

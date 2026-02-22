@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller\Api;
+namespace SpeedPuzzling\Web\Controller\Api\V0;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
-use SpeedPuzzling\Web\Services\RelativeTimeFormatter;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
+use SpeedPuzzling\Web\Services\RelativeTimeFormatter;
 use SpeedPuzzling\Web\Value\Puzzler;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;

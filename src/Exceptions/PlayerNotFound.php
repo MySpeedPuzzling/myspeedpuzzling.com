@@ -8,4 +8,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 final class PlayerNotFound extends NotFoundHttpException
 {
+    public function __construct()
+    {
+        parent::__construct('Player not found');
+    }
 }

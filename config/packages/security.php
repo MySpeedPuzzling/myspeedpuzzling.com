@@ -49,6 +49,10 @@ return App::config([
         ],
         'access_control' => [
             [
+                'path' => '^/api/docs',
+                'roles' => [AuthenticatedVoter::PUBLIC_ACCESS],
+            ],
+            [
                 'path' => '^/api/v1/me',
                 'roles' => ['ROLE_OAUTH2_PROFILE:READ'],
             ],

@@ -5,80 +5,152 @@
 {% block meta_description %}{{ 'for_developers.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>For Developers / API</h1>
+    <div class="text-center mb-5">
+        <h1 class="mb-3"><i class="bi bi-code-slash me-2"></i>For Developers</h1>
+        <p class="lead text-muted col-lg-8 mx-auto">
+            Build integrations with the MySpeedPuzzling platform.
+            Access player results, statistics, and more through our REST API with full OAuth2 support.
+        </p>
+    </div>
 
-    <p class="lead mb-4">
-        Building something and want to connect with MySpeedPuzzling?
-        Great idea, let's build something interesting together!
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="bi bi-book fs-1 text-primary"></i>
+                    </div>
+                    <h5>API Documentation</h5>
+                    <p class="text-muted mb-3">
+                        Interactive Swagger UI with all available endpoints, request parameters, and response schemas.
+                    </p>
+                    <a href="{{ path('api_doc', {_format: 'html'}) }}" class="btn btn-primary btn-shadow" target="_blank">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Open API Docs
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="bi bi-play-circle fs-1 text-primary"></i>
+                    </div>
+                    <h5>Live Demo</h5>
+                    <p class="text-muted mb-3">
+                        See a working OAuth2 integration in action. Authenticate, fetch data, and explore the flow.
+                    </p>
+                    <a href="https://oauth2-demo.myspeedpuzzling.com" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Try the Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm text-center">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <i class="bi bi-github fs-1 text-primary"></i>
+                    </div>
+                    <h5>Source Code</h5>
+                    <p class="text-muted mb-3">
+                        Full PHP demo application showing OAuth2 authorization code flow. Clone it and start building.
+                    </p>
+                    <a href="https://github.com/MySpeedPuzzling/oauth2-client-demo-application" class="btn btn-outline-primary" target="_blank" rel="noopener">
+                        <i class="bi bi-github me-1"></i> View on GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h4 mb-3"><i class="bi bi-shield-lock me-2"></i>OAuth2 Authentication</h2>
+
+    <p class="text-muted mb-4">
+        We provide a full OAuth2 server supporting <strong>authorization code</strong>, <strong>client credentials</strong>,
+        and <strong>refresh token</strong> grants.
     </p>
 
-    <h2>What can you do?</h2>
-
-    <div class="row mb-4">
-        <div class="col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Authenticate as a user</h5>
-                    <p class="card-text">
-                        Make requests on behalf of users, access their results,
-                        add times/results &mdash; great for competition integrations!
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-person-badge fs-4 text-primary me-3"></i>
+                        <h5 class="mb-0">User Authentication</h5>
+                    </div>
+                    <p class="text-muted mb-0">
+                        Make requests on behalf of users using the authorization code flow. Access their results,
+                        add times &mdash; great for competition integrations!
                     </p>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 mb-3">
-            <div class="card h-100 shadow-sm">
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <h5 class="card-title">Service-to-service communication</h5>
-                    <p class="card-text">
-                        Read any user's results, statistics,
-                        or puzzle statistics without user interaction.
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-hdd-network fs-4 text-primary me-3"></i>
+                        <h5 class="mb-0">Service-to-Service</h5>
+                    </div>
+                    <p class="text-muted mb-0">
+                        Use client credentials to read player results, statistics,
+                        or puzzle data without user interaction.
                     </p>
                 </div>
             </div>
         </div>
     </div>
 
-    <h2>OAuth2 Authentication</h2>
+    <h2 class="h4 mb-3"><i class="bi bi-key me-2"></i>Available Scopes</h2>
 
-    <p class="mb-4">
-        We provide a full OAuth2 server supporting authorization code, client credentials,
-        and refresh token grants. Want to obtain a client key and secret?
-        Reach out to us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.
-    </p>
+    <div class="row g-3 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <code class="text-primary fw-bold">profile:read</code>
+                    <p class="text-muted mb-0 mt-1 fs-sm">Read user profile data</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <code class="text-primary fw-bold">results:read</code>
+                    <p class="text-muted mb-0 mt-1 fs-sm">Read player puzzle results</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <code class="text-primary fw-bold">statistics:read</code>
+                    <p class="text-muted mb-0 mt-1 fs-sm">Read player statistics</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <code class="text-primary fw-bold">collections:read</code>
+                    <p class="text-muted mb-0 mt-1 fs-sm">Read player collections</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <h2>See it in action</h2>
-
-    <p class="mb-2">
-        Check out our live demo application to see how the OAuth2 integration works:
-    </p>
-
-    <ul class="mb-4">
-        <li>
-            <strong>Live demo:</strong>
-            <a href="https://oauth2-demo.myspeedpuzzling.com" target="_blank" rel="noopener">oauth2-demo.myspeedpuzzling.com</a>
-        </li>
-        <li>
-            <strong>Source code (PHP):</strong>
-            <a href="https://github.com/MySpeedPuzzling/oauth2-client-demo-application" target="_blank" rel="noopener">GitHub</a>
-        </li>
-    </ul>
-
-    <h2>API Documentation</h2>
-
-    <p class="mb-4">
-        Public OpenAPI documentation is coming soon. In the meantime, feel free to reach out
-        and we'll help you get started.
-    </p>
-
-    <h2>Need something custom?</h2>
-
-    <p>
-        We are very flexible and react fast. If you need to change or add anything,
-        we'll be more than happy to help and support you in building the next awesome thing.
-    </p>
-
-    <p>
-        Contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.
-    </p>
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-envelope fs-4 text-primary me-3"></i>
+                <div>
+                    <h5 class="mb-1">Get Started</h5>
+                    <p class="text-muted mb-0">
+                        Want to obtain a client key and secret, or need something custom?
+                        We are very flexible and react fast. Reach out at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

@@ -84,6 +84,9 @@ return static function (ContainerConfigurator $configurator): void {
         ->exclude([__DIR__ . '/../src/Security/OAuth2User.php']);
     $services->load('SpeedPuzzling\\Web\\EventSubscriber\\', __DIR__ . '/../src/EventSubscriber/**/{*.php}');
 
+    // API Resource Providers
+    $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php}');
+
     // Components
     $services->load('SpeedPuzzling\\Web\\Component\\', __DIR__ . '/../src/Component/**/{*.php}');
 

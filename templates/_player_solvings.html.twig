@@ -1,4 +1,4 @@
-<div class="table-responsive custom-table-wrapper" {{ stimulus_controller('toggle') }}>
+<div class="table-responsive custom-table-wrapper">
     <table class="table table-striped table-hover mb-0">
         <tbody>
             {% for solved_puzzle in solved_puzzles %}
@@ -18,26 +18,6 @@
                             </a>
                         {% endif %}
 
-                        {# Display photo of finished puzzle only to logged user #}
-                        {% if logged_user.profile is not null and logged_user.profile.playerId is same as solved_puzzle[0].playerId %}
-                            {% if solved_puzzle[0].finishedPuzzlePhoto is not null%}
-                                <div class="gallery mt-1">
-                                    <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(solved_puzzle[0].finishedPuzzlePhoto) }}">
-                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 50px;max-height: 66px;" src="{{ solved_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
-                                    </a>
-                                </div>
-                            {% endif %}
-
-                            <button
-                                data-controller="share-image"
-                                data-share-image-title-value="{{ solved_puzzle[0].puzzleName }}"
-                                data-share-image-image-url-value="{{ path('result_image', {'timeId': solved_puzzle[0].timeId}) }}"
-                                data-action="click->share-image#shareImageAsset"
-                                class="btn btn-sm btn-outline-accent py-1 px-2 mt-1"
-                            >
-                                <i class="ci-share"></i> {{ 'share'|trans }}
-                            </button>
-                        {% endif %}
                     </td>
 
                     <td class="d-none d-sm-table-cell">
@@ -52,32 +32,23 @@
                             </small>
                         </a>
 
-                        {% if is_granted('ADMIN_ACCESS') %}
-                            {% if  solved_puzzle|length > 1 %}
-                                <div class="hidden" data-toggle-target="{{ solved_puzzle[0].puzzleId }}">
-                                    <twig:Chart:PlayerPuzzleTimesChart results="{{ solved_puzzle }}" />
-                                </div>
-                            {% endif %}
-                        {% endif %}
                     </td>
 
                     <td class="px-0">
+                        {% set puzzle = solved_puzzle[0] %}
                         <table style="width: 100%;">
-                            {% for puzzle in solved_puzzle %}
-                                <tr {% if not loop.first %}class="hidden" data-toggle-target="{{ puzzle.puzzleId }}"{% endif %}>
+                                <tr>
                                     <td class="align-top">
-                                        {% if loop.first %}
-                                            <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
-                                                <small>{{ solved_puzzle[0].manufacturerName }}</small>
-                                                <br>
-                                                <small>{{ 'pieces_count'|trans({ '%count%': solved_puzzle[0].piecesCount })|raw }}</small>
-                                            </a>
+                                        <a class="low-line-height d-inline-block d-sm-none" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                            <small>{{ puzzle.manufacturerName }}</small>
+                                            <br>
+                                            <small>{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                                        </a>
 
-                                            {# Display rank for solo (only if ranking exists - won't exist for relax-only puzzles) #}
-                                            {% if solved_puzzle[0].players is null and this.ranking[solved_puzzle[0].puzzleId] is defined %}
-                                                <br>
-                                                <small>Rank {{ this.ranking[solved_puzzle[0].puzzleId].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ this.ranking[solved_puzzle[0].puzzleId].totalPlayers }})</span></small><br>
-                                            {% endif %}
+                                        {# Display rank for solo (only if ranking exists - won't exist for relax-only puzzles) #}
+                                        {% if puzzle.players is null and this.ranking[puzzle.puzzleId] is defined %}
+                                            <br>
+                                            <small>Rank {{ this.ranking[puzzle.puzzleId].rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ this.ranking[puzzle.puzzleId].totalPlayers }})</span></small><br>
                                         {% endif %}
 
                                         {% if puzzle.players|length > 0 %}
@@ -158,22 +129,24 @@
                                             {% endif %}
                                         </span>
 
-                                        {# Display edit icon only to current user #}
-                                        {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
-                                            <a class="btn btn-sm btn-outline-dark p-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
-                                        {% endif %}
-
-                                        {% if loop.first and solved_puzzle|length > 1 %}
+                                        {% if solved_puzzle|length > 1 %}
                                             <br>
-                                            <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: puzzle.puzzleId}) }}>
-                                                <span class="badge bg-dark badge-shadow rounded-pill">
-                                                    {{ 'show_more_solving_times'|trans({ '%count%': solved_puzzle|length-1 }) }}
-                                                </span>
+                                            <a href="{{ path('player_puzzle_results', {
+                                                playerId: puzzle.playerId,
+                                                puzzleId: puzzle.puzzleId,
+                                                category: category,
+                                                return: app.request.uri,
+                                                return_title: puzzle.puzzleName
+                                            }) }}"
+                                               data-turbo="true"
+                                               data-turbo-frame="modal-frame"
+                                               class="btn btn-outline-primary btn-xs py-0 px-2 mt-1"
+                                               style="font-size: 0.7rem;">
+                                                {{ 'show_more_solving_times'|trans({ '%count%': solved_puzzle|length-1 }) }}
                                             </a>
                                         {% endif %}
                                     </td>
                                 </tr>
-                            {% endfor %}
                         </table>
 
                     </td>

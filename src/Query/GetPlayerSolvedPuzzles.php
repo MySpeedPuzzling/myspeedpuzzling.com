@@ -667,6 +667,239 @@ SQL;
     }
 
     /**
+     * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
+     */
+    public function byPlayerIdPuzzleIdAndCategory(string $playerId, string $puzzleId, string $category): array
+    {
+        if (Uuid::isValid($puzzleId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        return match ($category) {
+            // soloByPlayerIdAndPuzzleId returns oldest first, this page renders newest first
+            'solo' => array_reverse($this->soloByPlayerIdAndPuzzleId($playerId, $puzzleId)),
+            'duo' => $this->duoByPlayerIdAndPuzzleId($playerId, $puzzleId),
+            'team' => $this->teamByPlayerIdAndPuzzleId($playerId, $puzzleId),
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
+     */
+    private function duoByPlayerIdAndPuzzleId(string $playerId, string $puzzleId): array
+    {
+        if (Uuid::isValid($playerId) === false || Uuid::isValid($puzzleId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+WITH filtered_pst_ids AS (
+    SELECT id
+    FROM puzzle_solving_time
+    WHERE
+        (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+        AND puzzling_type = 'duo'
+        AND puzzle_id = :puzzleId
+)
+SELECT
+    pst.id as time_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+    pst.seconds_to_solve AS time,
+    pst.player_id AS player_id,
+    pieces_count,
+    finished_puzzle_photo,
+    tracked_at,
+    finished_at,
+    puzzle.identification_number AS puzzle_identification_number,
+    pst.comment,
+    manufacturer.name AS manufacturer_name,
+    pst.team ->> 'team_id' AS team_id,
+    first_attempt,
+    pst.unboxed,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
+    pst.suspicious
+FROM filtered_pst_ids fids
+INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
+INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON competition.id = pst.competition_id
+ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'puzzleId' => $puzzleId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ])
+            ->fetchAllAssociative();
+
+        /** @var array<string> $timeIds */
+        $timeIds = array_column($data, 'time_id');
+
+        $players = $this->getTeamPlayers->byIds($timeIds);
+
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
+            /**
+             * @var array{
+             *     time_id: string,
+             *     team_id: null|string,
+             *     player_id: string,
+             *     player_name: null,
+             *     player_code: string,
+             *     player_country: null,
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     manufacturer_name: string,
+             *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
+             *     time: int,
+             *     pieces_count: int,
+             *     comment: null|string,
+             *     finished_puzzle_photo: null|string,
+             *     puzzle_identification_number: null|string,
+             *     tracked_at: string,
+             *     finished_at: null|string,
+             *     first_attempt: bool,
+             *     unboxed: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_slug: null|string,
+             *     suspicious: bool,
+             * } $row
+             */
+
+            $row['players'] = $players[$row['time_id']] ?? null;
+
+            // Dummy placeholder values
+            $row['player_name'] = null;
+            $row['player_code'] = '';
+            $row['player_country'] = null;
+
+            return SolvedPuzzle::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
+     */
+    private function teamByPlayerIdAndPuzzleId(string $playerId, string $puzzleId): array
+    {
+        if (Uuid::isValid($playerId) === false || Uuid::isValid($puzzleId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+WITH filtered_pst_ids AS (
+    SELECT id
+    FROM puzzle_solving_time
+    WHERE
+        (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+        AND puzzling_type = 'team'
+        AND puzzle_id = :puzzleId
+)
+SELECT
+    pst.id as time_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
+    pst.seconds_to_solve AS time,
+    pst.player_id AS player_id,
+    pieces_count,
+    finished_puzzle_photo,
+    tracked_at,
+    finished_at,
+    puzzle.identification_number AS puzzle_identification_number,
+    pst.comment,
+    manufacturer.name AS manufacturer_name,
+    pst.team ->> 'team_id' AS team_id,
+    first_attempt,
+    pst.unboxed,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
+    pst.suspicious
+FROM filtered_pst_ids fids
+INNER JOIN puzzle_solving_time pst ON pst.id = fids.id
+INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
+INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN competition ON competition.id = pst.competition_id
+ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'puzzleId' => $puzzleId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ])
+            ->fetchAllAssociative();
+
+        /** @var array<string> $timeIds */
+        $timeIds = array_column($data, 'time_id');
+
+        $players = $this->getTeamPlayers->byIds($timeIds);
+
+        return array_map(static function (array $row) use ($players): SolvedPuzzle {
+            /**
+             * @var array{
+             *     time_id: string,
+             *     team_id: null|string,
+             *     player_id: string,
+             *     player_name: null,
+             *     player_code: string,
+             *     player_country: null,
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     manufacturer_name: string,
+             *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
+             *     time: int,
+             *     pieces_count: int,
+             *     comment: null|string,
+             *     finished_puzzle_photo: null|string,
+             *     puzzle_identification_number: null|string,
+             *     tracked_at: string,
+             *     finished_at: null|string,
+             *     first_attempt: bool,
+             *     unboxed: bool,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_slug: null|string,
+             *     suspicious: bool,
+             * } $row
+             */
+
+            $row['players'] = $players[$row['time_id']] ?? null;
+
+            // Dummy placeholder values
+            $row['player_name'] = null;
+            $row['player_code'] = '';
+            $row['player_country'] = null;
+
+            return SolvedPuzzle::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
      * Count distinct puzzles solved by player (solo or in team)
      *
      * @throws PlayerNotFound

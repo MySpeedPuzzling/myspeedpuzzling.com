@@ -36,7 +36,7 @@ form:
 
 footer:
     created_with_love: "Created with love for puzzles and code by %simona% and %jan%"
-    about: "My Speed Puzzling is community platform for all puzzle lovers and especially for speed puzzling enthusiast.<br>This is the ultimate place to share your times, compare with others and have fun together."
+    about: "My Speed Puzzling is the world's largest puzzle tracker and community platform for all puzzle lovers.<br>Track your jigsaw puzzle collection, log solving times, and compare with others. Whether you puzzle for relaxation or speed, this is your place to share and have fun together."
     popular_search: "Popular searches"
     speed_puzzling_leaderboard: "Speed Puzzling Leaderboard"
     speed_puzzling_players: "Speed Puzzling Players"
@@ -424,7 +424,7 @@ events:
 
 for_developers:
     meta:
-        title: "For Developers / API | MySpeedPuzzling"
+        title: "For Developers / API"
         description: "Build integrations with MySpeedPuzzling using our OAuth2 API. Authenticate users, access results, statistics, and more."
 
 faq:
@@ -1707,3 +1707,92 @@ moderation:
     marketplace_banned: "User has been banned from the marketplace."
     ban_lifted: "Marketplace ban has been lifted."
     listing_removed: "Listing has been removed."
+
+puzzle_tracker_app:
+    meta:
+        title: "Puzzle Tracker App - Track Your Jigsaw Puzzle Collection"
+        description: "Free puzzle tracker app to log your jigsaw puzzle collection, track solving times, compare statistics, and connect with puzzle enthusiasts worldwide."
+        keywords: "puzzle tracker, jigsaw puzzle tracker, puzzle tracking app, puzzle collection tracker, jigsaw puzzle app, puzzle timer, puzzle solving tracker"
+    hero:
+        title: "Jigsaw Puzzle Tracker"
+        lead: "Track your puzzle collection, log solving times, and connect with thousands of puzzle lovers. Whether you puzzle for relaxation or speed, MySpeedPuzzling is your all-in-one puzzle companion."
+        cta_start: "Start Tracking Free"
+        cta_features: "See Features"
+        trust_free: "Free to use"
+        trust_platforms: "Works on any device"
+        trust_community: "Active community"
+    audience:
+        title: "Built for Every Puzzler"
+        subtitle: "Whether you enjoy puzzles as a relaxing hobby or a competitive challenge, we have the tools you need."
+        relaxation:
+            title: "Relaxation Puzzlers"
+            description: "Enjoy puzzling at your own pace? Keep track of your collection and connect with fellow enthusiasts."
+            item_collection: "Organize your puzzle collection"
+            item_wishlist: "Create wish lists for puzzles you want"
+            item_lending: "Lend and borrow puzzles with friends"
+            item_marketplace: "Buy and sell puzzles in the marketplace"
+            item_photos: "Share photos of your completed puzzles"
+        speed:
+            title: "Speed Puzzlers"
+            description: "Love the thrill of racing against the clock? Track your times and see how you stack up."
+            item_times: "Log and track your solving times"
+            item_statistics: "Detailed personal statistics and charts"
+            item_leaderboards: "Global leaderboards by piece count"
+            item_comparison: "Compare times with other puzzlers"
+            item_competitions: "Join and follow puzzle competitions"
+    features:
+        title: "Everything You Need to Track Your Puzzles"
+        subtitle: "A complete set of tools for managing your puzzle hobby, all in one place."
+        stopwatch:
+            title: "Built-in Stopwatch"
+            description: "Time your puzzle sessions with our stopwatch that supports pause, resume, and automatic saving."
+        time_log:
+            title: "Time Log"
+            description: "Log your solving times manually or with the stopwatch. Add notes and photos to every entry."
+        puzzle_library:
+            title: "Puzzle Library"
+            description: "Browse thousands of puzzles from major manufacturers. Add puzzles by name or scan the barcode."
+        statistics:
+            title: "Personal Statistics"
+            description: "See your averages, fastest times, and trends over time with interactive charts."
+        leaderboards:
+            title: "Leaderboards"
+            description: "Compare your times on global leaderboards filtered by piece count, solo or team."
+        marketplace:
+            title: "Marketplace"
+            description: "Buy, sell, or swap puzzles with other community members. Find rare and discontinued puzzles."
+        wishlists:
+            title: "Wish Lists"
+            description: "Keep track of puzzles you want. Share your wish list so friends know what to gift you."
+        lending:
+            title: "Puzzle Lending"
+            description: "Lend puzzles to friends and track who has what. Never lose track of your puzzles again."
+        social:
+            title: "Social Features"
+            description: "Follow your favorite puzzlers, see their activity, and get inspired by their puzzle completions."
+        messaging:
+            title: "Messaging"
+            description: "Chat with other puzzlers directly. Arrange puzzle swaps, ask about marketplace listings, and more."
+        competitions:
+            title: "Competitions"
+            description: "Follow puzzle competitions worldwide, see results, and track your competition performance."
+        badges:
+            title: "Badges & Achievements"
+            description: "Earn badges for milestones like your first puzzle logged, 100 puzzles completed, and more."
+    platforms:
+        title: "Available Everywhere"
+        subtitle: "Access MySpeedPuzzling from any device. Your data syncs seamlessly across all platforms."
+        web: "Web Browser"
+        ios: "iOS App"
+        android: "Android App"
+        coming_soon: "Coming Soon"
+    community:
+        title: "The World's Largest Puzzle Tracking Community"
+        times_logged: "Solving times logged"
+        pieces_assembled: "Puzzle pieces assembled"
+        hours_puzzling: "Hours of puzzling"
+    cta:
+        title: "Ready to Start Tracking?"
+        description: "Join thousands of puzzlers who use MySpeedPuzzling to track their collections and times. Create your free account in seconds."
+        button: "Create Free Account"
+        note: "No credit card required. Free forever for core features."

@@ -1,0 +1,273 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzle_tracker_app.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'puzzle_tracker_app.meta.description'|trans }}{% endblock %}
+{% block meta_keywords %}{{ 'puzzle_tracker_app.meta.keywords'|trans }}{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "MySpeedPuzzling",
+    "description": "Track your jigsaw puzzle collection, log solving times, compare statistics with other puzzlers, and join a community of puzzle enthusiasts.",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Web",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+    },
+    "author": {
+        "@type": "Organization",
+        "name": "MySpeedPuzzling"
+    }
+}
+</script>
+{% endblock %}
+
+{% block full_content %}
+    {# Hero Section #}
+    <section class="bg-secondary py-5">
+        <div class="container px-3">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h1 class="display-5 fw-bold mb-3">{{ 'puzzle_tracker_app.hero.title'|trans }}</h1>
+                    <p class="lead text-muted mb-4">{{ 'puzzle_tracker_app.hero.lead'|trans }}</p>
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <a href="{{ path('my_profile') }}" class="btn btn-primary btn-shadow px-3 py-2 px-md-4 py-md-3">
+                            {{ 'puzzle_tracker_app.hero.cta_start'|trans }}
+                        </a>
+                        <a href="#features" class="btn btn-outline-primary px-3 py-2 px-md-4 py-md-3">
+                            {{ 'puzzle_tracker_app.hero.cta_features'|trans }}
+                        </a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-4 text-muted small">
+                        <span><i class="bi bi-check-circle text-primary me-1"></i> {{ 'puzzle_tracker_app.hero.trust_free'|trans }}</span>
+                        <span><i class="bi bi-check-circle text-primary me-1"></i> {{ 'puzzle_tracker_app.hero.trust_community'|trans }}</span>
+                    </div>
+                </div>
+                <div class="col-lg-5 text-center mt-4 mt-lg-0">
+                    <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="MySpeedPuzzling Mascot" style="max-height: 300px;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Community Stats Section #}
+    <section class="py-5">
+        <div class="container px-3">
+            <div class="text-center mb-4">
+                <h2 class="mb-3">{{ 'puzzle_tracker_app.community.title'|trans }}</h2>
+            </div>
+            <div class="row g-4 justify-content-center text-center">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="display-6 fw-bold text-primary mb-2 font-monospace">{{ global_statistics.solvedPuzzlesCount|number_format(0) }}</div>
+                            <p class="text-muted mb-0">{{ 'puzzle_tracker_app.community.times_logged'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="display-6 fw-bold text-primary mb-2 font-monospace">{{ global_statistics.totalPieces|number_format(0) }}</div>
+                            <p class="text-muted mb-0">{{ 'puzzle_tracker_app.community.pieces_assembled'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="display-6 fw-bold text-primary mb-2 font-monospace">{{ (global_statistics.totalSeconds / 3600)|number_format(0) }}</div>
+                            <p class="text-muted mb-0">{{ 'puzzle_tracker_app.community.hours_puzzling'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Two Audiences Section #}
+    <section class="bg-secondary py-5">
+        <div class="container px-3">
+            <div class="text-center mb-5">
+                <h2 class="mb-3">{{ 'puzzle_tracker_app.audience.title'|trans }}</h2>
+                <p class="lead text-muted col-lg-8 mx-auto">{{ 'puzzle_tracker_app.audience.subtitle'|trans }}</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <i class="bi bi-heart fs-1 text-primary"></i>
+                            </div>
+                            <h3 class="h5">{{ 'puzzle_tracker_app.audience.relaxation.title'|trans }}</h3>
+                            <p class="text-muted">{{ 'puzzle_tracker_app.audience.relaxation.description'|trans }}</p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.relaxation.item_collection'|trans }}</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.relaxation.item_wishlist'|trans }}</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.relaxation.item_lending'|trans }}</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.relaxation.item_marketplace'|trans }}</li>
+                                <li><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.relaxation.item_photos'|trans }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <i class="bi bi-lightning fs-1 text-primary"></i>
+                            </div>
+                            <h3 class="h5">{{ 'puzzle_tracker_app.audience.speed.title'|trans }}</h3>
+                            <p class="text-muted">{{ 'puzzle_tracker_app.audience.speed.description'|trans }}</p>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.speed.item_times'|trans }}</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.speed.item_statistics'|trans }}</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.speed.item_leaderboards'|trans }}</li>
+                                <li class="mb-2"><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.speed.item_comparison'|trans }}</li>
+                                <li><i class="bi bi-check2 text-primary me-2"></i>{{ 'puzzle_tracker_app.audience.speed.item_competitions'|trans }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Feature Grid Section #}
+    <section class="py-5" id="features">
+        <div class="container px-3">
+            <div class="text-center mb-5">
+                <h2 class="mb-3">{{ 'puzzle_tracker_app.features.title'|trans }}</h2>
+                <p class="lead text-muted col-lg-8 mx-auto">{{ 'puzzle_tracker_app.features.subtitle'|trans }}</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-stopwatch fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.stopwatch.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.stopwatch.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-clock-history fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.time_log.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.time_log.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-collection fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.puzzle_library.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.puzzle_library.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-graph-up fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.statistics.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.statistics.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-trophy fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.leaderboards.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.leaderboards.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-shop fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.marketplace.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.marketplace.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-bookmark-heart fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.wishlists.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.wishlists.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-arrow-left-right fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.lending.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.lending.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-people fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.social.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.social.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-chat-dots fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.messaging.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.messaging.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-calendar-event fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.competitions.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.competitions.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-award fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'puzzle_tracker_app.features.badges.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'puzzle_tracker_app.features.badges.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Final CTA Section #}
+    <section class="bg-secondary py-5">
+        <div class="container px-3">
+            <div class="text-center col-lg-8 mx-auto">
+                <h2 class="mb-3">{{ 'puzzle_tracker_app.cta.title'|trans }}</h2>
+                <p class="lead text-muted mb-4">{{ 'puzzle_tracker_app.cta.description'|trans }}</p>
+                <a href="{{ path('my_profile') }}" class="btn btn-primary btn-lg btn-shadow">
+                    {{ 'puzzle_tracker_app.cta.button'|trans }}
+                </a>
+                <p class="text-muted small mt-3">{{ 'puzzle_tracker_app.cta.note'|trans }}</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -29,6 +29,13 @@ return static function (ContainerConfigurator $configurator): void {
         ],
         'enable_docs' => true,
         'enable_entrypoint' => false,
+        'show_webby' => false,
+        'swagger' => [
+            'api_keys' => [],
+            'swagger_ui_extra_configuration' => [
+                'defaultModelsExpandDepth' => 0,
+            ],
+        ],
         'oauth' => [
             'enabled' => true,
             'type' => 'oauth2',

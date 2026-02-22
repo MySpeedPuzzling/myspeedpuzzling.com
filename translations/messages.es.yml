@@ -35,7 +35,7 @@
   "visibility_private": "Privada"
 "footer":
   "created_with_love": "Creado con amor por los puzzles y el código por %simona% y %jan%"
-  "about": "My Speed Puzzling es una plataforma comunitaria para todos los amantes de los puzzles y especialmente para los entusiastas del speed puzzling.<br>Este es el lugar definitivo para compartir tus tiempos, comparar con otros y divertirse juntos."
+  "about": "My Speed Puzzling es el mayor puzzle tracker del mundo y una plataforma comunitaria para todos los amantes de los puzzles.<br>Rastrea tu colección de puzzles, registra tiempos de armado y compárate con otros. Ya sea por relajación o velocidad, este es tu lugar para compartir y divertirse juntos."
   "popular_search": "Búsquedas populares"
   "speed_puzzling_leaderboard": "Ranking Speed Puzzling"
   "speed_puzzling_players": "Jugadores Speed Puzzling"
@@ -1476,3 +1476,84 @@
   "user_muted": "El usuario ha sido silenciado por %days% días."
   "user_unmuted": "El usuario ha sido desilenciado."
   "warning_issued": "Se ha emitido una advertencia."
+
+puzzle_tracker_app:
+    meta:
+        title: "Puzzle Tracker – Gestiona tu colección de puzzles | MySpeedPuzzling"
+        description: "Aplicación gratuita para rastrear puzzles. Registra tu colección, tiempos de armado, compara estadísticas y conecta con entusiastas de puzzles de todo el mundo."
+        keywords: "puzzle tracker, rastreador de puzzles, aplicación de puzzles, colección de puzzles, temporizador de puzzles, seguimiento de puzzles"
+    hero:
+        title: "Puzzle Tracker – Seguimiento de puzzles"
+        lead: "Gestiona tu colección de puzzles, registra tiempos de armado y conecta con miles de amantes de los puzzles. Ya sea por relajación o velocidad, MySpeedPuzzling es tu compañero ideal."
+        cta_start: "Empieza gratis"
+        cta_features: "Ver funciones"
+        trust_free: "Gratis"
+        trust_community: "Comunidad activa"
+    audience:
+        title: "Para cada puzzlero"
+        subtitle: "Ya sea que disfrutes los puzzles como hobby relajante o como desafío competitivo, tenemos las herramientas que necesitas."
+        relaxation:
+            title: "Puzzleros relajados"
+            description: "¿Armas puzzles a tu propio ritmo? Lleva el control de tu colección y conecta con otros entusiastas."
+            item_collection: "Organiza tu colección de puzzles"
+            item_wishlist: "Crea listas de deseos"
+            item_lending: "Presta e intercambia puzzles con amigos"
+            item_marketplace: "Compra y vende puzzles en el mercado"
+            item_photos: "Comparte fotos de tus puzzles terminados"
+        speed:
+            title: "Speed puzzleros"
+            description: "¿Te encanta competir contra el reloj? Registra tus tiempos y compárate con otros."
+            item_times: "Registra tus tiempos de armado"
+            item_statistics: "Estadísticas personales detalladas y gráficos"
+            item_leaderboards: "Clasificaciones globales por número de piezas"
+            item_comparison: "Compara tiempos con otros puzzleros"
+            item_competitions: "Sigue competiciones de puzzles"
+    features:
+        title: "Todo lo que necesitas para rastrear tus puzzles"
+        subtitle: "Un conjunto completo de herramientas para gestionar tu afición, todo en un solo lugar."
+        stopwatch:
+            title: "Cronómetro integrado"
+            description: "Cronometra tus sesiones con pausa, reanudación y guardado automático."
+        time_log:
+            title: "Registro de tiempos"
+            description: "Registra tiempos manualmente o con el cronómetro. Añade notas y fotos a cada entrada."
+        puzzle_library:
+            title: "Biblioteca de puzzles"
+            description: "Explora miles de puzzles de los principales fabricantes. Añade puzzles por nombre o escanea el código de barras."
+        statistics:
+            title: "Estadísticas personales"
+            description: "Consulta promedios, mejores tiempos y tendencias en gráficos interactivos."
+        leaderboards:
+            title: "Clasificaciones"
+            description: "Compara tus tiempos en clasificaciones globales filtradas por piezas, solo o en equipo."
+        marketplace:
+            title: "Mercado"
+            description: "Compra, vende o intercambia puzzles con otros miembros de la comunidad."
+        wishlists:
+            title: "Listas de deseos"
+            description: "Lleva un registro de puzzles que quieres. Comparte tu lista para que tus amigos sepan qué regalarte."
+        lending:
+            title: "Préstamo de puzzles"
+            description: "Presta puzzles a amigos y lleva el control de quién tiene qué."
+        social:
+            title: "Funciones sociales"
+            description: "Sigue a tus puzzleros favoritos, mira su actividad e inspírate con sus puzzles completados."
+        messaging:
+            title: "Mensajería"
+            description: "Chatea directamente con otros puzzleros. Organiza intercambios y pregunta sobre ofertas."
+        competitions:
+            title: "Competiciones"
+            description: "Sigue competiciones de puzzles en todo el mundo, consulta resultados y registra tu rendimiento."
+        badges:
+            title: "Insignias y logros"
+            description: "Gana insignias por hitos como tu primer puzzle registrado, 100 puzzles completados y más."
+    community:
+        title: "La mayor comunidad de seguimiento de puzzles del mundo"
+        times_logged: "Tiempos registrados"
+        pieces_assembled: "Piezas ensambladas"
+        hours_puzzling: "Horas armando puzzles"
+    cta:
+        title: "¿Listo para empezar?"
+        description: "Únete a miles de puzzleros que usan MySpeedPuzzling para gestionar sus colecciones y tiempos. Crea tu cuenta gratuita en segundos."
+        button: "Crear cuenta gratuita"
+        note: "Sin tarjeta de crédito. Funciones básicas gratis para siempre."

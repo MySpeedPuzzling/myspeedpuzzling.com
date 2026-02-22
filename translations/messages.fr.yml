@@ -35,7 +35,7 @@
   "visibility_private": "Privée"
 "footer":
   "created_with_love": "Créé avec amour pour les puzzles et le code par %simona% et %jan%"
-  "about": "My Speed Puzzling est une plateforme communautaire pour tous les amateurs de puzzles et en particulier pour les passionnés de speed puzzling.<br>C'est l'endroit ultime pour partager vos temps, vous comparer aux autres et vous amuser ensemble."
+  "about": "My Speed Puzzling est le plus grand puzzle tracker au monde et une plateforme communautaire pour tous les amateurs de puzzles.<br>Suivez votre collection de puzzles, enregistrez vos temps d'assemblage et comparez-vous aux autres. Que ce soit pour le plaisir ou la vitesse, c'est votre lieu de partage et de convivialité."
   "popular_search": "Recherches populaires"
   "speed_puzzling_leaderboard": "Classement Speed Puzzling"
   "speed_puzzling_players": "Joueurs Speed Puzzling"
@@ -1477,3 +1477,84 @@
   "user_muted": "L'utilisateur a été mis en sourdine pour %days% jours."
   "user_unmuted": "L'utilisateur n'est plus en sourdine."
   "warning_issued": "Un avertissement a été émis."
+
+puzzle_tracker_app:
+    meta:
+        title: "Puzzle Tracker – Gérez votre collection de puzzles | MySpeedPuzzling"
+        description: "Application gratuite de suivi de puzzles. Enregistrez votre collection, vos temps d'assemblage, comparez vos statistiques et rejoignez des passionnés de puzzles du monde entier."
+        keywords: "puzzle tracker, suivi de puzzles, application puzzle, collection de puzzles, minuteur puzzle, tracking puzzle"
+    hero:
+        title: "Puzzle Tracker – Suivi de puzzles"
+        lead: "Gérez votre collection de puzzles, enregistrez vos temps d'assemblage et rejoignez des milliers de passionnés. Que vous puzzliez pour le plaisir ou la vitesse, MySpeedPuzzling est votre compagnon idéal."
+        cta_start: "Commencer gratuitement"
+        cta_features: "Voir les fonctionnalités"
+        trust_free: "Gratuit"
+        trust_community: "Communauté active"
+    audience:
+        title: "Pour chaque puzzleur"
+        subtitle: "Que vous appréciiez les puzzles comme loisir relaxant ou comme défi compétitif, nous avons les outils qu'il vous faut."
+        relaxation:
+            title: "Puzzleurs détente"
+            description: "Vous assemblez à votre rythme ? Gardez un œil sur votre collection et connectez-vous avec d'autres passionnés."
+            item_collection: "Organisez votre collection de puzzles"
+            item_wishlist: "Créez des listes de souhaits"
+            item_lending: "Prêtez et empruntez des puzzles entre amis"
+            item_marketplace: "Achetez et vendez des puzzles sur le marché"
+            item_photos: "Partagez des photos de vos puzzles terminés"
+        speed:
+            title: "Speed puzzleurs"
+            description: "Vous aimez la course contre la montre ? Suivez vos temps et comparez-vous aux autres."
+            item_times: "Enregistrez vos temps d'assemblage"
+            item_statistics: "Statistiques personnelles détaillées et graphiques"
+            item_leaderboards: "Classements mondiaux par nombre de pièces"
+            item_comparison: "Comparez vos temps avec d'autres puzzleurs"
+            item_competitions: "Suivez les compétitions de puzzles"
+    features:
+        title: "Tout pour le suivi de vos puzzles"
+        subtitle: "Un ensemble complet d'outils pour gérer votre passion, tout en un seul endroit."
+        stopwatch:
+            title: "Chronomètre intégré"
+            description: "Chronométrez vos sessions avec pause, reprise et sauvegarde automatique."
+        time_log:
+            title: "Journal des temps"
+            description: "Enregistrez vos temps manuellement ou avec le chronomètre. Ajoutez des notes et photos."
+        puzzle_library:
+            title: "Bibliothèque de puzzles"
+            description: "Parcourez des milliers de puzzles des grands fabricants. Ajoutez par nom ou scan du code-barres."
+        statistics:
+            title: "Statistiques personnelles"
+            description: "Consultez vos moyennes, meilleurs temps et tendances dans des graphiques interactifs."
+        leaderboards:
+            title: "Classements"
+            description: "Comparez vos temps dans les classements mondiaux filtrés par nombre de pièces, solo ou en équipe."
+        marketplace:
+            title: "Marché"
+            description: "Achetez, vendez ou échangez des puzzles avec d'autres membres de la communauté."
+        wishlists:
+            title: "Listes de souhaits"
+            description: "Gardez une trace des puzzles que vous voulez. Partagez votre liste pour que vos amis sachent quoi vous offrir."
+        lending:
+            title: "Prêt de puzzles"
+            description: "Prêtez des puzzles à vos amis et gardez le suivi de qui a quoi."
+        social:
+            title: "Fonctionnalités sociales"
+            description: "Suivez vos puzzleurs préférés, voyez leur activité et inspirez-vous de leurs réalisations."
+        messaging:
+            title: "Messagerie"
+            description: "Discutez directement avec d'autres puzzleurs. Organisez des échanges et posez des questions."
+        competitions:
+            title: "Compétitions"
+            description: "Suivez les compétitions de puzzles dans le monde, consultez les résultats et suivez vos performances."
+        badges:
+            title: "Badges et succès"
+            description: "Gagnez des badges pour des jalons comme votre premier puzzle enregistré, 100 puzzles complétés et plus."
+    community:
+        title: "La plus grande communauté de suivi de puzzles au monde"
+        times_logged: "Temps enregistrés"
+        pieces_assembled: "Pièces assemblées"
+        hours_puzzling: "Heures de puzzle"
+    cta:
+        title: "Prêt à commencer ?"
+        description: "Rejoignez des milliers de puzzleurs qui utilisent MySpeedPuzzling pour gérer leurs collections et temps. Créez votre compte gratuit en quelques secondes."
+        button: "Créer un compte gratuit"
+        note: "Pas de carte bancaire requise. Fonctionnalités de base gratuites pour toujours."

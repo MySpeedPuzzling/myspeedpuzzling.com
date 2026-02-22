@@ -33,7 +33,7 @@
   "visibility_private": "Soukromá"
 "footer":
   "created_with_love": "Vytvořili s láskou k puzzlím a zdrojovému kódu %simona% a %jan%"
-  "about": "My Speed Puzzling je komunitní platforma pro všechny milovníky puzzlí a především pro všechny speed puzzling nadšence.<br>Je to ultimátní místo ke sdílení vašich časů, porovnání s ostatními a užívání si zábavy ze skládání puzzlí společně."
+  "about": "My Speed Puzzling je největší puzzle tracker na světě a komunitní platforma pro všechny milovníky puzzlí.<br>Sledujte svou sbírku puzzle, zaznamenávejte časy skládání a porovnávejte se s ostatními. Ať už skládáte pro relaxaci nebo na rychlost, toto je vaše místo pro sdílení a společnou zábavu."
   "popular_search": "Často hledané"
   "speed_puzzling_leaderboard": "Speed Puzzling Žebříček"
   "speed_puzzling_players": "Speed Puzzling Hráči"
@@ -1474,3 +1474,84 @@
   "user_muted": "Uživatel byl ztlumen na %days% dní."
   "user_unmuted": "Ztlumení uživatele bylo zrušeno."
   "warning_issued": "Varování bylo vydáno."
+
+puzzle_tracker_app:
+    meta:
+        title: "Puzzle Tracker – Sledujte svou sbírku puzzle | MySpeedPuzzling"
+        description: "Bezplatná aplikace pro sledování puzzle. Zaznamenávejte sbírku, časy skládání, porovnávejte statistiky a spojte se s puzzle nadšenci z celého světa."
+        keywords: "puzzle tracker, sledování puzzle, aplikace na puzzle, sbírka puzzle, puzzle časovač, skládání puzzle"
+    hero:
+        title: "Puzzle Tracker – Sledování puzzle"
+        lead: "Sledujte svou sbírku puzzle, zaznamenávejte časy skládání a spojte se s tisíci milovníky puzzle. Ať už skládáte pro relaxaci nebo na rychlost, MySpeedPuzzling je váš kompletní puzzle společník."
+        cta_start: "Začněte zdarma"
+        cta_features: "Zobrazit funkce"
+        trust_free: "Zdarma"
+        trust_community: "Aktivní komunita"
+    audience:
+        title: "Pro každého skládače"
+        subtitle: "Ať už si užíváte puzzle jako relaxační koníček nebo jako soutěžní výzvu, máme nástroje, které potřebujete."
+        relaxation:
+            title: "Relaxační skládači"
+            description: "Skládáte ve svém tempu? Mějte přehled o své sbírce a spojte se s dalšími nadšenci."
+            item_collection: "Organizujte svou sbírku puzzle"
+            item_wishlist: "Vytvářejte seznamy přání"
+            item_lending: "Půjčujte si puzzle s přáteli"
+            item_marketplace: "Kupujte a prodávejte puzzle na tržišti"
+            item_photos: "Sdílejte fotky složených puzzle"
+        speed:
+            title: "Speed puzzleři"
+            description: "Milujete závodění s časem? Sledujte své časy a porovnávejte se s ostatními."
+            item_times: "Zaznamenávejte časy skládání"
+            item_statistics: "Podrobné osobní statistiky a grafy"
+            item_leaderboards: "Globální žebříčky podle počtu dílků"
+            item_comparison: "Porovnávejte časy s ostatními"
+            item_competitions: "Sledujte puzzle soutěže"
+    features:
+        title: "Vše pro sledování vašich puzzle"
+        subtitle: "Kompletní sada nástrojů pro správu vašeho puzzle koníčku na jednom místě."
+        stopwatch:
+            title: "Vestavěné stopky"
+            description: "Měřte čas skládání se stopkami s podporou pauzy, pokračování a automatického ukládání."
+        time_log:
+            title: "Záznam časů"
+            description: "Zaznamenávejte časy ručně nebo stopkami. Ke každému záznamu přidejte poznámky a fotky."
+        puzzle_library:
+            title: "Knihovna puzzle"
+            description: "Procházejte tisíce puzzle od hlavních výrobců. Přidávejte puzzle podle názvu nebo naskenujte čárový kód."
+        statistics:
+            title: "Osobní statistiky"
+            description: "Sledujte průměry, nejrychlejší časy a trendy v interaktivních grafech."
+        leaderboards:
+            title: "Žebříčky"
+            description: "Porovnávejte časy v globálních žebříčcích filtrovaných podle počtu dílků, sólo nebo v týmu."
+        marketplace:
+            title: "Tržiště"
+            description: "Kupujte, prodávejte nebo vyměňujte puzzle s ostatními členy komunity."
+        wishlists:
+            title: "Seznamy přání"
+            description: "Sledujte puzzle, která chcete. Sdílejte seznam přání, aby přátelé věděli, co vám darovat."
+        lending:
+            title: "Půjčování puzzle"
+            description: "Půjčujte puzzle přátelům a sledujte, kdo má co. Už nikdy neztratíte přehled."
+        social:
+            title: "Sociální funkce"
+            description: "Sledujte oblíbené skládače, jejich aktivitu a inspirujte se jejich složenými puzzle."
+        messaging:
+            title: "Zprávy"
+            description: "Komunikujte s ostatními přímo. Domlouvejte výměny, ptejte se na nabídky a další."
+        competitions:
+            title: "Soutěže"
+            description: "Sledujte puzzle soutěže po celém světě, výsledky a svůj soutěžní výkon."
+        badges:
+            title: "Odznaky a úspěchy"
+            description: "Získávejte odznaky za milníky jako první zaznamenané puzzle, 100 složených puzzle a další."
+    community:
+        title: "Největší puzzle tracking komunita na světě"
+        times_logged: "Zaznamenaných časů"
+        pieces_assembled: "Složených dílků"
+        hours_puzzling: "Hodin skládání"
+    cta:
+        title: "Připraveni začít?"
+        description: "Přidejte se k tisícům skládačů, kteří používají MySpeedPuzzling ke sledování sbírek a časů. Vytvořte si účet zdarma během pár vteřin."
+        button: "Vytvořit účet zdarma"
+        note: "Žádná kreditní karta. Základní funkce zdarma navždy."

@@ -35,7 +35,7 @@
   "visibility_private": "非公開"
 "footer":
   "created_with_love": "%simona%と%jan%によってパズルとコードへの愛を込めて作成されました"
-  "about": "マイスピードパズリングは、すべてのパズル愛好家、特にスピードパズル愛好家のためのコミュニティプラットフォームです。<br>タイムを共有し、他の人と比較し、一緒に楽しむための究極の場所です。"
+  "about": "My Speed Puzzlingは世界最大のパズルトラッカーであり、すべてのパズル愛好家のためのコミュニティプラットフォームです。<br>パズルコレクションを追跡し、完成時間を記録し、他のパズラーと比較しましょう。リラックスでもスピードでも、ここはあなたの共有と楽しみの場所です。"
   "popular_search": "人気検索"
   "speed_puzzling_leaderboard": "スピードパズリングリーダーボード"
   "speed_puzzling_players": "スピードパズリングプレイヤー"
@@ -1465,3 +1465,84 @@
   "user_muted": "ユーザーが%days%日間ミュートされました。"
   "user_unmuted": "ユーザーのミュートが解除されました。"
   "warning_issued": "警告が発行されました。"
+
+puzzle_tracker_app:
+    meta:
+        title: "パズルトラッカー – ジグソーパズルコレクションを管理 | MySpeedPuzzling"
+        description: "無料のパズルトラッカーアプリ。パズルコレクションの記録、完成時間の追跡、統計の比較、世界中のパズル愛好家とのつながり。"
+        keywords: "パズルトラッカー, ジグソーパズルトラッカー, パズル追跡アプリ, パズルコレクション, パズルタイマー, パズルトラッキング"
+    hero:
+        title: "ジグソーパズルトラッカー"
+        lead: "パズルコレクションを管理し、完成時間を記録し、何千人ものパズル愛好家とつながりましょう。リラックスでもスピードでも、MySpeedPuzzlingはあなたのパズルパートナーです。"
+        cta_start: "無料で始める"
+        cta_features: "機能を見る"
+        trust_free: "無料"
+        trust_community: "活発なコミュニティ"
+    audience:
+        title: "すべてのパズラーのために"
+        subtitle: "リラックスした趣味としても、競技チャレンジとしても、必要なツールが揃っています。"
+        relaxation:
+            title: "リラックスパズラー"
+            description: "自分のペースでパズルを楽しんでいますか？コレクションを管理し、仲間とつながりましょう。"
+            item_collection: "パズルコレクションを整理"
+            item_wishlist: "ウィッシュリストを作成"
+            item_lending: "友達とパズルを貸し借り"
+            item_marketplace: "マーケットプレイスでパズルを売買"
+            item_photos: "完成したパズルの写真を共有"
+        speed:
+            title: "スピードパズラー"
+            description: "タイムアタックが好きですか？タイムを記録して他のパズラーと比較しましょう。"
+            item_times: "完成時間を記録・追跡"
+            item_statistics: "詳細な個人統計とグラフ"
+            item_leaderboards: "ピース数別のグローバルランキング"
+            item_comparison: "他のパズラーとタイムを比較"
+            item_competitions: "パズル大会をフォロー"
+    features:
+        title: "パズル追跡に必要なすべて"
+        subtitle: "パズル趣味を管理するための完全なツールセット。すべて一か所に。"
+        stopwatch:
+            title: "内蔵ストップウォッチ"
+            description: "一時停止、再開、自動保存機能付きのストップウォッチでセッションを計測。"
+        time_log:
+            title: "タイムログ"
+            description: "手動またはストップウォッチでタイムを記録。メモや写真も追加できます。"
+        puzzle_library:
+            title: "パズルライブラリ"
+            description: "主要メーカーの何千ものパズルを検索。名前またはバーコードスキャンで追加。"
+        statistics:
+            title: "個人統計"
+            description: "平均、最速タイム、トレンドをインタラクティブなグラフで確認。"
+        leaderboards:
+            title: "ランキング"
+            description: "ピース数別、ソロまたはチームでフィルタリングされたグローバルランキングでタイムを比較。"
+        marketplace:
+            title: "マーケットプレイス"
+            description: "コミュニティメンバーとパズルを売買・交換。レアなパズルも見つかります。"
+        wishlists:
+            title: "ウィッシュリスト"
+            description: "欲しいパズルを記録。ウィッシュリストを共有してプレゼントの参考に。"
+        lending:
+            title: "パズル貸出"
+            description: "友達にパズルを貸して、誰が何を持っているか追跡。"
+        social:
+            title: "ソーシャル機能"
+            description: "お気に入りのパズラーをフォローし、活動を見て、完成作品からインスピレーションを得ましょう。"
+        messaging:
+            title: "メッセージ"
+            description: "他のパズラーと直接チャット。交換の手配や出品についての質問など。"
+        competitions:
+            title: "大会"
+            description: "世界中のパズル大会をフォローし、結果を確認し、競技パフォーマンスを追跡。"
+        badges:
+            title: "バッジと実績"
+            description: "初めてのパズル記録、100パズル完成などのマイルストーンでバッジを獲得。"
+    community:
+        title: "世界最大のパズルトラッキングコミュニティ"
+        times_logged: "記録されたタイム"
+        pieces_assembled: "組み立てられたピース"
+        hours_puzzling: "パズルに費やした時間"
+    cta:
+        title: "始める準備はできましたか？"
+        description: "MySpeedPuzzlingでコレクションとタイムを管理している何千人ものパズラーに加わりましょう。数秒で無料アカウントを作成できます。"
+        button: "無料アカウントを作成"
+        note: "クレジットカード不要。基本機能は永久無料。"

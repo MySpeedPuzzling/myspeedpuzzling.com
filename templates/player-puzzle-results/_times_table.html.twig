@@ -1,0 +1,114 @@
+{# Build a chronological list of timed results (oldest first) for delta computation #}
+{# Results come ordered DESC (newest first), so we reverse for chronological order #}
+{% set timed_chronological = results|reverse|filter(r => r.time is not null) %}
+{% set delta_map = {} %}
+{% set prev_time = null %}
+{% for result in timed_chronological %}
+    {% if prev_time is not null %}
+        {% set delta_map = delta_map|merge({ (result.timeId): result.time - prev_time }) %}
+    {% endif %}
+    {% set prev_time = result.time %}
+{% endfor %}
+
+<table class="table table-striped table-hover mb-0">
+    <thead>
+    <tr>
+        <th>{{ 'time'|trans }}</th>
+        <th>{{ 'date'|trans }}</th>
+        <th class="text-end">PPM</th>
+        <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for result in results %}
+        <tr class="{{ result.suspicious ? 'table-warning' }}">
+            <td class="text-nowrap">
+                {% if result.time is not null %}
+                    {{ result.time|puzzlingTime }}
+                    {% if delta_map[result.timeId] is defined %}
+                        {% set delta = delta_map[result.timeId] %}
+                        <br>
+                        {% if delta < 0 %}
+                            <small class="text-success"><i class="bi bi-arrow-down"></i> {{ (delta * -1)|puzzlingTime }}</small>
+                        {% elseif delta > 0 %}
+                            <small class="text-danger"><i class="bi bi-arrow-up"></i> +{{ delta|puzzlingTime }}</small>
+                        {% else %}
+                            <small class="text-muted">=</small>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <span class="badge rounded-pill bg-secondary">
+                        <i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}
+                    </span>
+                {% endif %}
+            </td>
+
+            <td class="text-nowrap">
+                {% if result.finishedAt is not null %}
+                    <small class="text-muted"><time datetime="{{ result.finishedAt|date('Y-m-d') }}">{{ result.finishedAt|date('d.m.Y') }}</time></small>
+                {% endif %}
+            </td>
+
+            <td class="text-end text-nowrap">
+                {% if result.time is not null %}
+                    <small>{{ ppm(result.time, result.piecesCount) }}</small>
+                    {% if result.players is not null %}
+                        <br><small class="text-muted">({{ result.players|length }}x {{ ppm(result.time, result.piecesCount, result.players|length) }})</small>
+                    {% endif %}
+                {% endif %}
+            </td>
+
+            <td class="text-end text-nowrap">
+                {% if result.firstAttempt %}
+                    <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                {% endif %}
+
+                {% if result.unboxed %}
+                    <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
+                {% endif %}
+
+                {% if result.suspicious %}
+                    <span class="badge rounded-pill bg-warning">
+                        <i class="bi bi-exclamation-triangle"></i> {{ 'badge.suspicious'|trans }}
+                    </span>
+                {% endif %}
+
+                {% if result.competitionName %}
+                    {% if result.competitionSlug %}
+                        <a href="{{ path('event_detail', {'slug': result.competitionSlug}) }}">
+                    {% endif %}
+                    <span class="badge rounded-pill bg-primary"><i class="bi bi-trophy-fill"></i>{{ result.competitionShortcut ?? result.competitionName }}</span>
+                    {% if result.competitionSlug %}
+                        </a>
+                    {% endif %}
+                {% endif %}
+
+                {% if category != 'solo' and result.players|length > 0 %}
+                    <br>
+                    <small class="text-muted">
+                        {% for puzzle_solver in result.players %}
+                            {% if not loop.first %}, {% endif %}
+                            {% if puzzle_solver.isPrivate %}
+                                {{ 'secret_puzzler_name'|trans }}
+                            {% elseif puzzle_solver.playerId is not null %}
+                                <a href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</a>
+                            {% else %}
+                                {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
+                            {% endif %}
+                        {% endfor %}
+                    </small>
+                {% endif %}
+
+                {% if logged_user.profile is not null and logged_user.profile.playerId is same as result.playerId %}
+                    {% if result.finishedPuzzlePhoto is not null %}
+                        <span class="gallery d-inline">
+                            <a class="gallery-item btn btn-sm btn-outline-primary p-1 border-0" href="{{ uploaded_asset(result.finishedPuzzlePhoto) }}"><i class="bi bi-image"></i></a>
+                        </span>
+                    {% endif %}
+                    <a class="btn btn-sm btn-outline-primary p-1 border-0" href="{{ path('edit_time', {timeId: result.timeId}) }}"><i class="ci-edit"></i></a>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>

@@ -1,0 +1,58 @@
+<turbo-frame id="modal-frame" data-modal-size="modal-lg">
+    <div class="modal-header">
+        <div class="d-flex align-items-center gap-2">
+            {% if results[0].puzzleImage is not null %}
+                <img src="{{ results[0].puzzleImage|imagine_filter('puzzle_small') }}" alt="{{ results[0].puzzleName }}" class="rounded-2" style="max-width: 50px; max-height: 50px;">
+            {% endif %}
+            <div>
+                <h5 class="modal-title mb-0">
+                    {{ results[0].puzzleName }}
+                </h5>
+                <small class="text-muted">{{ results[0].manufacturerName }} &middot; {{ 'pieces_count'|trans({ '%count%': results[0].piecesCount })|raw }}</small>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            {{ include('messaging/_avatar.html.twig', {avatar: player.avatar, size: 32}) }}
+            <div>
+                <a href="{{ path('player_profile', {playerId: player.playerId}) }}" class="text-decoration-none">
+                    <strong>{{ player.playerName ?? ('#' ~ player.code|upper) }}</strong>
+                </a>
+                {% if player.country is not null %}
+                    <small class="shadow-custom fi fi-{{ player.country }}"></small>
+                {% endif %}
+                {% if ranking is not null %}
+                    <br>
+                    <small>Rank {{ ranking.rank }} <span class="text-muted">({{ 'ranking_out_of'|trans }} {{ ranking.totalPlayers }})</span></small>
+                {% endif %}
+            </div>
+        </div>
+
+        {% set timed_results = results|filter(r => r.time is not null) %}
+        {% if timed_results|length >= 2 %}
+            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                <twig:Chart:PlayerPuzzleTimesChart results="{{ timed_results }}" />
+            {% else %}
+                <div class="card card-body p-2 my-3 shadow">
+                    <div class="puzzle-detail-chart-placeholder text-center">
+                        <button
+                            class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-4"
+                            data-bs-toggle="modal"
+                            data-bs-target="#membersExclusiveModal"
+                        >
+                            <i class="ci-locked me-1"></i>
+                            {{ 'membership.members_exclusive_button'|trans }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <div style="max-height: 400px; overflow-y: auto;">
+            {% include 'player-puzzle-results/_times_table.html.twig' with {results: results, category: category} %}
+        </div>
+    </div>
+</turbo-frame>

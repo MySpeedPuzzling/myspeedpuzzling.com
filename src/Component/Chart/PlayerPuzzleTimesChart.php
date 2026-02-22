@@ -30,7 +30,9 @@ final class PlayerPuzzleTimesChart
     {
         $labels = [];
         $chartData = [];
-        $results = $this->puzzlesSorter->sortByFinishedAt($this->results);
+        $results = $this->puzzlesSorter->sortByFinishedAt(
+            array_filter($this->results, static fn (SolvedPuzzle $r): bool => $r->time !== null),
+        );
 
         foreach ($results as $result) {
             $chartData[] = $result->time;

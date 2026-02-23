@@ -13,7 +13,6 @@ final class LazyImageTwigExtension extends AbstractExtension
 
     public function __construct(
         readonly private ImageThumbnailTwigExtension $imageThumbnail,
-        readonly private string $imageProvider,
     ) {
     }
 
@@ -31,7 +30,7 @@ final class LazyImageTwigExtension extends AbstractExtension
      * Generates a lazy-loaded puzzle image with wrapper and proper attributes.
      *
      * @param string|null $path Image path in S3
-     * @param string $filter LiipImagine filter (puzzle_small, puzzle_medium)
+     * @param string $filter Imgproxy preset (puzzle_small, puzzle_medium)
      * @param string $alt Alt text for the image
      * @param int $position Position in list (1-based). First 4 positions are eager-loaded.
      * @param int $size Display size in pixels (60, 80, or 90)
@@ -67,21 +66,11 @@ final class LazyImageTwigExtension extends AbstractExtension
             $extraAttrs = ' onload="this.classList.add(\'loaded\')"';
         }
 
-        // imgproxy handles format negotiation via Accept header — no need for explicit WebP source
-        $webpSource = '';
-        if ($this->imageProvider !== 'imgproxy') {
-            $webpSrc = $this->getWebpSrc($path, $filter);
-            $webpSource = $webpSrc !== null
-                ? sprintf('<source srcset="%s" type="image/webp">', htmlspecialchars($webpSrc, ENT_QUOTES, 'UTF-8'))
-                : '';
-        }
-
         return sprintf(
-            '<span class="%s" style="width:%dpx;height:%dpx"><picture>%s<img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d" style="max-height:%dpx"%s></picture></span>',
+            '<span class="%s" style="width:%dpx;height:%dpx"><picture><img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d" style="max-height:%dpx"%s></picture></span>',
             htmlspecialchars($wrapperClasses, ENT_QUOTES, 'UTF-8'),
             $size,
             $maxHeight,
-            $webpSource,
             htmlspecialchars($src, ENT_QUOTES, 'UTF-8'),
             htmlspecialchars($alt ?? '', ENT_QUOTES, 'UTF-8'),
             $loading,
@@ -100,17 +89,6 @@ final class LazyImageTwigExtension extends AbstractExtension
         }
 
         return $this->imageThumbnail->thumbnailUrl($path, $filter);
-    }
-
-    private function getWebpSrc(null|string $path, string $filter): null|string
-    {
-        if ($path === null) {
-            return null;
-        }
-
-        $webpFilter = $filter . '_webp';
-
-        return $this->imageThumbnail->thumbnailUrl($path, $webpFilter);
     }
 
     private function getSizeClass(int $size): string

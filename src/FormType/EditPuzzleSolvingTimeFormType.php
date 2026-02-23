@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
-use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Component\Form\AbstractType;
@@ -41,7 +41,7 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
         readonly private TranslatorInterface $translator,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private GetCompetitionEvents $getCompetitionEvents,
-        readonly private CacheManager $cacheManager,
+        readonly private ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
@@ -314,7 +314,7 @@ final class EditPuzzleSolvingTimeFormType extends AbstractType
                 $img = <<<HTML
 <img alt="Logo image" class="img-fluid rounded-2"
     style="max-width: 60px; max-height: 60px;"
-    src="{$this->cacheManager->getBrowserPath($competition->logo, 'puzzle_small')}"
+    src="{$this->imageThumbnail->thumbnailUrl($competition->logo, 'puzzle_small')}"
 />
 HTML;
             }

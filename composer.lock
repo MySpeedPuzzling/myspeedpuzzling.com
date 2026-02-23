@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "83971fde47c8d2ee4bf53d16a618e723",
+    "content-hash": "a4919f873b7844e122c6227692875d8a",
     "packages": [
         {
             "name": "api-platform/core",
@@ -2289,68 +2289,6 @@
             "time": "2025-08-23T21:21:41+00:00"
         },
         {
-            "name": "imagine/imagine",
-            "version": "1.5.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/php-imagine/Imagine.git",
-                "reference": "f9ed796eefb77c2f0f2167e1d4e36bc2b5ed6b0c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/php-imagine/Imagine/zipball/f9ed796eefb77c2f0f2167e1d4e36bc2b5ed6b0c",
-                "reference": "f9ed796eefb77c2f0f2167e1d4e36bc2b5ed6b0c",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=7.1"
-            },
-            "require-dev": {
-                "phpunit/phpunit": "^4.8 || ^5.7 || ^6.5 || ^7.5 || ^8.4 || ^9.3"
-            },
-            "suggest": {
-                "ext-exif": "to read EXIF metadata",
-                "ext-gd": "to use the GD implementation",
-                "ext-gmagick": "to use the Gmagick implementation",
-                "ext-imagick": "to use the Imagick implementation"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-develop": "1.x-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Imagine\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Bulat Shakirzyanov",
-                    "email": "mallluhuct@gmail.com",
-                    "homepage": "http://avalanche123.com"
-                }
-            ],
-            "description": "Image processing for PHP",
-            "homepage": "http://imagine.readthedocs.org/",
-            "keywords": [
-                "drawing",
-                "graphics",
-                "image manipulation",
-                "image processing"
-            ],
-            "support": {
-                "issues": "https://github.com/php-imagine/Imagine/issues",
-                "source": "https://github.com/php-imagine/Imagine/tree/1.5.2"
-            },
-            "time": "2026-01-09T10:45:12+00:00"
-        },
-        {
             "name": "intervention/gif",
             "version": "4.2.4",
             "source": {
@@ -3470,114 +3408,6 @@
             "time": "2026-01-15T06:54:53+00:00"
         },
         {
-            "name": "liip/imagine-bundle",
-            "version": "2.17.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/liip/LiipImagineBundle.git",
-                "reference": "69d2df3c6606495d1878fa190d6c3dc4bc5623b6"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/liip/LiipImagineBundle/zipball/69d2df3c6606495d1878fa190d6c3dc4bc5623b6",
-                "reference": "69d2df3c6606495d1878fa190d6c3dc4bc5623b6",
-                "shasum": ""
-            },
-            "require": {
-                "ext-mbstring": "*",
-                "imagine/imagine": "^1.3.2",
-                "php": "^8.0",
-                "symfony/dependency-injection": "^5.4|^6.4|^7.4|^8.0",
-                "symfony/deprecation-contracts": "^2.5 || ^3",
-                "symfony/filesystem": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/finder": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/framework-bundle": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/mime": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/options-resolver": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/process": "^5.4|^6.4|^7.3|^8.0",
-                "twig/twig": "^1.44|^2.9|^3.0"
-            },
-            "require-dev": {
-                "amazonwebservices/aws-sdk-for-php": "^1.0",
-                "aws/aws-sdk-php": "^2.4|^3.0",
-                "doctrine/cache": "^1.11|^2.0",
-                "doctrine/persistence": "^1.3|^2.0",
-                "enqueue/enqueue-bundle": "^0.9|^0.10",
-                "ext-gd": "*",
-                "league/flysystem": "^1.0|^2.0|^3.0",
-                "phpstan/phpstan": "^1.10.0",
-                "psr/cache": "^1.0|^2.0|^3.0",
-                "psr/log": "^1.0",
-                "symfony/asset": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/browser-kit": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/cache": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/console": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/form": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/messenger": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/phpunit-bridge": "^7.3",
-                "symfony/runtime": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/templating": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/validator": "^5.4|^6.4|^7.3|^8.0",
-                "symfony/yaml": "^5.4|^6.4|^7.3|^8.0"
-            },
-            "suggest": {
-                "alcaeus/mongo-php-adapter": "required for mongodb components",
-                "amazonwebservices/aws-sdk-for-php": "required to use AWS version 1 cache resolver",
-                "aws/aws-sdk-php": "required to use AWS version 2/3 cache resolver",
-                "doctrine/mongodb-odm": "required to use mongodb-backed doctrine components",
-                "enqueue/enqueue-bundle": "^0.9 add if you like to process images in background",
-                "ext-exif": "required to read EXIF metadata from images",
-                "ext-gd": "required to use gd driver",
-                "ext-gmagick": "required to use gmagick driver",
-                "ext-imagick": "required to use imagick driver",
-                "ext-json": "required to read JSON manifest versioning",
-                "ext-mongodb": "required for mongodb components",
-                "league/flysystem": "required to use FlySystem data loader or cache resolver",
-                "monolog/monolog": "A psr/log compatible logger is required to enable logging",
-                "rokka/imagine-vips": "required to use 'vips' driver",
-                "symfony/asset": "If you want to use asset versioning",
-                "symfony/messenger": "If you like to process images in background",
-                "symfony/templating": "required to use deprecated Templating component instead of Twig"
-            },
-            "type": "symfony-bundle",
-            "autoload": {
-                "psr-4": {
-                    "Liip\\ImagineBundle\\": ""
-                },
-                "exclude-from-classmap": [
-                    "/Tests/"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Liip and other contributors",
-                    "homepage": "https://github.com/liip/LiipImagineBundle/contributors"
-                }
-            ],
-            "description": "This bundle provides an image manipulation abstraction toolkit for Symfony-based projects.",
-            "homepage": "https://www.liip.ch",
-            "keywords": [
-                "bundle",
-                "image",
-                "imagine",
-                "liip",
-                "manipulation",
-                "photos",
-                "pictures",
-                "symfony",
-                "transformation"
-            ],
-            "support": {
-                "issues": "https://github.com/liip/LiipImagineBundle/issues",
-                "source": "https://github.com/liip/LiipImagineBundle/tree/2.17.1"
-            },
-            "time": "2026-01-06T09:34:48+00:00"
-        },
-        {
             "name": "lorenzo/pinky",
             "version": "1.1.0",
             "source": {
@@ -3629,59 +3459,6 @@
                 "source": "https://github.com/lorenzo/pinky/tree/1.1.0"
             },
             "time": "2023-07-31T13:36:50+00:00"
-        },
-        {
-            "name": "lustmored/flysystem-v2-simple-cache-adapter",
-            "version": "0.3.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Lustmored/flysystem-v2-simple-cache-adapter.git",
-                "reference": "d1c8f27aa8a519814dadf1ed0f29cc53f941d943"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Lustmored/flysystem-v2-simple-cache-adapter/zipball/d1c8f27aa8a519814dadf1ed0f29cc53f941d943",
-                "reference": "d1c8f27aa8a519814dadf1ed0f29cc53f941d943",
-                "shasum": ""
-            },
-            "require": {
-                "league/flysystem": "^2.0 | ^3.0",
-                "php": ">=7.2",
-                "psr/cache": "^1.0 | ^2.0 | ^3.0"
-            },
-            "require-dev": {
-                "ext-redis": "*",
-                "friendsofphp/php-cs-fixer": "^3.0",
-                "league/flysystem-adapter-test-utilities": "^2.0 | ^3.0",
-                "league/flysystem-aws-s3-v3": "^2.0 | ^3.0",
-                "league/flysystem-memory": "^2.0 | ^3.0",
-                "phpbench/phpbench": "^1.0.2",
-                "phpunit/phpunit": "^9.4",
-                "symfony/cache": "^5.4 | ^6.0",
-                "symfony/dotenv": "^5.4 | ^6.0"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Lustmored\\Flysystem\\Cache\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Jakub Caban",
-                    "email": "kuba.iluvatar@gmail.com"
-                }
-            ],
-            "description": "Simple flysystem PSR cache adapter decorator.",
-            "support": {
-                "issues": "https://github.com/Lustmored/flysystem-v2-simple-cache-adapter/issues",
-                "source": "https://github.com/Lustmored/flysystem-v2-simple-cache-adapter/tree/0.3.0"
-            },
-            "time": "2022-01-17T09:53:25+00:00"
         },
         {
             "name": "maennchen/zipstream-php",

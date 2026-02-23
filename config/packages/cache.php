@@ -10,9 +10,6 @@ return App::config([
             'default_redis_provider' => '%env(REDIS_CACHE_DSN)%',
             'app' => 'cache.adapter.redis',
             'pools' => [
-                'cache.flysystem.psr6' => [
-                    'adapters' => ['cache.app'],
-                ],
                 'auth0_token_cache' => [
                     'adapters' => ['cache.app'],
                 ],

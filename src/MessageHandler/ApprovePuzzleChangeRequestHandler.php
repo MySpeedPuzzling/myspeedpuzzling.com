@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
@@ -20,7 +19,6 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\PuzzleImageNamer;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class ApprovePuzzleChangeRequestHandler
@@ -33,7 +31,6 @@ readonly final class ApprovePuzzleChangeRequestHandler
         private ClockInterface $clock,
         private Filesystem $filesystem,
         private PuzzleImageNamer $puzzleImageNamer,
-        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -109,7 +106,6 @@ readonly final class ApprovePuzzleChangeRequestHandler
             $this->filesystem->delete($changeRequest->proposedImage);
 
             $puzzle->image = $newImagePath;
-            $this->messageBus->dispatch(new WarmupCache($newImagePath));
         }
 
         // Mark request as approved

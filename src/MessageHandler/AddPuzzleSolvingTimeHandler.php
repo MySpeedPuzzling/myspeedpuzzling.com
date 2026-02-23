@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
@@ -21,7 +20,6 @@ use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleSolvingTimeHandler
@@ -32,7 +30,6 @@ readonly final class AddPuzzleSolvingTimeHandler
         private PuzzleRepository $puzzleRepository,
         private Filesystem $filesystem,
         private PuzzlersGrouping $puzzlersGrouping,
-        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private CompetitionRepository $competitionRepository,
         private ImageOptimizer $imageOptimizer,
@@ -89,10 +86,6 @@ readonly final class AddPuzzleSolvingTimeHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-
-            $this->messageBus->dispatch(
-                new WarmupCache($finishedPuzzlePhotoPath),
-            );
         }
 
         $solvingTime = new PuzzleSolvingTime(

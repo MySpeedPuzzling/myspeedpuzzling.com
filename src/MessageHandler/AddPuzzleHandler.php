@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
-use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Manufacturer;
@@ -18,7 +17,6 @@ use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleHandler
@@ -28,7 +26,6 @@ readonly final class AddPuzzleHandler
         private PlayerRepository $playerRepository,
         private ManufacturerRepository $manufacturerRepository,
         private Filesystem $filesystem,
-        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
     ) {
@@ -71,10 +68,6 @@ readonly final class AddPuzzleHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-
-            $this->messageBus->dispatch(
-                new WarmupCache($puzzlePhotoPath),
-            );
         }
 
         $puzzle = new Puzzle(

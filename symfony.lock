@@ -98,19 +98,6 @@
             "config/routes/league_oauth2_server.yaml"
         ]
     },
-    "liip/imagine-bundle": {
-        "version": "2.12",
-        "recipe": {
-            "repo": "github.com/symfony/recipes-contrib",
-            "branch": "main",
-            "version": "1.8",
-            "ref": "d1227d002b70d1a1f941d91845fcd7ac7fbfc929"
-        },
-        "files": [
-            "config/packages/liip_imagine.yaml",
-            "config/routes/liip_imagine.yaml"
-        ]
-    },
     "nelmio/cors-bundle": {
         "version": "2.4",
         "recipe": {

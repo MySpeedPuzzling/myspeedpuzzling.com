@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
-use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\CanNotModifyOtherPlayersTime;
@@ -21,7 +20,6 @@ use SpeedPuzzling\Web\Services\ImageOptimizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditPuzzleSolvingTimeHandler
@@ -31,7 +29,6 @@ readonly final class EditPuzzleSolvingTimeHandler
         private PuzzleSolvingTimeRepository $puzzleSolvingTimeRepository,
         private PuzzlersGrouping $puzzlersGrouping,
         private Filesystem $filesystem,
-        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private CompetitionRepository $competitionRepository,
         private ImageOptimizer $imageOptimizer,
@@ -99,10 +96,6 @@ readonly final class EditPuzzleSolvingTimeHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-
-            $this->messageBus->dispatch(
-                new WarmupCache($finishedPuzzlePhotoPath),
-            );
         }
 
         $solvingTime->modify(

@@ -10,11 +10,6 @@ use League\Flysystem\Filesystem;
 return App::config([
     'oneup_flysystem' => [
         'adapters' => [
-            'cached' => [
-                'custom' => [
-                    'service' => 'minio.cache.adapter',
-                ],
-            ],
             'minio' => [
                 'async_aws_s3' => [
                     'client' => S3Client::class,
@@ -28,9 +23,6 @@ return App::config([
                 'alias' => Filesystem::class,
                 'visibility' => 'public',
                 'directory_visibility' => 'public',
-            ],
-            'cached' => [
-                'adapter' => 'cached',
             ],
         ],
     ],

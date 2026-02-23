@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
-use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use SpeedPuzzling\Web\Query\GetManufacturers;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 
 readonly final class BrandChoicesBuilder
 {
     public function __construct(
         private GetManufacturers $getManufacturers,
-        private CacheManager $cacheManager,
+        private ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
@@ -28,7 +28,7 @@ readonly final class BrandChoicesBuilder
                 $img = <<<HTML
 <img alt="Logo" class="img-fluid rounded-2"
     style="max-width: 40px; max-height: 40px;"
-    src="{$this->cacheManager->getBrowserPath($manufacturer->manufacturerLogo, 'puzzle_small')}"
+    src="{$this->imageThumbnail->thumbnailUrl($manufacturer->manufacturerLogo, 'puzzle_small')}"
 />
 HTML;
             }

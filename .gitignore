@@ -34,11 +34,6 @@ yarn-error.log
 /phpunit.xml
 .phpunit.result.cache
 ###< phpunit/phpunit ###
-
-###> liip/imagine-bundle ###
-/public/media/cache/
-###< liip/imagine-bundle ###
-
 myspeedpuzzling.xml
 wjpc_individuals.csv
 competitions_data.csv

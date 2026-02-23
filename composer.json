@@ -41,8 +41,6 @@
         "jetbrains/phpstorm-attributes": "^1.0",
         "league/flysystem-async-aws-s3": "^3.0",
         "league/oauth2-server-bundle": "^1.1",
-        "liip/imagine-bundle": "^2.12",
-        "lustmored/flysystem-v2-simple-cache-adapter": "^0.3.0",
         "monolog/monolog": "^3.0",
         "nelmio/cors-bundle": "^2.4",
         "nette/utils": "^4.0",

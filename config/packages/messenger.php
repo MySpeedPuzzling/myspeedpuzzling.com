@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Liip\ImagineBundle\Message\WarmupCache;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
@@ -32,7 +31,6 @@ return App::config([
                 ],
             ],
             'routing' => [
-                WarmupCache::class => 'async',
                 SendEmailMessage::class => 'async',
                 PrepareDigestEmailForPlayer::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

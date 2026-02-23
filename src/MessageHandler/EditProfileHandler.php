@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use League\Flysystem\Filesystem;
-use Liip\ImagineBundle\Message\WarmupCache;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditProfileHandler
@@ -20,7 +18,6 @@ readonly final class EditProfileHandler
     public function __construct(
         private PlayerRepository $playerRepository,
         private Filesystem $filesystem,
-        private MessageBusInterface $messageBus,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
     ) {
@@ -48,10 +45,6 @@ readonly final class EditProfileHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
-
-            $this->messageBus->dispatch(
-                new WarmupCache($avatarPath),
-            );
         }
 
         $player->changeProfile(

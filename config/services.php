@@ -29,7 +29,6 @@ return static function (ContainerConfigurator $configurator): void {
 
     $parameters->set('uploadedAssetsBaseUrl', '%env(UPLOADS_BASE_URL)%/puzzle');
 
-    $parameters->set('imageProvider', '%env(IMAGE_PROVIDER)%');
     $parameters->set('nginxProxyBaseUrl', '%env(NGINX_PROXY_BASE_URL)%');
     $parameters->set('nginxProxyInternalUrl', '%env(NGINX_PROXY_INTERNAL_URL)%');
     $parameters->set('puzzlePuzzleUsername', '%env(PUZZLE_PUZZLE_USERNAME)%');
@@ -45,7 +44,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->autowire()
         ->public()
         ->bind('$uploadedAssetsBaseUrl', '%uploadedAssetsBaseUrl%')
-        ->bind('$imageProvider', '%imageProvider%')
         ->bind('$nginxProxyBaseUrl', '%nginxProxyBaseUrl%')
         ->bind('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%')
         ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
@@ -117,13 +115,6 @@ return static function (ContainerConfigurator $configurator): void {
                 Configuration::OPTION_SECRET_ACCESS_KEY => env('S3_SECRET_KEY'),
                 Configuration::OPTION_PATH_STYLE_ENDPOINT => true,
             ]
-        ]);
-
-    $services->set('minio.cache.adapter')
-        ->class(\Lustmored\Flysystem\Cache\CacheAdapter::class)
-        ->args([
-            '$adapter' => service('oneup_flysystem.minio_adapter'),
-            '$cachePool' => service('cache.flysystem.psr6'),
         ]);
 
     $services->set(StripeClient::class)

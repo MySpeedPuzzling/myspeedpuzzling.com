@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Query\SearchPuzzle;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +17,7 @@ final class PuzzleByBrandAutocompleteController extends AbstractController
 {
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
-        readonly private CacheManager $cacheManager,
+        readonly private ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
@@ -51,7 +51,7 @@ HTML;
                 $img = <<<HTML
 <img alt="Puzzle image" class="img-fluid rounded-2"
     style="max-width: 60px; max-height: 60px;"
-    src="{$this->cacheManager->getBrowserPath($puzzle->puzzleImage, 'puzzle_small')}"
+    src="{$this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, 'puzzle_small')}"
 />
 HTML;
             }

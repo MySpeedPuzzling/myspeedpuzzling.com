@@ -27,7 +27,7 @@ return static function (ContainerConfigurator $configurator): void {
 
     $parameters->set('doctrine.orm.enable_lazy_ghost_objects', true);
 
-    $parameters->set('uploadedAssetsBaseUrl', '%env(UPLOADS_BASE_URL)%/puzzle');
+    $parameters->set('uploadedAssetsBaseUrl', '%env(UPLOADS_BASE_URL)%/original');
 
     $parameters->set('nginxProxyBaseUrl', '%env(NGINX_PROXY_BASE_URL)%');
     $parameters->set('nginxProxyInternalUrl', '%env(NGINX_PROXY_INTERNAL_URL)%');

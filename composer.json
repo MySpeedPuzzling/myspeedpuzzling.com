@@ -111,7 +111,7 @@
         "phpstan/phpstan-doctrine": "^2.0",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpstan/phpstan-symfony": "^2.0",
-        "phpunit/phpunit": "^12.5.1",
+        "phpunit/phpunit": "^13.0",
         "roave/security-advisories": "dev-latest",
         "slevomat/coding-standard": "^8.25.1",
         "squizlabs/php_codesniffer": "^4.0.1",

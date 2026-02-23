@@ -49,12 +49,11 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             ],
         ]);
 
-        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService = $this->createStub(SubscriptionService::class);
         $subscriptionService->method('retrieve')
-            ->with($subscriptionId)
             ->willReturn($subscription);
 
-        $stripeClient = $this->createMock(StripeClient::class);
+        $stripeClient = $this->createStub(StripeClient::class);
         $stripeClient->method('__get')->willReturnCallback(
             fn (string $name) => match ($name) {
                 'subscriptions' => $subscriptionService,
@@ -63,7 +62,7 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
         );
 
         $membershipRepository = $this->createMock(MembershipRepository::class);
-        $playerRepository = $this->createMock(PlayerRepository::class);
+        $playerRepository = $this->createStub(PlayerRepository::class);
 
         // Neither repository should be called since we return early
         $membershipRepository->expects(self::never())->method('getByStripeSubscriptionId');
@@ -128,17 +127,15 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             'metadata' => ['player_id' => $playerId->toString()],
         ]);
 
-        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService = $this->createStub(SubscriptionService::class);
         $subscriptionService->method('retrieve')
-            ->with($subscriptionId)
             ->willReturn($subscription);
 
-        $customerService = $this->createMock(CustomerService::class);
+        $customerService = $this->createStub(CustomerService::class);
         $customerService->method('retrieve')
-            ->with('cus_test_123')
             ->willReturn($customer);
 
-        $stripeClient = $this->createMock(StripeClient::class);
+        $stripeClient = $this->createStub(StripeClient::class);
         $stripeClient->method('__get')->willReturnCallback(
             fn (string $name) => match ($name) {
                 'subscriptions' => $subscriptionService,
@@ -147,12 +144,11 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             },
         );
 
-        $membershipRepository = $this->createMock(MembershipRepository::class);
+        $membershipRepository = $this->createStub(MembershipRepository::class);
         $membershipRepository->method('getByStripeSubscriptionId')
-            ->with($subscriptionId)
             ->willReturn($membership);
 
-        $playerRepository = $this->createMock(PlayerRepository::class);
+        $playerRepository = $this->createStub(PlayerRepository::class);
 
         $handler = new UpdateMembershipSubscriptionHandler(
             stripeClient: $stripeClient,
@@ -219,17 +215,15 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             'metadata' => ['player_id' => $playerId->toString()],
         ]);
 
-        $subscriptionService = $this->createMock(SubscriptionService::class);
+        $subscriptionService = $this->createStub(SubscriptionService::class);
         $subscriptionService->method('retrieve')
-            ->with($subscriptionId)
             ->willReturn($subscription);
 
-        $customerService = $this->createMock(CustomerService::class);
+        $customerService = $this->createStub(CustomerService::class);
         $customerService->method('retrieve')
-            ->with('cus_test_123')
             ->willReturn($customer);
 
-        $stripeClient = $this->createMock(StripeClient::class);
+        $stripeClient = $this->createStub(StripeClient::class);
         $stripeClient->method('__get')->willReturnCallback(
             fn (string $name) => match ($name) {
                 'subscriptions' => $subscriptionService,
@@ -238,12 +232,11 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
             },
         );
 
-        $membershipRepository = $this->createMock(MembershipRepository::class);
+        $membershipRepository = $this->createStub(MembershipRepository::class);
         $membershipRepository->method('getByStripeSubscriptionId')
-            ->with($subscriptionId)
             ->willReturn($membership);
 
-        $playerRepository = $this->createMock(PlayerRepository::class);
+        $playerRepository = $this->createStub(PlayerRepository::class);
 
         $handler = new UpdateMembershipSubscriptionHandler(
             stripeClient: $stripeClient,

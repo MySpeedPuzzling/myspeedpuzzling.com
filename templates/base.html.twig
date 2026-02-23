@@ -143,7 +143,7 @@
         {% endblock %}
     </head>
     <body class="lang-{{ app.request.locale }}"
-          data-controller="gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
+          data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">Skip to content</a>
         {% if is_web() %}

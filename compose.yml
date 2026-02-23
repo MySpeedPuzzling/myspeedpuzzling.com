@@ -82,6 +82,33 @@ services:
         depends_on:
             - postgres
 
+    imgproxy:
+        image: darthsim/imgproxy:latest
+        restart: unless-stopped
+        environment:
+            IMGPROXY_USE_S3: "true"
+            IMGPROXY_S3_REGION: "global"
+            IMGPROXY_S3_ENDPOINT: "http://minio:9000"
+            AWS_ACCESS_KEY_ID: "speedpuzzling"
+            AWS_SECRET_ACCESS_KEY: "speedpuzzling"
+            IMGPROXY_PREFERRED_FORMATS: "avif,webp,jpeg"
+            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200/q:88,puzzle_medium=rs:fit:400:400/q:91/el:1,avatar=rs:fit:300:300/q:90"
+            IMGPROXY_AUTO_ROTATE: "true"
+            IMGPROXY_ENFORCE_THUMBNAIL: "true"
+        depends_on:
+            - minio
+
+    images-cache:
+        image: nginx:alpine
+        restart: unless-stopped
+        volumes:
+            - .docker/nginx-imgproxy.conf:/etc/nginx/conf.d/default.conf
+            - .docker-data/imgproxy-cache:/var/cache/nginx/imgproxy
+        depends_on:
+            - imgproxy
+        ports:
+            - "19100:80"
+
     minio:
         restart: always
         image: minio/minio:latest

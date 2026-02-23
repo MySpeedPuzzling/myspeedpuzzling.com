@@ -22,7 +22,7 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
     public function __construct(
         private readonly Connection $connection,
         private readonly HttpClientInterface $httpClient,
-        private readonly string $nginxProxyBaseUrl,
+        private readonly string $nginxProxyInternalUrl,
         private readonly string $imgproxyBucket,
     ) {
         parent::__construct();
@@ -70,7 +70,7 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
                 foreach ($acceptHeaders as $accept) {
                     $url = sprintf(
                         '%s/preset:%s/plain/s3://%s/%s',
-                        $this->nginxProxyBaseUrl,
+                        $this->nginxProxyInternalUrl,
                         $preset,
                         $this->imgproxyBucket,
                         ltrim($path, '/'),

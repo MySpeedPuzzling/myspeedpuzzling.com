@@ -21,6 +21,10 @@ services:
         environment:
             FRANKENPHP_WORKER: "1"
             FRANKENPHP_WATCH: "1"
+            FRANKENPHP_MAX_WAIT_TIME: "30s"
+            FRANKENPHP_WORKER_NUM: "15"
+            FRANKENPHP_IMAGE_WORKER_NUM: "15"
+            FRANKENPHP_IMAGE_WORKER_MATCH: "/media/cache/resolve/*"
             XDEBUG_CONFIG: "client_host=host.docker.internal"
             XDEBUG_MODE: debug
             PHP_IDE_CONFIG: "serverName=speedpuzzling"

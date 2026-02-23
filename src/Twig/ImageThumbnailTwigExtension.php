@@ -13,7 +13,6 @@ final class ImageThumbnailTwigExtension extends AbstractExtension
     public function __construct(
         private readonly string $imageProvider,
         private readonly string $nginxProxyBaseUrl,
-        private readonly string $imgproxyBucket,
         private readonly null|CacheManager $imagineCacheManager = null,
     ) {
     }
@@ -32,10 +31,9 @@ final class ImageThumbnailTwigExtension extends AbstractExtension
     {
         return match ($this->imageProvider) {
             'imgproxy' => sprintf(
-                '%s/preset:%s/plain/s3://%s/%s',
+                '%s/preset:%s/plain/%s',
                 $this->nginxProxyBaseUrl,
                 $preset,
-                $this->imgproxyBucket,
                 ltrim($path, '/'),
             ),
             default => $this->imagineCacheManager?->getBrowserPath($path, $preset)

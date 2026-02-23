@@ -92,9 +92,19 @@ services:
             AWS_ACCESS_KEY_ID: "speedpuzzling"
             AWS_SECRET_ACCESS_KEY: "speedpuzzling"
             IMGPROXY_PREFERRED_FORMATS: "avif,webp,jpeg"
-            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200/q:88,puzzle_medium=rs:fit:400:400/q:91/el:1,avatar=rs:fit:300:300/q:90"
+            IMGPROXY_AUTO_AVIF: "true"
+            IMGPROXY_AUTO_WEBP: "true"
+            IMGPROXY_BASE_URL: "s3://puzzle/"
+            IMGPROXY_PRESETS: "puzzle_small=rs:fit:200:200,puzzle_medium=rs:fit:400:400/el:1,avatar=rs:fit:300:300"
+            IMGPROXY_JPEG_QUALITY: "88"
+            IMGPROXY_WEBP_QUALITY: "82"
+            IMGPROXY_AVIF_QUALITY: "65"
             IMGPROXY_AUTO_ROTATE: "true"
             IMGPROXY_ENFORCE_THUMBNAIL: "true"
+            IMGPROXY_STRIP_METADATA: "true"
+            IMGPROXY_STRIP_COLOR_PROFILE: "true"
+            IMGPROXY_AVIF_SPEED: "7"
+            IMGPROXY_MAX_SRC_RESOLUTION: "50"
         depends_on:
             - minio
 

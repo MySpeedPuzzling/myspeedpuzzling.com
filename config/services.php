@@ -32,8 +32,6 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('imageProvider', '%env(IMAGE_PROVIDER)%');
     $parameters->set('nginxProxyBaseUrl', '%env(NGINX_PROXY_BASE_URL)%');
     $parameters->set('nginxProxyInternalUrl', '%env(NGINX_PROXY_INTERNAL_URL)%');
-    $parameters->set('imgproxyBucket', 'puzzle');
-
     $parameters->set('puzzlePuzzleUsername', '%env(PUZZLE_PUZZLE_USERNAME)%');
     $parameters->set('puzzlePuzzlePassword', '%env(PUZZLE_PUZZLE_PASSWORD)%');
 
@@ -50,7 +48,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$imageProvider', '%imageProvider%')
         ->bind('$nginxProxyBaseUrl', '%nginxProxyBaseUrl%')
         ->bind('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%')
-        ->bind('$imgproxyBucket', '%imgproxyBucket%')
         ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
         ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%');
 

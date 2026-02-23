@@ -3,7 +3,7 @@
 <div class="d-flex gap-3 py-3 border-bottom">
     <div class="flex-shrink-0">
         {% if rating.reviewerAvatar %}
-            <img src="{{ rating.reviewerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+            <img src="{{ rating.reviewerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
         {% else %}
             <span class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-size: 16px;">
                 {{ rating.reviewerName|slice(0, 1)|upper }}

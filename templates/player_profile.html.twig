@@ -2,7 +2,7 @@
 
 {% block title %}{{ player.playerName ?? ('#' ~ player.code) }} - {{ 'menu.profile'|trans }}{% endblock %}
 {% block og_type %}profile{% endblock %}
-{% block og_image %}{% if player.avatar is not null %}{{ absolute_url(player.avatar|imagine_filter('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block og_image %}{% if player.avatar is not null %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
     <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
@@ -98,7 +98,7 @@
                                 {% if player.avatar is null %}
                                     {{ 'profile.not_filled'|trans }}
                                 {% else %}
-                                    <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_small') }}">
+                                    <img class="rounded-2" style="max-width: 150px;max-height: 150px;" alt="Avatar" src="{{ player.avatar|thumbnail('puzzle_small') }}">
                                 {% endif %}
                             </p>
 

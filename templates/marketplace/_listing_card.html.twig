@@ -140,7 +140,7 @@
         <div class="mt-auto d-flex align-items-center pt-1">
             <a href="{{ path('sell_swap_list_detail', {playerId: item.sellerId, return: marketplaceReturnUrl|default(path('marketplace')), return_title: 'marketplace.title'|trans}) }}" class="d-flex align-items-center min-width-0 text-primary text-decoration-underline">
                 {% if item.sellerAvatar %}
-                    <img src="{{ item.sellerAvatar|imagine_filter('puzzle_small') }}" alt="" class="rounded-circle me-1 flex-shrink-0" style="width: 20px; height: 20px; object-fit: cover;">
+                    <img src="{{ item.sellerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle me-1 flex-shrink-0" style="width: 20px; height: 20px; object-fit: cover;">
                 {% endif %}
                 <small class="text-truncate">{{ item.sellerName ?? item.sellerCode }}</small>
                 {% if item.sellerCountry %}

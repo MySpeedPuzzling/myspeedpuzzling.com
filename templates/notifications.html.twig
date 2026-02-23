@@ -42,7 +42,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.changeRequestPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.changeRequestPuzzleId}) }}">
-                                            <img alt="{{ notification.changeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.changeRequestPuzzleImage|imagine_filter('puzzle_small') }}">
+                                            <img alt="{{ notification.changeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.changeRequestPuzzleImage|thumbnail('puzzle_small') }}">
                                         </a>
                                     {% endif %}
                                 </td>
@@ -70,7 +70,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.mergeRequestPuzzleImage is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.mergeRequestPuzzleId}) }}">
-                                            <img alt="{{ notification.mergeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.mergeRequestPuzzleImage|imagine_filter('puzzle_small') }}">
+                                            <img alt="{{ notification.mergeRequestPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.mergeRequestPuzzleImage|thumbnail('puzzle_small') }}">
                                         </a>
                                     {% endif %}
                                 </td>
@@ -98,7 +98,7 @@
                                 <td class="text-center" style="width: 60px;">
                                     <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}">
                                         {% if notification.conversationInitiatorAvatar is not null %}
-                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.conversationInitiatorAvatar|imagine_filter('puzzle_small') }}">
+                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.conversationInitiatorAvatar|thumbnail('puzzle_small') }}">
                                         {% else %}
                                             <span class="avatar-name rounded-circle">{{ notification.conversationInitiatorName|slice(0, 1)|upper }}</span>
                                         {% endif %}
@@ -122,7 +122,7 @@
                                 <td class="" style="width: 80px;">
                                     {% if notification.conversationIsMarketplace and notification.conversationPuzzleImage is not null %}
                                         <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}">
-                                            <img alt="{{ notification.conversationPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.conversationPuzzleImage|imagine_filter('puzzle_small') }}">
+                                            <img alt="{{ notification.conversationPuzzleName }}" class="rounded-2" style="max-width: 60px;max-height: 60px;" src="{{ notification.conversationPuzzleImage|thumbnail('puzzle_small') }}">
                                         </a>
                                     {% else %}
                                         <a href="{{ path('conversation_detail', {conversationId: notification.conversationId}) }}" class="btn btn-sm btn-outline-primary">
@@ -177,7 +177,7 @@
                                 <td class="text-center" style="width: 60px;">
                                     <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
                                         {% if notification.targetPlayerAvatar is not null %}
-                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|imagine_filter('puzzle_small') }}">
+                                            <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
                                         {% else %}
                                             <span class="avatar-name rounded-circle">{{ notification.targetPlayerName|slice(0, 1)|upper }}</span>
                                         {% endif %}

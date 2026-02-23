@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Twig;
 
-use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 
@@ -13,7 +12,7 @@ final class PuzzleImageTwigExtension extends AbstractExtension
     private const string PLACEHOLDER_IMAGE = '/img/placeholder-puzzle.png';
 
     public function __construct(
-        readonly private CacheManager $cacheManager,
+        readonly private ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
@@ -33,6 +32,6 @@ final class PuzzleImageTwigExtension extends AbstractExtension
             return self::PLACEHOLDER_IMAGE;
         }
 
-        return $this->cacheManager->getBrowserPath($path, $filter);
+        return $this->imageThumbnail->thumbnailUrl($path, $filter);
     }
 }

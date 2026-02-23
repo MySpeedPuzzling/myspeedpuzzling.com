@@ -136,7 +136,7 @@
                     <div class="file-drop-icon">
                         {% if player.avatar is not null%}
                             <div class="file-drop-preview img-thumbnail rounded">
-                                <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="Avatar" src="{{ player.avatar|imagine_filter('puzzle_medium') }}">
+                                <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="Avatar" src="{{ player.avatar|thumbnail('puzzle_medium') }}">
                             </div>
                         {% endif %}
                         <i class="ci-cloud-upload"></i>

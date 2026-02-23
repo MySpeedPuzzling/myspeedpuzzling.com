@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Twig;
 
-use Liip\ImagineBundle\Imagine\Cache\CacheManager;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
@@ -13,7 +12,8 @@ final class LazyImageTwigExtension extends AbstractExtension
     private const string PLACEHOLDER_IMAGE = '/img/placeholder-puzzle.png';
 
     public function __construct(
-        readonly private CacheManager $cacheManager,
+        readonly private ImageThumbnailTwigExtension $imageThumbnail,
+        readonly private string $imageProvider,
     ) {
     }
 
@@ -67,10 +67,14 @@ final class LazyImageTwigExtension extends AbstractExtension
             $extraAttrs = ' onload="this.classList.add(\'loaded\')"';
         }
 
-        $webpSrc = $this->getWebpSrc($path, $filter);
-        $webpSource = $webpSrc !== null
-            ? sprintf('<source srcset="%s" type="image/webp">', htmlspecialchars($webpSrc, ENT_QUOTES, 'UTF-8'))
-            : '';
+        // imgproxy handles format negotiation via Accept header — no need for explicit WebP source
+        $webpSource = '';
+        if ($this->imageProvider !== 'imgproxy') {
+            $webpSrc = $this->getWebpSrc($path, $filter);
+            $webpSource = $webpSrc !== null
+                ? sprintf('<source srcset="%s" type="image/webp">', htmlspecialchars($webpSrc, ENT_QUOTES, 'UTF-8'))
+                : '';
+        }
 
         return sprintf(
             '<span class="%s" style="width:%dpx;height:%dpx"><picture>%s<img src="%s" alt="%s" loading="%s" class="%s" width="%d" height="%d" style="max-height:%dpx"%s></picture></span>',
@@ -95,7 +99,7 @@ final class LazyImageTwigExtension extends AbstractExtension
             return self::PLACEHOLDER_IMAGE;
         }
 
-        return $this->cacheManager->getBrowserPath($path, $filter);
+        return $this->imageThumbnail->thumbnailUrl($path, $filter);
     }
 
     private function getWebpSrc(null|string $path, string $filter): null|string
@@ -106,7 +110,7 @@ final class LazyImageTwigExtension extends AbstractExtension
 
         $webpFilter = $filter . '_webp';
 
-        return $this->cacheManager->getBrowserPath($path, $webpFilter);
+        return $this->imageThumbnail->thumbnailUrl($path, $webpFilter);
     }
 
     private function getSizeClass(int $size): string

@@ -41,7 +41,7 @@
                         <div class="py-1 d-flex low-line-height">
                             {% if active_puzzle.puzzleImage is not null%}
                                 <div class="icon me-2">
-                                    <img class="rounded-2" style="max-width: 100px;max-height: 100px;"  alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|imagine_filter('puzzle_medium') }}">
+                                    <img class="rounded-2" style="max-width: 100px;max-height: 100px;"  alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|thumbnail('puzzle_medium') }}">
                                 </div>
                             {% endif %}
 
@@ -256,7 +256,7 @@
                         <div class="file-drop-icon">
                             {% if solved_puzzle is defined and solved_puzzle.finishedPuzzlePhoto is not null%}
                                 <div class="file-drop-preview img-thumbnail rounded">
-                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" src="{{ solved_puzzle.finishedPuzzlePhoto|imagine_filter('puzzle_medium') }}">
+                                    <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle.manufacturerName ~ ' ' ~ solved_puzzle.puzzleName}) }}" src="{{ solved_puzzle.finishedPuzzlePhoto|thumbnail('puzzle_medium') }}">
                                 </div>
                             {% endif %}
                             <i class="ci-cloud-upload"></i>

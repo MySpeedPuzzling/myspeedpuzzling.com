@@ -23,7 +23,7 @@
                             {% if solved_puzzle[0].finishedPuzzlePhoto is not null%}
                                 <div class="gallery mt-1">
                                     <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ uploaded_asset(solved_puzzle[0].finishedPuzzlePhoto) }}">
-                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 50px;max-height: 66px;" src="{{ solved_puzzle[0].finishedPuzzlePhoto|imagine_filter('puzzle_small') }}">
+                                        <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}) }}" class="rounded-2" style="max-width: 50px;max-height: 66px;" src="{{ solved_puzzle[0].finishedPuzzlePhoto|thumbnail('puzzle_small') }}">
                                     </a>
                                 </div>
                             {% endif %}

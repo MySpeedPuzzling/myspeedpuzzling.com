@@ -14,7 +14,7 @@ final class ImageThumbnailTwigExtension extends AbstractExtension
         private readonly string $imageProvider,
         private readonly string $nginxProxyBaseUrl,
         private readonly string $imgproxyBucket,
-        private readonly ?CacheManager $imagineCacheManager = null,
+        private readonly null|CacheManager $imagineCacheManager = null,
     ) {
     }
 

@@ -38,7 +38,9 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $concurrency = (int) $input->getOption('concurrency');
+        $concurrencyOption = $input->getOption('concurrency');
+        assert(is_string($concurrencyOption));
+        $concurrency = (int) $concurrencyOption;
 
         /** @var array<string> $presets */
         $presets = $input->getOption('preset');
@@ -119,11 +121,13 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
      */
     private function loadImagePaths(array $presets): array
     {
+        /** @var array<string, array<string>> $result */
         $result = [];
 
         $shouldWarm = fn(string $preset): bool => $presets === [] || in_array($preset, $presets, true);
 
         if ($shouldWarm('puzzle_small') || $shouldWarm('puzzle_medium')) {
+            /** @var array<string> $puzzleImages */
             $puzzleImages = $this->connection->fetchFirstColumn(
                 'SELECT image FROM puzzle WHERE image IS NOT NULL',
             );
@@ -137,6 +141,7 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
         }
 
         if ($shouldWarm('puzzle_small') || $shouldWarm('puzzle_medium')) {
+            /** @var array<string> $solvingPhotos */
             $solvingPhotos = $this->connection->fetchFirstColumn(
                 'SELECT finished_puzzle_photo FROM puzzle_solving_time WHERE finished_puzzle_photo IS NOT NULL',
             );
@@ -150,6 +155,7 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
         }
 
         if ($shouldWarm('avatar') || $shouldWarm('puzzle_small')) {
+            /** @var array<string> $avatars */
             $avatars = $this->connection->fetchFirstColumn(
                 'SELECT avatar FROM player WHERE avatar IS NOT NULL',
             );
@@ -163,15 +169,17 @@ final class WarmupImgproxyCacheConsoleCommand extends Command
         }
 
         if ($shouldWarm('puzzle_small')) {
+            /** @var array<string> $competitionLogos */
             $competitionLogos = $this->connection->fetchFirstColumn(
                 'SELECT logo FROM competition WHERE logo IS NOT NULL',
             );
             $result['puzzle_small'] = array_merge($result['puzzle_small'] ?? [], $competitionLogos);
 
+            /** @var array<string> $manufacturerLogos */
             $manufacturerLogos = $this->connection->fetchFirstColumn(
                 'SELECT logo FROM manufacturer WHERE logo IS NOT NULL',
             );
-            $result['puzzle_small'] = array_merge($result['puzzle_small'] ?? [], $manufacturerLogos);
+            $result['puzzle_small'] = array_merge($result['puzzle_small'], $manufacturerLogos);
         }
 
         return $result;

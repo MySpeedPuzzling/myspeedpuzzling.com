@@ -69,7 +69,7 @@ readonly final class StartConversationHandler
         $puzzle = null;
         $isMarketplace = $message->sellSwapListItemId !== null;
 
-        if ($isMarketplace && $message->sellSwapListItemId !== null) {
+        if ($isMarketplace) {
             $sellSwapListItem = $this->sellSwapListItemRepository->get($message->sellSwapListItemId);
             $puzzle = $sellSwapListItem->puzzle;
         } elseif ($message->puzzleId !== null) {

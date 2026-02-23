@@ -88,8 +88,8 @@ readonly final class PassLentPuzzleHandler
                 TransferType::Return,
                 $currentHolder->id,
                 $previousHolder?->id,
-                $lentPuzzle->ownerPlayer?->id,
-                $lentPuzzle->ownerPlayer?->id,
+                $lentPuzzle->ownerPlayer->id,
+                $lentPuzzle->ownerPlayer->id,
             ));
 
             $this->lentPuzzleRepository->delete($lentPuzzle);

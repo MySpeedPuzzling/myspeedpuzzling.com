@@ -122,6 +122,14 @@ For working with test fixtures, see `.claude/fixtures.md` for complete documenta
 - Competitions and solving times
 - Connections between players (favorites, team solving, lending)
 
+### Performance Optimizations
+See `docs/performance-optimizations.md` for details on LCP & CLS optimizations:
+- Critical CSS strategy (inline styles for skeleton rendering, `<main>` not hidden)
+- Font loading with `display=optional` (no FOUT)
+- Dynamic imports for flatpickr and barcode scanner polyfill
+- Selective Bootstrap SCSS imports (excluded: offcanvas, carousel, popover, tooltip)
+- Skeleton placeholder height alignment for Live Components
+
 ### Feature Planning & Brainstorming
 Feature design documents and implementation plans are in `docs/features/`. Each feature has its own directory with detailed specifications, entity designs, and step-by-step implementation guides.
 - **Marketplace**: `docs/features/marketplace/` — Centralized marketplace, messaging, ratings, shipping settings, admin moderation

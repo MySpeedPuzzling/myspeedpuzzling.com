@@ -1,12 +1,20 @@
 import { Controller } from '@hotwired/stimulus';
-import flatpickr from 'flatpickr';
-import rangePlugin from 'flatpickr/dist/plugins/rangePlugin';
-import 'flatpickr/dist/l10n';
-
-import 'flatpickr/dist/flatpickr.min.css'
 
 export default class extends Controller {
-    connect() {
+    async connect() {
+        let picker = document.querySelectorAll('.date-picker');
+
+        if (picker.length === 0) return;
+
+        const [{ default: flatpickr }, rangePluginModule, l10nModule] = await Promise.all([
+            import('flatpickr'),
+            import('flatpickr/dist/plugins/rangePlugin'),
+            import('flatpickr/dist/l10n'),
+        ]);
+
+        await import('flatpickr/dist/flatpickr.min.css');
+
+        const rangePlugin = rangePluginModule.default;
         const lang = document.documentElement.lang;
 
         if (lang === 'cs') {
@@ -15,10 +23,6 @@ export default class extends Controller {
             flatpickr.localize(flatpickr.l10ns.en);
             flatpickr.l10ns.default.firstDayOfWeek = 1;
         }
-
-        let picker = document.querySelectorAll('.date-picker');
-
-        if (picker.length === 0) return;
 
         for (let i = 0; i < picker.length; i++) {
 

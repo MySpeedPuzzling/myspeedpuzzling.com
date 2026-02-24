@@ -139,7 +139,51 @@ export default class extends Controller {
         }
     }
 
+    async _ensureBarcodeDetector() {
+        if (this._polyfillLoaded) return;
+
+        // Load zbar-wasm first, then the polyfill that depends on it
+        await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
+        await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
+
+        const polyfillAvailable = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+
+        try {
+            if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
+                const formats = await window.BarcodeDetector.getSupportedFormats();
+                if (formats.indexOf('ean_13') === -1 && polyfillAvailable) {
+                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                }
+            } else if (polyfillAvailable) {
+                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+            }
+        } catch (e) {
+            if (polyfillAvailable) {
+                window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+            }
+        }
+
+        this._polyfillLoaded = true;
+    }
+
+    _loadScript(src) {
+        return new Promise((resolve, reject) => {
+            // Skip if already loaded
+            if (document.querySelector(`script[src="${src}"]`)) {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
     async scanLoop() {
+        await this._ensureBarcodeDetector();
+
         if (typeof BarcodeDetector === 'undefined') {
             console.error('BarcodeDetector is not available');
             return;

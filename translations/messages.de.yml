@@ -177,7 +177,12 @@
   "continue": "Weiter"
   "reset": "Zurücksetzen"
   "finish": "Fertig! Zeit hinzufügen"
+  "display_always_on": "Display immer an"
   "more_my_stopwatches": "Mehr meiner Stoppuhren"
+  "solved_times": "%count%-mal gelöst"
+  "solved_time": "%count%-mal gelöst"
+  "current_ranking": "Aktuelle Platzierung: %rank%/%total%"
+  "delete_confirm": "Möchten Sie diese Stoppuhr wirklich löschen?"
   "status":
     "not_started": "Bereit zu starten"
     "running": "Läuft"

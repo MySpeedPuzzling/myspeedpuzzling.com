@@ -178,7 +178,12 @@
   "continue": "Pokračovat"
   "reset": "Vynulovat"
   "finish": "Doskládáno! Přidat čas"
+  "display_always_on": "Displej stále zapnutý"
   "more_my_stopwatches": "Další moje stopky"
+  "solved_times": "Složeno %count%x"
+  "solved_time": "Složeno %count%x"
+  "current_ranking": "Aktuální pořadí: %rank%/%total%"
+  "delete_confirm": "Opravdu chcete smazat tyto stopky?"
   "status":
     "not_started": "Připravené ke startu"
     "running": "Puštěné"

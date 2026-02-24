@@ -179,7 +179,12 @@
   "continue": "続行"
   "reset": "リセット"
   "finish": "完了！タイム追加"
+  "display_always_on": "画面を常にオン"
   "more_my_stopwatches": "他のマイストップウォッチ"
+  "solved_times": "%count%回完成"
+  "solved_time": "%count%回完成"
+  "current_ranking": "現在の順位: %rank%/%total%"
+  "delete_confirm": "このストップウォッチを削除してもよろしいですか？"
   "status":
     "not_started": "開始準備完了"
     "running": "実行中"

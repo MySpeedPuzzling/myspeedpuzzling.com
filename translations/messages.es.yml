@@ -179,7 +179,12 @@
   "continue": "Continuar"
   "reset": "Reiniciar"
   "finish": "¡Completado! Añadir tiempo"
+  "display_always_on": "Pantalla siempre encendida"
   "more_my_stopwatches": "Más de mis cronómetros"
+  "solved_times": "Resuelto %count% veces"
+  "solved_time": "Resuelto %count% vez"
+  "current_ranking": "Posición actual: %rank%/%total%"
+  "delete_confirm": "¿Estás seguro de que quieres eliminar este cronómetro?"
   "status":
     "not_started": "Listo para comenzar"
     "running": "En marcha"

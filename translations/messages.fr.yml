@@ -180,7 +180,12 @@
   "continue": "Continuer"
   "reset": "Remettre à zéro"
   "finish": "Terminé ! Ajouter le temps"
+  "display_always_on": "Écran toujours allumé"
   "more_my_stopwatches": "Plus de mes chronomètres"
+  "solved_times": "Résolu %count% fois"
+  "solved_time": "Résolu %count% fois"
+  "current_ranking": "Classement actuel : %rank%/%total%"
+  "delete_confirm": "Êtes-vous sûr de vouloir supprimer ce chronomètre ?"
   "status":
     "not_started": "Prêt à démarrer"
     "running": "En cours"

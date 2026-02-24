@@ -11,6 +11,8 @@ services:
         volumes:
             - .:/app
             - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
+            - .docker-data/caddy-data:/data
+            - .docker-data/caddy-config:/config
         depends_on:
             - postgres
             - redis
@@ -161,6 +163,8 @@ services:
         volumes:
             - .:/app
             - .docker/on-startup.sh:/docker-entrypoint.d/on-startup.sh
+        tmpfs:
+            - /app/var/cache
         depends_on:
             - web
             - chrome

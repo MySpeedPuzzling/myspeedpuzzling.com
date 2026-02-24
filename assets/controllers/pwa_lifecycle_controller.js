@@ -1,8 +1,9 @@
 import { Controller } from '@hotwired/stimulus';
 
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
-const PULL_THRESHOLD = 80; // px to trigger refresh
-const PULL_RESISTANCE = 2.5; // damping factor
+const PULL_THRESHOLD = 70; // px to trigger refresh
+const PULL_RESISTANCE = 2.8; // damping factor — increases resistance as you pull further
+const INDICATOR_SIZE = 36; // px — diameter of the circular indicator
 
 export default class extends Controller {
     connect() {
@@ -76,18 +77,10 @@ export default class extends Controller {
         this._pullStartY = 0;
         this._pullDistance = 0;
         this._pulling = false;
+        this._thresholdReached = false;
 
-        if (!document.getElementById('pwa-ptr-keyframes')) {
-            const style = document.createElement('style');
-            style.id = 'pwa-ptr-keyframes';
-            style.textContent = '@keyframes pwa-ptr-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
-            document.head.appendChild(style);
-        }
-
-        this._indicator = document.createElement('div');
-        this._indicator.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;justify-content:center;height:0;overflow:hidden;background:rgba(0,0,0,0.04);transition:none;pointer-events:none;';
-        this._indicator.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#666;transition:transform .2s"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
-        document.body.appendChild(this._indicator);
+        this._injectStyles();
+        this._createIndicator();
 
         this._onTouchStart = this._handleTouchStart.bind(this);
         this._onTouchMove = this._handleTouchMove.bind(this);
@@ -96,6 +89,84 @@ export default class extends Controller {
         document.addEventListener('touchstart', this._onTouchStart, { passive: true });
         document.addEventListener('touchmove', this._onTouchMove, { passive: false });
         document.addEventListener('touchend', this._onTouchEnd, { passive: true });
+    }
+
+    _injectStyles() {
+        if (document.getElementById('pwa-ptr-styles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'pwa-ptr-styles';
+        style.textContent = `
+            @keyframes pwa-ptr-spin {
+                to { transform: rotate(360deg); }
+            }
+            .pwa-ptr-indicator {
+                position: fixed;
+                top: 0;
+                left: 50%;
+                z-index: 9999;
+                width: ${INDICATOR_SIZE}px;
+                height: ${INDICATOR_SIZE}px;
+                margin-left: -${INDICATOR_SIZE / 2}px;
+                border-radius: 50%;
+                background: #fff;
+                box-shadow: 0 1px 6px rgba(0,0,0,.16);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: none;
+                transform: translateY(-${INDICATOR_SIZE + 10}px) scale(0.3);
+                opacity: 0;
+                will-change: transform, opacity;
+            }
+            .pwa-ptr-indicator.is-pulling {
+                transition: none;
+            }
+            .pwa-ptr-indicator.is-settling {
+                transition: transform .3s cubic-bezier(.4,.0,.2,1), opacity .3s ease;
+            }
+            .pwa-ptr-indicator.is-refreshing {
+                transition: transform .2s cubic-bezier(.4,.0,.2,1);
+            }
+            .pwa-ptr-arrow {
+                width: 20px;
+                height: 20px;
+                color: #555;
+                transition: transform .15s ease;
+            }
+            .pwa-ptr-spinner {
+                width: 20px;
+                height: 20px;
+                display: none;
+            }
+            .pwa-ptr-spinner circle {
+                fill: none;
+                stroke: #555;
+                stroke-width: 2.5;
+                stroke-linecap: round;
+                stroke-dasharray: 40, 60;
+                animation: pwa-ptr-spin .7s linear infinite;
+                transform-origin: center;
+            }
+            .pwa-ptr-indicator.is-refreshing .pwa-ptr-arrow { display: none; }
+            .pwa-ptr-indicator.is-refreshing .pwa-ptr-spinner { display: block; }
+        `;
+        document.head.appendChild(style);
+    }
+
+    _createIndicator() {
+        this._indicator = document.createElement('div');
+        this._indicator.className = 'pwa-ptr-indicator';
+        this._indicator.innerHTML = `
+            <svg class="pwa-ptr-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <polyline points="19 12 12 19 5 12"/>
+            </svg>
+            <svg class="pwa-ptr-spinner" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"/>
+            </svg>
+        `;
+        document.body.appendChild(this._indicator);
     }
 
     _destroyPullToRefresh() {
@@ -113,6 +184,9 @@ export default class extends Controller {
             this._pullStartY = event.touches[0].clientY;
             this._pulling = true;
             this._pullDistance = 0;
+            this._thresholdReached = false;
+            this._indicator.classList.remove('is-settling', 'is-refreshing');
+            this._indicator.classList.add('is-pulling');
         }
     }
 
@@ -129,16 +203,30 @@ export default class extends Controller {
         }
 
         event.preventDefault();
-        this._pullDistance = delta / PULL_RESISTANCE;
 
-        const height = Math.min(this._pullDistance, PULL_THRESHOLD + 20);
-        this._indicator.style.height = height + 'px';
+        // Progressive resistance — gets harder the further you pull
+        this._pullDistance = delta / (PULL_RESISTANCE + (delta / 300));
 
-        const icon = this._indicator.querySelector('svg');
         const progress = Math.min(this._pullDistance / PULL_THRESHOLD, 1);
-        const rotation = progress * 360;
-        icon.style.transform = 'rotate(' + rotation + 'deg)';
-        icon.style.opacity = progress;
+
+        // Position: slides down from top, capped slightly past threshold
+        const translateY = Math.min(this._pullDistance, PULL_THRESHOLD + 20) - INDICATOR_SIZE / 2;
+        const scale = 0.3 + (progress * 0.7);
+        this._indicator.style.transform = `translateY(${translateY}px) scale(${scale})`;
+        this._indicator.style.opacity = Math.min(progress * 1.5, 1);
+
+        // Arrow rotates: points down initially, flips up past threshold
+        const arrow = this._indicator.querySelector('.pwa-ptr-arrow');
+        const rotation = progress >= 1 ? 180 : 0;
+        arrow.style.transform = `rotate(${rotation}deg)`;
+
+        // Haptic feedback when crossing threshold
+        if (progress >= 1 && !this._thresholdReached) {
+            this._thresholdReached = true;
+            this._haptic();
+        } else if (progress < 1 && this._thresholdReached) {
+            this._thresholdReached = false;
+        }
     }
 
     _handleTouchEnd() {
@@ -146,10 +234,11 @@ export default class extends Controller {
         this._pulling = false;
 
         if (this._pullDistance >= PULL_THRESHOLD) {
-            this._indicator.style.transition = 'height 0.2s ease';
-            this._indicator.style.height = '50px';
-            const icon = this._indicator.querySelector('svg');
-            icon.style.animation = 'pwa-ptr-spin 0.6s linear infinite';
+            // Settle into refreshing position
+            this._indicator.classList.remove('is-pulling');
+            this._indicator.classList.add('is-refreshing');
+            this._indicator.style.transform = `translateY(${INDICATOR_SIZE * 0.6}px) scale(1)`;
+            this._indicator.style.opacity = '1';
             window.location.reload();
         } else {
             this._resetIndicator();
@@ -157,10 +246,19 @@ export default class extends Controller {
     }
 
     _resetIndicator() {
-        this._indicator.style.transition = 'height 0.2s ease';
-        this._indicator.style.height = '0';
+        this._indicator.classList.remove('is-pulling');
+        this._indicator.classList.add('is-settling');
+        this._indicator.style.transform = `translateY(-${INDICATOR_SIZE + 10}px) scale(0.3)`;
+        this._indicator.style.opacity = '0';
+
         setTimeout(() => {
-            this._indicator.style.transition = 'none';
-        }, 200);
+            this._indicator.classList.remove('is-settling');
+        }, 300);
+    }
+
+    _haptic() {
+        if (navigator.vibrate) {
+            navigator.vibrate(10);
+        }
     }
 }

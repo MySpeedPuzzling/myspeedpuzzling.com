@@ -4,8 +4,22 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use SpeedPuzzling\Web\Services\Sentry\GenericObjectSerializer;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+
+// Auto-discover FormData and Message classes for rich Sentry serialization
+$classSerializers = [];
+$namespaceDirs = [
+    'SpeedPuzzling\\Web\\FormData\\' => __DIR__ . '/../../src/FormData/',
+    'SpeedPuzzling\\Web\\Message\\' => __DIR__ . '/../../src/Message/',
+];
+
+foreach ($namespaceDirs as $namespace => $dir) {
+    foreach (glob($dir . '*.php') as $file) {
+        $classSerializers[$namespace . basename($file, '.php')] = GenericObjectSerializer::class;
+    }
+}
 
 return App::config([
     'sentry' => [
@@ -34,6 +48,7 @@ return App::config([
                 '*/_wdt*',
                 '*/_profiler*',
             ],
+            'class_serializers' => $classSerializers,
         ],
     ],
 ]);

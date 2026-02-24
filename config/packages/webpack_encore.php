@@ -7,7 +7,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 return App::config([
     'webpack_encore' => [
         'output_path' => '%kernel.project_dir%/public/build',
-        'preload' => true,
         'script_attributes' => [
             'defer' => true,
             'data-turbo-track' => 'reload',

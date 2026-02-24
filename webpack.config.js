@@ -56,6 +56,17 @@ Encore
     .enablePostCssLoader((options) => {
         options.postcssOptions = {
             plugins: [
+                // Replace font-display:block with swap for faster text rendering
+                {
+                    postcssPlugin: 'font-display-swap',
+                    Declaration: {
+                        'font-display': (decl) => {
+                            if (decl.value === 'block') {
+                                decl.value = 'swap';
+                            }
+                        },
+                    },
+                },
                 require('autoprefixer'),
                 require('cssnano')({ preset: 'default' }), // Minifies CSS
             ],

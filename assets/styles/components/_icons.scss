@@ -244,7 +244,7 @@ $ci-heart-filled: '\e9e1';
     url('#{$icons-font-path}/#{$icons-font-family}.svg?ufvuz0##{$icons-font-family}') format('svg');
   font-weight: normal;
   font-style: normal;
-  font-display: block;
+  font-display: swap;
 }
 
 [class^='ci-'], [class*=' ci-'] {

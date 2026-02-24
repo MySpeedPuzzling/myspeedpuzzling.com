@@ -2,8 +2,9 @@
 // Reboot
 // --------------------------------------------------
 
-// Import Google Fonts (Rubik)
-@import url($path-to-fonts);
+// Google Fonts (Rubik) loaded via <link> in base.html.twig to avoid
+// render-blocking CSS @import waterfall (browser must download app.css,
+// parse it, discover @import, then fetch the font CSS serially).
 
 html * {
   @include font-smoothing;

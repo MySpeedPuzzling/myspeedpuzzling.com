@@ -13,6 +13,10 @@ final class GenericObjectSerializer
 {
     private const int MAX_DEPTH = 3;
 
+    private const array SENSITIVE_PROPERTIES = [
+        'voucherCode', 'content', 'initialMessage', 'password', 'token',
+    ];
+
     /**
      * @return array<string, mixed>
      */
@@ -31,6 +35,11 @@ final class GenericObjectSerializer
 
         foreach ($reflection->getProperties() as $property) {
             if (!$property->isInitialized($object)) {
+                continue;
+            }
+
+            if (in_array($property->getName(), self::SENSITIVE_PROPERTIES, true)) {
+                $data[$property->getName()] = '[REDACTED]';
                 continue;
             }
 

@@ -16,7 +16,7 @@ $namespaceDirs = [
 ];
 
 foreach ($namespaceDirs as $namespace => $dir) {
-    foreach (glob($dir . '*.php') as $file) {
+    foreach (glob($dir . '*.php') ?: [] as $file) {
         $classSerializers[$namespace . basename($file, '.php')] = GenericObjectSerializer::class;
     }
 }

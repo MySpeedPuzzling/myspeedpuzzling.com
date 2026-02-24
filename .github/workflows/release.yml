@@ -21,7 +21,7 @@ jobs:
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         steps:
             -   name: Checkout
-                uses: actions/checkout@v4
+                uses: actions/checkout@v6
 
             -   name: Docker meta
                 id: meta
@@ -46,7 +46,7 @@ jobs:
                     password: ${{ secrets.GITHUB_TOKEN }}
 
             -   name: Build and push
-                uses: docker/build-push-action@v5
+                uses: docker/build-push-action@v6
                 with:
                     context: .
                     push: ${{ github.event_name != 'pull_request' }}
@@ -66,9 +66,9 @@ jobs:
             url: https://myspeedpuzzling.com
         steps:
             -   name: Checkout
-                uses: actions/checkout@v4
+                uses: actions/checkout@v6
 
-            -   uses: appleboy/ssh-action@master
+            -   uses: appleboy/ssh-action@v1
                 with:
                     host: myspeedpuzzling.com
                     username: ${{ secrets.DEPLOY_USERNAME }}
@@ -76,7 +76,7 @@ jobs:
                     script: cd /deployment/speedpuzzling && ./deploy.sh
 
             -   name: Create Sentry release
-                uses: getsentry/action-release@v1
+                uses: getsentry/action-release@v3
                 env:
                     SENTRY_AUTH_TOKEN: "${{ secrets.SENTRY_AUTH_TOKEN }}"
                     SENTRY_ORG: speedpuzzling

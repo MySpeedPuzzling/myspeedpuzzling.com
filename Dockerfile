@@ -11,9 +11,10 @@ COPY .docker/on-startup.sh /docker-entrypoint.d/
 COPY composer.json composer.lock symfony.lock ./
 RUN composer install --no-dev --no-interaction --no-scripts
 
-COPY package.json package-lock.json webpack.config.js ./
+COPY package.json package-lock.json ./
 RUN npm install
 
+COPY webpack.config.js ./
 COPY ./assets ./assets
 ENV NODE_ENV=production
 RUN npm run build

@@ -203,7 +203,12 @@ stopwatch:
     continue: "Continue"
     reset: "Reset"
     finish: "Completed! Add time"
+    display_always_on: "Display always on"
     more_my_stopwatches: "More of my stopwatches"
+    solved_times: "Solved %count% times"
+    solved_time: "Solved %count% time"
+    current_ranking: "Current ranking: %rank%/%total%"
+    delete_confirm: "Are you sure you want to delete this stopwatch?"
     status:
         not_started: "Ready to start"
         running: "Running"

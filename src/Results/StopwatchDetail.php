@@ -20,6 +20,7 @@ readonly final class StopwatchDetail
         public StopwatchStatus $status,
         public null|string $puzzleId,
         public null|string $puzzleName,
+        public null|string $name,
     ) {
         $interval = $totalSeconds;
 
@@ -39,6 +40,7 @@ readonly final class StopwatchDetail
      *     status: string,
      *     puzzle_id: null|string,
      *     puzzle_name: null|string,
+     *     stopwatch_name: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -68,6 +70,7 @@ readonly final class StopwatchDetail
             status: StopwatchStatus::from($row['status']),
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
+            name: $row['stopwatch_name'],
         );
     }
 }

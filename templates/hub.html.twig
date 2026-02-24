@@ -8,10 +8,10 @@
         {% if logged_user.profile is null %}
             {{ 'hub.welcome'|trans }} {{ 'hub.seo_suffix'|trans }}
         {% else %}
-            {{ 'hub.welcome_back'|trans }}{% if logged_user.profile.playerName is not null%}, {{ logged_user.profile.playerName }}
+            {{ 'hub.welcome_back'|trans }}, {{ logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code|upper) }}
             {% if logged_user.profile.countryCode is not null %}
                 <span class="shadow-custom fi fi-{{ logged_user.profile.countryCode.name }}"></span>
-            {% endif %}{% endif %}
+            {% endif %}
         {% endif %}
     </h1>
 

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetStopwatch;
+use SpeedPuzzling\Web\Query\GetStopwatchMilestones;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +23,7 @@ final class StopwatchController extends AbstractController
     public function __construct(
         readonly private GetStopwatch $getStopwatch,
         readonly private GetPuzzleOverview $getPuzzleOverview,
+        readonly private GetStopwatchMilestones $getStopwatchMilestones,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -57,14 +60,22 @@ final class StopwatchController extends AbstractController
 
         $activePuzzle = null;
         $activeStopwatch = null;
+        $milestones = [];
+        $soloTimes = [];
 
         if ($stopwatchId !== null) {
-            $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
-            $puzzleId = $activeStopwatch->puzzleId;
+            try {
+                $activeStopwatch = $this->getStopwatch->byId($stopwatchId);
+                $puzzleId = $activeStopwatch->puzzleId;
+            } catch (StopwatchNotFound) {
+                return $this->redirectToRoute('stopwatch');
+            }
         }
 
         if ($puzzleId !== null) {
             $activePuzzle = $this->getPuzzleOverview->byId($puzzleId);
+            $milestones = $this->getStopwatchMilestones->forPuzzleAndPlayer($puzzleId, $player->playerId);
+            $soloTimes = $this->getStopwatchMilestones->allSoloTimesForPuzzle($puzzleId);
         }
 
         $stopwatches = $this->getStopwatch->allForPlayer($player->playerId);
@@ -82,6 +93,8 @@ final class StopwatchController extends AbstractController
             'active_stopwatch' => $activeStopwatch,
             'stopwatches' => $stopwatches,
             'active_puzzle' => $activePuzzle,
+            'milestones' => $milestones,
+            'solo_times' => $soloTimes,
         ]);
     }
 }

@@ -2,7 +2,7 @@
 
 <nav class="player-profile-header player-breadcrumb mt-n2 ms-n3 me-n3 mb-2 py-1 px-3">
     <span class="player-breadcrumb-name">
-        <span class="player-breadcrumb-name-text">{{ player.playerName }}</span>
+        <span class="player-breadcrumb-name-text">{{ player.playerName ?? ('#' ~ player.code|upper) }}</span>
         {% if player.countryCode is not null %}
             <span class="player-breadcrumb-flag shadow-custom fi fi-{{ player.countryCode.name }}"></span>
         {% endif %}

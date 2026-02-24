@@ -31,6 +31,7 @@ SELECT
   stopwatch.id AS stopwatch_id, status,
   stopwatch.puzzle_id AS puzzle_id,
   puzzle.name AS puzzle_name,
+  stopwatch.name AS stopwatch_name,
   SUM(
     (EXTRACT(EPOCH FROM (lap->>'end')::timestamp - (lap->>'start')::timestamp))
   ) AS total_seconds,
@@ -54,6 +55,7 @@ SQL;
          *     status: string,
          *     puzzle_id: null|string,
          *     puzzle_name: null|string,
+         *     stopwatch_name: null|string,
          * } $row
          */
         $row = $this->database
@@ -79,6 +81,7 @@ SELECT
   stopwatch.id AS stopwatch_id, status,
   stopwatch.puzzle_id AS puzzle_id,
   puzzle.name AS puzzle_name,
+  stopwatch.name AS stopwatch_name,
   SUM(
     (EXTRACT(EPOCH FROM (lap->>'end')::timestamp - (lap->>'start')::timestamp))
   ) AS total_seconds,
@@ -92,6 +95,8 @@ WHERE
     AND stopwatch.status != :finishedStatus
 GROUP BY
   stopwatch.id, puzzle_id, puzzle_name
+ORDER BY
+  last_start_time DESC
 SQL;
 
         $data = $this->database
@@ -111,6 +116,7 @@ SQL;
              *     status: string,
              *     puzzle_id: null|string,
              *     puzzle_name: null|string,
+             *     stopwatch_name: null|string,
              * } $row
              */
 

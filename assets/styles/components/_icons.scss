@@ -239,8 +239,8 @@ $ci-heart-filled: '\e9e1';
 @font-face {
   font-family: '#{$icons-font-family}';
   src:
-    url('#{$icons-font-path}/#{$icons-font-family}.ttf?ufvuz0') format('truetype'),
     url('#{$icons-font-path}/#{$icons-font-family}.woff?ufvuz0') format('woff'),
+    url('#{$icons-font-path}/#{$icons-font-family}.ttf?ufvuz0') format('truetype'),
     url('#{$icons-font-path}/#{$icons-font-family}.svg?ufvuz0##{$icons-font-family}') format('svg');
   font-weight: normal;
   font-style: normal;

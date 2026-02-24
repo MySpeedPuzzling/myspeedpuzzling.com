@@ -84,6 +84,7 @@ SQL;
              * @var array{
              *     player_id: string,
              *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     solved_puzzles_count: int,
              *     total_pieces_count: int,
@@ -140,6 +141,7 @@ SQL;
              * @var array{
              *     player_id: string,
              *     player_name: null|string,
+             *     player_code: string,
              *     player_country: null|string,
              *     solved_puzzles_count: int,
              *     total_pieces_count: int,

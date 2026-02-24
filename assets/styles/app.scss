@@ -101,42 +101,6 @@ main {
     }
 }
 
-.stopwatch {
-    font-size: 30px;
-    font-variant-numeric: tabular-nums;
-
-    .countdown-value {
-        font-size: 54px;
-        color: #000;
-        font-weight: 500;
-
-        @media (min-width: 768px) {
-            font-size: 80px;
-        }
-
-        @media (min-width: 1200px) {
-            font-size: 100px;
-        }
-    }
-
-    .countdown-label {
-        font-size: 24px;
-
-        @media (min-width: 768px) {
-            font-size: 30px;
-        }
-
-        @media (min-width: 1200px) {
-            font-size: 36px;
-        }
-    }
-}
-
-.stopwatch-image {
-    width: 100%;
-    max-width: 400px;
-}
-
 .navbar {
     padding: 2px 0;
 }

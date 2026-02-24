@@ -11,7 +11,7 @@
                 {% if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers %}
                     <i class="ci-star-filled text-warning"></i>
                 {% endif %}
-                {{ player.playerName }}
+                {{ player.playerName ?? ('#' ~ player.playerCode|upper) }}
                 <code class="text-muted">#{{ player.playerCode|upper }}</code>
             </a>
         </div>

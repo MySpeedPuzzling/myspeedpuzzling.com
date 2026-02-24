@@ -3,108 +3,171 @@
 {% block title %}{{ 'stopwatch.meta.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>{{ 'stopwatch.title'|trans }}</h1>
-
-    <div class="container mt-3">
-        <div class="row align-items-center justify-content-center gy-3 text-center">
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                <div
-                    class="stopwatch justify-content-center"
-                    {% if active_stopwatch is not null %}
-                        data-controller="stopwatch"
-                        data-stopwatch-now="{{ 'now'|date('Y-m-d H:i:s') }}"
-                        data-stopwatch-start="{{ active_stopwatch.lastStart|date('Y-m-d H:i:s') }}"
-                        data-stopwatch-status="{{ active_stopwatch.status.value }}"
-                        data-stopwatch-total-seconds="{{ active_stopwatch.totalSeconds }}"
-                    {% endif %}
-                >
-                    <span class="countdown-hours p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-hours" class="countdown-value" data-stopwatch-target="hours">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|hoursElapsed }}{% else %}00{% endif %}</span>
-                    </span>:
-                    <span class="countdown-minutes p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-minutes" class="countdown-value" data-stopwatch-target="minutes">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|minutesElapsed }}{% else %}00{% endif %}</span>
-                    </span>:
-                    <span class="countdown-seconds p-1 p-sm-2 p-lg-2">
-                        <span id="stopwatch-seconds" class="countdown-value" data-stopwatch-target="seconds">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|secondsElapsed }}{% else %}00{% endif %}</span>
-                    </span>
-                </div>
-
-                <div class="mt-2">
-                    {% if active_stopwatch is null %}
-                        <a data-turbo-prefetch="false" href="{% if active_puzzle is not null %}{{ path('start_stopwatch', {puzzleId: active_puzzle.puzzleId}) }}{% else %}{{ path('start_stopwatch') }}{% endif %}" class="btn btn-success btn-lg">
-                            {{ 'stopwatch.start'|trans }}
-                        </a>
-                    {% elseif active_stopwatch.status.value is same as 'running' %}
-                        <a data-turbo-prefetch="false" href="{{ path('stop_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-danger btn-lg">
-                            {{ 'stopwatch.stop'|trans }}
-                        </a>
-                    {% elseif active_stopwatch.status.value is same as 'paused' %}
-                        <a data-turbo-prefetch="false" href="{{ path('resume_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-accent btn-lg">
-                            {{ 'stopwatch.continue'|trans }}
-                        </a>
-
-                        <p class="mt-3">
-                            <a data-turbo-prefetch="false" href="{{ path('reset_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-outline-danger btn-sm">
-                                {{ 'stopwatch.reset'|trans }}
-                            </a>
-                            <a data-turbo-prefetch="false" href="{{ path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) }}" class="btn btn-sm btn-outline-success">
-                                {{ 'stopwatch.finish'|trans }}
-                            </a>
-                        </p>
-                    {% endif %}
-                </div>
-
+    <div
+        class="stopwatch-page"
+        data-controller="stopwatch"
+        data-stopwatch-status-value="{{ active_stopwatch is not null ? active_stopwatch.status.value : '' }}"
+        data-stopwatch-stopwatch-id-value="{{ active_stopwatch is not null ? active_stopwatch.stopwatchId : '' }}"
+        data-stopwatch-total-seconds-value="{{ active_stopwatch is not null ? active_stopwatch.totalSeconds : 0 }}"
+        data-stopwatch-last-start-value="{{ active_stopwatch is not null ? active_stopwatch.lastStart|date('c') : '' }}"
+        data-stopwatch-server-now-value="{{ 'now'|date('c') }}"
+        data-stopwatch-start-url-value="{{ path('api_stopwatch_start') }}"
+        data-stopwatch-puzzle-id-value="{{ active_puzzle is not null ? active_puzzle.puzzleId : '' }}"
+        data-stopwatch-finish-url-template-value="{{ path('finish_stopwatch', {stopwatchId: '__STOPWATCH_ID__'}) }}"
+        data-stopwatch-reset-url-value="{{ active_puzzle is not null ? path('stopwatch_puzzle', {puzzleId: active_puzzle.puzzleId}) : path('stopwatch') }}"
+        data-stopwatch-milestones-value="{{ milestones|map(m => {label: m.label, timeSeconds: m.timeSeconds, type: m.type, avatar: m.avatar is not null ? m.avatar|thumbnail('puzzle_small') : null, rank: m.rank})|json_encode|e('html_attr') }}"
+        data-stopwatch-solo-times-value="{{ solo_times|json_encode|e('html_attr') }}"
+        data-stopwatch-label-solved-times-value="{{ (solo_times|length == 1 ? 'stopwatch.solved_time' : 'stopwatch.solved_times')|trans({'%count%': solo_times|length}) }}"
+        data-stopwatch-label-current-ranking-value="{{ 'stopwatch.current_ranking'|trans({'%rank%': '%rank%', '%total%': '%total%'}) }}"
+        data-stopwatch-label-delete-confirm-value="{{ 'stopwatch.delete_confirm'|trans }}"
+    >
+        {# Toolbar row #}
+        <div class="stopwatch-toolbar d-flex align-items-center justify-content-between px-3 py-2">
+            <div class="form-check form-switch mb-0" data-stopwatch-target="wakeLockToggle">
+                <input class="form-check-input" type="checkbox" id="stopwatch-wake-lock" data-stopwatch-target="wakeLockCheckbox" data-action="stopwatch#toggleWakeLock">
+                <label class="form-check-label small" for="stopwatch-wake-lock">{{ 'stopwatch.display_always_on'|trans }}</label>
             </div>
 
-            <div class="col-lg-6 col-md-8 col-sm-10">
-                {% if active_puzzle is not null %}
-                    <strong>
-                        {{ active_puzzle.puzzleName }}
-                    </strong>
-                    <br>
-                    {{ active_puzzle.manufacturerName|upper }}<br>
-                    <small class="text-muted">{{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</small><br>
-
-                    {% if active_puzzle.puzzleImage is not null%}
-                        <p>
-                            <img class="rounded-2" style="max-width: 200px;max-height: 200px;" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}" src="{{ active_puzzle.puzzleImage|thumbnail('puzzle_medium') }}">
-                        </p>
-                    {% endif %}
-
-                    {% if active_puzzle.fastestTimeSolo is not null %}
-                        <table class="my-3 mx-auto table-times-overview">
-                            <tr>
-                                <td class="text-start">{{ 'puzzle_solved_count'|trans }}</td>
-                                <td class="text-end">{{ active_puzzle.solvedTimes }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-start">{{ 'fastest_time'|trans }}</td>
-                                <td class="text-end">{{ active_puzzle.fastestTimeSolo|puzzlingTime }}</td>
-                            </tr>
-                            <tr>
-                                <td class="text-start">{{ 'average_time'|trans }}</td>
-                                <td class="text-end">{{ active_puzzle.averageTimeSolo|puzzlingTime }}</td>
-                            </tr>
-                        </table>
-                    {% endif %}
+            <div class="stopwatch-name-area text-end">
+                {% if active_stopwatch is not null %}
+                    <span class="stopwatch-name-display" data-stopwatch-target="nameDisplay" data-action="click->stopwatch#editName" role="button">{{ active_stopwatch.name ?? '' }}</span>
+                    <input type="text"
+                        class="form-control form-control-sm d-none stopwatch-name-input"
+                        data-stopwatch-target="nameInput"
+                        data-action="blur->stopwatch#saveName keydown->stopwatch#saveNameOnEnter"
+                        value="{{ active_stopwatch.name ?? '' }}"
+                        placeholder="{{ 'stopwatch.meta.title'|trans }}"
+                        maxlength="100"
+                    >
+                    <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-action="stopwatch#editName" title="Rename">
+                        <i class="ci-edit"></i>
+                    </button>
                 {% endif %}
             </div>
         </div>
-    </div>
 
-    {% if stopwatches|length > 1 or (stopwatches|length is same as 1 and active_stopwatch is null) %}
-        <h3 class="mt-4">{{ 'stopwatch.more_my_stopwatches'|trans }}</h3>
-
-        <ul>
-            {% for stopwatch in stopwatches %}
-                {% if active_stopwatch is null or stopwatch.stopwatchId is not same as active_stopwatch.stopwatchId %}
-                    <li>
-                        <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}">
-                            {{ stopwatch.interval|puzzlingTime }}{% if stopwatch.puzzleId is not null %} - {{ stopwatch.puzzleName }}{% endif %} ({{ ('stopwatch.status.' ~ stopwatch.status.value)|trans }})
-                        </a>
-                    </li>
+        {# Puzzle banner #}
+        {% if active_puzzle is not null %}
+            <a href="{{ path('puzzle_detail', {puzzleId: active_puzzle.puzzleId, return: app.request.uri, return_title: 'stopwatch.meta.title'|trans}) }}" class="stopwatch-puzzle-banner d-flex align-items-center gap-3 px-3 py-2 text-decoration-none text-body">
+                {% if active_puzzle.puzzleImage is not null %}
+                    <img class="rounded-2 stopwatch-puzzle-thumb"
+                         alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': active_puzzle.manufacturerName ~ ' ' ~ active_puzzle.puzzleName}) }}"
+                         src="{{ active_puzzle.puzzleImage|thumbnail('puzzle_small') }}"
+                    >
                 {% endif %}
-            {% endfor %}
-        </ul>
-    {% endif %}
+                <div>
+                    <strong>{{ active_puzzle.puzzleName }}</strong><br>
+                    <small class="text-muted">{{ active_puzzle.manufacturerName|upper }} &middot; {{ 'pieces_count'|trans({ '%count%': active_puzzle.piecesCount })|raw }}</small>
+                </div>
+            </a>
+        {% endif %}
+
+        {# Card wraps timer + buttons #}
+        <div class="card shadow mt-2">
+            <div class="card-body text-center">
+                {# Timer display #}
+                <div class="py-3">
+                    <div class="stopwatch-digits">
+                        <span class="stopwatch-digit" data-stopwatch-target="hours">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|hoursElapsed }}{% else %}00{% endif %}</span><span class="stopwatch-separator">:</span><span class="stopwatch-digit" data-stopwatch-target="minutes">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|minutesElapsed }}{% else %}00{% endif %}</span><span class="stopwatch-separator">:</span><span class="stopwatch-digit" data-stopwatch-target="seconds">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|secondsElapsed }}{% else %}00{% endif %}</span>
+                    </div>
+                </div>
+
+                {# Action buttons - fixed height to prevent layout shift #}
+                <div class="stopwatch-actions pb-2">
+                    <button type="button"
+                        class="btn btn-success btn-lg {{ active_stopwatch is not null ? 'd-none' : '' }}"
+                        data-stopwatch-target="startBtn"
+                        data-action="stopwatch#start"
+                    >
+                        <i class="ci-play me-1"></i> {{ 'stopwatch.start'|trans }}
+                    </button>
+
+                    <button type="button"
+                        class="btn btn-danger btn-lg {{ active_stopwatch is null or active_stopwatch.status.value != 'running' ? 'd-none' : '' }}"
+                        data-stopwatch-target="pauseBtn"
+                        data-action="stopwatch#pause"
+                    >
+                        <i class="ci-time me-1"></i> {{ 'stopwatch.stop'|trans }}
+                    </button>
+
+                    <button type="button"
+                        class="btn btn-accent btn-lg {{ active_stopwatch is null or active_stopwatch.status.value != 'paused' ? 'd-none' : '' }}"
+                        data-stopwatch-target="resumeBtn"
+                        data-action="stopwatch#resume"
+                    >
+                        <i class="ci-play me-1"></i> {{ 'stopwatch.continue'|trans }}
+                    </button>
+
+                    <div class="d-flex justify-content-center gap-2 mt-3 {{ active_stopwatch is null or active_stopwatch.status.value != 'paused' ? 'd-none' : '' }}" data-stopwatch-target="finishBtn">
+                        <a href="{{ active_stopwatch is not null ? path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) : '#' }}" class="btn btn-outline-success btn-sm" data-stopwatch-target="finishLink" data-turbo-prefetch="false">
+                            <i class="ci-check me-1"></i> {{ 'stopwatch.finish'|trans }}
+                        </a>
+                        <button type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            data-action="stopwatch#reset"
+                        >
+                            <i class="ci-reload me-1"></i> {{ 'stopwatch.reset'|trans }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Live rank #}
+        {% if solo_times|length > 0 %}
+            <div class="text-center mt-3" style="min-height: 1.5rem;">
+                <span class="badge bg-secondary stopwatch-rank" data-stopwatch-target="rankDisplay">{{ (solo_times|length == 1 ? 'stopwatch.solved_time' : 'stopwatch.solved_times')|trans({'%count%': solo_times|length}) }}</span>
+            </div>
+        {% endif %}
+
+        {# Milestone bar #}
+        {% if milestones|length > 0 %}
+            <div class="stopwatch-milestones mx-auto mt-3 d-none" data-stopwatch-target="milestoneBar">
+                <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                    <span class="stopwatch-milestone-avatar d-none" data-stopwatch-target="milestoneAvatar"></span>
+                    <span class="fw-medium" data-stopwatch-target="milestoneLabel"></span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                    <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" role="progressbar" data-stopwatch-target="milestoneProgress" style="width: 0%;"></div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# Other stopwatches #}
+        {% if stopwatches|length > 1 or (stopwatches|length is same as 1 and active_stopwatch is null) %}
+            <div class="mt-5" data-stopwatch-target="otherStopwatches">
+                <h5 class="mb-3">{{ 'stopwatch.more_my_stopwatches'|trans }}</h5>
+                <div class="card shadow-sm">
+                    <div class="list-group list-group-flush">
+                        {% set row_index = 0 %}
+                        {% for stopwatch in stopwatches %}
+                            {% if active_stopwatch is null or stopwatch.stopwatchId is not same as active_stopwatch.stopwatchId %}
+                                <div class="list-group-item d-flex align-items-center gap-3 py-3 {{ row_index is odd ? 'stopwatch-other-row-odd' : '' }}">
+                                    <a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}" class="d-flex align-items-center gap-3 flex-grow-1 text-decoration-none text-body min-width-0">
+                                        <div>
+                                            <span class="stopwatch-other-time">{{ stopwatch.interval|puzzlingTime }}</span>
+                                            <div class="text-muted small">{{ stopwatch.lastStart|ago }}</div>
+                                        </div>
+                                        <span class="flex-grow-1 text-truncate">
+                                            {% if stopwatch.name is not null %}{{ stopwatch.name }}{% elseif stopwatch.puzzleId is not null %}{{ stopwatch.puzzleName }}{% endif %}
+                                        </span>
+                                        <span class="badge bg-{{ stopwatch.status.value == 'running' ? 'success' : 'secondary' }}">{{ ('stopwatch.status.' ~ stopwatch.status.value)|trans }}</span>
+                                    </a>
+                                    <button type="button"
+                                        class="btn btn-sm btn-outline-danger flex-shrink-0"
+                                        data-action="stopwatch#deleteOther"
+                                        data-stopwatch-stopwatch-id-param="{{ stopwatch.stopwatchId }}"
+                                        title="{{ 'stopwatch.reset'|trans }}"
+                                    >
+                                        <i class="ci-trash"></i>
+                                    </button>
+                                </div>
+                                {% set row_index = row_index + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

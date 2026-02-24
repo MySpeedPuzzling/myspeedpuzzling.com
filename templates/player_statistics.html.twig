@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ player.playerName }} - {{ 'menu.statistics'|trans }}{% endblock %}
+{% block title %}{{ player.playerName ?? ('#' ~ player.code|upper) }} - {{ 'menu.statistics'|trans }}{% endblock %}
 
 {% block content %}
 

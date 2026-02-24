@@ -36,6 +36,9 @@ class Stopwatch
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     public StopwatchStatus $status = StopwatchStatus::NotStarted;
 
+    #[Column(nullable: true)]
+    public null|string $name = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -105,6 +108,11 @@ class Stopwatch
 
         $this->status = StopwatchStatus::Finished;
         $this->puzzle = $puzzle;
+    }
+
+    public function rename(null|string $name): void
+    {
+        $this->name = $name;
     }
 
     private function getLastLap(): null|Lap

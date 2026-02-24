@@ -1,0 +1,126 @@
+.stopwatch-page {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.stopwatch-toolbar {
+    gap: 0.5rem;
+}
+
+.stopwatch-name-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.stopwatch-name-display {
+    cursor: pointer;
+    font-weight: 500;
+
+    &:empty::after {
+        content: '\00a0';
+    }
+}
+
+.stopwatch-name-input {
+    max-width: 200px;
+    display: inline-block;
+    text-align: center;
+}
+
+.stopwatch-puzzle-banner {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.stopwatch-puzzle-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.stopwatch-digits {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    font-variant-numeric: tabular-nums;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    line-height: 1;
+}
+
+.stopwatch-digit {
+    font-size: clamp(3rem, 15vw, 7rem);
+    font-weight: 700;
+    min-width: 2ch;
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+.stopwatch-separator {
+    font-size: clamp(2.5rem, 12vw, 5.5rem);
+    font-weight: 300;
+    color: var(--bs-secondary-color);
+    opacity: 0.6;
+}
+
+.stopwatch-milestones {
+    max-width: 500px;
+
+    .progress {
+        border-radius: 0.5rem;
+    }
+
+    .progress-bar {
+        transition: width 1s linear;
+        border-radius: 0.5rem;
+    }
+}
+
+.stopwatch-milestone-avatar {
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.stopwatch-milestone-time {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.9em;
+}
+
+.stopwatch-milestone-rank {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85em;
+    color: var(--bs-secondary-color);
+}
+
+.stopwatch-actions {
+    // Reserve space so buttons don't cause layout shift when swapping
+    // Large button (48px) + mt-3 gap (16px) + secondary row (~31px) + pb-2 (8px)
+    min-height: 103px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+
+    .btn-lg {
+        min-width: 160px;
+    }
+}
+
+.stopwatch-rank {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.85rem;
+}
+
+// Other stopwatches striped rows
+.stopwatch-other-row-odd {
+    background-color: var(--bs-gray-100);
+}
+
+.stopwatch-other-time {
+    font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 1.1rem;
+    white-space: nowrap;
+}

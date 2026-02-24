@@ -11,6 +11,7 @@ readonly final class MostActivePlayer
     public function __construct(
         public string $playerId,
         public string $playerName,
+        public string $playerCode,
         public null|CountryCode $playerCountry,
         public int $solvedPuzzlesCount,
         public int $totalPiecesCount,
@@ -23,6 +24,7 @@ readonly final class MostActivePlayer
      * @param array{
      *     player_id: string,
      *     player_name: null|string,
+     *     player_code: string,
      *     player_country: null|string,
      *     solved_puzzles_count: int,
      *     total_pieces_count: int,
@@ -32,9 +34,12 @@ readonly final class MostActivePlayer
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $playerName = $row['player_name'] ?? '';
+
         return new self(
             playerId: $row['player_id'],
-            playerName: $row['player_name'] ?? '',
+            playerName: $playerName !== '' ? $playerName : '#' . $row['player_code'],
+            playerCode: $row['player_code'],
             playerCountry: CountryCode::fromCode($row['player_country']),
             solvedPuzzlesCount: $row['solved_puzzles_count'],
             totalPiecesCount: $row['total_pieces_count'],

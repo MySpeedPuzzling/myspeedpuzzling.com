@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'export.page_title'|trans }} - {{ player.playerName }}{% endblock %}
+{% block title %}{{ 'export.page_title'|trans }} - {{ player.playerName ?? ('#' ~ player.code|upper) }}{% endblock %}
 
 {% block content %}
     <twig:PlayerHeader player="{{ player }}" />

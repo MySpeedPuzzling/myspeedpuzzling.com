@@ -95,6 +95,11 @@
   vertical-align: middle;
 }
 
+// Bootstrap Icons need inline-block for proper vertical alignment in buttons
+.btn > .bi {
+  display: inline-block;
+}
+
 
 // Icon button
 

@@ -68,7 +68,6 @@ Encore
                     },
                 },
                 require('autoprefixer'),
-                require('cssnano')({ preset: 'default' }), // Minifies CSS
             ],
         };
     })

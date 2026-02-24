@@ -126,7 +126,6 @@ WHERE player.id = :playerId
     AND pst.puzzlers_count = 1
 GROUP BY fav.id, fav.name, fav.code, fav.avatar
 ORDER BY seconds_to_solve ASC
-LIMIT 5
 SQL;
 
         $favData = $this->database

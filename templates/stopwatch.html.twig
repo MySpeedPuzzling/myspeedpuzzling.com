@@ -66,7 +66,7 @@
         <div class="card shadow mt-2">
             <div class="card-body text-center">
                 {# Timer display #}
-                <div class="py-3">
+                <div class="stopwatch-timer-wrap py-3">
                     <div class="stopwatch-digits">
                         <span class="stopwatch-digit" data-stopwatch-target="hours">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|hoursElapsed }}{% else %}00{% endif %}</span><span class="stopwatch-separator">:</span><span class="stopwatch-digit" data-stopwatch-target="minutes">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|minutesElapsed }}{% else %}00{% endif %}</span><span class="stopwatch-separator">:</span><span class="stopwatch-digit" data-stopwatch-target="seconds">{% if active_stopwatch is not null %}{{ active_stopwatch.interval|secondsElapsed }}{% else %}00{% endif %}</span>
                     </div>
@@ -113,23 +113,36 @@
             </div>
         </div>
 
-        {# Live rank #}
-        {% if solo_times|length > 0 %}
-            <div class="text-center mt-3" style="min-height: 1.5rem;">
-                <span class="badge bg-secondary stopwatch-rank" data-stopwatch-target="rankDisplay">{{ (solo_times|length == 1 ? 'stopwatch.solved_time' : 'stopwatch.solved_times')|trans({'%count%': solo_times|length}) }}</span>
-            </div>
-        {% endif %}
+        {% if logged_user.profile.activeMembership %}
+            {# Live rank #}
+            {% if solo_times|length > 0 %}
+                <div class="text-center mt-3" style="min-height: 1.5rem;">
+                    <span class="badge bg-secondary stopwatch-rank" data-stopwatch-target="rankDisplay">{{ (solo_times|length == 1 ? 'stopwatch.solved_time' : 'stopwatch.solved_times')|trans({'%count%': solo_times|length}) }}</span>
+                </div>
+            {% endif %}
 
-        {# Milestone bar #}
-        {% if milestones|length > 0 %}
-            <div class="stopwatch-milestones mx-auto mt-3 d-none" data-stopwatch-target="milestoneBar">
-                <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
-                    <span class="stopwatch-milestone-avatar d-none" data-stopwatch-target="milestoneAvatar"></span>
-                    <span class="fw-medium" data-stopwatch-target="milestoneLabel"></span>
+            {# Milestone bar #}
+            {% if milestones|length > 0 %}
+                <div class="stopwatch-milestones mx-auto mt-3 d-none" data-stopwatch-target="milestoneBar">
+                    <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                        <span class="stopwatch-milestone-avatar d-none" data-stopwatch-target="milestoneAvatar"></span>
+                        <span class="fw-medium" data-stopwatch-target="milestoneLabel"></span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" role="progressbar" data-stopwatch-target="milestoneProgress" style="width: 0%;"></div>
+                    </div>
                 </div>
-                <div class="progress" style="height: 10px;">
-                    <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" role="progressbar" data-stopwatch-target="milestoneProgress" style="width: 0%;"></div>
-                </div>
+            {% endif %}
+        {% else %}
+            <div class="stopwatch-timeline-placeholder card-body card mt-3 shadow-custom">
+                <button
+                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-2 shadow-custom"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                >
+                    <i class="ci-locked me-1"></i>
+                    {{ 'membership.members_exclusive_button'|trans }}
+                </button>
             </div>
         {% endif %}
 

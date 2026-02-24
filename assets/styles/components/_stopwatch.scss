@@ -40,7 +40,7 @@
 
 .stopwatch-digits {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     justify-content: center;
     font-variant-numeric: tabular-nums;
     font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
@@ -96,7 +96,7 @@
 .stopwatch-actions {
     // Reserve space so buttons don't cause layout shift when swapping
     // Large button (48px) + mt-3 gap (16px) + secondary row (~31px) + pb-2 (8px)
-    min-height: 103px;
+    min-height: 59px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -112,6 +112,16 @@
     font-size: 0.85rem;
 }
 
+.stopwatch-timeline-placeholder {
+    margin: 15px auto;
+    max-width: 380px;
+    height: 100px;
+    background: url('../../img/stopwatch-timeline-placeholder.jpg') center center no-repeat;
+    background-size: contain;
+    text-align: center;
+    align-items: center;
+}
+
 // Other stopwatches striped rows
 .stopwatch-other-row-odd {
     background-color: var(--bs-gray-100);
@@ -123,4 +133,87 @@
     font-weight: 600;
     font-size: 1.1rem;
     white-space: nowrap;
+}
+
+// Landscape: fit digits + milestones on screen without scrolling
+@media (orientation: landscape) and (max-height: 500px) {
+    .stopwatch-page {
+        max-width: 100%;
+    }
+
+    .stopwatch-toolbar {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+    }
+
+    .stopwatch-puzzle-banner {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        gap: 0.5rem !important;
+    }
+
+    .stopwatch-puzzle-thumb {
+        width: 32px;
+        height: 32px;
+    }
+
+    .stopwatch-digit {
+        font-size: clamp(1.75rem, 10vh, 3.5rem);
+    }
+
+    .stopwatch-separator {
+        font-size: clamp(1.25rem, 8vh, 2.5rem);
+    }
+
+    // Reduce timer vertical padding (.py-3 override)
+    .stopwatch-page .card {
+        margin-top: 0.25rem !important;
+
+        .card-body {
+            padding: 0.25rem 0.75rem !important;
+        }
+    }
+
+    .stopwatch-timer-wrap {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+    }
+
+    .stopwatch-actions {
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: auto;
+        padding-bottom: 0 !important;
+
+        .btn-lg {
+            min-width: auto;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        // Finish/reset row becomes inline with resume button
+        [data-stopwatch-target="finishBtn"] {
+            margin-top: 0 !important;
+        }
+    }
+
+    // Rank badge
+    .stopwatch-page .stopwatch-rank {
+        margin-top: 0.25rem !important;
+    }
+
+    .stopwatch-page > .text-center.mt-3 {
+        margin-top: 0.25rem !important;
+        min-height: auto !important;
+    }
+
+    // Milestone bar
+    .stopwatch-milestones {
+        margin-top: 0.5rem !important;
+
+        .mb-2 {
+            margin-bottom: 0.25rem !important;
+        }
+    }
 }

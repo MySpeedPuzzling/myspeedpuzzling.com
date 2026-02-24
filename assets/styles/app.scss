@@ -183,6 +183,10 @@ main {
     }
 }
 
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    background-color: #fdfdfd;
+}
+
 .table-active-player {
     --cz-table-color: #000;
     --cz-table-bg: #f0ecfb;

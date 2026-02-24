@@ -160,10 +160,12 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - The service worker uses cache-first for `/build/*`, network-first for HTML navigation, and stale-while-revalidate for images
 
 ### Turbo Configuration
-- **IMPORTANT**: Turbo is globally disabled via `data-turbo="false"` on the `<html>` element in `base.html.twig`
-- To use Turbo on specific links or forms, you MUST explicitly enable it with `data-turbo="true"`
-- Example for Turbo Frame links: `<a href="..." data-turbo="true" data-turbo-frame="modal-frame">`
-- Example for forms: `<form ... data-turbo="true" data-turbo-frame="modal-frame">`
+- **Turbo Drive is globally enabled** for SPA-like forward navigation
+- **Snapshot cache is disabled** via `<meta name="turbo-cache-control" content="no-cache">` — no stale content flashes
+- **Link prefetch is disabled** via `<meta name="turbo-prefetch" content="false">`
+- **Back/forward navigation uses native browser behavior** — restoration visits are intercepted in `app.js` and redirected to `window.location.href` for reliable scroll restoration and iOS swipe-back
+- To disable Turbo on specific links or forms, use `data-turbo="false"`
+- Turbo Frames still work as before: `<a href="..." data-turbo-frame="modal-frame">`
 - See `.claude/symfony-ux-hotwire-architecture-guide.md` for modal architecture patterns
 
 - When generating migrations for example or running any other commands that needs to run in the PHP environment, ALWAYS run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.

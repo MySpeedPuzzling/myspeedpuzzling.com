@@ -31,8 +31,20 @@ import 'simplebar/dist/simplebar.css';
 import 'bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
 
+import * as Turbo from '@hotwired/turbo';
 import './feedback_modal.js'
 import './turbo-stream-actions.js'
+
+Turbo.setProgressBarDelay(0);
+
+// Force native browser navigation for back/forward (restoration visits)
+// This ensures iOS swipe-back, browser back/forward buttons all work identically to a non-Turbo site
+document.addEventListener('turbo:visit', function(event) {
+    if (event.detail.action === 'restore') {
+        event.preventDefault();
+        window.location.href = event.detail.url;
+    }
+});
 
 // After Turbo morph/render, cached images lose the "loaded" class.
 // Re-check all lazy images and mark already-complete ones as loaded.

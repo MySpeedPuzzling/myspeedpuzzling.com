@@ -23,8 +23,18 @@ Google Fonts uses `display=optional` instead of `display=swap`. This eliminates 
 - They are loaded dynamically in the barcode scanner controller's `scanLoop()` method, only when the scanner is actually activated.
 - Saves ~25KB on every page load.
 
-## Selective Bootstrap SCSS (`app.scss`)
+### LightGallery (`gallery_controller.js`)
+- LightGallery JS (~46KB), plugins (fullscreen, zoom), and CSS are loaded dynamically via `import()` only when `.gallery` elements exist on the page.
+- Moved out of the main vendor chunk into a separate lazy chunk.
 
+### Google Analytics (`analytics_controller.js`)
+- GA is deferred using `requestIdleCallback` (with 5s max timeout fallback) instead of a fixed 300ms timeout.
+- This ensures GA doesn't compete with LCP resources — it loads when the browser is idle.
+- User interaction (scroll, click, touch) still triggers immediate loading.
+
+## Selective Bootstrap Imports
+
+### SCSS (`app.scss`)
 Instead of `@import 'bootstrap/scss/bootstrap'`, we import individual Bootstrap components. Excluded unused components:
 - `offcanvas` (~16KB)
 - `carousel` (~7.5KB)
@@ -32,6 +42,12 @@ Instead of `@import 'bootstrap/scss/bootstrap'`, we import individual Bootstrap 
 - `tooltip` (~5.3KB)
 
 Keep `accordion` (used on FAQ page).
+
+### JS (`app.js`)
+Instead of `import 'bootstrap'`, we import only used JS components:
+- `modal`, `dropdown`, `collapse`, `tab`, `toast`
+- Exposed on `window.bootstrap` for controllers that use `bootstrap.Modal` etc.
+- Excluded: tooltip, popover, offcanvas, carousel, scrollspy, alert, button plugins
 
 ## CLS Fixes
 
@@ -46,7 +62,7 @@ Keep `accordion` (used on FAQ page).
 
 ## Guidelines for Future Changes
 
-- When adding new Bootstrap components, check if they need to be added to the selective imports in `app.scss`.
+- When adding new Bootstrap components, check if they need to be added to the selective imports in `app.scss` and `app.js` (+ `window.bootstrap` object).
 - When creating new Live Component skeletons, ensure placeholder dimensions match the real rendered content dimensions.
 - Prefer dynamic `import()` for heavy libraries that are only used on specific pages (datepickers, charts, scanners).
 - Keep CDN scripts out of `base.html.twig` — load them dynamically in the controller that needs them.

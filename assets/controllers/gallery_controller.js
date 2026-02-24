@@ -1,16 +1,21 @@
 import { Controller } from '@hotwired/stimulus';
 
-import 'lightgallery/css/lightgallery-bundle.min.css';
-
-import lightGallery from 'lightgallery';
-import lgFullscreen from 'lightgallery/plugins/fullscreen';
-import lgZoom from 'lightgallery/plugins/zoom';
-
 export default class extends Controller {
-    connect() {
+    async connect() {
         let gallery = document.querySelectorAll('.gallery');
 
         if (gallery.length) {
+            const [
+                { default: lightGallery },
+                { default: lgFullscreen },
+                { default: lgZoom },
+            ] = await Promise.all([
+                import('lightgallery'),
+                import('lightgallery/plugins/fullscreen'),
+                import('lightgallery/plugins/zoom'),
+                import('lightgallery/css/lightgallery-bundle.min.css'),
+            ]);
+
             for (let i = 0; i < gallery.length; i++) {
 
                 const thumbnails = gallery[i].dataset.thumbnails ? true : false,

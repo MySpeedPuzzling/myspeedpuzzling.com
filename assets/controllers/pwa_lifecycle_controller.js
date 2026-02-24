@@ -109,7 +109,7 @@ export default class extends Controller {
                 height: ${INDICATOR_SIZE}px;
                 margin-left: -${INDICATOR_SIZE / 2}px;
                 border-radius: 50%;
-                background: #fff;
+                background: #e9ecef;
                 box-shadow: 0 1px 6px rgba(0,0,0,.16);
                 display: flex;
                 align-items: center;

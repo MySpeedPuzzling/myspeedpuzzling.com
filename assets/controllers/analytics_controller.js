@@ -3,8 +3,8 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Stimulus controller for delayed Google Analytics loading with bot detection.
  *
- * Loads GA after user interaction (scroll, click, touch) OR a short timeout (300ms),
- * whichever comes first. Skips loading entirely for detected bots.
+ * Loads GA after user interaction (scroll, click, touch) OR when browser is idle
+ * (via requestIdleCallback), whichever comes first. Skips loading entirely for detected bots.
  */
 export default class extends Controller {
     static values = {
@@ -25,9 +25,11 @@ export default class extends Controller {
     }
 
     disconnect() {
-        // Cleanup timeout if controller disconnects before firing
         if (this.timeout) {
             clearTimeout(this.timeout);
+        }
+        if (this.idleId) {
+            cancelIdleCallback(this.idleId);
         }
     }
 
@@ -60,9 +62,10 @@ export default class extends Controller {
             if (window.gaLoaded) return;
             window.gaLoaded = true;
 
-            // Cleanup listeners
+            // Cleanup listeners and pending callbacks
             events.forEach(e => document.removeEventListener(e, this.loadGA));
-            clearTimeout(this.timeout);
+            if (this.timeout) clearTimeout(this.timeout);
+            if (this.idleId) cancelIdleCallback(this.idleId);
 
             this.injectGA();
         };
@@ -70,8 +73,12 @@ export default class extends Controller {
         // User interaction triggers
         events.forEach(e => document.addEventListener(e, this.loadGA, { once: true, passive: true }));
 
-        // Fallback timeout (300ms) - catches users who just read without interaction
-        this.timeout = setTimeout(this.loadGA, 300);
+        // Fallback: wait until browser is idle so GA doesn't compete with LCP
+        if ('requestIdleCallback' in window) {
+            this.idleId = requestIdleCallback(this.loadGA, { timeout: 5000 });
+        } else {
+            this.timeout = setTimeout(this.loadGA, 3000);
+        }
     }
 
     injectGA() {

@@ -24,18 +24,18 @@ import './styles/app.scss';
 // start the Stimulus application
 import './bootstrap';
 
-import 'simplebar'; // or "import SimpleBar from 'simplebar';" if you want to use it manually.
-import 'simplebar/dist/simplebar.css';
-
-// Twitter bootstrap
-import 'bootstrap';
+// Bootstrap - selective JS imports via named exports (tree-shakes unused components)
+import { Modal, Dropdown, Collapse, Tab, Toast } from 'bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.min.css';
+
+// Expose on window.bootstrap for controllers that use bootstrap.Modal etc.
+window.bootstrap = { Modal, Dropdown, Collapse, Tab, Toast };
 
 import * as Turbo from '@hotwired/turbo';
 import './feedback_modal.js'
 import './turbo-stream-actions.js'
 
-Turbo.setProgressBarDelay(0);
+Turbo.config.drive.progressBarDelay = 0;
 
 // Force native browser navigation for back/forward (restoration visits)
 // This ensures iOS swipe-back, browser back/forward buttons all work identically to a non-Turbo site

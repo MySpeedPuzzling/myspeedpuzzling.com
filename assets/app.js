@@ -47,12 +47,12 @@ document.addEventListener('turbo:render', revealCachedLazyImages);
 document.addEventListener('turbo:morph', revealCachedLazyImages);
 document.addEventListener('turbo:frame-render', revealCachedLazyImages);
 
-import zoomPlugin from 'chartjs-plugin-zoom';
-
-// register globally for all charts
+// register zoom plugin only when a chart initializes (lazy-loaded)
 document.addEventListener('chartjs:init', function (event) {
-    const Chart = event.detail.Chart;
-    Chart.register(zoomPlugin);
+    import('chartjs-plugin-zoom').then(function (module) {
+        const Chart = event.detail.Chart;
+        Chart.register(module.default);
+    });
 });
 
 // Service Worker registration (skip in native apps)

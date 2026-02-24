@@ -73,39 +73,6 @@
             <link rel="alternate" hreflang="x-default" href="{{ url(currentRoute, routeParamsEn) }}">
         {% endif %}
 
-        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
-        <script>
-            (function() {
-                var initPolyfill = function() {
-                    var polyfillAvailable = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-
-                    try {
-                        if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
-                            window.BarcodeDetector.getSupportedFormats().then(function(formats) {
-                                if (formats.indexOf('ean_13') === -1 && polyfillAvailable) {
-                                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                                }
-                            }).catch(function() {
-                                if (polyfillAvailable) {
-                                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                                }
-                            });
-                            return;
-                        }
-                    } catch (e) {}
-
-                    if (polyfillAvailable) {
-                        window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-                    }
-                };
-
-                window.addEventListener('load', function() {
-                    setTimeout(initPolyfill, 100);
-                });
-            })();
-        </script>
-
         {{ encore_entry_script_tags('app') }}
 
         <!-- JSON-LD Structured Data -->
@@ -724,5 +691,38 @@
                  data-mercure-hub-topics-value="{{ mercure_subscribe_topics(logged_user.profile.playerId)|json_encode|e('html_attr') }}"
                  style="display: none;"></div>
         {% endif %}
+
+        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js"></script>
+        <script>
+            (function() {
+                var initPolyfill = function() {
+                    var polyfillAvailable = typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+
+                    try {
+                        if (window.BarcodeDetector && typeof window.BarcodeDetector.getSupportedFormats === 'function') {
+                            window.BarcodeDetector.getSupportedFormats().then(function(formats) {
+                                if (formats.indexOf('ean_13') === -1 && polyfillAvailable) {
+                                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                                }
+                            }).catch(function() {
+                                if (polyfillAvailable) {
+                                    window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                                }
+                            });
+                            return;
+                        }
+                    } catch (e) {}
+
+                    if (polyfillAvailable) {
+                        window.BarcodeDetector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                    }
+                };
+
+                window.addEventListener('load', function() {
+                    setTimeout(initPolyfill, 100);
+                });
+            })();
+        </script>
     </body>
 </html>

@@ -1,6 +1,5 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
-const PAGES_CACHE = 'pages-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
 
 const OFFLINE_URL = '/offline.html';
@@ -94,7 +93,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Strategy: Network-first for HTML navigation
+    // Strategy: Network-only for HTML navigation (offline fallback only)
     if (request.mode === 'navigate' || accept.includes('text/html')) {
         event.respondWith(networkFirstNavigation(request));
         return;
@@ -120,23 +119,10 @@ async function cacheFirst(request, cacheName) {
 
 async function networkFirstNavigation(request) {
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-        const response = await fetch(request, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (response.ok) {
-            const cache = await caches.open(PAGES_CACHE);
-            cache.put(request, response.clone());
-        }
+        const response = await fetch(request);
         return response;
     } catch (e) {
-        // Try cached version
-        const cached = await caches.match(request);
-        if (cached) return cached;
-
-        // Fallback to offline page
+        // Offline — show offline page
         const offline = await caches.match(OFFLINE_URL);
         return offline || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
     }

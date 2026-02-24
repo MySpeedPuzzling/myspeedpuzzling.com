@@ -157,7 +157,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - The service worker is at `public/service-worker.js` with a `CACHE_VERSION` constant
 - **Bump `CACHE_VERSION`** when changing: the service worker fetch/caching logic itself, the offline page (`public/offline.html`), or any non-content-hashed static assets served from the same origin
 - **No bump needed** for `/build/*` asset changes — those are content-hashed by Webpack Encore and cached by URL, so new builds get new URLs automatically
-- The service worker uses cache-first for `/build/*`, network-first for HTML navigation, and stale-while-revalidate for images
+- The service worker uses cache-first for `/build/*`, network-only for HTML navigation (offline fallback only, no caching), and stale-while-revalidate for images
 
 ### Turbo Configuration
 - **Turbo Drive is globally enabled** for SPA-like forward navigation

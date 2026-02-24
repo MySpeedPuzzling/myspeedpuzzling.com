@@ -11,10 +11,20 @@ use UnitEnum;
 
 final class GenericObjectSerializer
 {
+    private const int MAX_DEPTH = 3;
+
     /**
      * @return array<string, mixed>
      */
     public function __invoke(object $object): array
+    {
+        return $this->serializeObject($object, 0);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeObject(object $object, int $depth): array
     {
         $data = [];
         $reflection = new \ReflectionClass($object);
@@ -25,13 +35,13 @@ final class GenericObjectSerializer
             }
 
             $value = $property->getValue($object);
-            $data[$property->getName()] = $this->formatValue($value);
+            $data[$property->getName()] = $this->formatValue($value, $depth);
         }
 
         return $data;
     }
 
-    private function formatValue(mixed $value): mixed
+    private function formatValue(mixed $value, int $depth): mixed
     {
         return match (true) {
             $value === null, is_bool($value), is_int($value), is_float($value) => $value,
@@ -40,12 +50,22 @@ final class GenericObjectSerializer
             $value instanceof DateTimeInterface => $value->format('Y-m-d H:i:s'),
             $value instanceof UnitEnum => $value->name,
             $value instanceof UploadedFile => $value->getClientOriginalName(),
-            is_array($value) => array_map(
-                static fn(mixed $v): mixed => is_scalar($v) ? $v : (is_object($v) ? $v::class : '...'),
-                $value,
-            ),
+            is_array($value) => $this->formatArray($value, $depth),
+            is_object($value) && $depth < self::MAX_DEPTH => $this->serializeObject($value, $depth + 1),
             is_object($value) => $value::class,
             default => '...',
         };
+    }
+
+    /**
+     * @param array<mixed> $value
+     * @return array<mixed>
+     */
+    private function formatArray(array $value, int $depth): array
+    {
+        return array_map(
+            fn(mixed $v): mixed => $this->formatValue($v, $depth),
+            $value,
+        );
     }
 }

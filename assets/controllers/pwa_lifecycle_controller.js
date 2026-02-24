@@ -36,9 +36,34 @@ export default class extends Controller {
             return;
         }
 
-        if (this._lastHiddenAt !== null && (Date.now() - this._lastHiddenAt) >= STALE_THRESHOLD_MS) {
-            window.location.reload();
+        if (this._isPwa && this._lastHiddenAt !== null && (Date.now() - this._lastHiddenAt) >= STALE_THRESHOLD_MS) {
+            if (!this._hasActiveFormInput()) {
+                window.location.reload();
+            }
         }
+    }
+
+    _hasActiveFormInput() {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT')) {
+            return true;
+        }
+
+        const forms = document.querySelectorAll('form');
+        for (const form of forms) {
+            for (const el of form.elements) {
+                if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'search' || el.type === 'email' || el.type === 'url' || el.type === 'tel')) {
+                    if (el.value !== el.defaultValue) return true;
+                } else if (el.tagName === 'TEXTAREA') {
+                    if (el.value !== el.defaultValue) return true;
+                } else if (el.tagName === 'SELECT') {
+                    const defaultSelected = [...el.options].find(o => o.defaultSelected);
+                    if (defaultSelected && el.value !== defaultSelected.value) return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     _handlePageShow(event) {

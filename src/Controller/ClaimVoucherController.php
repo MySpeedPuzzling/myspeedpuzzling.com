@@ -90,7 +90,7 @@ final class ClaimVoucherController extends AbstractController
                     }
                 }
             } catch (HandlerFailedException $e) {
-                $nested = $e->getWrappedExceptions()[0] ?? $e;
+                $nested = $e->getPrevious() ?? $e;
 
                 match (true) {
                     $nested instanceof VoucherNotFound => $this->addFlash('danger', 'Invalid voucher code. Please check and try again.'),

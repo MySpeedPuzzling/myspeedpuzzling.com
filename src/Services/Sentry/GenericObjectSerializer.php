@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\Sentry;
 use DateTimeInterface;
 use Ramsey\Uuid\UuidInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Messenger\Envelope;
 use UnitEnum;
 
 final class GenericObjectSerializer
@@ -14,7 +15,7 @@ final class GenericObjectSerializer
     private const int MAX_DEPTH = 3;
 
     private const array SENSITIVE_PROPERTIES = [
-        'voucherCode', 'content', 'initialMessage', 'password', 'token',
+        'password',
     ];
 
     /**
@@ -59,11 +60,44 @@ final class GenericObjectSerializer
             $value instanceof DateTimeInterface => $value->format('Y-m-d H:i:s'),
             $value instanceof UnitEnum => $value->name,
             $value instanceof UploadedFile => $value->getClientOriginalName(),
+            $value instanceof Envelope => $this->formatEnvelope($value, $depth),
             is_array($value) => $this->formatArray($value, $depth),
             is_object($value) && $depth < self::MAX_DEPTH => $this->serializeObject($value, $depth + 1),
-            is_object($value) => $value::class,
+            is_object($value) => $this->formatObjectSummary($value),
             default => '...',
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatEnvelope(Envelope $envelope, int $depth): array
+    {
+        return [
+            'message' => $this->formatValue($envelope->getMessage(), $depth),
+        ];
+    }
+
+    private function formatObjectSummary(object $object): string
+    {
+        $className = $object::class;
+
+        try {
+            $reflection = new \ReflectionClass($object);
+            if ($reflection->hasProperty('id')) {
+                $property = $reflection->getProperty('id');
+                if ($property->isInitialized($object)) {
+                    $id = $property->getValue($object);
+                    if ($id instanceof UuidInterface) {
+                        return $className . '(' . $id->toString() . ')';
+                    }
+                }
+            }
+        } catch (\ReflectionException) {
+            // Fallback to class name only
+        }
+
+        return $className;
     }
 
     /**

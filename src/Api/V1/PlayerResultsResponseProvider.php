@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -18,6 +19,7 @@ final readonly class PlayerResultsResponseProvider implements ProviderInterface
     public function __construct(
         private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         private RequestStack $requestStack,
+        private GetPlayerProfile $getPlayerProfile,
     ) {
     }
 
@@ -26,8 +28,19 @@ final readonly class PlayerResultsResponseProvider implements ProviderInterface
         /** @var string $playerId */
         $playerId = $uriVariables['playerId'];
 
+        $profile = $this->getPlayerProfile->byId($playerId);
+
         $request = $this->requestStack->getCurrentRequest();
         $type = $request?->query->getString('type', 'solo') ?? 'solo';
+
+        if ($profile->isPrivate) {
+            return new PlayerResultsResponse(
+                player_id: $playerId,
+                type: $type,
+                count: 0,
+                results: [],
+            );
+        }
 
         $results = match ($type) {
             'duo' => $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId),

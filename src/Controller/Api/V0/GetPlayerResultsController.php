@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Api\V0;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\PuzzlingTimeFormatter;
@@ -22,6 +23,7 @@ final class GetPlayerResultsController extends AbstractController
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private PuzzlingTimeFormatter $puzzlingTimeFormatter,
         readonly private RelativeTimeFormatter $relativeTimeFormatter,
+        readonly private GetPlayerProfile $getPlayerProfile,
     ) {
     }
 
@@ -35,6 +37,16 @@ final class GetPlayerResultsController extends AbstractController
         }
 
         try {
+            $profile = $this->getPlayerProfile->byId($playerId);
+
+            if ($profile->isPrivate) {
+                return $this->json([
+                    'solo' => [],
+                    'duo' => [],
+                    'team' => [],
+                ]);
+            }
+
             $soloResults = array_map(
                 fn (SolvedPuzzle $result): array => $this->resultToApiShape($result),
                 $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId),

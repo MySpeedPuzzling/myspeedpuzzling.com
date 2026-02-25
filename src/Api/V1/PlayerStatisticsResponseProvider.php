@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerStatistics;
 use SpeedPuzzling\Web\Results\PlayerStatistics;
 
@@ -16,6 +17,7 @@ final readonly class PlayerStatisticsResponseProvider implements ProviderInterfa
 {
     public function __construct(
         private GetPlayerStatistics $getPlayerStatistics,
+        private GetPlayerProfile $getPlayerProfile,
     ) {
     }
 
@@ -23,6 +25,23 @@ final readonly class PlayerStatisticsResponseProvider implements ProviderInterfa
     {
         /** @var string $playerId */
         $playerId = $uriVariables['playerId'];
+
+        $profile = $this->getPlayerProfile->byId($playerId);
+
+        $emptyStats = new StatisticsGroupResponse(
+            total_seconds: 0,
+            total_pieces: 0,
+            solved_puzzles_count: 0,
+        );
+
+        if ($profile->isPrivate) {
+            return new PlayerStatisticsResponse(
+                player_id: $playerId,
+                solo: $emptyStats,
+                duo: $emptyStats,
+                team: $emptyStats,
+            );
+        }
 
         $solo = $this->getPlayerStatistics->solo($playerId);
         $duo = $this->getPlayerStatistics->duo($playerId);

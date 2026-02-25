@@ -305,6 +305,7 @@ export default class extends Controller {
 
         this._milestones = this.milestonesValue;
         this._currentMilestoneIndex = 0;
+        this._milestoneHoldUntil = null;
 
         const elapsed = this._getElapsedMs();
         while (this._currentMilestoneIndex < this._milestones.length &&
@@ -319,20 +320,25 @@ export default class extends Controller {
         if (!this._milestones || this._milestones.length === 0) return;
         if (!this.hasMilestoneBarTarget) return;
 
-        const prevIndex = this._currentMilestoneIndex;
-
-        while (this._currentMilestoneIndex < this._milestones.length &&
-               this._milestones[this._currentMilestoneIndex].timeSeconds * 1000 <= elapsedMs) {
-            this._currentMilestoneIndex++;
+        // Hold at 100% briefly when a milestone is reached before advancing
+        if (this._milestoneHoldUntil) {
+            if (performance.now() < this._milestoneHoldUntil) {
+                return;
+            }
+            // Hold period over — advance past all reached milestones
+            this._milestoneHoldUntil = null;
+            while (this._currentMilestoneIndex < this._milestones.length &&
+                   this._milestones[this._currentMilestoneIndex].timeSeconds * 1000 <= elapsedMs) {
+                this._currentMilestoneIndex++;
+            }
         }
 
-        // When transitioning to next milestone, instantly reset progress bar (no animation)
-        if (this._currentMilestoneIndex !== prevIndex) {
-            this.milestoneProgressTarget.style.transition = 'none';
-            this.milestoneProgressTarget.style.width = '0%';
-            // Force reflow then re-enable animation
-            this.milestoneProgressTarget.offsetWidth;
-            this.milestoneProgressTarget.style.transition = '';
+        // Check if current milestone was just reached
+        if (this._currentMilestoneIndex < this._milestones.length &&
+            this._milestones[this._currentMilestoneIndex].timeSeconds * 1000 <= elapsedMs) {
+            this.milestoneProgressTarget.style.width = '100%';
+            this._milestoneHoldUntil = performance.now() + 400;
+            return;
         }
 
         if (this._currentMilestoneIndex >= this._milestones.length) {

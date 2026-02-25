@@ -1,7 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
-import Cropper from 'cropperjs';
-import 'cropperjs/dist/cropper.min.css';
 
 export default class extends Controller {
     static values = {
@@ -13,6 +11,7 @@ export default class extends Controller {
         edit: { type: String, default: 'Edit' },
     };
 
+    CropperClass = null;
     cropper = null;
     originalFile = null;
     currentFileInput = null;
@@ -31,7 +30,7 @@ export default class extends Controller {
         }
     }
 
-    openEditor(event) {
+    async openEditor(event) {
         event.preventDefault();
 
         const fileDropArea = event.currentTarget.closest('.file-drop-area');
@@ -39,6 +38,14 @@ export default class extends Controller {
 
         if (!fileInput.files || !fileInput.files[0]) {
             return;
+        }
+
+        if (!this.CropperClass) {
+            const [{ default: Cropper }] = await Promise.all([
+                import('cropperjs'),
+                import('cropperjs/dist/cropper.min.css'),
+            ]);
+            this.CropperClass = Cropper;
         }
 
         this.originalFile = fileInput.files[0];
@@ -131,7 +138,7 @@ export default class extends Controller {
     initCropper() {
         this.destroyCropper();
 
-        this.cropper = new Cropper(this.imageElement, {
+        this.cropper = new this.CropperClass(this.imageElement, {
             viewMode: 0,
             dragMode: 'crop',
             autoCropArea: 1,

@@ -87,7 +87,7 @@ readonly final class ExportableSolvingTime
             puzzleFastestTimeFormatted: self::formatTime($puzzleFastestTime),
             puzzleAverageTime: $puzzleAverageTime,
             puzzleAverageTimeFormatted: self::formatTime($puzzleAverageTime),
-            playerPlacement: $row['player_rank'],
+            playerRank: $row['player_rank'],
             puzzleTotalSolved: $row['puzzle_total_solved'],
         );
     }
@@ -131,7 +131,7 @@ readonly final class ExportableSolvingTime
             'puzzle_fastest_time_formatted' => $this->puzzleFastestTimeFormatted,
             'puzzle_average_time' => $this->puzzleAverageTime,
             'puzzle_average_time_formatted' => $this->puzzleAverageTimeFormatted,
-            'player_rank' => $this->playerPlacement,
+            'player_rank' => $this->playerRank,
             'puzzle_total_solved' => $this->puzzleTotalSolved,
         ];
     }

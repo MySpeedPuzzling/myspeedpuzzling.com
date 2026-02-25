@@ -59,6 +59,7 @@
 "average_time_short": "平均: %time%"
 "fastest_time": "最速:"
 "average_time": "平均:"
+"average_first_attempt_time": "初回平均:"
 "only_first_tries_filter": "初回のみ"
 "only_unboxed_filter": "箱なしのみ"
 "only_favorite_players_filter": "お気に入りのみ"
@@ -421,6 +422,10 @@
     "team_members": "チームメンバー（グループ完成の場合）"
     "photo_url": "完成パズル写真のURL"
     "comment": "コメント"
+    "puzzle_fastest_time": "パズルの最速タイム"
+    "puzzle_average_time": "パズルの平均タイム"
+    "player_rank": "パズルでのあなたの順位"
+    "puzzle_total_solved": "パズルの総完成回数"
 "events":
   "title": "イベント"
   "meta":

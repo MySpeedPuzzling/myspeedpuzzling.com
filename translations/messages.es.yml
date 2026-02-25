@@ -59,6 +59,7 @@
 "average_time_short": "Prom: %time%"
 "fastest_time": "Más rápido:"
 "average_time": "Promedio:"
+"average_first_attempt_time": "Prom. 1er int.:"
 "only_first_tries_filter": "Solo primeros intentos"
 "only_unboxed_filter": "Solo sin caja"
 "only_favorite_players_filter": "Solo jugadores favoritos"
@@ -426,6 +427,10 @@
     "team_members": "Miembros del equipo (si es resolución en grupo)"
     "photo_url": "URL de la foto del puzzle terminado"
     "comment": "Tu comentario"
+    "puzzle_fastest_time": "Tiempo más rápido del puzzle"
+    "puzzle_average_time": "Tiempo promedio del puzzle"
+    "player_rank": "Tu posición en el puzzle"
+    "puzzle_total_solved": "Total de veces que se resolvió el puzzle"
 "events":
   "title": "Eventos"
   "meta":

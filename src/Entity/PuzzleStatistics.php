@@ -83,6 +83,39 @@ class PuzzleStatistics
     #[Column(nullable: true)]
     public null|int $slowestTimeTeam = null;
 
+    // First attempt stats
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $averageTimeFirstAttempt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $averageTimeFirstAttemptSolo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $averageTimeFirstAttemptDuo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $averageTimeFirstAttemptTeam = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $fastestTimeFirstAttempt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $fastestTimeFirstAttemptSolo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $fastestTimeFirstAttemptDuo = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|int $fastestTimeFirstAttemptTeam = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -113,5 +146,14 @@ class PuzzleStatistics
         $this->fastestTimeTeam = $data->fastestTimeTeam;
         $this->averageTimeTeam = $data->averageTimeTeam;
         $this->slowestTimeTeam = $data->slowestTimeTeam;
+
+        $this->averageTimeFirstAttempt = $data->averageTimeFirstAttempt;
+        $this->averageTimeFirstAttemptSolo = $data->averageTimeFirstAttemptSolo;
+        $this->averageTimeFirstAttemptDuo = $data->averageTimeFirstAttemptDuo;
+        $this->averageTimeFirstAttemptTeam = $data->averageTimeFirstAttemptTeam;
+        $this->fastestTimeFirstAttempt = $data->fastestTimeFirstAttempt;
+        $this->fastestTimeFirstAttemptSolo = $data->fastestTimeFirstAttemptSolo;
+        $this->fastestTimeFirstAttemptDuo = $data->fastestTimeFirstAttemptDuo;
+        $this->fastestTimeFirstAttemptTeam = $data->fastestTimeFirstAttemptTeam;
     }
 }

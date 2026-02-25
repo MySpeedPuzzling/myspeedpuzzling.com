@@ -61,6 +61,7 @@ fastest_time_short: "Top: %time%"
 average_time_short: "Avg: %time%"
 fastest_time: "Fastest:"
 average_time: "Average:"
+average_first_attempt_time: "Avg 1st try:"
 only_first_tries_filter: "1st tries only"
 only_unboxed_filter: "Unboxed only"
 only_favorite_players_filter: "Favorite players only"
@@ -410,6 +411,10 @@ export:
         team_members: "Team members (if group solving)"
         photo_url: "Finished puzzle photo URL"
         comment: "Your comment"
+        puzzle_fastest_time: "Puzzle fastest time"
+        puzzle_average_time: "Puzzle average time"
+        player_rank: "Your rank for the puzzle"
+        puzzle_total_solved: "Total times puzzle was solved"
 
 events:
     title: "Events"

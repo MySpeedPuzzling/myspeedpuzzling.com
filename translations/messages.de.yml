@@ -57,6 +57,7 @@
 "average_time_short": "Ø: %time%"
 "fastest_time": "Schnellste Zeit:"
 "average_time": "Durchschnitt:"
+"average_first_attempt_time": "Ø 1. Versuch:"
 "only_first_tries_filter": "Nur erste Versuche"
 "only_unboxed_filter": "Nur blind gelegt"
 "only_favorite_players_filter": "Nur Lieblingsspieler"
@@ -360,6 +361,10 @@
     "team_members": "Teammitglieder (bei Gruppenlösung)"
     "photo_url": "URL des fertigen Puzzle-Fotos"
     "comment": "Dein Kommentar"
+    "puzzle_fastest_time": "Schnellste Zeit des Puzzles"
+    "puzzle_average_time": "Durchschnittszeit des Puzzles"
+    "player_rank": "Deine Platzierung beim Puzzle"
+    "puzzle_total_solved": "Gesamtzahl der Puzzle-Lösungen"
 "events":
   "title": "Veranstaltungen"
   "meta":

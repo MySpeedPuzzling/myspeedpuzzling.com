@@ -78,11 +78,14 @@ SELECT
                 AND other.seconds_to_solve < pst.seconds_to_solve
         )
     END AS player_rank,
-    CASE pst.puzzling_type
-        WHEN 'solo' THEN COALESCE(ps.solved_times_solo_count, 0)
-        WHEN 'duo' THEN COALESCE(ps.solved_times_duo_count, 0)
-        WHEN 'team' THEN COALESCE(ps.solved_times_team_count, 0)
-    END AS puzzle_total_solved
+    (
+        SELECT COUNT(DISTINCT other.player_id)
+        FROM puzzle_solving_time other
+        WHERE other.puzzle_id = pst.puzzle_id
+            AND other.puzzling_type = pst.puzzling_type
+            AND other.seconds_to_solve IS NOT NULL
+            AND other.suspicious = false
+    ) AS puzzle_total_solved
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id

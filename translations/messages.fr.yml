@@ -59,6 +59,7 @@
 "average_time_short": "Moy : %time%"
 "fastest_time": "Le plus rapide :"
 "average_time": "Moyenne :"
+"average_first_attempt_time": "Moy 1re tent. :"
 "only_first_tries_filter": "1ères tentatives seulement"
 "only_unboxed_filter": "Sans boîte uniquement"
 "only_favorite_players_filter": "Joueurs favoris uniquement"
@@ -363,6 +364,10 @@
     "team_members": "Membres de l'équipe (si résolution en groupe)"
     "photo_url": "URL de la photo du puzzle terminé"
     "comment": "Votre commentaire"
+    "puzzle_fastest_time": "Meilleur temps du puzzle"
+    "puzzle_average_time": "Temps moyen du puzzle"
+    "player_rank": "Votre classement pour le puzzle"
+    "puzzle_total_solved": "Nombre total de résolutions du puzzle"
 "events":
   "title": "Événements"
   "meta":

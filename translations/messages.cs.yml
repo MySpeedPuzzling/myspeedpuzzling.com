@@ -57,6 +57,7 @@
 "average_time_short": "Průměr: %time%"
 "fastest_time": "Nejrychlejší:"
 "average_time": "Průměrný:"
+"average_first_attempt_time": "Prům. 1. pokus:"
 "only_first_tries_filter": "Pouze 1. pokusy"
 "only_unboxed_filter": "Pouze naslepo"
 "only_favorite_players_filter": "Pouze oblíbení hráči"
@@ -377,6 +378,10 @@
     "team_members": "Členové týmu (při skupinovém skládání)"
     "photo_url": "URL fotky složeného puzzle"
     "comment": "Tvůj komentář"
+    "puzzle_fastest_time": "Nejrychlejší čas puzzle"
+    "puzzle_average_time": "Průměrný čas puzzle"
+    "player_rank": "Tvé pořadí u puzzle"
+    "puzzle_total_solved": "Celkový počet složení puzzle"
 "events":
   "title": "Události"
   "meta":

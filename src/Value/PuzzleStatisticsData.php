@@ -23,6 +23,14 @@ readonly final class PuzzleStatisticsData
         public null|int $fastestTimeTeam = null,
         public null|int $averageTimeTeam = null,
         public null|int $slowestTimeTeam = null,
+        public null|int $averageTimeFirstAttempt = null,
+        public null|int $averageTimeFirstAttemptSolo = null,
+        public null|int $averageTimeFirstAttemptDuo = null,
+        public null|int $averageTimeFirstAttemptTeam = null,
+        public null|int $fastestTimeFirstAttempt = null,
+        public null|int $fastestTimeFirstAttemptSolo = null,
+        public null|int $fastestTimeFirstAttemptDuo = null,
+        public null|int $fastestTimeFirstAttemptTeam = null,
     ) {
     }
 

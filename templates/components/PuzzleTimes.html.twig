@@ -49,10 +49,14 @@
                     Rank {{ this.myRank }} {{ 'ranking_out_of'|trans}} {{ this.times|length }}<br>
                 {% endif %}
 
-                {% if this.averageTime %}
-                    {{ 'average_time'|trans }}
-                    {{ this.averageTime|puzzlingTime }}
-                {% endif %}
+                <span class="d-inline-flex flex-wrap column-gap-3">
+                    {% if this.averageTime %}
+                        <span>{{ 'average_time'|trans }} {{ this.averageTime|puzzlingTime }}</span>
+                    {% endif %}
+                    {% if this.averageFirstAttemptTime %}
+                        <span>{{ 'average_first_attempt_time'|trans }} {{ this.averageFirstAttemptTime|puzzlingTime }}</span>
+                    {% endif %}
+                </span>
             {% endif %}
         </div>
 

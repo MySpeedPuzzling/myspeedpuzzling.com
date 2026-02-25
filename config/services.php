@@ -47,7 +47,8 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$nginxProxyBaseUrl', '%nginxProxyBaseUrl%')
         ->bind('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%')
         ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
-        ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%');
+        ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%')
+        ->bind('$entrypointsPath', '%kernel.project_dir%/public/build/entrypoints.json');
 
     $services->set(PdoSessionHandler::class)
         ->args([

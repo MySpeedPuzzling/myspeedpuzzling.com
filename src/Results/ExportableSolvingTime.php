@@ -25,6 +25,12 @@ readonly final class ExportableSolvingTime
         public string $teamMembers,
         public null|string $finishedPuzzlePhotoUrl,
         public null|string $comment,
+        public null|int $puzzleFastestTime,
+        public string $puzzleFastestTimeFormatted,
+        public null|int $puzzleAverageTime,
+        public string $puzzleAverageTimeFormatted,
+        public null|int $playerRank,
+        public int $puzzleTotalSolved,
     ) {
     }
 
@@ -45,6 +51,10 @@ readonly final class ExportableSolvingTime
      *     solving_type: string,
      *     players_count: int,
      *     team_members: null|string,
+     *     puzzle_fastest_time: null|int,
+     *     puzzle_average_time: null|int,
+     *     player_rank: null|int,
+     *     puzzle_total_solved: int,
      * } $row
      */
     public static function fromDatabaseRow(array $row, string $baseUrl): self
@@ -52,6 +62,9 @@ readonly final class ExportableSolvingTime
         $photoUrl = $row['finished_puzzle_photo'] !== null
             ? $baseUrl . '/' . $row['finished_puzzle_photo']
             : null;
+
+        $puzzleFastestTime = $row['puzzle_fastest_time'];
+        $puzzleAverageTime = $row['puzzle_average_time'];
 
         return new self(
             timeId: $row['time_id'],
@@ -70,6 +83,12 @@ readonly final class ExportableSolvingTime
             teamMembers: $row['team_members'] ?? '',
             finishedPuzzlePhotoUrl: $photoUrl,
             comment: $row['comment'],
+            puzzleFastestTime: $puzzleFastestTime,
+            puzzleFastestTimeFormatted: self::formatTime($puzzleFastestTime),
+            puzzleAverageTime: $puzzleAverageTime,
+            puzzleAverageTimeFormatted: self::formatTime($puzzleAverageTime),
+            playerPlacement: $row['player_rank'],
+            puzzleTotalSolved: $row['puzzle_total_solved'],
         );
     }
 
@@ -108,6 +127,12 @@ readonly final class ExportableSolvingTime
             'team_members' => $this->teamMembers,
             'finished_puzzle_photo_url' => $this->finishedPuzzlePhotoUrl,
             'comment' => $this->comment,
+            'puzzle_fastest_time' => $this->puzzleFastestTime,
+            'puzzle_fastest_time_formatted' => $this->puzzleFastestTimeFormatted,
+            'puzzle_average_time' => $this->puzzleAverageTime,
+            'puzzle_average_time_formatted' => $this->puzzleAverageTimeFormatted,
+            'player_rank' => $this->playerPlacement,
+            'puzzle_total_solved' => $this->puzzleTotalSolved,
         ];
     }
 }

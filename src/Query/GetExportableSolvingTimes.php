@@ -56,10 +56,37 @@ SELECT
         FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
         LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
         WHERE COALESCE(p.name, player_elem.player ->> 'player_name', p.code) IS NOT NULL
-    ) AS team_members
+    ) AS team_members,
+    CASE pst.puzzling_type
+        WHEN 'solo' THEN ps.fastest_time_solo
+        WHEN 'duo' THEN ps.fastest_time_duo
+        WHEN 'team' THEN ps.fastest_time_team
+    END AS puzzle_fastest_time,
+    CASE pst.puzzling_type
+        WHEN 'solo' THEN ps.average_time_solo
+        WHEN 'duo' THEN ps.average_time_duo
+        WHEN 'team' THEN ps.average_time_team
+    END AS puzzle_average_time,
+    CASE
+        WHEN pst.seconds_to_solve IS NOT NULL THEN (
+            SELECT COUNT(*) + 1
+            FROM puzzle_solving_time other
+            WHERE other.puzzle_id = pst.puzzle_id
+                AND other.puzzling_type = pst.puzzling_type
+                AND other.seconds_to_solve IS NOT NULL
+                AND other.suspicious = false
+                AND other.seconds_to_solve < pst.seconds_to_solve
+        )
+    END AS player_rank,
+    CASE pst.puzzling_type
+        WHEN 'solo' THEN COALESCE(ps.solved_times_solo_count, 0)
+        WHEN 'duo' THEN COALESCE(ps.solved_times_duo_count, 0)
+        WHEN 'team' THEN COALESCE(ps.solved_times_team_count, 0)
+    END AS puzzle_total_solved
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = puzzle.id
 WHERE
     pst.player_id = :playerId
     OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -83,6 +110,10 @@ SQL;
          *     solving_type: string,
          *     players_count: int,
          *     team_members: null|string,
+         *     puzzle_fastest_time: null|int,
+         *     puzzle_average_time: null|int,
+         *     player_rank: null|int,
+         *     puzzle_total_solved: int,
          * }> $data
          */
         $data = $this->database

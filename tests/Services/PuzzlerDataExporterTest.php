@@ -42,6 +42,12 @@ final class PuzzlerDataExporterTest extends TestCase
                 teamMembers: '',
                 finishedPuzzlePhotoUrl: 'https://example.com/photo.jpg',
                 comment: 'Great puzzle!',
+                puzzleFastestTime: 3000,
+                puzzleFastestTimeFormatted: '00:50:00',
+                puzzleAverageTime: 4500,
+                puzzleAverageTimeFormatted: '01:15:00',
+                playerRank: 5,
+                puzzleTotalSolved: 42,
             ),
         ];
     }

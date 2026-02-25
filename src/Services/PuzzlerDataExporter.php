@@ -31,6 +31,12 @@ readonly final class PuzzlerDataExporter
         'team_members',
         'finished_puzzle_photo_url',
         'comment',
+        'puzzle_fastest_time',
+        'puzzle_fastest_time_formatted',
+        'puzzle_average_time',
+        'puzzle_average_time_formatted',
+        'player_rank',
+        'puzzle_total_solved',
     ];
 
     /**

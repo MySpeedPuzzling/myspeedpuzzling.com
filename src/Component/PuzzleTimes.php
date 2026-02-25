@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPuzzleSolvers;
 use SpeedPuzzling\Web\Results\PlayersPerCountry;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
@@ -48,7 +47,6 @@ final class PuzzleTimes
 
     public null|int $myRank = null;
     public null|int $averageTime = null;
-    public null|int $averageFirstAttemptTime = null;
     public null|int $myTime = null;
     public int $soloTimesCount = 0;
     public int $duoTimesCount = 0;
@@ -67,7 +65,6 @@ final class PuzzleTimes
         readonly private GetPuzzleSolvers $getPuzzleSolvers,
         readonly private PuzzlesSorter $puzzlesSorter,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private Connection $connection,
     ) {
     }
 
@@ -242,20 +239,6 @@ final class PuzzleTimes
         $this->soloRelaxCount = $relaxCounts['solo'];
         $this->duoRelaxCount = $relaxCounts['duo'];
         $this->groupRelaxCount = $relaxCounts['team'];
-
-        $firstAttemptColumn = match ($this->category) {
-            'duo' => 'average_time_first_attempt_duo',
-            'group' => 'average_time_first_attempt_team',
-            default => 'average_time_first_attempt_solo',
-        };
-
-        /** @var int|string|false|null $firstAttemptAvg */
-        $firstAttemptAvg = $this->connection->fetchOne(
-            "SELECT $firstAttemptColumn FROM puzzle_statistics WHERE puzzle_id = :puzzleId",
-            ['puzzleId' => $this->puzzleId],
-        );
-
-        $this->averageFirstAttemptTime = $firstAttemptAvg !== false && $firstAttemptAvg !== null ? (int) $firstAttemptAvg : null;
     }
 
     /**

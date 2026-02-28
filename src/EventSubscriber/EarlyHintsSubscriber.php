@@ -34,6 +34,12 @@ final class EarlyHintsSubscriber implements EventSubscriberInterface
             return;
         }
 
+        $pathInfo = $event->getRequest()->getPathInfo();
+
+        if (str_starts_with($pathInfo, '/api/') || str_starts_with($pathInfo, '/webhook/')) {
+            return;
+        }
+
         $linkHeader = $this->buildLinkHeader();
 
         if ($linkHeader === null) {

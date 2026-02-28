@@ -52,8 +52,8 @@ jobs:
                     push: ${{ github.event_name != 'pull_request' }}
                     tags: ${{ steps.meta.outputs.tags }}
                     labels: ${{ steps.meta.outputs.labels }}
-                    cache-from: type=gha,scope=${{ github.workflow }}
-                    cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+                    cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache
+                    cache-to: type=registry,ref=ghcr.io/myspeedpuzzling/website:buildcache,mode=max
                     build-args: APP_VERSION=${{ github.sha }}
 
     deploy:

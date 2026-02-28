@@ -8,6 +8,7 @@ includes:
     - phar://phpstan.phar/conf/bleedingEdge.neon
 
 parameters:
+    tmpDir: var/phpstan
     level: max
     paths:
         - src

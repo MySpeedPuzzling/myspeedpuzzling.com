@@ -25,19 +25,31 @@ jobs:
       -   uses: actions/checkout@v6
       -   uses: actions/cache@v4
           with:
-              path: vendor
+              path: |
+                  vendor
+                  .composer-cache
               key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
               restore-keys: |
                   ${{ runner.os }}-composer-
-      -   uses: actions/cache@v4
+      -   id: webpack-cache
+          uses: actions/cache@v4
+          with:
+              path: public/build
+              key: ${{ runner.os }}-webpack-${{ hashFiles('assets/**', 'package-lock.json', 'webpack.config.js') }}
+      -   run: composer install --no-scripts --no-progress
+          env:
+              COMPOSER_CACHE_DIR: .composer-cache
+      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+          uses: actions/cache@v4
           with:
               path: node_modules
               key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
               restore-keys: |
                   ${{ runner.os }}-npm-
-      -   run: composer install --no-scripts --no-progress
-      -   run: npm install
-      -   run: npm run dev
+      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+          run: npm install
+      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+          run: npm run dev
       -   run: vendor/bin/phpunit --testsuite "Project Test Suite"
 
   panther-tests:
@@ -57,23 +69,35 @@ jobs:
       -   uses: actions/checkout@v6
       -   uses: actions/cache@v4
           with:
-              path: vendor
+              path: |
+                  vendor
+                  .composer-cache
               key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
               restore-keys: |
                   ${{ runner.os }}-composer-
-      -   uses: actions/cache@v4
+      -   id: webpack-cache
+          uses: actions/cache@v4
           with:
-              path: node_modules
-              key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-              restore-keys: |
-                  ${{ runner.os }}-npm-
+              path: public/build
+              key: ${{ runner.os }}-webpack-${{ hashFiles('assets/**', 'package-lock.json', 'webpack.config.js') }}
       -   uses: shivammathur/setup-php@v2
           with:
               php-version: '8.5'
               extensions: pdo_pgsql, intl, redis, imagick, uuid
       -   run: composer install --no-scripts --no-progress
-      -   run: npm install
-      -   run: npm run dev
+          env:
+              COMPOSER_CACHE_DIR: .composer-cache
+      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+          uses: actions/cache@v4
+          with:
+              path: node_modules
+              key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+              restore-keys: |
+                  ${{ runner.os }}-npm-
+      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+          run: npm install
+      -   if: steps.webpack-cache.outputs.cache-hit != 'true'
+          run: npm run dev
       -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
       -   name: Run Panther tests
           run: vendor/bin/phpunit --testsuite "Panther Test Suite"
@@ -86,11 +110,21 @@ jobs:
         -   uses: actions/checkout@v6
         -   uses: actions/cache@v4
             with:
-                path: vendor
+                path: |
+                    vendor
+                    .composer-cache
                 key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
                 restore-keys: |
                     ${{ runner.os }}-composer-
+        -   uses: actions/cache@v4
+            with:
+                path: var/phpstan
+                key: ${{ runner.os }}-phpstan-${{ hashFiles('src/**/*.php', 'tests/**/*.php', 'config/**/*.php', 'phpstan.neon') }}
+                restore-keys: |
+                    ${{ runner.os }}-phpstan-
         -   run: composer install --no-scripts --no-progress
+            env:
+                COMPOSER_CACHE_DIR: .composer-cache
         -   run: bin/console cache:warmup --env=dev
         -   run: composer run-script phpstan
 
@@ -102,11 +136,15 @@ jobs:
         -   uses: actions/checkout@v6
         -   uses: actions/cache@v4
             with:
-                path: vendor
+                path: |
+                    vendor
+                    .composer-cache
                 key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
                 restore-keys: |
                     ${{ runner.os }}-composer-
         -   run: composer install --no-scripts --no-progress
+            env:
+                COMPOSER_CACHE_DIR: .composer-cache
         -   run: composer run cs
 
 
@@ -126,12 +164,16 @@ jobs:
           -   uses: actions/checkout@v6
           -   uses: actions/cache@v4
               with:
-                  path: vendor
+                  path: |
+                      vendor
+                      .composer-cache
                   key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
                   restore-keys: |
                       ${{ runner.os }}-composer-
 
           -   run: composer install --no-scripts --no-progress
+              env:
+                  COMPOSER_CACHE_DIR: .composer-cache
           -   run: bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
           -   run: bin/console doctrine:schema:update --dump-sql
           -   run: bin/console doctrine:schema:validate

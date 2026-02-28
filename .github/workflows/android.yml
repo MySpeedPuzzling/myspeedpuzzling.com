@@ -34,19 +34,6 @@ jobs:
         with:
           gradle-version: 8.9
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Generate Gradle wrapper
-        run: gradle wrapper --gradle-version 8.9
-
       - name: Build debug APK
         run: ./gradlew assembleDebug --no-daemon
 
@@ -83,19 +70,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Generate Gradle wrapper
-        run: gradle wrapper --gradle-version 8.9
 
       - name: Build release APK (unsigned)
         run: ./gradlew assembleRelease --no-daemon

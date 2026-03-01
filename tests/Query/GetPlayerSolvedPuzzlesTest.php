@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
@@ -118,5 +120,36 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         $date = $this->query->getOldestResultDate('00000000-0000-0000-0000-000000000000');
 
         self::assertNull($date);
+    }
+
+    public function testSoloByPlayerIdWithDateRangeExcludesNullFinishedAt(): void
+    {
+        // TIME_46_RELAX_NO_FINISHED_AT has finished_at=null, tracked_at=3 days ago
+        // It belongs to PLAYER_REGULAR, PUZZLE_1000_02
+        // When filtering by date range (monthly statistics), entries without finished_at should be excluded
+        $dateFrom = new DateTimeImmutable('-60 days');
+        $dateTo = new DateTimeImmutable('now');
+
+        $results = $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR, $dateFrom, $dateTo);
+
+        $timeIds = array_map(fn($s) => $s->timeId, $results);
+        self::assertNotContains(
+            PuzzleSolvingTimeFixture::TIME_46_RELAX_NO_FINISHED_AT,
+            $timeIds,
+            'Entries with null finished_at should be excluded from monthly/date-range statistics',
+        );
+    }
+
+    public function testSoloByPlayerIdWithoutDateRangeIncludesNullFinishedAt(): void
+    {
+        // When querying all-time (no date range), entries without finished_at should still be included
+        $results = $this->query->soloByPlayerId(PlayerFixture::PLAYER_REGULAR);
+
+        $timeIds = array_map(fn($s) => $s->timeId, $results);
+        self::assertContains(
+            PuzzleSolvingTimeFixture::TIME_46_RELAX_NO_FINISHED_AT,
+            $timeIds,
+            'Entries with null finished_at should be included in all-time statistics',
+        );
     }
 }

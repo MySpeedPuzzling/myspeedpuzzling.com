@@ -208,15 +208,21 @@ SQL;
 SQL;
         }
 
+        if ($dateFrom !== null || $dateTo !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at IS NOT NULL
+SQL;
+        }
+
         if ($dateFrom !== null) {
             $query .= <<<SQL
-    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) >= :dateFrom
+    AND puzzle_solving_time.finished_at >= :dateFrom
 SQL;
         }
 
         if ($dateTo !== null) {
             $query .= <<<SQL
-    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) <= :dateTo
+    AND puzzle_solving_time.finished_at <= :dateTo
 SQL;
         }
 
@@ -292,15 +298,21 @@ WITH filtered_pst_ids AS (
         AND puzzling_type = 'duo'
 SQL;
 
+        if ($dateFrom !== null || $dateTo !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at IS NOT NULL
+SQL;
+        }
+
         if ($dateFrom !== null) {
             $query .= <<<SQL
-    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) >= :dateFrom
+    AND puzzle_solving_time.finished_at >= :dateFrom
 SQL;
         }
 
         if ($dateTo !== null) {
             $query .= <<<SQL
-    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) <= :dateTo
+    AND puzzle_solving_time.finished_at <= :dateTo
 SQL;
         }
 
@@ -423,15 +435,21 @@ WITH filtered_pst_ids AS (
         AND puzzling_type = 'team'
 SQL;
 
+        if ($dateFrom !== null || $dateTo !== null) {
+            $query .= <<<SQL
+    AND puzzle_solving_time.finished_at IS NOT NULL
+SQL;
+        }
+
         if ($dateFrom !== null) {
             $query .= <<<SQL
-    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) >= :dateFrom
+    AND puzzle_solving_time.finished_at >= :dateFrom
 SQL;
         }
 
         if ($dateTo !== null) {
             $query .= <<<SQL
-    AND COALESCE(puzzle_solving_time.finished_at, puzzle_solving_time.tracked_at) <= :dateTo
+    AND puzzle_solving_time.finished_at <= :dateTo
 SQL;
         }
 

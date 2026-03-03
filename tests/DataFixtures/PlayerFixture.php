@@ -138,6 +138,7 @@ final class PlayerFixture extends Fixture
             bio: null,
             facebook: null,
             instagram: null,
+            twitch: null,
         );
 
         if ($isPrivate) {

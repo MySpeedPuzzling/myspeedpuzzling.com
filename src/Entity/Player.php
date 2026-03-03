@@ -57,6 +57,10 @@ class Player
     public null|string $instagram = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $twitch = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $bio = null;
 
@@ -172,6 +176,7 @@ class Player
         null|string $bio,
         null|string $facebook,
         null|string $instagram,
+        null|string $twitch,
     ): void {
         $this->name = $name;
         $this->email = $email;
@@ -181,6 +186,7 @@ class Player
         $this->bio = $bio;
         $this->facebook = $facebook;
         $this->instagram = $instagram;
+        $this->twitch = $twitch;
     }
 
     /**

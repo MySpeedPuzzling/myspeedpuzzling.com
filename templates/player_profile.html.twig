@@ -141,7 +141,7 @@
                                 {% endif %}<br>
                             </p>
 
-                            <p class="mb-0">
+                            <p>
                                 <b>Instagram:</b><br>
                                 {% if player.instagram is null %}
                                     {{ 'profile.not_filled'|trans }}
@@ -149,6 +149,13 @@
                                     {{ player.instagram|instagram }}
                                 {% endif %}<br>
                             </p>
+
+                            {% if player.twitch is not null %}
+                                <p class="mb-0">
+                                    <b>Twitch:</b><br>
+                                    {{ player.twitch|twitch }}<br>
+                                </p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

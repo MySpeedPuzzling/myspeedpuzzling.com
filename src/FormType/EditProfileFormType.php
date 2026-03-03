@@ -96,6 +96,11 @@ final class EditProfileFormType extends AbstractType
             'required' => false,
         ]);
 
+        $builder->add('twitch', TextType::class, [
+            'label' => 'Twitch',
+            'required' => false,
+        ]);
+
         $builder->add('bio', TextareaType::class, [
             'label' => 'forms.about_me',
             'required' => false,

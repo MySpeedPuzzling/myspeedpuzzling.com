@@ -56,6 +56,7 @@ readonly final class EditProfileHandler
             bio: $message->bio,
             facebook: $message->facebook,
             instagram: $message->instagram,
+            twitch: $message->twitch,
         );
     }
 }

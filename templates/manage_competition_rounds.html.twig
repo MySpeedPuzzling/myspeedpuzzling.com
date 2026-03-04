@@ -1,0 +1,77 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.manage_rounds'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <h1 class="h2">{{ competition.name }}</h1>
+
+        <div class="mb-3">
+            <a href="{{ path('edit_competition', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.back_to_edit'|trans }}
+            </a>
+            <a href="{{ path('add_competition_round', {'competitionId': competition.id}) }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_round'|trans }}
+            </a>
+        </div>
+
+        {% for flash_message in app.flashes('success') %}
+            <div class="alert alert-success">
+                <i class="ci-check-circle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        <h2 class="h4 mt-4">{{ 'competition.rounds'|trans }}</h2>
+
+        {% if rounds|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>{{ 'competition.round.name'|trans }}</th>
+                            <th>{{ 'competition.round.starts_at'|trans }}</th>
+                            <th>{{ 'competition.round.minutes_limit'|trans }}</th>
+                            <th>{{ 'competition.round.puzzles'|trans }}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for round in rounds %}
+                            <tr>
+                                <td>
+                                    {% if round.badgeBackgroundColor %}
+                                        <span class="badge" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#000' }}">
+                                            {{ round.name }}
+                                        </span>
+                                    {% else %}
+                                        {{ round.name }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ round.startsAt|date('d.m.Y H:i') }}</td>
+                                <td>{{ round.minutesLimit }} min</td>
+                                <td>{{ round.puzzleCount }}</td>
+                                <td class="text-end">
+                                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                        <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
+                                    </a>
+                                    <a href="{{ path('edit_competition_round', {'roundId': round.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_delete_round'|trans }}')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_round_' ~ round.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

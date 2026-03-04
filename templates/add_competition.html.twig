@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'competition.add_event'|trans }}</h1>
+
+                <p class="text-muted">{{ 'competition.add_event_info'|trans }}</p>
+
+                {% for flash_message in app.flashes('success') %}
+                    <div class="alert alert-success">
+                        <i class="ci-check-circle me-2"></i>
+                        {{ flash_message }}
+                    </div>
+                {% endfor %}
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form) }}
+                            {{ form_row(form.name) }}
+                            {{ form_row(form.shortcut) }}
+                            {{ form_row(form.description) }}
+                            {{ form_row(form.location) }}
+                            {{ form_row(form.locationCountryCode) }}
+                            {{ form_row(form.isOnline) }}
+                            {{ form_row(form.dateFrom) }}
+                            {{ form_row(form.dateTo) }}
+                            {{ form_row(form.link) }}
+                            {{ form_row(form.registrationLink) }}
+                            {{ form_row(form.resultsLink) }}
+                            {{ form_row(form.logo) }}
+                            {{ form_row(form.maintainers) }}
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                {{ 'competition.submit_for_approval'|trans }}
+                            </button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

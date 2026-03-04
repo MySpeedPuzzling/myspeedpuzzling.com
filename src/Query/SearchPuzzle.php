@@ -53,7 +53,8 @@ FROM puzzle
 LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 {$difficultyJoin}
 WHERE
-    (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
+    (puzzle.hide_until IS NULL OR puzzle.hide_until <= NOW())
+    AND (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
     AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
     AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
     AND (
@@ -173,7 +174,8 @@ WITH puzzle_base AS (
     LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
     {$difficultyJoin}
     WHERE
-        (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
+        (puzzle.hide_until IS NULL OR puzzle.hide_until <= NOW())
+        AND (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
         AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
         AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
         AND (

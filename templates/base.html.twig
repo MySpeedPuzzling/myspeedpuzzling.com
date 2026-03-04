@@ -147,6 +147,11 @@
                                             Vouchers
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_competition_approvals' %}active{% endif %}" href="{{ path('admin_competition_approvals') }}">
+                                            Competition Approvals
+                                        </a>
+                                    </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <a class="dropdown-item pb-1" href="{{ path('admin_import_competition_puzzlers') }}">

@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.tables.generate_layout'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <h1 class="h2">{{ 'competition.tables.generate_layout'|trans }}</h1>
+        <p class="text-muted">{{ competition.name }} - {{ round.name }}</p>
+
+        <div class="mb-3">
+            <a href="{{ path('manage_round_tables', {'roundId': round.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.tables.back_to_tables'|trans }}
+            </a>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-1"></i>{{ 'competition.tables.generate_info'|trans }}
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                {{ form_start(form) }}
+                    {{ form_row(form.numberOfRows) }}
+                    {{ form_row(form.tablesPerRow) }}
+                    {{ form_row(form.spotsPerTable) }}
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.generate'|trans }}
+                    </button>
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1871,6 +1871,31 @@ competition:
     round_puzzle:
         form:
             hide_until_round_starts: "Do not reveal until round starts"
+    tables:
+        tables: "Tables"
+        manage_tables: "Manage Tables"
+        generate_layout: "Generate Layout"
+        generate: "Generate"
+        generate_info: "This will generate a table layout for the round. You can modify it afterwards by adding or removing rows, tables, and spots."
+        back_to_tables: "Back to Tables"
+        print: "Print"
+        no_layout: "No table layout yet. Generate one to get started."
+        add_row: "Add Row"
+        add_table: "Add Table"
+        add_spot: "Add Spot"
+        spot: "Spot"
+        search_player: "Search player..."
+        no_player_found: "No player found."
+        use_as_name: "Use \"%name%\" as name"
+        manual: "manual"
+        confirm_delete_row: "Are you sure you want to delete this row and all its tables?"
+        confirm_delete_table: "Are you sure you want to delete this table and all its spots?"
+        form:
+            number_of_rows: "Number of rows"
+            tables_per_row: "Tables per row"
+            spots_per_table: "Spots per table"
+        flash:
+            layout_generated: "Table layout has been generated."
     flash:
         created: "Event submitted for approval."
         updated: "Event updated."

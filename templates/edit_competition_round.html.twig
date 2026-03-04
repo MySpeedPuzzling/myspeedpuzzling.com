@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.edit_round'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'competition.edit_round'|trans }}: {{ round.name }}</h1>
+                <p class="text-muted">{{ competition.name }}</p>
+
+                <div class="mb-3">
+                    <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-arrow-left me-1"></i>{{ 'competition.back_to_rounds'|trans }}
+                    </a>
+                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id}) }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-puzzle me-1"></i>{{ 'competition.manage_puzzles'|trans }}
+                    </a>
+                </div>
+
+                {% for flash_message in app.flashes('success') %}
+                    <div class="alert alert-success">
+                        <i class="ci-check-circle me-2"></i>
+                        {{ flash_message }}
+                    </div>
+                {% endfor %}
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form) }}
+                            {{ form_row(form.name) }}
+                            {{ form_row(form.minutesLimit) }}
+                            {{ form_row(form.startsAt) }}
+                            {{ form_row(form.badgeBackgroundColor) }}
+                            {{ form_row(form.badgeTextColor) }}
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                {{ 'competition.save_changes'|trans }}
+                            </button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

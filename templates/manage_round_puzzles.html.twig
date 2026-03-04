@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.manage_puzzles'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <h1 class="h2">{{ round.name }}</h1>
+        <p class="text-muted">{{ competition.name }}</p>
+
+        <div class="mb-3">
+            <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.back_to_rounds'|trans }}
+            </a>
+            <a href="{{ path('add_puzzle_to_round', {'roundId': round.id}) }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_puzzle'|trans }}
+            </a>
+        </div>
+
+        {% for flash_message in app.flashes('success') %}
+            <div class="alert alert-success">
+                <i class="ci-check-circle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        <h2 class="h4 mt-4">{{ 'competition.puzzles'|trans }}</h2>
+
+        {% if puzzles|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>{{ 'competition.puzzle.name'|trans }}</th>
+                            <th>{{ 'competition.puzzle.brand'|trans }}</th>
+                            <th>{{ 'competition.puzzle.pieces'|trans }}</th>
+                            <th>{{ 'competition.puzzle.hidden'|trans }}</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for puzzle in puzzles %}
+                            <tr>
+                                <td>{{ puzzle.puzzleName }}</td>
+                                <td>{{ puzzle.manufacturerName ?? '-' }}</td>
+                                <td>{{ puzzle.piecesCount }}</td>
+                                <td>
+                                    {% if puzzle.hideUntilRoundStarts %}
+                                        <span class="badge bg-warning text-dark">{{ 'competition.hidden_until_start'|trans }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <form method="post" action="{{ path('remove_puzzle_from_round', {'roundPuzzleId': puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_remove_puzzle'|trans }}')">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('remove_puzzle_' ~ puzzle.roundPuzzleId) }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash me-1"></i>{{ 'competition.remove'|trans }}
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">{{ 'competition.no_puzzles'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

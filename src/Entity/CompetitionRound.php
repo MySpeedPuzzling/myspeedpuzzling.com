@@ -44,6 +44,10 @@ class CompetitionRound
         public null|string $badgeBackgroundColor = null,
         #[Column(nullable: true)]
         public null|string $badgeTextColor = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $stopwatchStartedAt = null,
+        #[Column(nullable: true)]
+        public null|string $stopwatchStatus = null,
     ) {
     }
 
@@ -59,5 +63,22 @@ class CompetitionRound
         $this->startsAt = $startsAt;
         $this->badgeBackgroundColor = $badgeBackgroundColor;
         $this->badgeTextColor = $badgeTextColor;
+    }
+
+    public function startStopwatch(DateTimeImmutable $startedAt): void
+    {
+        $this->stopwatchStartedAt = $startedAt;
+        $this->stopwatchStatus = 'running';
+    }
+
+    public function stopStopwatch(): void
+    {
+        $this->stopwatchStatus = 'stopped';
+    }
+
+    public function resetStopwatch(): void
+    {
+        $this->stopwatchStartedAt = null;
+        $this->stopwatchStatus = null;
     }
 }

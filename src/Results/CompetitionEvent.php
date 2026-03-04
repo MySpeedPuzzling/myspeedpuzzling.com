@@ -23,6 +23,10 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     results_link: null|string,
  *     slug: null|string,
  *     tag_id: null|string,
+ *     is_online: bool|string,
+ *     added_by_player_id: null|string,
+ *     approved_at: null|string,
+ *     created_at: null|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -46,6 +50,10 @@ readonly final class CompetitionEvent
         public null|DateTimeImmutable $dateTo,
         public null|string $slug,
         public null|string $tagId,
+        public bool $isOnline,
+        public null|string $addedByPlayerId,
+        public null|DateTimeImmutable $approvedAt,
+        public null|DateTimeImmutable $createdAt,
     ) {
         $this->link = $this->appendUtm($link);
         $this->registrationLink = $this->appendUtm($registrationLink);
@@ -57,6 +65,11 @@ readonly final class CompetitionEvent
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $isOnline = $row['is_online'];
+        if (is_string($isOnline)) {
+            $isOnline = $isOnline === 't' || $isOnline === '1' || $isOnline === 'true';
+        }
+
         return new self(
             id: $row['id'],
             name: $row['name'],
@@ -72,6 +85,10 @@ readonly final class CompetitionEvent
             dateTo: $row['date_to'] !== null ? new DateTimeImmutable($row['date_to']) : null,
             slug: $row['slug'],
             tagId: $row['tag_id'],
+            isOnline: $isOnline,
+            addedByPlayerId: $row['added_by_player_id'],
+            approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
+            createdAt: $row['created_at'] !== null ? new DateTimeImmutable($row['created_at']) : null,
         );
     }
 

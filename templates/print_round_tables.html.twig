@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ competition.name }} - {{ round.name }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; font-size: 14px; }
+        h1 { font-size: 20px; margin-bottom: 4px; }
+        h2 { font-size: 16px; color: #666; margin-bottom: 20px; }
+        .row-section { margin-bottom: 24px; }
+        .row-label { font-size: 16px; font-weight: bold; margin-bottom: 8px; border-bottom: 2px solid #333; padding-bottom: 4px; }
+        .tables-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+        .table-card { border: 1px solid #ccc; padding: 8px; min-width: 180px; }
+        .table-label { font-weight: bold; margin-bottom: 6px; font-size: 14px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .spot { padding: 4px 0; border-bottom: 1px dotted #ddd; display: flex; }
+        .spot:last-child { border-bottom: none; }
+        .spot-number { width: 24px; color: #999; }
+        .spot-name { flex: 1; }
+        .spot-empty { color: #ccc; }
+        .actions { margin-bottom: 20px; }
+        .actions a { color: #666; text-decoration: none; margin-right: 16px; }
+
+        @media print {
+            .actions { display: none; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="actions">
+        <a href="{{ path('manage_round_tables', {'roundId': round.id}) }}">&larr; {{ 'competition.tables.back_to_tables'|trans }}</a>
+        <a href="#" onclick="window.print(); return false;">{{ 'competition.tables.print'|trans }}</a>
+    </div>
+
+    <h1>{{ competition.name }}</h1>
+    <h2>{{ round.name }}</h2>
+
+    {% for row in rows %}
+        <div class="row-section">
+            <div class="row-label">{{ row.label ?? 'Row ' ~ row.position }}</div>
+            <div class="tables-grid">
+                {% for table in row.tables %}
+                    <div class="table-card">
+                        <div class="table-label">{{ table.label }}</div>
+                        {% for spot in table.spots %}
+                            <div class="spot">
+                                <span class="spot-number">{{ spot.position }}.</span>
+                                <span class="spot-name{% if not spot.isAssigned %} spot-empty{% endif %}">
+                                    {% if spot.playerId %}
+                                        {{ spot.playerName }}
+                                        {% if spot.playerCode %}(#{{ spot.playerCode|upper }}){% endif %}
+                                    {% elseif spot.playerName %}
+                                        {{ spot.playerName }}
+                                    {% else %}
+                                        ________________
+                                    {% endif %}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</body>
+</html>

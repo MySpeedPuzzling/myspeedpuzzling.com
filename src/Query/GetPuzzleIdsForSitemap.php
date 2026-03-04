@@ -22,6 +22,7 @@ readonly final class GetPuzzleIdsForSitemap
 SELECT puzzle.id
 FROM puzzle
 WHERE puzzle.approved = true
+    AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= NOW())
 SQL;
 
         /** @var array<string> $puzzleIds */

@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\DataFixtures;
 
+use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Tag;
 
 final class CompetitionFixture extends Fixture implements DependentFixtureInterface
 {
     public const string COMPETITION_WJPC_2024 = '018d0004-0000-0000-0000-000000000001';
     public const string COMPETITION_CZECH_NATIONALS_2024 = '018d0004-0000-0000-0000-000000000002';
+    public const string COMPETITION_UNAPPROVED = '018d0004-0000-0000-0000-000000000003';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -26,6 +29,8 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
     {
         $wjpcTag = $this->getReference(TagFixture::TAG_WJPC, Tag::class);
         $nationalTag = $this->getReference(TagFixture::TAG_NATIONAL, Tag::class);
+        $regularPlayer = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
+        $adminPlayer = $this->getReference(PlayerFixture::PLAYER_ADMIN, Player::class);
 
         $wjpcCompetition = $this->createCompetition(
             id: self::COMPETITION_WJPC_2024,
@@ -40,6 +45,7 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             link: 'https://wjpc2024.com',
             registrationLink: 'https://wjpc2024.com/register',
             resultsLink: 'https://wjpc2024.com/results',
+            approvedAt: $this->clock->now(),
         );
         $manager->persist($wjpcCompetition);
         $this->addReference(self::COMPETITION_WJPC_2024, $wjpcCompetition);
@@ -54,9 +60,25 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             slug: 'czech-nationals-2024',
             shortcut: 'CZE24',
             description: 'Czech National Jigsaw Puzzle Championship 2024',
+            approvedAt: $this->clock->now(),
         );
         $manager->persist($czechNationalsCompetition);
         $this->addReference(self::COMPETITION_CZECH_NATIONALS_2024, $czechNationalsCompetition);
+
+        $unapprovedCompetition = $this->createCompetition(
+            id: self::COMPETITION_UNAPPROVED,
+            name: 'Unapproved Puzzle Event',
+            location: 'Vienna',
+            locationCountryCode: 'at',
+            tag: null,
+            daysFromNow: 90,
+            slug: 'unapproved-puzzle-event',
+            addedByPlayer: $regularPlayer,
+            createdAt: $this->clock->now(),
+        );
+        $unapprovedCompetition->maintainers->add($regularPlayer);
+        $manager->persist($unapprovedCompetition);
+        $this->addReference(self::COMPETITION_UNAPPROVED, $unapprovedCompetition);
 
         $manager->flush();
     }
@@ -65,6 +87,7 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
     {
         return [
             TagFixture::class,
+            PlayerFixture::class,
         ];
     }
 
@@ -73,7 +96,7 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         string $name,
         string $location,
         string $locationCountryCode,
-        Tag $tag,
+        null|Tag $tag,
         int $daysFromNow,
         null|string $slug = null,
         null|string $shortcut = null,
@@ -81,6 +104,9 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         null|string $link = null,
         null|string $registrationLink = null,
         null|string $resultsLink = null,
+        null|DateTimeImmutable $approvedAt = null,
+        null|Player $addedByPlayer = null,
+        null|DateTimeImmutable $createdAt = null,
     ): Competition {
         $dateFrom = $this->clock->now()->modify("+{$daysFromNow} days");
         $dateTo = $dateFrom->modify('+2 days');
@@ -100,6 +126,9 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             dateFrom: $dateFrom,
             dateTo: $dateTo,
             tag: $tag,
+            approvedAt: $approvedAt,
+            addedByPlayer: $addedByPlayer,
+            createdAt: $createdAt,
         );
     }
 }

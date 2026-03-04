@@ -11,6 +11,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Puzzle;
 
 final class CompetitionRoundFixture extends Fixture implements DependentFixtureInterface
@@ -40,12 +41,14 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             name: 'Qualification Round',
             minutesLimit: 60,
             daysFromNow: 30,
-            puzzles: [$puzzle500_01, $puzzle500_02],
             badgeBackgroundColor: '#007bff',
             badgeTextColor: '#ffffff',
         );
         $manager->persist($wjpcQualificationRound);
         $this->addReference(self::ROUND_WJPC_QUALIFICATION, $wjpcQualificationRound);
+
+        $this->addPuzzleToRound($manager, $wjpcQualificationRound, $puzzle500_01);
+        $this->addPuzzleToRound($manager, $wjpcQualificationRound, $puzzle500_02);
 
         $wjpcFinalRound = $this->createCompetitionRound(
             id: self::ROUND_WJPC_FINAL,
@@ -53,12 +56,14 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             name: 'Final Round',
             minutesLimit: 120,
             daysFromNow: 32,
-            puzzles: [$puzzle1000_01, $puzzle1000_02],
             badgeBackgroundColor: '#ffc107',
             badgeTextColor: '#000000',
         );
         $manager->persist($wjpcFinalRound);
         $this->addReference(self::ROUND_WJPC_FINAL, $wjpcFinalRound);
+
+        $this->addPuzzleToRound($manager, $wjpcFinalRound, $puzzle1000_01);
+        $this->addPuzzleToRound($manager, $wjpcFinalRound, $puzzle1000_02);
 
         $czechFinalRound = $this->createCompetitionRound(
             id: self::ROUND_CZECH_FINAL,
@@ -66,10 +71,11 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             name: 'Final Round',
             minutesLimit: 90,
             daysFromNow: 60,
-            puzzles: [$puzzle500_01],
         );
         $manager->persist($czechFinalRound);
         $this->addReference(self::ROUND_CZECH_FINAL, $czechFinalRound);
+
+        $this->addPuzzleToRound($manager, $czechFinalRound, $puzzle500_01);
 
         $manager->flush();
     }
@@ -82,22 +88,18 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
         ];
     }
 
-    /**
-     * @param array<Puzzle> $puzzles
-     */
     private function createCompetitionRound(
         string $id,
         Competition $competition,
         string $name,
         int $minutesLimit,
         int $daysFromNow,
-        array $puzzles = [],
         null|string $badgeBackgroundColor = null,
         null|string $badgeTextColor = null,
     ): CompetitionRound {
         $startsAt = $this->clock->now()->modify("+{$daysFromNow} days");
 
-        $round = new CompetitionRound(
+        return new CompetitionRound(
             id: Uuid::fromString($id),
             competition: $competition,
             name: $name,
@@ -106,11 +108,16 @@ final class CompetitionRoundFixture extends Fixture implements DependentFixtureI
             badgeBackgroundColor: $badgeBackgroundColor,
             badgeTextColor: $badgeTextColor,
         );
+    }
 
-        foreach ($puzzles as $puzzle) {
-            $round->puzzles->add($puzzle);
-        }
-
-        return $round;
+    private function addPuzzleToRound(ObjectManager $manager, CompetitionRound $round, Puzzle $puzzle, bool $hideUntilRoundStarts = false): void
+    {
+        $roundPuzzle = new CompetitionRoundPuzzle(
+            id: Uuid::uuid7(),
+            round: $round,
+            puzzle: $puzzle,
+            hideUntilRoundStarts: $hideUntilRoundStarts,
+        );
+        $manager->persist($roundPuzzle);
     }
 }

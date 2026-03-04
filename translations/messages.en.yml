@@ -2487,6 +2487,20 @@ competition:
             spots_per_table: "Spots per table"
         flash:
             layout_generated: "Table layout has been generated."
+    stopwatch:
+        title: "Round Stopwatch"
+        not_started: "Not started"
+        running: "Running"
+        stopped: "Stopped"
+        times_up: "Time's up!"
+        start: "Start Stopwatch"
+        stop: "Stop Stopwatch"
+        reset: "Reset Stopwatch"
+        manage: "Manage Stopwatch"
+        view_public: "View Public Page"
+        back_to_rounds: "Back to Rounds"
+        confirm_stop: "Are you sure you want to stop the stopwatch?"
+        confirm_reset: "Are you sure you want to reset the stopwatch?"
     flash:
         created: "Event submitted for approval."
         updated: "Event updated."

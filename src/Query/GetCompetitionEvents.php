@@ -51,8 +51,9 @@ readonly final class GetCompetitionEvents
         $query = <<<SQL
 SELECT *
 FROM competition
-WHERE COALESCE(date_to, date_from)::date < :date::date
-    OR date_from IS NULL
+WHERE approved_at IS NOT NULL
+    AND (COALESCE(date_to, date_from)::date < :date::date
+    OR date_from IS NULL)
 ORDER BY date_from DESC;
 SQL;
         $date = $this->clock->now();
@@ -77,7 +78,8 @@ SQL;
         $query = <<<SQL
 SELECT *
 FROM competition
-WHERE COALESCE(date_from, date_to)::date > :date::date
+WHERE approved_at IS NOT NULL
+    AND COALESCE(date_from, date_to)::date > :date::date
 ORDER BY date_from;
 SQL;
         $now = $this->clock->now();
@@ -102,8 +104,9 @@ SQL;
         $query = <<<SQL
 SELECT *
 FROM competition
-WHERE :date::date 
-      BETWEEN COALESCE(date_from, date_to)::date 
+WHERE approved_at IS NOT NULL
+    AND :date::date
+      BETWEEN COALESCE(date_from, date_to)::date
           AND COALESCE(date_to, date_from)::date;
 SQL;
         $now = $this->clock->now();
@@ -130,10 +133,56 @@ SELECT *
 FROM competition
 ORDER BY date_from DESC;
 SQL;
-        $now = $this->clock->now();
 
         $data = $this->database
             ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): CompetitionEvent {
+            /** @var CompetitionEventDatabaseRow $row */
+            return CompetitionEvent::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function allUnapproved(): array
+    {
+        $query = <<<SQL
+SELECT *
+FROM competition
+WHERE approved_at IS NULL
+ORDER BY created_at DESC;
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): CompetitionEvent {
+            /** @var CompetitionEventDatabaseRow $row */
+            return CompetitionEvent::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function allForPlayer(string $playerId): array
+    {
+        $query = <<<SQL
+SELECT c.*
+FROM competition c
+WHERE c.added_by_player_id = :playerId
+   OR c.id IN (SELECT competition_id FROM competition_maintainer WHERE player_id = :playerId)
+ORDER BY c.created_at DESC NULLS LAST, c.date_from DESC;
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): CompetitionEvent {

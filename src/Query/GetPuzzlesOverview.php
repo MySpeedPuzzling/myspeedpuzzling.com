@@ -43,8 +43,8 @@ FROM puzzle
 LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE
-    puzzle.approved = true
-    OR puzzle.added_by_user_id = :playerId
+    (puzzle.hide_until IS NULL OR puzzle.hide_until <= NOW())
+    AND (puzzle.approved = true OR puzzle.added_by_user_id = :playerId)
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Entity;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
@@ -52,6 +53,8 @@ class Puzzle
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public bool $isAvailable = false,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $hideUntil = null,
     ) {
     }
 

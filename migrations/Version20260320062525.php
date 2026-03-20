@@ -11,16 +11,16 @@ final class Version20260320062525 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Rename puzzle.hide_until to puzzle.hide_image_until';
+        return 'Add puzzle.hide_image_until column';
     }
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE puzzle RENAME COLUMN hide_until TO hide_image_until');
+        $this->addSql('ALTER TABLE puzzle ADD hide_image_until TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
     }
 
     public function down(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE puzzle RENAME COLUMN hide_image_until TO hide_until');
+        $this->addSql('ALTER TABLE puzzle DROP hide_image_until');
     }
 }

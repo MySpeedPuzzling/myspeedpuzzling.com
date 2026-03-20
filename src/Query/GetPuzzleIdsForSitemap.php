@@ -22,6 +22,7 @@ readonly final class GetPuzzleIdsForSitemap
 SELECT puzzle.id
 FROM puzzle
 WHERE puzzle.approved = true
+AND (puzzle.hide_image_until IS NULL OR puzzle.hide_image_until <= NOW())
 SQL;
 
         /** @var array<string> $puzzleIds */
@@ -42,6 +43,7 @@ SELECT DISTINCT p.id
 FROM puzzle p
 JOIN sell_swap_list_item ssli ON ssli.puzzle_id = p.id
 WHERE ssli.published_on_marketplace = true
+AND (p.hide_image_until IS NULL OR p.hide_image_until <= NOW())
 SQL;
 
         /** @var array<string> $puzzleIds */

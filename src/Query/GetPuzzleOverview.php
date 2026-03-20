@@ -33,7 +33,8 @@ readonly final class GetPuzzleOverview
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    puzzle.hide_image_until,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.is_available,
@@ -75,6 +76,7 @@ SQL;
          *     is_available: bool,
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
+         *     hide_image_until: null|string,
          * } $row
          */
         $row = $this->database
@@ -103,7 +105,8 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    puzzle.hide_image_until,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.is_available,
@@ -145,6 +148,7 @@ SQL;
          *     is_available: bool,
          *     puzzle_ean: null|string,
          *     puzzle_identification_number: null|string,
+         *     hide_image_until: null|string,
          * } $row
          */
         $row = $this->database
@@ -179,7 +183,8 @@ WITH tagged_puzzles AS (
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    puzzle.hide_image_until,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.is_available,
@@ -229,6 +234,7 @@ SQL;
              *     is_available: bool,
              *     puzzle_ean: null|string,
              *     puzzle_identification_number: null|string,
+             *     hide_image_until: null|string,
              * } $row
              */
 

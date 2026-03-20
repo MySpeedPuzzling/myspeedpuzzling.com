@@ -22,7 +22,7 @@ readonly final class GetMostSolvedPuzzles
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle_statistics.solved_times_count AS solved_times,
@@ -76,7 +76,7 @@ SQL;
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     count(puzzle_solving_time.puzzle_id) AS solved_times,

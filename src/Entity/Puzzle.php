@@ -52,6 +52,8 @@ class Puzzle
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column]
         public bool $isAvailable = false,
+        #[Column(nullable: true)]
+        public null|DateTimeImmutable $hideImageUntil = null,
     ) {
     }
 

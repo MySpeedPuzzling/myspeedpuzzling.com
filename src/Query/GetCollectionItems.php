@@ -40,7 +40,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    p.image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name
 FROM collection_item ci
 JOIN puzzle p ON ci.puzzle_id = p.id
@@ -131,7 +131,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    p.image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name
 FROM collection_item ci
 JOIN puzzle p ON ci.puzzle_id = p.id

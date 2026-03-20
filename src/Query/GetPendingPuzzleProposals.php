@@ -133,7 +133,7 @@ SELECT
     p.id,
     p.name,
     p.pieces_count,
-    p.image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id) as times_count
 FROM puzzle p

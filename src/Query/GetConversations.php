@@ -85,7 +85,7 @@ SELECT
     -- Puzzle context
     p.id AS puzzle_id,
     p.name AS puzzle_name,
-    p.image AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -172,7 +172,7 @@ SELECT
     ip.country AS other_player_country,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
-    p.image AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -277,7 +277,7 @@ SELECT
     ) AS last_message_system_type,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
-    p.image AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c

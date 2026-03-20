@@ -53,4 +53,24 @@ final class PuzzleDetailControllerTest extends WebTestCase
         // The offers card section should not be present (no card with bi-shop icon in card-header)
         self::assertCount(0, $crawler->filter('.card-header .bi-shop'));
     }
+
+    public function testPuzzleWithHiddenImageHasNoindexMeta(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_HIDDEN_IMAGE);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('noindex, nofollow', $crawler->filter('meta[name="robots"]')->attr('content'));
+    }
+
+    public function testNormalPuzzleHasIndexMeta(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        self::assertSame('index, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+    }
 }

@@ -82,7 +82,7 @@ SELECT
     p.name AS puzzle_name,
     p.alternative_name AS puzzle_alternative_name,
     p.pieces_count,
-    p.image AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
     m.name AS manufacturer_name
 FROM
     RankedTimes rt
@@ -179,7 +179,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     manufacturer.name AS manufacturer_name
 FROM
     RankedTimes

@@ -33,7 +33,7 @@ SELECT
     p.alternative_name as puzzle_alternative_name,
     p.identification_number as puzzle_identification_number,
     p.pieces_count,
-    p.image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     bp.id as buyer_player_id,
     bp.name as buyer_player_name,

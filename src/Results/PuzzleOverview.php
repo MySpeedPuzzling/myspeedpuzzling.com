@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use DateTimeImmutable;
+
 readonly final class PuzzleOverview
 {
     public function __construct(
@@ -25,6 +27,7 @@ readonly final class PuzzleOverview
         public bool $isAvailable,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
+        public null|DateTimeImmutable $hideImageUntil = null,
     ) {
     }
 
@@ -48,6 +51,7 @@ readonly final class PuzzleOverview
      *     is_available: bool,
      *     puzzle_ean: null|string,
      *     puzzle_identification_number: null|string,
+     *     hide_image_until: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -71,6 +75,7 @@ readonly final class PuzzleOverview
             isAvailable: $row['is_available'],
             puzzleEan: $row['puzzle_ean'],
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
+            hideImageUntil: $row['hide_image_until'] !== null ? new DateTimeImmutable($row['hide_image_until']) : null,
         );
     }
 }

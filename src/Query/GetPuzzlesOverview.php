@@ -23,7 +23,7 @@ readonly final class GetPuzzlesOverview
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.is_available,
@@ -38,7 +38,8 @@ SELECT
     puzzle_statistics.average_time_duo,
     puzzle_statistics.fastest_time_duo,
     puzzle_statistics.average_time_team,
-    puzzle_statistics.fastest_time_team
+    puzzle_statistics.fastest_time_team,
+    puzzle.hide_image_until
 FROM puzzle
 LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
@@ -75,6 +76,7 @@ SQL;
              *     is_available: bool,
              *     puzzle_ean: null|string,
              *     puzzle_identification_number: null|string,
+             *     hide_image_until: null|string,
              * } $row
              */
 

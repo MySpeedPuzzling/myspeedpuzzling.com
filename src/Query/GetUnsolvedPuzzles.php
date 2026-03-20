@@ -28,7 +28,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    p.image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     MIN(ci.added_at) as added_at
 FROM collection_item ci
@@ -46,7 +46,7 @@ WHERE ci.player_id = :playerId
         ))
       )
   )
-GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, p.image, m.name
+GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, m.name
 ORDER BY added_at DESC
 SQL;
 
@@ -122,7 +122,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    p.image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     MIN(ci.added_at) as added_at
 FROM collection_item ci
@@ -141,7 +141,7 @@ WHERE ci.player_id = :playerId
         ))
       )
   )
-GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, p.image, m.name
+GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pieces_count, m.name
 SQL;
 
         $data = $this->database

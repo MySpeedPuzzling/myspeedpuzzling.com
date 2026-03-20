@@ -32,7 +32,7 @@ SELECT
     puzzle_tracking.team ->> 'team_id' AS team_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_tracking.player_id AS player_id,
     pieces_count,
     player.name AS player_name,

@@ -67,7 +67,7 @@ SELECT
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -170,7 +170,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -329,7 +329,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     pieces_count,
@@ -466,7 +466,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     pieces_count,
@@ -594,7 +594,7 @@ SELECT
     puzzle.ean AS ean,
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name,
-    puzzle.image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS image,
     puzzle_solving_time.finished_at
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -667,7 +667,7 @@ SELECT DISTINCT ON (puzzle.name, puzzle.id)
     puzzle.ean AS ean,
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name,
-    puzzle.image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS image,
     puzzle_solving_time.finished_at
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id

@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -31,6 +32,7 @@ final class PuzzleDetailController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetPendingPuzzleProposals $getPendingPuzzleProposals,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -74,6 +76,8 @@ final class PuzzleDetailController extends AbstractController
             $puzzleCollections = $this->getPuzzleCollections->byPlayerAndPuzzle($loggedPlayer->playerId, $puzzleId);
         }
 
+        $isImageHidden = $puzzle->hideImageUntil !== null && $puzzle->hideImageUntil > $this->clock->now();
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzle_statuses' => $puzzleStatuses,
@@ -82,6 +86,7 @@ final class PuzzleDetailController extends AbstractController
             'logged_player' => $loggedPlayer,
             'offers_count' => $this->getSellSwapListItems->countByPuzzleId($puzzleId),
             'has_pending_proposals' => $this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId),
+            'is_image_hidden' => $isImageHidden,
         ]);
     }
 }

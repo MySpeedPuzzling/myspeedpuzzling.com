@@ -99,7 +99,7 @@ WITH puzzle_base AS (
     SELECT DISTINCT ON (puzzle.id)
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
-        puzzle.image AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
         puzzle.alternative_name AS puzzle_alternative_name,
         puzzle.pieces_count,
         puzzle.is_available,
@@ -107,6 +107,7 @@ WITH puzzle_base AS (
         puzzle.manufacturer_id,
         puzzle.ean AS puzzle_ean,
         puzzle.identification_number AS puzzle_identification_number,
+        puzzle.hide_image_until,
         CASE
             WHEN puzzle.alternative_name ILIKE :searchQuery
               OR puzzle.name ILIKE :searchQuery
@@ -160,6 +161,7 @@ SELECT
     m.id AS manufacturer_id,
     pb.puzzle_ean,
     pb.puzzle_identification_number,
+    pb.hide_image_until,
     COALESCE(ps.solved_times_count, 0) AS solved_times,
     ps.average_time_solo,
     ps.fastest_time_solo,
@@ -234,6 +236,7 @@ SQL;
              *     is_available: bool,
              *     puzzle_ean: null|string,
              *     puzzle_identification_number: null|string,
+             *     hide_image_until: null|string,
              * } $row
              */
 
@@ -260,7 +263,7 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.ean AS puzzle_ean,
     puzzle.pieces_count,
     manufacturer.id AS manufacturer_id,
@@ -289,7 +292,7 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    puzzle.image AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.approved AS puzzle_approved,

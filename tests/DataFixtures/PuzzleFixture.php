@@ -35,6 +35,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
     public const string PUZZLE_6000 = '018d0003-0000-0000-0000-000000000018';
     public const string PUZZLE_9000 = '018d0003-0000-0000-0000-000000000019';
     public const string PUZZLE_UNAPPROVED = '018d0003-0000-0000-0000-000000000020';
+    public const string PUZZLE_HIDDEN_IMAGE = '018d0003-0000-0000-0000-000000000021';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -215,6 +216,20 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         $manager->persist($unapprovedPuzzle);
         $this->addReference(self::PUZZLE_UNAPPROVED, $unapprovedPuzzle);
 
+        // Puzzle with hidden image (unreleased)
+        $hiddenImagePuzzle = $this->createPuzzle(
+            id: self::PUZZLE_HIDDEN_IMAGE,
+            name: 'Puzzle Hidden Image',
+            piecesCount: 1000,
+            manufacturer: $ravensburger,
+            addedByUser: $adminPlayer,
+            approved: true,
+            isAvailable: true,
+            hideImageUntil: new \DateTimeImmutable('2099-12-31'),
+        );
+        $manager->persist($hiddenImagePuzzle);
+        $this->addReference(self::PUZZLE_HIDDEN_IMAGE, $hiddenImagePuzzle);
+
         $manager->flush();
     }
 
@@ -237,6 +252,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
         null|string $identificationNumber = null,
         null|string $ean = null,
         null|string $alternativeName = null,
+        null|\DateTimeImmutable $hideImageUntil = null,
     ): Puzzle {
         return new Puzzle(
             id: Uuid::fromString($id),
@@ -251,6 +267,7 @@ final class PuzzleFixture extends Fixture implements DependentFixtureInterface
             identificationNumber: $identificationNumber,
             ean: $ean,
             isAvailable: $isAvailable,
+            hideImageUntil: $hideImageUntil,
         );
     }
 }

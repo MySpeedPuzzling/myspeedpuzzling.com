@@ -9,7 +9,7 @@ use Twig\TwigFilter;
 
 final class PuzzleImageTwigExtension extends AbstractExtension
 {
-    private const string PLACEHOLDER_IMAGE = '/img/placeholder-puzzle.png';
+    private const string PLACEHOLDER_IMAGE = '/img/placeholder-puzzle.jpg';
 
     public function __construct(
         readonly private ImageThumbnailTwigExtension $imageThumbnail,

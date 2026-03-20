@@ -9,7 +9,7 @@ use Twig\TwigFunction;
 
 final class LazyImageTwigExtension extends AbstractExtension
 {
-    private const string PLACEHOLDER_IMAGE = '/img/placeholder-puzzle.png';
+    private const string PLACEHOLDER_IMAGE = '/img/placeholder-puzzle.jpg';
 
     public function __construct(
         readonly private ImageThumbnailTwigExtension $imageThumbnail,

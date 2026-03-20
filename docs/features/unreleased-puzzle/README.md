@@ -25,7 +25,7 @@ CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW(
   THEN NULL ELSE puzzle.image END AS puzzle_image
 ```
 
-When `hideImageUntil` is in the future, the image column is returned as `NULL`. Since the existing Twig extensions (`PuzzleImageTwigExtension`, `LazyImageTwigExtension`) already return the placeholder image (`/img/placeholder-puzzle.png`) when the image is `null`, **no template changes are needed for image display**.
+When `hideImageUntil` is in the future, the image column is returned as `NULL`. Since the existing Twig extensions (`PuzzleImageTwigExtension`, `LazyImageTwigExtension`) already return the placeholder image (`/img/placeholder-puzzle.jpg`) when the image is `null`, **no template changes are needed for image display**.
 
 This also automatically handles:
 - OG image meta tag (checks `puzzle.puzzleImage is not null`)

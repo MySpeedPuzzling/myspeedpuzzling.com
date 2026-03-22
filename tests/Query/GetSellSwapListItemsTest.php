@@ -51,8 +51,8 @@ final class GetSellSwapListItemsTest extends KernelTestCase
         ]);
 
         self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $counts);
-        // PUZZLE_500_01 has 2 offers: SELLSWAP_01 (PLAYER_WITH_STRIPE) and SELLSWAP_10 (PLAYER_ADMIN)
-        self::assertSame(2, $counts[PuzzleFixture::PUZZLE_500_01]);
+        // PUZZLE_500_01 has 2 items but SELLSWAP_10 has published_on_marketplace=false, so only 1 counts
+        self::assertSame(1, $counts[PuzzleFixture::PUZZLE_500_01]);
     }
 
     public function testCountByPuzzleIdsExcludesPuzzlesWithoutOffers(): void
@@ -66,6 +66,14 @@ final class GetSellSwapListItemsTest extends KernelTestCase
         self::assertArrayHasKey(PuzzleFixture::PUZZLE_500_01, $counts);
         self::assertArrayNotHasKey(PuzzleFixture::PUZZLE_1000_04, $counts);
         self::assertSame(0, $counts[PuzzleFixture::PUZZLE_1000_04] ?? 0);
+    }
+
+    public function testCountByPuzzleIdExcludesUnpublishedItems(): void
+    {
+        // PUZZLE_500_01 has 2 items but SELLSWAP_10 has published_on_marketplace=false
+        $count = $this->getSellSwapListItems->countByPuzzleId(PuzzleFixture::PUZZLE_500_01);
+
+        self::assertSame(1, $count);
     }
 
     public function testCountByPuzzleIdsWithEmptyArrayReturnsEmpty(): void

@@ -207,6 +207,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
             comment: 'Good condition, complete',
             daysAgo: 6,
         );
+        $item10->changePublishedOnMarketplace(false);
         $manager->persist($item10);
         $this->addReference(self::SELLSWAP_10, $item10);
 

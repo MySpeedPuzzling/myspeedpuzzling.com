@@ -220,18 +220,31 @@ final class GetMarketplaceListingsTest extends KernelTestCase
 
     public function testPuzzleWithMultipleOffers(): void
     {
-        // Search for "Puzzle 1" which is PUZZLE_500_01 with 2 offers from different sellers
-        $items = $this->query->search(searchTerm: 'Puzzle 1');
+        // PUZZLE_1000_01 has 2 published offers from different sellers (SELLSWAP_03 and SELLSWAP_11)
+        $allItems = $this->query->search(limit: 100);
+
+        $puzzle1000_01Items = array_filter(
+            $allItems,
+            static fn ($item) => $item->puzzleId === PuzzleFixture::PUZZLE_1000_01,
+        );
+
+        self::assertCount(2, $puzzle1000_01Items);
+
+        $sellerIds = array_map(static fn ($item) => $item->sellerId, $puzzle1000_01Items);
+        self::assertCount(2, array_unique($sellerIds));
+    }
+
+    public function testUnpublishedItemsAreExcludedFromSearch(): void
+    {
+        // PUZZLE_500_01 has 2 items but SELLSWAP_10 has published_on_marketplace=false
+        $allItems = $this->query->search(limit: 100);
 
         $puzzle500_01Items = array_filter(
-            $items,
+            $allItems,
             static fn ($item) => $item->puzzleId === PuzzleFixture::PUZZLE_500_01,
         );
 
-        self::assertCount(2, $puzzle500_01Items);
-
-        $sellerIds = array_map(static fn ($item) => $item->sellerId, $puzzle500_01Items);
-        self::assertCount(2, array_unique($sellerIds));
+        self::assertCount(1, $puzzle500_01Items);
     }
 
     public function testPuzzleWithOnlyReservedOffers(): void

@@ -226,6 +226,7 @@ SQL;
 SELECT puzzle_id, COUNT(*) as offer_count
 FROM sell_swap_list_item
 WHERE puzzle_id IN (:puzzleIds)
+AND published_on_marketplace = true
 GROUP BY puzzle_id
 SQL;
 
@@ -248,6 +249,7 @@ SQL;
 SELECT COUNT(*) as item_count
 FROM sell_swap_list_item
 WHERE puzzle_id = :puzzleId
+AND published_on_marketplace = true
 SQL;
 
         $result = $this->database

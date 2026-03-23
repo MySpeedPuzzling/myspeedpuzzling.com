@@ -73,54 +73,57 @@
                 {% set is_mine = logged_user.profile is not null and logged_user.profile.playerId == fr.authorId %}
                 {% set has_voted = voted_request_ids[fr.id] is defined %}
                 <div class="card shadow-sm {{ is_mine ? 'border-primary border-opacity-50' : '' }}">
-                    <div class="card-body d-flex align-items-start gap-3">
-                        {# Vote column #}
-                        <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 52px;">
-                            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                                {% if has_voted %}
-                                    <div class="btn btn-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
-                                        <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
-                                        <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
-                                    </div>
-                                {% elseif votes_used_this_month < 1 %}
-                                    <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': fr.id}) }}">
-                                        <button type="submit" class="btn btn-outline-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;" title="{{ 'feature_requests.vote_button'|trans }}">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 52px;">
+                                {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                                    {% if has_voted %}
+                                        <div class="btn btn-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
                                             <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
                                             <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
-                                        </button>
-                                    </form>
+                                        </div>
+                                    {% elseif votes_used_this_month < 1 %}
+                                        <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': fr.id}) }}">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;">
+                                                <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                                <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                                <span style="font-size: 0.6rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.05em;">{{ 'feature_requests.vote_button'|trans }}</span>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <div class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2 disabled" style="min-width: 44px;" title="{{ 'feature_requests.vote_limit_reached'|trans }}">
+                                            <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                            <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                        </div>
+                                    {% endif %}
                                 {% else %}
-                                    <div class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2 disabled" style="min-width: 44px;" title="{{ 'feature_requests.vote_limit_reached'|trans }}">
+                                    <button class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
                                         <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
                                         <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
-                                    </div>
+                                        <span style="font-size: 0.6rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.05em;">{{ 'feature_requests.vote_button'|trans }}</span>
+                                    </button>
                                 {% endif %}
-                            {% else %}
-                                <button class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'feature_requests.vote_button'|trans }}">
-                                    <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
-                                    <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
-                                </button>
-                            {% endif %}
-                        </div>
-
-                        <div class="flex-grow-1 min-width-0">
-                            <a href="{{ path('feature_request_detail', {'featureRequestId': fr.id}) }}" class="text-decoration-none text-body">
-                                <h5 class="mb-1">
-                                    {{ fr.title }}
-                                    {% if is_mine %}
-                                        <span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size: 0.65rem; vertical-align: middle;">{{ 'feature_requests.yours'|trans }}</span>
-                                    {% endif %}
-                                </h5>
-                                <p class="text-muted small mb-0">{{ fr.description|length > 200 ? fr.description|slice(0, 200) ~ '...' : fr.description }}</p>
-                            </a>
-                            <div class="d-flex align-items-center flex-wrap gap-2 small text-muted mt-2 pt-2 border-top">
-                                {{ include('messaging/_avatar.html.twig', {avatar: fr.authorAvatar, size: 20}) }}
-                                <span>{{ fr.authorName }}</span>
-                                <span>&middot;</span>
-                                <span>{{ fr.createdAt|ago }}</span>
-                                <span>&middot;</span>
-                                <span><i class="bi bi-chat-dots me-1"></i>{{ fr.commentCount }}</span>
                             </div>
+
+                            <div class="flex-grow-1 min-width-0">
+                                <a href="{{ path('feature_request_detail', {'featureRequestId': fr.id}) }}" class="text-decoration-none text-body">
+                                    <h5 class="mb-1">
+                                        {{ fr.title }}
+                                        {% if is_mine %}
+                                            <span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size: 0.65rem; vertical-align: middle;">{{ 'feature_requests.yours'|trans }}</span>
+                                        {% endif %}
+                                    </h5>
+                                    <p class="text-muted small mb-0">{{ fr.description|length > 200 ? fr.description|slice(0, 200) ~ '...' : fr.description }}</p>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center flex-wrap gap-2 small text-muted mt-2 pt-2 border-top">
+                            {{ include('messaging/_avatar.html.twig', {avatar: fr.authorAvatar, size: 20}) }}
+                            <span>{{ fr.authorName }}</span>
+                            <span>&middot;</span>
+                            <span>{{ fr.createdAt|ago }}</span>
+                            <span>&middot;</span>
+                            <span><i class="bi bi-chat-dots me-1"></i>{{ fr.commentCount }}</span>
                         </div>
                     </div>
                 </div>

@@ -44,7 +44,7 @@ readonly final class GrantMembershipHandler
                 Uuid::uuid7(),
                 $player,
                 $this->clock->now(),
-                endsAt: $message->endsAt,
+                grantedUntil: $message->endsAt,
             );
 
             $this->membershipRepository->save($membership);

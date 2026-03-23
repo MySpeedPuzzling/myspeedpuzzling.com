@@ -62,9 +62,10 @@ final class ClaimVoucherHandlerTest extends KernelTestCase
         self::assertNotNull($voucher->usedBy);
         self::assertSame($playerId, $voucher->usedBy->id->toString());
 
-        // Verify membership was created
+        // Verify membership was created with grantedUntil (not endsAt)
         $membership = $this->membershipRepository->getByPlayerId($playerId);
-        self::assertNotNull($membership->endsAt);
+        self::assertNotNull($membership->grantedUntil);
+        self::assertNull($membership->endsAt);
     }
 
     public function testClaimingVoucherWithInvalidCodeThrowsException(): void

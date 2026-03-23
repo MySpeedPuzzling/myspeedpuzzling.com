@@ -44,6 +44,10 @@ class Membership implements EntityWithEvents
         public null|DateTimeImmutable $endsAt = null,
         #[Column(length: 10, options: ['default' => 'web'])]
         public Platform $platform = Platform::Web,
+        #[Column(nullable: true)]
+        public null|DateTimeImmutable $grantedUntil = null,
+        #[Column(nullable: true)]
+        public null|DateTimeImmutable $renewedBillingPeriodEnd = null,
     ) {
         $this->recordThat(new MembershipStarted($this->id));
     }
@@ -83,6 +87,11 @@ class Membership implements EntityWithEvents
             $this->billingPeriodEndsAt = $billingPeriodEndsAt;
         }
 
+        if ($status === Subscription::STATUS_PAST_DUE) {
+            $this->endsAt = $now;
+            $this->billingPeriodEndsAt = $billingPeriodEndsAt;
+        }
+
         if ($status === Subscription::STATUS_PAUSED) {
             $this->endsAt = $now;
             $this->billingPeriodEndsAt = $billingPeriodEndsAt;
@@ -94,15 +103,16 @@ class Membership implements EntityWithEvents
             $this->stripeSubscriptionId = $stripeSubscriptionId;
             $this->endsAt = null;
 
-            if ($isPaymentConfirmed) {
-                if (
-                    $this->billingPeriodEndsAt === null
-                    || $billingPeriodEndsAt > $this->billingPeriodEndsAt
-                ) {
-                    $this->recordThat(new MembershipSubscriptionRenewed($this->id));
-                }
-
+            if (
+                $this->billingPeriodEndsAt === null
+                || $billingPeriodEndsAt > $this->billingPeriodEndsAt
+            ) {
                 $this->billingPeriodEndsAt = $billingPeriodEndsAt;
+            }
+
+            if ($isPaymentConfirmed && $billingPeriodEndsAt != $this->renewedBillingPeriodEnd) {
+                $this->recordThat(new MembershipSubscriptionRenewed($this->id));
+                $this->renewedBillingPeriodEnd = $billingPeriodEndsAt;
             }
         }
     }

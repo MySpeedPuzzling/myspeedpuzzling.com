@@ -15,7 +15,7 @@
 
                 <div class="card shadow my-4">
                     <div class="card-body">
-                        {% if membership and (membership.endsAt is null or membership.endsAt > now) %}
+                        {% if membership and membership.isActive(now) %}
                             {% if membership.billingPeriodEndsAt %}
                                 <p class="text-success fs-5">
                                     <i class="ci-check-circle me-2"></i> {{ 'membership.subscription_active'|trans }}
@@ -25,15 +25,13 @@
                                     {{ 'membership.next_payment'|trans }}: <strong>{{ membership.billingPeriodEndsAt|date('d.m.Y H:i') }}</strong>
                                 </p>
                             {% elseif membership.endsAt and membership.endsAt > now %}
-                                {% if membership.stripeSubscriptionId %}
-                                    <p class="text-warning fs-5">
-                                        <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
-                                    </p>
-                                {% else %}
-                                    <p class="text-warning fs-5">
-                                        <i class="ci-close-circle me-2"></i> {{ 'membership.free_membership_active'|trans }}
-                                    </p>
-                                {% endif %}
+                                <p class="text-warning fs-5">
+                                    <i class="ci-close-circle me-2"></i> {{ 'membership.membership_cancelling'|trans }}
+                                </p>
+                            {% elseif membership.hasActiveGrant(now) %}
+                                <p class="text-warning fs-5">
+                                    <i class="ci-close-circle me-2"></i> {{ 'membership.free_membership_active'|trans }}
+                                </p>
                             {% else %}
                                 <p class="text-danger fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_inactive'|trans }}
@@ -43,6 +41,10 @@
                             {% if membership.endsAt and membership.endsAt > now %}
                                 <p>
                                     {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.endsAt|date('d.m.Y') }}</strong>
+                                </p>
+                            {% elseif membership.hasActiveGrant(now) %}
+                                <p>
+                                    {{ 'membership.membership_active_until'|trans }}: <strong>{{ membership.grantedUntil|date('d.m.Y') }}</strong>
                                 </p>
                             {% endif %}
 
@@ -70,7 +72,7 @@
                                 {% endif %}
                             </p>
                         {% else %}
-                            {% if membership and membership.endsAt and membership.endsAt < now %}
+                            {% if membership and not membership.isActive(now) %}
                                 <p class="text-danger fs-5">
                                     <i class="ci-close-circle me-2"></i> {{ 'membership.membership_expired'|trans }}
                                 </p>
@@ -168,7 +170,7 @@
                     </div>
                 </div>
 
-                {% if membership and (membership.endsAt is null or membership.endsAt > now) %}
+                {% if membership and membership.isActive(now) %}
                     <div class="text-center mt-3">
                         <a href="{{ path('claim_voucher') }}" class="btn btn-outline-secondary btn-sm">
                             <i class="ci-gift me-1"></i> {{ 'membership.redeem_voucher'|trans }}

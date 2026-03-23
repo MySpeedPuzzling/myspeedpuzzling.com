@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\VoteLimitReached;
 use SpeedPuzzling\Web\Message\VoteForFeatureRequest;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -38,14 +39,17 @@ final class VoteForFeatureRequestController extends AbstractController
         methods: ['POST'],
     )]
     #[IsGranted('IS_AUTHENTICATED_FULLY')]
-    public function __invoke(string $featureRequestId): Response
+    public function __invoke(string $featureRequestId, Request $request): Response
     {
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         assert($loggedPlayer !== null);
 
+        $fallback = $this->generateUrl('feature_request_detail', ['featureRequestId' => $featureRequestId]);
+        $redirectUrl = $request->headers->get('referer', $fallback);
+
         if ($loggedPlayer->activeMembership === false) {
             $this->addFlash('warning', $this->translator->trans('feature_requests.membership_required'));
-            return $this->redirectToRoute('feature_request_detail', ['featureRequestId' => $featureRequestId]);
+            return $this->redirect($redirectUrl);
         }
 
         try {
@@ -67,6 +71,6 @@ final class VoteForFeatureRequestController extends AbstractController
             }
         }
 
-        return $this->redirectToRoute('feature_request_detail', ['featureRequestId' => $featureRequestId]);
+        return $this->redirect($redirectUrl);
     }
 }

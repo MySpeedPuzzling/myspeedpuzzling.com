@@ -34,16 +34,22 @@ class FeatureRequest
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Player $author,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::STRING, length: 255)]
         public string $title,
-        #[Immutable]
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::TEXT)]
         public string $description,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
     ) {
+    }
+
+    public function edit(string $title, string $description): void
+    {
+        $this->title = $title;
+        $this->description = $description;
     }
 
     public function incrementVoteCount(): void

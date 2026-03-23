@@ -10,40 +10,27 @@
     <div class="card shadow-sm mb-4 {{ is_mine ? 'border-primary border-opacity-50' : '' }}">
         <div class="card-body">
             <div class="d-flex align-items-start gap-3">
-                <div class="text-center flex-shrink-0" style="min-width: 70px;">
-                    <div class="d-inline-flex align-items-center justify-content-center rounded-pill px-3 py-1 {{ feature_request.voteCount > 0 ? 'bg-primary text-white' : 'bg-light text-muted' }}" style="font-size: 1.1rem;">
-                        <i class="bi bi-hand-thumbs-up-fill me-1"></i>
-                        <span class="fw-bold">{{ feature_request.voteCount }}</span>
-                    </div>
+                {# Vote column - vertical: count + arrow/button #}
+                <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 52px;">
+                    <span class="fw-bold fs-3 lh-1 {{ has_voted ? 'text-primary' : 'text-muted' }}">{{ feature_request.voteCount }}</span>
 
-                    <div class="mt-2">
-                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                            {% if has_voted %}
-                                <button class="btn btn-success btn-sm" disabled>
-                                    <i class="bi bi-check-lg me-1"></i>{{ 'feature_requests.voted_button'|trans }}
+                    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                        {% if has_voted %}
+                            <i class="bi bi-caret-up-fill text-primary mt-1" style="font-size: 1.6rem;"></i>
+                        {% elseif votes_used_this_month < 1 %}
+                            <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': feature_request.id}) }}">
+                                <button type="submit" class="btn btn-link p-0 text-muted" title="{{ 'feature_requests.vote_button'|trans }}">
+                                    <i class="bi bi-caret-up-fill" style="font-size: 1.6rem;"></i>
                                 </button>
-                            {% elseif votes_used_this_month < 1 %}
-                                <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': feature_request.id}) }}">
-                                    <button type="submit" class="btn btn-outline-primary btn-sm">
-                                        <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'feature_requests.vote_button'|trans }}
-                                    </button>
-                                </form>
-                            {% else %}
-                                <button class="btn btn-outline-secondary btn-sm" disabled title="{{ 'feature_requests.vote_limit_reached'|trans }}">
-                                    <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'feature_requests.vote_button'|trans }}
-                                </button>
-                            {% endif %}
+                            </form>
                         {% else %}
-                            <button
-                                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
-                                data-bs-toggle="modal"
-                                data-bs-target="#membersExclusiveModal"
-                            >
-                                <i class="ci-locked me-1"></i>
-                                {{ 'feature_requests.vote_button'|trans }}
-                            </button>
+                            <i class="bi bi-caret-up-fill text-muted opacity-25 mt-1" style="font-size: 1.6rem;" title="{{ 'feature_requests.vote_limit_reached'|trans }}"></i>
                         {% endif %}
-                    </div>
+                    {% else %}
+                        <button class="btn btn-link p-0 text-muted" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'feature_requests.vote_button'|trans }}">
+                            <i class="bi bi-caret-up-fill" style="font-size: 1.6rem;"></i>
+                        </button>
+                    {% endif %}
                 </div>
 
                 <div class="flex-grow-1">
@@ -60,6 +47,46 @@
                         <span>{{ feature_request.createdAt|ago }}</span>
                     </div>
                     <div class="mb-0" style="white-space: pre-line;">{{ feature_request.description }}</div>
+
+                    {% if is_mine %}
+                        <div class="mt-3 pt-3 border-top">
+                            {% if has_external_votes %}
+                                <small class="text-muted"><i class="bi bi-lock me-1"></i>{{ 'feature_requests.cannot_edit_has_votes'|trans }}</small>
+                            {% else %}
+                                <div class="d-flex gap-2">
+                                    <a href="{{ path('feature_request_edit', {'featureRequestId': feature_request.id}) }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-pencil me-1"></i>{{ 'feature_requests.edit_button'|trans }}
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                        <i class="bi bi-trash me-1"></i>{{ 'feature_requests.delete_button'|trans }}
+                                    </button>
+                                </div>
+
+                                {# Delete confirmation modal #}
+                                <div class="modal fade" id="deleteModal" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">{{ 'feature_requests.delete_confirm_title'|trans }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>{{ 'feature_requests.delete_confirm_message'|trans }}</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'feature_requests.report_cancel_button'|trans }}</button>
+                                                <form method="post" action="{{ path('feature_request_delete', {'featureRequestId': feature_request.id}) }}">
+                                                    <button type="submit" class="btn btn-danger btn-sm">
+                                                        <i class="bi bi-trash me-1"></i>{{ 'feature_requests.delete_confirm_button'|trans }}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

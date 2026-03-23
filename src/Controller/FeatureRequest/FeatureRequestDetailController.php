@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\AddFeatureRequestComment;
 use SpeedPuzzling\Web\Query\GetFeatureRequestComments;
 use SpeedPuzzling\Web\Query\GetFeatureRequestDetail;
 use SpeedPuzzling\Web\Query\GetPlayerVoteCountThisMonth;
+use SpeedPuzzling\Web\Query\HasFeatureRequestExternalVotes;
 use SpeedPuzzling\Web\Query\HasPlayerVotedForFeatureRequest;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -26,6 +27,7 @@ final class FeatureRequestDetailController extends AbstractController
         readonly private GetFeatureRequestComments $getFeatureRequestComments,
         readonly private HasPlayerVotedForFeatureRequest $hasPlayerVotedForFeatureRequest,
         readonly private GetPlayerVoteCountThisMonth $getPlayerVoteCountThisMonth,
+        readonly private HasFeatureRequestExternalVotes $hasFeatureRequestExternalVotes,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
@@ -78,12 +80,15 @@ final class FeatureRequestDetailController extends AbstractController
             }
         }
 
+        $hasExternalVotes = ($this->hasFeatureRequestExternalVotes)($featureRequestId);
+
         return $this->render('feature_request/detail.html.twig', [
             'feature_request' => $featureRequest,
             'comments' => $comments,
             'has_voted' => $hasVoted,
             'votes_used_this_month' => $votesUsedThisMonth,
             'comment_form' => $commentForm,
+            'has_external_votes' => $hasExternalVotes,
         ]);
     }
 }

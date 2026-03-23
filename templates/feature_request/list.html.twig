@@ -117,8 +117,7 @@
                                 {{ include('messaging/_avatar.html.twig', {avatar: fr.authorAvatar, size: 20}) }}
                                 <span>{{ fr.authorName }}</span>
                                 <span>&middot;</span>
-                                <span class="d-none d-md-inline">{{ fr.createdAt|ago }}</span>
-                                <span class="d-md-none">{{ fr.createdAt|date('d.m.Y') }}</span>
+                                <span>{{ fr.createdAt|ago }}</span>
                                 <span>&middot;</span>
                                 <span><i class="bi bi-chat-dots me-1"></i>{{ fr.commentCount }}</span>
                             </div>

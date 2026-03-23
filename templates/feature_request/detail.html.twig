@@ -6,12 +6,15 @@
 {% block content %}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('feature_requests'), fallbackTitle: 'feature_requests.title'|trans}) }}
 
-    <div class="card shadow-sm mb-4">
+    {% set is_mine = logged_user.profile is not null and logged_user.profile.playerId == feature_request.authorId %}
+    <div class="card shadow-sm mb-4 {{ is_mine ? 'border-primary border-opacity-50' : '' }}">
         <div class="card-body">
             <div class="d-flex align-items-start gap-3">
                 <div class="text-center flex-shrink-0" style="min-width: 70px;">
-                    <div class="fs-2 fw-bold text-primary">{{ feature_request.voteCount }}</div>
-                    <small class="text-muted">{{ 'feature_requests.votes'|trans }}</small>
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-pill px-3 py-1 {{ feature_request.voteCount > 0 ? 'bg-primary text-white' : 'bg-light text-muted' }}" style="font-size: 1.1rem;">
+                        <i class="bi bi-hand-thumbs-up-fill me-1"></i>
+                        <span class="fw-bold">{{ feature_request.voteCount }}</span>
+                    </div>
 
                     <div class="mt-2">
                         {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
@@ -44,7 +47,12 @@
                 </div>
 
                 <div class="flex-grow-1">
-                    <h1 class="h4 mb-2">{{ feature_request.title }}</h1>
+                    <h1 class="h4 mb-2">
+                        {{ feature_request.title }}
+                        {% if is_mine %}
+                            <span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size: 0.65rem; vertical-align: middle;">{{ 'feature_requests.yours'|trans }}</span>
+                        {% endif %}
+                    </h1>
                     <div class="d-flex align-items-center gap-2 small text-muted mb-3">
                         {{ include('messaging/_avatar.html.twig', {avatar: feature_request.authorAvatar, size: 28}) }}
                         <span>{{ 'feature_requests.requested_by'|trans }} <strong>{{ feature_request.authorName }}</strong></span>

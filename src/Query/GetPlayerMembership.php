@@ -30,7 +30,8 @@ readonly final class GetPlayerMembership
 SELECT
     stripe_subscription_id,
     ends_at,
-    billing_period_ends_at
+    billing_period_ends_at,
+    granted_until
 FROM membership
 WHERE membership.player_id = :playerId
 SQL;
@@ -40,6 +41,7 @@ SQL;
          *     stripe_subscription_id: null|string,
          *     ends_at: null|string,
          *     billing_period_ends_at: null|string,
+         *     granted_until: null|string,
          * } $row
          */
         $row = $this->database

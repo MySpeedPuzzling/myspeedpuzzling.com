@@ -62,7 +62,10 @@ SELECT
     newsletter_enabled,
     rating_count,
     average_rating,
-    COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
+    GREATEST(
+        COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
+        COALESCE(membership.granted_until, '1970-01-01'::timestamp)
+    ) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id
 WHERE player.id = :playerId
@@ -121,7 +124,10 @@ SELECT
     newsletter_enabled,
     rating_count,
     average_rating,
-    COALESCE(membership.ends_at, membership.billing_period_ends_at) AS membership_ends_at
+    GREATEST(
+        COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
+        COALESCE(membership.granted_until, '1970-01-01'::timestamp)
+    ) AS membership_ends_at
 FROM player
 LEFT JOIN membership ON membership.player_id = player.id
 WHERE player.user_id = :userId

@@ -101,18 +101,13 @@ readonly final class ClaimVoucherHandler
                 $membership->billingPeriodEndsAt = $trialEnd;
             } else {
                 $this->extendMembership($membership, $now, $voucher->monthsValue);
-
-                // If billingPeriodEndsAt was set (e.g., paused/incomplete subscription), update it too
-                if ($membership->billingPeriodEndsAt !== null) {
-                    $membership->billingPeriodEndsAt = $membership->endsAt;
-                }
             }
         } catch (MembershipNotFound) {
             $membership = new Membership(
                 id: Uuid::uuid7(),
                 player: $player,
                 createdAt: $now,
-                endsAt: $voucherEndDate,
+                grantedUntil: $voucherEndDate,
             );
 
             $this->membershipRepository->save($membership);
@@ -211,16 +206,16 @@ readonly final class ClaimVoucherHandler
 
     private function extendMembership(Membership $membership, \DateTimeImmutable $now, int $months): void
     {
-        $currentEndsAt = $membership->endsAt;
+        $currentGrantedUntil = $membership->grantedUntil;
 
-        if ($currentEndsAt === null || $currentEndsAt < $now) {
+        if ($currentGrantedUntil === null || $currentGrantedUntil < $now) {
             $baseDate = $now;
         } else {
-            $baseDate = $currentEndsAt;
+            $baseDate = $currentGrantedUntil;
         }
 
-        $newEndsAt = $baseDate->add(new DateInterval('P' . $months . 'M'));
-        $membership->endsAt = $newEndsAt;
+        $newGrantedUntil = $baseDate->add(new DateInterval('P' . $months . 'M'));
+        $membership->grantedUntil = $newGrantedUntil;
     }
 
     private function applyFreeMonthsToSubscription(string $subscriptionId, int $months): \DateTimeImmutable

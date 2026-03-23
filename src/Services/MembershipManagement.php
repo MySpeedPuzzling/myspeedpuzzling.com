@@ -109,8 +109,8 @@ readonly final class MembershipManagement
                 throw new PlayerAlreadyHaveMembership();
             }
 
-            if ($membership->endsAt !== null && $now < $membership->endsAt) {
-                $daysBetweenTrialEnds = $now->diff($membership->endsAt)->days;
+            if ($membership->grantedUntil !== null && $now < $membership->grantedUntil) {
+                $daysBetweenTrialEnds = $now->diff($membership->grantedUntil)->days;
 
                 if ($daysBetweenTrialEnds > 0) {
                     $checkoutData['subscription_data'] = [

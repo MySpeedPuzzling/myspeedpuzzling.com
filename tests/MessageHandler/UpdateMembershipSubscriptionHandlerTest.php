@@ -253,9 +253,10 @@ final class UpdateMembershipSubscriptionHandlerTest extends TestCase
         self::assertNull($membership->endsAt);
         // Stripe subscription ID should be updated
         self::assertSame($subscriptionId, $membership->stripeSubscriptionId);
-        // Billing period should NOT be updated (payment not confirmed)
-        self::assertNotEquals($billingPeriodEnd, $membership->billingPeriodEndsAt);
-        // Should NOT have recorded any events
+        // Billing period SHOULD be updated even without payment confirmation (fixes 1-hour gap)
+        self::assertNotNull($membership->billingPeriodEndsAt);
+        self::assertEquals($billingPeriodEnd->getTimestamp(), $membership->billingPeriodEndsAt->getTimestamp());
+        // Should NOT have recorded any events (renewal event only on payment confirmation)
         $events = $membership->popEvents();
         self::assertEmpty($events);
     }

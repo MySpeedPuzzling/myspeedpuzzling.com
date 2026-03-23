@@ -1836,6 +1836,7 @@ feature_requests:
     no_comments_yet: "No comments yet. Be the first to share your thoughts!"
     requested_by: "Suggested by"
     votes: "votes"
+    yours: "yours"
     report_button: "Report"
     report_confirm_title: "Report Comment"
     report_confirm_message: "If you find this comment inappropriate or offensive for any reason, feel free to report it. Simona will review it and take appropriate action. Are you sure you want to report this comment?"

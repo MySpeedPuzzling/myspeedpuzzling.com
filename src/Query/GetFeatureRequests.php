@@ -26,6 +26,7 @@ SELECT
     fr.description,
     fr.created_at,
     fr.vote_count,
+    (SELECT COUNT(*) FROM feature_request_comment frc WHERE frc.feature_request_id = fr.id) AS comment_count,
     p.id AS author_id,
     COALESCE(p.name, '#' || UPPER(p.code)) AS author_name,
     p.avatar AS author_avatar,
@@ -38,7 +39,7 @@ SQL;
         $rows = $this->database->executeQuery($query)->fetchAllAssociative();
 
         return array_map(static function (array $row): FeatureRequestOverview {
-            /** @var array{id: string, title: string, description: string, created_at: string, vote_count: int|string, author_id: string, author_name: string, author_avatar: null|string, author_country: null|string} $row */
+            /** @var array{id: string, title: string, description: string, created_at: string, vote_count: int|string, comment_count: int|string, author_id: string, author_name: string, author_avatar: null|string, author_country: null|string} $row */
             return FeatureRequestOverview::fromDatabaseRow($row);
         }, $rows);
     }

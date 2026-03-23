@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -123,7 +124,7 @@ final class MarketplaceListing
             shipsToCountry: $this->getShipsToCountry(),
             sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
             sellerId: $this->getMyOffersSellerId(),
-            puzzleId: $this->puzzleId !== '' ? $this->puzzleId : null,
+            puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
             sort: $this->sort,
             limit: $this->page * self::PER_PAGE,
             offset: 0,
@@ -150,7 +151,7 @@ final class MarketplaceListing
             shipsToCountry: $this->getShipsToCountry(),
             sellerCountry: $this->sellerCountry !== '' ? $this->sellerCountry : null,
             sellerId: $this->getMyOffersSellerId(),
-            puzzleId: $this->puzzleId !== '' ? $this->puzzleId : null,
+            puzzleId: $this->puzzleId !== '' && Uuid::isValid($this->puzzleId) ? $this->puzzleId : null,
         );
 
         return $this->cachedCount;
@@ -198,7 +199,7 @@ final class MarketplaceListing
 
     private function getFilteredPuzzleOverview(): null|PuzzleOverview
     {
-        if ($this->puzzleId === '') {
+        if ($this->puzzleId === '' || !Uuid::isValid($this->puzzleId)) {
             return null;
         }
 

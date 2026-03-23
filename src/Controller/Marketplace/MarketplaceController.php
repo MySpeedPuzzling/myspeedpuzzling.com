@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Marketplace;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\IsHintDismissed;
@@ -56,12 +57,16 @@ final class MarketplaceController extends AbstractController
         }
 
         $puzzleOverview = null;
-        if ($puzzleId !== '') {
+        if ($puzzleId !== '' && Uuid::isValid($puzzleId)) {
             try {
                 $puzzleOverview = $this->getPuzzleOverview->byId($puzzleId);
             } catch (PuzzleNotFound) {
                 // Puzzle not found, show generic marketplace
             }
+        }
+
+        if ($puzzleId !== '' && !Uuid::isValid($puzzleId)) {
+            $puzzleId = '';
         }
 
         return $this->render('marketplace/index.html.twig', [

@@ -33,7 +33,7 @@ SELECT
     p.country AS author_country
 FROM feature_request fr
 JOIN player p ON fr.author_id = p.id
-ORDER BY fr.vote_count DESC, fr.created_at DESC
+ORDER BY vote_count DESC, fr.created_at DESC
 SQL;
 
         $rows = $this->database->executeQuery($query)->fetchAllAssociative();

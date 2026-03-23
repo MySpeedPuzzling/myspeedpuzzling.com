@@ -59,8 +59,8 @@ readonly final class VoteForFeatureRequestHandler
             votedAt: $this->clock->now(),
         );
 
-        $featureRequest->incrementVoteCount();
-
         $this->featureRequestVoteRepository->save($vote);
+
+        $this->featureRequestRepository->recalculateVoteCount($message->featureRequestId);
     }
 }

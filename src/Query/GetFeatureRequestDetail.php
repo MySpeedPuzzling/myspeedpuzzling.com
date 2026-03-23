@@ -31,7 +31,7 @@ SELECT
     fr.title,
     fr.description,
     fr.created_at,
-    fr.vote_count,
+    (SELECT COUNT(*) FROM feature_request_vote fv WHERE fv.feature_request_id = fr.id) AS vote_count,
     p.id AS author_id,
     COALESCE(p.name, '#' || UPPER(p.code)) AS author_name,
     p.avatar AS author_avatar,

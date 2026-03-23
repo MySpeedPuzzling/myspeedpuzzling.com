@@ -51,9 +51,4 @@ class FeatureRequest
         $this->title = $title;
         $this->description = $description;
     }
-
-    public function incrementVoteCount(): void
-    {
-        $this->voteCount++;
-    }
 }

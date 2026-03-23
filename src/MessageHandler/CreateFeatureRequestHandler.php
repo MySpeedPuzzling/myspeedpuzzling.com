@@ -52,8 +52,6 @@ readonly final class CreateFeatureRequestHandler
             createdAt: $now,
         );
 
-        $featureRequest->incrementVoteCount();
-
         $this->featureRequestRepository->save($featureRequest);
 
         $vote = new FeatureRequestVote(
@@ -65,6 +63,9 @@ readonly final class CreateFeatureRequestHandler
 
         $this->featureRequestVoteRepository->save($vote);
 
-        return $featureRequest->id->toString();
+        $featureRequestId = $featureRequest->id->toString();
+        $this->featureRequestRepository->recalculateVoteCount($featureRequestId);
+
+        return $featureRequestId;
     }
 }

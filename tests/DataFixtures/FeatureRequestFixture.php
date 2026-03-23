@@ -34,7 +34,7 @@ final class FeatureRequestFixture extends Fixture implements DependentFixtureInt
             description: 'It would be great to have a dark mode option for the website. Many users prefer dark themes, especially when puzzling late at night.',
             createdAt: $this->clock->now()->modify('-7 days'),
         );
-        $popularRequest->voteCount = 5;
+        $popularRequest->voteCount = 3;
         $manager->persist($popularRequest);
         $this->addReference(self::FEATURE_REQUEST_POPULAR, $popularRequest);
 

@@ -397,6 +397,12 @@
                                     <span class="d-lg-none">{{ 'menu.faq'|trans }}</span>
                                 </a>
                             </li>
+                            <li class="nav-item d-lg-none">
+                                <a class="nav-link {% if currentRoute == 'feature_requests' %}active{% endif %}" href="{{ path('feature_requests') }}">
+                                    <i class="me-1 bi bi-lightbulb"></i>
+                                    <span>{{ 'menu.feature_requests'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -472,6 +478,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('feature_requests') }}" class="widget-list-link">{{ 'menu.feature_requests'|trans }} <span class="badge bg-primary">{{ 'new_badge'|trans }}</span></a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a rel="nofollow" href="{{ path('membership') }}" class="widget-list-link">{{ 'menu.membership'|trans }}</a>

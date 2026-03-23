@@ -7,4 +7,5 @@ namespace SpeedPuzzling\Web\Value;
 enum HintType: string
 {
     case MarketplaceDisclaimer = 'marketplace_disclaimer';
+    case FeatureRequestsIntro = 'feature_requests_intro';
 }

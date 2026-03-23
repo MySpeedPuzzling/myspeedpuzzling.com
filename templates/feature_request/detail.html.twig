@@ -1,0 +1,158 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ feature_request.title }} - {{ 'feature_requests.title'|trans }}{% endblock %}
+{% block meta_description %}{{ feature_request.description|length > 160 ? feature_request.description|slice(0, 160) ~ '...' : feature_request.description }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('feature_requests'), fallbackTitle: 'feature_requests.title'|trans}) }}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-start gap-3">
+                <div class="text-center flex-shrink-0" style="min-width: 70px;">
+                    <div class="fs-2 fw-bold text-primary">{{ feature_request.voteCount }}</div>
+                    <small class="text-muted">{{ 'feature_requests.votes'|trans }}</small>
+
+                    <div class="mt-2">
+                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                            {% if has_voted %}
+                                <button class="btn btn-success btn-sm" disabled>
+                                    <i class="bi bi-check-lg me-1"></i>{{ 'feature_requests.voted_button'|trans }}
+                                </button>
+                            {% elseif votes_used_this_month < 1 %}
+                                <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': feature_request.id}) }}">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'feature_requests.vote_button'|trans }}
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button class="btn btn-outline-secondary btn-sm" disabled title="{{ 'feature_requests.vote_limit_reached'|trans }}">
+                                    <i class="bi bi-hand-thumbs-up me-1"></i>{{ 'feature_requests.vote_button'|trans }}
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <button
+                                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                                data-bs-toggle="modal"
+                                data-bs-target="#membersExclusiveModal"
+                            >
+                                <i class="ci-locked me-1"></i>
+                                {{ 'feature_requests.vote_button'|trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex-grow-1">
+                    <h1 class="h4 mb-2">{{ feature_request.title }}</h1>
+                    <div class="d-flex align-items-center gap-2 small text-muted mb-3">
+                        {{ include('messaging/_avatar.html.twig', {avatar: feature_request.authorAvatar, size: 28}) }}
+                        <span>{{ 'feature_requests.requested_by'|trans }} <strong>{{ feature_request.authorName }}</strong></span>
+                        <span>&middot;</span>
+                        <span>{{ feature_request.createdAt|ago }}</span>
+                    </div>
+                    <div class="mb-0" style="white-space: pre-line;">{{ feature_request.description }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Comments Section #}
+    <h2 class="h5 mb-3">
+        <i class="bi bi-chat-dots me-1"></i>{{ 'feature_requests.comments_title'|trans }}
+        <small class="text-muted">({{ comments|length }})</small>
+    </h2>
+
+    {# Comment Form #}
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership and comment_form is not null %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                {{ form_start(form(comment_form)) }}
+                    <div class="mb-2">
+                        {{ form_widget(form(comment_form).content) }}
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-send me-1"></i>{{ 'feature_requests.add_comment_button'|trans }}
+                        </button>
+                    </div>
+                {{ form_end(form(comment_form)) }}
+            </div>
+        </div>
+    {% elseif logged_user.profile is null or not logged_user.profile.activeMembership %}
+        <div class="card shadow-sm mb-3 position-relative">
+            <div class="card-body">
+                <textarea class="form-control mb-2" rows="3" disabled placeholder="{{ 'feature_requests.comment_placeholder'|trans }}"></textarea>
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.8); border-radius: inherit;">
+                    <button
+                        class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <i class="ci-locked me-1"></i>
+                        {{ 'feature_requests.comment_members_only'|trans }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {# Comments List #}
+    {% if comments is empty %}
+        <p class="text-muted small">{{ 'feature_requests.no_comments_yet'|trans }}</p>
+    {% else %}
+        <div class="d-flex flex-column gap-2">
+            {% for comment in comments %}
+                <div class="card shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex align-items-start gap-2">
+                            {{ include('messaging/_avatar.html.twig', {avatar: comment.authorAvatar, size: 32}) }}
+                            <div class="flex-grow-1 min-width-0">
+                                <div class="d-flex align-items-center gap-2 small mb-1">
+                                    <strong>{{ comment.authorName }}</strong>
+                                    <span class="text-muted">&middot; {{ comment.createdAt|ago }}</span>
+
+                                    {% if logged_user.profile is not null %}
+                                        <button
+                                            type="button"
+                                            class="btn btn-link btn-sm text-muted p-0 ms-auto"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#reportModal{{ comment.id|slice(0, 8) }}"
+                                            title="{{ 'feature_requests.report_button'|trans }}"
+                                        >
+                                            <i class="bi bi-flag" style="font-size: 0.75rem;"></i>
+                                        </button>
+
+                                        {# Report Modal #}
+                                        <div class="modal fade" id="reportModal{{ comment.id|slice(0, 8) }}" tabindex="-1">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">{{ 'feature_requests.report_confirm_title'|trans }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>{{ 'feature_requests.report_confirm_message'|trans }}</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'feature_requests.report_cancel_button'|trans }}</button>
+                                                        <form method="post" action="{{ path('feature_request_report_comment', {'commentId': comment.id}) }}">
+                                                            <button type="submit" class="btn btn-warning btn-sm">
+                                                                <i class="bi bi-flag me-1"></i>{{ 'feature_requests.report_confirm_button'|trans }}
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="small" style="white-space: pre-line;">{{ comment.content }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

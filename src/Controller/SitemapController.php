@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Query\GetFeatureRequestIdsForSitemap;
 use SpeedPuzzling\Web\Query\GetPuzzleIdsForSitemap;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -17,6 +18,7 @@ final class SitemapController extends AbstractController
 
     public function __construct(
         readonly private GetPuzzleIdsForSitemap $getPuzzleIdsForSitemap,
+        readonly private GetFeatureRequestIdsForSitemap $getFeatureRequestIdsForSitemap,
     ) {
     }
 
@@ -30,7 +32,7 @@ final class SitemapController extends AbstractController
             ],
         ];
 
-        $staticRoutes = ['homepage', 'contact', 'faq', 'for_developers', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events', 'marketplace', 'puzzle_tracker_app'];
+        $staticRoutes = ['homepage', 'contact', 'faq', 'for_developers', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events', 'marketplace', 'puzzle_tracker_app', 'feature_requests'];
 
         foreach ($staticRoutes as $route) {
             foreach (self::LOCALES as $locale) {
@@ -57,6 +59,17 @@ final class SitemapController extends AbstractController
                 $urls['marketplace_' . $puzzleId][$locale] = $this->generateUrl('marketplace_puzzle', [
                     '_locale' => $locale,
                     'puzzleId' => $puzzleId,
+                ], UrlGeneratorInterface::ABSOLUTE_URL);
+            }
+        }
+
+        $featureRequestIds = $this->getFeatureRequestIdsForSitemap->all();
+
+        foreach ($featureRequestIds as $featureRequestId) {
+            foreach (self::LOCALES as $locale) {
+                $urls['feature_request_' . $featureRequestId][$locale] = $this->generateUrl('feature_request_detail', [
+                    '_locale' => $locale,
+                    'featureRequestId' => $featureRequestId,
                 ], UrlGeneratorInterface::ABSOLUTE_URL);
             }
         }

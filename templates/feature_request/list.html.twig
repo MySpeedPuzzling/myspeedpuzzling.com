@@ -1,0 +1,133 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'feature_requests.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'feature_requests.meta_description'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig') }}
+
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-lightbulb me-2"></i>{{ 'feature_requests.title'|trans }}
+        </h1>
+
+        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+            {% if requests_created_this_month < 3 %}
+                <a href="{{ path('feature_request_create') }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i>{{ 'feature_requests.create_button'|trans }}
+                </a>
+            {% else %}
+                <button class="btn btn-outline-secondary btn-sm" disabled>
+                    <i class="bi bi-plus-lg me-1"></i>{{ 'feature_requests.create_button'|trans }}
+                    <small class="ms-1 text-muted">({{ 'feature_requests.limit_reached_short'|trans }})</small>
+                </button>
+            {% endif %}
+        {% else %}
+            <button
+                class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                data-bs-toggle="modal"
+                data-bs-target="#membersExclusiveModal"
+            >
+                <i class="ci-locked me-1"></i>
+                {{ 'feature_requests.create_button'|trans }}
+            </button>
+        {% endif %}
+    </div>
+
+    {% if not hint_dismissed %}
+        <div class="alert alert-info small mb-3 d-flex align-items-start">
+            <div class="flex-grow-1">
+                <i class="bi bi-megaphone me-1"></i>
+                {{ 'feature_requests.hint_banner'|trans }}
+            </div>
+            {% if logged_user.profile is not null %}
+                <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="Close" onclick="fetch('{{ path('dismiss_hint') }}',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'type=feature_requests_intro'});this.closest('.alert').remove()"></button>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <div class="small text-muted mb-3">
+            {% if votes_used_this_month < 1 %}
+                <i class="bi bi-check-circle text-success me-1"></i>
+                {{ 'feature_requests.votes_remaining'|trans({'%count%': 1 - votes_used_this_month}) }}
+            {% else %}
+                <i class="bi bi-clock me-1"></i>
+                {{ 'feature_requests.no_votes_remaining'|trans }}
+            {% endif %}
+
+            <span class="ms-1 text-muted">
+                {{ 'feature_requests.requests_remaining'|trans({'%count%': 3 - requests_created_this_month}) }}
+            </span>
+        </div>
+    {% endif %}
+
+    {% if feature_requests is empty %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-lightbulb" style="font-size: 3rem;"></i>
+            <p class="mt-3">{{ 'feature_requests.no_requests_yet'|trans }}</p>
+        </div>
+    {% else %}
+        <div class="d-flex flex-column gap-3">
+            {% for fr in feature_requests %}
+                {% set is_mine = logged_user.profile is not null and logged_user.profile.playerId == fr.authorId %}
+                {% set has_voted = voted_request_ids[fr.id] is defined %}
+                <div class="card shadow-sm {{ is_mine ? 'border-primary border-opacity-50' : '' }}">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 52px;">
+                                {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                                    {% if has_voted %}
+                                        <div class="btn btn-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
+                                            <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                            <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                        </div>
+                                    {% elseif votes_used_this_month < 1 %}
+                                        <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': fr.id}) }}">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;">
+                                                <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                                <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                                <span style="font-size: 0.6rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.05em;">{{ 'feature_requests.vote_button'|trans }}</span>
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <div class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2 disabled" style="min-width: 44px;" title="{{ 'feature_requests.vote_limit_reached'|trans }}">
+                                            <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                            <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <button class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                                        <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                        <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                        <span style="font-size: 0.6rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.05em;">{{ 'feature_requests.vote_button'|trans }}</span>
+                                    </button>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex-grow-1 min-width-0">
+                                <a href="{{ path('feature_request_detail', {'featureRequestId': fr.id}) }}" class="text-decoration-none text-body">
+                                    <h5 class="mb-1">
+                                        {{ fr.title }}
+                                        {% if is_mine %}
+                                            <span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size: 0.65rem; vertical-align: middle;">{{ 'feature_requests.yours'|trans }}</span>
+                                        {% endif %}
+                                    </h5>
+                                    <p class="text-muted small mb-0">{{ fr.description|length > 200 ? fr.description|slice(0, 200) ~ '...' : fr.description }}</p>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center flex-wrap gap-2 small text-muted mt-2 pt-2 border-top">
+                            {{ include('messaging/_avatar.html.twig', {avatar: fr.authorAvatar, size: 20}) }}
+                            <span>{{ fr.authorName }}</span>
+                            <span>&middot;</span>
+                            <span>{{ fr.createdAt|ago }}</span>
+                            <span>&middot;</span>
+                            <span><i class="bi bi-chat-dots me-1"></i>{{ fr.commentCount }}</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

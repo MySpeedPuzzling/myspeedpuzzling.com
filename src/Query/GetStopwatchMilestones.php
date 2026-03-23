@@ -54,6 +54,7 @@ JOIN player p ON p.id = pst.player_id
 WHERE pst.puzzle_id = :puzzleId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND p.is_private = false
 ORDER BY pst.seconds_to_solve ASC
 LIMIT 1
 SQL;
@@ -124,6 +125,7 @@ JOIN puzzle_solving_time pst ON pst.player_id = fav.id AND pst.puzzle_id = :puzz
 WHERE player.id = :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND fav.is_private = false
 GROUP BY fav.id, fav.name, fav.code, fav.avatar
 ORDER BY seconds_to_solve ASC
 SQL;
@@ -203,6 +205,7 @@ WHERE pst.puzzle_id = :puzzleId
     AND pst.player_id != :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.puzzlers_count = 1
+    AND p.is_private = false
 GROUP BY p.id, p.name, p.code, p.avatar
 ORDER BY seconds_to_solve ASC
 SQL;
@@ -319,12 +322,14 @@ SQL;
     public function allSoloTimesForPuzzle(string $puzzleId): array
     {
         $query = <<<SQL
-SELECT MIN(seconds_to_solve) AS seconds_to_solve
-FROM puzzle_solving_time
-WHERE puzzle_id = :puzzleId
-    AND seconds_to_solve IS NOT NULL
-    AND puzzlers_count = 1
-GROUP BY player_id
+SELECT MIN(pst.seconds_to_solve) AS seconds_to_solve
+FROM puzzle_solving_time pst
+JOIN player p ON p.id = pst.player_id
+WHERE pst.puzzle_id = :puzzleId
+    AND pst.seconds_to_solve IS NOT NULL
+    AND pst.puzzlers_count = 1
+    AND p.is_private = false
+GROUP BY pst.player_id
 ORDER BY seconds_to_solve ASC
 SQL;
 

@@ -133,8 +133,8 @@ final class GetStopwatchMilestonesTest extends KernelTestCase
         self::assertSame($sorted, $times, 'Times should be sorted ascending');
 
         // Should be one entry per player (not per solving time)
-        // PUZZLE_500_01 has solo solves from 5 different players
-        self::assertCount(5, $times, 'Should have one best time per player');
+        // PUZZLE_500_01 has solo solves from 5 different players, but 1 is private
+        self::assertCount(4, $times, 'Should have one best time per player (excluding private)');
     }
 
     public function testAllSoloTimesForPuzzleExcludesTeamSolves(): void
@@ -152,6 +152,39 @@ final class GetStopwatchMilestonesTest extends KernelTestCase
         $times = $this->query->allSoloTimesForPuzzle(PuzzleFixture::PUZZLE_9000);
 
         self::assertEmpty($times);
+    }
+
+    public function testForPuzzleAndPlayerExcludesPrivatePlayer(): void
+    {
+        // PLAYER_PRIVATE (Jane Smith) has solving times for PUZZLE_500_01
+        // but is private - their name must never appear in any milestone
+        $milestones = $this->query->forPuzzleAndPlayer(
+            PuzzleFixture::PUZZLE_500_01,
+            PlayerFixture::PLAYER_REGULAR,
+        );
+
+        foreach ($milestones as $milestone) {
+            self::assertStringNotContainsString(
+                'Jane Smith',
+                $milestone->label,
+                'Private player name should not appear in any milestone',
+            );
+            self::assertStringNotContainsString(
+                'player2',
+                $milestone->label,
+                'Private player code should not appear in any milestone',
+            );
+        }
+    }
+
+    public function testAllSoloTimesForPuzzleExcludesPrivatePlayers(): void
+    {
+        // PLAYER_PRIVATE has best solo time of 1400s on PUZZLE_500_01
+        // This time should not appear in the solo times list
+        $times = $this->query->allSoloTimesForPuzzle(PuzzleFixture::PUZZLE_500_01);
+
+        self::assertNotContains(1400, $times, 'Private player best time should not be included');
+        self::assertNotContains(1500, $times, 'Private player time should not be included');
     }
 
     public function testMilestoneGapFillingProducesMoreMilestonesThanWithout(): void

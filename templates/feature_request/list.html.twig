@@ -103,15 +103,17 @@
                             {% endif %}
                         </div>
 
-                        <a href="{{ path('feature_request_detail', {'featureRequestId': fr.id}) }}" class="flex-grow-1 min-width-0 text-decoration-none text-body">
-                            <h5 class="mb-1">
-                                {{ fr.title }}
-                                {% if is_mine %}
-                                    <span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size: 0.65rem; vertical-align: middle;">{{ 'feature_requests.yours'|trans }}</span>
-                                {% endif %}
-                            </h5>
-                            <p class="text-muted small mb-2">{{ fr.description|length > 200 ? fr.description|slice(0, 200) ~ '...' : fr.description }}</p>
-                            <div class="d-flex align-items-center flex-wrap gap-2 small text-muted">
+                        <div class="flex-grow-1 min-width-0">
+                            <a href="{{ path('feature_request_detail', {'featureRequestId': fr.id}) }}" class="text-decoration-none text-body">
+                                <h5 class="mb-1">
+                                    {{ fr.title }}
+                                    {% if is_mine %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size: 0.65rem; vertical-align: middle;">{{ 'feature_requests.yours'|trans }}</span>
+                                    {% endif %}
+                                </h5>
+                                <p class="text-muted small mb-0">{{ fr.description|length > 200 ? fr.description|slice(0, 200) ~ '...' : fr.description }}</p>
+                            </a>
+                            <div class="d-flex align-items-center flex-wrap gap-2 small text-muted mt-2 pt-2 border-top">
                                 {{ include('messaging/_avatar.html.twig', {avatar: fr.authorAvatar, size: 20}) }}
                                 <span>{{ fr.authorName }}</span>
                                 <span>&middot;</span>
@@ -119,7 +121,7 @@
                                 <span>&middot;</span>
                                 <span><i class="bi bi-chat-dots me-1"></i>{{ fr.commentCount }}</span>
                             </div>
-                        </a>
+                        </div>
                     </div>
                 </div>
             {% endfor %}

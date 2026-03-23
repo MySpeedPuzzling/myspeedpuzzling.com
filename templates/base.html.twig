@@ -398,9 +398,9 @@
                                 </a>
                             </li>
                             <li class="nav-item d-lg-none">
-                                <a class="nav-link {% if currentRoute == 'feature_requests' %}active{% endif %}" href="{{ path('feature_requests') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'feature_requests' %}active{% endif %}" href="{{ path('feature_requests') }}">
                                     <i class="me-1 bi bi-lightbulb"></i>
-                                    <span>{{ 'menu.feature_requests'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
+                                    <span class="d-lg-none">{{ 'menu.feature_requests'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
                                 </a>
                             </li>
                         </ul>

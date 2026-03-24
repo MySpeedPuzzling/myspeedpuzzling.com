@@ -44,7 +44,7 @@ readonly final class FeatureRequestRepository
     public function recalculateVoteCount(string $featureRequestId): void
     {
         $this->database->executeStatement(
-            'UPDATE feature_request SET vote_count = 1 + (SELECT COUNT(*) FROM feature_request_vote WHERE feature_request_id = :id) WHERE id = :id',
+            'UPDATE feature_request SET vote_count = (SELECT COUNT(*) FROM feature_request_vote WHERE feature_request_id = :id) WHERE id = :id',
             ['id' => $featureRequestId],
         );
     }

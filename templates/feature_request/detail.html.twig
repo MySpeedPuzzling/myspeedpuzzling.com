@@ -13,12 +13,12 @@
                 {# Vote column #}
                 <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 56px;">
                     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                        {% if has_voted %}
-                            <div class="btn btn-primary d-flex flex-column align-items-center py-2 px-3" style="pointer-events: none; min-width: 50px;">
+                        {% if is_mine %}
+                            <div class="btn btn-outline-secondary d-flex flex-column align-items-center py-2 px-3" style="pointer-events: none; min-width: 50px;">
                                 <i class="bi bi-caret-up-fill" style="font-size: 1.2rem; line-height: 1;"></i>
                                 <span class="fw-bold" style="font-size: 1.2rem; line-height: 1.2;">{{ feature_request.voteCount }}</span>
                             </div>
-                        {% elseif votes_used_this_month < 1 %}
+                        {% elseif votes_used_this_month < 3 %}
                             <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': feature_request.id}) }}">
                                 <button type="submit" class="btn btn-outline-primary d-flex flex-column align-items-center py-2 px-3" style="min-width: 50px;">
                                     <i class="bi bi-caret-up-fill" style="font-size: 1.2rem; line-height: 1;"></i>

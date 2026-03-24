@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Controller\FeatureRequest;
 use SpeedPuzzling\Web\Query\CountPlayerFeatureRequestsThisMonth;
 use SpeedPuzzling\Web\Query\GetFeatureRequests;
 use SpeedPuzzling\Web\Query\GetPlayerVoteCountThisMonth;
-use SpeedPuzzling\Web\Query\GetPlayerVotedFeatureRequestIds;
 use SpeedPuzzling\Web\Query\IsHintDismissed;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\HintType;
@@ -23,7 +22,6 @@ final class FeatureRequestsListController extends AbstractController
         readonly private IsHintDismissed $isHintDismissed,
         readonly private CountPlayerFeatureRequestsThisMonth $countPlayerFeatureRequestsThisMonth,
         readonly private GetPlayerVoteCountThisMonth $getPlayerVoteCountThisMonth,
-        readonly private GetPlayerVotedFeatureRequestIds $getPlayerVotedFeatureRequestIds,
     ) {
     }
 
@@ -46,14 +44,12 @@ final class FeatureRequestsListController extends AbstractController
         $hintDismissed = false;
         $votesUsedThisMonth = 0;
         $requestsCreatedThisMonth = 0;
-        $votedRequestIds = [];
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         if ($loggedPlayer !== null) {
             $hintDismissed = ($this->isHintDismissed)($loggedPlayer->playerId, HintType::FeatureRequestsIntro);
             $votesUsedThisMonth = ($this->getPlayerVoteCountThisMonth)($loggedPlayer->playerId);
             $requestsCreatedThisMonth = ($this->countPlayerFeatureRequestsThisMonth)($loggedPlayer->playerId);
-            $votedRequestIds = ($this->getPlayerVotedFeatureRequestIds)($loggedPlayer->playerId);
         }
 
         return $this->render('feature_request/list.html.twig', [
@@ -61,7 +57,6 @@ final class FeatureRequestsListController extends AbstractController
             'hint_dismissed' => $hintDismissed,
             'votes_used_this_month' => $votesUsedThisMonth,
             'requests_created_this_month' => $requestsCreatedThisMonth,
-            'voted_request_ids' => $votedRequestIds,
         ]);
     }
 }

@@ -18,19 +18,11 @@ final class GetPlayerVoteCountThisMonthTest extends KernelTestCase
         $this->getPlayerVoteCountThisMonth = self::getContainer()->get(GetPlayerVoteCountThisMonth::class);
     }
 
-    public function testCountsOnlyNonAutoVotesThisMonth(): void
+    public function testCountsVotesThisMonth(): void
     {
-        // PLAYER_ADMIN voted for POPULAR 2 days ago (not their own) - should count
-        // PLAYER_ADMIN auto-voted on NEW 1 day ago (their own) - should NOT count
+        // PLAYER_ADMIN voted for POPULAR 2 days ago - should count
         $count = ($this->getPlayerVoteCountThisMonth)(PlayerFixture::PLAYER_ADMIN);
         self::assertSame(1, $count);
-    }
-
-    public function testAutoVotesAreExcluded(): void
-    {
-        // PLAYER_WITH_STRIPE only has an auto-vote on POPULAR (their own request)
-        $count = ($this->getPlayerVoteCountThisMonth)(PlayerFixture::PLAYER_WITH_STRIPE);
-        self::assertSame(0, $count);
     }
 
     public function testOldVotesDontCount(): void

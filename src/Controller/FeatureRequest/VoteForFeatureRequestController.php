@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\FeatureRequest;
 
-use SpeedPuzzling\Web\Exceptions\AlreadyVotedForFeatureRequest;
+use SpeedPuzzling\Web\Exceptions\CanNotVoteForOwnFeatureRequest;
 use SpeedPuzzling\Web\Exceptions\VoteLimitReached;
 use SpeedPuzzling\Web\Message\VoteForFeatureRequest;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -62,10 +62,10 @@ final class VoteForFeatureRequestController extends AbstractController
         } catch (HandlerFailedException $e) {
             $previous = $e->getPrevious();
 
-            if ($previous instanceof AlreadyVotedForFeatureRequest) {
-                $this->addFlash('warning', $this->translator->trans('feature_requests.already_voted'));
+            if ($previous instanceof CanNotVoteForOwnFeatureRequest) {
+                $this->addFlash('warning', $this->translator->trans('feature_requests.cannot_vote_own'));
             } elseif ($previous instanceof VoteLimitReached) {
-                $this->addFlash('warning', $this->translator->trans('feature_requests.vote_limit_reached'));
+                $this->addFlash('warning', $this->translator->trans('feature_requests.vote_limit_reached', ['%count%' => 3]));
             } else {
                 throw $e;
             }

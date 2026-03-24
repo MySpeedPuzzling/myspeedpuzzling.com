@@ -11,7 +11,6 @@ use SpeedPuzzling\Web\Query\GetFeatureRequestComments;
 use SpeedPuzzling\Web\Query\GetFeatureRequestDetail;
 use SpeedPuzzling\Web\Query\GetPlayerVoteCountThisMonth;
 use SpeedPuzzling\Web\Query\HasFeatureRequestExternalVotes;
-use SpeedPuzzling\Web\Query\HasPlayerVotedForFeatureRequest;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,7 +24,6 @@ final class FeatureRequestDetailController extends AbstractController
     public function __construct(
         readonly private GetFeatureRequestDetail $getFeatureRequestDetail,
         readonly private GetFeatureRequestComments $getFeatureRequestComments,
-        readonly private HasPlayerVotedForFeatureRequest $hasPlayerVotedForFeatureRequest,
         readonly private GetPlayerVoteCountThisMonth $getPlayerVoteCountThisMonth,
         readonly private HasFeatureRequestExternalVotes $hasFeatureRequestExternalVotes,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -50,13 +48,11 @@ final class FeatureRequestDetailController extends AbstractController
         $featureRequest = $this->getFeatureRequestDetail->byId($featureRequestId);
         $comments = $this->getFeatureRequestComments->forFeatureRequest($featureRequestId);
 
-        $hasVoted = false;
         $votesUsedThisMonth = 0;
         $commentForm = null;
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         if ($loggedPlayer !== null) {
-            $hasVoted = ($this->hasPlayerVotedForFeatureRequest)($loggedPlayer->playerId, $featureRequestId);
             $votesUsedThisMonth = ($this->getPlayerVoteCountThisMonth)($loggedPlayer->playerId);
 
             if ($loggedPlayer->activeMembership) {
@@ -85,7 +81,6 @@ final class FeatureRequestDetailController extends AbstractController
         return $this->render('feature_request/detail.html.twig', [
             'feature_request' => $featureRequest,
             'comments' => $comments,
-            'has_voted' => $hasVoted,
             'votes_used_this_month' => $votesUsedThisMonth,
             'comment_form' => $commentForm,
             'has_external_votes' => $hasExternalVotes,

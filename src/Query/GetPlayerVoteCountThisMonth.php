@@ -22,9 +22,8 @@ readonly final class GetPlayerVoteCountThisMonth
 
         $query = <<<SQL
 SELECT COUNT(*)
-FROM feature_request_vote fv
-JOIN feature_request fr ON fv.feature_request_id = fr.id
-WHERE fv.voter_id = :playerId AND fv.voted_at >= :monthStart AND fr.author_id != fv.voter_id
+FROM feature_request_vote
+WHERE voter_id = :playerId AND voted_at >= :monthStart
 SQL;
 
         $result = $this->database->executeQuery($query, [

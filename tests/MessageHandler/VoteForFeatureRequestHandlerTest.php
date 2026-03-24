@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
-use SpeedPuzzling\Web\Exceptions\AlreadyVotedForFeatureRequest;
+use SpeedPuzzling\Web\Exceptions\CanNotVoteForOwnFeatureRequest;
 use SpeedPuzzling\Web\Exceptions\VoteLimitReached;
 use SpeedPuzzling\Web\Message\VoteForFeatureRequest;
 use SpeedPuzzling\Web\Query\GetFeatureRequestDetail;
@@ -32,8 +32,6 @@ final class VoteForFeatureRequestHandlerTest extends KernelTestCase
         $detailBefore = $this->getFeatureRequestDetail->byId(FeatureRequestFixture::FEATURE_REQUEST_NEW);
         $voteCountBefore = $detailBefore->voteCount;
 
-        // PLAYER_REGULAR voted last month for POPULAR, so they have budget this month
-        // and have NOT voted for NEW request
         $this->messageBus->dispatch(new VoteForFeatureRequest(
             voterId: PlayerFixture::PLAYER_REGULAR,
             featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
@@ -43,37 +41,60 @@ final class VoteForFeatureRequestHandlerTest extends KernelTestCase
         self::assertSame($voteCountBefore + 1, $detailAfter->voteCount);
     }
 
-    public function testCannotVoteTwiceForSameRequest(): void
+    public function testCanVoteRepeatedly(): void
     {
-        // PLAYER_WITH_STRIPE already voted for POPULAR (auto-vote on create)
+        $detailBefore = $this->getFeatureRequestDetail->byId(FeatureRequestFixture::FEATURE_REQUEST_NEW);
+        $voteCountBefore = $detailBefore->voteCount;
+
+        // Vote twice for the same request
+        $this->messageBus->dispatch(new VoteForFeatureRequest(
+            voterId: PlayerFixture::PLAYER_REGULAR,
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+        ));
+        $this->messageBus->dispatch(new VoteForFeatureRequest(
+            voterId: PlayerFixture::PLAYER_REGULAR,
+            featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_NEW,
+        ));
+
+        $detailAfter = $this->getFeatureRequestDetail->byId(FeatureRequestFixture::FEATURE_REQUEST_NEW);
+        self::assertSame($voteCountBefore + 2, $detailAfter->voteCount);
+    }
+
+    public function testCannotVoteForOwnRequest(): void
+    {
+        // FEATURE_REQUEST_POPULAR is authored by PLAYER_WITH_STRIPE
         try {
             $this->messageBus->dispatch(new VoteForFeatureRequest(
                 voterId: PlayerFixture::PLAYER_WITH_STRIPE,
                 featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
             ));
-            self::fail('Expected AlreadyVotedForFeatureRequest exception was not thrown');
+            self::fail('Expected CanNotVoteForOwnFeatureRequest exception was not thrown');
         } catch (HandlerFailedException $e) {
             $previous = $e->getPrevious();
-            self::assertInstanceOf(AlreadyVotedForFeatureRequest::class, $previous);
+            self::assertInstanceOf(CanNotVoteForOwnFeatureRequest::class, $previous);
         }
     }
 
-    public function testCannotVoteMoreThanOncePerMonth(): void
+    public function testCannotExceedMonthlyLimit(): void
     {
-        // PLAYER_ADMIN already has a vote this month (voted for POPULAR 2 days ago)
-        try {
+        // Use all 3 votes
+        for ($i = 0; $i < 3; $i++) {
             $this->messageBus->dispatch(new VoteForFeatureRequest(
-                voterId: PlayerFixture::PLAYER_ADMIN,
+                voterId: PlayerFixture::PLAYER_WITH_FAVORITES,
                 featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
             ));
-            self::fail('Expected exception was not thrown');
+        }
+
+        // 4th vote should fail
+        try {
+            $this->messageBus->dispatch(new VoteForFeatureRequest(
+                voterId: PlayerFixture::PLAYER_WITH_FAVORITES,
+                featureRequestId: FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
+            ));
+            self::fail('Expected VoteLimitReached exception was not thrown');
         } catch (HandlerFailedException $e) {
             $previous = $e->getPrevious();
-            // Could be AlreadyVotedForFeatureRequest (voted already) or VoteLimitReached
-            self::assertTrue(
-                $previous instanceof AlreadyVotedForFeatureRequest || $previous instanceof VoteLimitReached,
-                'Expected AlreadyVotedForFeatureRequest or VoteLimitReached',
-            );
+            self::assertInstanceOf(VoteLimitReached::class, $previous);
         }
     }
 }

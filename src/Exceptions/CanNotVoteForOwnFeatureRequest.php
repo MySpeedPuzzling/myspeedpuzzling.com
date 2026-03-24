@@ -4,6 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Exceptions;
 
-final class AlreadyVotedForFeatureRequest extends \RuntimeException
+final class CanNotVoteForOwnFeatureRequest extends \RuntimeException
 {
 }

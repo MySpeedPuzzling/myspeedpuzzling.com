@@ -8,7 +8,6 @@ use SpeedPuzzling\Web\Exceptions\FeatureRequestLimitReached;
 use SpeedPuzzling\Web\Message\CreateFeatureRequest;
 use SpeedPuzzling\Web\Query\CountPlayerFeatureRequestsThisMonth;
 use SpeedPuzzling\Web\Query\GetFeatureRequestDetail;
-use SpeedPuzzling\Web\Query\HasPlayerVotedForFeatureRequest;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -19,7 +18,6 @@ final class CreateFeatureRequestHandlerTest extends KernelTestCase
 {
     private MessageBusInterface $messageBus;
     private GetFeatureRequestDetail $getFeatureRequestDetail;
-    private HasPlayerVotedForFeatureRequest $hasPlayerVotedForFeatureRequest;
     private CountPlayerFeatureRequestsThisMonth $countPlayerFeatureRequestsThisMonth;
 
     protected function setUp(): void
@@ -28,7 +26,6 @@ final class CreateFeatureRequestHandlerTest extends KernelTestCase
         $container = self::getContainer();
         $this->messageBus = $container->get(MessageBusInterface::class);
         $this->getFeatureRequestDetail = $container->get(GetFeatureRequestDetail::class);
-        $this->hasPlayerVotedForFeatureRequest = $container->get(HasPlayerVotedForFeatureRequest::class);
         $this->countPlayerFeatureRequestsThisMonth = $container->get(CountPlayerFeatureRequestsThisMonth::class);
     }
 
@@ -49,10 +46,7 @@ final class CreateFeatureRequestHandlerTest extends KernelTestCase
         $detail = $this->getFeatureRequestDetail->byId($featureRequestId);
         self::assertSame('Test Feature', $detail->title);
         self::assertSame('This is a test feature request.', $detail->description);
-        self::assertSame(1, $detail->voteCount);
-
-        // Author should have auto-voted
-        self::assertTrue(($this->hasPlayerVotedForFeatureRequest)(PlayerFixture::PLAYER_REGULAR, $featureRequestId));
+        self::assertSame(0, $detail->voteCount);
     }
 
     public function testMonthlyLimitOf3Requests(): void

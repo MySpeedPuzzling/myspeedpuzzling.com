@@ -12,13 +12,11 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
-use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 #[Entity]
-#[UniqueConstraint(columns: ['feature_request_id', 'voter_id'])]
 #[Index(columns: ['voter_id', 'voted_at'])]
 class FeatureRequestVote
 {

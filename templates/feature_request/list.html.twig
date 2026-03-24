@@ -48,9 +48,9 @@
 
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
         <div class="small text-muted mb-3">
-            {% if votes_used_this_month < 1 %}
+            {% if votes_used_this_month < 3 %}
                 <i class="bi bi-check-circle text-success me-1"></i>
-                {{ 'feature_requests.votes_remaining'|trans({'%count%': 1 - votes_used_this_month}) }}
+                {{ 'feature_requests.votes_remaining'|trans({'%count%': 3 - votes_used_this_month}) }}
             {% else %}
                 <i class="bi bi-clock me-1"></i>
                 {{ 'feature_requests.no_votes_remaining'|trans }}
@@ -71,18 +71,17 @@
         <div class="d-flex flex-column gap-3">
             {% for fr in feature_requests %}
                 {% set is_mine = logged_user.profile is not null and logged_user.profile.playerId == fr.authorId %}
-                {% set has_voted = voted_request_ids[fr.id] is defined %}
                 <div class="card shadow-sm {{ is_mine ? 'border-primary border-opacity-50' : '' }}">
                     <div class="card-body">
                         <div class="d-flex align-items-start gap-3">
                             <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 52px;">
                                 {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                                    {% if has_voted %}
-                                        <div class="btn btn-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
+                                    {% if is_mine %}
+                                        <div class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
                                             <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
                                             <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
                                         </div>
-                                    {% elseif votes_used_this_month < 1 %}
+                                    {% elseif votes_used_this_month < 3 %}
                                         <form method="post" action="{{ path('feature_request_vote', {'featureRequestId': fr.id}) }}">
                                             <button type="submit" class="btn btn-outline-primary btn-sm d-flex flex-column align-items-center py-1 px-2" style="min-width: 44px;">
                                                 <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>

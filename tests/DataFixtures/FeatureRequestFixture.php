@@ -34,7 +34,7 @@ final class FeatureRequestFixture extends Fixture implements DependentFixtureInt
             description: 'It would be great to have a dark mode option for the website. Many users prefer dark themes, especially when puzzling late at night.',
             createdAt: $this->clock->now()->modify('-7 days'),
         );
-        $popularRequest->voteCount = 2;
+        $popularRequest->voteCount = 3;
         $manager->persist($popularRequest);
         $this->addReference(self::FEATURE_REQUEST_POPULAR, $popularRequest);
 
@@ -45,7 +45,7 @@ final class FeatureRequestFixture extends Fixture implements DependentFixtureInt
             description: 'Allow users to rate puzzles by difficulty so others know what to expect before buying.',
             createdAt: $this->clock->now()->modify('-1 day'),
         );
-        $newRequest->voteCount = 0;
+        $newRequest->voteCount = 1;
         $manager->persist($newRequest);
         $this->addReference(self::FEATURE_REQUEST_NEW, $newRequest);
 

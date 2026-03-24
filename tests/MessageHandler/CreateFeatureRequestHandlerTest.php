@@ -46,7 +46,7 @@ final class CreateFeatureRequestHandlerTest extends KernelTestCase
         $detail = $this->getFeatureRequestDetail->byId($featureRequestId);
         self::assertSame('Test Feature', $detail->title);
         self::assertSame('This is a test feature request.', $detail->description);
-        self::assertSame(0, $detail->voteCount);
+        self::assertSame(1, $detail->voteCount);
     }
 
     public function testMonthlyLimitOf3Requests(): void

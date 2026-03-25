@@ -6,7 +6,9 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
+use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetPuzzleCollections;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
@@ -33,6 +35,8 @@ final class PuzzleDetailController extends AbstractController
         readonly private GetSellSwapListItems $getSellSwapListItems,
         readonly private GetPendingPuzzleProposals $getPendingPuzzleProposals,
         readonly private ClockInterface $clock,
+        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
+        readonly private GetPlayerPrediction $getPlayerPrediction,
     ) {
     }
 
@@ -78,6 +82,13 @@ final class PuzzleDetailController extends AbstractController
 
         $isImageHidden = $puzzle->hideImageUntil !== null && $puzzle->hideImageUntil > $this->clock->now();
 
+        $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($puzzleId);
+
+        $timePrediction = null;
+        if ($loggedPlayer !== null && $loggedPlayer->activeMembership) {
+            $timePrediction = $this->getPlayerPrediction->forPuzzle($loggedPlayer->playerId, $puzzleId);
+        }
+
         return $this->render('puzzle_detail.html.twig', [
             'puzzle' => $puzzle,
             'puzzle_statuses' => $puzzleStatuses,
@@ -87,6 +98,8 @@ final class PuzzleDetailController extends AbstractController
             'offers_count' => $this->getSellSwapListItems->countByPuzzleId($puzzleId),
             'has_pending_proposals' => $this->getPendingPuzzleProposals->hasPendingForPuzzle($puzzleId),
             'is_image_hidden' => $isImageHidden,
+            'puzzle_difficulty' => $puzzleDifficulty,
+            'time_prediction' => $timePrediction,
         ]);
     }
 }

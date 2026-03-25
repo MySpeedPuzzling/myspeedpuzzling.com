@@ -62,6 +62,29 @@
                             }) }}
                         </span>
 
+                        {% if difficulty_data is defined and difficulty_data[puzzle.puzzleId] is defined and difficulty_data[puzzle.puzzleId].difficultyTier is not null %}
+                            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                                {% set diff = difficulty_data[puzzle.puzzleId] %}
+                                {% set tier_name = diff.difficultyTier.name|lower %}
+                                {% set tier_colors = {
+                                    'veryeasy': 'info',
+                                    'easy': 'success',
+                                    'moderate': 'success',
+                                    'average': 'secondary',
+                                    'challenging': 'warning',
+                                    'hard': 'danger',
+                                    'extreme': 'danger',
+                                } %}
+                                <span class="badge bg-{{ tier_colors[tier_name] ?? 'secondary' }} rounded-pill mt-1">
+                                    {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-muted rounded-pill mt-1" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" role="button">
+                                    <i class="ci-locked"></i>
+                                </span>
+                            {% endif %}
+                        {% endif %}
+
                         {% for tag in tags[puzzle.puzzleId] ?? [] %}
                             <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>
                         {% endfor %}

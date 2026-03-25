@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
+use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,6 +22,8 @@ final class AddedTimeRecapController extends AbstractController
     public function __construct(
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
         readonly private GetPlayerProfile $getPlayerProfile,
+        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
+        readonly private GetPlayerPrediction $getPlayerPrediction,
     ) {
     }
 
@@ -42,8 +46,13 @@ final class AddedTimeRecapController extends AbstractController
         $solvingPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
         $player = $this->getPlayerProfile->byId($solvingPuzzle->playerId);
 
+        $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($solvingPuzzle->puzzleId);
+        $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId);
+
         return $this->render('added_time_recap.html.twig', [
             'solved_puzzle' => $solvingPuzzle,
+            'puzzle_difficulty' => $puzzleDifficulty,
+            'time_prediction' => $timePrediction,
         ]);
     }
 }

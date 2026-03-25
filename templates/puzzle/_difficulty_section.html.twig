@@ -1,0 +1,138 @@
+{# Puzzle Intelligence Section - Difficulty & Prediction #}
+{# Variables: puzzle_difficulty (PuzzleDifficultyResult|null), time_prediction (TimePredictionResult|null) #}
+
+{% macro info_icon(translation_key) %}
+    <i class="bi bi-info-circle text-muted ms-1"
+       data-bs-toggle="tooltip"
+       data-bs-placement="top"
+       title="{{ translation_key|trans }}"></i>
+{% endmacro %}
+
+{% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <h6 class="card-title mb-2">
+                    <i class="bi bi-bar-chart me-1"></i>
+                    {{ 'puzzle_intelligence.difficulty.title'|trans }}
+                </h6>
+
+                <div class="d-flex align-items-center mb-2">
+                    {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
+                    {% set tier_colors = {
+                        'veryeasy': 'info',
+                        'easy': 'success',
+                        'moderate': 'success',
+                        'average': 'secondary',
+                        'challenging': 'warning',
+                        'hard': 'danger',
+                        'extreme': 'danger',
+                    } %}
+                    <span class="badge bg-{{ tier_colors[tier_name] ?? 'secondary' }} me-2">
+                        {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
+                    </span>
+                    <small class="text-muted">
+                        {{ puzzle_difficulty.difficultyScore|number_format(2) }}
+                        {{ _self.info_icon('puzzle_intelligence.info.difficulty_score') }}
+                    </small>
+                    <small class="text-muted ms-2">
+                        &middot; {{ ('puzzle_intelligence.difficulty.confidence_levels.' ~ puzzle_difficulty.confidence.value)|trans }}
+                        {{ _self.info_icon('puzzle_intelligence.info.confidence') }}
+                    </small>
+                </div>
+
+                <small class="text-muted d-block mb-2">
+                    {{ 'puzzle_intelligence.difficulty.sample_size_label'|trans({'%count%': puzzle_difficulty.sampleSize}) }}
+                </small>
+
+                {# Puzzle Personality Traits #}
+                {% if puzzle_difficulty.memorabilityScore is not null
+                    or puzzle_difficulty.skillSensitivityScore is not null
+                    or puzzle_difficulty.predictabilityScore is not null
+                    or puzzle_difficulty.boxDependenceScore is not null %}
+                    <hr class="my-2">
+                    <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.personality.title'|trans }}</h6>
+                    <div class="row g-2 fs-sm">
+                        {% if puzzle_difficulty.memorabilityScore is not null %}
+                            <div class="col-6">
+                                <span class="fw-medium">{{ 'puzzle_intelligence.personality.memorability'|trans }}{{ _self.info_icon('puzzle_intelligence.info.memorability') }}:</span>
+                                {{ puzzle_difficulty.memorabilityScore|number_format(1) }}x
+                            </div>
+                        {% endif %}
+                        {% if puzzle_difficulty.skillSensitivityScore is not null %}
+                            <div class="col-6">
+                                <span class="fw-medium">{{ 'puzzle_intelligence.personality.skill_sensitivity'|trans }}{{ _self.info_icon('puzzle_intelligence.info.skill_sensitivity') }}:</span>
+                                {{ puzzle_difficulty.skillSensitivityScore|number_format(1) }}x
+                            </div>
+                        {% endif %}
+                        {% if puzzle_difficulty.predictabilityScore is not null %}
+                            <div class="col-6">
+                                <span class="fw-medium">{{ 'puzzle_intelligence.personality.predictability'|trans }}{{ _self.info_icon('puzzle_intelligence.info.predictability') }}:</span>
+                                {{ puzzle_difficulty.predictabilityScore|number_format(1) }}
+                            </div>
+                        {% endif %}
+                        {% if puzzle_difficulty.boxDependenceScore is not null %}
+                            <div class="col-6">
+                                <span class="fw-medium">{{ 'puzzle_intelligence.personality.box_dependence'|trans }}{{ _self.info_icon('puzzle_intelligence.info.box_dependence') }}:</span>
+                                {{ puzzle_difficulty.boxDependenceScore|number_format(1) }}x
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {# Time Prediction for logged-in member #}
+                {% if time_prediction is not null %}
+                    <hr class="my-2">
+                    <h6 class="fs-sm text-muted mb-1">
+                        {{ 'puzzle_intelligence.prediction.title'|trans }}
+                        {{ _self.info_icon('puzzle_intelligence.info.prediction') }}
+                    </h6>
+                    <div class="fs-sm">
+                        <span class="fw-medium">{{ 'puzzle_intelligence.prediction.estimated_time'|trans }}:</span>
+                        ~{{ (time_prediction.predictedSeconds / 60)|round }}min
+                        <span class="text-muted">
+                            ({{ (time_prediction.rangeLowSeconds / 60)|round }}-{{ (time_prediction.rangeHighSeconds / 60)|round }}min)
+                        </span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        {# Members-only CTA #}
+        <div class="card shadow-sm mb-3 position-relative">
+            <div class="card-body">
+                <h6 class="card-title mb-2 text-muted">
+                    <i class="bi bi-bar-chart me-1"></i>
+                    {{ 'puzzle_intelligence.difficulty.title'|trans }}
+                </h6>
+                <div class="text-muted fs-sm" style="filter: blur(4px);">
+                    <span class="badge bg-secondary me-2">{{ ('puzzle_intelligence.difficulty.tiers.' ~ puzzle_difficulty.difficultyTier.name|lower)|trans }}</span>
+                    <small>{{ puzzle_difficulty.difficultyScore|number_format(2) }}</small>
+                </div>
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.8); border-radius: inherit;">
+                    <button
+                        class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <i class="ci-locked me-1"></i>
+                        {{ 'puzzle_intelligence.difficulty.members_only'|trans }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% elseif puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is null and puzzle_difficulty.sampleSize > 0 %}
+    {# Puzzle has some data but not enough for difficulty score #}
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <h6 class="card-title mb-1 text-muted">
+                <i class="bi bi-bar-chart me-1"></i>
+                {{ 'puzzle_intelligence.difficulty.title'|trans }}
+            </h6>
+            <small class="text-muted">
+                {{ 'puzzle_intelligence.difficulty.need_more_solvers'|trans({'%count%': (5 - puzzle_difficulty.sampleSize)}) }}
+            </small>
+        </div>
+    </div>
+{% endif %}

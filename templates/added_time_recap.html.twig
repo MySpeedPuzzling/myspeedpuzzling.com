@@ -28,6 +28,12 @@
         <a href="{{ path('puzzle_detail', {'puzzleId': solved_puzzle.puzzleId}) }}" class="btn btn-accent btn">{{ 'added_time_recap.puzzle_detail'|trans }}</a>
     </div>
 
+    {{ include('added_time_recap/_solve_analysis.html.twig', {
+        puzzle_difficulty: puzzle_difficulty,
+        time_prediction: time_prediction,
+        solved_puzzle: solved_puzzle,
+    }) }}
+
     <div class="time-result-recap">
         <div class="button-wrapper">
             <button

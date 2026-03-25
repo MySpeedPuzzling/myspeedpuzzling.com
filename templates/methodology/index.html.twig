@@ -1,0 +1,144 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzle_intelligence.methodology.title'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig') }}
+
+    <h1 class="h2 mb-1">{{ 'puzzle_intelligence.methodology.title'|trans }}</h1>
+    <p class="text-muted mb-4">{{ 'puzzle_intelligence.methodology.subtitle'|trans }}</p>
+
+    <div class="methodology-content">
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_baseline_title'|trans }}</h2>
+        <p>{{ 'puzzle_intelligence.methodology.section_baseline_desc'|trans|raw }}</p>
+        <div class="bg-light p-3 rounded mb-3">
+            <code>weight = exp(-age_in_months / 18)</code>
+            <br><small class="text-muted">{{ 'puzzle_intelligence.methodology.section_baseline_formula'|trans }}</small>
+        </div>
+        <p>{{ 'puzzle_intelligence.methodology.section_baseline_minimum'|trans|raw }}</p>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_difficulty_title'|trans }}</h2>
+        <p>{{ 'puzzle_intelligence.methodology.section_difficulty_desc'|trans|raw }}</p>
+        <div class="bg-light p-3 rounded mb-3">
+            <code>difficulty_index = solve_time / player_baseline</code>
+            <br><small class="text-muted">{{ 'puzzle_intelligence.methodology.section_difficulty_formula'|trans }}</small>
+        </div>
+        <p>{{ 'puzzle_intelligence.methodology.section_difficulty_median'|trans|raw }}</p>
+        <p>{{ 'puzzle_intelligence.methodology.section_difficulty_minimum'|trans|raw }}</p>
+
+        <h5>{{ 'puzzle_intelligence.methodology.section_difficulty_tiers_title'|trans }}</h5>
+        <table class="table table-sm">
+            <thead><tr><th>{{ 'puzzle_intelligence.difficulty.score_label'|trans }}</th><th>{{ 'puzzle_intelligence.difficulty.tier_label'|trans }}</th></tr></thead>
+            <tbody>
+                <tr><td>&lt; 0.70</td><td><span class="badge bg-info">{{ 'puzzle_intelligence.difficulty.tiers.veryeasy'|trans }}</span></td></tr>
+                <tr><td>0.70 – 0.85</td><td><span class="badge bg-success">{{ 'puzzle_intelligence.difficulty.tiers.easy'|trans }}</span></td></tr>
+                <tr><td>0.85 – 0.95</td><td><span class="badge bg-success">{{ 'puzzle_intelligence.difficulty.tiers.moderate'|trans }}</span></td></tr>
+                <tr><td>0.95 – 1.05</td><td><span class="badge bg-secondary">{{ 'puzzle_intelligence.difficulty.tiers.average'|trans }}</span></td></tr>
+                <tr><td>1.05 – 1.20</td><td><span class="badge bg-warning text-dark">{{ 'puzzle_intelligence.difficulty.tiers.challenging'|trans }}</span></td></tr>
+                <tr><td>1.20 – 1.45</td><td><span class="badge bg-danger">{{ 'puzzle_intelligence.difficulty.tiers.hard'|trans }}</span></td></tr>
+                <tr><td>&gt; 1.45</td><td><span class="badge bg-danger">{{ 'puzzle_intelligence.difficulty.tiers.extreme'|trans }}</span></td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_skill_title'|trans }}</h2>
+        <p>{{ 'puzzle_intelligence.methodology.section_skill_desc'|trans|raw }}</p>
+        <div class="bg-light p-3 rounded mb-3">
+            <code>outperformance = puzzle_difficulty / player_difficulty_index</code>
+            <br><code>player_skill = median(outperformance)</code>
+            <br><small class="text-muted">{{ 'puzzle_intelligence.methodology.section_skill_formula'|trans }}</small>
+        </div>
+        <p>{{ 'puzzle_intelligence.methodology.section_skill_minimum'|trans|raw }}</p>
+
+        <h5>{{ 'puzzle_intelligence.methodology.section_skill_tiers_title'|trans }}</h5>
+        <table class="table table-sm">
+            <thead><tr><th>{{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': ''}) }}</th><th>{{ 'puzzle_intelligence.skill.tier_label'|trans }}</th></tr></thead>
+            <tbody>
+                <tr><td>Top 1%</td><td><span class="badge bg-dark">{{ 'puzzle_intelligence.skill.tiers.grandmaster'|trans }}</span></td></tr>
+                <tr><td>Top 5%</td><td><span class="badge bg-danger">{{ 'puzzle_intelligence.skill.tiers.master'|trans }}</span></td></tr>
+                <tr><td>Top 15%</td><td><span class="badge bg-warning text-dark">{{ 'puzzle_intelligence.skill.tiers.expert'|trans }}</span></td></tr>
+                <tr><td>Top 30%</td><td><span class="badge bg-primary">{{ 'puzzle_intelligence.skill.tiers.advanced'|trans }}</span></td></tr>
+                <tr><td>Top 50%</td><td><span class="badge bg-info">{{ 'puzzle_intelligence.skill.tiers.proficient'|trans }}</span></td></tr>
+                <tr><td>Top 75%</td><td><span class="badge bg-success">{{ 'puzzle_intelligence.skill.tiers.enthusiast'|trans }}</span></td></tr>
+                <tr><td>Bottom 25%</td><td><span class="badge bg-secondary">{{ 'puzzle_intelligence.skill.tiers.casual'|trans }}</span></td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_elo_title'|trans }}</h2>
+        <p>{{ 'puzzle_intelligence.methodology.section_elo_desc'|trans }}</p>
+        <div class="bg-light p-3 rounded mb-3">
+            <code>elo_change = K &times; (actual_percentile - expected_percentile)</code>
+            <br><small class="text-muted">{{ 'puzzle_intelligence.methodology.section_elo_formula'|trans }}</small>
+        </div>
+        <p>{{ 'puzzle_intelligence.methodology.section_elo_minimum'|trans|raw }}</p>
+        <p>{{ 'puzzle_intelligence.methodology.section_elo_periods'|trans|raw }}</p>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_prediction_title'|trans }}</h2>
+        <div class="bg-light p-3 rounded mb-3">
+            <code>predicted_time = player_baseline &times; puzzle_difficulty</code>
+            <br><small class="text-muted">{{ 'puzzle_intelligence.methodology.section_prediction_formula'|trans }}</small>
+        </div>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_personality_title'|trans }}</h2>
+        <table class="table table-sm">
+            <thead><tr><th>{{ 'puzzle_intelligence.personality.title'|trans }}</th><th>Formula</th><th>{{ 'puzzle_intelligence.difficulty.title'|trans }}</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>{{ 'puzzle_intelligence.personality.memorability'|trans }}</strong></td>
+                    <td><code>first_try_median / repeat_median</code></td>
+                    <td>{{ 'puzzle_intelligence.personality.memorability_desc'|trans }}</td>
+                </tr>
+                <tr>
+                    <td><strong>{{ 'puzzle_intelligence.personality.skill_sensitivity'|trans }}</strong></td>
+                    <td><code>P75_index / P25_index</code></td>
+                    <td>{{ 'puzzle_intelligence.personality.skill_sensitivity_desc'|trans }}</td>
+                </tr>
+                <tr>
+                    <td><strong>{{ 'puzzle_intelligence.personality.predictability'|trans }}</strong></td>
+                    <td><code>1 / coefficient_of_variation</code></td>
+                    <td>{{ 'puzzle_intelligence.personality.predictability_desc'|trans }}</td>
+                </tr>
+                <tr>
+                    <td><strong>{{ 'puzzle_intelligence.personality.box_dependence'|trans }}</strong></td>
+                    <td><code>unboxed_median / boxed_median</code></td>
+                    <td>{{ 'puzzle_intelligence.personality.box_dependence_desc'|trans }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_confidence_title'|trans }}</h2>
+        <table class="table table-sm">
+            <thead><tr><th>{{ 'puzzle_intelligence.difficulty.sample_size_label'|trans({'%count%': ''}) }}</th><th>{{ 'puzzle_intelligence.difficulty.confidence_label'|trans }}</th></tr></thead>
+            <tbody>
+                <tr><td>&lt; 5</td><td>{{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }}</td></tr>
+                <tr><td>5 – 9</td><td>{{ 'puzzle_intelligence.difficulty.confidence_levels.low'|trans }}</td></tr>
+                <tr><td>10 – 19</td><td>{{ 'puzzle_intelligence.difficulty.confidence_levels.medium'|trans }}</td></tr>
+                <tr><td>20+</td><td>{{ 'puzzle_intelligence.difficulty.confidence_levels.high'|trans }}</td></tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2 class="h4">{{ 'puzzle_intelligence.methodology.section_data_quality_title'|trans }}</h2>
+        <ul>
+            <li>{{ 'puzzle_intelligence.methodology.section_data_quality_solo'|trans|raw }}</li>
+            <li>{{ 'puzzle_intelligence.methodology.section_data_quality_first'|trans|raw }}</li>
+            <li>{{ 'puzzle_intelligence.methodology.section_data_quality_outlier'|trans|raw }}</li>
+            <li>{{ 'puzzle_intelligence.methodology.section_data_quality_suspicious'|trans|raw }}</li>
+            <li>{{ 'puzzle_intelligence.methodology.section_data_quality_recency'|trans|raw }}</li>
+        </ul>
+
+        <p class="text-muted fs-sm mt-4">{{ 'puzzle_intelligence.methodology.section_recalculation_note'|trans }}</p>
+    </div>
+{% endblock %}

@@ -1,0 +1,95 @@
+<div {{ attributes }}>
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        {% if skills is not empty %}
+            {# Skill tiers per piece count #}
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                {% for skill in skills %}
+                    {% set tier_name = skill.skillTier.name|lower %}
+                    {% set tier_colors = {
+                        'casual': 'secondary',
+                        'enthusiast': 'success',
+                        'proficient': 'info',
+                        'advanced': 'primary',
+                        'expert': 'warning',
+                        'master': 'danger',
+                        'grandmaster': 'dark',
+                    } %}
+                    <button
+                        class="btn btn-sm {{ selectedPiecesCount == skill.piecesCount ? 'btn-' ~ tier_colors[tier_name] : 'btn-outline-' ~ tier_colors[tier_name] }}"
+                        data-action="live#action"
+                        data-live-action-param="changePiecesCount"
+                        data-live-pieces-count-param="{{ skill.piecesCount }}"
+                    >
+                        {{ skill.piecesCount }}pc:
+                        <span class="fw-bold">{{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}</span>
+                    </button>
+                {% endfor %}
+            </div>
+
+            {# Current skill detail #}
+            {% if currentSkill is not null %}
+                <div class="row g-3 mb-3">
+                    <div class="col-auto">
+                        <div class="fs-sm text-muted">{{ 'puzzle_intelligence.skill.tier_label'|trans }}</div>
+                        {% set tier_name = currentSkill.skillTier.name|lower %}
+                        <span class="badge bg-{{ tier_colors[tier_name] ?? 'secondary' }} fs-6">
+                            {{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <div class="fs-sm text-muted">
+                            {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': currentSkill.skillPercentile|number_format(1)}) }}
+                            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.percentile'|trans }}"></i>
+                        </div>
+                        <div class="fw-bold">
+                            {{ currentSkill.skillScore|number_format(3) }}
+                            <i class="bi bi-info-circle text-muted fs-sm" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.skill_score'|trans }}"></i>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="fs-sm text-muted">{{ 'puzzle_intelligence.difficulty.confidence_label'|trans }}</div>
+                        <div>{{ ('puzzle_intelligence.difficulty.confidence_levels.' ~ currentSkill.confidence.value)|trans }}</div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Distribution chart (bell curve) #}
+            {% if distributionChart is not null %}
+                <h6 class="mb-2 mt-3">{{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': currentSkill ? currentSkill.skillPercentile|number_format(1) : ''}) }}</h6>
+                <div style="height: 200px;">
+                    {{ render_chart(distributionChart) }}
+                </div>
+            {% endif %}
+
+            {# Improvement chart #}
+            {% if improvementChart is not null %}
+                <h6 class="mb-2 mt-3">{{ 'puzzle_intelligence.skill.improvement_title'|trans }}</h6>
+                <div style="height: 250px;">
+                    {{ render_chart(improvementChart) }}
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-muted fs-sm">
+                {{ 'puzzle_intelligence.skill.not_enough_data'|trans({'%pieces%': selectedPiecesCount}) }}
+            </div>
+        {% endif %}
+    {% else %}
+        {# Members-only CTA #}
+        <div class="position-relative">
+            <div class="text-muted fs-sm" style="filter: blur(4px);">
+                <span class="badge bg-primary me-1">500pc: Expert</span>
+                <span class="badge bg-secondary me-1">1000pc: Advanced</span>
+            </div>
+            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.8); border-radius: inherit;">
+                <button
+                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                    data-bs-toggle="modal"
+                    data-bs-target="#membersExclusiveModal"
+                >
+                    <i class="ci-locked me-1"></i>
+                    {{ 'puzzle_intelligence.difficulty.members_only'|trans }}
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>

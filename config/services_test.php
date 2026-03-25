@@ -17,6 +17,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Data fixtures
     $services->load('SpeedPuzzling\\Web\\Tests\\DataFixtures\\', __DIR__ . '/../tests/DataFixtures/{*.php}');
 
+    // Puzzle Intelligence services (public for testing)
+    $services->load('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\', __DIR__ . '/../src/Services/PuzzleIntelligence/{*.php}');
+
     // Mercure test double
     $services->set(NullMercureHub::class);
     $services->alias(HubInterface::class, NullMercureHub::class);

@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'puzzle_intelligence.elo.title'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig') }}
+
+    <div class="d-flex align-items-center mb-3">
+        <h1 class="h2 mb-0">{{ 'puzzle_intelligence.elo.title'|trans }}</h1>
+        <span class="badge bg-info ms-2">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
+    </div>
+
+    <p class="text-muted mb-3">{{ 'puzzle_intelligence.elo.subtitle'|trans }}</p>
+
+    {# Filters #}
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+        {# Piece count selector #}
+        {% for pc in [500, 1000, 1500, 2000] %}
+            <a href="{{ path('msp_elo_ladder', {pieces: pc, period: period == 'all-time' ? 'all-time' : 'monthly'}) }}"
+               class="btn btn-sm {{ pieces_count == pc ? 'btn-primary' : 'btn-outline-primary' }}">
+                {{ pc }}pc
+            </a>
+        {% endfor %}
+
+        <span class="mx-1"></span>
+
+        {# Period selector #}
+        <a href="{{ path('msp_elo_ladder', {pieces: pieces_count, period: 'all-time'}) }}"
+           class="btn btn-sm {{ period == 'all-time' ? 'btn-accent' : 'btn-outline-secondary' }}">
+            {{ 'puzzle_intelligence.elo.period_all_time'|trans }}
+        </a>
+        <a href="{{ path('msp_elo_ladder', {pieces: pieces_count, period: 'monthly'}) }}"
+           class="btn btn-sm {{ period != 'all-time' ? 'btn-accent' : 'btn-outline-secondary' }}">
+            {{ 'puzzle_intelligence.elo.period_monthly'|trans }}
+        </a>
+    </div>
+
+    {# Player's own position or progress #}
+    {% if player_position is not null %}
+        <div class="alert alert-success py-2 fs-sm">
+            {{ 'puzzle_intelligence.elo.your_position'|trans({'%rank%': player_position}) }}
+        </div>
+    {% elseif logged_player is not null and elo_progress is not null %}
+        <div class="alert alert-info py-2 fs-sm">
+            {{ 'puzzle_intelligence.elo.not_eligible'|trans({
+                '%first_attempts%': elo_progress.first_attempts,
+                '%min_first_attempts%': 15,
+                '%total%': elo_progress.total_solves,
+                '%min_total%': 50,
+            }) }}
+        </div>
+    {% endif %}
+
+    {# Ladder table #}
+    {% if entries|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width: 60px;">{{ 'puzzle_intelligence.elo.rank'|trans }}</th>
+                        <th>{{ 'puzzle_intelligence.elo.player'|trans }}</th>
+                        <th class="text-end">{{ 'puzzle_intelligence.elo.rating'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                        <tr{% if logged_player is not null and entry.playerId == logged_player.playerId %} class="table-success"{% endif %}>
+                            <td class="text-center fw-bold">
+                                {% if entry.rank <= 3 %}
+                                    {% set medals = {1: '🥇', 2: '🥈', 3: '🥉'} %}
+                                    {{ medals[entry.rank] }}
+                                {% else %}
+                                    {{ entry.rank }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: entry.playerId}) }}" class="text-decoration-none">
+                                    {% if entry.playerAvatar %}
+                                        <img src="{{ entry.playerAvatar }}" alt="" class="rounded-circle me-1" width="24" height="24">
+                                    {% endif %}
+                                    {{ entry.playerName ?? entry.playerCode }}
+                                    {% if entry.playerCountry %}
+                                        <small class="text-muted">{{ entry.playerCountry }}</small>
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td class="text-end fw-bold">{{ entry.eloRating }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-muted text-center py-4">
+            {{ 'puzzle_intelligence.elo.no_entries'|trans }}
+        </div>
+    {% endif %}
+{% endblock %}

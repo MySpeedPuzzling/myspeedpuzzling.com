@@ -112,7 +112,7 @@ final class PlayerSkillProfile
             'labels' => $labels,
             'datasets' => [
                 [
-                    'label' => $this->selectedPiecesCount . 'pc baseline (minutes)',
+                    'label' => 'Average solving time (min)',
                     'data' => $data,
                     'borderColor' => '#0d6efd',
                     'backgroundColor' => 'rgba(13, 110, 253, 0.1)',
@@ -187,22 +187,19 @@ final class PlayerSkillProfile
             'maintainAspectRatio' => false,
             'scales' => [
                 'x' => [
-                    'title' => [
-                        'display' => true,
-                        'text' => 'Skill Score',
-                    ],
+                    'grid' => ['display' => false],
                 ],
                 'y' => [
-                    'title' => [
-                        'display' => true,
-                        'text' => 'Players',
-                    ],
+                    'display' => false,
                     'beginAtZero' => true,
                 ],
             ],
             'plugins' => [
-                'legend' => [
-                    'display' => false,
+                'legend' => ['display' => false],
+                'tooltip' => [
+                    'callbacks' => [
+                        'label' => '__function:(context) => context.parsed.y + " players"',
+                    ],
                 ],
             ],
         ]);

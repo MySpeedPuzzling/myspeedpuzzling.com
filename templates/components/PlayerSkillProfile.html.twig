@@ -1,70 +1,86 @@
+{% from 'puzzle_intelligence/_macros.html.twig' import confidence_dots, percentile_bar, tier_color %}
+
 <div {{ attributes }}>
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
         {% if skills is not empty %}
-            {# Skill tiers per piece count #}
+            {# Piece count selector with tier + percentile #}
             <div class="d-flex flex-wrap gap-2 mb-3">
                 {% for skill in skills %}
-                    {% set tier_name = skill.skillTier.name|lower %}
-                    {% set tier_colors = {
-                        'casual': 'secondary',
-                        'enthusiast': 'success',
-                        'proficient': 'info',
-                        'advanced': 'primary',
-                        'expert': 'warning',
-                        'master': 'danger',
-                        'grandmaster': 'dark',
-                    } %}
+                    {% set t_name = skill.skillTier.name|lower %}
+                    {% set t_color = tier_color(t_name) %}
                     <button
-                        class="btn btn-sm {{ selectedPiecesCount == skill.piecesCount ? 'btn-' ~ tier_colors[tier_name] : 'btn-outline-' ~ tier_colors[tier_name] }}"
+                        class="btn btn-sm {{ selectedPiecesCount == skill.piecesCount ? 'btn-' ~ t_color : 'btn-outline-' ~ t_color }}"
                         data-action="live#action"
                         data-live-action-param="changePiecesCount"
                         data-live-pieces-count-param="{{ skill.piecesCount }}"
                     >
-                        {{ skill.piecesCount }}pc:
-                        <span class="fw-bold">{{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}</span>
+                        <strong>{{ skill.piecesCount }}pc</strong>
+                        {{ ('puzzle_intelligence.skill.tiers.' ~ t_name)|trans }}
+                        <small class="opacity-75">{{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': skill.skillPercentile|number_format(0)}) }}</small>
                     </button>
                 {% endfor %}
             </div>
 
-            {# Current skill detail #}
+            {# Current skill detail — percentile is hero #}
             {% if currentSkill is not null %}
-                <div class="row g-3 mb-3">
-                    <div class="col-auto">
-                        <div class="fs-sm text-muted">{{ 'puzzle_intelligence.skill.tier_label'|trans }}</div>
-                        {% set tier_name = currentSkill.skillTier.name|lower %}
-                        <span class="badge bg-{{ tier_colors[tier_name] ?? 'secondary' }} fs-6">
-                            {{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}
-                        </span>
-                    </div>
-                    <div class="col-auto">
-                        <div class="fs-sm text-muted">
-                            {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': currentSkill.skillPercentile|number_format(1)}) }}
-                            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.percentile'|trans }}"></i>
+                {% set t_name = currentSkill.skillTier.name|lower %}
+                {% set t_color = tier_color(t_name) %}
+
+                <div class="card bg-light border-0 mb-3">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                                <span class="h3 mb-0 fw-bold text-{{ t_color }}">
+                                    {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': currentSkill.skillPercentile|number_format(1)}) }}
+                                </span>
+                                <span class="badge bg-{{ t_color }} ms-2 fs-6">
+                                    {{ ('puzzle_intelligence.skill.tiers.' ~ t_name)|trans }}
+                                </span>
+                            </div>
+                            <div class="text-end">
+                                {{ confidence_dots(currentSkill.confidence.value, currentSkill.qualifyingPuzzlesCount) }}
+                            </div>
                         </div>
-                        <div class="fw-bold">
-                            {{ currentSkill.skillScore|number_format(3) }}
-                            <i class="bi bi-info-circle text-muted fs-sm" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.skill_score'|trans }}"></i>
+
+                        {# Progress bar showing percentile position #}
+                        {{ percentile_bar(currentSkill.skillPercentile, t_color) }}
+
+                        <div class="d-flex justify-content-between mt-1">
+                            <small class="text-muted">
+                                {{ 'puzzle_intelligence.human.faster_than_players'|trans({'%percent%': currentSkill.skillPercentile|number_format(0)}) }}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.skill_score'|trans }}"></i>
+                                {{ currentSkill.skillScore|number_format(3) }}
+                            </small>
                         </div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="fs-sm text-muted">{{ 'puzzle_intelligence.difficulty.confidence_label'|trans }}</div>
-                        <div>{{ ('puzzle_intelligence.difficulty.confidence_levels.' ~ currentSkill.confidence.value)|trans }}</div>
                     </div>
                 </div>
             {% endif %}
 
-            {# Distribution chart (bell curve) #}
+            {# Distribution chart (where you stand among all players) #}
             {% if distributionChart is not null %}
-                <h6 class="mb-2 mt-3">{{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': currentSkill ? currentSkill.skillPercentile|number_format(1) : ''}) }}</h6>
-                <div style="height: 200px;">
+                <h6 class="mb-2 mt-3 text-muted">
+                    <i class="bi bi-people me-1"></i>
+                    {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': currentSkill ? currentSkill.skillPercentile|number_format(0) : ''}) }}
+                    — {{ selectedPiecesCount }}pc
+                </h6>
+                <div style="height: 180px;">
                     {{ render_chart(distributionChart) }}
+                </div>
+                <div class="d-flex justify-content-center gap-3 mt-1 fs-sm">
+                    <span><span class="d-inline-block rounded" style="width: 12px; height: 12px; background: rgba(13, 110, 253, 0.8);"></span> {{ 'puzzle_intelligence.elo.player'|trans|lower }}</span>
+                    <span><span class="d-inline-block rounded" style="width: 12px; height: 12px; background: rgba(108, 117, 125, 0.3);"></span> {{ 'puzzle_intelligence.elo.rating'|trans|lower }}</span>
                 </div>
             {% endif %}
 
             {# Improvement chart #}
             {% if improvementChart is not null %}
-                <h6 class="mb-2 mt-3">{{ 'puzzle_intelligence.skill.improvement_title'|trans }}</h6>
-                <div style="height: 250px;">
+                <h6 class="mb-2 mt-3 text-muted">
+                    <i class="bi bi-graph-up me-1"></i>
+                    {{ 'puzzle_intelligence.skill.improvement_title'|trans }}
+                </h6>
+                <div style="height: 220px;">
                     {{ render_chart(improvementChart) }}
                 </div>
             {% endif %}
@@ -79,6 +95,7 @@
             <div class="text-muted fs-sm" style="filter: blur(4px);">
                 <span class="badge bg-primary me-1">500pc: Expert</span>
                 <span class="badge bg-secondary me-1">1000pc: Advanced</span>
+                <div class="progress mt-2" style="height: 8px;"><div class="progress-bar bg-primary" style="width: 75%;"></div></div>
             </div>
             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.8); border-radius: inherit;">
                 <button

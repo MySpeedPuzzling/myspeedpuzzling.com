@@ -98,13 +98,13 @@
                 <div class="mb-2">
                     <small class="text-muted me-1">{{ 'puzzle_intelligence.difficulty.title'|trans }}:</small>
                     {% set tier_options = [
-                        {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy'},
-                        {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy'},
-                        {value: 3, label: 'puzzle_intelligence.difficulty.tiers.moderate'},
-                        {value: 4, label: 'puzzle_intelligence.difficulty.tiers.average'},
-                        {value: 5, label: 'puzzle_intelligence.difficulty.tiers.challenging'},
-                        {value: 6, label: 'puzzle_intelligence.difficulty.tiers.hard'},
-                        {value: 7, label: 'puzzle_intelligence.difficulty.tiers.extreme'},
+                        {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy', color: 'info'},
+                        {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy', color: 'success'},
+                        {value: 3, label: 'puzzle_intelligence.difficulty.tiers.moderate', color: 'success'},
+                        {value: 4, label: 'puzzle_intelligence.difficulty.tiers.average', color: 'secondary'},
+                        {value: 5, label: 'puzzle_intelligence.difficulty.tiers.challenging', color: 'warning'},
+                        {value: 6, label: 'puzzle_intelligence.difficulty.tiers.hard', color: 'danger'},
+                        {value: 7, label: 'puzzle_intelligence.difficulty.tiers.extreme', color: 'danger'},
                     ] %}
                     {% for option in tier_options %}
                         <div class="form-check form-check-inline mb-1">
@@ -114,7 +114,10 @@
                                    name="difficultyTiers[]"
                                    value="{{ option.value }}"
                                    {% if option.value in form_data.difficultyTiers %}checked{% endif %}>
-                            <label for="difficulty-{{ option.value }}" class="form-check-label fs-sm">{{ option.label|trans }}</label>
+                            <label for="difficulty-{{ option.value }}" class="form-check-label fs-sm">
+                                <span class="d-inline-block rounded-circle bg-{{ option.color }}" style="width: 8px; height: 8px;"></span>
+                                {{ option.label|trans }}
+                            </label>
                         </div>
                     {% endfor %}
                 </div>

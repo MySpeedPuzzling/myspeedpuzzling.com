@@ -23,9 +23,11 @@
                     </div>
 
                     {# Manufacturer #}
-                    <div class="col-6 col-md-3 col-lg-2">
+                    <div class="col-6 col-md-3 col-lg-2" data-live-ignore>
                         <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.brand'|trans }}</small></label>
-                        <select data-model="manufacturer" class="form-select form-select-sm">
+                        <select data-model="on(change)|manufacturer"
+                                data-controller="marketplace-brand-filter"
+                                class="form-select form-select-sm">
                             <option value="">{{ 'marketplace.all_brands'|trans }}</option>
                             {% for mfr in this.manufacturers %}
                                 <option value="{{ mfr.manufacturer_id }}" {{ this.manufacturer == mfr.manufacturer_id ? 'selected' }}>

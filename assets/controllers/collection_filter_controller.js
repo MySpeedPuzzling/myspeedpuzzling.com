@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import TomSelect from 'tom-select';
 
 /**
  * Collection Filter Controller
@@ -43,34 +44,53 @@ export default class extends Controller {
     }
 
     initializeFilters() {
-        const manufacturers = new Set();
+        const manufacturerCounts = new Map();
         const pieceCounts = new Set();
 
-        // Collect unique values from items
+        // Collect unique values and counts from items
         this.itemTargets.forEach(item => {
             const manufacturer = item.dataset.manufacturer;
             if (manufacturer) {
-                manufacturers.add(manufacturer);
+                manufacturerCounts.set(manufacturer, (manufacturerCounts.get(manufacturer) || 0) + 1);
             }
             pieceCounts.add(parseInt(item.dataset.piecesCount, 10));
         });
 
-        // Populate manufacturer dropdown
-        this.populateManufacturers(Array.from(manufacturers).sort());
+        // Populate manufacturer dropdown with counts and Tom Select
+        this.populateManufacturers(manufacturerCounts);
 
         // Show only relevant piece count options
         this.updatePiecesRadioVisibility(Array.from(pieceCounts));
     }
 
-    populateManufacturers(manufacturers) {
+    populateManufacturers(manufacturerCounts) {
         if (!this.hasManufacturerTarget) return;
 
-        manufacturers.forEach(manufacturer => {
+        // Sort manufacturers alphabetically
+        const sorted = Array.from(manufacturerCounts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+        sorted.forEach(([manufacturer, count]) => {
             const option = document.createElement('option');
             option.value = manufacturer;
-            option.textContent = manufacturer;
+            option.textContent = `${manufacturer} (${count})`;
             this.manufacturerTarget.appendChild(option);
         });
+
+        // Initialize Tom Select autocomplete
+        this.tomSelect = new TomSelect(this.manufacturerTarget, {
+            allowEmptyOption: true,
+        });
+
+        this.tomSelect.on('change', () => {
+            this.tomSelect.blur();
+        });
+    }
+
+    disconnect() {
+        if (this.tomSelect) {
+            this.tomSelect.destroy();
+            this.tomSelect = null;
+        }
     }
 
     updatePiecesRadioVisibility(pieceCounts) {
@@ -214,8 +234,8 @@ export default class extends Controller {
         }
 
         // Reset manufacturer
-        if (this.hasManufacturerTarget) {
-            this.manufacturerTarget.value = '';
+        if (this.hasManufacturerTarget && this.tomSelect) {
+            this.tomSelect.setValue('', true);
         }
 
         // Reset pieces to "All"

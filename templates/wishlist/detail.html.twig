@@ -141,6 +141,12 @@
         </div>
     {% endif %}
 
+    {% if items|length > 3 %}
+        <div class="mb-2">
+            <small class="text-muted">{{ 'total_found'|trans({'%count%': '<span data-collection-filter-target="visibleCount">' ~ items|length ~ '</span>'})|raw }}</small>
+        </div>
+    {% endif %}
+
     {% set isOwnProfile = logged_user.profile is not null and logged_user.profile.playerId == collection.playerId %}
     <div id="wishlist-list-container">
     {% if items is empty %}

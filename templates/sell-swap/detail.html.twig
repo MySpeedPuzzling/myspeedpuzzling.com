@@ -231,6 +231,12 @@
         </div>
     {% endif %}
 
+    {% if items|length > 3 %}
+        <div class="mb-2">
+            <small class="text-muted">{{ 'total_found'|trans({'%count%': '<span data-collection-filter-target="visibleCount">' ~ items|length ~ '</span>'})|raw }}</small>
+        </div>
+    {% endif %}
+
     <div id="sellswap-list-container">
     {% if items is empty %}
         {{ include('sell-swap/_empty_state.html.twig') }}

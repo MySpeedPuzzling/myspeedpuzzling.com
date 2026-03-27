@@ -5,10 +5,9 @@ export default class extends Controller {
     connect() {
         const emptyOption = this.element.querySelector('option[value=""]');
         const placeholder = emptyOption ? emptyOption.textContent.trim() : '';
-        if (emptyOption) emptyOption.textContent = '';
+        if (emptyOption) emptyOption.remove();
 
         this.tomSelect = new TomSelect(this.element, {
-            allowEmptyOption: true,
             placeholder: placeholder,
             plugins: { clear_button: { title: '' } },
         });

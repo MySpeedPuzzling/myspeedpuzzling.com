@@ -66,8 +66,8 @@ export default class extends Controller {
     populateManufacturers(manufacturerCounts) {
         if (!this.hasManufacturerTarget) return;
 
-        // Sort manufacturers alphabetically
-        const sorted = Array.from(manufacturerCounts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        // Sort manufacturers by count descending, then alphabetically
+        const sorted = Array.from(manufacturerCounts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
         sorted.forEach(([manufacturer, count]) => {
             const option = document.createElement('option');

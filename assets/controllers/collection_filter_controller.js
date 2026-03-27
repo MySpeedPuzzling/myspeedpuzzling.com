@@ -76,9 +76,11 @@ export default class extends Controller {
             this.manufacturerTarget.appendChild(option);
         });
 
-        // Read placeholder from the empty option, then initialize Tom Select
+        // Read placeholder from the empty option, then clear its text so Tom Select
+        // uses the placeholder config instead of showing it as a selected item
         const emptyOption = this.manufacturerTarget.querySelector('option[value=""]');
-        const placeholder = emptyOption ? emptyOption.textContent : '';
+        const placeholder = emptyOption ? emptyOption.textContent.trim() : '';
+        if (emptyOption) emptyOption.textContent = '';
 
         this.tomSelect = new TomSelect(this.manufacturerTarget, {
             allowEmptyOption: true,

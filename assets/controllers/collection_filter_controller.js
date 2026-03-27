@@ -76,9 +76,13 @@ export default class extends Controller {
             this.manufacturerTarget.appendChild(option);
         });
 
-        // Initialize Tom Select autocomplete
+        // Read placeholder from the empty option, then initialize Tom Select
+        const emptyOption = this.manufacturerTarget.querySelector('option[value=""]');
+        const placeholder = emptyOption ? emptyOption.textContent : '';
+
         this.tomSelect = new TomSelect(this.manufacturerTarget, {
             allowEmptyOption: true,
+            placeholder: placeholder,
         });
 
         this.tomSelect.on('change', () => {

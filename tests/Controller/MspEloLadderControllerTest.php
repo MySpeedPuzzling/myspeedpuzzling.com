@@ -38,13 +38,4 @@ final class MspEloLadderControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
     }
-
-    public function testFilterByMonthlyPeriod(): void
-    {
-        $browser = self::createClient();
-
-        $browser->request('GET', '/en/msp-elo?period=monthly');
-
-        $this->assertResponseIsSuccessful();
-    }
 }

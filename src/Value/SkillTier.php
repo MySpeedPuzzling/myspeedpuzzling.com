@@ -26,4 +26,30 @@ enum SkillTier: int
             default => self::Casual,
         };
     }
+
+    public function minimumPercentile(): float
+    {
+        return match ($this) {
+            self::Grandmaster => 99.0,
+            self::Master => 95.0,
+            self::Expert => 85.0,
+            self::Advanced => 70.0,
+            self::Proficient => 50.0,
+            self::Enthusiast => 25.0,
+            self::Casual => 0.0,
+        };
+    }
+
+    public function nextTier(): null|self
+    {
+        return match ($this) {
+            self::Casual => self::Enthusiast,
+            self::Enthusiast => self::Proficient,
+            self::Proficient => self::Advanced,
+            self::Advanced => self::Expert,
+            self::Expert => self::Master,
+            self::Master => self::Grandmaster,
+            self::Grandmaster => null,
+        };
+    }
 }

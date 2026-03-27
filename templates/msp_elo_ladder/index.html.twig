@@ -12,26 +12,18 @@
 
     <p class="text-muted mb-3 fs-sm">{{ 'puzzle_intelligence.elo.subtitle'|trans }}</p>
 
-    {# Filters #}
-    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
-        {% for pc in [500, 1000, 1500, 2000] %}
-            <a href="{{ path('msp_elo_ladder', {pieces: pc, period: period == 'all-time' ? 'all-time' : 'monthly'}) }}"
-               class="btn btn-sm {{ pieces_count == pc ? 'btn-primary' : 'btn-outline-primary' }}">
-                {{ pc }}pc
-            </a>
-        {% endfor %}
-
-        <span class="border-start mx-1" style="height: 24px;"></span>
-
-        <a href="{{ path('msp_elo_ladder', {pieces: pieces_count, period: 'all-time'}) }}"
-           class="btn btn-sm {{ period == 'all-time' ? 'btn-accent' : 'btn-outline-secondary' }}">
-            {{ 'puzzle_intelligence.elo.period_all_time'|trans }}
-        </a>
-        <a href="{{ path('msp_elo_ladder', {pieces: pieces_count, period: 'monthly'}) }}"
-           class="btn btn-sm {{ period != 'all-time' ? 'btn-accent' : 'btn-outline-secondary' }}">
-            {{ 'puzzle_intelligence.elo.period_monthly'|trans }}
-        </a>
-    </div>
+    {# Piece count filter — only categories with 50+ players #}
+    {% if available_categories is not empty %}
+        <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+            {% for cat in available_categories %}
+                <a href="{{ path('msp_elo_ladder', {pieces: cat.pieces_count}) }}"
+                   class="btn btn-sm {{ pieces_count == cat.pieces_count ? 'btn-primary' : 'btn-outline-primary' }}">
+                    {{ cat.pieces_count }}pc
+                    <small class="opacity-75">({{ cat.player_count }})</small>
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     {# Player's own position or progress #}
     {% if player_position is not null %}

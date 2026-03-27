@@ -1,4 +1,4 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import human_difficulty, tier_color %}
+{% from 'puzzle_intelligence/_macros.html.twig' import human_difficulty, difficulty_badge %}
 
 {% if logged_user.profile is not null and logged_user.profile.activeMembership and puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
     <div class="card shadow-sm mb-3 border-0">
@@ -43,9 +43,7 @@
                 <div class="col-6">
                     <div class="text-muted mb-1">{{ 'puzzle_intelligence.solve_analysis.puzzle_difficulty'|trans }}</div>
                     {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
-                    <span class="badge bg-{{ tier_color(tier_name) }}">
-                        {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
-                    </span>
+                    {{ difficulty_badge(tier_name) }}
                     <small class="text-muted">{{ human_difficulty(puzzle_difficulty.difficultyScore) }}</small>
                 </div>
 

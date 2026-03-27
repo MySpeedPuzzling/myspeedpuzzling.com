@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +18,6 @@ final class MspEloLadderController extends AbstractController
         readonly private GetPlayerEloRanking $getPlayerEloRanking,
         readonly private MspEloCalculator $mspEloCalculator,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -36,15 +34,19 @@ final class MspEloLadderController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
+        $period = 'all-time';
+        $availableCategories = $this->getPlayerEloRanking->availablePieceCounts($period);
+
+        $availablePieceCounts = array_map(
+            static fn (array $cat): int => $cat['pieces_count'],
+            $availableCategories,
+        );
+
         $piecesCount = (int) $request->query->get('pieces', '500');
-        $period = $request->query->get('period', 'all-time');
 
-        if (!in_array($piecesCount, [500, 1000, 1500, 2000], true)) {
-            $piecesCount = 500;
-        }
-
-        if ($period !== 'all-time') {
-            $period = $this->clock->now()->format('Y-m');
+        // Default to first available, or 500 if none
+        if (!in_array($piecesCount, $availablePieceCounts, true)) {
+            $piecesCount = $availablePieceCounts[0] ?? 500;
         }
 
         $entries = $this->getPlayerEloRanking->ranking($piecesCount, $period, 50);
@@ -63,11 +65,10 @@ final class MspEloLadderController extends AbstractController
             'entries' => $entries,
             'total_count' => $totalCount,
             'pieces_count' => $piecesCount,
-            'period' => $period,
+            'available_categories' => $availableCategories,
             'player_position' => $playerPosition,
             'elo_progress' => $eloProgress,
             'logged_player' => $loggedPlayer,
-            'current_month' => $this->clock->now()->format('Y-m'),
         ]);
     }
 }

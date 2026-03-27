@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use SpeedPuzzling\Web\Query\GetPlayerBaselineProgress;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetPlayerSkillHistory;
-use SpeedPuzzling\Web\Query\GetSkillDistribution;
 use SpeedPuzzling\Web\Results\PlayerSkillHistoryPoint;
 use SpeedPuzzling\Web\Results\PlayerSkillResult;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
@@ -37,15 +37,22 @@ final class PlayerSkillProfile
 
     public null|Chart $improvementChart = null;
 
-    public null|Chart $distributionChart = null;
+    public null|int $currentBaselineSeconds = null;
+
+    public null|int $targetBaselineSeconds = null;
 
     /** @var list<int> */
     public array $availablePieceCounts = [];
 
+    /**
+     * @var array<int, array{baseline_solves: int, qualifying_puzzles: int}>
+     */
+    public array $progress = [];
+
     public function __construct(
         readonly private GetPlayerSkill $getPlayerSkill,
         readonly private GetPlayerSkillHistory $getPlayerSkillHistory,
-        readonly private GetSkillDistribution $getSkillDistribution,
+        readonly private GetPlayerBaselineProgress $getPlayerBaselineProgress,
         readonly private ChartBuilderInterface $chartBuilder,
     ) {
     }
@@ -70,14 +77,17 @@ final class PlayerSkillProfile
             }
         }
 
-        // If selected piece count has no skill, try the first available
         if ($this->currentSkill === null && $this->skills !== []) {
             $this->currentSkill = $this->skills[0];
             $this->selectedPiecesCount = $this->currentSkill->piecesCount;
         }
 
         $this->improvementChart = $this->buildImprovementChart();
-        $this->distributionChart = $this->buildDistributionChart();
+        $this->computeBaselineAndTarget();
+
+        if ($this->skills === []) {
+            $this->progress = $this->getPlayerBaselineProgress->solveProgress($this->playerId);
+        }
     }
 
     #[LiveAction]
@@ -86,6 +96,29 @@ final class PlayerSkillProfile
         if (in_array($piecesCount, $this->availablePieceCounts, true)) {
             $this->selectedPiecesCount = $piecesCount;
         }
+    }
+
+    private function computeBaselineAndTarget(): void
+    {
+        if ($this->currentSkill === null) {
+            return;
+        }
+
+        $this->currentBaselineSeconds = $this->getPlayerBaselineProgress->currentBaseline(
+            $this->playerId,
+            $this->selectedPiecesCount,
+        );
+
+        $nextTier = $this->currentSkill->skillTier->nextTier();
+
+        if ($nextTier === null || $this->currentBaselineSeconds === null) {
+            return;
+        }
+
+        $this->targetBaselineSeconds = $this->getPlayerBaselineProgress->baselineAtPercentile(
+            $this->selectedPiecesCount,
+            $nextTier->minimumPercentile(),
+        );
     }
 
     private function buildImprovementChart(): null|Chart
@@ -138,68 +171,6 @@ final class PlayerSkillProfile
             'plugins' => [
                 'legend' => [
                     'display' => false,
-                ],
-            ],
-        ]);
-
-        return $chart;
-    }
-
-    private function buildDistributionChart(): null|Chart
-    {
-        $distribution = $this->getSkillDistribution->forPiecesCount($this->selectedPiecesCount, $this->playerId);
-
-        if ($distribution['labels'] === []) {
-            return null;
-        }
-
-        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
-
-        // Color each bar — highlight the player's bucket
-        $backgroundColors = [];
-        $borderColors = [];
-
-        foreach ($distribution['counts'] as $i => $count) {
-            if ($distribution['player_bucket'] !== null && $i === $distribution['player_bucket']) {
-                $backgroundColors[] = 'rgba(13, 110, 253, 0.8)';
-                $borderColors[] = '#0d6efd';
-            } else {
-                $backgroundColors[] = 'rgba(108, 117, 125, 0.3)';
-                $borderColors[] = 'rgba(108, 117, 125, 0.5)';
-            }
-        }
-
-        $chart->setData([
-            'labels' => $distribution['labels'],
-            'datasets' => [
-                [
-                    'label' => 'Players',
-                    'data' => $distribution['counts'],
-                    'backgroundColor' => $backgroundColors,
-                    'borderColor' => $borderColors,
-                    'borderWidth' => 1,
-                ],
-            ],
-        ]);
-
-        $chart->setOptions([
-            'responsive' => true,
-            'maintainAspectRatio' => false,
-            'scales' => [
-                'x' => [
-                    'grid' => ['display' => false],
-                ],
-                'y' => [
-                    'display' => false,
-                    'beginAtZero' => true,
-                ],
-            ],
-            'plugins' => [
-                'legend' => ['display' => false],
-                'tooltip' => [
-                    'callbacks' => [
-                        'label' => '__function:(context) => context.parsed.y + " players"',
-                    ],
                 ],
             ],
         ]);

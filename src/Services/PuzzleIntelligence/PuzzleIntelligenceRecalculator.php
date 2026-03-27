@@ -126,8 +126,6 @@ readonly final class PuzzleIntelligenceRecalculator
     {
         $players = $this->getPlayersWithBaselines($specificPlayer);
         $pieceCounts = $this->getDistinctPieceCounts();
-        $currentMonth = $now->format('Y-m');
-        $periods = ['all-time', $currentMonth];
         $count = 0;
 
         foreach ($players as $playerId) {
@@ -136,11 +134,9 @@ readonly final class PuzzleIntelligenceRecalculator
                     continue;
                 }
 
-                foreach ($periods as $period) {
-                    $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, $period);
-                    $this->upsertElo($playerId, $piecesCount, $period, $eloRating, $now);
-                    $count++;
-                }
+                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
+                $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
+                $count++;
             }
         }
 

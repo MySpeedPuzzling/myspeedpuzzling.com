@@ -195,3 +195,88 @@ $soft-teal: #5bc0de;
     filter: grayscale(100%);
     opacity: 0.6;
 }
+
+// ============================================================================
+// Puzzle Intelligence — Custom tier & confidence colors
+// ============================================================================
+
+// Difficulty Tiers
+$tier-very-easy: #5ec4d4;  // calm teal
+$tier-easy: #42d697;       // fresh green (same as $success)
+$tier-moderate: #7bc67e;   // muted green
+$tier-average: #8e99a9;    // neutral gray-blue
+$tier-challenging: #e8a838; // amber
+$tier-hard: #e06050;       // warm red
+$tier-extreme: #c03050;    // deep red
+
+.badge-tier-veryeasy { background-color: $tier-very-easy !important; color: #fff !important; }
+.badge-tier-easy { background-color: $tier-easy !important; color: #fff !important; }
+.badge-tier-moderate { background-color: $tier-moderate !important; color: #fff !important; }
+.badge-tier-average { background-color: $tier-average !important; color: #fff !important; }
+.badge-tier-challenging { background-color: $tier-challenging !important; color: #fff !important; }
+.badge-tier-hard { background-color: $tier-hard !important; color: #fff !important; }
+.badge-tier-extreme { background-color: $tier-extreme !important; color: #fff !important; }
+
+.text-tier-veryeasy { color: $tier-very-easy !important; }
+.text-tier-easy { color: $tier-easy !important; }
+.text-tier-moderate { color: $tier-moderate !important; }
+.text-tier-average { color: $tier-average !important; }
+.text-tier-challenging { color: $tier-challenging !important; }
+.text-tier-hard { color: $tier-hard !important; }
+.text-tier-extreme { color: $tier-extreme !important; }
+
+.dot-tier-veryeasy { color: $tier-very-easy; }
+.dot-tier-easy { color: $tier-easy; }
+.dot-tier-moderate { color: $tier-moderate; }
+.dot-tier-average { color: $tier-average; }
+.dot-tier-challenging { color: $tier-challenging; }
+.dot-tier-hard { color: $tier-hard; }
+.dot-tier-extreme { color: $tier-extreme; }
+
+// Skill Tiers
+$skill-casual: #8e99a9;      // neutral gray-blue
+$skill-enthusiast: #42d697;   // fresh green
+$skill-proficient: #5ec4d4;   // teal
+$skill-advanced: #4e54c8;     // purple (accent)
+$skill-expert: #e8a838;       // amber
+$skill-master: #e06050;       // warm red
+$skill-grandmaster: #1a1a2e;  // near-black navy
+
+.badge-skill-casual { background-color: $skill-casual !important; color: #fff !important; }
+.badge-skill-enthusiast { background-color: $skill-enthusiast !important; color: #fff !important; }
+.badge-skill-proficient { background-color: $skill-proficient !important; color: #fff !important; }
+.badge-skill-advanced { background-color: $skill-advanced !important; color: #fff !important; }
+.badge-skill-expert { background-color: $skill-expert !important; color: #fff !important; }
+.badge-skill-master { background-color: $skill-master !important; color: #fff !important; }
+.badge-skill-grandmaster { background-color: $skill-grandmaster !important; color: #fff !important; }
+
+.text-skill-casual { color: $skill-casual !important; }
+.text-skill-enthusiast { color: $skill-enthusiast !important; }
+.text-skill-proficient { color: $skill-proficient !important; }
+.text-skill-advanced { color: $skill-advanced !important; }
+.text-skill-expert { color: $skill-expert !important; }
+.text-skill-master { color: $skill-master !important; }
+.text-skill-grandmaster { color: $skill-grandmaster !important; }
+
+// Progress bars for skill tiers
+.progress-bar-skill-casual { background-color: $skill-casual !important; }
+.progress-bar-skill-enthusiast { background-color: $skill-enthusiast !important; }
+.progress-bar-skill-proficient { background-color: $skill-proficient !important; }
+.progress-bar-skill-advanced { background-color: $skill-advanced !important; }
+.progress-bar-skill-expert { background-color: $skill-expert !important; }
+.progress-bar-skill-master { background-color: $skill-master !important; }
+.progress-bar-skill-grandmaster { background-color: $skill-grandmaster !important; }
+
+// Confidence indicators
+$confidence-low: #e8a838;    // amber/warning
+$confidence-medium: #5ec4d4; // teal
+$confidence-high: #42d697;   // green
+
+.text-confidence-low { color: $confidence-low !important; }
+.text-confidence-medium { color: $confidence-medium !important; }
+.text-confidence-high { color: $confidence-high !important; }
+
+// Low-confidence badge fading
+.badge-tier-low-confidence {
+    opacity: 0.6;
+}

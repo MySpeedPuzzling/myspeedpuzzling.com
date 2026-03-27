@@ -1,4 +1,4 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import confidence_dots, human_difficulty, personality_metric, tier_color %}
+{% from 'puzzle_intelligence/_macros.html.twig' import confidence_dots, human_difficulty, personality_metric, difficulty_badge %}
 
 {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
@@ -12,9 +12,7 @@
                             <i class="bi bi-bar-chart me-1"></i>
                             {{ 'puzzle_intelligence.difficulty.title'|trans }}
                         </h6>
-                        <span class="badge bg-{{ tier_color(tier_name) }} fs-6 me-2">
-                            {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
-                        </span>
+                        {{ difficulty_badge(tier_name, 'fs-6 me-2') }}
                         <span class="fs-sm">
                             {{ human_difficulty(puzzle_difficulty.difficultyScore) }}
                         </span>
@@ -115,7 +113,7 @@
                 </h6>
                 <div class="text-muted fs-sm" style="filter: blur(4px);">
                     {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
-                    <span class="badge bg-secondary me-2">{{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}</span>
+                    {{ difficulty_badge(tier_name, 'me-2') }}
                     <small>{{ human_difficulty(puzzle_difficulty.difficultyScore) }}</small>
                 </div>
                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.8); border-radius: inherit;">

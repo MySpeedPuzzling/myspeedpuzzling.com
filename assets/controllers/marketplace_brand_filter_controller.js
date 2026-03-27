@@ -10,6 +10,7 @@ export default class extends Controller {
         this.tomSelect = new TomSelect(this.element, {
             allowEmptyOption: true,
             placeholder: placeholder,
+            plugins: { clear_button: { title: '' } },
         });
 
         this.tomSelect.on('change', () => {

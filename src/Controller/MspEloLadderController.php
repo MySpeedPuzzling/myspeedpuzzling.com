@@ -8,12 +8,14 @@ use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class MspEloLadderController extends AbstractController
 {
     private const int PIECES_COUNT = 500;
+    private const int PER_PAGE = 50;
 
     public function __construct(
         readonly private GetPlayerEloRanking $getPlayerEloRanking,
@@ -33,13 +35,17 @@ final class MspEloLadderController extends AbstractController
         ],
         name: 'msp_elo_ladder',
     )]
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
         $period = 'all-time';
         $piecesCount = self::PIECES_COUNT;
 
-        $entries = $this->getPlayerEloRanking->ranking($piecesCount, $period, 50);
+        $page = max(1, $request->query->getInt('page', 1));
+        $offset = ($page - 1) * self::PER_PAGE;
+
+        $entries = $this->getPlayerEloRanking->ranking($piecesCount, $period, self::PER_PAGE, $offset);
         $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount, $period);
+        $totalPages = max(1, (int) ceil($totalCount / self::PER_PAGE));
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $playerPosition = null;
@@ -57,6 +63,8 @@ final class MspEloLadderController extends AbstractController
             'player_position' => $playerPosition,
             'elo_progress' => $eloProgress,
             'logged_player' => $loggedPlayer,
+            'current_page' => $page,
+            'total_pages' => $totalPages,
         ]);
     }
 }

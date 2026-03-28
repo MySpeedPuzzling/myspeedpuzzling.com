@@ -45,18 +45,13 @@ final class PlayerEloProfile
         $period = 'all-time';
         $this->eloRatings = $this->getPlayerEloRanking->allForPlayer($this->playerId, $period);
 
-        // If own profile and no ELO data, show progress for common piece counts
+        // If own profile and no ELO data, show progress for 500pc
         if ($this->isOwnProfile && $this->eloRatings === []) {
-            $this->progressPieceCounts = [500, 1000];
+            $this->progressPieceCounts = [500];
+            $progress = $this->mspEloCalculator->getProgress($this->playerId, 500);
 
-            // Use the first piece count for progress display
-            foreach ($this->progressPieceCounts as $pc) {
-                $progress = $this->mspEloCalculator->getProgress($this->playerId, $pc);
-
-                if ($progress['first_attempts'] > 0 || $progress['total_solves'] > 0) {
-                    $this->eloProgress = $progress;
-                    break;
-                }
+            if ($progress['first_attempts'] > 0 || $progress['total_solves'] > 0) {
+                $this->eloProgress = $progress;
             }
         }
     }

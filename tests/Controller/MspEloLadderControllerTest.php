@@ -29,13 +29,4 @@ final class MspEloLadderControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
     }
-
-    public function testFilterByPiecesCount(): void
-    {
-        $browser = self::createClient();
-
-        $browser->request('GET', '/en/msp-elo?pieces=1000');
-
-        $this->assertResponseIsSuccessful();
-    }
 }

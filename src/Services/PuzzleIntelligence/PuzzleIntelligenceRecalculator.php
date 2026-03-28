@@ -125,20 +125,26 @@ readonly final class PuzzleIntelligenceRecalculator
     private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
         $players = $this->getPlayersWithBaselines($specificPlayer);
-        $pieceCounts = $this->getDistinctPieceCounts();
         $count = 0;
 
-        foreach ($players as $playerId) {
-            foreach ($pieceCounts as $piecesCount) {
-                if (!$this->eloCalculator->isEligible($playerId, $piecesCount)) {
-                    continue;
-                }
+        // MSP-ELO is 500pc only
+        $piecesCount = 500;
 
-                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
-                $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
-                $count++;
+        foreach ($players as $playerId) {
+            if (!$this->eloCalculator->isEligible($playerId, $piecesCount)) {
+                continue;
             }
+
+            $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
+            $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
+            $count++;
         }
+
+        // Clean up any non-500pc ELO data from before scope change
+        $this->connection->executeStatement(
+            'DELETE FROM player_elo WHERE pieces_count != :piecesCount',
+            ['piecesCount' => $piecesCount],
+        );
 
         return $count;
     }

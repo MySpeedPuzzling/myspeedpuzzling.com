@@ -8,12 +8,13 @@ use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class MspEloLadderController extends AbstractController
 {
+    private const int PIECES_COUNT = 500;
+
     public function __construct(
         readonly private GetPlayerEloRanking $getPlayerEloRanking,
         readonly private MspEloCalculator $mspEloCalculator,
@@ -32,22 +33,10 @@ final class MspEloLadderController extends AbstractController
         ],
         name: 'msp_elo_ladder',
     )]
-    public function __invoke(Request $request): Response
+    public function __invoke(): Response
     {
         $period = 'all-time';
-        $availableCategories = $this->getPlayerEloRanking->availablePieceCounts($period);
-
-        $availablePieceCounts = array_map(
-            static fn (array $cat): int => $cat['pieces_count'],
-            $availableCategories,
-        );
-
-        $piecesCount = (int) $request->query->get('pieces', '500');
-
-        // Default to first available, or 500 if none
-        if (!in_array($piecesCount, $availablePieceCounts, true)) {
-            $piecesCount = $availablePieceCounts[0] ?? 500;
-        }
+        $piecesCount = self::PIECES_COUNT;
 
         $entries = $this->getPlayerEloRanking->ranking($piecesCount, $period, 50);
         $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount, $period);
@@ -65,7 +54,6 @@ final class MspEloLadderController extends AbstractController
             'entries' => $entries,
             'total_count' => $totalCount,
             'pieces_count' => $piecesCount,
-            'available_categories' => $availableCategories,
             'player_position' => $playerPosition,
             'elo_progress' => $eloProgress,
             'logged_player' => $loggedPlayer,

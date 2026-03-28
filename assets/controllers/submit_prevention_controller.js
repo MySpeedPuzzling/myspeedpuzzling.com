@@ -7,36 +7,35 @@ export default class extends Controller {
     }
 
     connect() {
-        this.isSubmittingValue = false; // Initialize the submission status
-        this.element.addEventListener('submit', this.preventDuplicateSubmission.bind(this)); // Listen for the form submission
+        this.isSubmittingValue = false;
+        this.element.addEventListener('submit', this.preventDuplicateSubmission.bind(this));
+
+        // Re-enable button when Turbo finishes (success, redirect, or error)
+        this.element.addEventListener('turbo:submit-end', this.reset.bind(this));
     }
 
     preventDuplicateSubmission(event) {
         if (this.isSubmittingValue) {
-            event.preventDefault(); // Prevent the form from submitting again
+            event.preventDefault();
             return;
         }
 
-        this.isSubmittingValue = true; // Mark the form as being submitted
+        this.isSubmittingValue = true;
+        this.disableSubmitButton();
+    }
 
-        this.disableSubmitButton(); // Disable the submit button
-
-        // Optionally, you can include a setTimeout to re-enable the button if something goes wrong
-        setTimeout(() => {
-            if (this.isSubmittingValue) {
-                this.isSubmittingValue = false;
-                this.enableSubmitButton(); // Re-enable the button in case of a timeout
-            }
-        }, 10000); // Adjust the timeout duration as needed
+    reset() {
+        this.isSubmittingValue = false;
+        this.enableSubmitButton();
     }
 
     disableSubmitButton() {
         this.submitTarget.setAttribute('disabled', 'disabled');
-        this.submitTarget.classList.add('is-loading'); // Optional: Add a loading class for UI feedback
+        this.submitTarget.classList.add('is-loading');
     }
 
     enableSubmitButton() {
         this.submitTarget.removeAttribute('disabled');
-        this.submitTarget.classList.remove('is-loading'); // Remove the loading class
+        this.submitTarget.classList.remove('is-loading');
     }
 }

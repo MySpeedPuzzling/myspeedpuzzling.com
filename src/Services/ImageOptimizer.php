@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use Imagick;
+use ImagickException;
 use Psr\Log\LoggerInterface;
 
 final readonly class ImageOptimizer
@@ -18,7 +19,10 @@ final readonly class ImageOptimizer
 
     public function optimize(string $filePath): void
     {
-        $imagick = new Imagick($filePath);
+        // Use JPEG size hint for faster decoding of large JPEGs (skips unnecessary DCT detail)
+        $imagick = new Imagick();
+        $imagick->setOption('jpeg:size', self::MAX_DIMENSION . 'x' . self::MAX_DIMENSION);
+        $imagick->readImage($filePath);
 
         try {
             $width = $imagick->getImageWidth();
@@ -34,9 +38,31 @@ final readonly class ImageOptimizer
                 'path' => $filePath,
             ]);
 
+            // Apply EXIF orientation to pixel data (must happen before stripping metadata)
+            $imagick->autoOrient();
             $imagick->scaleImage(self::MAX_DIMENSION, self::MAX_DIMENSION, true);
-            $imagick->setImageCompressionQuality(92);
-            $imagick->writeImage($filePath);
+
+            // Remove EXIF, ICC profiles, and other metadata
+            $imagick->stripImage();
+            $imagick->setImageCompressionQuality(85);
+
+            // Write to temp path first to avoid corrupting the original if encoding fails
+            $optimizedPath = $filePath . '_optimized';
+
+            try {
+                $imagick->writeImage($optimizedPath);
+                rename($optimizedPath, $filePath);
+            } catch (ImagickException $e) {
+                // Format encoder not available (e.g. AVIF) — keep original file
+                if (file_exists($optimizedPath)) {
+                    unlink($optimizedPath);
+                }
+
+                $this->logger->warning('Could not write optimized image, using original', [
+                    'path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         } finally {
             $imagick->clear();
             $imagick->destroy();

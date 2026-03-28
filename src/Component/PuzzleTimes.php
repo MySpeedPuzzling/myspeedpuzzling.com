@@ -47,6 +47,7 @@ final class PuzzleTimes
 
     public null|int $myRank = null;
     public null|int $averageTime = null;
+    public null|int $medianTime = null;
     public null|int $myTime = null;
     public int $soloTimesCount = 0;
     public int $duoTimesCount = 0;
@@ -205,6 +206,7 @@ final class PuzzleTimes
         $myRank = null;
         $myTime = null;
         $totalTime = 0;
+        $allTimes = [];
 
         $i = 0;
         foreach ($this->times as $groupedSolver) {
@@ -212,6 +214,7 @@ final class PuzzleTimes
             $result = $groupedSolver[0];
 
             $totalTime += $result->time;
+            $allTimes[] = $result->time;
 
             if ($result instanceof PuzzleSolver) {
                 if ($myRank === null && $result->playerId === $loggedPlayerId) {
@@ -230,7 +233,18 @@ final class PuzzleTimes
 
         $this->myRank = $myRank;
         $this->myTime = $myTime;
-        $this->averageTime = (int) ($totalTime / max(1, count($this->times)));
+        $count = count($this->times);
+        $this->averageTime = (int) ($totalTime / max(1, $count));
+
+        if ($count > 0) {
+            sort($allTimes);
+            $mid = intdiv($count, 2);
+            $this->medianTime = $count % 2 === 0
+                ? (int) (($allTimes[$mid - 1] + $allTimes[$mid]) / 2)
+                : $allTimes[$mid];
+        } else {
+            $this->medianTime = null;
+        }
         $this->soloTimesCount = count($soloPuzzleSolversGrouped);
         $this->duoTimesCount = count($duoPuzzleSolversGrouped);
         $this->groupTimesCount = count($teamPuzzleSolversGrouped);

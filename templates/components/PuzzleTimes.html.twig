@@ -49,8 +49,13 @@
                     Rank {{ this.myRank }} {{ 'ranking_out_of'|trans}} {{ this.times|length }}<br>
                 {% endif %}
 
+                {% if this.medianTime %}
+                    {{ 'median_time'|trans }}
+                    {{ this.medianTime|puzzlingTime }}
+                {% endif %}
+
                 {% if this.averageTime %}
-                    {{ 'average_time'|trans }}
+                    &middot; {{ 'average_time'|trans }}
                     {{ this.averageTime|puzzlingTime }}
                 {% endif %}
             {% endif %}

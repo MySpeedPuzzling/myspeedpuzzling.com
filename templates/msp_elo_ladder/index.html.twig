@@ -10,7 +10,10 @@
         <span class="badge bg-info ms-2">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
     </div>
 
-    <p class="text-muted mb-3 fs-sm">{{ 'puzzle_intelligence.elo.subtitle'|trans }}</p>
+    <p class="text-muted mb-3 fs-sm">
+        {{ 'puzzle_intelligence.elo.subtitle'|trans }}
+        <a href="{{ path('methodology') }}" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
+    </p>
 
     {# Player's own position or progress #}
     {% if player_position is not null %}

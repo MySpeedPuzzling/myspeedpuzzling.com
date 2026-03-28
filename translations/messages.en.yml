@@ -1927,6 +1927,7 @@ puzzle_intelligence:
     elo:
         title: "MSP-ELO Ladder"
         subtitle: "Competitive ranking based on head-to-head performance"
+        how_it_works: "How is this calculated?"
         beta_badge: "BETA"
         rank: "Rank"
         player: "Player"

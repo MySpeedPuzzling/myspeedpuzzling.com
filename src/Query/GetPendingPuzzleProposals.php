@@ -134,6 +134,7 @@ SELECT
     p.name,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id) as times_count
 FROM puzzle p
@@ -158,6 +159,7 @@ SQL;
                 name: $name,
                 piecesCount: is_int($row['pieces_count']) ? $row['pieces_count'] : null,
                 image: is_string($row['image']) ? $row['image'] : null,
+                imageRatio: is_string($row['image_ratio']) ? (float) $row['image_ratio'] : null,
                 manufacturerName: is_string($row['manufacturer_name']) ? $row['manufacturer_name'] : null,
                 timesCount: (int) $timesCount,
             );

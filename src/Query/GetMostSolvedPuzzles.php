@@ -23,6 +23,7 @@ readonly final class GetMostSolvedPuzzles
 SELECT
     puzzle.id AS puzzle_id,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle_statistics.solved_times_count AS solved_times,
@@ -51,6 +52,7 @@ SQL;
              *     puzzle_name: string,
              *     puzzle_alternative_name: null|string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     solved_times: int,
              *     pieces_count: int,
              *     average_time_solo: string,
@@ -77,6 +79,7 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     count(puzzle_solving_time.puzzle_id) AS solved_times,
@@ -109,6 +112,7 @@ SQL;
              *     puzzle_name: string,
              *     puzzle_alternative_name: null|string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     solved_times: int,
              *     pieces_count: int,
              *     average_time_solo: null|string,

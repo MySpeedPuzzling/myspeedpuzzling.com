@@ -71,6 +71,9 @@ class PuzzleChangeRequest
         #[Immutable]
         #[Column(nullable: true)]
         public null|string $proposedImage = null,
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|float $proposedImageRatio = null,
         // Original values (snapshot at time of request for audit trail)
         #[Immutable]
         #[Column]

@@ -16,6 +16,7 @@ readonly final class BorrowedPuzzleOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public null|string $ownerId,
         public string $ownerName,
         public null|string $ownerAvatar,

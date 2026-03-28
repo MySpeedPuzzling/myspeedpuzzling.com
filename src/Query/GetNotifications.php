@@ -80,6 +80,7 @@ SELECT * FROM (
         puzzle.pieces_count,
         puzzle_solving_time.seconds_to_solve AS time,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
         puzzle_solving_time.team ->> 'team_id' AS team_id,
         CASE
             WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
@@ -164,6 +165,7 @@ SELECT * FROM (
         NULL::int AS pieces_count,
         NULL::int AS time,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields
@@ -238,6 +240,7 @@ SELECT * FROM (
         NULL::int AS pieces_count,
         NULL::int AS time,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -307,6 +310,7 @@ SELECT * FROM (
         NULL::int AS pieces_count,
         NULL::int AS time,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -376,6 +380,7 @@ SELECT * FROM (
         NULL::int AS pieces_count,
         NULL::int AS time,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)
@@ -453,6 +458,7 @@ SELECT * FROM (
         NULL::int AS pieces_count,
         NULL::int AS time,
         NULL::varchar AS puzzle_image,
+        NULL::numeric AS puzzle_image_ratio,
         NULL::varchar AS team_id,
         NULL::json AS players,
         -- Lending fields (NULL)

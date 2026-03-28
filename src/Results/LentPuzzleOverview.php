@@ -16,6 +16,7 @@ readonly final class LentPuzzleOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public null|string $currentHolderId,
         public string $currentHolderName,
         public null|string $currentHolderAvatar,

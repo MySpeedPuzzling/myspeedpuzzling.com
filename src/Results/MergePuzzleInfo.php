@@ -11,6 +11,7 @@ readonly final class MergePuzzleInfo
         public string $name,
         public null|int $piecesCount,
         public null|string $image,
+        public null|float $imageRatio,
         public null|string $manufacturerName,
         public int $timesCount,
     ) {

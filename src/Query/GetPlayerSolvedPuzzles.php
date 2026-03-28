@@ -68,6 +68,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -115,6 +116,7 @@ SQL;
          *     manufacturer_name: string,
          *     manufacturer_id: string,
          *     puzzle_image: null|string,
+         *     puzzle_image_ratio: null|string,
          *     time: int,
          *     pieces_count: int,
          *     comment: null|string,
@@ -171,6 +173,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -251,6 +254,7 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     time: int,
              *     pieces_count: int,
              *     comment: null|string,
@@ -330,6 +334,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     pieces_count,
@@ -382,6 +387,7 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     time: int,
              *     pieces_count: int,
              *     comment: null|string,
@@ -467,6 +473,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     pieces_count,
@@ -519,6 +526,7 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     time: int,
              *     pieces_count: int,
              *     comment: null|string,
@@ -595,6 +603,7 @@ SELECT
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
     puzzle_solving_time.finished_at
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -629,6 +638,7 @@ SQL;
          *     pieces_count: int,
          *     manufacturer_name: null|string,
          *     image: null|string,
+         *     image_ratio: null|string,
          *     finished_at: null|string,
          * } $data
          */
@@ -642,6 +652,7 @@ SQL;
             piecesCount: $data['pieces_count'],
             manufacturerName: $data['manufacturer_name'],
             image: $data['image'],
+            imageRatio: $data['image_ratio'] !== null ? (float) $data['image_ratio'] : null,
             finishedAt: $data['finished_at'] !== null ? new DateTimeImmutable($data['finished_at']) : null,
         );
     }
@@ -668,6 +679,7 @@ SELECT DISTINCT ON (puzzle.name, puzzle.id)
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS image_ratio,
     puzzle_solving_time.finished_at
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -695,6 +707,7 @@ SQL;
              *     pieces_count: int,
              *     manufacturer_name: null|string,
              *     image: null|string,
+             *     image_ratio: null|string,
              *     finished_at: null|string,
              * } $row
              */
@@ -708,6 +721,7 @@ SQL;
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
+                imageRatio: $row['image_ratio'] !== null ? (float) $row['image_ratio'] : null,
                 finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
             );
         }, $data);

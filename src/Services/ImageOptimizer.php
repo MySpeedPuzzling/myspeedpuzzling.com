@@ -17,6 +17,26 @@ final readonly class ImageOptimizer
     ) {
     }
 
+    public function getImageRatio(string $filePath): float
+    {
+        $imagick = new Imagick();
+        $imagick->readImage($filePath);
+
+        try {
+            $width = $imagick->getImageWidth();
+            $height = $imagick->getImageHeight();
+
+            if ($height === 0) {
+                return 1.0;
+            }
+
+            return $width / $height;
+        } finally {
+            $imagick->clear();
+            $imagick->destroy();
+        }
+    }
+
     public function optimize(string $filePath): void
     {
         // Use JPEG size hint for faster decoding of large JPEGs (skips unnecessary DCT detail)

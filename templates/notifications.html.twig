@@ -231,7 +231,9 @@
                                                 'puzzle_img_alt'|trans({'%puzzle%': notification.manufacturerName ~ ' ' ~ notification.puzzleName}),
                                                 loop.index,
                                                 60,
-                                                'rounded-2'
+                                                'rounded-2',
+                                                null,
+                                                notification.puzzleImageRatio
                                             ) }}
                                         </a>
                                     {% endif %}

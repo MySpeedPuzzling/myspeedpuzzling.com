@@ -24,6 +24,7 @@ readonly final class ConversationOverview
         public null|string $puzzleId = null,
         public null|string $sellSwapListItemId = null,
         public null|string $puzzleImage = null,
+        public null|float $puzzleImageRatio = null,
         public null|string $listingType = null,
         public null|float $listingPrice = null,
         public bool $lastMessageSentByMe = false,

@@ -18,6 +18,7 @@ readonly final class WishListItemOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public bool $removeOnCollectionAdd,
         public DateTimeImmutable $addedAt,
     ) {

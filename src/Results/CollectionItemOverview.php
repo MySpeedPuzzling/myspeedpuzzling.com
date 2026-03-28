@@ -18,6 +18,7 @@ readonly final class CollectionItemOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public null|string $comment,
         public DateTimeImmutable $addedAt,
     ) {

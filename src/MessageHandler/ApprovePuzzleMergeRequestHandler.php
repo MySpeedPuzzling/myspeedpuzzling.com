@@ -93,6 +93,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 $imagePuzzle = $this->puzzleRepository->get($message->selectedImagePuzzleId);
                 if ($imagePuzzle->image !== null) {
                     $survivorPuzzle->image = $imagePuzzle->image;
+                    $survivorPuzzle->imageRatio = $imagePuzzle->imageRatio;
                 }
             } catch (PuzzleNotFound) {
                 $this->logger->debug('Image puzzle {puzzleId} not found, keeping survivor image', [

@@ -48,7 +48,9 @@
                                         'puzzle_img_alt'|trans({'%puzzle%': most_solved_puzzle.manufacturerName ~ ' ' ~ most_solved_puzzle.puzzleName}),
                                         loop.index,
                                         80,
-                                        'rounded-2'
+                                        'rounded-2',
+                                        null,
+                                        most_solved_puzzle.puzzleImageRatio
                                     ) }}
                                 </a>
                             </td>

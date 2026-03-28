@@ -32,6 +32,7 @@ SELECT
     p.ean,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name
 FROM wish_list_item wli
 JOIN puzzle p ON wli.puzzle_id = p.id
@@ -56,6 +57,7 @@ SQL;
              *     ean: string|null,
              *     pieces_count: int,
              *     image: string|null,
+             *     image_ratio: string|null,
              *     manufacturer_name: string|null,
              * } $row
              */
@@ -70,6 +72,7 @@ SQL;
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
+                imageRatio: $row['image_ratio'] !== null ? (float) $row['image_ratio'] : null,
                 removeOnCollectionAdd: (bool) $row['remove_on_collection_add'],
                 addedAt: new DateTimeImmutable($row['added_at']),
             );

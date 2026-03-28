@@ -38,6 +38,14 @@ final class GetPuzzleOverviewTest extends KernelTestCase
         self::assertGreaterThan(0, $overview->averageTimeSolo);
     }
 
+    public function testByIdReturnsNullImageRatioForPuzzleWithoutRatio(): void
+    {
+        // Puzzles from fixtures don't have image_ratio set
+        $overview = $this->query->byId(PuzzleFixture::PUZZLE_500_01);
+
+        self::assertNull($overview->puzzleImageRatio);
+    }
+
     public function testByIdReturnsZeroStatisticsForUnsolvedPuzzle(): void
     {
         // PUZZLE_9000 has no solving times in fixtures

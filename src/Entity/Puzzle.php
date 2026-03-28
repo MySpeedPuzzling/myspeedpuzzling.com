@@ -33,6 +33,8 @@ class Puzzle
         public bool $approved,
         #[Column(nullable: true)]
         public null|string $image = null,
+        #[Column(nullable: true)]
+        public null|float $imageRatio = null,
         #[ManyToOne]
         public null|Manufacturer $manufacturer = null,
         #[Column(nullable: true)]

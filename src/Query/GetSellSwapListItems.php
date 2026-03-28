@@ -42,6 +42,7 @@ SELECT
     p.ean,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
@@ -74,6 +75,7 @@ SQL;
              *     ean: string|null,
              *     pieces_count: int,
              *     image: string|null,
+             *     image_ratio: string|null,
              *     manufacturer_name: string|null,
              * } $row
              */
@@ -88,6 +90,7 @@ SQL;
                 piecesCount: $row['pieces_count'],
                 manufacturerName: $row['manufacturer_name'],
                 image: $row['image'],
+                imageRatio: $row['image_ratio'] !== null ? (float) $row['image_ratio'] : null,
                 listingType: ListingType::from($row['listing_type']),
                 price: $row['price'] !== null ? (float) $row['price'] : null,
                 condition: PuzzleCondition::from($row['condition']),
@@ -122,6 +125,7 @@ SELECT
     p.ean,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image_ratio END AS image_ratio,
     m.name as manufacturer_name
 FROM sell_swap_list_item ssli
 JOIN puzzle p ON ssli.puzzle_id = p.id
@@ -156,6 +160,7 @@ SQL;
          *     ean: string|null,
          *     pieces_count: int,
          *     image: string|null,
+         *     image_ratio: string|null,
          *     manufacturer_name: string|null,
          * } $row
          */
@@ -170,6 +175,7 @@ SQL;
             piecesCount: $row['pieces_count'],
             manufacturerName: $row['manufacturer_name'],
             image: $row['image'],
+            imageRatio: $row['image_ratio'] !== null ? (float) $row['image_ratio'] : null,
             listingType: ListingType::from($row['listing_type']),
             price: $row['price'] !== null ? (float) $row['price'] : null,
             condition: PuzzleCondition::from($row['condition']),

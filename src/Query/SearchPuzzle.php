@@ -100,6 +100,7 @@ WITH puzzle_base AS (
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
         puzzle.alternative_name AS puzzle_alternative_name,
         puzzle.pieces_count,
         puzzle.is_available,
@@ -153,6 +154,7 @@ SELECT
     pb.puzzle_id,
     pb.puzzle_name,
     pb.puzzle_image,
+    pb.puzzle_image_ratio,
     pb.puzzle_alternative_name,
     pb.pieces_count,
     pb.is_available,
@@ -221,6 +223,7 @@ SQL;
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     puzzle_alternative_name: null|string,
              *     puzzle_approved: bool,
              *     manufacturer_name: string,
@@ -248,7 +251,7 @@ SQL;
      * Search for all puzzles by EAN code.
      * Strips leading zeros for flexible matching.
      *
-     * @return array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}>
+     * @return array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_image_ratio: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}>
      */
     public function allByEan(string $ean): array
     {
@@ -264,6 +267,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.ean AS puzzle_ean,
     puzzle.pieces_count,
     manufacturer.id AS manufacturer_id,
@@ -273,7 +277,7 @@ INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE puzzle.ean LIKE :eanPattern
 SQL;
 
-        /** @var array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}> $rows */
+        /** @var array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_image_ratio: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, [
                 'eanPattern' => '%' . $eanSearch . '%',
@@ -293,6 +297,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.approved AS puzzle_approved,
@@ -318,6 +323,7 @@ SQL;
              *     puzzle_id: string,
              *     puzzle_name: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     puzzle_alternative_name: null|string,
              *     manufacturer_name: string,
              *     pieces_count: int,

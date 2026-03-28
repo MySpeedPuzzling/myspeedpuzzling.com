@@ -20,6 +20,7 @@ readonly final class TrackedPuzzleDetail
         public string $manufacturerId,
         public int $piecesCount,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $comment,
         /** @var null|array<Puzzler> */
         public null|array $players,
@@ -39,6 +40,7 @@ readonly final class TrackedPuzzleDetail
      *     manufacturer_name: string,
      *     manufacturer_id: string,
      *     puzzle_image: null|string,
+     *     puzzle_image_ratio: null|string,
      *     pieces_count: int,
      *     comment: null|string,
      *     players: null|string,
@@ -64,6 +66,7 @@ readonly final class TrackedPuzzleDetail
             manufacturerId: $row['manufacturer_id'],
             piecesCount: $row['pieces_count'],
             puzzleImage: $row['puzzle_image'],
+            puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
             comment: $row['comment'],
             players: $players,
             finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,

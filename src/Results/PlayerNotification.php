@@ -28,6 +28,7 @@ readonly final class PlayerNotification
         public null|int $piecesCount,
         public null|int $time,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $teamId,
         /** @var null|array<Puzzler> */
         public null|array $players,
@@ -139,6 +140,7 @@ readonly final class PlayerNotification
             piecesCount: isset($row['pieces_count']) && is_numeric($row['pieces_count']) ? (int) $row['pieces_count'] : null,
             time: isset($row['time']) && is_numeric($row['time']) ? (int) $row['time'] : null,
             puzzleImage: is_string($puzzleImage) ? $puzzleImage : null,
+            puzzleImageRatio: is_string($row['puzzle_image_ratio'] ?? null) ? (float) $row['puzzle_image_ratio'] : null,
             teamId: is_string($teamId) ? $teamId : null,
             players: $players,
             // Lending fields

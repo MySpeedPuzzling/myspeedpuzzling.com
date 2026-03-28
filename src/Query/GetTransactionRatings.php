@@ -40,6 +40,7 @@ SELECT
     p.pieces_count AS puzzle_pieces_count,
     ssi.listing_type AS transaction_type,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     p.id AS puzzle_id
 FROM transaction_rating tr
 JOIN player reviewer ON tr.reviewer_id = reviewer.id
@@ -74,6 +75,7 @@ SQL;
              *     puzzle_pieces_count: null|int|string,
              *     transaction_type: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     puzzle_id: string,
              * } $row
              */
@@ -92,6 +94,7 @@ SQL;
                 puzzlePiecesCount: $row['puzzle_pieces_count'] !== null ? (int) $row['puzzle_pieces_count'] : null,
                 transactionType: $row['transaction_type'],
                 puzzleImage: $row['puzzle_image'],
+                puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                 puzzleId: $row['puzzle_id'],
             );
         }, $data);
@@ -159,6 +162,7 @@ SELECT
     ssi.id AS sold_swapped_item_id,
     p.name AS puzzle_name,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     p.pieces_count,
     CASE
         WHEN ssi.seller_id = :playerId THEN COALESCE(buyer.name, buyer.code)
@@ -201,6 +205,7 @@ SQL;
              *     sold_swapped_item_id: string,
              *     puzzle_name: string,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     pieces_count: null|int|string,
              *     other_player_name: string,
              *     other_player_code: string,
@@ -214,6 +219,7 @@ SQL;
                 soldSwappedItemId: $row['sold_swapped_item_id'],
                 puzzleName: $row['puzzle_name'],
                 puzzleImage: $row['puzzle_image'],
+                puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
                 piecesCount: $row['pieces_count'] !== null ? (int) $row['pieces_count'] : null,
                 otherPlayerName: $row['other_player_name'],
                 otherPlayerCode: $row['other_player_code'],

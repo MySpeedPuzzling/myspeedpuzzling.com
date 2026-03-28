@@ -21,6 +21,7 @@ readonly final class SolvedPuzzleDetail
         public int $piecesCount,
         public null|int $time,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $comment,
         /** @var null|array<Puzzler> */
         public null|array $players,
@@ -43,6 +44,7 @@ readonly final class SolvedPuzzleDetail
      *     manufacturer_name: string,
      *     manufacturer_id: string,
      *     puzzle_image: null|string,
+     *     puzzle_image_ratio: null|string,
      *     time: null|int,
      *     pieces_count: int,
      *     comment: null|string,
@@ -73,6 +75,7 @@ readonly final class SolvedPuzzleDetail
             piecesCount: $row['pieces_count'],
             time: $row['time'],
             puzzleImage: $row['puzzle_image'],
+            puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
             comment: $row['comment'],
             players: $players,
             finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,

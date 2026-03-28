@@ -92,7 +92,7 @@ readonly final class MspEloCalculator
             $periodCondition = "AND DATE_TRUNC('month', COALESCE(pst.finished_at, pst.tracked_at)) = :period::date";
         }
 
-        // Get all solo solves for this player, ordered by date
+        // Get first-attempt solo solves for this player, ordered by date
         $sql = "
             SELECT
                 pst.puzzle_id,
@@ -105,6 +105,7 @@ readonly final class MspEloCalculator
                 AND pst.puzzling_type = 'solo'
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
+                AND pst.first_attempt = true
                 {$periodCondition}
             ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC
         ";
@@ -149,6 +150,7 @@ readonly final class MspEloCalculator
 
     /**
      * Get player's percentile rank on a specific puzzle (0.0 to 1.0).
+     * Only compares against first-attempt solves.
      */
     private function getPercentileOnPuzzle(string $puzzleId, int $solveTime, int $piecesCount): null|float
     {
@@ -161,10 +163,10 @@ readonly final class MspEloCalculator
                 AND pst.puzzling_type = 'solo'
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
+                AND pst.first_attempt = true
         ", [
             'puzzleId' => $puzzleId,
             'solveTime' => $solveTime,
-            'piecesCount' => $piecesCount,
         ]);
 
         /** @var array{slower: int|string, total: int|string}|false $result */

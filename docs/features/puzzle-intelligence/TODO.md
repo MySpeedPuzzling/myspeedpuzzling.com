@@ -126,11 +126,13 @@
 
 ### 18. ELO calculation bug — ranking vs skill mismatch
 - **Problem:** Rank #1 in ELO is a player who is only Top 68% in skill, while a Top 98% skill player ranks behind them
-- This suggests a bug or gap in the ELO algorithm — possibly:
-  - ELO not properly accounting for puzzle difficulty (rewarding volume over quality)
-  - K-factor or percentile calculation issues
-  - Pool average ELO skewing expected percentile
-- **Action:** Investigate and fix the ELO calculation before expanding the feature
+- **Root causes found and partially fixed:**
+  - **FIXED:** ELO was processing ALL solves (including repeat solves of the same puzzle) — repeat solves gave unfair ELO boosts since the player already knows the puzzle. Now restricted to first attempts only.
+  - **FIXED:** `getPercentileOnPuzzle` was comparing against all solves including repeats. Now first-attempt only.
+  - **FIXED:** Unused `piecesCount` parameter was passed but not used in percentile query.
+  - **Remaining issue:** ELO compares raw solve times (percentile among solvers of that puzzle) which doesn't account for puzzle difficulty. A player who consistently solves easy puzzles faster than average gets high ELO. The skill system corrects for this via `outperformance = puzzle_difficulty / player_difficulty_index`, but ELO doesn't.
+  - **Remaining issue:** `getAveragePoolElo` reads from `player_elo` table during recalculation, which contains values from the previous run — not from the current calculation pass.
+  - **Remaining consideration:** Whether ELO should incorporate difficulty adjustment, or whether ELO (raw speed ranking) and skill percentile (difficulty-adjusted) should remain separate systems measuring different things.
 
 ### 19. Scope MSP-ELO to 500pc only
 - **Decision:** MSP-ELO will be a single unified ranking based on 500-piece solo performance only

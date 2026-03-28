@@ -30,6 +30,7 @@ readonly final class PlayerNotification
         public null|bool $firstAttempt,
         public null|bool $unboxed,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $teamId,
         /** @var null|array<Puzzler> */
         public null|array $players,
@@ -143,6 +144,7 @@ readonly final class PlayerNotification
             firstAttempt: isset($row['first_attempt']) ? (bool) $row['first_attempt'] : null,
             unboxed: isset($row['unboxed']) ? (bool) $row['unboxed'] : null,
             puzzleImage: is_string($puzzleImage) ? $puzzleImage : null,
+            puzzleImageRatio: is_string($row['puzzle_image_ratio'] ?? null) ? (float) $row['puzzle_image_ratio'] : null,
             teamId: is_string($teamId) ? $teamId : null,
             players: $players,
             // Lending fields

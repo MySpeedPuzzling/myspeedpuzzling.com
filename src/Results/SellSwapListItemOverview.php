@@ -20,6 +20,7 @@ readonly final class SellSwapListItemOverview
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public ListingType $listingType,
         public null|float $price,
         public PuzzleCondition $condition,

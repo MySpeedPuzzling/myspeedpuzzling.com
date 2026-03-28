@@ -106,6 +106,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
             $this->filesystem->delete($changeRequest->proposedImage);
 
             $puzzle->image = $newImagePath;
+            $puzzle->imageRatio = $changeRequest->proposedImageRatio;
         }
 
         // Mark request as approved

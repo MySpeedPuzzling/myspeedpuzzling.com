@@ -17,6 +17,7 @@ readonly final class UnsolvedPuzzleItem
         public int $piecesCount,
         public null|string $manufacturerName,
         public null|string $image,
+        public null|float $imageRatio,
         public DateTimeImmutable $addedAt,
         public bool $isBorrowed,
         public null|string $borrowedFromPlayerId,

@@ -17,6 +17,7 @@ readonly final class Comparison
         public string $manufacturerName,
         public int $piecesCount,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
     ) {
         $this->diff = $this->playerTime - $this->opponentTime;
     }

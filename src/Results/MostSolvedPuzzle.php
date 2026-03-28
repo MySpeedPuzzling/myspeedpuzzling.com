@@ -15,6 +15,7 @@ readonly final class MostSolvedPuzzle
         public int $averageTimeSolo,
         public int $fastestTimeSolo,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public string $manufacturerName,
     ) {
     }
@@ -25,6 +26,7 @@ readonly final class MostSolvedPuzzle
      *     puzzle_name: string,
      *     puzzle_alternative_name: null|string,
      *     puzzle_image: null|string,
+     *     puzzle_image_ratio: null|string,
      *     solved_times: int,
      *     pieces_count: int,
      *     average_time_solo: null|string,
@@ -43,6 +45,7 @@ readonly final class MostSolvedPuzzle
             averageTimeSolo: (int) ($row['average_time_solo'] ?? 0),
             fastestTimeSolo: $row['fastest_time_solo'] ?? 0,
             puzzleImage: $row['puzzle_image'],
+            puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
             manufacturerName: $row['manufacturer_name'],
         );
     }

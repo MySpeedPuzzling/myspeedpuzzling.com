@@ -95,6 +95,7 @@ final class PuzzlesSorterTest extends TestCase
             piecesCount: 500,
             time: $time,
             puzzleImage: null,
+            puzzleImageRatio: null,
             comment: null,
             trackedAt: new DateTimeImmutable('2026-01-01 12:00:00'),
             finishedPuzzlePhoto: null,

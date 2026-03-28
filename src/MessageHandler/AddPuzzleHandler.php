@@ -54,12 +54,14 @@ readonly final class AddPuzzleHandler
         }
 
         $puzzlePhotoPath = null;
+        $puzzleImageRatio = null;
         if ($message->puzzlePhoto !== null) {
             $extension = $message->puzzlePhoto->guessExtension();
             $timestamp = $this->clock->now()->getTimestamp();
             $puzzlePhotoPath = "$message->puzzleId-$timestamp.$extension";
 
             $this->imageOptimizer->optimize($message->puzzlePhoto->getPathname());
+            $puzzleImageRatio = $this->imageOptimizer->getImageRatio($message->puzzlePhoto->getPathname());
 
             // Stream is better because it is memory safe
             $stream = fopen($message->puzzlePhoto->getPathname(), 'rb');
@@ -76,6 +78,7 @@ readonly final class AddPuzzleHandler
             $message->puzzleName,
             approved: false,
             image: $puzzlePhotoPath,
+            imageRatio: $puzzleImageRatio,
             manufacturer: $manufacturer,
             addedByUser: $player,
             addedAt: $now,

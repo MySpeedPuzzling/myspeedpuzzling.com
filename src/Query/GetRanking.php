@@ -87,6 +87,7 @@ SELECT
     p.alternative_name AS puzzle_alternative_name,
     p.pieces_count,
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     m.name AS manufacturer_name
 FROM
     RankedTimes rt
@@ -119,6 +120,7 @@ SQL;
              *     puzzle_alternative_name: null|string,
              *     pieces_count: int,
              *     puzzle_image: null|string,
+             *     puzzle_image_ratio: null|string,
              *     manufacturer_name: string,
              * } $row
              */
@@ -187,6 +189,7 @@ SELECT
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image_ratio END AS puzzle_image_ratio,
     manufacturer.name AS manufacturer_name
 FROM
     RankedTimes
@@ -208,6 +211,7 @@ SQL;
          *     puzzle_alternative_name: null|string,
          *     pieces_count: int,
          *     puzzle_image: null|string,
+         *     puzzle_image_ratio: null|string,
          *     manufacturer_name: string,
          * } $row
          */

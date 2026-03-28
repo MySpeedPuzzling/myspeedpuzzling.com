@@ -14,6 +14,7 @@ readonly final class AutocompletePuzzle
         public string $manufacturerName,
         public int $piecesCount,
         public null|string $puzzleImage,
+        public null|float $puzzleImageRatio,
         public null|string $puzzleEan,
         public null|string $puzzleIdentificationNumber,
     ) {
@@ -24,6 +25,7 @@ readonly final class AutocompletePuzzle
      *     puzzle_id: string,
      *     puzzle_name: string,
      *     puzzle_image: null|string,
+     *     puzzle_image_ratio: null|string,
      *     puzzle_alternative_name: null|string,
      *     puzzle_approved: bool,
      *     manufacturer_name: string,
@@ -42,6 +44,7 @@ readonly final class AutocompletePuzzle
             manufacturerName: $row['manufacturer_name'],
             piecesCount: $row['pieces_count'],
             puzzleImage: $row['puzzle_image'],
+            puzzleImageRatio: $row['puzzle_image_ratio'] !== null ? (float) $row['puzzle_image_ratio'] : null,
             puzzleEan: $row['puzzle_ean'],
             puzzleIdentificationNumber: $row['puzzle_identification_number'],
         );

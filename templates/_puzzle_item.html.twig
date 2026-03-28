@@ -67,7 +67,9 @@
                                 {% set diff = difficulty_data[puzzle.puzzleId] %}
                                 {% set tier_name = diff.difficultyTier.name|lower %}
                                 {% set is_low_confidence = diff.confidence.value == 'low' %}
+                                {% set diff_icon_ids = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
                                 <span class="badge badge-tier-{{ tier_name }} rounded-pill mt-1 {{ is_low_confidence ? 'badge-tier-low-confidence' : '' }}">
+                                    <svg class="diff-icon" width="14" height="14" style="color: #fff"><use href="/difficulty-icons-sprite.svg#{{ diff_icon_ids[tier_name] ?? 'diff-unknown' }}"/></svg>
                                     {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
                                 </span>
                             {% else %}

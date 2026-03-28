@@ -10,16 +10,21 @@
                                 <div class="h4 mb-0 fw-bold">{{ data.elo_rating }}</div>
                                 <div class="fs-sm">
                                     {% if data.elo_rating >= 1400 %}
-                                        <span class="badge badge-skill-legend">{{ 'puzzle_intelligence.elo_levels.elite'|trans }}</span>
+                                        {% set elo_rank = 'legend' %}
                                     {% elseif data.elo_rating >= 1200 %}
-                                        <span class="badge badge-skill-expert">{{ 'puzzle_intelligence.elo_levels.strong'|trans }}</span>
+                                        {% set elo_rank = 'expert' %}
                                     {% elseif data.elo_rating >= 1000 %}
-                                        <span class="badge badge-skill-proficient">{{ 'puzzle_intelligence.elo_levels.above_average'|trans }}</span>
+                                        {% set elo_rank = 'proficient' %}
                                     {% elseif data.elo_rating >= 800 %}
-                                        <span class="badge badge-skill-enthusiast">{{ 'puzzle_intelligence.elo_levels.average'|trans }}</span>
+                                        {% set elo_rank = 'enthusiast' %}
                                     {% else %}
-                                        <span class="badge badge-skill-casual">{{ 'puzzle_intelligence.elo_levels.developing'|trans }}</span>
+                                        {% set elo_rank = 'casual' %}
                                     {% endif %}
+                                    {% set elo_labels = {'legend':'elo_levels.elite','expert':'elo_levels.strong','proficient':'elo_levels.above_average','enthusiast':'elo_levels.average','casual':'elo_levels.developing'} %}
+                                    <span class="badge badge-skill-{{ elo_rank }}">
+                                        <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ elo_rank }}"/></svg>
+                                        {{ ('puzzle_intelligence.' ~ elo_labels[elo_rank])|trans }}
+                                    </span>
                                 </div>
                                 <small class="text-muted">
                                     {{ 'puzzle_intelligence.elo.rank_of_total'|trans({'%rank%': data.rank, '%total%': data.total}) }}

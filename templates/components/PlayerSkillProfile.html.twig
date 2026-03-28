@@ -13,6 +13,7 @@
                         data-live-action-param="changePiecesCount"
                         data-live-pieces-count-param="{{ skill.piecesCount }}"
                     >
+                        <svg class="rank-icon" width="16" height="16" style="color: {{ selectedPiecesCount == skill.piecesCount ? '#fff' : 'var(--rank-' ~ t_name ~ ')' }}"><use href="/rank-icons-sprite.svg#rank-{{ t_name }}"/></svg>
                         <strong>{{ skill.piecesCount }}pc</strong>
                         {{ ('puzzle_intelligence.skill.tiers.' ~ t_name)|trans }}
                         <small class="opacity-75">{{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': (100 - skill.skillPercentile)|number_format(0)}) }}</small>
@@ -64,7 +65,10 @@
                                         <small class="text-muted">
                                             <i class="bi bi-arrow-up-circle me-1"></i>
                                             {{ 'puzzle_intelligence.skill.next_tier'|trans }}
-                                            <span class="badge badge-skill-{{ next_name }}">{{ ('puzzle_intelligence.skill.tiers.' ~ next_name)|trans }}</span>
+                                            <span class="badge badge-skill-{{ next_name }}">
+                                                <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ next_name }}"/></svg>
+                                                {{ ('puzzle_intelligence.skill.tiers.' ~ next_name)|trans }}
+                                            </span>
                                             <span class="text-muted">({{ 'puzzle_intelligence.skill.next_tier_threshold'|trans({'%threshold%': next_min_pct|number_format(0)}) }})</span>
                                         </small>
                                     </div>

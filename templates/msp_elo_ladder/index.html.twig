@@ -86,19 +86,18 @@
                                         <div class="progress-bar {% if entry.rank <= 3 %}bg-warning{% elseif entry.eloRating >= 1200 %}bg-success{% elseif entry.eloRating >= 800 %}bg-info{% else %}bg-secondary{% endif %}"
                                              style="width: {{ bar_pct }}%;"></div>
                                     </div>
-                                    <small class="text-muted" style="min-width: 70px;">
-                                        {% if entry.eloRating >= 1400 %}
-                                            {{ 'puzzle_intelligence.elo_levels.elite'|trans }}
-                                        {% elseif entry.eloRating >= 1200 %}
-                                            {{ 'puzzle_intelligence.elo_levels.strong'|trans }}
-                                        {% elseif entry.eloRating >= 1000 %}
-                                            {{ 'puzzle_intelligence.elo_levels.above_average'|trans }}
-                                        {% elseif entry.eloRating >= 800 %}
-                                            {{ 'puzzle_intelligence.elo_levels.average'|trans }}
-                                        {% else %}
-                                            {{ 'puzzle_intelligence.elo_levels.developing'|trans }}
-                                        {% endif %}
-                                    </small>
+                                    {% if entry.eloRating >= 1400 %}
+                                        {% set ladder_rank = 'legend' %}
+                                    {% elseif entry.eloRating >= 1200 %}
+                                        {% set ladder_rank = 'expert' %}
+                                    {% elseif entry.eloRating >= 1000 %}
+                                        {% set ladder_rank = 'proficient' %}
+                                    {% elseif entry.eloRating >= 800 %}
+                                        {% set ladder_rank = 'enthusiast' %}
+                                    {% else %}
+                                        {% set ladder_rank = 'casual' %}
+                                    {% endif %}
+                                    <svg class="rank-icon" width="20" height="20" style="color: var(--rank-{{ ladder_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ ladder_rank }}"/></svg>
                                 </div>
                             </td>
                         </tr>

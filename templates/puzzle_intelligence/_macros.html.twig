@@ -28,16 +28,55 @@
     {% endif %}
 {% endmacro %}
 
-{# Difficulty tier badge with custom color #}
+{# Difficulty icon — SVG sprite reference #}
+{% macro difficulty_icon(tier_name, size) %}
+    {% set icon_ids = {
+        'veryeasy': 'diff-very-easy',
+        'easy': 'diff-easy',
+        'average': 'diff-average',
+        'challenging': 'diff-challenging',
+        'hard': 'diff-hard',
+        'veryhard': 'diff-very-hard',
+    } %}
+    {% set icon_id = icon_ids[tier_name] ?? 'diff-unknown' %}
+    <svg class="diff-icon" width="{{ size ?? 20 }}" height="{{ size ?? 20 }}" style="color: var(--{{ icon_id }})">
+        <use href="/difficulty-icons-sprite.svg#{{ icon_id }}"/>
+    </svg>
+{% endmacro %}
+
+{# Skill icon — SVG sprite reference #}
+{% macro skill_icon(tier_name, size) %}
+    {% set icon_id = 'rank-' ~ tier_name %}
+    <svg class="rank-icon" width="{{ size ?? 20 }}" height="{{ size ?? 20 }}" style="color: var(--{{ icon_id }})">
+        <use href="/rank-icons-sprite.svg#{{ icon_id }}"/>
+    </svg>
+{% endmacro %}
+
+{# Difficulty tier badge with icon and custom color #}
 {% macro difficulty_badge(tier_name, extra_class) %}
+    {% set icon_ids = {
+        'veryeasy': 'diff-very-easy',
+        'easy': 'diff-easy',
+        'average': 'diff-average',
+        'challenging': 'diff-challenging',
+        'hard': 'diff-hard',
+        'veryhard': 'diff-very-hard',
+    } %}
+    {% set icon_id = icon_ids[tier_name] ?? 'diff-unknown' %}
     <span class="badge badge-tier-{{ tier_name }} {{ extra_class ?? '' }}">
+        <svg class="diff-icon" width="16" height="16" style="color: #fff">
+            <use href="/difficulty-icons-sprite.svg#{{ icon_id }}"/>
+        </svg>
         {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
     </span>
 {% endmacro %}
 
-{# Skill tier badge with custom color #}
+{# Skill tier badge with icon and custom color #}
 {% macro skill_badge(tier_name, extra_class) %}
     <span class="badge badge-skill-{{ tier_name }} {{ extra_class ?? '' }}">
+        <svg class="rank-icon" width="16" height="16" style="color: #fff">
+            <use href="/rank-icons-sprite.svg#rank-{{ tier_name }}"/>
+        </svg>
         {{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}
     </span>
 {% endmacro %}
@@ -155,7 +194,10 @@
                     <small class="text-muted">
                         <i class="bi bi-arrow-up-circle me-1"></i>
                         {{ 'puzzle_intelligence.skill.next_tier'|trans }}
-                        <span class="badge badge-skill-{{ next.name }}">{{ ('puzzle_intelligence.skill.tiers.' ~ next.name)|trans }}</span>
+                        <span class="badge badge-skill-{{ next.name }}">
+                            <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ next.name }}"/></svg>
+                            {{ ('puzzle_intelligence.skill.tiers.' ~ next.name)|trans }}
+                        </span>
                         <span class="text-muted">({{ 'puzzle_intelligence.skill.next_tier_threshold'|trans({'%threshold%': next.min}) }})</span>
                     </small>
                     <small class="fw-medium text-skill-{{ next.name }}">
@@ -173,7 +215,7 @@
     {% elseif current is not null and current.next_min is null %}
         <div class="mt-2">
             <small class="text-skill-legend">
-                <i class="bi bi-star-fill me-1"></i>
+                <svg class="rank-icon me-1" width="16" height="16" style="color: var(--rank-legend)"><use href="/rank-icons-sprite.svg#rank-legend"/></svg>
                 {{ 'puzzle_intelligence.skill.highest_tier_reached'|trans }}
             </small>
         </div>

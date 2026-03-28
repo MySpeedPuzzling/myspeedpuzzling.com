@@ -94,7 +94,7 @@
                 </div>
             </div>
 
-            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+            {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
                 <div class="mb-2">
                     <small class="text-muted me-1">{{ 'puzzle_intelligence.difficulty.title'|trans }}:</small>
                     {% set tier_options = [

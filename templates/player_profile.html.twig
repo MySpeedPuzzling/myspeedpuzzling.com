@@ -62,29 +62,31 @@
 
         </div>
     {% else %}
-        <div class="card shadow-sm mb-3">
-            <div class="card-body">
-                <h5 class="card-title mb-2">
-                    <i class="bi bi-trophy me-1"></i>
-                    {{ 'puzzle_intelligence.skill.title'|trans }}
-                </h5>
-                <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+        {% if is_granted('ADMIN_ACCESS') %}
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title mb-2">
+                        <i class="bi bi-trophy me-1"></i>
+                        {{ 'puzzle_intelligence.skill.title'|trans }}
+                    </h5>
+                    <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+                </div>
             </div>
-        </div>
 
-        <div class="card shadow-sm mb-3">
-            <div class="card-body">
-                <h5 class="card-title mb-2">
-                    <i class="bi bi-lightning me-1"></i>
-                    {{ 'puzzle_intelligence.elo.profile_title'|trans }}
-                    <span class="badge bg-info fs-sm">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
-                </h5>
-                <twig:PlayerEloProfile
-                    playerId="{{ player.playerId }}"
-                    :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
-                />
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <h5 class="card-title mb-2">
+                        <i class="bi bi-lightning me-1"></i>
+                        {{ 'puzzle_intelligence.elo.profile_title'|trans }}
+                        <span class="badge bg-info fs-sm">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
+                    </h5>
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
+                    />
+                </div>
             </div>
-        </div>
+        {% endif %}
 
         <div class="my-4">
             <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />

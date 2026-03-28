@@ -62,7 +62,7 @@
                             }) }}
                         </span>
 
-                        {% if difficulty_data is defined and difficulty_data[puzzle.puzzleId] is defined and difficulty_data[puzzle.puzzleId].difficultyTier is not null %}
+                        {% if is_granted('ADMIN_ACCESS') and difficulty_data is defined and difficulty_data[puzzle.puzzleId] is defined and difficulty_data[puzzle.puzzleId].difficultyTier is not null %}
                             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
                                 {% set diff = difficulty_data[puzzle.puzzleId] %}
                                 {% set tier_name = diff.difficultyTier.name|lower %}

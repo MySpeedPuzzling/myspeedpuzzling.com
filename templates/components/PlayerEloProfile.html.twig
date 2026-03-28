@@ -10,7 +10,7 @@
                                 <div class="h4 mb-0 fw-bold">{{ data.elo_rating }}</div>
                                 <div class="fs-sm">
                                     {% if data.elo_rating >= 1400 %}
-                                        <span class="badge badge-skill-grandmaster">{{ 'puzzle_intelligence.elo_levels.elite'|trans }}</span>
+                                        <span class="badge badge-skill-legend">{{ 'puzzle_intelligence.elo_levels.elite'|trans }}</span>
                                     {% elseif data.elo_rating >= 1200 %}
                                         <span class="badge badge-skill-expert">{{ 'puzzle_intelligence.elo_levels.strong'|trans }}</span>
                                     {% elseif data.elo_rating >= 1000 %}

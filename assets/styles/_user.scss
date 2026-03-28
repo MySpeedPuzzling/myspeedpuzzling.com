@@ -200,47 +200,47 @@ $soft-teal: #5bc0de;
 // Puzzle Intelligence — Custom tier & confidence colors
 // ============================================================================
 
-// Difficulty Tiers
-$tier-very-easy: #5ec4d4;  // calm teal
-$tier-easy: #42d697;       // fresh green (same as $success)
-$tier-moderate: #7bc67e;   // muted green
-$tier-average: #8e99a9;    // neutral gray-blue
-$tier-challenging: #e8a838; // amber
-$tier-hard: #e06050;       // warm red
-$tier-extreme: #c03050;    // deep red
+// Difficulty Tiers — green→gray→red diverging gradient (WCAG AA contrast with white text)
+$tier-very-easy: #0b7a5b;    // deep green
+$tier-easy: #267a4a;          // forest green
+$tier-average: #5e6d7a;       // slate gray
+$tier-challenging: #8a6b06;   // dark gold
+$tier-hard: #c0392b;          // crimson
+$tier-very-hard: #96282e;     // dark crimson
+$tier-extreme: #6e1520;       // maroon
 
 .badge-tier-veryeasy { background-color: $tier-very-easy !important; color: #fff !important; }
 .badge-tier-easy { background-color: $tier-easy !important; color: #fff !important; }
-.badge-tier-moderate { background-color: $tier-moderate !important; color: #fff !important; }
 .badge-tier-average { background-color: $tier-average !important; color: #fff !important; }
 .badge-tier-challenging { background-color: $tier-challenging !important; color: #fff !important; }
 .badge-tier-hard { background-color: $tier-hard !important; color: #fff !important; }
+.badge-tier-veryhard { background-color: $tier-very-hard !important; color: #fff !important; }
 .badge-tier-extreme { background-color: $tier-extreme !important; color: #fff !important; }
 
 .text-tier-veryeasy { color: $tier-very-easy !important; }
 .text-tier-easy { color: $tier-easy !important; }
-.text-tier-moderate { color: $tier-moderate !important; }
 .text-tier-average { color: $tier-average !important; }
 .text-tier-challenging { color: $tier-challenging !important; }
 .text-tier-hard { color: $tier-hard !important; }
+.text-tier-veryhard { color: $tier-very-hard !important; }
 .text-tier-extreme { color: $tier-extreme !important; }
 
 .dot-tier-veryeasy { color: $tier-very-easy; }
 .dot-tier-easy { color: $tier-easy; }
-.dot-tier-moderate { color: $tier-moderate; }
 .dot-tier-average { color: $tier-average; }
 .dot-tier-challenging { color: $tier-challenging; }
 .dot-tier-hard { color: $tier-hard; }
+.dot-tier-veryhard { color: $tier-very-hard; }
 .dot-tier-extreme { color: $tier-extreme; }
 
-// Skill Tiers
-$skill-casual: #8e99a9;      // neutral gray-blue
-$skill-enthusiast: #42d697;   // fresh green
-$skill-proficient: #5ec4d4;   // teal
-$skill-advanced: #4e54c8;     // purple (accent)
-$skill-expert: #e8a838;       // amber
-$skill-master: #e06050;       // warm red
-$skill-grandmaster: #1a1a2e;  // near-black navy
+// Skill Tiers — distinct prestige colors (WCAG AA contrast with white text)
+$skill-casual: #6b7683;       // slate gray
+$skill-enthusiast: #237a42;   // emerald green
+$skill-proficient: #1a6f8a;   // dark teal-blue
+$skill-advanced: #5a35a8;     // violet
+$skill-expert: #8a6b06;       // dark gold
+$skill-master: #c0392b;       // crimson
+$skill-legend: #1a1a2e;       // near-black navy
 
 .badge-skill-casual { background-color: $skill-casual !important; color: #fff !important; }
 .badge-skill-enthusiast { background-color: $skill-enthusiast !important; color: #fff !important; }
@@ -248,7 +248,7 @@ $skill-grandmaster: #1a1a2e;  // near-black navy
 .badge-skill-advanced { background-color: $skill-advanced !important; color: #fff !important; }
 .badge-skill-expert { background-color: $skill-expert !important; color: #fff !important; }
 .badge-skill-master { background-color: $skill-master !important; color: #fff !important; }
-.badge-skill-grandmaster { background-color: $skill-grandmaster !important; color: #fff !important; }
+.badge-skill-legend { background-color: $skill-legend !important; color: #fff !important; }
 
 .text-skill-casual { color: $skill-casual !important; }
 .text-skill-enthusiast { color: $skill-enthusiast !important; }
@@ -256,7 +256,7 @@ $skill-grandmaster: #1a1a2e;  // near-black navy
 .text-skill-advanced { color: $skill-advanced !important; }
 .text-skill-expert { color: $skill-expert !important; }
 .text-skill-master { color: $skill-master !important; }
-.text-skill-grandmaster { color: $skill-grandmaster !important; }
+.text-skill-legend { color: $skill-legend !important; }
 
 // Progress bars for skill tiers
 .progress-bar-skill-casual { background-color: $skill-casual !important; }
@@ -265,7 +265,7 @@ $skill-grandmaster: #1a1a2e;  // near-black navy
 .progress-bar-skill-advanced { background-color: $skill-advanced !important; }
 .progress-bar-skill-expert { background-color: $skill-expert !important; }
 .progress-bar-skill-master { background-color: $skill-master !important; }
-.progress-bar-skill-grandmaster { background-color: $skill-grandmaster !important; }
+.progress-bar-skill-legend { background-color: $skill-legend !important; }
 
 // Confidence indicators
 $confidence-low: #e8a838;    // amber/warning

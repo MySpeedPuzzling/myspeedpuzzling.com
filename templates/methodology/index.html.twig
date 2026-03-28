@@ -128,13 +128,13 @@
             <h6 class="mt-3 mb-2">{{ 'puzzle_intelligence.methodology.section_difficulty_tiers_title'|trans }}</h6>
             <div class="row g-2">
                 {% set tiers = [
-                    {score: '< 0.70', key: 'veryeasy', meaning: '30%+ easier than average'},
-                    {score: '0.70 – 0.85', key: 'easy', meaning: '15-30% easier'},
-                    {score: '0.85 – 0.95', key: 'moderate', meaning: 'Slightly easier'},
-                    {score: '0.95 – 1.05', key: 'average', meaning: 'About average'},
-                    {score: '1.05 – 1.20', key: 'challenging', meaning: '5-20% harder'},
-                    {score: '1.20 – 1.45', key: 'hard', meaning: '20-45% harder'},
-                    {score: '> 1.45', key: 'extreme', meaning: '45%+ harder'},
+                    {score: '< 0.75', key: 'veryeasy', meaning: '25%+ easier than typical'},
+                    {score: '0.75 – 0.90', key: 'easy', meaning: '10-25% easier'},
+                    {score: '0.90 – 1.10', key: 'average', meaning: 'About typical'},
+                    {score: '1.10 – 1.25', key: 'challenging', meaning: '10-25% harder'},
+                    {score: '1.25 – 1.45', key: 'hard', meaning: '25-45% harder'},
+                    {score: '1.45 – 1.70', key: 'veryhard', meaning: '45-70% harder'},
+                    {score: '> 1.70', key: 'extreme', meaning: '70%+ harder'},
                 ] %}
                 {% for tier in tiers %}
                     <div class="col-6 col-md-3 col-lg">
@@ -169,7 +169,7 @@
             <h6 class="mt-3 mb-2">{{ 'puzzle_intelligence.methodology.section_skill_tiers_title'|trans }}</h6>
             <div class="row g-2 mb-2">
                 {% set skill_tiers = [
-                    {pct: 'Top 1%', key: 'grandmaster'},
+                    {pct: 'Top 1%', key: 'legend'},
                     {pct: 'Top 5%', key: 'master'},
                     {pct: 'Top 15%', key: 'expert'},
                     {pct: 'Top 30%', key: 'advanced'},

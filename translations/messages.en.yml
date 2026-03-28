@@ -1875,10 +1875,10 @@ puzzle_intelligence:
         tiers:
             veryeasy: "Very Easy"
             easy: "Easy"
-            moderate: "Below Average"
             average: "Average"
             challenging: "Challenging"
             hard: "Hard"
+            veryhard: "Very Hard"
             extreme: "Extreme"
         confidence_levels:
             low: "Low confidence"
@@ -1923,7 +1923,7 @@ puzzle_intelligence:
             advanced: "Advanced"
             expert: "Expert"
             master: "Master"
-            grandmaster: "Grandmaster"
+            legend: "Legend"
     elo:
         title: "MSP-ELO Ladder"
         subtitle: "Competitive ranking based on head-to-head performance"

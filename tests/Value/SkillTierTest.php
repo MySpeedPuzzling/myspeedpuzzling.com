@@ -11,7 +11,7 @@ final class SkillTierTest extends TestCase
 {
     public function testFromPercentile(): void
     {
-        self::assertSame(SkillTier::Grandmaster, SkillTier::fromPercentile(99.5));
+        self::assertSame(SkillTier::Legend, SkillTier::fromPercentile(99.5));
         self::assertSame(SkillTier::Master, SkillTier::fromPercentile(96.0));
         self::assertSame(SkillTier::Expert, SkillTier::fromPercentile(85.0));
         self::assertSame(SkillTier::Advanced, SkillTier::fromPercentile(72.0));
@@ -27,8 +27,8 @@ final class SkillTierTest extends TestCase
         self::assertSame(SkillTier::Advanced, SkillTier::Proficient->nextTier());
         self::assertSame(SkillTier::Expert, SkillTier::Advanced->nextTier());
         self::assertSame(SkillTier::Master, SkillTier::Expert->nextTier());
-        self::assertSame(SkillTier::Grandmaster, SkillTier::Master->nextTier());
-        self::assertNull(SkillTier::Grandmaster->nextTier());
+        self::assertSame(SkillTier::Legend, SkillTier::Master->nextTier());
+        self::assertNull(SkillTier::Legend->nextTier());
     }
 
     public function testMinimumPercentile(): void
@@ -39,7 +39,7 @@ final class SkillTierTest extends TestCase
         self::assertSame(70.0, SkillTier::Advanced->minimumPercentile());
         self::assertSame(85.0, SkillTier::Expert->minimumPercentile());
         self::assertSame(95.0, SkillTier::Master->minimumPercentile());
-        self::assertSame(99.0, SkillTier::Grandmaster->minimumPercentile());
+        self::assertSame(99.0, SkillTier::Legend->minimumPercentile());
     }
 
     public function testMinimumPercentileMatchesFromPercentile(): void

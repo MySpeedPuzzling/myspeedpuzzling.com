@@ -125,7 +125,7 @@
         {name: 'advanced',     min: 70,   next_min: 85},
         {name: 'expert',       min: 85,   next_min: 95},
         {name: 'master',       min: 95,   next_min: 99},
-        {name: 'grandmaster',  min: 99,   next_min: null},
+        {name: 'legend',       min: 99,   next_min: null},
     ] %}
 
     {% set current = null %}
@@ -172,7 +172,7 @@
         </div>
     {% elseif current is not null and current.next_min is null %}
         <div class="mt-2">
-            <small class="text-skill-grandmaster">
+            <small class="text-skill-legend">
                 <i class="bi bi-star-fill me-1"></i>
                 {{ 'puzzle_intelligence.skill.highest_tier_reached'|trans }}
             </small>

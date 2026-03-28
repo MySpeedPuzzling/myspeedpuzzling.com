@@ -12,12 +12,12 @@ enum SkillTier: int
     case Advanced = 4;
     case Expert = 5;
     case Master = 6;
-    case Grandmaster = 7;
+    case Legend = 7;
 
     public static function fromPercentile(float $percentile): self
     {
         return match (true) {
-            $percentile >= 99.0 => self::Grandmaster,
+            $percentile >= 99.0 => self::Legend,
             $percentile >= 95.0 => self::Master,
             $percentile >= 85.0 => self::Expert,
             $percentile >= 70.0 => self::Advanced,
@@ -30,7 +30,7 @@ enum SkillTier: int
     public function minimumPercentile(): float
     {
         return match ($this) {
-            self::Grandmaster => 99.0,
+            self::Legend => 99.0,
             self::Master => 95.0,
             self::Expert => 85.0,
             self::Advanced => 70.0,
@@ -48,8 +48,8 @@ enum SkillTier: int
             self::Proficient => self::Advanced,
             self::Advanced => self::Expert,
             self::Expert => self::Master,
-            self::Master => self::Grandmaster,
-            self::Grandmaster => null,
+            self::Master => self::Legend,
+            self::Legend => null,
         };
     }
 }

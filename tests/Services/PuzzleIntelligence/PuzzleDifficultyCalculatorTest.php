@@ -74,18 +74,18 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         $score = $result['difficulty_score'];
         $tier = $result['difficulty_tier'];
 
-        if ($score < 0.70) {
+        if ($score < 0.75) {
             self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::VeryEasy, $tier);
-        } elseif ($score < 0.85) {
+        } elseif ($score < 0.90) {
             self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::Easy, $tier);
-        } elseif ($score < 0.95) {
-            self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::Moderate, $tier);
-        } elseif ($score < 1.05) {
+        } elseif ($score < 1.10) {
             self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::Average, $tier);
-        } elseif ($score < 1.20) {
+        } elseif ($score < 1.25) {
             self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::Challenging, $tier);
         } elseif ($score < 1.45) {
             self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::Hard, $tier);
+        } elseif ($score < 1.70) {
+            self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::VeryHard, $tier);
         } else {
             self::assertSame(\SpeedPuzzling\Web\Value\DifficultyTier::Extreme, $tier);
         }

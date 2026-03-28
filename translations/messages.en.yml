@@ -1879,7 +1879,6 @@ puzzle_intelligence:
             challenging: "Challenging"
             hard: "Hard"
             veryhard: "Very Hard"
-            extreme: "Extreme"
         confidence_levels:
             low: "Low confidence"
             medium: "Medium confidence"

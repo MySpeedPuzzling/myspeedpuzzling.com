@@ -207,7 +207,6 @@ $tier-average: #5e6d7a;       // slate gray
 $tier-challenging: #8a6b06;   // dark gold
 $tier-hard: #c0392b;          // crimson
 $tier-very-hard: #96282e;     // dark crimson
-$tier-extreme: #6e1520;       // maroon
 
 .badge-tier-veryeasy { background-color: $tier-very-easy !important; color: #fff !important; }
 .badge-tier-easy { background-color: $tier-easy !important; color: #fff !important; }
@@ -215,7 +214,6 @@ $tier-extreme: #6e1520;       // maroon
 .badge-tier-challenging { background-color: $tier-challenging !important; color: #fff !important; }
 .badge-tier-hard { background-color: $tier-hard !important; color: #fff !important; }
 .badge-tier-veryhard { background-color: $tier-very-hard !important; color: #fff !important; }
-.badge-tier-extreme { background-color: $tier-extreme !important; color: #fff !important; }
 
 .text-tier-veryeasy { color: $tier-very-easy !important; }
 .text-tier-easy { color: $tier-easy !important; }
@@ -223,7 +221,6 @@ $tier-extreme: #6e1520;       // maroon
 .text-tier-challenging { color: $tier-challenging !important; }
 .text-tier-hard { color: $tier-hard !important; }
 .text-tier-veryhard { color: $tier-very-hard !important; }
-.text-tier-extreme { color: $tier-extreme !important; }
 
 .dot-tier-veryeasy { color: $tier-very-easy; }
 .dot-tier-easy { color: $tier-easy; }
@@ -231,7 +228,6 @@ $tier-extreme: #6e1520;       // maroon
 .dot-tier-challenging { color: $tier-challenging; }
 .dot-tier-hard { color: $tier-hard; }
 .dot-tier-veryhard { color: $tier-very-hard; }
-.dot-tier-extreme { color: $tier-extreme; }
 
 // Skill Tiers — distinct prestige colors (WCAG AA contrast with white text)
 $skill-casual: #6b7683;       // slate gray

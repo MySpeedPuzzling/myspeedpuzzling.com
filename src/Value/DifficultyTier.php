@@ -12,7 +12,6 @@ enum DifficultyTier: int
     case Challenging = 4;
     case Hard = 5;
     case VeryHard = 6;
-    case Extreme = 7;
 
     public static function fromScore(float $score): self
     {
@@ -22,8 +21,7 @@ enum DifficultyTier: int
             $score < 1.10 => self::Average,
             $score < 1.25 => self::Challenging,
             $score < 1.45 => self::Hard,
-            $score < 1.70 => self::VeryHard,
-            default => self::Extreme,
+            default => self::VeryHard,
         };
     }
 }

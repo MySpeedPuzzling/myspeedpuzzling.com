@@ -320,8 +320,14 @@
         </div>
     </div>
 
-    <p class="text-muted fs-sm text-center mt-4 mb-2">
+    {% set next_hour = date('now')|date_modify('+1 hour')|date('Y-m-d\\TH:00:00', 'UTC') %}
+    <p class="text-muted fs-sm text-center mt-4 mb-2"
+       data-controller="countdown"
+       data-countdown-end-value="{{ next_hour }}">
         <i class="bi bi-clock me-1"></i>
-        {{ 'puzzle_intelligence.methodology.section_recalculation_note'|trans }}
+        {{ 'puzzle_intelligence.methodology.section_recalculation_countdown'|trans }}
+        <span data-countdown-target="days" class="d-none"></span>
+        <span data-countdown-target="hours" class="d-none"></span>
+        <strong><span data-countdown-target="minutes">--</span>:<span data-countdown-target="seconds">--</span></strong>
     </p>
 {% endblock %}

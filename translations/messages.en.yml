@@ -2032,3 +2032,4 @@ puzzle_intelligence:
         section_data_quality_suspicious: "<strong>Suspicious exclusion:</strong> Times flagged as suspicious are excluded"
         section_data_quality_recency: "<strong>Recency weighting:</strong> Recent solves count more for player baselines (exponential decay, half-life ~18 months)"
         section_recalculation_note: "All intelligence metrics are recalculated hourly."
+        section_recalculation_countdown: "Next recalculation in"

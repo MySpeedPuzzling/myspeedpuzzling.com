@@ -47,46 +47,46 @@
                         {{ confidence_indicator(puzzle_difficulty.confidence.value, puzzle_difficulty.sampleSize) }}
                     </div>
 
-                    {# Puzzle Personality Traits #}
-                    {% if puzzle_difficulty.memorabilityScore is not null
-                        or puzzle_difficulty.skillSensitivityScore is not null
-                        or puzzle_difficulty.predictabilityScore is not null
-                        or puzzle_difficulty.boxDependenceScore is not null %}
+                    {# Personality Traits — each as its own section #}
+                    {% if puzzle_difficulty.memorabilityScore is not null %}
                         <hr class="my-2">
-                        <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.personality.title'|trans }}</h6>
-
-                        {% if puzzle_difficulty.memorabilityScore is not null %}
-                            {{ personality_metric(
-                                'puzzle_intelligence.personality.memorability',
-                                'puzzle_intelligence.info.memorability',
-                                puzzle_difficulty.memorabilityScore,
-                                'memorability'
-                            ) }}
-                        {% endif %}
-                        {% if puzzle_difficulty.skillSensitivityScore is not null %}
-                            {{ personality_metric(
-                                'puzzle_intelligence.personality.skill_sensitivity',
-                                'puzzle_intelligence.info.skill_sensitivity',
-                                puzzle_difficulty.skillSensitivityScore,
-                                'sensitivity'
-                            ) }}
-                        {% endif %}
-                        {% if puzzle_difficulty.predictabilityScore is not null %}
-                            {{ personality_metric(
-                                'puzzle_intelligence.personality.predictability',
-                                'puzzle_intelligence.info.predictability',
-                                puzzle_difficulty.predictabilityScore,
-                                'predictability'
-                            ) }}
-                        {% endif %}
-                        {% if puzzle_difficulty.boxDependenceScore is not null %}
-                            {{ personality_metric(
-                                'puzzle_intelligence.personality.box_dependence',
-                                'puzzle_intelligence.info.box_dependence',
-                                puzzle_difficulty.boxDependenceScore,
-                                'box_dependence'
-                            ) }}
-                        {% endif %}
+                        <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.personality.memorability'|trans }}</h6>
+                        {{ personality_metric(
+                            'puzzle_intelligence.personality.memorability',
+                            'puzzle_intelligence.info.memorability',
+                            puzzle_difficulty.memorabilityScore,
+                            'memorability'
+                        ) }}
+                    {% endif %}
+                    {% if puzzle_difficulty.skillSensitivityScore is not null %}
+                        <hr class="my-2">
+                        <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.personality.skill_sensitivity'|trans }}</h6>
+                        {{ personality_metric(
+                            'puzzle_intelligence.personality.skill_sensitivity',
+                            'puzzle_intelligence.info.skill_sensitivity',
+                            puzzle_difficulty.skillSensitivityScore,
+                            'sensitivity'
+                        ) }}
+                    {% endif %}
+                    {% if puzzle_difficulty.predictabilityScore is not null %}
+                        <hr class="my-2">
+                        <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.personality.predictability'|trans }}</h6>
+                        {{ personality_metric(
+                            'puzzle_intelligence.personality.predictability',
+                            'puzzle_intelligence.info.predictability',
+                            puzzle_difficulty.predictabilityScore,
+                            'predictability'
+                        ) }}
+                    {% endif %}
+                    {% if puzzle_difficulty.boxDependenceScore is not null %}
+                        <hr class="my-2">
+                        <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.personality.box_dependence'|trans }}</h6>
+                        {{ personality_metric(
+                            'puzzle_intelligence.personality.box_dependence',
+                            'puzzle_intelligence.info.box_dependence',
+                            puzzle_difficulty.boxDependenceScore,
+                            'box_dependence'
+                        ) }}
                     {% endif %}
 
                     {# Time Prediction #}

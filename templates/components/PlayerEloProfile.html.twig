@@ -20,11 +20,7 @@
                                     {% else %}
                                         {% set elo_rank = 'casual' %}
                                     {% endif %}
-                                    {% set elo_labels = {'legend':'elo_levels.elite','expert':'elo_levels.strong','proficient':'elo_levels.above_average','enthusiast':'elo_levels.average','casual':'elo_levels.developing'} %}
-                                    <span class="badge badge-skill-{{ elo_rank }}">
-                                        <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ elo_rank }}"/></svg>
-                                        {{ ('puzzle_intelligence.' ~ elo_labels[elo_rank])|trans }}
-                                    </span>
+                                    <svg class="rank-icon" width="24" height="24" style="color: var(--rank-{{ elo_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ elo_rank }}"/></svg>
                                 </div>
                                 <small class="text-muted">
                                     {{ 'puzzle_intelligence.elo.rank_of_total'|trans({'%rank%': data.rank, '%total%': data.total}) }}

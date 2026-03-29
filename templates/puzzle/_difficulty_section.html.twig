@@ -75,9 +75,8 @@
                     <hr class="my-2">
                     <h6 class="fs-sm text-muted mb-1">
                         {{ 'puzzle_intelligence.prediction.title'|trans }}
-                        <i class="bi bi-info-circle" style="font-size: 0.7rem;" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.prediction'|trans }}"></i>
                     </h6>
-                    <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="d-flex align-items-center gap-2">
                         <span class="fw-bold">~{{ (time_prediction.predictedSeconds / 60)|round }}min</span>
                         <small class="text-muted">
                             {{ 'puzzle_intelligence.prediction.range'|trans({
@@ -85,20 +84,6 @@
                                 '%high%': (time_prediction.rangeHighSeconds / 60)|round ~ 'min',
                             }) }}
                         </small>
-                    </div>
-                    {% set range_total = time_prediction.rangeHighSeconds - time_prediction.rangeLowSeconds %}
-                    {% set predicted_pos = range_total > 0 ? ((time_prediction.predictedSeconds - time_prediction.rangeLowSeconds) / range_total * 100) : 50 %}
-                    <div class="position-relative" style="height: 12px;">
-                        <div class="progress" style="height: 6px; margin-top: 3px;">
-                            <div class="progress-bar bg-info bg-opacity-50" style="width: 100%;"></div>
-                        </div>
-                        <div class="position-absolute rounded-circle bg-primary border border-2 border-white"
-                             style="width: 12px; height: 12px; top: 0; left: {{ predicted_pos }}%; transform: translateX(-50%);">
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <small class="text-muted">{{ (time_prediction.rangeLowSeconds / 60)|round }}min</small>
-                        <small class="text-muted">{{ (time_prediction.rangeHighSeconds / 60)|round }}min</small>
                     </div>
                 {% endif %}
             </div>

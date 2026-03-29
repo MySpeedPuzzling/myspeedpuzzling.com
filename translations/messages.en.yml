@@ -1980,12 +1980,6 @@ puzzle_intelligence:
         box_dep_high: "Box helps a lot"
         box_dep_medium: "Box helps somewhat"
         box_dep_low: "Box barely matters"
-    elo_levels:
-        elite: "Elite"
-        strong: "Strong"
-        above_average: "Above Average"
-        average: "Average"
-        developing: "Developing"
     distribution:
         much_slower: "Much slower"
         slower: "Slower"

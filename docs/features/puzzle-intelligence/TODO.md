@@ -63,9 +63,16 @@ Items marked with ✅ are done.
 ### ✅ 19. Scoped to 500pc only
 ### ✅ 20. Removed unexplained ELO tier labels (replaced with rank icons)
 
-### 13. Visual improvement of the table
-- The ladder table needs to match the visual quality of other pages
-- Better styling, spacing, row hover states, rank highlighting
+### ✅ 13. Visual improvement of the table
+- Matches existing ladder style (custom-table-wrapper, striped, hover)
+- Rank icons before player names, monospace numbers, proper avatar circles
+- Qualification banner with primary styling, progress bars
+- 100 per page, return URLs on player links
+
+### 26. Add links to MSP-ELO ladder page
+- Currently no navigation links to the ELO ladder from anywhere in the app
+- Short term: add link from /en/ladder page
+- Long term: find a better permanent home (nav, profile, hub?)
 
 ### 18. ELO algorithm review (do last — backend-only, only changes numbers)
 - **Partial fix done:** Restricted ELO to first-attempt solves only

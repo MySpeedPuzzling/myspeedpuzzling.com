@@ -21,6 +21,12 @@
     <div class="collapse mb-3" id="puzzleInsights">
         <div class="card shadow-sm">
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div></div>
+                    <a href="{{ path('methodology') }}" class="btn btn-outline-secondary btn-xs fs-sm">
+                        <i class="bi bi-question-circle me-1"></i>{{ 'puzzle_intelligence.elo.how_it_works'|trans }}
+                    </a>
+                </div>
                 {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
                     {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
 
@@ -34,7 +40,11 @@
                             {{ human_difficulty(puzzle_difficulty.difficultyScore) }}
                         </span>
                     </div>
-                    <div class="mb-2">
+
+                    {# Confidence #}
+                    <hr class="my-2">
+                    <h6 class="fs-sm text-muted mb-1">{{ 'puzzle_intelligence.difficulty.confidence_label'|trans }}</h6>
+                    <div>
                         {{ confidence_indicator(puzzle_difficulty.confidence.value, puzzle_difficulty.sampleSize) }}
                     </div>
 
@@ -81,11 +91,11 @@
                     {% endif %}
 
                     {# Time Prediction #}
+                    <hr class="my-2">
+                    <h6 class="fs-sm text-muted mb-1">
+                        {{ 'puzzle_intelligence.prediction.title'|trans }}
+                    </h6>
                     {% if time_prediction is not null %}
-                        <hr class="my-2">
-                        <h6 class="fs-sm text-muted mb-1">
-                            {{ 'puzzle_intelligence.prediction.title'|trans }}
-                        </h6>
                         <div class="d-flex align-items-center gap-2">
                             <span class="fw-bold">~{{ (time_prediction.predictedSeconds / 60)|round }}min</span>
                             <small class="text-muted">
@@ -95,6 +105,8 @@
                                 }) }}
                             </small>
                         </div>
+                    {% else %}
+                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.not_available_generic'|trans }}</small>
                     {% endif %}
                 {% elseif puzzle_difficulty is not null and puzzle_difficulty.sampleSize > 0 %}
                     <small class="text-muted">

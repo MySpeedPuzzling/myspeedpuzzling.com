@@ -1905,6 +1905,7 @@ puzzle_intelligence:
         range: "%low% - %high%"
         difficulty_for_you: "Difficulty for your level"
         not_available: "Solve %count% more %pieces%pc puzzles to unlock predictions"
+        not_available_generic: "We need more of your solving data for this piece count to predict your time."
     skill:
         title: "Skill Profile"
         tier_label: "Tier"

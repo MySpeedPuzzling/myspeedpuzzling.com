@@ -62,7 +62,7 @@
                                 {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
                                     {% set dt_name = puzzle_difficulty.difficultyTier.name|lower %}
                                     {% set dt_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
-                                    <svg class="diff-icon" width="16" height="16" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
+                                    <svg class="diff-icon" width="24" height="24" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
                                 {% else %}
                                     <svg class="diff-icon" width="24" height="24" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
                                 {% endif %}

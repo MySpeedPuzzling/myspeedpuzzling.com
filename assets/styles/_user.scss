@@ -204,7 +204,7 @@ $soft-teal: #5bc0de;
 // Colors from design system: docs/features/puzzle-difficulty/README.md
 $tier-very-easy: #2d8a3e;
 $tier-easy: #5a9a18;
-$tier-average: #b89518;
+$tier-average: #c4a010;
 $tier-challenging: #d07020;
 $tier-hard: #c83530;
 $tier-very-hard: #8a1820;
@@ -212,7 +212,7 @@ $tier-very-hard: #8a1820;
 :root {
   --diff-very-easy: #{$tier-very-easy};
   --diff-easy: #{$tier-easy};
-  --diff-average: #{$tier-average};
+  --diff-average: #c4a010;
   --diff-challenging: #{$tier-challenging};
   --diff-hard: #{$tier-hard};
   --diff-very-hard: #{$tier-very-hard};

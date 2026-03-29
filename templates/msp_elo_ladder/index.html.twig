@@ -5,70 +5,75 @@
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
 
-    <div class="d-flex align-items-center mb-2">
-        <h1 class="h2 mb-0">{{ 'puzzle_intelligence.elo.title'|trans }}</h1>
-        <span class="badge bg-info ms-2">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
-    </div>
-
-    <p class="text-muted mb-3 fs-sm">
-        {{ 'puzzle_intelligence.elo.subtitle'|trans }}
-        <a href="{{ path('methodology') }}" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
-    </p>
-
-    {# DEMO: Remove this block — static mockup of ranked banner #}
-    <div class="card shadow-custom mb-3">
-        <div class="card-body py-2">
-            <div class="d-flex align-items-center gap-3">
-                <div class="text-center flex-shrink-0">
-                    <svg class="rank-icon" width="36" height="36" style="color: var(--rank-advanced)"><use href="/rank-icons-sprite.svg#rank-advanced"/></svg>
-                    <div style="font-size: 0.7rem; color: var(--rank-advanced)" class="fw-medium">Advanced</div>
-                </div>
-                <div class="flex-grow-1" style="line-height: 1.3;">
-                    <small class="text-muted" style="font-size: 0.7rem;">Your ranking (among 67 players)</small>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="h5 mb-0 fw-bold">#23</span>
-                        <span class="text-muted">&middot;</span>
-                        <span class="fw-bold">1247 ELO</span>
-                    </div>
-                </div>
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+        <div>
+            <div class="d-flex align-items-center mb-1">
+                <h1 class="h2 mb-0">{{ 'puzzle_intelligence.elo.title'|trans }}</h1>
+                <span class="badge bg-info ms-2">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
             </div>
+            <p class="text-muted mb-0 fs-sm">
+                {{ 'puzzle_intelligence.elo.subtitle'|trans }}
+                <a href="{{ path('methodology') }}" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
+            </p>
         </div>
-    </div>
-    {# END DEMO #}
 
-    {# Player's own position or qualification progress #}
-    {% if player_position is not null and player_elo_rating is not null %}
-        {# Ranked — show position and rating #}
-        {% if player_elo_rating >= 1400 %}
-            {% set my_rank_tier = 'legend' %}
-        {% elseif player_elo_rating >= 1200 %}
-            {% set my_rank_tier = 'expert' %}
-        {% elseif player_elo_rating >= 1000 %}
-            {% set my_rank_tier = 'proficient' %}
-        {% elseif player_elo_rating >= 800 %}
-            {% set my_rank_tier = 'enthusiast' %}
-        {% else %}
-            {% set my_rank_tier = 'casual' %}
-        {% endif %}
-        <div class="card shadow-custom mb-3">
-            <div class="card-body py-2">
+        {# DEMO: Remove this block — static mockup of ranked banner #}
+        <div class="card shadow-custom flex-shrink-0">
+            <div class="card-body py-2 px-3">
                 <div class="d-flex align-items-center gap-3">
                     <div class="text-center flex-shrink-0">
-                        <svg class="rank-icon" width="36" height="36" style="color: var(--rank-{{ my_rank_tier }})"><use href="/rank-icons-sprite.svg#rank-{{ my_rank_tier }}"/></svg>
-                        <div style="font-size: 0.7rem; color: var(--rank-{{ my_rank_tier }})" class="fw-medium">{{ ('puzzle_intelligence.skill.tiers.' ~ my_rank_tier)|trans }}</div>
+                        <svg class="rank-icon" width="36" height="36" style="color: var(--rank-advanced)"><use href="/rank-icons-sprite.svg#rank-advanced"/></svg>
+                        <div style="font-size: 0.7rem; color: var(--rank-advanced)" class="fw-medium">Advanced</div>
                     </div>
                     <div class="flex-grow-1" style="line-height: 1.3;">
-                        <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.your_ranking_among'|trans({'%total%': total_count}) }}</small>
+                        <small class="text-muted" style="font-size: 0.7rem;">Your ranking (among 67 players)</small>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="h5 mb-0 fw-bold">#{{ player_position }}</span>
+                            <span class="h5 mb-0 fw-bold">#23</span>
                             <span class="text-muted">&middot;</span>
-                            <span class="fw-bold">{{ player_elo_rating }} ELO</span>
+                            <span class="fw-bold">1247 ELO</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    {% elseif logged_player is not null and elo_progress is not null %}
+        {# END DEMO #}
+
+        {% if player_position is not null and player_elo_rating is not null %}
+            {# Ranked banner — inline with header on desktop #}
+            {% if player_elo_rating >= 1400 %}
+                {% set my_rank_tier = 'legend' %}
+            {% elseif player_elo_rating >= 1200 %}
+                {% set my_rank_tier = 'expert' %}
+            {% elseif player_elo_rating >= 1000 %}
+                {% set my_rank_tier = 'proficient' %}
+            {% elseif player_elo_rating >= 800 %}
+                {% set my_rank_tier = 'enthusiast' %}
+            {% else %}
+                {% set my_rank_tier = 'casual' %}
+            {% endif %}
+            <div class="card shadow-custom flex-shrink-0">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="text-center flex-shrink-0">
+                            <svg class="rank-icon" width="36" height="36" style="color: var(--rank-{{ my_rank_tier }})"><use href="/rank-icons-sprite.svg#rank-{{ my_rank_tier }}"/></svg>
+                            <div style="font-size: 0.7rem; color: var(--rank-{{ my_rank_tier }})" class="fw-medium">{{ ('puzzle_intelligence.skill.tiers.' ~ my_rank_tier)|trans }}</div>
+                        </div>
+                        <div class="flex-grow-1" style="line-height: 1.3;">
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.your_ranking_among'|trans({'%total%': total_count}) }}</small>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="h5 mb-0 fw-bold">#{{ player_position }}</span>
+                                <span class="text-muted">&middot;</span>
+                                <span class="fw-bold">{{ player_elo_rating }} ELO</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    {# Qualification banner — full width below header #}
+    {% if player_position is null and logged_player is not null and elo_progress is not null %}
         {# Not yet qualified — show progress toward qualification #}
         {% set fa_done = elo_progress.first_attempts >= min_first_attempts %}
         {% set ts_done = elo_progress.total_solves >= min_total_solves %}

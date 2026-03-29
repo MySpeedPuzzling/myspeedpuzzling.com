@@ -67,6 +67,11 @@
             {# Insights toggle + ELO banner in flex row #}
             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-2">
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
+                    />
+
                     <div class="d-flex align-items-center gap-2 flex-grow-1">
                         <button
                             class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-between"
@@ -86,11 +91,6 @@
                             <i class="bi bi-question-circle"></i>
                         </a>
                     </div>
-
-                    <twig:PlayerEloProfile
-                        playerId="{{ player.playerId }}"
-                        :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
-                    />
                 </div>
 
                 <div class="collapse mb-3" id="playerInsights">
@@ -102,6 +102,11 @@
                 </div>
             {% else %}
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="false"
+                    />
+
                     <button
                         class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-1"
                         data-bs-toggle="modal"
@@ -110,11 +115,6 @@
                         <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
                         {{ 'puzzle_intelligence.player_insights.title'|trans }}
                     </button>
-
-                    <twig:PlayerEloProfile
-                        playerId="{{ player.playerId }}"
-                        :isOwnProfile="false"
-                    />
                 </div>
             {% endif %}
         {% endif %}

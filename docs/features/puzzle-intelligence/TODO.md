@@ -87,18 +87,22 @@ Items marked with ✅ are done.
 
 ## Player Profile Page
 
-### 21. MSP-ELO Rating card — visual tweaks
-- The ranked state needs visual improvement — currently feels flat
-- Ensure the card shows the player's actual rank position when ranked
+### ✅ 21. MSP-ELO Rating card
+- Banner style matching ladder, trophy icon, primary border
+- Ranked: #position · ELO number
+- Not qualified: progress bars with qualification requirements
+- Private players: explanation card
 
-### 22. Skill Profile card — clarification and visual improvement
-- Confidence now shows dots + text (done globally via macro)
-- Skill score tooltip removed (done globally)
-- Still needs: overall visual polish, layout improvements
+### ✅ 22. Skill Profile card
+- Redesigned as "Player Insights" with badge + piece count
+- Percentile bar, next tier, methodology link
+- Private player explanation card
+- 500pc only (configurable via constant)
 
-### 23. Skill level per piece count — visual improvement
-- Needs visual polish: better card layout, clearer tier badges, progress visualization
-- Should feel like a progression dashboard, not a data table
+### ✅ 23. Skill per piece count
+- Simplified to 500pc only
+- Side-by-side cards (skill + ELO) on tablet+
+- Equal height with mt-auto alignment
 
 ---
 

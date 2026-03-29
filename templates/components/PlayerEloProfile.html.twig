@@ -2,7 +2,7 @@
     {% if eloRatings is not empty %}
         {# Ranked — card banner matching ELO ladder style #}
         {% for pc, data in eloRatings %}
-            <div class="card shadow-custom flex-shrink-0 flex-grow-0 border-primary d-flex">
+            <div class="card shadow-custom flex-shrink-0 flex-grow-0 border-primary d-flex h-100">
                 <div class="card-body py-2 px-3 d-flex flex-column">
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
@@ -23,7 +23,7 @@
         {# Not yet qualified — qualification banner matching ELO ladder style #}
         {% set fa_done = eloProgress.first_attempts >= 15 %}
         {% set ts_done = eloProgress.total_solves >= 50 %}
-        <div class="card border-primary shadow-custom flex-shrink-0" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
+        <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
             <div class="card-body py-2 px-3">
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>

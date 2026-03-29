@@ -7,7 +7,7 @@
                 {% set t_name = skill.skillTier.name|lower %}
                 {% set top_percentile = (100 - skill.skillPercentile)|number_format(1) %}
 
-                <div class="card shadow-sm {{ not loop.first ? 'mt-2' : '' }}">
+                <div class="card shadow-sm h-100 {{ not loop.first ? 'mt-2' : '' }}">
                     <div class="card-body py-2 px-3 d-flex flex-column">
                         {# Header: badge left, category right #}
                         <div class="d-flex align-items-center justify-content-between mb-1">
@@ -65,7 +65,7 @@
         {% else %}
             {# No skill tiers yet — show progress #}
             {% if progress is not empty %}
-                <div class="card shadow-sm">
+                <div class="card shadow-sm h-100">
                     <div class="card-body py-2 px-3">
                         <small class="text-muted d-block mb-2">{{ 'puzzle_intelligence.skill.progress_explanation'|trans }}</small>
                         {% for pc, data in progress %}

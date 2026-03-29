@@ -9,7 +9,7 @@
     <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
     <twig:PlayerHeader player="{{ player }}" :primary_skill="primary_skill" />
 
-    <div class="row mb-2">
+    <div class="row mb-3">
         {% if player.activeMembership %}
             <p class="col-sm">
                 <a href="{{ path('membership') }}" class="badge bg-primary py-1 px-2 text-light">
@@ -66,7 +66,7 @@
         {% if is_granted('ADMIN_ACCESS') %}
             {# Player Insights — visible directly for members, locked for non-members #}
             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                <div class="d-flex flex-column flex-md-row gap-2 mb-2 w-100">
+                <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
                     <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
                     <twig:PlayerEloProfile
                         playerId="{{ player.playerId }}"
@@ -74,7 +74,7 @@
                     />
                 </div>
             {% else %}
-                <div class="d-flex flex-column flex-md-row gap-2 mb-2 w-100">
+                <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
                     <twig:PlayerEloProfile
                         playerId="{{ player.playerId }}"
                         :isOwnProfile="false"

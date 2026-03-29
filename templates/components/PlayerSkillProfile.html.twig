@@ -8,7 +8,7 @@
                 {% set top_percentile = (100 - skill.skillPercentile)|number_format(1) %}
 
                 <div class="card shadow-sm {{ not loop.first ? 'mt-2' : '' }}">
-                    <div class="card-body py-2 px-3">
+                    <div class="card-body py-2 px-3 d-flex flex-column">
                         {# Header: badge left, category right #}
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             {{ skill_badge(t_name, 'fs-6') }}
@@ -16,6 +16,7 @@
                         </div>
 
                         {# Percentile + bar #}
+                        <div class="mt-auto">
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             <span class="fw-bold text-skill-{{ t_name }}">
                                 {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': top_percentile}) }}
@@ -46,6 +47,7 @@
                                 </small>
                             </div>
                         {% endif %}
+                        </div>
                     </div>
                 </div>
             {% endfor %}

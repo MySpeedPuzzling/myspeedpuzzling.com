@@ -30,21 +30,30 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @return array{baselines: int, difficulties: int, metrics: int, skills: int, elo: int, history: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, skills: int, elo: int, history: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
         $now = $this->clock->now();
 
+        // Level 1+2: Baselines (direct + interpolated)
         $baselines = $this->computeBaselines($now, $specificPlayer);
+
+        // Level 3: Puzzle difficulty
         $difficulties = $this->computePuzzleDifficulty($now, $specificPuzzle);
+
+        // Level 4+5: Derived metrics, player skills, MSP-ELO (all depend on difficulty)
         $metrics = $this->computeDerivedMetrics($specificPuzzle);
         $skills = $this->computePlayerSkills($now, $specificPlayer);
         $elo = $this->computeEloRatings($now, $specificPlayer);
+
+        // Level 6: History snapshots
         $history = $this->recordSkillHistory($now);
 
         return [
-            'baselines' => $baselines,
+            'baselines_direct' => $baselines['direct'],
+            'baselines_interpolated' => $baselines['interpolated'],
+            'scaling_exponent' => $baselines['scaling_exponent'],
             'difficulties' => $difficulties,
             'metrics' => $metrics,
             'skills' => $skills,
@@ -53,26 +62,98 @@ readonly final class PuzzleIntelligenceRecalculator
         ];
     }
 
-    private function computeBaselines(\DateTimeImmutable $now, null|string $specificPlayer): int
+    /**
+     * @return array{direct: int, interpolated: int, scaling_exponent: float}
+     */
+    private function computeBaselines(\DateTimeImmutable $now, null|string $specificPlayer): array
     {
+        // Pass 1: Compute direct baselines
         $players = $this->getPlayersWithSolves($specificPlayer);
         $pieceCounts = $this->getDistinctPieceCounts();
-        $count = 0;
+        $directCount = 0;
 
         foreach ($players as $playerId) {
             foreach ($pieceCounts as $piecesCount) {
                 $result = $this->baselineCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
-                    $this->upsertBaseline($playerId, $piecesCount, $result['baseline_seconds'], $result['qualifying_count'], $now);
-                    $count++;
+                    $this->upsertBaseline($playerId, $piecesCount, $result['baseline_seconds'], $result['qualifying_count'], $now, 'direct');
+                    $directCount++;
                 } else {
                     $this->deleteBaseline($playerId, $piecesCount);
                 }
             }
         }
 
-        return $count;
+        // Pass 2: Compute global scaling exponent + interpolated/extrapolated baselines
+        $scalingExponent = $this->baselineCalculator->computeScalingExponent();
+        $gaps = $this->baselineCalculator->findBaselineGaps();
+        $interpolatedCount = 0;
+
+        // Cache direct baselines per player to avoid repeated queries
+        $playerBaselineCache = [];
+
+        foreach ($gaps as $gap) {
+            $playerId = $gap['player_id'];
+            $targetPieces = $gap['pieces_count'];
+
+            if (!isset($playerBaselineCache[$playerId])) {
+                $playerBaselineCache[$playerId] = $this->baselineCalculator->getDirectBaselinesForPlayer($playerId);
+            }
+
+            $directBaselines = $playerBaselineCache[$playerId];
+
+            if ($directBaselines === []) {
+                continue;
+            }
+
+            $pieceCounts = array_keys($directBaselines);
+            $lower = null;
+            $upper = null;
+
+            // Find bracketing baselines
+            foreach ($pieceCounts as $pc) {
+                if ($pc < $targetPieces) {
+                    $lower = $pc;
+                }
+
+                if ($pc > $targetPieces && $upper === null) {
+                    $upper = $pc;
+                }
+            }
+
+            if ($lower !== null && $upper !== null) {
+                // Interpolated: two brackets exist
+                $baseline = $this->baselineCalculator->interpolateBaseline(
+                    $targetPieces,
+                    $lower,
+                    $directBaselines[$lower],
+                    $upper,
+                    $directBaselines[$upper],
+                );
+                $this->upsertBaseline($playerId, $targetPieces, $baseline, 0, $now, 'interpolated');
+                $interpolatedCount++;
+            } else {
+                // Extrapolated: use closest baseline + scaling exponent
+                $closestPc = $lower ?? $upper;
+                assert($closestPc !== null);
+
+                $baseline = $this->baselineCalculator->extrapolateBaseline(
+                    $targetPieces,
+                    $closestPc,
+                    $directBaselines[$closestPc],
+                    $scalingExponent,
+                );
+                $this->upsertBaseline($playerId, $targetPieces, $baseline, 0, $now, 'extrapolated');
+                $interpolatedCount++;
+            }
+        }
+
+        return [
+            'direct' => $directCount,
+            'interpolated' => $interpolatedCount,
+            'scaling_exponent' => $scalingExponent,
+        ];
     }
 
     private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): int

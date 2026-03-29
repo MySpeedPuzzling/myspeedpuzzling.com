@@ -31,7 +31,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommandTest extends KernelTestCa
     {
         $result = $this->recalculator->recalculate();
 
-        self::assertGreaterThan(0, $result['baselines'], 'Should create player baselines');
+        self::assertGreaterThan(0, $result['baselines_direct'], 'Should create player baselines');
     }
 
     public function testRecalculateCreatesPuzzleDifficulty(): void
@@ -52,7 +52,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommandTest extends KernelTestCa
     {
         $result = $this->recalculator->recalculate(specificPlayer: PlayerFixture::PLAYER_REGULAR);
 
-        self::assertGreaterThan(0, $result['baselines']);
+        self::assertGreaterThan(0, $result['baselines_direct']);
 
         /** @var int|string $count */
         $count = $this->connection->fetchOne(

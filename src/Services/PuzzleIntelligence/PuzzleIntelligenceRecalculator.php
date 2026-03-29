@@ -108,7 +108,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        $players = $this->getPlayersWithBaselines($specificPlayer);
+        $players = $this->getPublicPlayersWithBaselines($specificPlayer);
         $count = 0;
 
         foreach ($players as $playerId) {
@@ -130,12 +130,17 @@ readonly final class PuzzleIntelligenceRecalculator
             ['pieceCounts' => '{' . implode(',', self::SKILL_PIECES_COUNTS) . '}'],
         );
 
+        // Clean up skill data for private players
+        $this->connection->executeStatement(
+            'DELETE FROM player_skill WHERE player_id IN (SELECT id FROM player WHERE is_private = true)',
+        );
+
         return $count;
     }
 
     private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        $players = $this->getPlayersWithBaselines($specificPlayer);
+        $players = $this->getPublicPlayersWithBaselines($specificPlayer);
         $count = 0;
 
         foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
@@ -154,6 +159,11 @@ readonly final class PuzzleIntelligenceRecalculator
         $this->connection->executeStatement(
             'DELETE FROM player_elo WHERE pieces_count != ALL(:pieceCounts)',
             ['pieceCounts' => '{' . implode(',', self::ELO_PIECES_COUNTS) . '}'],
+        );
+
+        // Clean up ELO data for private players
+        $this->connection->executeStatement(
+            'DELETE FROM player_elo WHERE player_id IN (SELECT id FROM player WHERE is_private = true)',
         );
 
         return $count;
@@ -209,7 +219,7 @@ readonly final class PuzzleIntelligenceRecalculator
     /**
      * @return list<string>
      */
-    private function getPlayersWithBaselines(null|string $specificPlayer): array
+    private function getPublicPlayersWithBaselines(null|string $specificPlayer): array
     {
         if ($specificPlayer !== null) {
             return [$specificPlayer];
@@ -217,7 +227,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         /** @var list<string> */
         return $this->connection->fetchFirstColumn(
-            'SELECT DISTINCT player_id FROM player_baseline',
+            'SELECT DISTINCT pb.player_id FROM player_baseline pb INNER JOIN player p ON p.id = pb.player_id WHERE p.is_private = false',
         );
     }
 

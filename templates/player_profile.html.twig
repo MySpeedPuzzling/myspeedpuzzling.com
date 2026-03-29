@@ -7,7 +7,7 @@
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
     <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" :primary_skill="primary_skill" />
 
     <div class="row">
         {% if player.activeMembership %}

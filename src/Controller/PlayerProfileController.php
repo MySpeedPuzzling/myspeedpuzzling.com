@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\HasExistingConversation;
@@ -30,6 +31,7 @@ final class PlayerProfileController extends AbstractController
         readonly private GetBadges $getBadges,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HasExistingConversation $hasExistingConversation,
+        readonly private GetPlayerSkill $getPlayerSkill,
     ) {
     }
 
@@ -61,6 +63,8 @@ final class PlayerProfileController extends AbstractController
                 || $this->hasExistingConversation->acceptedBetween($loggedProfile->playerId, $player->playerId);
         }
 
+        $primarySkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount($player->playerId, 500);
+
         return $this->render('player_profile.html.twig', [
             'player' => $player,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
@@ -68,6 +72,7 @@ final class PlayerProfileController extends AbstractController
             'tags' => $this->getTags->allGroupedPerPuzzle(),
             'badges' => $this->getBadges->forPlayer($player->playerId),
             'can_message' => $canMessage,
+            'primary_skill' => $primarySkill,
         ]);
     }
 }

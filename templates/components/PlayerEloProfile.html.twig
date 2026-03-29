@@ -1,39 +1,36 @@
 <div {{ attributes }}>
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
         {% if eloRatings is not empty %}
-            <div class="row g-2">
-                {% for pc, data in eloRatings %}
-                    <div class="col-sm-6 col-md-4">
-                        <div class="card bg-light border-0">
-                            <div class="card-body py-2 text-center">
-                                <div class="text-muted fs-sm">{{ pc }}pc</div>
-                                <div class="h4 mb-0 fw-bold">{{ data.elo_rating }}</div>
-                                <div class="fs-sm">
-                                    {% if data.elo_rating >= 1400 %}
-                                        {% set elo_rank = 'legend' %}
-                                    {% elseif data.elo_rating >= 1200 %}
-                                        {% set elo_rank = 'expert' %}
-                                    {% elseif data.elo_rating >= 1000 %}
-                                        {% set elo_rank = 'proficient' %}
-                                    {% elseif data.elo_rating >= 800 %}
-                                        {% set elo_rank = 'enthusiast' %}
-                                    {% else %}
-                                        {% set elo_rank = 'casual' %}
-                                    {% endif %}
-                                    <svg class="rank-icon" width="24" height="24" style="color: var(--rank-{{ elo_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ elo_rank }}"/></svg>
-                                </div>
-                                <small class="text-muted">
-                                    {{ 'puzzle_intelligence.elo.rank_of_total'|trans({'%rank%': data.rank, '%total%': data.total}) }}
-                                </small>
-                            </div>
-                        </div>
+            {% for pc, data in eloRatings %}
+                {% if data.elo_rating >= 1400 %}
+                    {% set elo_rank = 'legend' %}
+                {% elseif data.elo_rating >= 1200 %}
+                    {% set elo_rank = 'expert' %}
+                {% elseif data.elo_rating >= 1000 %}
+                    {% set elo_rank = 'proficient' %}
+                {% elseif data.elo_rating >= 800 %}
+                    {% set elo_rank = 'enthusiast' %}
+                {% else %}
+                    {% set elo_rank = 'casual' %}
+                {% endif %}
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-center flex-shrink-0">
+                        <svg class="rank-icon" width="36" height="36" style="color: var(--rank-{{ elo_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ elo_rank }}"/></svg>
+                        <div style="font-size: 0.7rem; color: var(--rank-{{ elo_rank }})" class="fw-medium">{{ ('puzzle_intelligence.skill.tiers.' ~ elo_rank)|trans }}</div>
                     </div>
-                {% endfor %}
-            </div>
+                    <div class="flex-grow-1" style="line-height: 1.3;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="h5 mb-0 fw-bold">#{{ data.rank }}</span>
+                            <span class="text-muted">&middot;</span>
+                            <span class="fw-bold">{{ data.elo_rating }} ELO</span>
+                        </div>
+                        <small class="text-muted" style="font-size: 0.75rem;">{{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': data.total}) }}</small>
+                    </div>
+                </div>
+            {% endfor %}
 
             <div class="text-end mt-2">
                 <a href="{{ path('msp_elo_ladder') }}" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-trophy me-1"></i>
                     {{ 'puzzle_intelligence.elo.view_full_ladder'|trans }}
                 </a>
             </div>

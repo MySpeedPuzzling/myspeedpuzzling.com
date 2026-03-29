@@ -73,8 +73,8 @@
                                     {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
                                 </span>
                             {% else %}
-                                <span class="badge bg-light text-muted rounded-pill mt-1" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" role="button">
-                                    <i class="ci-locked"></i>
+                                <span class="mt-1" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" role="button" style="cursor: pointer;">
+                                    <svg class="diff-icon" width="20" height="20" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
                                 </span>
                             {% endif %}
                         {% endif %}

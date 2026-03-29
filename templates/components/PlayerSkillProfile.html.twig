@@ -1,4 +1,4 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import confidence_dots, percentile_bar, skill_badge %}
+{% from 'puzzle_intelligence/_macros.html.twig' import confidence_indicator, percentile_bar, skill_badge %}
 
 <div {{ attributes }}>
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
@@ -27,17 +27,12 @@
 
                 <div class="card bg-light border-0 mb-3">
                     <div class="card-body py-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div>
-                                {% set top_percentile = (100 - currentSkill.skillPercentile)|number_format(1) %}
-                                <span class="h3 mb-0 fw-bold text-skill-{{ t_name }}">
-                                    {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': top_percentile}) }}
-                                </span>
-                                {{ skill_badge(t_name, 'ms-2 fs-6') }}
-                            </div>
-                            <div class="text-end">
-                                {{ confidence_dots(currentSkill.confidence.value, currentSkill.qualifyingPuzzlesCount) }}
-                            </div>
+                        <div class="d-flex align-items-center mb-2">
+                            {% set top_percentile = (100 - currentSkill.skillPercentile)|number_format(1) %}
+                            <span class="h3 mb-0 fw-bold text-skill-{{ t_name }}">
+                                {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': top_percentile}) }}
+                            </span>
+                            {{ skill_badge(t_name, 'ms-2 fs-6') }}
                         </div>
 
                         {# Progress bar showing percentile position #}
@@ -47,10 +42,9 @@
                             <small class="text-muted">
                                 {{ 'puzzle_intelligence.skill.faster_than_label'|trans({'%percentile%': currentSkill.skillPercentile|number_format(1)}) }}
                             </small>
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="{{ 'puzzle_intelligence.info.skill_score'|trans }}"></i>
-                                {{ currentSkill.skillScore|number_format(3) }}
-                            </small>
+                        </div>
+                        <div class="mt-1">
+                            {{ confidence_indicator(currentSkill.confidence.value, currentSkill.qualifyingPuzzlesCount) }}
                         </div>
 
                         {# Next tier milestone with real times #}

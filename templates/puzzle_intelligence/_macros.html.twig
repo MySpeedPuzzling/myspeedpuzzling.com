@@ -1,19 +1,12 @@
 {# Reusable macros for Puzzle Intelligence UI components #}
 
-{# Confidence indicator — visual dots with custom colors #}
-{% macro confidence_dots(confidence_value, sample_size) %}
-    {% set levels = {'low': 1, 'medium': 2, 'high': 3} %}
-    {% set level = levels[confidence_value] ?? 0 %}
-    <span class="text-confidence-{{ confidence_value }}" title="{{ ('puzzle_intelligence.info.confidence')|trans }}">
-        {% for i in 1..3 %}
-            {% if i <= level %}
-                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
-            {% else %}
-                <i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i>
-            {% endif %}
-        {% endfor %}
-        <small class="text-muted ms-1">{{ sample_size }}</small>
-    </span>
+{# Confidence indicator — readable text with sample size #}
+{% macro confidence_indicator(confidence_value, sample_size) %}
+    <small class="text-muted">
+        {{ 'puzzle_intelligence.difficulty.sample_size_label'|trans({'%count%': sample_size}) }}
+        &middot;
+        {{ ('puzzle_intelligence.difficulty.confidence_levels.' ~ confidence_value)|trans }}
+    </small>
 {% endmacro %}
 
 {# Human-readable difficulty description #}
@@ -129,15 +122,14 @@
         {% endif %}
     {% endif %}
 
-    <div class="d-flex align-items-center justify-content-between py-1">
-        <div>
-            <span class="text-muted">{{ label_key|trans }}</span>
-            <i class="bi bi-info-circle text-muted" style="font-size: 0.7rem;" data-bs-toggle="tooltip" title="{{ info_key|trans }}"></i>
+    <div class="py-1">
+        <div class="d-flex align-items-center justify-content-between">
+            <span>{{ label_key|trans }}</span>
+            <div class="text-end">
+                <span class="badge {{ color ?? 'badge-tier-average' }}" style="font-weight: 500;">{{ descriptor|trans }}</span>
+            </div>
         </div>
-        <div class="text-end">
-            <span class="badge {{ color ?? 'badge-tier-average' }}" style="font-weight: 500;">{{ descriptor|trans }}</span>
-            <small class="text-muted ms-1">{{ value|number_format(1) }}{% if metric_type != 'predictability' %}x{% endif %}</small>
-        </div>
+        <small class="text-muted">{{ info_key|trans }}</small>
     </div>
 {% endmacro %}
 

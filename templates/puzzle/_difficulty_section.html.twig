@@ -1,4 +1,4 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import confidence_dots, human_difficulty, personality_metric, difficulty_badge %}
+{% from 'puzzle_intelligence/_macros.html.twig' import confidence_indicator, human_difficulty, personality_metric, difficulty_badge %}
 
 {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
@@ -6,27 +6,19 @@
         <div class="card shadow-sm mb-3">
             <div class="card-body">
                 {# Header with tier badge and human-readable description #}
-                <div class="d-flex align-items-start justify-content-between mb-2">
-                    <div>
-                        <h6 class="card-title mb-1">
-                            <i class="bi bi-bar-chart me-1"></i>
-                            {{ 'puzzle_intelligence.difficulty.title'|trans }}
-                        </h6>
-                        {{ difficulty_badge(tier_name, 'fs-6 me-2') }}
-                        <span class="fs-sm">
-                            {{ human_difficulty(puzzle_difficulty.difficultyScore) }}
-                        </span>
-                    </div>
-                    <div class="text-end">
-                        {{ confidence_dots(puzzle_difficulty.confidence.value, puzzle_difficulty.sampleSize) }}
-                    </div>
+                <h6 class="card-title mb-1">
+                    <i class="bi bi-bar-chart me-1"></i>
+                    {{ 'puzzle_intelligence.difficulty.title'|trans }}
+                </h6>
+                <div class="mb-1">
+                    {{ difficulty_badge(tier_name, 'fs-6 me-1') }}
+                    <span class="fs-sm">
+                        {{ human_difficulty(puzzle_difficulty.difficultyScore) }}
+                    </span>
                 </div>
-
-                {# Difficulty score for data geeks #}
-                <small class="text-muted d-block mb-2">
-                    {{ 'puzzle_intelligence.difficulty.score_label'|trans }}: {{ puzzle_difficulty.difficultyScore|number_format(2) }}
-                    &middot; {{ 'puzzle_intelligence.difficulty.sample_size_label'|trans({'%count%': puzzle_difficulty.sampleSize}) }}
-                </small>
+                <div class="mb-2">
+                    {{ confidence_indicator(puzzle_difficulty.confidence.value, puzzle_difficulty.sampleSize) }}
+                </div>
 
                 {# Puzzle Personality Traits #}
                 {% if puzzle_difficulty.memorabilityScore is not null

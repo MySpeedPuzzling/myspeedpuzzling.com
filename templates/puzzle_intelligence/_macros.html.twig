@@ -127,6 +127,7 @@
             <span>{{ label_key|trans }}</span>
             <div class="text-end">
                 <span class="badge {{ color ?? 'badge-tier-average' }}" style="font-weight: 500;">{{ descriptor|trans }}</span>
+                <small class="text-muted ms-1">{{ value|number_format(1) }}{% if metric_type != 'predictability' %}x{% endif %}</small>
             </div>
         </div>
         <small class="text-muted">{{ info_key|trans }}</small>

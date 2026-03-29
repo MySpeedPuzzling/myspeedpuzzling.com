@@ -116,7 +116,7 @@ SQL;
             throw new ManufacturerNotFound();
         }
 
-        if (in_array($sortBy, ['most-solved', 'least-solved', 'a-z', 'z-a'], true) === false) {
+        if (in_array($sortBy, ['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'], true) === false) {
             $sortBy = 'most-solved';
         }
 
@@ -207,6 +207,7 @@ SELECT
     ps.fastest_time_team
 FROM puzzle_base pb
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = pb.puzzle_id
+LEFT JOIN puzzle_difficulty pdi ON pdi.puzzle_id = pb.puzzle_id
 INNER JOIN manufacturer m ON pb.manufacturer_id = m.id
 SQL;
         if ($sortBy === 'most-solved') {
@@ -223,6 +224,14 @@ SQL;
 
         if ($sortBy === 'z-a') {
             $query .= ' ORDER BY pb.puzzle_name DESC, pb.match_score DESC, m.name DESC, pb.pieces_count ';
+        }
+
+        if ($sortBy === 'easiest') {
+            $query .= ' ORDER BY pdi.difficulty_score ASC NULLS LAST, pb.match_score DESC, pb.puzzle_name ';
+        }
+
+        if ($sortBy === 'hardest') {
+            $query .= ' ORDER BY pdi.difficulty_score DESC NULLS LAST, pb.match_score DESC, pb.puzzle_name ';
         }
 
          $query .= ' LIMIT :limit OFFSET :offset';

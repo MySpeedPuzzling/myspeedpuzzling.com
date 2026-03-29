@@ -186,6 +186,8 @@ sorting:
     least_solved: "Least solved"
     a_z: "Name A-Z"
     z_a: "Name Z-A"
+    easiest: "Easiest first"
+    hardest: "Hardest first"
     fastest_ppm: "Fastest PPM"
     slowest_ppm: "Slowest PPM"
 puzzle_overview:

@@ -25,6 +25,8 @@
                 {{ form_data.sortBy == 'least-solved' ? 'sorting.least_solved'|trans }}
                 {{ form_data.sortBy == 'a-z' ? 'sorting.a_z'|trans }}
                 {{ form_data.sortBy == 'z-a' ? 'sorting.z_a'|trans }}
+                {{ form_data.sortBy == 'easiest' ? 'sorting.easiest'|trans }}
+                {{ form_data.sortBy == 'hardest' ? 'sorting.hardest'|trans }}
             </button>
 
             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="sortingDropdown">
@@ -60,6 +62,25 @@
                 >
                     {{ 'sorting.z_a'|trans }}
                 </a>
+                {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
+                    <div class="dropdown-divider"></div>
+                    <a
+                        class="dropdown-item {% if form_data.sortBy == 'easiest' %}active{% endif %}"
+                        href="{{ path('puzzles', app.request.query.all|merge({'sortBy': 'easiest'})) }}"
+                        data-turbo-frame="search-results"
+                        data-turbo="true"
+                    >
+                        {{ 'sorting.easiest'|trans }}
+                    </a>
+                    <a
+                        class="dropdown-item {% if form_data.sortBy == 'hardest' %}active{% endif %}"
+                        href="{{ path('puzzles', app.request.query.all|merge({'sortBy': 'hardest'})) }}"
+                        data-turbo-frame="search-results"
+                        data-turbo="true"
+                    >
+                        {{ 'sorting.hardest'|trans }}
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

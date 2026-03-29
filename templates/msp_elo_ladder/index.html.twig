@@ -15,21 +15,75 @@
         <a href="{{ path('methodology') }}" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
     </p>
 
-    {# Player's own position or progress #}
-    {% if player_position is not null %}
-        <div class="alert alert-success d-flex align-items-center py-2 fs-sm">
-            <i class="bi bi-trophy me-2"></i>
-            {{ 'puzzle_intelligence.elo.your_position'|trans({'%rank%': player_position}) }}
+    {# Player's own position or qualification progress #}
+    {% if player_position is not null and player_elo_rating is not null %}
+        {# Ranked — show position and rating #}
+        {% if player_elo_rating >= 1400 %}
+            {% set my_rank_tier = 'legend' %}
+        {% elseif player_elo_rating >= 1200 %}
+            {% set my_rank_tier = 'expert' %}
+        {% elseif player_elo_rating >= 1000 %}
+            {% set my_rank_tier = 'proficient' %}
+        {% elseif player_elo_rating >= 800 %}
+            {% set my_rank_tier = 'enthusiast' %}
+        {% else %}
+            {% set my_rank_tier = 'casual' %}
+        {% endif %}
+        <div class="card shadow-custom mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center gap-3">
+                    <svg class="rank-icon flex-shrink-0" width="40" height="40" style="color: var(--rank-{{ my_rank_tier }})"><use href="/rank-icons-sprite.svg#rank-{{ my_rank_tier }}"/></svg>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="h4 mb-0 fw-bold">#{{ player_position }}</span>
+                            <span class="text-muted">&middot;</span>
+                            <span class="fw-bold">{{ player_elo_rating }} ELO</span>
+                        </div>
+                        <small class="text-muted">
+                            {{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': total_count}) }}
+                        </small>
+                    </div>
+                </div>
+            </div>
         </div>
     {% elseif logged_player is not null and elo_progress is not null %}
-        <div class="alert alert-info py-2 fs-sm">
-            <i class="bi bi-lock me-1"></i>
-            {{ 'puzzle_intelligence.elo.not_eligible'|trans({
-                '%first_attempts%': elo_progress.first_attempts,
-                '%min_first_attempts%': 15,
-                '%total%': elo_progress.total_solves,
-                '%min_total%': 50,
-            }) }}
+        {# Not yet qualified — show progress toward qualification #}
+        {% set fa_done = elo_progress.first_attempts >= min_first_attempts %}
+        {% set ts_done = elo_progress.total_solves >= min_total_solves %}
+        <div class="card shadow-custom mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <svg class="rank-icon flex-shrink-0" width="32" height="32" style="color: var(--rank-unknown)"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
+                    <div>
+                        <h6 class="mb-0">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</h6>
+                        <small class="text-muted">{{ 'puzzle_intelligence.elo.qualification_desc'|trans }}</small>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <small class="text-muted" style="min-width: 110px;">
+                        <i class="bi bi-{{ fa_done ? 'check-circle-fill text-success' : 'circle' }} me-1"></i>
+                        {{ 'puzzle_intelligence.elo.progress_first_attempts'|trans }}
+                    </small>
+                    <div class="progress flex-grow-1" style="height: 6px;">
+                        {% set fa_pct = (elo_progress.first_attempts / min_first_attempts * 100) > 100 ? 100 : (elo_progress.first_attempts / min_first_attempts * 100) %}
+                        <div class="progress-bar {{ fa_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ fa_pct }}%;"></div>
+                    </div>
+                    <small class="text-muted fw-medium" style="min-width: 45px;">{{ elo_progress.first_attempts }}/{{ min_first_attempts }}</small>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted" style="min-width: 110px;">
+                        <i class="bi bi-{{ ts_done ? 'check-circle-fill text-success' : 'circle' }} me-1"></i>
+                        {{ 'puzzle_intelligence.elo.progress_total_solves'|trans }}
+                    </small>
+                    <div class="progress flex-grow-1" style="height: 6px;">
+                        {% set ts_pct = (elo_progress.total_solves / min_total_solves * 100) > 100 ? 100 : (elo_progress.total_solves / min_total_solves * 100) %}
+                        <div class="progress-bar {{ ts_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ ts_pct }}%;"></div>
+                    </div>
+                    <small class="text-muted fw-medium" style="min-width: 45px;">{{ elo_progress.total_solves }}/{{ min_total_solves }}</small>
+                </div>
+            </div>
         </div>
     {% endif %}
 

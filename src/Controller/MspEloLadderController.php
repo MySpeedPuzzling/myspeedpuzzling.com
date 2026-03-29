@@ -49,11 +49,15 @@ final class MspEloLadderController extends AbstractController
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $playerPosition = null;
+        $playerEloRating = null;
         $eloProgress = null;
 
         if ($loggedPlayer !== null) {
             $playerPosition = $this->getPlayerEloRanking->playerPosition($loggedPlayer->playerId, $piecesCount, $period);
             $eloProgress = $this->mspEloCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
+
+            $playerEloData = $this->getPlayerEloRanking->allForPlayer($loggedPlayer->playerId, $period);
+            $playerEloRating = $playerEloData[$piecesCount]['elo_rating'] ?? null;
         }
 
         return $this->render('msp_elo_ladder/index.html.twig', [
@@ -61,10 +65,13 @@ final class MspEloLadderController extends AbstractController
             'total_count' => $totalCount,
             'pieces_count' => $piecesCount,
             'player_position' => $playerPosition,
+            'player_elo_rating' => $playerEloRating,
             'elo_progress' => $eloProgress,
             'logged_player' => $loggedPlayer,
             'current_page' => $page,
             'total_pages' => $totalPages,
+            'min_first_attempts' => MspEloCalculator::MINIMUM_FIRST_ATTEMPTS,
+            'min_total_solves' => MspEloCalculator::MINIMUM_TOTAL_SOLVES,
         ]);
     }
 }

@@ -8,8 +8,8 @@ use Doctrine\DBAL\Connection;
 
 readonly final class MspEloCalculator
 {
-    private const int MINIMUM_FIRST_ATTEMPTS = 15;
-    private const int MINIMUM_TOTAL_SOLVES = 50;
+    public const int MINIMUM_FIRST_ATTEMPTS = 15;
+    public const int MINIMUM_TOTAL_SOLVES = 50;
     private const int STARTING_ELO = 1000;
     private const int K_FACTOR_PLACEMENT = 60;
     private const int K_FACTOR_ESTABLISHED = 30;

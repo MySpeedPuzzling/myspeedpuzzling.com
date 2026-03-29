@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\GetPlayerBaselineProgress;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetPlayerSkillHistory;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Results\PlayerSkillHistoryPoint;
 use SpeedPuzzling\Web\Results\PlayerSkillResult;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
@@ -86,7 +87,12 @@ final class PlayerSkillProfile
         $this->computeBaselineAndTarget();
 
         if ($this->skills === []) {
-            $this->progress = $this->getPlayerBaselineProgress->solveProgress($this->playerId);
+            $allProgress = $this->getPlayerBaselineProgress->solveProgress($this->playerId);
+            $this->progress = array_filter(
+                $allProgress,
+                static fn (array $data, int $pc): bool => in_array($pc, PuzzleIntelligenceRecalculator::SKILL_PIECES_COUNTS, true),
+                ARRAY_FILTER_USE_BOTH,
+            );
         }
     }
 

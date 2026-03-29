@@ -95,30 +95,37 @@
             </div>
 
             {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
-                <div class="mb-2">
-                    <small class="text-muted me-1">{{ 'puzzle_intelligence.difficulty.title'|trans }}:</small>
-                    {% set tier_options = [
-                        {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy', dot: 'dot-tier-veryeasy'},
-                        {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy', dot: 'dot-tier-easy'},
-                        {value: 3, label: 'puzzle_intelligence.difficulty.tiers.average', dot: 'dot-tier-average'},
-                        {value: 4, label: 'puzzle_intelligence.difficulty.tiers.challenging', dot: 'dot-tier-challenging'},
-                        {value: 5, label: 'puzzle_intelligence.difficulty.tiers.hard', dot: 'dot-tier-hard'},
-                        {value: 6, label: 'puzzle_intelligence.difficulty.tiers.veryhard', dot: 'dot-tier-veryhard'},
-                    ] %}
-                    {% for option in tier_options %}
-                        <div class="form-check form-check-inline mb-1">
-                            <input type="checkbox"
-                                   class="form-check-input"
-                                   id="difficulty-{{ option.value }}"
-                                   name="difficultyTiers[]"
-                                   value="{{ option.value }}"
-                                   {% if option.value in form_data.difficultyTiers %}checked{% endif %}>
-                            <label for="difficulty-{{ option.value }}" class="form-check-label fs-sm">
-                                <i class="bi bi-circle-fill {{ option.dot }}" style="font-size: 0.5rem; vertical-align: middle;"></i>
-                                {{ option.label|trans }}
+                {% set tier_options = [
+                    {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy', icon: 'diff-very-easy'},
+                    {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy', icon: 'diff-easy'},
+                    {value: 3, label: 'puzzle_intelligence.difficulty.tiers.average', icon: 'diff-average'},
+                    {value: 4, label: 'puzzle_intelligence.difficulty.tiers.challenging', icon: 'diff-challenging'},
+                    {value: 5, label: 'puzzle_intelligence.difficulty.tiers.hard', icon: 'diff-hard'},
+                    {value: 6, label: 'puzzle_intelligence.difficulty.tiers.veryhard', icon: 'diff-very-hard'},
+                ] %}
+                {% set active_count = form_data.difficultyTiers|length %}
+                <div class="dropdown d-inline-block mb-2">
+                    <button class="btn btn-sm {{ active_count > 0 ? 'btn-primary' : 'btn-outline-secondary' }} dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                        <svg class="diff-icon me-1" width="16" height="16" style="color: {{ active_count > 0 ? '#fff' : 'var(--diff-average)' }}"><use href="/difficulty-icons-sprite.svg#diff-average"/></svg>
+                        {{ 'puzzle_intelligence.difficulty.title'|trans }}
+                        {% if active_count > 0 %}
+                            <span class="badge bg-white text-primary ms-1">{{ active_count }}</span>
+                        {% endif %}
+                    </button>
+                    <div class="dropdown-menu p-2" style="min-width: 200px;">
+                        {% for option in tier_options %}
+                            <label class="dropdown-item d-flex align-items-center gap-2 rounded px-2 py-1" for="difficulty-{{ option.value }}">
+                                <input type="checkbox"
+                                       class="form-check-input mt-0"
+                                       id="difficulty-{{ option.value }}"
+                                       name="difficultyTiers[]"
+                                       value="{{ option.value }}"
+                                       {% if option.value in form_data.difficultyTiers %}checked{% endif %}>
+                                <svg class="diff-icon" width="16" height="16" style="color: var(--{{ option.icon }})"><use href="/difficulty-icons-sprite.svg#{{ option.icon }}"/></svg>
+                                <span class="fs-sm">{{ option.label|trans }}</span>
                             </label>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
             {% endif %}
 

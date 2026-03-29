@@ -42,10 +42,10 @@
                                         {% set diff_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
                                         <svg class="diff-icon" width="16" height="16" style="color: var(--{{ diff_icon_map[diff_tier] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ diff_icon_map[diff_tier] ?? 'diff-unknown' }}"/></svg>
                                     {% else %}
-                                        <svg class="diff-icon" width="16" height="16" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
+                                        <svg class="diff-icon" width="24" height="24" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
                                     {% endif %}
                                 {% else %}
-                                    <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                                    <svg class="diff-icon" width="24" height="24" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
                                 {% endif %}
                             {% endif %}
                             <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>

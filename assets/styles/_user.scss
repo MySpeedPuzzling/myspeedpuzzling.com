@@ -220,8 +220,8 @@ $tier-very-hard: #8a1820;
   --diff-locked: #999;
 }
 
-[class^="badge-tier-"], [class*=" badge-tier-"],
-[class^="badge-skill-"], [class*=" badge-skill-"] {
+// 3D badge style — only for the main difficulty badge, not inline metric badges
+.badge-tier-styled, .badge-skill-styled {
   border: 1px solid #fff;
   box-shadow: 0 0 6px 0 rgba(0, 0, 0, 0.3);
 }

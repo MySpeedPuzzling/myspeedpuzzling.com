@@ -77,7 +77,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommandTest extends KernelTestCa
         self::assertSame(1, (int) $count, 'Should have exactly one baseline per player per piece count');
     }
 
-    public function testPuzzle500_01HasDifficultyAfterRecalculation(): void
+    public function testPuzzle50001HasDifficultyAfterRecalculation(): void
     {
         $this->recalculator->recalculate();
 

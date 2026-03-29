@@ -56,7 +56,22 @@
                         {% endif %}
                     </div>
 
-                    <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                    <span class="d-inline-flex align-items-center gap-1">
+                        {% if is_granted('ADMIN_ACCESS') %}
+                            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                                {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
+                                    {% set dt_name = puzzle_difficulty.difficultyTier.name|lower %}
+                                    {% set dt_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
+                                    <svg class="diff-icon" width="16" height="16" style="color: var(--{{ dt_icon_map[dt_name] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ dt_icon_map[dt_name] ?? 'diff-unknown' }}"/></svg>
+                                {% else %}
+                                    <svg class="diff-icon" width="16" height="16" style="color: var(--diff-unknown)"><use href="/difficulty-icons-sprite.svg#diff-unknown"/></svg>
+                                {% endif %}
+                            {% else %}
+                                <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                            {% endif %}
+                        {% endif %}
+                        <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                    </span>
                 </div>
                 <div>
                     <div class="fs-sm manufacturer-name">

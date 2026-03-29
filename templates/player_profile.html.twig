@@ -9,7 +9,7 @@
     <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
     <twig:PlayerHeader player="{{ player }}" :primary_skill="primary_skill" />
 
-    <div class="row">
+    <div class="row mb-2">
         {% if player.activeMembership %}
             <p class="col-sm">
                 <a href="{{ path('membership') }}" class="badge bg-primary py-1 px-2 text-light">
@@ -94,11 +94,7 @@
                 </div>
 
                 <div class="collapse mb-3" id="playerInsights">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
-                        </div>
-                    </div>
+                    <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
                 </div>
             {% else %}
                 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">

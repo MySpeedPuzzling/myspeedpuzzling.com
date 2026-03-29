@@ -1917,6 +1917,7 @@ puzzle_intelligence:
         faster_than_label: "Faster than %percentile%% of players"
         need_more_puzzles: "%count% more qualifying puzzles needed"
         not_enough_data: "Not enough data for %pieces%pc"
+        progress_explanation: "Solve more puzzles to unlock your skill tier for each piece count."
         improvement_title: "Your Improvement"
         improved_by: "You improved %percent%% in the last %months% months!"
         next_tier: "Next:"

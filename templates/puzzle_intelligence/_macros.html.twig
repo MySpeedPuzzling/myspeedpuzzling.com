@@ -77,8 +77,8 @@
 
 {# Skill tier badge with icon and custom color #}
 {% macro skill_badge(tier_name, extra_class) %}
-    <span class="badge badge-skill-{{ tier_name }} badge-skill-styled {{ extra_class ?? '' }}">
-        <svg class="rank-icon" width="16" height="16" style="color: #fff">
+    <span class="badge badge-skill-{{ tier_name }} badge-skill-styled {{ extra_class ?? '' }} d-inline-flex align-items-center gap-1">
+        <svg class="rank-icon" width="24" height="24" style="color: #fff">
             <use href="/rank-icons-sprite.svg#rank-{{ tier_name }}"/>
         </svg>
         {{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}

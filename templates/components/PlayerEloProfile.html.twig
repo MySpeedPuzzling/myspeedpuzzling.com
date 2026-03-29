@@ -4,6 +4,10 @@
         {% for pc, data in eloRatings %}
             <div class="card shadow-custom flex-shrink-0 flex-grow-0 border-primary">
                 <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                    </div>
                     <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.your_ranking_among'|trans({'%total%': data.total}) }}</small>
                     <div class="d-flex align-items-center gap-2">
                         <span class="h5 mb-0 fw-bold" style="font-family: monospace;">#{{ data.rank }}</span>

@@ -1877,6 +1877,7 @@ puzzle_intelligence:
         not_enough_data: "Not enough data"
         need_more_solvers: "%count% more qualified solvers needed"
         filter_label: "Difficulty"
+        explanation: "Compared to how players typically perform on their puzzles."
         members_only: "Difficulty data is available for members"
         tiers:
             veryeasy: "Very Easy"
@@ -1904,6 +1905,7 @@ puzzle_intelligence:
         estimated_time: "Estimated time"
         range: "%low% - %high%"
         difficulty_for_you: "Difficulty for your level"
+        explanation: "Based on your personal solving history and this puzzle's difficulty, here's our estimate."
         not_available: "Solve %count% more %pieces%pc puzzles to unlock predictions"
         not_available_generic: "We need more of your solving data for this piece count to predict your time."
     skill:

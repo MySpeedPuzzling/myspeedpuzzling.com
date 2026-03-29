@@ -20,6 +20,7 @@ This file documents all active feature flags in the codebase — where they are,
 | `templates/_puzzle_item.html.twig` | Wraps difficulty icon before piece count | Difficulty icon on puzzle list items |
 | `templates/puzzles.html.twig` | Combined with membership check | Difficulty filter dropdown on puzzle search |
 | `templates/_puzzle_search_results.html.twig` | Combined with membership check | "Easiest first" / "Hardest first" sort options |
+| `templates/components/PlayerHeader.html.twig` | Wraps skill tier icon before player name | Rank icon next to player name in breadcrumb |
 
 ### Notes
 

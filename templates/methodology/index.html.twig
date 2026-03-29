@@ -231,7 +231,7 @@
         <div class="card-body">
             <h4 class="d-flex align-items-center gap-2 mb-3">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">5</span>
-                {{ 'puzzle_intelligence.methodology.section_prediction_title'|trans }}
+                <i class="bi bi-clock-history"></i> {{ 'puzzle_intelligence.methodology.section_prediction_title'|trans }}
             </h4>
 
             <div class="card bg-light border-0 mb-2">
@@ -257,7 +257,7 @@
             <div class="row g-3">
                 {% set metrics = [
                     {icon: 'bi-arrow-repeat', name: 'puzzle_intelligence.personality.memorability', desc: 'puzzle_intelligence.personality.memorability_desc', detail: 'Compares first-try times to repeat times. 1.0 = no difference, 2.0 = twice as easy on repeat.'},
-                    {icon: 'bi-people', name: 'puzzle_intelligence.personality.skill_sensitivity', desc: 'puzzle_intelligence.personality.skill_sensitivity_desc', detail: 'Compares the 75th and 25th percentile solving times. Higher = bigger gap between fast and slow solvers.'},
+                    {icon: 'bi-speedometer2', name: 'puzzle_intelligence.personality.skill_sensitivity', desc: 'puzzle_intelligence.personality.skill_sensitivity_desc', detail: 'Compares the 75th and 25th percentile solving times. Higher = bigger gap between fast and slow solvers.'},
                     {icon: 'bi-bullseye', name: 'puzzle_intelligence.personality.predictability', desc: 'puzzle_intelligence.personality.predictability_desc', detail: 'Inverse of how much solving times vary. Higher = most people agree on how hard it is.'},
                     {icon: 'bi-box', name: 'puzzle_intelligence.personality.box_dependence', desc: 'puzzle_intelligence.personality.box_dependence_desc', detail: 'Compares difficulty with and without the box image. 1.0 = no help, 2.0 = twice as hard without box.'},
                 ] %}
@@ -284,12 +284,12 @@
         <div class="card-body">
             <h4 class="d-flex align-items-center gap-2 mb-3">
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">7</span>
-                {{ 'puzzle_intelligence.difficulty.confidence_label'|trans }} & {{ 'puzzle_intelligence.methodology.section_data_quality_title'|trans }}
+                <i class="bi bi-shield-check"></i> {{ 'puzzle_intelligence.difficulty.confidence_label'|trans }} & {{ 'puzzle_intelligence.methodology.section_data_quality_title'|trans }}
             </h4>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
-                    <h6 class="fs-sm">{{ 'puzzle_intelligence.methodology.section_confidence_title'|trans }}</h6>
+                    <h6 class="fs-sm"><i class="bi bi-shield-check me-1"></i>{{ 'puzzle_intelligence.methodology.section_confidence_title'|trans }}</h6>
                     <p class="fs-sm text-muted mb-2">Every metric shows how confident we are, based on the amount of data:</p>
                     <div class="d-flex flex-column gap-2 fs-sm">
                         <div><strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.high'|trans }}</strong> — 20+ qualified solvers</div>

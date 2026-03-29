@@ -220,6 +220,12 @@ $tier-very-hard: #8a1820;
   --diff-locked: #999;
 }
 
+[class^="badge-tier-"], [class*=" badge-tier-"],
+[class^="badge-skill-"], [class*=" badge-skill-"] {
+  border: 1px solid #fff;
+  box-shadow: 0 0 6px 0 rgba(0, 0, 0, 0.3);
+}
+
 .badge-tier-veryeasy { background-color: $tier-very-easy !important; color: #fff !important; }
 .badge-tier-easy { background-color: $tier-easy !important; color: #fff !important; }
 .badge-tier-average { background-color: $tier-average !important; color: #fff !important; }

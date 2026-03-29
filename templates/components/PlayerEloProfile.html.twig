@@ -17,7 +17,7 @@
         {# Not yet qualified — qualification banner matching ELO ladder style #}
         {% set fa_done = eloProgress.first_attempts >= 15 %}
         {% set ts_done = eloProgress.total_solves >= 50 %}
-        <div class="card border-primary bg-primary bg-opacity-10 shadow-custom">
+        <div class="card border-primary shadow-custom flex-shrink-0" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
             <div class="card-body py-2 px-3">
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <svg class="rank-icon flex-shrink-0 text-primary" width="24" height="24"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>

@@ -31,13 +31,12 @@
                         {% if next_tier is not null %}
                             {% set next_name = next_tier.name|lower %}
                             {% set gap = ((next_tier.minimumPercentile - skill.skillPercentile)|round(1))|abs %}
-                            <div class="d-flex align-items-center justify-content-between mt-1">
+                            <div class="mt-1">
                                 <small class="text-muted d-flex align-items-center gap-1">
                                     {{ 'puzzle_intelligence.skill.next_tier'|trans }}
                                     <svg class="rank-icon" width="14" height="14" style="color: var(--rank-{{ next_name }})"><use href="/rank-icons-sprite.svg#rank-{{ next_name }}"/></svg>
                                     {{ ('puzzle_intelligence.skill.tiers.' ~ next_name)|trans }}
                                 </small>
-                                <small class="text-muted">{{ 'puzzle_intelligence.skill.next_tier_gap'|trans({'%gap%': gap|number_format(1)}) }}</small>
                             </div>
                         {% else %}
                             <div class="mt-1">

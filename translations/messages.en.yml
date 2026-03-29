@@ -1934,6 +1934,7 @@ puzzle_intelligence:
         last_active: "Last active"
         your_position: "Your position: #%rank%"
         your_ranking: "Your ranking"
+        your_ranking_among: "Your ranking (among %total% players)"
         ranked_out_of: "Ranked among %total% players"
         qualification_title: "Qualify for the ranking"
         qualification_desc: "We need enough solving data to place you fairly. Keep solving 500 piece puzzles!"

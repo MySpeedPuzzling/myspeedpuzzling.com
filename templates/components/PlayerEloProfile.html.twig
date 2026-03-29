@@ -2,38 +2,13 @@
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
         {% if eloRatings is not empty %}
             {% for pc, data in eloRatings %}
-                {% if data.elo_rating >= 1400 %}
-                    {% set elo_rank = 'legend' %}
-                {% elseif data.elo_rating >= 1200 %}
-                    {% set elo_rank = 'expert' %}
-                {% elseif data.elo_rating >= 1000 %}
-                    {% set elo_rank = 'proficient' %}
-                {% elseif data.elo_rating >= 800 %}
-                    {% set elo_rank = 'enthusiast' %}
-                {% else %}
-                    {% set elo_rank = 'casual' %}
-                {% endif %}
-                <div class="d-flex align-items-center gap-3">
-                    <div class="text-center flex-shrink-0">
-                        <svg class="rank-icon" width="36" height="36" style="color: var(--rank-{{ elo_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ elo_rank }}"/></svg>
-                        <div style="font-size: 0.7rem; color: var(--rank-{{ elo_rank }})" class="fw-medium">{{ ('puzzle_intelligence.skill.tiers.' ~ elo_rank)|trans }}</div>
-                    </div>
-                    <div class="flex-grow-1" style="line-height: 1.3;">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="h5 mb-0 fw-bold">#{{ data.rank }}</span>
-                            <span class="text-muted">&middot;</span>
-                            <span class="fw-bold">{{ data.elo_rating }} ELO</span>
-                        </div>
-                        <small class="text-muted" style="font-size: 0.75rem;">{{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': data.total}) }}</small>
-                    </div>
+                <div class="d-flex align-items-center gap-2" style="line-height: 1.3;">
+                    <span class="h5 mb-0 fw-bold" style="font-family: monospace;">#{{ data.rank }}</span>
+                    <span class="text-muted">&middot;</span>
+                    <span class="fw-bold" style="font-family: monospace;">{{ data.elo_rating }} ELO</span>
+                    <small class="text-muted ms-1">{{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': data.total}) }}</small>
                 </div>
             {% endfor %}
-
-            <div class="text-end mt-2">
-                <a href="{{ path('msp_elo_ladder') }}" class="btn btn-sm btn-outline-primary">
-                    {{ 'puzzle_intelligence.elo.view_full_ladder'|trans }}
-                </a>
-            </div>
 
         {% elseif isOwnProfile %}
             {# Own profile, not ranked — show progress #}

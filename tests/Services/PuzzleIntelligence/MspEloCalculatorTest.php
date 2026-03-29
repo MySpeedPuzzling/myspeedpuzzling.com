@@ -49,8 +49,8 @@ final class MspEloCalculatorTest extends KernelTestCase
 
     public function testCalculateReturnsStartingEloForIneligiblePlayer(): void
     {
-        $elo = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500, 'all-time');
+        $elo = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
 
-        self::assertSame(1000, $elo);
+        self::assertSame(1000.0, $elo);
     }
 }

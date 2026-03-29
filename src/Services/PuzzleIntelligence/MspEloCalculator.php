@@ -79,20 +79,14 @@ readonly final class MspEloCalculator
      * Calculate full ELO rating for a player by replaying all their solves.
      * Used during batch recalculation.
      */
-    public function calculateForPlayer(string $playerId, int $piecesCount, string $period): int
+    public function calculateForPlayer(string $playerId, int $piecesCount): float
     {
         if (!$this->isEligible($playerId, $piecesCount)) {
-            return self::STARTING_ELO;
-        }
-
-        $periodCondition = '';
-
-        if ($period !== 'all-time') {
-            // Period is in YYYY-MM format
-            $periodCondition = "AND DATE_TRUNC('month', COALESCE(pst.finished_at, pst.tracked_at)) = :period::date";
+            return (float) self::STARTING_ELO;
         }
 
         // Get first-attempt solo solves for this player, ordered by date
+        // TODO: Replace with v2 portfolio-based calculation in Phase 4
         $sql = "
             SELECT
                 pst.puzzle_id,
@@ -106,23 +100,16 @@ readonly final class MspEloCalculator
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
                 AND pst.first_attempt = true
-                {$periodCondition}
             ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC
         ";
 
-        $params = [
+        /** @var list<array{puzzle_id: string, seconds_to_solve: int|string, solve_date: string}> $solves */
+        $solves = $this->connection->fetchAllAssociative($sql, [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
-        ];
+        ]);
 
-        if ($period !== 'all-time') {
-            $params['period'] = $period . '-01';
-        }
-
-        /** @var list<array{puzzle_id: string, seconds_to_solve: int|string, solve_date: string}> $solves */
-        $solves = $this->connection->fetchAllAssociative($sql, $params);
-
-        $elo = self::STARTING_ELO;
+        $elo = (float) self::STARTING_ELO;
         $matchCount = 0;
 
         foreach ($solves as $solve) {
@@ -135,12 +122,11 @@ readonly final class MspEloCalculator
                 continue;
             }
 
-            // Expected percentile based on current ELO vs average pool ELO
-            $avgPoolElo = $this->getAveragePoolElo($puzzleId, $piecesCount, $period);
+            $avgPoolElo = $this->getAveragePoolElo($piecesCount);
             $expectedPercentile = 1.0 / (1.0 + (10.0 ** (($avgPoolElo - $elo) / 400.0)));
 
             $kFactor = $matchCount < self::PLACEMENT_MATCHES ? self::K_FACTOR_PLACEMENT : self::K_FACTOR_ESTABLISHED;
-            $elo += (int) round($kFactor * ($percentile - $expectedPercentile));
+            $elo += round($kFactor * ($percentile - $expectedPercentile), 6);
 
             $matchCount++;
         }
@@ -177,17 +163,15 @@ readonly final class MspEloCalculator
         return (int) $result['slower'] / ((int) $result['total'] - 1);
     }
 
-    private function getAveragePoolElo(string $puzzleId, int $piecesCount, string $period): float
+    private function getAveragePoolElo(int $piecesCount): float
     {
         /** @var array{avg_elo: float|string|null}|false $result */
         $result = $this->connection->fetchAssociative("
             SELECT AVG(pe.elo_rating) AS avg_elo
             FROM player_elo pe
             WHERE pe.pieces_count = :piecesCount
-                AND pe.period = :period
         ", [
             'piecesCount' => $piecesCount,
-            'period' => $period,
         ]);
 
         if ($result === false || $result['avg_elo'] === null) {

@@ -38,14 +38,13 @@ final class MspEloLadderController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        $period = 'all-time';
         $piecesCount = self::PIECES_COUNT;
 
         $page = max(1, $request->query->getInt('page', 1));
         $offset = ($page - 1) * self::PER_PAGE;
 
-        $entries = $this->getPlayerEloRanking->ranking($piecesCount, $period, self::PER_PAGE, $offset);
-        $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount, $period);
+        $entries = $this->getPlayerEloRanking->ranking($piecesCount, self::PER_PAGE, $offset);
+        $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount);
         $totalPages = max(1, (int) ceil($totalCount / self::PER_PAGE));
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
@@ -54,10 +53,10 @@ final class MspEloLadderController extends AbstractController
         $eloProgress = null;
 
         if ($loggedPlayer !== null) {
-            $playerPosition = $this->getPlayerEloRanking->playerPosition($loggedPlayer->playerId, $piecesCount, $period);
+            $playerPosition = $this->getPlayerEloRanking->playerPosition($loggedPlayer->playerId, $piecesCount);
             $eloProgress = $this->mspEloCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
 
-            $playerEloData = $this->getPlayerEloRanking->allForPlayer($loggedPlayer->playerId, $period);
+            $playerEloData = $this->getPlayerEloRanking->allForPlayer($loggedPlayer->playerId);
             $playerEloRating = $playerEloData[$piecesCount]['elo_rating'] ?? null;
         }
 

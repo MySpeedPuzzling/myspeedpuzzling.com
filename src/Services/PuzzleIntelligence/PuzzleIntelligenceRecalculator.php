@@ -149,8 +149,8 @@ readonly final class PuzzleIntelligenceRecalculator
                     continue;
                 }
 
-                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
-                $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
+                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount);
+                $this->upsertElo($playerId, $piecesCount, $eloRating, $now);
                 $count++;
             }
         }
@@ -274,20 +274,22 @@ readonly final class PuzzleIntelligenceRecalculator
         );
     }
 
-    private function upsertBaseline(string $playerId, int $piecesCount, int $baselineSeconds, int $qualifyingCount, \DateTimeImmutable $now): void
+    private function upsertBaseline(string $playerId, int $piecesCount, int $baselineSeconds, int $qualifyingCount, \DateTimeImmutable $now, string $baselineType = 'direct'): void
     {
         $this->connection->executeStatement("
-            INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, :now)
+            INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
+            VALUES (gen_random_uuid(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, :baselineType, :now)
             ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 baseline_seconds = EXCLUDED.baseline_seconds,
                 qualifying_solves_count = EXCLUDED.qualifying_solves_count,
+                baseline_type = EXCLUDED.baseline_type,
                 computed_at = EXCLUDED.computed_at
         ", [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
             'baselineSeconds' => $baselineSeconds,
             'qualifyingCount' => $qualifyingCount,
+            'baselineType' => $baselineType,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
     }
@@ -325,7 +327,7 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @param array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null} $metrics
+     * @param array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null, improvement_ceiling_score: float|null} $metrics
      */
     private function updateDerivedMetrics(string $puzzleId, array $metrics): void
     {
@@ -334,7 +336,8 @@ readonly final class PuzzleIntelligenceRecalculator
                 memorability_score = :memorability,
                 skill_sensitivity_score = :skillSensitivity,
                 predictability_score = :predictability,
-                box_dependence_score = :boxDependence
+                box_dependence_score = :boxDependence,
+                improvement_ceiling_score = :improvementCeiling
             WHERE puzzle_id = :puzzleId
         ", [
             'puzzleId' => $puzzleId,
@@ -342,6 +345,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'skillSensitivity' => $metrics['skill_sensitivity_score'],
             'predictability' => $metrics['predictability_score'],
             'boxDependence' => $metrics['box_dependence_score'],
+            'improvementCeiling' => $metrics['improvement_ceiling_score'],
         ]);
     }
 
@@ -380,18 +384,17 @@ readonly final class PuzzleIntelligenceRecalculator
         );
     }
 
-    private function upsertElo(string $playerId, int $piecesCount, string $period, int $eloRating, \DateTimeImmutable $now): void
+    private function upsertElo(string $playerId, int $piecesCount, float $eloRating, \DateTimeImmutable $now): void
     {
         $this->connection->executeStatement("
-            INSERT INTO player_elo (id, player_id, pieces_count, period, elo_rating, matches_count, last_solve_at, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :period, :eloRating, 0, :now, :now)
-            ON CONFLICT (player_id, pieces_count, period) DO UPDATE SET
+            INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at)
+            VALUES (gen_random_uuid(), :playerId, :piecesCount, :eloRating, :now)
+            ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 elo_rating = EXCLUDED.elo_rating,
                 computed_at = EXCLUDED.computed_at
         ", [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
-            'period' => $period,
             'eloRating' => $eloRating,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);

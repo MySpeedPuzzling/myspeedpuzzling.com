@@ -37,16 +37,20 @@ class PlayerBaseline
         public int $qualifyingSolvesCount,
         #[Column]
         public DateTimeImmutable $computedAt,
+        #[Column(options: ['default' => 'direct'])]
+        public string $baselineType = 'direct',
     ) {
     }
 
     public function update(
         int $baselineSeconds,
         int $qualifyingSolvesCount,
+        string $baselineType,
         DateTimeImmutable $computedAt,
     ): void {
         $this->baselineSeconds = $baselineSeconds;
         $this->qualifyingSolvesCount = $qualifyingSolvesCount;
+        $this->baselineType = $baselineType;
         $this->computedAt = $computedAt;
     }
 }

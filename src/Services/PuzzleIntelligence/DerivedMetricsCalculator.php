@@ -24,6 +24,7 @@ readonly final class DerivedMetricsCalculator
      *     skill_sensitivity_score: float|null,
      *     predictability_score: float|null,
      *     box_dependence_score: float|null,
+     *     improvement_ceiling_score: float|null,
      * }
      */
     public function calculateForPuzzle(string $puzzleId): array
@@ -39,6 +40,7 @@ readonly final class DerivedMetricsCalculator
             'skill_sensitivity_score' => $this->computeSkillSensitivity($allIndices),
             'predictability_score' => $this->computePredictability($allIndices),
             'box_dependence_score' => $this->computeBoxDependence($unboxedIndices, $boxedIndices),
+            'improvement_ceiling_score' => null, // TODO: Implement in Phase 5
         ];
     }
 

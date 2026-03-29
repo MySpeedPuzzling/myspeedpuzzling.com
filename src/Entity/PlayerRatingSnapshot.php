@@ -17,9 +17,9 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 #[Entity]
-#[UniqueConstraint(columns: ['player_id', 'pieces_count'])]
-#[Index(columns: ['pieces_count', 'elo_rating'])]
-class PlayerElo
+#[UniqueConstraint(columns: ['player_id', 'pieces_count', 'snapshot_date'])]
+#[Index(columns: ['player_id', 'snapshot_date'])]
+class PlayerRatingSnapshot
 {
     public function __construct(
         #[Id]
@@ -32,17 +32,23 @@ class PlayerElo
         #[Column]
         public int $piecesCount,
         #[Column]
-        public float $eloRating = 0.0,
+        public DateTimeImmutable $snapshotDate,
+        #[Column(nullable: true)]
+        public null|float $skillScore = null,
+        #[Column(nullable: true)]
+        public null|int $skillTier = null,
+        #[Column(nullable: true)]
+        public null|float $skillPercentile = null,
+        #[Column(nullable: true)]
+        public null|float $eloRating = null,
+        #[Column(nullable: true)]
+        public null|int $eloRank = null,
+        #[Column(nullable: true)]
+        public null|int $baselineSeconds = null,
+        #[Column(nullable: true)]
+        public null|string $baselineType = null,
         #[Column]
         public DateTimeImmutable $computedAt = new DateTimeImmutable(),
     ) {
-    }
-
-    public function updateRating(
-        float $eloRating,
-        DateTimeImmutable $computedAt,
-    ): void {
-        $this->eloRating = $eloRating;
-        $this->computedAt = $computedAt;
     }
 }

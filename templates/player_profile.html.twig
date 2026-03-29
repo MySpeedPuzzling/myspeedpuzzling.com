@@ -66,7 +66,7 @@
         {% if is_granted('ADMIN_ACCESS') %}
             {# Player Insights — visible directly for members, locked for non-members #}
             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                <div class="d-flex flex-column flex-md-row gap-2 mb-2">
+                <div class="d-flex flex-column flex-md-row gap-2 mb-2 w-100">
                     <twig:PlayerEloProfile
                         playerId="{{ player.playerId }}"
                         :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
@@ -74,7 +74,7 @@
                     <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
                 </div>
             {% else %}
-                <div class="d-flex flex-column flex-md-row gap-2 mb-2">
+                <div class="d-flex flex-column flex-md-row gap-2 mb-2 w-100">
                     <twig:PlayerEloProfile
                         playerId="{{ player.playerId }}"
                         :isOwnProfile="false"

@@ -1,6 +1,6 @@
 {% from 'puzzle_intelligence/_macros.html.twig' import percentile_bar, skill_badge %}
 
-<div {{ attributes }}>
+<div {{ attributes.defaults({class: 'flex-grow-1'}) }}>
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
         {% if skills is not empty %}
             {% for skill in skills %}

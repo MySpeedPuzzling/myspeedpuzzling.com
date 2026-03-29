@@ -124,15 +124,14 @@
 - Users seeing the ladder will have questions about how ELO is calculated
 - Add a visible link/button to the methodology page (e.g. "How is this calculated?" or "Learn more about MSP-ELO")
 
-### 18. ELO calculation bug — ranking vs skill mismatch
-- **Problem:** Rank #1 in ELO is a player who is only Top 68% in skill, while a Top 98% skill player ranks behind them
-- **Root causes found and partially fixed:**
-  - **FIXED:** ELO was processing ALL solves (including repeat solves of the same puzzle) — repeat solves gave unfair ELO boosts since the player already knows the puzzle. Now restricted to first attempts only.
-  - **FIXED:** `getPercentileOnPuzzle` was comparing against all solves including repeats. Now first-attempt only.
-  - **FIXED:** Unused `piecesCount` parameter was passed but not used in percentile query.
-  - **Remaining issue:** ELO compares raw solve times (percentile among solvers of that puzzle) which doesn't account for puzzle difficulty. A player who consistently solves easy puzzles faster than average gets high ELO. The skill system corrects for this via `outperformance = puzzle_difficulty / player_difficulty_index`, but ELO doesn't.
-  - **Remaining issue:** `getAveragePoolElo` reads from `player_elo` table during recalculation, which contains values from the previous run — not from the current calculation pass.
-  - **Remaining consideration:** Whether ELO should incorporate difficulty adjustment, or whether ELO (raw speed ranking) and skill percentile (difficulty-adjusted) should remain separate systems measuring different things.
+### 18. ELO algorithm review (do last — backend-only, only changes numbers)
+- **Partial fix done:** Restricted ELO to first-attempt solves only (was counting repeats)
+- **Open questions to brainstorm:**
+  - ELO compares raw solve times (percentile among solvers of that puzzle) — doesn't account for puzzle difficulty. Should it?
+  - `getAveragePoolElo` uses previous-run data during recalculation — stale pool average
+  - Should ELO and skill percentile remain separate systems, or should ELO incorporate difficulty adjustment?
+  - K-factor tuning (currently 60 for first 10 matches, 30 after)
+- **Safe to do last** — only affects calculated numbers, no frontend/UX impact
 
 ### 19. Scope MSP-ELO to 500pc only
 - **Decision:** MSP-ELO will be a single unified ranking based on 500-piece solo performance only
@@ -181,3 +180,9 @@
 - Backend logic stays as-is (computation runs, data is stored) — only template rendering is gated
 - This lets us iterate on visuals and verify calculations on production data before public launch
 - **Remove the flag** once all TODO items are resolved and we're ready for public release
+
+### 25. Locked icons for non-members / not signed in
+- Anywhere a difficulty or skill tier is displayed, non-members and anonymous users should see the **locked icon** (`diff-locked` / `rank-locked`) instead of the actual tier icon
+- This applies to: puzzle list badges, puzzle detail difficulty section, player profile skill/ELO cards, solve analysis recap
+- Use the locked variant from the SVG sprite (padlock inside the same container shape)
+- Should feel like a teaser — "there's something here, become a member to see it"

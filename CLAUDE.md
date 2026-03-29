@@ -134,6 +134,9 @@ See `docs/performance-optimizations.md` for details on LCP & CLS optimizations:
 Feature design documents and implementation plans are in `docs/features/`. Each feature has its own directory with detailed specifications, entity designs, and step-by-step implementation guides.
 - **Marketplace**: `docs/features/marketplace/` — Centralized marketplace, messaging, ratings, shipping settings, admin moderation
 
+### Feature Flags
+Active feature flags are documented in `docs/features/feature_flags.md`. **Always read and update this file** when adding, modifying, or removing feature flags. It tracks which files are gated, what feature each flag belongs to, and when it can be removed.
+
 ### OAuth2 Server
 - Powered by `league/oauth2-server-bundle`
 - Endpoints: `/oauth2/authorize` (custom controller), `/oauth2/token` (bundle controller)

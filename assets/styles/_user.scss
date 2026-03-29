@@ -304,6 +304,7 @@ $skill-legend: #1a1a2e;
 // Fix Bootstrap Icons baseline alignment in flex containers
 .bi {
   line-height: 1;
+  transform: translateY(0.1em);
 }
 
 // Collapse chevron rotation

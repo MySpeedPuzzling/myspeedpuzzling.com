@@ -101,11 +101,11 @@
                     {% for entry in entries %}
                         {% set is_current_player = logged_player is not null and entry.playerId == logged_player.playerId %}
                         <tr class="{{ is_current_player ? 'table-active-player' }}">
-                            <td class="text-center text-muted" style="font-family: monospace; width: 1%; white-space: nowrap; padding-right: 0;">
-                                <small>{{ entry.rank }}</small>
+                            <td class="text-center text-muted pe-md-3" style="font-family: monospace; width: 1%; white-space: nowrap;">
+                                {{ entry.rank }}
                             </td>
-                            <td>
-                                <a href="{{ path('player_profile', {playerId: entry.playerId}) }}" class="text-decoration-none d-flex align-items-center gap-2">
+                            <td style="padding-top: 0; padding-bottom: 0;">
+                                <a href="{{ path('player_profile', {playerId: entry.playerId}) }}" class="text-decoration-none d-flex align-items-center gap-2 py-2">
                                     {% if entry.playerAvatar %}
                                         <img src="{{ entry.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" style="width: 28px; height: 28px; min-width: 28px; object-fit: cover;">
                                     {% else %}
@@ -126,7 +126,7 @@
                                     {% endif %}
                                     <svg class="rank-icon flex-shrink-0" width="20" height="20" style="color: var(--rank-{{ row_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ row_rank }}"/></svg>
                                     <div>
-                                        <small>{{ entry.playerName ?? ('#' ~ entry.playerCode) }}</small>
+                                        <span style="color: #111;">{{ entry.playerName ?? ('#' ~ entry.playerCode) }}</span>
                                         {% if entry.playerCountry %}
                                             <small class="shadow-custom fi fi-{{ entry.playerCountry }} ms-1"></small>
                                         {% endif %}
@@ -134,7 +134,7 @@
                                 </a>
                             </td>
                             <td class="text-end text-nowrap">
-                                <small style="font-family: monospace;">{{ entry.eloRating }}</small>
+                                <span class="fw-bold" style="font-family: monospace; color: #111;">{{ entry.eloRating }}</span>
                             </td>
                         </tr>
                     {% endfor %}

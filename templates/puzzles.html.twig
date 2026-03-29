@@ -51,7 +51,7 @@
               class="filters"
         >
             <div class="row gx-2">
-                <div class="col-sm-6 col-lg-3 mb-2">
+                <div class="col-sm-6 col-lg-2 mb-2">
                     {{ form_errors(search_form.search) }}
                     {{ form_widget(search_form.search) }}
                 </div>
@@ -66,68 +66,68 @@
                     {{ form_widget(search_form.tag) }}
                 </div>
 
-                <div class="col-sm-6 col-lg-3">
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-any" name="{{ field_name(search_form.pieces) }}" value="" {% if form_data.pieces is empty %}checked{% endif %}>
-                        <label for="pieces-any" class="form-option-label">{{ 'all_pieces'|trans }}</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-1-499" value="1-499" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1-499' %}checked{% endif %}>
-                        <label for="pieces-1-499" class="form-option-label">1-499</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-500" value="500" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '500' %}checked{% endif %}>
-                        <label for="pieces-500" class="form-option-label">500</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-501-999" value="501-999" name="{{ field_name(search_form.pieces) }}"{% if form_data.pieces is same as '501-999' %}checked{% endif %}>
-                        <label for="pieces-501-999" class="form-option-label">501-999</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-1000" value="1000" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1000' %}checked{% endif %}>
-                        <label for="pieces-1000" class="form-option-label">1000</label>
-                    </div>
-                    <div class="form-check form-option form-check-inline mb-2">
-                        <input type="radio" class="form-check-input" id="pieces-1001" value="1001+" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1001+' %}checked{% endif %}>
-                        <label for="pieces-1001" class="form-option-label">1001+</label>
+                <div class="col-sm-12 col-lg-6 mb-2">
+                    <div class="d-flex flex-wrap align-items-center gap-1">
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="pieces-any" name="{{ field_name(search_form.pieces) }}" value="" {% if form_data.pieces is empty %}checked{% endif %}>
+                            <label for="pieces-any" class="form-option-label">{{ 'all_pieces'|trans }}</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="pieces-1-499" value="1-499" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1-499' %}checked{% endif %}>
+                            <label for="pieces-1-499" class="form-option-label">1-499</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="pieces-500" value="500" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '500' %}checked{% endif %}>
+                            <label for="pieces-500" class="form-option-label">500</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="pieces-501-999" value="501-999" name="{{ field_name(search_form.pieces) }}"{% if form_data.pieces is same as '501-999' %}checked{% endif %}>
+                            <label for="pieces-501-999" class="form-option-label">501-999</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="pieces-1000" value="1000" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1000' %}checked{% endif %}>
+                            <label for="pieces-1000" class="form-option-label">1000</label>
+                        </div>
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="pieces-1001" value="1001+" name="{{ field_name(search_form.pieces) }}" {% if form_data.pieces is same as '1001+' %}checked{% endif %}>
+                            <label for="pieces-1001" class="form-option-label">1001+</label>
+                        </div>
+
+                        {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
+                            {% set tier_options = [
+                                {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy', icon: 'diff-very-easy'},
+                                {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy', icon: 'diff-easy'},
+                                {value: 3, label: 'puzzle_intelligence.difficulty.tiers.average', icon: 'diff-average'},
+                                {value: 4, label: 'puzzle_intelligence.difficulty.tiers.challenging', icon: 'diff-challenging'},
+                                {value: 5, label: 'puzzle_intelligence.difficulty.tiers.hard', icon: 'diff-hard'},
+                                {value: 6, label: 'puzzle_intelligence.difficulty.tiers.veryhard', icon: 'diff-very-hard'},
+                            ] %}
+                            {% set active_count = form_data.difficultyTiers|length %}
+                            <div class="dropdown">
+                                <button class="btn btn-sm {{ active_count > 0 ? 'btn-primary' : 'btn-outline-secondary' }} dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                    {{ 'puzzle_intelligence.difficulty.filter_label'|trans }}
+                                    {% if active_count > 0 %}
+                                        <span class="badge bg-white text-primary ms-1">{{ active_count }}</span>
+                                    {% endif %}
+                                </button>
+                                <div class="dropdown-menu p-2" style="min-width: 200px;">
+                                    {% for option in tier_options %}
+                                        <label class="dropdown-item d-flex align-items-center gap-2 rounded px-2 py-1" for="difficulty-{{ option.value }}">
+                                            <input type="checkbox"
+                                                   class="form-check-input mt-0"
+                                                   id="difficulty-{{ option.value }}"
+                                                   name="difficultyTiers[]"
+                                                   value="{{ option.value }}"
+                                                   {% if option.value in form_data.difficultyTiers %}checked{% endif %}>
+                                            <svg class="diff-icon" width="16" height="16" style="color: var(--{{ option.icon }})"><use href="/difficulty-icons-sprite.svg#{{ option.icon }}"/></svg>
+                                            <span class="fs-sm">{{ option.label|trans }}</span>
+                                        </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
-
-                {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
-                    {% set tier_options = [
-                        {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy', icon: 'diff-very-easy'},
-                        {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy', icon: 'diff-easy'},
-                        {value: 3, label: 'puzzle_intelligence.difficulty.tiers.average', icon: 'diff-average'},
-                        {value: 4, label: 'puzzle_intelligence.difficulty.tiers.challenging', icon: 'diff-challenging'},
-                        {value: 5, label: 'puzzle_intelligence.difficulty.tiers.hard', icon: 'diff-hard'},
-                        {value: 6, label: 'puzzle_intelligence.difficulty.tiers.veryhard', icon: 'diff-very-hard'},
-                    ] %}
-                    {% set active_count = form_data.difficultyTiers|length %}
-                    <div class="col-sm-6 col-lg-2 mb-2">
-                        <div class="dropdown">
-                            <button class="btn btn-sm {{ active_count > 0 ? 'btn-primary' : 'btn-outline-secondary' }} dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                {{ 'puzzle_intelligence.difficulty.filter_label'|trans }}
-                                {% if active_count > 0 %}
-                                    <span class="badge bg-white text-primary ms-1">{{ active_count }}</span>
-                                {% endif %}
-                            </button>
-                            <div class="dropdown-menu p-2" style="min-width: 200px;">
-                                {% for option in tier_options %}
-                                    <label class="dropdown-item d-flex align-items-center gap-2 rounded px-2 py-1" for="difficulty-{{ option.value }}">
-                                        <input type="checkbox"
-                                               class="form-check-input mt-0"
-                                               id="difficulty-{{ option.value }}"
-                                               name="difficultyTiers[]"
-                                               value="{{ option.value }}"
-                                               {% if option.value in form_data.difficultyTiers %}checked{% endif %}>
-                                        <svg class="diff-icon" width="16" height="16" style="color: var(--{{ option.icon }})"><use href="/difficulty-icons-sprite.svg#{{ option.icon }}"/></svg>
-                                        <span class="fs-sm">{{ option.label|trans }}</span>
-                                    </label>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
             </div>
 
             <input type="hidden" name="sortBy" value="{{ app.request.query.get('sortBy', 'most-solved') }}">

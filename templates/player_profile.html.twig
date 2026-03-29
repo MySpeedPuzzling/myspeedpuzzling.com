@@ -64,26 +64,30 @@
         </div>
     {% else %}
         {% if is_granted('ADMIN_ACCESS') %}
-            {# ELO banner — visible to everyone #}
-            <div class="mb-2">
-                <twig:PlayerEloProfile
-                    playerId="{{ player.playerId }}"
-                    :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
-                />
-            </div>
-
             {# Player Insights — visible directly for members, locked for non-members #}
             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+                <div class="d-flex flex-column flex-md-row gap-2 mb-2">
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
+                    />
+                    <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+                </div>
             {% else %}
-                <button
-                    class="btn btn-outline-primary btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1"
-                    data-bs-toggle="modal"
-                    data-bs-target="#membersExclusiveModal"
-                >
-                    <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-                    {{ 'puzzle_intelligence.player_insights.title'|trans }}
-                </button>
+                <div class="d-flex flex-column flex-md-row gap-2 mb-2">
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="false"
+                    />
+                    <button
+                        class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-1 flex-grow-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
+                        {{ 'puzzle_intelligence.player_insights.title'|trans }}
+                    </button>
+                </div>
             {% endif %}
         {% endif %}
 

@@ -9,10 +9,10 @@
 
                 <div class="card shadow-sm {{ not loop.first ? 'mt-2' : '' }}">
                     <div class="card-body py-2 px-3">
-                        {# Header: icon + badge left, category right #}
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <strong>{{ 'pieces_count'|trans({ '%count%': skill.piecesCount })|raw }}</strong>
+                        {# Header: badge left, category right #}
+                        <div class="d-flex align-items-center justify-content-between mb-1">
                             {{ skill_badge(t_name, 'fs-6') }}
+                            <strong>{{ 'pieces_count'|trans({ '%count%': skill.piecesCount })|raw }}</strong>
                         </div>
 
                         {# Percentile + bar #}

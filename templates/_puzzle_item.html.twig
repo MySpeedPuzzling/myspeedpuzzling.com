@@ -33,7 +33,19 @@
                         <a class="text-decoration-underline fs-sm low-line-height d-inline-block mb-1" data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                             {{ highlight(puzzle.puzzleName, search) }}
                         </a>
-                        <br><small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                        <br>
+                        <span class="d-inline-flex align-items-center gap-1">
+                            {% if is_granted('ADMIN_ACCESS') and difficulty_data is defined and difficulty_data[puzzle.puzzleId] is defined and difficulty_data[puzzle.puzzleId].difficultyTier is not null %}
+                                {% set diff_tier = difficulty_data[puzzle.puzzleId].difficultyTier.name|lower %}
+                                {% set diff_icon_map = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
+                                {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                                    <svg class="diff-icon" width="16" height="16" style="color: var(--{{ diff_icon_map[diff_tier] ?? 'diff-unknown' }})"><use href="/difficulty-icons-sprite.svg#{{ diff_icon_map[diff_tier] ?? 'diff-unknown' }}"/></svg>
+                                {% else %}
+                                    <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+                                {% endif %}
+                            {% endif %}
+                            <small class="fw-bold">{{ 'pieces_count'|trans({ '%count%': puzzle.piecesCount })|raw }}</small>
+                        </span>
                     </div>
 
                     <div class="fs-sm manufacturer-name ps-md-2">
@@ -61,23 +73,6 @@
                                 puzzle_statuses: puzzle_statuses
                             }) }}
                         </span>
-
-                        {% if is_granted('ADMIN_ACCESS') and difficulty_data is defined and difficulty_data[puzzle.puzzleId] is defined and difficulty_data[puzzle.puzzleId].difficultyTier is not null %}
-                            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-                                {% set diff = difficulty_data[puzzle.puzzleId] %}
-                                {% set tier_name = diff.difficultyTier.name|lower %}
-                                {% set is_low_confidence = diff.confidence.value == 'low' %}
-                                {% set diff_icon_ids = {'veryeasy':'diff-very-easy','easy':'diff-easy','average':'diff-average','challenging':'diff-challenging','hard':'diff-hard','veryhard':'diff-very-hard'} %}
-                                <span class="badge badge-tier-{{ tier_name }} rounded-pill mt-1 {{ is_low_confidence ? 'badge-tier-low-confidence' : '' }}">
-                                    <svg class="diff-icon" width="14" height="14" style="color: #fff"><use href="/difficulty-icons-sprite.svg#{{ diff_icon_ids[tier_name] ?? 'diff-unknown' }}"/></svg>
-                                    {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
-                                </span>
-                            {% else %}
-                                <span class="mt-1" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" role="button" style="cursor: pointer;">
-                                    <svg class="diff-icon" width="20" height="20" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
-                                </span>
-                            {% endif %}
-                        {% endif %}
 
                         {% for tag in tags[puzzle.puzzleId] ?? [] %}
                             <span class="badge text-wrap bg-primary rounded-pill mt-1"><i class="ci-diamond"></i> {{ tag.name }}</span>

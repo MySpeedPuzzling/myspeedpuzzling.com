@@ -107,9 +107,9 @@
                             <td>
                                 <a href="{{ path('player_profile', {playerId: entry.playerId}) }}" class="text-decoration-none d-flex align-items-center gap-2">
                                     {% if entry.playerAvatar %}
-                                        <img src="{{ entry.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" width="28" height="28" style="object-fit: cover;">
+                                        <img src="{{ entry.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" style="width: 28px; height: 28px; min-width: 28px; object-fit: cover;">
                                     {% else %}
-                                        <span class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px;">
+                                        <span class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; min-width: 28px;">
                                             <i class="bi bi-person text-muted"></i>
                                         </span>
                                     {% endif %}

@@ -62,31 +62,37 @@
                 </div>
             {% endif %}
         {% else %}
-            {# No skill tiers yet — show progress as compact table #}
+            {# No skill tiers yet — show progress #}
             {% if progress is not empty %}
                 <small class="text-muted d-block mb-2">{{ 'puzzle_intelligence.skill.progress_explanation'|trans }}</small>
-                {% for pc, data in progress %}
-                    <div class="d-flex align-items-center gap-2 py-1 {{ not loop.last ? 'border-bottom' : '' }}">
-                        <span class="fw-medium text-nowrap" style="min-width: 50px;">{{ pc }}pc</span>
-                        <div class="progress flex-grow-1" style="height: 6px;">
+                <div class="card shadow-sm">
+                    <div class="card-body py-2 px-3">
+                        {% for pc, data in progress %}
                             {% set step1_done = data.baseline_solves >= 5 %}
-                            {% if step1_done %}
-                                {% set pct = (data.qualifying_puzzles / 10 * 100) > 100 ? 100 : (data.qualifying_puzzles / 10 * 100) %}
-                                <div class="progress-bar bg-primary" style="width: {{ pct }}%;"></div>
-                            {% else %}
-                                {% set pct = (data.baseline_solves / 5 * 100) > 100 ? 100 : (data.baseline_solves / 5 * 100) %}
-                                <div class="progress-bar bg-info" style="width: {{ pct }}%;"></div>
-                            {% endif %}
-                        </div>
-                        <small class="text-muted text-nowrap" style="min-width: 35px; text-align: right;">
-                            {% if step1_done %}
-                                {{ data.qualifying_puzzles }}/10
-                            {% else %}
-                                {{ data.baseline_solves }}/5
-                            {% endif %}
-                        </small>
+                            <div class="{{ not loop.last ? 'mb-2 pb-2 border-bottom' : '' }}">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="fw-medium">{{ 'pieces_count'|trans({ '%count%': pc })|raw }}</span>
+                                    <small class="text-muted">
+                                        {% if step1_done %}
+                                            {{ data.qualifying_puzzles }}/10
+                                        {% else %}
+                                            {{ data.baseline_solves }}/5
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    {% if step1_done %}
+                                        {% set pct = (data.qualifying_puzzles / 10 * 100) > 100 ? 100 : (data.qualifying_puzzles / 10 * 100) %}
+                                        <div class="progress-bar bg-primary" style="width: {{ pct }}%;"></div>
+                                    {% else %}
+                                        {% set pct = (data.baseline_solves / 5 * 100) > 100 ? 100 : (data.baseline_solves / 5 * 100) %}
+                                        <div class="progress-bar bg-info" style="width: {{ pct }}%;"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                </div>
             {% else %}
                 <div class="text-muted fs-sm">
                     {{ 'puzzle_intelligence.skill.not_enough_data'|trans({'%pieces%': selectedPiecesCount}) }}

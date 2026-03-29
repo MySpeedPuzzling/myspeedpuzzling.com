@@ -1867,6 +1867,7 @@ feature_requests:
 puzzle_intelligence:
     insights:
         title: "Puzzle Insights"
+        no_data: "Not enough data yet. Insights will appear as more players solve this puzzle."
     difficulty:
         title: "Puzzle Difficulty"
         score_label: "Difficulty Score"

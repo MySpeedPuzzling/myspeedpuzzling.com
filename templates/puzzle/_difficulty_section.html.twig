@@ -1,29 +1,29 @@
 {% from 'puzzle_intelligence/_macros.html.twig' import confidence_indicator, human_difficulty, personality_metric, difficulty_badge %}
 
-{% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
-    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-        {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
+{% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+    {# Toggle button — always visible for members #}
+    <button
+        class="btn btn-outline-primary btn-sm w-100 mb-2 d-flex align-items-center justify-content-between"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#puzzleInsights"
+        aria-expanded="false"
+        aria-controls="puzzleInsights"
+    >
+        <span>
+            <i class="bi bi-lightbulb me-1"></i>
+            {{ 'puzzle_intelligence.insights.title'|trans }}
+        </span>
+        <i class="bi bi-chevron-down fs-sm"></i>
+    </button>
 
-        {# Toggle button #}
-        <button
-            class="btn btn-outline-primary btn-sm w-100 mb-2 d-flex align-items-center justify-content-between"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#puzzleInsights"
-            aria-expanded="false"
-            aria-controls="puzzleInsights"
-        >
-            <span>
-                <i class="bi bi-lightbulb me-1"></i>
-                {{ 'puzzle_intelligence.insights.title'|trans }}
-            </span>
-            <i class="bi bi-chevron-down fs-sm"></i>
-        </button>
+    {# Collapsible content #}
+    <div class="collapse mb-3" id="puzzleInsights">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
+                    {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
 
-        {# Collapsible content #}
-        <div class="collapse mb-3" id="puzzleInsights">
-            <div class="card shadow-sm">
-                <div class="card-body">
                     {# Difficulty #}
                     <h6 class="card-title mb-1">
                         {{ 'puzzle_intelligence.difficulty.title'|trans }}
@@ -96,30 +96,28 @@
                             </small>
                         </div>
                     {% endif %}
-                </div>
+                {% elseif puzzle_difficulty is not null and puzzle_difficulty.sampleSize > 0 %}
+                    <small class="text-muted">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        {{ 'puzzle_intelligence.difficulty.need_more_solvers'|trans({'%count%': (5 - puzzle_difficulty.sampleSize)}) }}
+                    </small>
+                {% else %}
+                    <small class="text-muted">
+                        <i class="bi bi-hourglass-split me-1"></i>
+                        {{ 'puzzle_intelligence.insights.no_data'|trans }}
+                    </small>
+                {% endif %}
             </div>
         </div>
-    {% else %}
-        {# Non-member CTA button #}
-        <button
-            class="btn btn-outline-primary btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1"
-            data-bs-toggle="modal"
-            data-bs-target="#membersExclusiveModal"
-        >
-            <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
-            {{ 'puzzle_intelligence.insights.title'|trans }}
-        </button>
-    {% endif %}
-{% elseif puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is null and puzzle_difficulty.sampleSize > 0 %}
-    <div class="card shadow-sm mb-3">
-        <div class="card-body">
-            <h6 class="card-title mb-1 text-muted">
-                <i class="bi bi-lightbulb me-1"></i>
-                {{ 'puzzle_intelligence.insights.title'|trans }}
-            </h6>
-            <small class="text-muted">
-                {{ 'puzzle_intelligence.difficulty.need_more_solvers'|trans({'%count%': (5 - puzzle_difficulty.sampleSize)}) }}
-            </small>
-        </div>
     </div>
+{% else %}
+    {# Non-member CTA button #}
+    <button
+        class="btn btn-outline-primary btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1"
+        data-bs-toggle="modal"
+        data-bs-target="#membersExclusiveModal"
+    >
+        <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
+        {{ 'puzzle_intelligence.insights.title'|trans }}
+    </button>
 {% endif %}

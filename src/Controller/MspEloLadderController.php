@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class MspEloLadderController extends AbstractController
 {
     private const int PIECES_COUNT = 500;
-    private const int PER_PAGE = 50;
+    private const int PER_PAGE = 100;
 
     public function __construct(
         readonly private GetPlayerEloRanking $getPlayerEloRanking,

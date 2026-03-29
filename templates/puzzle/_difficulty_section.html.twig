@@ -48,6 +48,26 @@
                         {{ confidence_indicator(puzzle_difficulty.confidence.value, puzzle_difficulty.sampleSize) }}
                     </div>
 
+                    {# Time Prediction #}
+                    <hr class="my-3">
+                    <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
+                        <i class="bi bi-clock-history" style="font-size: 1.1em;"></i>{{ 'puzzle_intelligence.prediction.title'|trans }}
+                    </h6>
+                    {% if time_prediction is not null %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold">~{{ (time_prediction.predictedSeconds / 60)|round }}min</span>
+                            <small class="text-muted">
+                                {{ 'puzzle_intelligence.prediction.range'|trans({
+                                    '%low%': (time_prediction.rangeLowSeconds / 60)|round ~ 'min',
+                                    '%high%': (time_prediction.rangeHighSeconds / 60)|round ~ 'min',
+                                }) }}
+                            </small>
+                        </div>
+                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>
+                    {% else %}
+                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.not_available_generic'|trans }}</small>
+                    {% endif %}
+
                     {# Personality Traits — each as its own section #}
                     {% if puzzle_difficulty.memorabilityScore is not null %}
                         <hr class="my-3">
@@ -90,25 +110,6 @@
                         ) }}
                     {% endif %}
 
-                    {# Time Prediction #}
-                    <hr class="my-3">
-                    <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
-                        <i class="bi bi-clock-history" style="font-size: 1.1em;"></i>{{ 'puzzle_intelligence.prediction.title'|trans }}
-                    </h6>
-                    {% if time_prediction is not null %}
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-bold">~{{ (time_prediction.predictedSeconds / 60)|round }}min</span>
-                            <small class="text-muted">
-                                {{ 'puzzle_intelligence.prediction.range'|trans({
-                                    '%low%': (time_prediction.rangeLowSeconds / 60)|round ~ 'min',
-                                    '%high%': (time_prediction.rangeHighSeconds / 60)|round ~ 'min',
-                                }) }}
-                            </small>
-                        </div>
-                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>
-                    {% else %}
-                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.not_available_generic'|trans }}</small>
-                    {% endif %}
                 {% elseif puzzle_difficulty is not null and puzzle_difficulty.sampleSize > 0 %}
                     <small class="text-muted">
                         <i class="bi bi-hourglass-split me-1"></i>

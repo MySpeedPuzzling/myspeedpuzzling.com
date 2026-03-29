@@ -3,114 +3,102 @@
 <div {{ attributes }}>
     {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
         {% if skills is not empty %}
-            {# Piece count selector with tier + percentile #}
-            <div class="d-flex flex-wrap gap-2 mb-3">
-                {% for skill in skills %}
-                    {% set t_name = skill.skillTier.name|lower %}
-                    <button
-                        class="btn btn-sm {{ selectedPiecesCount == skill.piecesCount ? 'badge-skill-' ~ t_name : 'btn-outline-secondary' }}"
-                        data-action="live#action"
-                        data-live-action-param="changePiecesCount"
-                        data-live-pieces-count-param="{{ skill.piecesCount }}"
-                    >
-                        <svg class="rank-icon" width="16" height="16" style="color: {{ selectedPiecesCount == skill.piecesCount ? '#fff' : 'var(--rank-' ~ t_name ~ ')' }}"><use href="/rank-icons-sprite.svg#rank-{{ t_name }}"/></svg>
-                        <strong>{{ skill.piecesCount }}pc</strong>
-                        {{ ('puzzle_intelligence.skill.tiers.' ~ t_name)|trans }}
-                        <small class="opacity-75">{{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': (100 - skill.skillPercentile)|number_format(0)}) }}</small>
-                    </button>
-                {% endfor %}
-            </div>
+            {% for skill in skills %}
+                {% set t_name = skill.skillTier.name|lower %}
+                {% set top_percentile = (100 - skill.skillPercentile)|number_format(1) %}
 
-            {# Current skill detail — percentile is hero #}
-            {% if currentSkill is not null %}
-                {% set t_name = currentSkill.skillTier.name|lower %}
+                {% if not loop.first %}
+                    <hr class="my-3">
+                {% endif %}
 
-                <div class="card bg-light border-0 mb-3">
-                    <div class="card-body py-3">
-                        <div class="d-flex align-items-center mb-2">
-                            {% set top_percentile = (100 - currentSkill.skillPercentile)|number_format(1) %}
-                            <span class="h3 mb-0 fw-bold text-skill-{{ t_name }}">
-                                {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': top_percentile}) }}
-                            </span>
-                            {{ skill_badge(t_name, 'ms-2 fs-6') }}
-                        </div>
+                {# Category header #}
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="mb-0 d-flex align-items-center gap-1">
+                        <svg class="rank-icon" width="24" height="24" style="color: var(--rank-{{ t_name }})"><use href="/rank-icons-sprite.svg#rank-{{ t_name }}"/></svg>
+                        {{ 'pieces_count'|trans({ '%count%': skill.piecesCount })|raw }}
+                    </h6>
+                    {{ skill_badge(t_name, '') }}
+                </div>
 
-                        {# Progress bar showing percentile position #}
-                        {{ percentile_bar(currentSkill.skillPercentile, t_name) }}
+                {# Percentile + progress bar #}
+                <div class="mb-1">
+                    <span class="fw-bold text-skill-{{ t_name }}">
+                        {{ 'puzzle_intelligence.skill.percentile_label'|trans({'%percentile%': top_percentile}) }}
+                    </span>
+                    <small class="text-muted ms-1">
+                        {{ 'puzzle_intelligence.skill.faster_than_label'|trans({'%percentile%': skill.skillPercentile|number_format(1)}) }}
+                    </small>
+                </div>
+                {{ percentile_bar(skill.skillPercentile, t_name) }}
 
-                        <div class="d-flex justify-content-between mt-1">
-                            <small class="text-muted">
-                                {{ 'puzzle_intelligence.skill.faster_than_label'|trans({'%percentile%': currentSkill.skillPercentile|number_format(1)}) }}
-                            </small>
-                        </div>
-                        <div class="mt-1">
-                            {{ confidence_indicator(currentSkill.confidence.value, currentSkill.qualifyingPuzzlesCount) }}
-                        </div>
+                {# Confidence #}
+                <div class="mt-1">
+                    {{ confidence_indicator(skill.confidence.value, skill.qualifyingPuzzlesCount) }}
+                </div>
 
-                        {# Next tier milestone with real times #}
-                        {% set next_tier = currentSkill.skillTier.nextTier %}
+                {# Next tier milestone — only for selected category #}
+                {% if selectedPiecesCount == skill.piecesCount %}
+                    {% set next_tier = skill.skillTier.nextTier %}
 
-                        {% if next_tier is not null %}
-                            {% set next_name = next_tier.name|lower %}
-                            {% set next_min_pct = next_tier.minimumPercentile %}
-                            <div class="card bg-white border mt-2">
-                                <div class="card-body py-2">
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <small class="text-muted">
-                                            <i class="bi bi-arrow-up-circle me-1"></i>
-                                            {{ 'puzzle_intelligence.skill.next_tier'|trans }}
-                                            <span class="badge badge-skill-{{ next_name }}">
-                                                <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ next_name }}"/></svg>
-                                                {{ ('puzzle_intelligence.skill.tiers.' ~ next_name)|trans }}
-                                            </span>
-                                            <span class="text-muted">({{ 'puzzle_intelligence.skill.next_tier_threshold'|trans({'%threshold%': next_min_pct|number_format(0)}) }})</span>
-                                        </small>
-                                    </div>
+                    {% if next_tier is not null %}
+                        {% set next_name = next_tier.name|lower %}
+                        {% set next_min_pct = next_tier.minimumPercentile %}
+                        <div class="card bg-light border-0 mt-2">
+                            <div class="card-body py-2">
+                                <small class="text-muted d-flex align-items-center gap-1 mb-1">
+                                    <i class="bi bi-arrow-up-circle"></i>
+                                    {{ 'puzzle_intelligence.skill.next_tier'|trans }}
+                                    <span class="badge badge-skill-{{ next_name }}">
+                                        <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ next_name }}"/></svg>
+                                        {{ ('puzzle_intelligence.skill.tiers.' ~ next_name)|trans }}
+                                    </span>
+                                    <span class="text-muted">({{ 'puzzle_intelligence.skill.next_tier_threshold'|trans({'%threshold%': next_min_pct|number_format(0)}) }})</span>
+                                </small>
 
-                                    {% if currentBaselineSeconds is not null and targetBaselineSeconds is not null and targetBaselineSeconds < currentBaselineSeconds %}
-                                        {% set current_min = (currentBaselineSeconds / 60)|round(1) %}
-                                        {% set target_min = (targetBaselineSeconds / 60)|round(1) %}
-                                        {% set diff_min = ((currentBaselineSeconds - targetBaselineSeconds) / 60)|round(1) %}
+                                {% if currentBaselineSeconds is not null and targetBaselineSeconds is not null and targetBaselineSeconds < currentBaselineSeconds %}
+                                    {% set current_min = (currentBaselineSeconds / 60)|round(1) %}
+                                    {% set target_min = (targetBaselineSeconds / 60)|round(1) %}
+                                    {% set diff_min = ((currentBaselineSeconds - targetBaselineSeconds) / 60)|round(1) %}
 
-                                        <div class="d-flex align-items-center gap-3 fs-sm">
-                                            <div class="text-center">
-                                                <div class="text-muted">{{ 'puzzle_intelligence.skill.your_baseline'|trans }}</div>
-                                                <div class="fw-bold">{{ current_min }} min</div>
-                                            </div>
-                                            <div class="flex-grow-1 text-center">
-                                                <i class="bi bi-arrow-right text-muted"></i>
-                                                <div class="text-skill-{{ next_name }} fw-medium">
-                                                    {{ 'puzzle_intelligence.skill.improve_by'|trans({'%minutes%': diff_min}) }}
-                                                </div>
-                                            </div>
-                                            <div class="text-center">
-                                                <div class="text-muted">{{ 'puzzle_intelligence.skill.target_baseline'|trans }}</div>
-                                                <div class="fw-bold text-skill-{{ next_name }}">{{ target_min }} min</div>
+                                    <div class="d-flex align-items-center gap-3 fs-sm">
+                                        <div class="text-center">
+                                            <div class="text-muted">{{ 'puzzle_intelligence.skill.your_baseline'|trans }}</div>
+                                            <div class="fw-bold">{{ current_min }} min</div>
+                                        </div>
+                                        <div class="flex-grow-1 text-center">
+                                            <i class="bi bi-arrow-right text-muted"></i>
+                                            <div class="text-skill-{{ next_name }} fw-medium">
+                                                {{ 'puzzle_intelligence.skill.improve_by'|trans({'%minutes%': diff_min}) }}
                                             </div>
                                         </div>
-                                    {% else %}
-                                        <small class="text-muted">
-                                            {{ 'puzzle_intelligence.skill.next_tier_gap'|trans({'%gap%': ((next_min_pct - currentSkill.skillPercentile)|round(1))|abs}) }}
-                                        </small>
-                                    {% endif %}
-                                </div>
+                                        <div class="text-center">
+                                            <div class="text-muted">{{ 'puzzle_intelligence.skill.target_baseline'|trans }}</div>
+                                            <div class="fw-bold text-skill-{{ next_name }}">{{ target_min }} min</div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <small class="text-muted">
+                                        {{ 'puzzle_intelligence.skill.next_tier_gap'|trans({'%gap%': ((next_min_pct - skill.skillPercentile)|round(1))|abs}) }}
+                                    </small>
+                                {% endif %}
                             </div>
-                        {% else %}
-                            <div class="mt-2">
-                                <small class="text-skill-legend">
-                                    <i class="bi bi-star-fill me-1"></i>
-                                    {{ 'puzzle_intelligence.skill.highest_tier_reached'|trans }}
-                                </small>
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="mt-2">
+                            <small class="text-skill-legend">
+                                <svg class="rank-icon me-1" width="16" height="16" style="color: var(--rank-legend)"><use href="/rank-icons-sprite.svg#rank-legend"/></svg>
+                                {{ 'puzzle_intelligence.skill.highest_tier_reached'|trans }}
+                            </small>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
 
             {# Improvement chart #}
             {% if improvementChart is not null %}
-                <h6 class="mb-2 mt-3 text-muted">
-                    <i class="bi bi-graph-up me-1"></i>
+                <hr class="my-3">
+                <h6 class="fs-sm text-muted mb-2 d-flex align-items-center gap-1">
+                    <i class="bi bi-graph-up" style="font-size: 1.1em;"></i>
                     {{ 'puzzle_intelligence.skill.improvement_title'|trans }}
                 </h6>
                 <div style="height: 220px;">
@@ -118,60 +106,39 @@
                 </div>
             {% endif %}
         {% else %}
-            {# No skill tiers yet — show progress toward getting one #}
+            {# No skill tiers yet — show progress #}
             {% if progress is not empty %}
-                <div class="fs-sm">
-                    <p class="text-muted mb-2">{{ 'puzzle_intelligence.skill.not_enough_data'|trans({'%pieces%': selectedPiecesCount}) }}</p>
-                    {% for pc, data in progress %}
-                        <div class="card bg-light border-0 mb-2">
-                            <div class="card-body py-2">
-                                <div class="fw-medium mb-1">{{ pc }}pc</div>
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <span class="text-muted" style="min-width: 140px;">{{ 'puzzle_intelligence.prediction.not_available'|trans({'%count%': (5 - data.baseline_solves) > 0 ? (5 - data.baseline_solves) : 0, '%pieces%': pc}) }}</span>
-                                    <div class="progress flex-grow-1" style="height: 6px;">
-                                        {% set baseline_pct = (data.baseline_solves / 5 * 100) > 100 ? 100 : (data.baseline_solves / 5 * 100) %}
-                                        <div class="progress-bar bg-info" style="width: {{ baseline_pct }}%;"></div>
-                                    </div>
-                                    <small class="text-muted">{{ data.baseline_solves }}/5</small>
+                <p class="text-muted fs-sm mb-2">{{ 'puzzle_intelligence.skill.not_enough_data'|trans({'%pieces%': selectedPiecesCount}) }}</p>
+                {% for pc, data in progress %}
+                    <div class="card bg-light border-0 mb-2">
+                        <div class="card-body py-2">
+                            <div class="fw-medium mb-1">{{ 'pieces_count'|trans({ '%count%': pc })|raw }}</div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="text-muted fs-sm" style="min-width: 140px;">{{ 'puzzle_intelligence.prediction.not_available'|trans({'%count%': (5 - data.baseline_solves) > 0 ? (5 - data.baseline_solves) : 0, '%pieces%': pc}) }}</span>
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    {% set baseline_pct = (data.baseline_solves / 5 * 100) > 100 ? 100 : (data.baseline_solves / 5 * 100) %}
+                                    <div class="progress-bar bg-info" style="width: {{ baseline_pct }}%;"></div>
                                 </div>
-                                {% if data.baseline_solves >= 5 %}
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="text-muted" style="min-width: 140px;">{{ 'puzzle_intelligence.skill.need_more_puzzles'|trans({'%count%': (10 - data.qualifying_puzzles) > 0 ? (10 - data.qualifying_puzzles) : 0}) }}</span>
-                                        <div class="progress flex-grow-1" style="height: 6px;">
-                                            {% set qual_pct = (data.qualifying_puzzles / 10 * 100) > 100 ? 100 : (data.qualifying_puzzles / 10 * 100) %}
-                                            <div class="progress-bar bg-primary" style="width: {{ qual_pct }}%;"></div>
-                                        </div>
-                                        <small class="text-muted">{{ data.qualifying_puzzles }}/10</small>
-                                    </div>
-                                {% endif %}
+                                <small class="text-muted">{{ data.baseline_solves }}/5</small>
                             </div>
+                            {% if data.baseline_solves >= 5 %}
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="text-muted fs-sm" style="min-width: 140px;">{{ 'puzzle_intelligence.skill.need_more_puzzles'|trans({'%count%': (10 - data.qualifying_puzzles) > 0 ? (10 - data.qualifying_puzzles) : 0}) }}</span>
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        {% set qual_pct = (data.qualifying_puzzles / 10 * 100) > 100 ? 100 : (data.qualifying_puzzles / 10 * 100) %}
+                                        <div class="progress-bar bg-primary" style="width: {{ qual_pct }}%;"></div>
+                                    </div>
+                                    <small class="text-muted">{{ data.qualifying_puzzles }}/10</small>
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endfor %}
-                </div>
+                    </div>
+                {% endfor %}
             {% else %}
                 <div class="text-muted fs-sm">
                     {{ 'puzzle_intelligence.skill.not_enough_data'|trans({'%pieces%': selectedPiecesCount}) }}
                 </div>
             {% endif %}
         {% endif %}
-    {% else %}
-        {# Members-only CTA #}
-        <div class="position-relative">
-            <div class="text-muted fs-sm" style="filter: blur(4px);">
-                <span class="badge bg-primary me-1">500pc: Expert</span>
-                <span class="badge bg-secondary me-1">1000pc: Advanced</span>
-                <div class="progress mt-2" style="height: 8px;"><div class="progress-bar bg-primary" style="width: 75%;"></div></div>
-            </div>
-            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background: rgba(255,255,255,0.8); border-radius: inherit;">
-                <button
-                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
-                    data-bs-toggle="modal"
-                    data-bs-target="#membersExclusiveModal"
-                >
-                    <svg class="rank-icon me-1" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-                    {{ 'puzzle_intelligence.difficulty.members_only'|trans }}
-                </button>
-            </div>
-        </div>
     {% endif %}
 </div>

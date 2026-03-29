@@ -1868,6 +1868,8 @@ puzzle_intelligence:
     insights:
         title: "Puzzle Insights"
         no_data: "Not enough data yet. Insights will appear as more players solve this puzzle."
+    player_insights:
+        title: "Player Insights"
     difficulty:
         title: "Puzzle Difficulty"
         score_label: "Difficulty Score"

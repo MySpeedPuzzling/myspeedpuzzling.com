@@ -63,30 +63,58 @@
 
         </div>
     {% else %}
+        {# MSP-ELO Rating — always visible when data exists #}
         {% if is_granted('ADMIN_ACCESS') %}
-            <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title mb-2">
-                        <i class="bi bi-trophy me-1"></i>
-                        {{ 'puzzle_intelligence.skill.title'|trans }}
-                    </h5>
-                    <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
-                </div>
+            <div class="mb-2">
+                <twig:PlayerEloProfile
+                    playerId="{{ player.playerId }}"
+                    :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
+                />
             </div>
+        {% endif %}
 
-            <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title mb-2">
-                        <i class="bi bi-lightning me-1"></i>
-                        {{ 'puzzle_intelligence.elo.profile_title'|trans }}
-                        <span class="badge bg-info fs-sm">{{ 'puzzle_intelligence.elo.beta_badge'|trans }}</span>
-                    </h5>
-                    <twig:PlayerEloProfile
-                        playerId="{{ player.playerId }}"
-                        :isOwnProfile="logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId"
-                    />
+        {% if is_granted('ADMIN_ACCESS') %}
+            {# Player Insights — collapsible toggle (members only) #}
+            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <button
+                        class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-between"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#playerInsights"
+                        aria-expanded="false"
+                        aria-controls="playerInsights"
+                    >
+                        <span>
+                            <i class="bi bi-lightbulb me-1"></i>
+                            {{ 'puzzle_intelligence.player_insights.title'|trans }}
+                        </span>
+                        <i class="bi bi-chevron-down fs-sm transition-transform"></i>
+                    </button>
+                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'puzzle_intelligence.player_insights.title'|trans}) }}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+                        <i class="bi bi-question-circle"></i>
+                    </a>
                 </div>
-            </div>
+
+                <div class="collapse mb-3" id="playerInsights">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <button
+                        class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center gap-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
+                        {{ 'puzzle_intelligence.player_insights.title'|trans }}
+                    </button>
+                </div>
+            {% endif %}
         {% endif %}
 
         <div class="my-4">

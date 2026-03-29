@@ -96,7 +96,7 @@
     {# Ladder table #}
     {% if entries|length > 0 %}
         <div class="table-responsive custom-table-wrapper">
-            <table class="table custom-table table-striped table-hover mb-0 align-middle">
+            <table class="table custom-table table-striped table-hover mb-0 align-middle" style="--bs-table-cell-padding-y: 0.4rem;">
                 <tbody>
                     {% for entry in entries %}
                         {% set is_current_player = logged_player is not null and entry.playerId == logged_player.playerId %}

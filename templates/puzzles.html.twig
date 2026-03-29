@@ -106,8 +106,7 @@
                 {% set active_count = form_data.difficultyTiers|length %}
                 <div class="dropdown d-inline-block mb-2">
                     <button class="btn btn-sm {{ active_count > 0 ? 'btn-primary' : 'btn-outline-secondary' }} dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                        <svg class="diff-icon me-1" width="16" height="16" style="color: {{ active_count > 0 ? '#fff' : 'var(--diff-average)' }}"><use href="/difficulty-icons-sprite.svg#diff-average"/></svg>
-                        {{ 'puzzle_intelligence.difficulty.title'|trans }}
+                        {{ 'puzzle_intelligence.difficulty.filter_label'|trans }}
                         {% if active_count > 0 %}
                             <span class="badge bg-white text-primary ms-1">{{ active_count }}</span>
                         {% endif %}

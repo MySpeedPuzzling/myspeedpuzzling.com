@@ -1871,6 +1871,7 @@ puzzle_intelligence:
         sample_size_label: "Based on %count% qualified solvers"
         not_enough_data: "Not enough data"
         need_more_solvers: "%count% more qualified solvers needed"
+        filter_label: "Difficulty"
         members_only: "Difficulty data is available for members"
         tiers:
             veryeasy: "Very Easy"

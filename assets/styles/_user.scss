@@ -295,6 +295,15 @@ $skill-legend: #1a1a2e;
   flex-shrink: 0;
 }
 
+// Collapse chevron rotation
+.transition-transform {
+  transition: transform 0.2s ease;
+}
+
+[aria-expanded="true"] .transition-transform {
+  transform: rotate(180deg);
+}
+
 // Confidence indicators
 $confidence-low: #e8a838;    // amber/warning
 $confidence-medium: #5ec4d4; // teal

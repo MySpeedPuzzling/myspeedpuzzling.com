@@ -301,6 +301,11 @@ $skill-legend: #1a1a2e;
   flex-shrink: 0;
 }
 
+// Fix Bootstrap Icons baseline alignment in flex containers
+.bi {
+  line-height: 1;
+}
+
 // Collapse chevron rotation
 .transition-transform {
   transition: transform 0.2s ease;

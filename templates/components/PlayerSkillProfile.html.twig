@@ -9,10 +9,13 @@
 
                 <div class="card shadow-sm h-100 {{ not loop.first ? 'mt-2' : '' }}">
                     <div class="card-body py-2 px-3 d-flex flex-column">
-                        {# Header: badge left, category right #}
+                        {# Header: badge left, pieces + help right #}
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             {{ skill_badge(t_name, 'fs-6') }}
-                            <strong>{{ 'pieces_count'|trans({ '%count%': skill.piecesCount })|raw }}</strong>
+                            <div class="d-flex align-items-center gap-2">
+                                <strong>{{ 'pieces_count'|trans({ '%count%': skill.piecesCount })|raw }}</strong>
+                                <a href="{{ path('methodology', {return: app.request.uri, return_title: 'puzzle_intelligence.skill.title'|trans}) }}" class="text-muted"><i class="bi bi-question-circle"></i></a>
+                            </div>
                         </div>
 
                         {# Percentile + bar #}

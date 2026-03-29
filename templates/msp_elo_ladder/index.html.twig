@@ -95,70 +95,46 @@
 
     {# Ladder table #}
     {% if entries|length > 0 %}
-        {% set max_elo = entries[0].eloRating %}
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th class="text-center" style="width: 50px;">#</th>
-                        <th>{{ 'puzzle_intelligence.elo.player'|trans }}</th>
-                        <th style="width: 200px;">{{ 'puzzle_intelligence.elo.rating'|trans }}</th>
-                    </tr>
-                </thead>
+        <div class="table-responsive custom-table-wrapper">
+            <table class="table custom-table table-striped table-hover mb-0 align-middle">
                 <tbody>
                     {% for entry in entries %}
                         {% set is_current_player = logged_player is not null and entry.playerId == logged_player.playerId %}
-                        <tr{% if is_current_player %} class="table-success"{% endif %}>
-                            <td class="text-center fw-bold">
-                                {% if entry.rank == 1 %}
-                                    <i class="bi bi-trophy-fill text-warning fs-5"></i>
-                                {% elseif entry.rank == 2 %}
-                                    <i class="bi bi-trophy-fill text-secondary fs-5"></i>
-                                {% elseif entry.rank == 3 %}
-                                    <i class="bi bi-trophy-fill" style="color: #cd7f32; font-size: 1.25rem;"></i>
-                                {% else %}
-                                    <span class="text-muted">{{ entry.rank }}</span>
-                                {% endif %}
+                        <tr class="{{ is_current_player ? 'table-active-player' }}">
+                            <td class="text-center text-muted" style="font-family: monospace; width: 1%; white-space: nowrap; padding-right: 0;">
+                                <small>{{ entry.rank }}</small>
                             </td>
                             <td>
                                 <a href="{{ path('player_profile', {playerId: entry.playerId}) }}" class="text-decoration-none d-flex align-items-center gap-2">
                                     {% if entry.playerAvatar %}
-                                        <img src="{{ entry.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle" width="28" height="28">
+                                        <img src="{{ entry.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" width="28" height="28" style="object-fit: cover;">
                                     {% else %}
-                                        <span class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                                        <span class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px;">
                                             <i class="bi bi-person text-muted"></i>
                                         </span>
                                     {% endif %}
+                                    {% if entry.eloRating >= 1400 %}
+                                        {% set row_rank = 'legend' %}
+                                    {% elseif entry.eloRating >= 1200 %}
+                                        {% set row_rank = 'expert' %}
+                                    {% elseif entry.eloRating >= 1000 %}
+                                        {% set row_rank = 'proficient' %}
+                                    {% elseif entry.eloRating >= 800 %}
+                                        {% set row_rank = 'enthusiast' %}
+                                    {% else %}
+                                        {% set row_rank = 'casual' %}
+                                    {% endif %}
+                                    <svg class="rank-icon flex-shrink-0" width="20" height="20" style="color: var(--rank-{{ row_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ row_rank }}"/></svg>
                                     <div>
-                                        <span class="fw-medium">{{ entry.playerName ?? ('#' ~ entry.playerCode) }}</span>
+                                        <small>{{ entry.playerName ?? ('#' ~ entry.playerCode) }}</small>
                                         {% if entry.playerCountry %}
                                             <small class="shadow-custom fi fi-{{ entry.playerCountry }} ms-1"></small>
                                         {% endif %}
                                     </div>
                                 </a>
                             </td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-bold" style="min-width: 45px;">{{ entry.eloRating }}</span>
-                                    <div class="progress flex-grow-1" style="height: 6px;">
-                                        {% set bar_pct = max_elo > 0 ? (entry.eloRating / max_elo * 100) : 0 %}
-                                        <div class="progress-bar {% if entry.rank <= 3 %}bg-warning{% elseif entry.eloRating >= 1200 %}bg-success{% elseif entry.eloRating >= 800 %}bg-info{% else %}bg-secondary{% endif %}"
-                                             style="width: {{ bar_pct }}%;"></div>
-                                    </div>
-                                    {% if entry.eloRating >= 1400 %}
-                                        {% set ladder_rank = 'legend' %}
-                                    {% elseif entry.eloRating >= 1200 %}
-                                        {% set ladder_rank = 'expert' %}
-                                    {% elseif entry.eloRating >= 1000 %}
-                                        {% set ladder_rank = 'proficient' %}
-                                    {% elseif entry.eloRating >= 800 %}
-                                        {% set ladder_rank = 'enthusiast' %}
-                                    {% else %}
-                                        {% set ladder_rank = 'casual' %}
-                                    {% endif %}
-                                    <svg class="rank-icon" width="20" height="20" style="color: var(--rank-{{ ladder_rank }})"><use href="/rank-icons-sprite.svg#rank-{{ ladder_rank }}"/></svg>
-                                </div>
+                            <td class="text-end text-nowrap">
+                                <small style="font-family: monospace;">{{ entry.eloRating }}</small>
                             </td>
                         </tr>
                     {% endfor %}

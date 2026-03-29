@@ -164,11 +164,11 @@
 
     <div class="py-1">
         <div class="d-flex align-items-center gap-2">
-            <span class="badge {{ color ?? 'badge-tier-average' }}" style="font-weight: 500;">{{ descriptor|trans }}</span>
-            <small class="text-muted">{{ value|number_format(1) }}{% if metric_type != 'predictability' %}x{% endif %}</small>
-        </div>
-        <div class="progress mt-1" style="height: 4px;">
-            <div class="progress-bar" style="width: {{ bar_pct }}%; background-color: {{ bar_color }};"></div>
+            <div class="progress flex-grow-1" style="height: 4px;">
+                <div class="progress-bar" style="width: {{ bar_pct }}%; background-color: {{ bar_color }};"></div>
+            </div>
+            <span class="badge {{ color ?? 'badge-tier-average' }} flex-shrink-0" style="font-weight: 500;">{{ descriptor|trans }}</span>
+            <small class="text-muted flex-shrink-0">{{ value|number_format(1) }}{% if metric_type != 'predictability' %}x{% endif %}</small>
         </div>
         <small class="text-muted">{{ info_key|trans }}</small>
     </div>

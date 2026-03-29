@@ -96,7 +96,6 @@
                         {{ 'puzzle_intelligence.prediction.title'|trans }}
                     </h6>
                     {% if time_prediction is not null %}
-                        <small class="text-muted d-block mb-1">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>
                         <div class="d-flex align-items-center gap-2">
                             <span class="fw-bold">~{{ (time_prediction.predictedSeconds / 60)|round }}min</span>
                             <small class="text-muted">
@@ -106,6 +105,7 @@
                                 }) }}
                             </small>
                         </div>
+                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>
                     {% else %}
                         <small class="text-muted">{{ 'puzzle_intelligence.prediction.not_available_generic'|trans }}</small>
                     {% endif %}

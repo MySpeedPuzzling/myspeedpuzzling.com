@@ -5,6 +5,7 @@
 {% block og_image %}{% if player.avatar is not null %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig') }}
     <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
     <twig:PlayerHeader player="{{ player }}" />
 

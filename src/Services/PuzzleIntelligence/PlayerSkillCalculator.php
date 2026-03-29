@@ -10,7 +10,10 @@ use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class PlayerSkillCalculator
 {
-    private const int MINIMUM_QUALIFYING_PUZZLES = 10;
+    private const int MINIMUM_QUALIFYING_PUZZLES = 20;
+    private const int MIN_SOLVERS_PER_PUZZLE = 20;
+    private const float DIFFICULTY_BLEND = 0.5;
+    private const int DIFF_CONFIDENCE_THRESHOLD = 50;
 
     public function __construct(
         private Connection $connection,
@@ -28,32 +31,34 @@ readonly final class PlayerSkillCalculator
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): null|array
     {
-        $outperformanceValues = $this->computeOutperformance($playerId, $piecesCount);
+        $weightedPercentiles = $this->computeWeightedPercentiles($playerId, $piecesCount);
 
-        if (count($outperformanceValues) < self::MINIMUM_QUALIFYING_PUZZLES) {
+        if (count($weightedPercentiles) < self::MINIMUM_QUALIFYING_PUZZLES) {
             return null;
         }
 
-        $skillScore = $this->computeMedian($outperformanceValues);
-        $percentile = $this->computePercentile($playerId, $piecesCount, $skillScore);
-        $confidence = MetricConfidence::fromSampleSize(count($outperformanceValues), self::MINIMUM_QUALIFYING_PUZZLES);
+        $skillScore = $this->computeMedian($weightedPercentiles);
+        $percentile = $this->computePercentile($piecesCount, $skillScore);
+        $confidence = MetricConfidence::fromSampleSize(count($weightedPercentiles), self::MINIMUM_QUALIFYING_PUZZLES);
 
         return [
-            'skill_score' => round($skillScore, 4),
+            'skill_score' => round($skillScore, 6),
             'skill_tier' => SkillTier::fromPercentile($percentile),
             'skill_percentile' => round($percentile, 2),
             'confidence' => $confidence,
-            'qualifying_puzzles_count' => count($outperformanceValues),
+            'qualifying_puzzles_count' => count($weightedPercentiles),
         ];
     }
 
     /**
-     * For each puzzle the player solved (first attempt, solo), compute:
-     * outperformance = puzzle_difficulty / player_difficulty_index
+     * v2: For each puzzle the player solved (first attempt), compute:
+     *   percentile = (slower_count + tied_count/2) / (total - 1)
+     *   difficulty_weight = (1 - blend*confidence) + blend*confidence * difficulty_score
+     *   weighted_percentile = percentile × difficulty_weight
      *
      * @return list<float>
      */
-    private function computeOutperformance(string $playerId, int $piecesCount): array
+    private function computeWeightedPercentiles(string $playerId, int $piecesCount): array
     {
         $sql = "
             WITH player_first_attempts AS (
@@ -70,52 +75,78 @@ readonly final class PlayerSkillCalculator
                 ORDER BY pst.puzzle_id,
                     pst.first_attempt DESC,
                     COALESCE(pst.finished_at, pst.tracked_at) ASC
+            ),
+            puzzle_rankings AS (
+                SELECT
+                    pfa.puzzle_id,
+                    pfa.seconds_to_solve AS player_time,
+                    pd.difficulty_score,
+                    pd.sample_size,
+                    COUNT(*) FILTER (WHERE all_fa.seconds_to_solve > pfa.seconds_to_solve) AS slower_count,
+                    COUNT(*) FILTER (WHERE all_fa.seconds_to_solve = pfa.seconds_to_solve AND all_fa.player_id != :playerId) AS tied_count,
+                    COUNT(*) AS total_solvers
+                FROM player_first_attempts pfa
+                JOIN puzzle_difficulty pd ON pd.puzzle_id = pfa.puzzle_id
+                JOIN puzzle_solving_time all_fa ON all_fa.puzzle_id = pfa.puzzle_id
+                    AND all_fa.puzzling_type = 'solo'
+                    AND all_fa.suspicious = false
+                    AND all_fa.seconds_to_solve IS NOT NULL
+                    AND all_fa.first_attempt = true
+                WHERE pd.difficulty_score IS NOT NULL
+                    AND pd.confidence != 'insufficient'
+                GROUP BY pfa.puzzle_id, pfa.seconds_to_solve, pd.difficulty_score, pd.sample_size
+                HAVING COUNT(*) >= :minSolvers
             )
             SELECT
-                pfa.seconds_to_solve,
-                pb.baseline_seconds,
-                pd.difficulty_score
-            FROM player_first_attempts pfa
-            JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = :piecesCount
-            JOIN puzzle_difficulty pd ON pd.puzzle_id = pfa.puzzle_id
-            WHERE pd.difficulty_score IS NOT NULL
-                AND pd.confidence != 'insufficient'
+                puzzle_id,
+                player_time,
+                difficulty_score,
+                sample_size,
+                slower_count,
+                tied_count,
+                total_solvers
+            FROM puzzle_rankings
         ";
 
-        /** @var list<array{seconds_to_solve: int|string, baseline_seconds: int|string, difficulty_score: float|string}> $rows */
+        /** @var list<array{puzzle_id: string, player_time: int|string, difficulty_score: float|string, sample_size: int|string, slower_count: int|string, tied_count: int|string, total_solvers: int|string}> $rows */
         $rows = $this->connection->fetchAllAssociative($sql, [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
+            'minSolvers' => self::MIN_SOLVERS_PER_PUZZLE,
         ]);
 
-        $outperformance = [];
+        $weightedPercentiles = [];
 
         foreach ($rows as $row) {
-            $baselineSeconds = (int) $row['baseline_seconds'];
+            $totalSolvers = (int) $row['total_solvers'];
+            $slowerCount = (int) $row['slower_count'];
+            $tiedCount = (int) $row['tied_count'];
             $difficultyScore = (float) $row['difficulty_score'];
-            $solveTime = (int) $row['seconds_to_solve'];
+            $sampleSize = (int) $row['sample_size'];
 
-            if ($baselineSeconds <= 0 || $difficultyScore <= 0) {
+            if ($totalSolvers <= 1) {
                 continue;
             }
 
-            $playerIndex = $solveTime / $baselineSeconds;
+            // Average rank method for ties
+            $percentile = ($slowerCount + $tiedCount / 2.0) / ($totalSolvers - 1);
 
-            if ($playerIndex <= 0) {
-                continue;
-            }
+            // Confidence-scaled difficulty weight
+            $confidence = min(1.0, $sampleSize / self::DIFF_CONFIDENCE_THRESHOLD);
+            $blend = self::DIFFICULTY_BLEND * $confidence;
+            $difficultyWeight = (1.0 - $blend) + $blend * $difficultyScore;
 
-            $outperformance[] = $difficultyScore / $playerIndex;
+            $weightedPercentiles[] = $percentile * $difficultyWeight;
         }
 
-        return $outperformance;
+        return $weightedPercentiles;
     }
 
     /**
      * Compute what percentile this player's skill score falls in
      * among all players with valid skill scores for this piece count.
      */
-    private function computePercentile(string $playerId, int $piecesCount, float $skillScore): float
+    private function computePercentile(int $piecesCount, float $skillScore): float
     {
         $result = $this->connection->fetchAssociative("
             SELECT

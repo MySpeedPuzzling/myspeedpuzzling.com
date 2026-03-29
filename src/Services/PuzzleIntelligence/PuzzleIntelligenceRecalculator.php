@@ -189,7 +189,8 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        $players = $this->getPublicPlayersWithBaselines($specificPlayer);
+        // v2: All players (including private) get skill scores
+        $players = $this->getPlayersWithSolves($specificPlayer);
         $count = 0;
 
         foreach ($players as $playerId) {
@@ -209,11 +210,6 @@ readonly final class PuzzleIntelligenceRecalculator
         $this->connection->executeStatement(
             'DELETE FROM player_skill WHERE pieces_count != ALL(:pieceCounts)',
             ['pieceCounts' => '{' . implode(',', self::SKILL_PIECES_COUNTS) . '}'],
-        );
-
-        // Clean up skill data for private players
-        $this->connection->executeStatement(
-            'DELETE FROM player_skill WHERE player_id IN (SELECT id FROM player WHERE is_private = true)',
         );
 
         return $count;

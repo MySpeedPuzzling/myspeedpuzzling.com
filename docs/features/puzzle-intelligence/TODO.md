@@ -4,16 +4,16 @@ Items marked with ✅ are done.
 
 ## Puzzle Detail Page
 
-### ✅ 2. Metric clarification — make everything self-explanatory
-### ✅ 3. Confidence level — readable text + dots
-### ✅ 4. Time prediction — removed useless timeline bar
-### ✅ 5. Personality metrics — scale bars for context
+### ✅ 1. Visual polish of intelligence section
+### ✅ 2. Metric clarification — inline explanations, section icons
+### ✅ 3. Confidence level — dots + readable text
+### ✅ 4. Time prediction — removed timeline bar, added explanation
+### ✅ 5. Personality metrics — scale bars, individual sections
 ### ✅ 6. Missing median time in PuzzleTimes component
-
-### 1. Visual polish of intelligence section
-- The overall look of the intelligence card needs a design refresh
-- Current layout feels dense and utilitarian — needs breathing room, better hierarchy, more visual appeal
-- Consider: card structure, spacing, typography, iconography, color usage
+- Collapsible "Puzzle Insights" card with methodology link
+- Difficulty icon next to piece count (24px)
+- Per-section icons matching methodology page
+- Prediction moved after confidence, always shown
 
 ---
 

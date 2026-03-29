@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class MspEloLadderController extends AbstractController
 {
-    private const int PIECES_COUNT = 500;
+    private const int PIECES_COUNT = PuzzleIntelligenceRecalculator::ELO_PIECES_COUNTS[0];
     private const int PER_PAGE = 100;
 
     public function __construct(

@@ -12,6 +12,12 @@ use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class PuzzleIntelligenceRecalculator
 {
+    /** @var list<int> Piece counts for which player skills are computed */
+    public const array SKILL_PIECES_COUNTS = [500];
+
+    /** @var list<int> Piece counts for which MSP-ELO is computed */
+    public const array ELO_PIECES_COUNTS = [500];
+
     public function __construct(
         private Connection $connection,
         private ClockInterface $clock,
@@ -103,11 +109,10 @@ readonly final class PuzzleIntelligenceRecalculator
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
         $players = $this->getPlayersWithBaselines($specificPlayer);
-        $pieceCounts = $this->getDistinctPieceCounts();
         $count = 0;
 
         foreach ($players as $playerId) {
-            foreach ($pieceCounts as $piecesCount) {
+            foreach (self::SKILL_PIECES_COUNTS as $piecesCount) {
                 $result = $this->skillCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
@@ -119,6 +124,12 @@ readonly final class PuzzleIntelligenceRecalculator
             }
         }
 
+        // Clean up skill data for piece counts no longer computed
+        $this->connection->executeStatement(
+            'DELETE FROM player_skill WHERE pieces_count != ALL(:pieceCounts)',
+            ['pieceCounts' => '{' . implode(',', self::SKILL_PIECES_COUNTS) . '}'],
+        );
+
         return $count;
     }
 
@@ -127,23 +138,22 @@ readonly final class PuzzleIntelligenceRecalculator
         $players = $this->getPlayersWithBaselines($specificPlayer);
         $count = 0;
 
-        // MSP-ELO is 500pc only
-        $piecesCount = 500;
+        foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
+            foreach ($players as $playerId) {
+                if (!$this->eloCalculator->isEligible($playerId, $piecesCount)) {
+                    continue;
+                }
 
-        foreach ($players as $playerId) {
-            if (!$this->eloCalculator->isEligible($playerId, $piecesCount)) {
-                continue;
+                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
+                $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
+                $count++;
             }
-
-            $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
-            $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
-            $count++;
         }
 
-        // Clean up any non-500pc ELO data from before scope change
+        // Clean up ELO data for piece counts no longer computed
         $this->connection->executeStatement(
-            'DELETE FROM player_elo WHERE pieces_count != :piecesCount',
-            ['piecesCount' => $piecesCount],
+            'DELETE FROM player_elo WHERE pieces_count != ALL(:pieceCounts)',
+            ['pieceCounts' => '{' . implode(',', self::ELO_PIECES_COUNTS) . '}'],
         );
 
         return $count;

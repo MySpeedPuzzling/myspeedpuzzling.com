@@ -1,4 +1,4 @@
-# Puzzle Intelligence — TODO
+# Puzzle Insights — TODO
 
 Items marked with ✅ are done.
 

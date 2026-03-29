@@ -2012,7 +2012,7 @@ puzzle_intelligence:
         top: "Top"
     methodology:
         title: "How We Calculate"
-        subtitle: "Complete transparency on our puzzle intelligence algorithms"
+        subtitle: "Complete transparency on our puzzle insights algorithms"
         section_baseline_title: "Player Baseline"
         section_baseline_desc: "Each player's baseline is the <strong>weighted median</strong> of their first-attempt solo times for a specific piece count. Recent solves count more thanks to exponential decay weighting."
         section_baseline_formula: "A solve from 18 months ago has ~37% weight. A solve from yesterday has ~100% weight."
@@ -2043,5 +2043,5 @@ puzzle_intelligence:
         section_data_quality_outlier: "<strong>Outlier filter:</strong> Difficulty indices above 5.0 are excluded (likely timer errors)"
         section_data_quality_suspicious: "<strong>Suspicious exclusion:</strong> Times flagged as suspicious are excluded"
         section_data_quality_recency: "<strong>Recency weighting:</strong> Recent solves count more for player baselines (exponential decay, half-life ~18 months)"
-        section_recalculation_note: "All intelligence metrics are recalculated hourly."
+        section_recalculation_note: "All insights metrics are recalculated hourly."
         section_recalculation_countdown: "Next recalculation in"

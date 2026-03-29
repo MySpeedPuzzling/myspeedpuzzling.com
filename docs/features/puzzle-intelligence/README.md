@@ -1,8 +1,8 @@
-# Puzzle Intelligence System
+# Puzzle Insights System
 
 ## Overview
 
-The Puzzle Intelligence System answers two core questions:
+The Puzzle Insights System answers two core questions:
 
 1. **How difficult is this puzzle?** — A normalized 7-tier difficulty score based on how players perform relative to their own baseline.
 2. **How skilled is this player?** — A difficulty-adjusted 7-tier skill rating that accounts for which puzzles a player solves.

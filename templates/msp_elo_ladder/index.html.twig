@@ -15,6 +15,24 @@
         <a href="{{ path('methodology') }}" class="ms-1">{{ 'puzzle_intelligence.elo.how_it_works'|trans }}</a>
     </p>
 
+    {# DEMO: Remove this block — static mockup of ranked banner #}
+    <div class="card shadow-custom mb-3">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-center gap-3">
+                <svg class="rank-icon flex-shrink-0" width="40" height="40" style="color: var(--rank-advanced)"><use href="/rank-icons-sprite.svg#rank-advanced"/></svg>
+                <div class="flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="h4 mb-0 fw-bold">#23</span>
+                        <span class="text-muted">&middot;</span>
+                        <span class="fw-bold">1,247 ELO</span>
+                    </div>
+                    <small class="text-muted">Ranked among 67 players</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {# END DEMO #}
+
     {# Player's own position or qualification progress #}
     {% if player_position is not null and player_elo_rating is not null %}
         {# Ranked — show position and rating #}

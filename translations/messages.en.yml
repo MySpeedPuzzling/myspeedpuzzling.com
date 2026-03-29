@@ -1865,6 +1865,8 @@ feature_requests:
         save: "Save Changes"
 
 puzzle_intelligence:
+    insights:
+        title: "Puzzle Insights"
     difficulty:
         title: "Puzzle Difficulty"
         score_label: "Difficulty Score"

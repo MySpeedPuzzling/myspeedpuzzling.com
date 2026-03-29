@@ -134,6 +134,9 @@ See `docs/performance-optimizations.md` for details on LCP & CLS optimizations:
 Feature design documents and implementation plans are in `docs/features/`. Each feature has its own directory with detailed specifications, entity designs, and step-by-step implementation guides.
 - **Marketplace**: `docs/features/marketplace/` — Centralized marketplace, messaging, ratings, shipping settings, admin moderation
 
+### Feature Flags
+Active feature flags are documented in `docs/features/feature_flags.md`. **Always read and update this file** when adding, modifying, or removing feature flags. It tracks which files are gated, what feature each flag belongs to, and when it can be removed.
+
 ### OAuth2 Server
 - Powered by `league/oauth2-server-bundle`
 - Endpoints: `/oauth2/authorize` (custom controller), `/oauth2/token` (bundle controller)
@@ -152,6 +155,16 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **Social Features**: Player favorites, collections, and activity feeds
 - **Premium Membership**: Stripe-powered subscription management
 - **Multi-language**: When adding new features, always do it only in English unless explicitly asked to translate to other locales 
+
+### Puzzle Insights System
+- **Batch computation**: All insights metrics (difficulty, skill, ELO) are computed hourly via `myspeedpuzzling:recalculate-puzzle-intelligence` console command, NOT event-driven
+- **Services**: All calculation logic is in `src/Services/PuzzleIntelligence/` — `PlayerBaselineCalculator`, `PuzzleDifficultyCalculator`, `PlayerSkillCalculator`, `DerivedMetricsCalculator`, `MspEloCalculator`, `PuzzleIntelligenceRecalculator` (orchestrator)
+- **Entities**: `PlayerBaseline`, `PuzzleDifficulty`, `PlayerSkill`, `PlayerSkillHistory`, `PlayerElo`
+- **Queries**: `GetPuzzleDifficulty`, `GetPlayerSkill`, `GetPlayerSkillHistory`, `GetPlayerEloRanking`, `GetPlayerPrediction`
+- **Visibility**: All insights data is members-only except raw median, MSP-ELO ladder, and methodology page
+- **Design doc**: Full specification at `docs/features/puzzle-intelligence/README.md`
+- **Cron**: `0 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence`
+- **First-time setup**: After migration, run `php bin/console myspeedpuzzling:recalculate-puzzle-intelligence --full`
 
 ### Service Worker (PWA)
 - The service worker is at `public/service-worker.js` with a `CACHE_VERSION` constant

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rank Icons — SVG Sprite Demo</title>
+<style>
+  :root {
+    --rank-locked:     #999;
+    --rank-unknown:    #cfcfcf;
+    --rank-casual:     #a8d4b8;
+    --rank-enthusiast: #5db88e;
+    --rank-proficient: #2e9468;
+    --rank-advanced:   #5a8ec8;
+    --rank-expert:     #4a53b0;
+    --rank-master:     #be3a30;
+    --rank-legend:     #1a1a2e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #222; padding: 40px 24px 80px; }
+  h1 { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 48px; }
+  .section { max-width: 900px; margin: 0 auto 48px; }
+  .section-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .section-desc { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+  /* Reusable rank icon class */
+  .rank-icon { display: inline-block; vertical-align: middle; }
+
+  /* Badge component */
+  .rank-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #fff;
+    box-shadow: 0px 0px 6px 0px rgba(0,0,0,0.30);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .rank-badge .rank-icon { color: #fff; }
+  .rank-badge.locked     { background: var(--rank-locked); }
+  .rank-badge.unknown    { background: var(--rank-unknown); }
+  .rank-badge.casual     { background: var(--rank-casual); }
+  .rank-badge.enthusiast { background: var(--rank-enthusiast); }
+  .rank-badge.proficient { background: var(--rank-proficient); }
+  .rank-badge.advanced   { background: var(--rank-advanced); }
+  .rank-badge.expert     { background: var(--rank-expert); }
+  .rank-badge.master     { background: var(--rank-master); }
+  .rank-badge.legend     { background: var(--rank-legend); }
+
+  /* Ladder demo */
+  .ladder { border: 1px solid #eee; border-radius: 12px; overflow: hidden; }
+  .ladder-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; }
+  .ladder-row:last-child { border-bottom: none; }
+  .ladder-row:hover { background: #fafafa; }
+  .ladder-pos { width: 32px; font-size: 13px; color: #999; text-align: right; font-variant-numeric: tabular-nums; }
+  .ladder-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .ladder-time { font-size: 13px; color: #666; font-variant-numeric: tabular-nums; }
+  .ladder-badge { flex-shrink: 0; }
+
+  hr.div { max-width: 900px; margin: 0 auto 40px; border: none; border-top: 1px solid #e0e0e0; }
+  code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  pre { background: #f4f4f4; border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.6; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<h1>SVG Sprite — Usage Demo</h1>
+<p class="subtitle">All icons reference inline sprite · color via CSS <code>currentColor</code></p>
+
+<!-- Hidden inline sprite — define once, reference everywhere with <use href="#id"/> -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="rank-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <rect x="8.5" y="11" width="7" height="5.5" rx="1"/>
+    <path d="M10 11V9a2 2 0 0 1 4 0v2"/>
+  </symbol>
+  <symbol id="rank-unknown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.5 9.5a2.5 2.5 0 0 1 4.6 1.3c0 1.5-2.1 2-2.1 3.2"/>
+    <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="rank-casual" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="8 13 12 9 16 13"/>
+  </symbol>
+  <symbol id="rank-enthusiast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="8 11.5 12 7.5 16 11.5"/><polyline points="8 15.5 12 11.5 16 15.5"/>
+  </symbol>
+  <symbol id="rank-proficient" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="8 10 12 6 16 10"/><polyline points="8 13.5 12 9.5 16 13.5"/><polyline points="8 17 12 13 16 17"/>
+  </symbol>
+  <symbol id="rank-advanced" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2, 22 9, 18.5 21, 5.5 21, 2 9"/><polyline points="8 13.5 12 9.5 16 13.5"/>
+  </symbol>
+  <symbol id="rank-expert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2, 22 9, 18.5 21, 5.5 21, 2 9"/><polyline points="8 12 12 8 16 12"/><polyline points="8 16 12 12 16 16"/>
+  </symbol>
+  <symbol id="rank-master" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2, 22 9, 18.5 21, 5.5 21, 2 9"/><polygon points="12 6 13.8 9.8 18 10.2 15 12.7 15.8 16.8 12 14.5 8.2 16.8 9 12.7 6 10.2 10.2 9.8" fill="currentColor" stroke="currentColor" stroke-width="1.2"/>
+  </symbol>
+  <symbol id="rank-legend" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2l8.5 3.5v5.5c0 5.2-3.7 8.8-8.5 11.2-4.8-2.4-8.5-6-8.5-11.2V5.5L12 2z" stroke="currentColor" stroke-width="1.6"/>
+    <g transform="translate(3.6 3) scale(0.7)"><path d="m12 6 4 6 5-4-2 10H5L3 8l5 4z" fill="currentColor" stroke="currentColor" stroke-width="1.4"/></g>
+  </symbol>
+</svg>
+
+<!-- ═══════════════ Plain icons ═══════════════ -->
+<div class="section">
+  <div class="section-title">Plain Icons (colored via CSS)</div>
+  <div class="section-desc">Each <code>&lt;use&gt;</code> is ~60 bytes. The sprite is loaded once and cached.</div>
+  <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:20px 0;">
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-locked)"><use href="#rank-locked"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-unknown)"><use href="#rank-unknown"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-casual)"><use href="#rank-casual"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-enthusiast)"><use href="#rank-enthusiast"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-proficient)"><use href="#rank-proficient"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-advanced)"><use href="#rank-advanced"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-expert)"><use href="#rank-expert"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-master)"><use href="#rank-master"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-legend)"><use href="#rank-legend"/></svg>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- ═══════════════ Badge components ═══════════════ -->
+<div class="section">
+  <div class="section-title">Badge Components</div>
+  <div class="section-desc">Icon + label in a colored badge with white border and shadow.</div>
+  <div style="display:flex; flex-direction:column; gap:10px; padding:20px 0;">
+    <div><span class="rank-badge locked"><svg class="rank-icon" width="20" height="20"><use href="#rank-locked"/></svg>Locked</span></div>
+    <div><span class="rank-badge unknown"><svg class="rank-icon" width="20" height="20"><use href="#rank-unknown"/></svg>Unknown</span></div>
+    <div><span class="rank-badge casual"><svg class="rank-icon" width="20" height="20"><use href="#rank-casual"/></svg>Casual</span></div>
+    <div><span class="rank-badge enthusiast"><svg class="rank-icon" width="20" height="20"><use href="#rank-enthusiast"/></svg>Enthusiast</span></div>
+    <div><span class="rank-badge proficient"><svg class="rank-icon" width="20" height="20"><use href="#rank-proficient"/></svg>Proficient</span></div>
+    <div><span class="rank-badge advanced"><svg class="rank-icon" width="20" height="20"><use href="#rank-advanced"/></svg>Advanced</span></div>
+    <div><span class="rank-badge expert"><svg class="rank-icon" width="20" height="20"><use href="#rank-expert"/></svg>Expert</span></div>
+    <div><span class="rank-badge master"><svg class="rank-icon" width="20" height="20"><use href="#rank-master"/></svg>Master</span></div>
+    <div><span class="rank-badge legend"><svg class="rank-icon" width="20" height="20"><use href="#rank-legend"/></svg>Legend</span></div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- ═══════════════ Ladder demo (simulated 20 rows) ═══════════════ -->
+<div class="section">
+  <div class="section-title">Ladder Demo (20 rows)</div>
+  <div class="section-desc">Simulated leaderboard — all 20 icons reference the same sprite. Zero duplication.</div>
+  <div class="ladder" id="ladder"></div>
+</div>
+
+<script>
+const ranks = [
+  { id: 'rank-legend',     name: 'Legend',     color: 'var(--rank-legend)' },
+  { id: 'rank-master',     name: 'Master',     color: 'var(--rank-master)' },
+  { id: 'rank-expert',     name: 'Expert',     color: 'var(--rank-expert)' },
+  { id: 'rank-advanced',   name: 'Advanced',   color: 'var(--rank-advanced)' },
+  { id: 'rank-proficient', name: 'Proficient', color: 'var(--rank-proficient)' },
+  { id: 'rank-enthusiast', name: 'Enthusiast', color: 'var(--rank-enthusiast)' },
+  { id: 'rank-casual',     name: 'Casual',     color: 'var(--rank-casual)' },
+  { id: 'rank-unknown',    name: 'Unknown',    color: 'var(--rank-unknown)' },
+];
+
+const players = [
+  { name: 'Sarah K.', time: '12:34', rank: 0 },
+  { name: 'Mike T.', time: '14:02', rank: 0 },
+  { name: 'Jan M.', time: '15:18', rank: 1 },
+  { name: 'Emma R.', time: '16:45', rank: 1 },
+  { name: 'David L.', time: '18:22', rank: 2 },
+  { name: 'Anna P.', time: '19:07', rank: 2 },
+  { name: 'Chris B.', time: '20:33', rank: 3 },
+  { name: 'Lisa W.', time: '21:15', rank: 3 },
+  { name: 'Tom H.', time: '22:48', rank: 3 },
+  { name: 'Nina S.', time: '24:01', rank: 4 },
+  { name: 'Paul G.', time: '25:19', rank: 4 },
+  { name: 'Kate D.', time: '26:44', rank: 4 },
+  { name: 'Alex F.', time: '28:10', rank: 5 },
+  { name: 'Maria C.', time: '29:55', rank: 5 },
+  { name: 'James R.', time: '31:22', rank: 5 },
+  { name: 'Sophie V.', time: '33:08', rank: 5 },
+  { name: 'Oliver N.', time: '35:47', rank: 6 },
+  { name: 'Eva M.', time: '38:12', rank: 6 },
+  { name: 'Lucas A.', time: '41:33', rank: 6 },
+  { name: 'Helen Z.', time: '45:09', rank: 6 },
+  { name: 'New Player', time: '—', rank: 7 },
+  { name: 'Guest', time: '—', rank: 7 },
+];
+
+const ladder = document.getElementById('ladder');
+players.forEach((p, i) => {
+  const r = ranks[p.rank];
+  ladder.innerHTML += `
+    <div class="ladder-row">
+      <div class="ladder-pos">${i + 1}</div>
+      <svg class="rank-icon" width="24" height="24" style="color:${r.color}; flex-shrink:0"><use href="#${r.id}"/></svg>
+      <div class="ladder-name">${p.name}</div>
+      <div class="ladder-time">${p.time}</div>
+    </div>`;
+});
+</script>
+
+</body>
+</html>

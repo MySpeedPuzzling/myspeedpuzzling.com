@@ -1,0 +1,256 @@
+{# Reusable macros for Puzzle Intelligence UI components #}
+
+{# Confidence indicator — dots + readable text #}
+{% macro confidence_indicator(confidence_value, sample_size) %}
+    {% set levels = {'low': 1, 'medium': 2, 'high': 3} %}
+    {% set level = levels[confidence_value] ?? 0 %}
+    <small class="text-muted">
+        <span class="text-confidence-{{ confidence_value }}">
+            {% for i in 1..3 %}
+                {% if i <= level %}
+                    <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+                {% else %}
+                    <i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i>
+                {% endif %}
+            {% endfor %}
+        </span>
+        {{ 'puzzle_intelligence.difficulty.sample_size_label'|trans({'%count%': sample_size}) }}
+        &middot;
+        {{ ('puzzle_intelligence.difficulty.confidence_levels.' ~ confidence_value)|trans }}
+    </small>
+{% endmacro %}
+
+{# Human-readable difficulty description #}
+{% macro human_difficulty(score) %}
+    {% set deviation = ((score - 1.0) * 100)|round %}
+    {% if deviation > 3 %}
+        <span>{{ 'puzzle_intelligence.human.harder_than_avg'|trans({'%percent%': deviation|abs}) }}</span>
+    {% elseif deviation < -3 %}
+        <span>{{ 'puzzle_intelligence.human.easier_than_avg'|trans({'%percent%': deviation|abs}) }}</span>
+    {% else %}
+        <span>{{ 'puzzle_intelligence.human.about_average'|trans }}</span>
+    {% endif %}
+{% endmacro %}
+
+{# Difficulty icon — SVG sprite reference #}
+{% macro difficulty_icon(tier_name, size) %}
+    {% set icon_ids = {
+        'veryeasy': 'diff-very-easy',
+        'easy': 'diff-easy',
+        'average': 'diff-average',
+        'challenging': 'diff-challenging',
+        'hard': 'diff-hard',
+        'veryhard': 'diff-very-hard',
+    } %}
+    {% set icon_id = icon_ids[tier_name] ?? 'diff-unknown' %}
+    <svg class="diff-icon" width="{{ size ?? 20 }}" height="{{ size ?? 20 }}" style="color: var(--{{ icon_id }})">
+        <use href="/difficulty-icons-sprite.svg#{{ icon_id }}"/>
+    </svg>
+{% endmacro %}
+
+{# Skill icon — SVG sprite reference #}
+{% macro skill_icon(tier_name, size) %}
+    {% set icon_id = 'rank-' ~ tier_name %}
+    <svg class="rank-icon" width="{{ size ?? 20 }}" height="{{ size ?? 20 }}" style="color: var(--{{ icon_id }})">
+        <use href="/rank-icons-sprite.svg#{{ icon_id }}"/>
+    </svg>
+{% endmacro %}
+
+{# Difficulty tier badge with icon and custom color #}
+{% macro difficulty_badge(tier_name, extra_class) %}
+    {% set icon_ids = {
+        'veryeasy': 'diff-very-easy',
+        'easy': 'diff-easy',
+        'average': 'diff-average',
+        'challenging': 'diff-challenging',
+        'hard': 'diff-hard',
+        'veryhard': 'diff-very-hard',
+    } %}
+    {% set icon_id = icon_ids[tier_name] ?? 'diff-unknown' %}
+    <span class="badge badge-tier-{{ tier_name }} badge-tier-styled {{ extra_class ?? '' }} d-inline-flex align-items-center gap-1">
+        <svg class="diff-icon" width="24" height="24" style="color: #fff">
+            <use href="/difficulty-icons-sprite.svg#{{ icon_id }}"/>
+        </svg>
+        {{ ('puzzle_intelligence.difficulty.tiers.' ~ tier_name)|trans }}
+    </span>
+{% endmacro %}
+
+{# Skill tier badge with icon and custom color #}
+{% macro skill_badge(tier_name, extra_class) %}
+    <span class="badge badge-skill-{{ tier_name }} badge-skill-styled {{ extra_class ?? '' }} d-inline-flex align-items-center gap-1">
+        <svg class="rank-icon" width="24" height="24" style="color: #fff">
+            <use href="/rank-icons-sprite.svg#rank-{{ tier_name }}"/>
+        </svg>
+        {{ ('puzzle_intelligence.skill.tiers.' ~ tier_name)|trans }}
+    </span>
+{% endmacro %}
+
+{# Human-readable personality metric with color indicator #}
+{% macro personality_metric(label_key, info_key, value, metric_type) %}
+    {% if metric_type == 'memorability' %}
+        {% if value >= 1.4 %}
+            {% set descriptor = 'puzzle_intelligence.human.memorability_high' %}
+            {% set color = 'badge-tier-easy' %}
+            {% set bar_color = 'var(--diff-easy)' %}
+        {% elseif value >= 1.15 %}
+            {% set descriptor = 'puzzle_intelligence.human.memorability_medium' %}
+            {% set color = 'badge-tier-veryeasy' %}
+            {% set bar_color = 'var(--diff-very-easy)' %}
+        {% else %}
+            {% set descriptor = 'puzzle_intelligence.human.memorability_low' %}
+            {% set color = 'badge-tier-average' %}
+            {% set bar_color = 'var(--diff-average)' %}
+        {% endif %}
+    {% elseif metric_type == 'sensitivity' %}
+        {% if value >= 1.8 %}
+            {% set descriptor = 'puzzle_intelligence.human.sensitivity_high' %}
+            {% set color = 'badge-tier-challenging' %}
+            {% set bar_color = 'var(--diff-challenging)' %}
+        {% elseif value >= 1.3 %}
+            {% set descriptor = 'puzzle_intelligence.human.sensitivity_medium' %}
+            {% set color = 'badge-tier-veryeasy' %}
+            {% set bar_color = 'var(--diff-very-easy)' %}
+        {% else %}
+            {% set descriptor = 'puzzle_intelligence.human.sensitivity_low' %}
+            {% set color = 'badge-tier-average' %}
+            {% set bar_color = 'var(--diff-average)' %}
+        {% endif %}
+    {% elseif metric_type == 'predictability' %}
+        {% if value >= 5.0 %}
+            {% set descriptor = 'puzzle_intelligence.human.predictability_high' %}
+            {% set color = 'badge-tier-easy' %}
+            {% set bar_color = 'var(--diff-easy)' %}
+        {% elseif value >= 2.5 %}
+            {% set descriptor = 'puzzle_intelligence.human.predictability_medium' %}
+            {% set color = 'badge-tier-veryeasy' %}
+            {% set bar_color = 'var(--diff-very-easy)' %}
+        {% else %}
+            {% set descriptor = 'puzzle_intelligence.human.predictability_low' %}
+            {% set color = 'badge-tier-challenging' %}
+            {% set bar_color = 'var(--diff-challenging)' %}
+        {% endif %}
+    {% elseif metric_type == 'box_dependence' %}
+        {% if value >= 1.4 %}
+            {% set descriptor = 'puzzle_intelligence.human.box_dep_high' %}
+            {% set color = 'badge-tier-challenging' %}
+            {% set bar_color = 'var(--diff-challenging)' %}
+        {% elseif value >= 1.15 %}
+            {% set descriptor = 'puzzle_intelligence.human.box_dep_medium' %}
+            {% set color = 'badge-tier-veryeasy' %}
+            {% set bar_color = 'var(--diff-very-easy)' %}
+        {% else %}
+            {% set descriptor = 'puzzle_intelligence.human.box_dep_low' %}
+            {% set color = 'badge-tier-average' %}
+            {% set bar_color = 'var(--diff-average)' %}
+        {% endif %}
+    {% endif %}
+
+    {# Scale bar — map value to 0-100% within typical range #}
+    {% if metric_type == 'memorability' %}
+        {% set bar_min = 0.8 %}
+        {% set bar_max = 1.8 %}
+    {% elseif metric_type == 'sensitivity' %}
+        {% set bar_min = 1.0 %}
+        {% set bar_max = 1.8 %}
+    {% elseif metric_type == 'predictability' %}
+        {% set bar_min = 1.0 %}
+        {% set bar_max = 20.0 %}
+    {% elseif metric_type == 'box_dependence' %}
+        {% set bar_min = 0.8 %}
+        {% set bar_max = 2.0 %}
+    {% endif %}
+    {% set bar_pct = ((value - bar_min) / (bar_max - bar_min) * 100) %}
+    {% set bar_pct = bar_pct < 2 ? 2 : (bar_pct > 100 ? 100 : bar_pct) %}
+
+    <div class="py-1">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <small class="text-muted">{{ value|number_format(1) }}{% if metric_type != 'predictability' %}x{% endif %}</small>
+            <span class="badge {{ color ?? 'badge-tier-average' }}" style="font-weight: 500;">{{ descriptor|trans }}</span>
+        </div>
+        <div class="progress" style="height: 4px;">
+            <div class="progress-bar" style="width: {{ bar_pct }}%; background-color: {{ bar_color }};"></div>
+        </div>
+        <small class="text-muted">{{ info_key|trans }}</small>
+    </div>
+{% endmacro %}
+
+{# Percentile progress bar with custom skill color #}
+{% macro percentile_bar(percentile, tier_name) %}
+    <div class="progress" style="height: 8px;">
+        <div class="progress-bar progress-bar-skill-{{ tier_name }}"
+             role="progressbar"
+             style="width: {{ percentile }}%;"
+             aria-valuenow="{{ percentile }}"
+             aria-valuemin="0"
+             aria-valuemax="100">
+        </div>
+    </div>
+{% endmacro %}
+
+{# Next tier milestone — shows progress toward the next skill tier #}
+{# tier_thresholds: ordered from highest to lowest percentile requirement #}
+{% macro next_tier_milestone(current_percentile, current_tier_name) %}
+    {% set tiers_ascending = [
+        {name: 'casual',       min: 0,    next_min: 25},
+        {name: 'enthusiast',   min: 25,   next_min: 50},
+        {name: 'proficient',   min: 50,   next_min: 70},
+        {name: 'advanced',     min: 70,   next_min: 85},
+        {name: 'expert',       min: 85,   next_min: 95},
+        {name: 'master',       min: 95,   next_min: 99},
+        {name: 'legend',       min: 99,   next_min: null},
+    ] %}
+
+    {% set current = null %}
+    {% set next = null %}
+    {% for i, tier in tiers_ascending %}
+        {% if tier.name == current_tier_name %}
+            {% set current = tier %}
+            {% if tier.next_min is not null %}
+                {# find the next tier by name #}
+                {% for t in tiers_ascending %}
+                    {% if t.min == tier.next_min %}
+                        {% set next = t %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+
+    {% if next is not null and current is not null %}
+        {% set gap = (next.min - current_percentile)|round(1) %}
+        {% set tier_range = next.min - current.min %}
+        {% set progress_in_tier = tier_range > 0 ? ((current_percentile - current.min) / tier_range * 100) : 0 %}
+
+        <div class="d-flex align-items-center gap-2 mt-2">
+            <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted">
+                        <i class="bi bi-arrow-up-circle me-1"></i>
+                        {{ 'puzzle_intelligence.skill.next_tier'|trans }}
+                        <span class="badge badge-skill-{{ next.name }}">
+                            <svg class="rank-icon" width="14" height="14" style="color: #fff"><use href="/rank-icons-sprite.svg#rank-{{ next.name }}"/></svg>
+                            {{ ('puzzle_intelligence.skill.tiers.' ~ next.name)|trans }}
+                        </span>
+                        <span class="text-muted">({{ 'puzzle_intelligence.skill.next_tier_threshold'|trans({'%threshold%': next.min}) }})</span>
+                    </small>
+                    <small class="fw-medium text-skill-{{ next.name }}">
+                        {{ 'puzzle_intelligence.skill.next_tier_gap'|trans({'%gap%': gap|abs|number_format(1)}) }}
+                    </small>
+                </div>
+                {% set clamped_progress = progress_in_tier < 0 ? 0 : (progress_in_tier > 100 ? 100 : progress_in_tier) %}
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar progress-bar-skill-{{ next.name }}"
+                         style="width: {{ clamped_progress }}%;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% elseif current is not null and current.next_min is null %}
+        <div class="mt-2">
+            <small class="text-skill-legend">
+                <svg class="rank-icon me-1" width="16" height="16" style="color: var(--rank-legend)"><use href="/rank-icons-sprite.svg#rank-legend"/></svg>
+                {{ 'puzzle_intelligence.skill.highest_tier_reached'|trans }}
+            </small>
+        </div>
+    {% endif %}
+{% endmacro %}

@@ -1,0 +1,62 @@
+<div {{ attributes }}>
+    {% if eloRatings is not empty %}
+        {# Ranked — card banner matching ELO ladder style #}
+        {% for pc, data in eloRatings %}
+            <div class="card shadow-custom flex-shrink-0 flex-grow-0 border-primary d-flex h-100">
+                <div class="card-body py-2 px-3 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
+                            <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                        </div>
+                        <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs ms-2"><i class="bi bi-question-circle"></i></a>
+                    </div>
+                    <div class="mt-auto">
+                    <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.your_ranking_among'|trans({'%total%': data.total}) }}</small>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="h5 mb-0 fw-bold" style="font-family: monospace;">#{{ data.rank }}</span>
+                        <span class="text-muted">&middot;</span>
+                        <span class="fw-bold" style="font-family: monospace;">{{ data.elo_rating }} ELO</span>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% elseif isOwnProfile and eloProgress is not null %}
+        {# Not yet qualified — qualification banner matching ELO ladder style #}
+        {% set fa_done = eloProgress.first_attempts >= 15 %}
+        {% set ts_done = eloProgress.total_solves >= 50 %}
+        <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
+                    <div>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <small class="text-muted" style="min-width: 100px;">
+                        <i class="bi bi-{{ fa_done ? 'check-circle-fill text-success' : 'x-circle text-muted' }} me-1"></i>
+                        {{ 'puzzle_intelligence.elo.progress_first_attempts'|trans }}
+                    </small>
+                    <div class="progress flex-grow-1" style="height: 5px; background-color: #fff;">
+                        {% set fa_pct = (eloProgress.first_attempts / 15 * 100) > 100 ? 100 : (eloProgress.first_attempts / 15 * 100) %}
+                        <div class="progress-bar {{ fa_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ fa_pct }}%;"></div>
+                    </div>
+                    <small class="text-muted fw-medium">{{ eloProgress.first_attempts }}/15</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <small class="text-muted" style="min-width: 100px;">
+                        <i class="bi bi-{{ ts_done ? 'check-circle-fill text-success' : 'x-circle text-muted' }} me-1"></i>
+                        {{ 'puzzle_intelligence.elo.progress_total_solves'|trans }}
+                    </small>
+                    <div class="progress flex-grow-1" style="height: 5px; background-color: #fff;">
+                        {% set ts_pct = (eloProgress.total_solves / 50 * 100) > 100 ? 100 : (eloProgress.total_solves / 50 * 100) %}
+                        <div class="progress-bar {{ ts_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ ts_pct }}%;"></div>
+                    </div>
+                    <small class="text-muted fw-medium">{{ eloProgress.total_solves }}/50</small>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

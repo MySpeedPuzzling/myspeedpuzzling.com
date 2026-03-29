@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\FormData\SearchPuzzleFormData;
 use SpeedPuzzling\Web\FormType\SearchPuzzleFormType;
+use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetSellSwapListItems;
 use SpeedPuzzling\Web\Query\GetTags;
@@ -34,6 +35,7 @@ final class PuzzlesController extends AbstractController
         readonly private GetTags $getTags,
         readonly private CacheInterface $cache,
         readonly private GetSellSwapListItems $getSellSwapListItems,
+        readonly private GetPuzzleDifficulty $getPuzzleDifficulty,
     ) {
     }
 
@@ -71,6 +73,8 @@ final class PuzzlesController extends AbstractController
             $offset = max(0, (int) $rawOffset);
         }
 
+        $difficultyTiers = $searchData->difficultyTiers;
+
         if ($this->isDefaultSearch($searchData, $offset)) {
             $cached = $this->getInitialPuzzlesFromCache();
             $foundPuzzle = $cached['puzzles'];
@@ -81,6 +85,7 @@ final class PuzzlesController extends AbstractController
                 $searchData->search,
                 PiecesFilter::fromUserInput($searchData->pieces),
                 $searchData->tag,
+                $difficultyTiers,
             );
 
             $offset = min($offset, $totalPuzzlesCount);
@@ -92,6 +97,8 @@ final class PuzzlesController extends AbstractController
                 $searchData->tag,
                 $searchData->sortBy,
                 $offset,
+                20,
+                $difficultyTiers,
             );
         }
 
@@ -112,8 +119,10 @@ final class PuzzlesController extends AbstractController
 
         $usingSearch = is_string($search);
 
+        /** @var list<PuzzleOverview> $foundPuzzle */
         $puzzleIds = array_map(static fn (PuzzleOverview $p): string => $p->puzzleId, $foundPuzzle);
         $offerCounts = $this->getSellSwapListItems->countByPuzzleIds($puzzleIds);
+        $difficultyData = $this->getPuzzleDifficulty->forPuzzleList($puzzleIds);
 
         return $this->render($templateName, [
             'puzzles' => $foundPuzzle,
@@ -128,6 +137,7 @@ final class PuzzlesController extends AbstractController
             'remaining' => max($totalPuzzlesCount - $limit - $offset, 0),
             'using_search' => $usingSearch,
             'offer_counts' => $offerCounts,
+            'difficulty_data' => $difficultyData,
         ]);
     }
 
@@ -138,6 +148,7 @@ final class PuzzlesController extends AbstractController
             && $searchData->tag === null
             && $searchData->pieces === null
             && $searchData->sortBy === 'most-solved'
+            && $searchData->difficultyTiers === []
             && $offset === 0;
     }
 

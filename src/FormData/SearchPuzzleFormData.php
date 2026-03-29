@@ -19,6 +19,9 @@ final class SearchPuzzleFormData
 
     public null|string $tag = null;
 
+    /** @var list<int> */
+    public array $difficultyTiers = [];
+
     public static function fromRequest(Request $request): self
     {
         $self = new self();
@@ -44,6 +47,9 @@ final class SearchPuzzleFormData
         }
 
         $self->sortBy = $request->query->get('sortBy', 'most-solved');
+
+        $difficultyTiers = $request->query->all('difficultyTiers');
+        $self->difficultyTiers = array_values(array_map(static fn (mixed $v): int => (int) $v, array_filter($difficultyTiers, static fn (mixed $v): bool => is_numeric($v))));
 
         return $self;
     }

@@ -22,14 +22,26 @@ readonly final class SearchPuzzle
     /**
      * @throws ManufacturerNotFound
      */
+    /**
+     * @param list<int> $difficultyTiers
+     */
     public function countByUserInput(
         null|string $brandId,
         null|string $search,
         PiecesFilter $pieces,
         null|string $tag,
+        array $difficultyTiers = [],
     ): int {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
+        }
+
+        $difficultyJoin = '';
+        $difficultyCondition = '';
+
+        if ($difficultyTiers !== []) {
+            $difficultyJoin = 'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id';
+            $difficultyCondition = 'AND pd.difficulty_tier IN(:difficultyTiers)';
         }
 
         $query = <<<SQL
@@ -37,6 +49,7 @@ SELECT
     COUNT(DISTINCT puzzle.id) AS count
 FROM puzzle
 LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
+{$difficultyJoin}
 WHERE
     (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
     AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
@@ -50,22 +63,32 @@ WHERE
         OR ean ILIKE :eanSearchFullLikeQuery
    )
     AND (:useTags = false OR tag_puzzle.tag_id IN(:tag))
+    {$difficultyCondition}
 SQL;
 
         $eanSearch = trim($search ?? '', '0');
 
+        $params = [
+            'searchFullLikeQuery' => "%$search%",
+            'eanSearchFullLikeQuery' => "%$eanSearch%",
+            'brandId' => $brandId,
+            'minPieces' => $pieces->minPieces(),
+            'maxPieces' => $pieces->maxPieces(),
+            'useTags' => $tag !== null ? 1 : 0,
+            'tag' => $tag ? [$tag] : [],
+        ];
+
+        $types = [
+            'tag' => ArrayParameterType::STRING,
+        ];
+
+        if ($difficultyTiers !== []) {
+            $params['difficultyTiers'] = $difficultyTiers;
+            $types['difficultyTiers'] = ArrayParameterType::INTEGER;
+        }
+
         $count = $this->database
-            ->executeQuery($query, [
-                'searchFullLikeQuery' => "%$search%",
-                'eanSearchFullLikeQuery' => "%$eanSearch%",
-                'brandId' => $brandId,
-                'minPieces' => $pieces->minPieces(),
-                'maxPieces' => $pieces->maxPieces(),
-                'useTags' => $tag !== null ? 1 : 0,
-                'tag' => $tag ? [$tag] : [],
-            ], [
-                'tag' => ArrayParameterType::STRING,
-            ])
+            ->executeQuery($query, $params, $types)
             ->fetchOne();
         assert(is_int($count));
 
@@ -73,6 +96,8 @@ SQL;
     }
 
     /**
+     * @param list<int> $difficultyTiers
+     *
      * @return list<PuzzleOverview>
      *
      * @throws ManufacturerNotFound
@@ -85,13 +110,22 @@ SQL;
         null|string $sortBy = null,
         int $offset = 0,
         int $limit = 20,
+        array $difficultyTiers = [],
     ): array {
         if ($brandId !== null && Uuid::isValid($brandId) === false) {
             throw new ManufacturerNotFound();
         }
 
-        if (in_array($sortBy, ['most-solved', 'least-solved', 'a-z', 'z-a'], true) === false) {
+        if (in_array($sortBy, ['most-solved', 'least-solved', 'a-z', 'z-a', 'easiest', 'hardest'], true) === false) {
             $sortBy = 'most-solved';
+        }
+
+        $difficultyJoin = '';
+        $difficultyCondition = '';
+
+        if ($difficultyTiers !== []) {
+            $difficultyJoin = 'LEFT JOIN puzzle_difficulty pd ON pd.puzzle_id = puzzle.id';
+            $difficultyCondition = 'AND pd.difficulty_tier IN(:difficultyTiers)';
         }
 
         $query = <<<SQL
@@ -135,6 +169,7 @@ WITH puzzle_base AS (
         END AS match_score
     FROM puzzle
     LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
+    {$difficultyJoin}
     WHERE
         (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
         AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
@@ -148,6 +183,7 @@ WITH puzzle_base AS (
             OR puzzle.ean ILIKE :eanSearchFullLikeQuery
         )
         AND (:useTags = 0 OR tag_puzzle.tag_id IN(:tag))
+        {$difficultyCondition}
 )
 SELECT
     pb.puzzle_id,
@@ -171,6 +207,7 @@ SELECT
     ps.fastest_time_team
 FROM puzzle_base pb
 LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = pb.puzzle_id
+LEFT JOIN puzzle_difficulty pdi ON pdi.puzzle_id = pb.puzzle_id
 INNER JOIN manufacturer m ON pb.manufacturer_id = m.id
 SQL;
         if ($sortBy === 'most-solved') {
@@ -189,30 +226,47 @@ SQL;
             $query .= ' ORDER BY pb.puzzle_name DESC, pb.match_score DESC, m.name DESC, pb.pieces_count ';
         }
 
+        if ($sortBy === 'easiest') {
+            $query .= ' ORDER BY pdi.difficulty_score ASC NULLS LAST, pb.match_score DESC, pb.puzzle_name ';
+        }
+
+        if ($sortBy === 'hardest') {
+            $query .= ' ORDER BY pdi.difficulty_score DESC NULLS LAST, pb.match_score DESC, pb.puzzle_name ';
+        }
+
          $query .= ' LIMIT :limit OFFSET :offset';
 
         $eanSearch = trim($search ?? '', '0');
 
+        $params = [
+            'searchQuery' => $search,
+            'searchStartLikeQuery' => "%$search",
+            'searchEndLikeQuery' => "$search%",
+            'searchFullLikeQuery' => "%$search%",
+            'eanSearchQuery' => $eanSearch,
+            'eanSearchStartLikeQuery' => "%$eanSearch",
+            'eanSearchEndLikeQuery' => "$eanSearch%",
+            'eanSearchFullLikeQuery' => "%$eanSearch%",
+            'brandId' => $brandId,
+            'limit' => $limit,
+            'minPieces' => $pieces->minPieces(),
+            'maxPieces' => $pieces->maxPieces(),
+            'offset' => $offset,
+            'useTags' => $tag !== null ? 1 : 0,
+            'tag' => $tag ? [$tag] : [],
+        ];
+
+        $types = [
+            'tag' => ArrayParameterType::STRING,
+        ];
+
+        if ($difficultyTiers !== []) {
+            $params['difficultyTiers'] = $difficultyTiers;
+            $types['difficultyTiers'] = ArrayParameterType::INTEGER;
+        }
+
         $data = $this->database
-            ->executeQuery($query, [
-                'searchQuery' => $search,
-                'searchStartLikeQuery' => "%$search",
-                'searchEndLikeQuery' => "$search%",
-                'searchFullLikeQuery' => "%$search%",
-                'eanSearchQuery' => $eanSearch,
-                'eanSearchStartLikeQuery' => "%$eanSearch",
-                'eanSearchEndLikeQuery' => "$eanSearch%",
-                'eanSearchFullLikeQuery' => "%$eanSearch%",
-                'brandId' => $brandId,
-                'limit' => $limit,
-                'minPieces' => $pieces->minPieces(),
-                'maxPieces' => $pieces->maxPieces(),
-                'offset' => $offset,
-                'useTags' => $tag !== null ? 1 : 0,
-                'tag' => $tag ? [$tag] : [],
-            ], [
-                'tag' => ArrayParameterType::STRING,
-            ])
+            ->executeQuery($query, $params, $types)
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): PuzzleOverview {

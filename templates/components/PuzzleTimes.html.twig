@@ -1,11 +1,4 @@
 <div {{ attributes }} data-loading="addClass(opacity-50)">
-    {% set totalRelaxCount = this.soloRelaxCount + this.duoRelaxCount + this.groupRelaxCount %}
-    {% if totalRelaxCount > 0 %}
-        <small class="text-muted">
-            <i class="bi bi-cup-hot"></i> {{ 'puzzle.relax_solvings_count'|trans({'%count%': totalRelaxCount}) }}
-        </small>
-    {% endif %}
-
     <div class="puzzle-category-types mt-3 my-2">
         <button
             class="btn {{ this.category == 'solo' ? 'active' }} {{ this.soloTimesCount == 0 ? 'disabled'}}"
@@ -49,10 +42,22 @@
                     Rank {{ this.myRank }} {{ 'ranking_out_of'|trans}} {{ this.times|length }}<br>
                 {% endif %}
 
+                {% if this.medianTime %}
+                    {{ 'median_time'|trans }}
+                    {{ this.medianTime|puzzlingTime }}
+                {% endif %}
+
                 {% if this.averageTime %}
-                    {{ 'average_time'|trans }}
+                    &middot; {{ 'average_time'|trans }}
                     {{ this.averageTime|puzzlingTime }}
                 {% endif %}
+            {% endif %}
+
+            {% set categoryRelaxCount = this.category == 'solo' ? this.soloRelaxCount : (this.category == 'duo' ? this.duoRelaxCount : this.groupRelaxCount) %}
+            {% if categoryRelaxCount > 0 %}
+                <br><small class="text-muted">
+                    <i class="bi bi-cup-hot"></i> {{ 'puzzle.relax_solvings_count'|trans({'%count%': categoryRelaxCount}) }}
+                </small>
             {% endif %}
         </div>
 

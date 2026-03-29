@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Difficulty Icons — SVG Sprite Demo</title>
+<style>
+  :root {
+    --diff-very-easy:   #2d8a3e;
+    --diff-easy:        #5a9a18;
+    --diff-average:     #b89518;
+    --diff-challenging: #d07020;
+    --diff-hard:        #c83530;
+    --diff-very-hard:   #8a1820;
+    --diff-unknown:     #cfcfcf;
+    --diff-locked:      #999999;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #222; padding: 40px 24px 80px; }
+  h1 { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 48px; }
+  .section { max-width: 900px; margin: 0 auto 48px; }
+  .section-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .section-desc { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+  /* Reusable difficulty icon class */
+  .diff-icon { display: inline-block; vertical-align: middle; }
+
+  /* Badge component */
+  .diff-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #fff;
+    box-shadow: 0px 0px 6px 0px rgba(0,0,0,0.30);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .diff-badge .diff-icon { color: #fff; }
+  .diff-badge.very-easy   { background: var(--diff-very-easy); }
+  .diff-badge.easy        { background: var(--diff-easy); }
+  .diff-badge.average     { background: var(--diff-average); }
+  .diff-badge.challenging { background: var(--diff-challenging); }
+  .diff-badge.hard        { background: var(--diff-hard); }
+  .diff-badge.very-hard   { background: var(--diff-very-hard); }
+  .diff-badge.unknown     { background: var(--diff-unknown); }
+  .diff-badge.locked      { background: var(--diff-locked); }
+
+  /* Size comparison grid */
+  .size-grid { display: flex; gap: 32px; align-items: end; flex-wrap: wrap; padding: 20px 0; }
+  .size-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .size-label { font-size: 11px; color: #999; }
+
+  /* Ladder demo */
+  .ladder { border: 1px solid #eee; border-radius: 12px; overflow: hidden; }
+  .ladder-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; }
+  .ladder-row:last-child { border-bottom: none; }
+  .ladder-row:hover { background: #fafafa; }
+  .ladder-pos { width: 32px; font-size: 13px; color: #999; text-align: right; font-variant-numeric: tabular-nums; }
+  .ladder-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .ladder-time { font-size: 13px; color: #666; font-variant-numeric: tabular-nums; }
+  .ladder-diff { flex-shrink: 0; }
+
+  hr.div { max-width: 900px; margin: 0 auto 40px; border: none; border-top: 1px solid #e0e0e0; }
+  code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  pre { background: #f4f4f4; border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.6; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<h1>Difficulty Icons — SVG Sprite Demo</h1>
+<p class="subtitle">All icons reference inline sprite · color via CSS <code>currentColor</code> · semaphore palette (green → red)</p>
+
+<!-- Hidden inline sprite — define once, reference everywhere with <use href="#id"/> -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="diff-very-easy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="8 8.5 12 12.5 16 8.5"/><polyline points="8 12.5 12 16.5 16 12.5"/>
+  </symbol>
+  <symbol id="diff-easy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="8 10 12 14 16 10"/>
+  </symbol>
+  <symbol id="diff-average" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="diff-challenging" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="8 14 12 10 16 14"/>
+  </symbol>
+  <symbol id="diff-hard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="8 15.5 12 11.5 16 15.5"/><polyline points="8 11.5 12 7.5 16 11.5"/>
+  </symbol>
+  <symbol id="diff-very-hard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><polyline points="8 17 12 13 16 17"/><polyline points="8 13.5 12 9.5 16 13.5"/><polyline points="8 10 12 6 16 10"/>
+  </symbol>
+  <symbol id="diff-unknown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.9.5c0 1.5-2.4 2-2.4 3.5"/><circle cx="12" cy="16.5" r="0.01" stroke-width="2.5"/>
+  </symbol>
+  <symbol id="diff-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><rect x="8" y="11" width="8" height="6.5" rx="1.5"/><path d="M10 11V9a2 2 0 0 1 4 0v2"/>
+  </symbol>
+</svg>
+
+<!-- ═══════════════ Plain icons ═══════════════ -->
+<div class="section">
+  <div class="section-title">Plain Icons (colored via CSS)</div>
+  <div class="section-desc">Each <code>&lt;use&gt;</code> is ~60 bytes. The sprite is loaded once and cached.</div>
+  <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:20px 0;">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-very-easy)"><use href="#diff-very-easy"/></svg>
+      <span style="font-size:11px; color:#888;">Very Easy</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-easy)"><use href="#diff-easy"/></svg>
+      <span style="font-size:11px; color:#888;">Easy</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-average)"><use href="#diff-average"/></svg>
+      <span style="font-size:11px; color:#888;">Average</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-challenging)"><use href="#diff-challenging"/></svg>
+      <span style="font-size:11px; color:#888;">Challenging</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-hard)"><use href="#diff-hard"/></svg>
+      <span style="font-size:11px; color:#888;">Hard</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-very-hard)"><use href="#diff-very-hard"/></svg>
+      <span style="font-size:11px; color:#888;">Very Hard</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-unknown)"><use href="#diff-unknown"/></svg>
+      <span style="font-size:11px; color:#888;">Unknown</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+      <svg class="diff-icon" width="32" height="32" style="color:var(--diff-locked)"><use href="#diff-locked"/></svg>
+      <span style="font-size:11px; color:#888;">Locked</span>
+    </div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- ═══════════════ Size comparison ═══════════════ -->
+<div class="section">
+  <div class="section-title">Size Comparison</div>
+  <div class="section-desc">All tiers + Unknown at 16px, 24px, 32px, and 48px to verify readability.</div>
+  <div style="overflow-x:auto;">
+    <table style="border-collapse:collapse; width:100%;">
+      <thead>
+        <tr style="border-bottom:2px solid #e0e0e0;">
+          <th style="text-align:left; padding:8px 12px; font-size:12px; color:#888;">Tier</th>
+          <th style="text-align:center; padding:8px 12px; font-size:12px; color:#888;">16px</th>
+          <th style="text-align:center; padding:8px 12px; font-size:12px; color:#888;">24px</th>
+          <th style="text-align:center; padding:8px 12px; font-size:12px; color:#888;">32px</th>
+          <th style="text-align:center; padding:8px 12px; font-size:12px; color:#888;">48px</th>
+        </tr>
+      </thead>
+      <tbody id="size-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- ═══════════════ Badge components ═══════════════ -->
+<div class="section">
+  <div class="section-title">Badge Components</div>
+  <div class="section-desc">Icon + label in a colored badge with white border and shadow.</div>
+  <div style="display:flex; flex-direction:column; gap:10px; padding:20px 0;">
+    <div><span class="diff-badge very-easy"><svg class="diff-icon" width="20" height="20"><use href="#diff-very-easy"/></svg>Very Easy</span></div>
+    <div><span class="diff-badge easy"><svg class="diff-icon" width="20" height="20"><use href="#diff-easy"/></svg>Easy</span></div>
+    <div><span class="diff-badge average"><svg class="diff-icon" width="20" height="20"><use href="#diff-average"/></svg>Average</span></div>
+    <div><span class="diff-badge challenging"><svg class="diff-icon" width="20" height="20"><use href="#diff-challenging"/></svg>Challenging</span></div>
+    <div><span class="diff-badge hard"><svg class="diff-icon" width="20" height="20"><use href="#diff-hard"/></svg>Hard</span></div>
+    <div><span class="diff-badge very-hard"><svg class="diff-icon" width="20" height="20"><use href="#diff-very-hard"/></svg>Very Hard</span></div>
+    <div><span class="diff-badge unknown"><svg class="diff-icon" width="20" height="20"><use href="#diff-unknown"/></svg>Unknown</span></div>
+    <div><span class="diff-badge locked"><svg class="diff-icon" width="20" height="20"><use href="#diff-locked"/></svg>Locked</span></div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- ═══════════════ Ladder demo (simulated 20 rows) ═══════════════ -->
+<div class="section">
+  <div class="section-title">Ladder Demo (20 rows)</div>
+  <div class="section-desc">Simulated puzzle listing with difficulty badges — all 20 icons reference the same sprite. Zero duplication.</div>
+  <div class="ladder" id="ladder"></div>
+</div>
+
+<script>
+const diffs = [
+  { id: 'diff-very-easy',   name: 'Very Easy',   css: 'very-easy',   color: 'var(--diff-very-easy)' },
+  { id: 'diff-easy',        name: 'Easy',         css: 'easy',        color: 'var(--diff-easy)' },
+  { id: 'diff-average',     name: 'Average',      css: 'average',     color: 'var(--diff-average)' },
+  { id: 'diff-challenging', name: 'Challenging',   css: 'challenging', color: 'var(--diff-challenging)' },
+  { id: 'diff-hard',        name: 'Hard',          css: 'hard',        color: 'var(--diff-hard)' },
+  { id: 'diff-very-hard',   name: 'Very Hard',     css: 'very-hard',   color: 'var(--diff-very-hard)' },
+  { id: 'diff-unknown',     name: 'Unknown',       css: 'unknown',     color: 'var(--diff-unknown)' },
+  { id: 'diff-locked',      name: 'Locked',        css: 'locked',      color: 'var(--diff-locked)' },
+];
+
+// Size comparison table
+const sizeTable = document.getElementById('size-table');
+const sizes = [16, 24, 32, 48];
+diffs.forEach(d => {
+  let row = `<tr style="border-bottom:1px solid #f0f0f0;">
+    <td style="padding:10px 12px; font-size:13px; font-weight:500; color:${d.color.replace('var(','').replace(')','')}">${d.name}</td>`;
+  sizes.forEach(s => {
+    row += `<td style="text-align:center; padding:10px 12px;">
+      <svg class="diff-icon" width="${s}" height="${s}" style="color:${d.color}"><use href="#${d.id}"/></svg>
+    </td>`;
+  });
+  row += '</tr>';
+  sizeTable.innerHTML += row;
+});
+
+// Ladder demo
+const puzzles = [
+  { name: 'Sunset Over Lake',           pieces: 500,  diff: 0 },
+  { name: 'Spring Garden',              pieces: 500,  diff: 0 },
+  { name: 'Cozy Bookshop',             pieces: 500,  diff: 1 },
+  { name: 'Farm Animals',               pieces: 750,  diff: 1 },
+  { name: 'Beach Vacation',             pieces: 1000, diff: 1 },
+  { name: 'City Skyline',               pieces: 1000, diff: 2 },
+  { name: 'Autumn Forest Path',         pieces: 1000, diff: 2 },
+  { name: 'Tropical Birds',             pieces: 1000, diff: 2 },
+  { name: 'Venice Canals',              pieces: 1000, diff: 3 },
+  { name: 'Starry Night Replica',       pieces: 1000, diff: 3 },
+  { name: 'Japanese Cherry Blossom',    pieces: 1500, diff: 3 },
+  { name: 'Abstract Color Burst',       pieces: 1000, diff: 3 },
+  { name: 'Underwater Coral Reef',      pieces: 1500, diff: 4 },
+  { name: 'Black & White Manhattan',    pieces: 1500, diff: 4 },
+  { name: 'Galaxy Nebula',              pieces: 2000, diff: 4 },
+  { name: 'Monochrome Gradient',        pieces: 1000, diff: 4 },
+  { name: 'All White Challenge',        pieces: 1000, diff: 5 },
+  { name: 'Double-Sided Space',         pieces: 2000, diff: 5 },
+  { name: 'Krypt Gold',                 pieces: 1500, diff: 5 },
+  { name: 'Clear Impossible Puzzle',    pieces: 2000, diff: 5 },
+  { name: 'Mystery Box Puzzle',          pieces: 1000, diff: 6 },
+  { name: 'Unmarked Vintage Find',       pieces: 500,  diff: 6 },
+  { name: 'Premium Members Only',        pieces: 1000, diff: 7 },
+  { name: 'Season Pass Exclusive',       pieces: 2000, diff: 7 },
+];
+
+const ladder = document.getElementById('ladder');
+puzzles.forEach((p, i) => {
+  const d = diffs[p.diff];
+  ladder.innerHTML += `
+    <div class="ladder-row">
+      <div class="ladder-pos">${i + 1}</div>
+      <svg class="diff-icon" width="24" height="24" style="color:${d.color}; flex-shrink:0"><use href="#${d.id}"/></svg>
+      <div class="ladder-name">${p.name}</div>
+      <div class="ladder-time" style="color:#999; font-size:12px;">${p.pieces} pcs</div>
+      <div class="ladder-diff">
+        <span class="diff-badge ${d.css}" style="font-size:11px; padding:3px 8px;">
+          <svg class="diff-icon" width="14" height="14"><use href="#${d.id}"/></svg>${d.name}
+        </span>
+      </div>
+    </div>`;
+});
+</script>
+
+</body>
+</html>

@@ -5,10 +5,11 @@
 {% block og_image %}{% if player.avatar is not null %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig') }}
     <h1 class="visually-hidden">{{ player.playerName ?? ('#' ~ player.code) }}</h1>
-    <twig:PlayerHeader player="{{ player }}" />
+    <twig:PlayerHeader player="{{ player }}" :primary_skill="primary_skill" />
 
-    <div class="row">
+    <div class="row mb-3">
         {% if player.activeMembership %}
             <p class="col-sm">
                 <a href="{{ path('membership') }}" class="badge bg-primary py-1 px-2 text-light">
@@ -62,6 +63,59 @@
 
         </div>
     {% else %}
+        {% if is_granted('ADMIN_ACCESS') %}
+            {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
+
+            {# Private player viewing own profile — explain why no rankings #}
+            {% if player.isPrivate and is_own_profile %}
+                <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+                    <div class="card shadow-sm flex-grow-1">
+                        <div class="card-body py-2 px-3 d-flex flex-column">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-incognito text-muted" style="font-size: 1.2rem;"></i>
+                                <small class="fw-medium">{{ 'puzzle_intelligence.skill.title'|trans }}</small>
+                            </div>
+                            <small class="text-muted">{{ 'puzzle_intelligence.skill.private_profile_explanation'|trans }}</small>
+                        </div>
+                    </div>
+                    <div class="card shadow-sm flex-shrink-0 flex-grow-0">
+                        <div class="card-body py-2 px-3 d-flex flex-column">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-incognito text-muted" style="font-size: 1.2rem;"></i>
+                                <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                            </div>
+                            <small class="text-muted">{{ 'puzzle_intelligence.elo.private_profile_explanation'|trans }}</small>
+                        </div>
+                    </div>
+                </div>
+
+            {# Normal member view #}
+            {% elseif logged_user.profile is not null and logged_user.profile.activeMembership %}
+                <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+                    <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="is_own_profile"
+                    />
+                </div>
+            {% else %}
+                <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+                    <twig:PlayerEloProfile
+                        playerId="{{ player.playerId }}"
+                        :isOwnProfile="false"
+                    />
+                    <button
+                        class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-1 flex-grow-1"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
+                        {{ 'puzzle_intelligence.player_insights.title'|trans }}
+                    </button>
+                </div>
+            {% endif %}
+        {% endif %}
+
         <div class="my-4">
             <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
         </div>

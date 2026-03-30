@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
-use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -18,7 +18,6 @@ final class PlayerSkillCalculatorTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
 
-        // Run full recalculation to populate baselines and difficulty
         /** @var PuzzleIntelligenceRecalculator $recalculator */
         $recalculator = $container->get(PuzzleIntelligenceRecalculator::class);
         $recalculator->recalculate();
@@ -28,9 +27,8 @@ final class PlayerSkillCalculatorTest extends KernelTestCase
         $this->calculator = $calculator;
     }
 
-    public function testReturnsNullForPlayerWithInsufficientQualifyingPuzzles(): void
+    public function testReturnsNullForNonExistentPieceCount(): void
     {
-        // 9000pc has no puzzles with difficulty scores
         $result = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 9000);
 
         self::assertNull($result);
@@ -43,17 +41,12 @@ final class PlayerSkillCalculatorTest extends KernelTestCase
         self::assertNull($result);
     }
 
-    public function testSkillScoreIsPositive(): void
+    public function testReturnsNullWithInsufficientSolversPerPuzzle(): void
     {
+        // v2 requires 20+ first-attempt solvers per puzzle. Test fixtures have
+        // only 5 players, so the calculator correctly returns null.
         $result = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
 
-        // May be null if not enough qualifying puzzles — that's OK
-        if ($result === null) {
-            self::markTestSkipped('Not enough qualifying puzzles for skill calculation');
-        }
-
-        self::assertGreaterThan(0.0, $result['skill_score']);
-        self::assertGreaterThanOrEqual(0.0, $result['skill_percentile']);
-        self::assertLessThanOrEqual(100.0, $result['skill_percentile']);
+        self::assertNull($result);
     }
 }

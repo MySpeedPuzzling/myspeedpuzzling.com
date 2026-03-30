@@ -25,6 +25,9 @@
             <div class="text-muted small mt-2">
                 {{ 'added_time_recap.insights.predicted_range'|trans }}:
                 {{ (time_prediction.rangeLowSeconds / 60)|round }}&ndash;{{ (time_prediction.rangeHighSeconds / 60)|round }} min
+                {% if time_prediction.isPersonalized %}
+                    <br>{{ 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': time_prediction.personalSolveCount}) }}
+                {% endif %}
             </div>
         </div>
     </div>

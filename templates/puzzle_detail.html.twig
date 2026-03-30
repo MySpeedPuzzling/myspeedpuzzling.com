@@ -133,12 +133,10 @@
         <div class="alert-warning alert small my-1">{{ 'puzzle_waiting_for_approval'|trans }}</div>
     {% endif %}
 
-    {% if is_granted('ADMIN_ACCESS') %}
-        {{ include('puzzle/_difficulty_section.html.twig', {
-            puzzle_difficulty: puzzle_difficulty,
-            time_prediction: time_prediction,
-        }) }}
-    {% endif %}
+    {{ include('puzzle/_difficulty_section.html.twig', {
+        puzzle_difficulty: puzzle_difficulty,
+        time_prediction: time_prediction,
+    }) }}
 
     <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" />
 

@@ -1,0 +1,44 @@
+{% if time_prediction is not null and time_prediction.predictedSeconds > 0 %}
+    {% set actual_seconds = solved_puzzle.time %}
+    {% set predicted = time_prediction.predictedSeconds %}
+    {% set diff_percent = (((predicted - actual_seconds) / predicted) * 100)|round %}
+
+    <div class="card shadow-sm mb-3 border-0">
+        <div class="card-body text-center">
+            {% if diff_percent > 5 %}
+                <div class="alert alert-success d-flex align-items-center justify-content-center py-2 mb-0">
+                    <i class="bi bi-lightning-fill fs-4 me-2"></i>
+                    <strong>{{ 'added_time_recap.performance.faster_than_predicted'|trans({'%percent%': diff_percent|abs}) }}</strong>
+                </div>
+            {% elseif diff_percent < -5 %}
+                <div class="alert alert-info d-flex align-items-center justify-content-center py-2 mb-0">
+                    <i class="bi bi-clock-history fs-4 me-2"></i>
+                    <strong>{{ 'added_time_recap.performance.slower_than_predicted'|trans({'%percent%': diff_percent|abs}) }}</strong>
+                </div>
+            {% else %}
+                <div class="alert alert-secondary d-flex align-items-center justify-content-center py-2 mb-0">
+                    <i class="bi bi-bullseye fs-4 me-2"></i>
+                    <strong>{{ 'added_time_recap.performance.on_target'|trans }}</strong>
+                </div>
+            {% endif %}
+
+            <div class="text-muted small mt-2">
+                {{ 'added_time_recap.insights.predicted_range'|trans }}:
+                {{ (time_prediction.rangeLowSeconds / 60)|round }}&ndash;{{ (time_prediction.rangeHighSeconds / 60)|round }} min
+            </div>
+        </div>
+    </div>
+{% elseif not player.rankingOptedOut %}
+    <div class="card shadow-sm mb-3 border-0">
+        <div class="card-body">
+            <div class="text-muted small">
+                <i class="bi bi-info-circle me-1"></i>
+                {% if puzzle_difficulty is null or puzzle_difficulty.difficultyScore is null %}
+                    {{ 'added_time_recap.performance.prediction_unavailable_difficulty'|trans }}
+                {% else %}
+                    {{ 'added_time_recap.performance.prediction_unavailable_baseline'|trans({'%pieces%': solved_puzzle.piecesCount}) }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endif %}

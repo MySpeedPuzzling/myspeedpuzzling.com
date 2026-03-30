@@ -743,7 +743,48 @@ added_time_recap:
     title: "Great time, keep it up!"
     add_time: "Add new time"
     the_same_puzzle: "For the same puzzle"
-    puzzle_detail: "Results"
+    puzzle_detail: "All results"
+    meta:
+        title: "Time Added"
+    performance:
+        your_time: "Your Time"
+        ppm: "%ppm% pieces per minute"
+        faster_than_predicted: "%percent%% faster than predicted!"
+        slower_than_predicted: "%percent%% slower than predicted"
+        on_target: "Right on target!"
+        prediction_unavailable_baseline: "Complete more first-attempt solves on %pieces%-piece puzzles to unlock time predictions."
+        prediction_unavailable_difficulty: "Not enough solvers have completed this puzzle yet to generate predictions."
+        prediction_unavailable_opted_out: "Ranking is disabled in your profile settings."
+    ranking:
+        title: "Your Ranking"
+        position: "#%rank% out of %total% solvers"
+        first_place: "You have the fastest time on this puzzle!"
+        first_solver: "You're the first solver of this puzzle!"
+        top_percent: "Top %percent%%"
+    history:
+        title: "Your History on This Puzzle"
+        first_time: "This is your first time solving this puzzle! Solve it again to track your improvement."
+        date: "Date"
+        time: "Time"
+        delta_previous: "vs Previous"
+        delta_best: "vs Best"
+        new_personal_best: "New personal best!"
+        distance_from_best: "%time% from your personal best"
+        current_solve: "current"
+    insights:
+        title: "Puzzle Insights"
+        difficulty: "Difficulty"
+        predicted_range: "Predicted range"
+        need_more_solvers: "More solvers are needed to compute difficulty for this puzzle."
+    progress:
+        title: "Your Overall Progress (%pieces%-piece)"
+        skill_tier: "Skill Tier"
+        skill_percentile: "Top %percent%% of players"
+        skill_tier_unavailable: "Complete %count% more qualifying %pieces%-piece puzzles to unlock your Skill Tier."
+        elo_title: "MSP-ELO Rating"
+        elo_first_attempts: "First attempts"
+        elo_total_solves: "Total solves"
+        elo_unavailable: "Solve more %pieces%-piece puzzles to qualify for the MSP-ELO ladder."
 
 added_tracking_recap:
     meta:

@@ -277,6 +277,108 @@ SQL;
      * @return array<SolvedPuzzle>
      * @throws PlayerNotFound
      */
+    public function soloByPlayerIdAndPuzzleId(string $playerId, string $puzzleId): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
+        }
+
+        $query = <<<SQL
+WITH solved_counts AS (
+    SELECT
+        puzzle_id,
+        COUNT(id) AS solved_times
+    FROM puzzle_solving_time
+    WHERE puzzling_type = 'solo'
+      AND player_id = :playerId
+      AND puzzle_id = :puzzleId
+    GROUP BY puzzle_id
+)
+SELECT
+    puzzle_solving_time.id as time_id,
+    puzzle.id AS puzzle_id,
+    puzzle.name AS puzzle_name,
+    puzzle.alternative_name AS puzzle_alternative_name,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    puzzle_solving_time.seconds_to_solve AS time,
+    puzzle_solving_time.player_id AS player_id,
+    pieces_count,
+    player.name AS player_name,
+    player.code AS player_code,
+    player.country AS player_country,
+    puzzle.identification_number AS puzzle_identification_number,
+    puzzle_solving_time.comment,
+    puzzle_solving_time.tracked_at,
+    finished_at,
+    manufacturer.name AS manufacturer_name,
+    puzzle_solving_time.finished_puzzle_photo AS finished_puzzle_photo,
+    first_attempt,
+    puzzle_solving_time.unboxed,
+    solved_counts.solved_times AS solved_times,
+    competition.id AS competition_id,
+    competition.shortcut AS competition_shortcut,
+    competition.name AS competition_name,
+    competition.slug AS competition_slug,
+    puzzle_solving_time.suspicious
+FROM puzzle_solving_time
+    INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
+    INNER JOIN player ON puzzle_solving_time.player_id = player.id
+    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    LEFT JOIN solved_counts ON solved_counts.puzzle_id = puzzle_solving_time.puzzle_id
+    LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
+WHERE
+    puzzle_solving_time.player_id = :playerId
+    AND puzzle_solving_time.puzzle_id = :puzzleId
+    AND puzzle_solving_time.puzzling_type = 'solo'
+ORDER BY COALESCE(finished_at, puzzle_solving_time.tracked_at) ASC
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'puzzleId' => $puzzleId,
+            ])
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): SolvedPuzzle {
+            /**
+             * @var array{
+             *     time_id: string,
+             *     player_id: string,
+             *     player_name: null|string,
+             *     player_code: string,
+             *     player_country: null|string,
+             *     puzzle_id: string,
+             *     puzzle_name: string,
+             *     puzzle_alternative_name: null|string,
+             *     manufacturer_name: string,
+             *     puzzle_image: null|string,
+             *     time: null|int,
+             *     pieces_count: int,
+             *     comment: null|string,
+             *     tracked_at: string,
+             *     finished_puzzle_photo: null|string,
+             *     puzzle_identification_number: null|string,
+             *     finished_at: null|string,
+             *     first_attempt: bool,
+             *     unboxed: bool,
+             *     solved_times: int,
+             *     competition_id: null|string,
+             *     competition_name: null|string,
+             *     competition_shortcut: null|string,
+             *     competition_slug: null|string,
+             *     suspicious: bool,
+             * } $row
+             */
+
+            return SolvedPuzzle::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<SolvedPuzzle>
+     * @throws PlayerNotFound
+     */
     public function duoByPlayerId(
         string $playerId,
         null|DateTimeImmutable $dateFrom = null,

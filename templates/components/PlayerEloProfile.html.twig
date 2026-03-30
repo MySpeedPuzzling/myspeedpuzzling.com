@@ -18,6 +18,7 @@
                         <span class="text-muted">&middot;</span>
                         <span class="fw-bold" style="font-family: monospace;">{{ (data.elo_rating * 1000)|round }} ELO</span>
                     </div>
+                    <a href="{{ path('msp_elo_ladder') }}" class="text-decoration-none"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
                     </div>
                 </div>
             </div>

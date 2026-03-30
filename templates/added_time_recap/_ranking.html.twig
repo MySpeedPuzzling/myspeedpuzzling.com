@@ -1,0 +1,39 @@
+{% if ranking is not null %}
+    <div class="card shadow-sm mb-3 border-0">
+        <div class="card-body">
+            <h6 class="card-title mb-3">
+                <i class="bi bi-trophy me-1"></i>
+                {{ 'added_time_recap.ranking.title'|trans }}
+            </h6>
+
+            {% if ranking.totalPlayers == 1 %}
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 me-2">&#127941;</span>
+                    <span class="fw-medium">{{ 'added_time_recap.ranking.first_solver'|trans }}</span>
+                </div>
+            {% elseif ranking.rank == 1 %}
+                <div class="d-flex align-items-center">
+                    <span class="fs-4 me-2">&#127942;</span>
+                    <div>
+                        <span class="fw-bold text-success fs-5">{{ 'added_time_recap.ranking.first_place'|trans }}</span>
+                        <div class="text-muted small">
+                            {{ 'added_time_recap.ranking.position'|trans({'%rank%': ranking.rank, '%total%': ranking.totalPlayers}) }}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="fw-medium fs-5">
+                        {{ 'added_time_recap.ranking.position'|trans({'%rank%': ranking.rank, '%total%': ranking.totalPlayers}) }}
+                    </span>
+                    {% set top_percent = ((ranking.rank / ranking.totalPlayers) * 100)|round %}
+                    {% if top_percent <= 50 %}
+                        <span class="badge bg-success">
+                            {{ 'added_time_recap.ranking.top_percent'|trans({'%percent%': top_percent}) }}
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}

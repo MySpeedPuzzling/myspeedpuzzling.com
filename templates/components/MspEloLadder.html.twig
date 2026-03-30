@@ -1,0 +1,131 @@
+<div {{ attributes }}>
+    {# Filters #}
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <div style="max-width: 200px;">
+            <input
+                type="text"
+                data-model="debounce(300)|search"
+                class="form-control form-control-sm"
+                value="{{ this.search }}"
+                placeholder="{{ 'puzzle_intelligence.elo.search_placeholder'|trans }}"
+            >
+        </div>
+        <div class="marketplace-country-filter-wrapper" style="min-width: 180px; max-width: 220px;" data-live-ignore>
+            <select
+                data-model="on(change)|country"
+                data-controller="marketplace-country-filter"
+                class="form-select form-select-sm"
+            >
+                <option value="">{{ 'puzzle_intelligence.elo.all_countries'|trans }}</option>
+                {% for c in this.countries %}
+                    <option value="{{ c.code }}" data-icon="fi fi-{{ c.code }}" {{ this.country == c.code ? 'selected' }}>
+                        {{ c.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if this.isLoggedIn %}
+            <div class="form-check mb-0 ms-1">
+                <input
+                    type="checkbox"
+                    data-model="on(change)|onlyFavorites"
+                    class="form-check-input"
+                    id="elo-only-favorites"
+                    {{ this.onlyFavorites ? 'checked' }}
+                >
+                <label class="form-check-label text-nowrap fs-sm" for="elo-only-favorites">{{ 'puzzle_intelligence.elo.only_favorites'|trans }}</label>
+            </div>
+        {% endif %}
+        <div class="text-primary" style="display: none;" data-loading="show">
+            <span class="spinner-border spinner-border-sm" role="status"></span>
+        </div>
+    </div>
+
+    {# Ladder table #}
+    {% set entries = this.entries %}
+    {% if entries|length > 0 %}
+        <div class="table-responsive custom-table-wrapper">
+            <table class="table custom-table table-striped table-hover mb-0 align-middle" style="--bs-table-cell-padding-y: 0.4rem;">
+                <tbody>
+                    {% for entry in entries %}
+                        {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}
+                        <tr id="{{ is_current_player ? 'my-elo-row' }}" class="{{ is_current_player ? 'table-active-player' }}">
+                            <td class="text-center text-muted pe-md-3" style="font-family: monospace; width: 1%; white-space: nowrap;">
+                                {{ entry.rank }}
+                            </td>
+                            <td style="padding-top: 0; padding-bottom: 0;">
+                                <a href="{{ path('player_profile', {playerId: entry.playerId, return: app.request.uri, return_title: 'puzzle_intelligence.elo.title'|trans}) }}" class="text-decoration-none d-flex align-items-center gap-2 py-2">
+                                    {% if entry.playerAvatar %}
+                                        <img src="{{ entry.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" style="width: 28px; height: 28px; min-width: 28px; object-fit: cover;">
+                                    {% else %}
+                                        <span class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; min-width: 28px;">
+                                            <i class="bi bi-person text-muted"></i>
+                                        </span>
+                                    {% endif %}
+                                    {% set tier = entry.skillTierName ?? 'unknown' %}
+                                    <svg class="rank-icon flex-shrink-0" width="18" height="18" style="color: var(--rank-{{ tier }})"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
+                                    <div>
+                                        <span style="color: #111;">{{ entry.playerName ?? ('#' ~ entry.playerCode) }}</span>
+                                        {% if entry.playerCountry %}
+                                            <small class="shadow-custom fi fi-{{ entry.playerCountry }} ms-1"></small>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <span class="fw-bold" style="font-family: monospace; color: #111;">{{ (entry.eloRating * 1000)|round }}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% set totalPages = this.totalPages %}
+        {% if totalPages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center mt-3 mb-0">
+                    <li class="page-item {{ this.page <= 1 ? 'disabled' : '' }}">
+                        <button class="page-link"
+                            data-action="live#action"
+                            data-live-action-param="goToPage"
+                            data-live-page-param="{{ this.page - 1 }}"
+                            {{ this.page <= 1 ? 'disabled' }}
+                        >
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    {% for p in 1..totalPages %}
+                        <li class="page-item {{ p == this.page ? 'active' : '' }}">
+                            <button class="page-link"
+                                data-action="live#action"
+                                data-live-action-param="goToPage"
+                                data-live-page-param="{{ p }}"
+                            >{{ p }}</button>
+                        </li>
+                    {% endfor %}
+                    <li class="page-item {{ this.page >= totalPages ? 'disabled' : '' }}">
+                        <button class="page-link"
+                            data-action="live#action"
+                            data-live-action-param="goToPage"
+                            data-live-page-param="{{ this.page + 1 }}"
+                            {{ this.page >= totalPages ? 'disabled' }}
+                        >
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="text-muted text-center py-4">
+            <i class="bi bi-trophy fs-1 d-block mb-2 opacity-25"></i>
+            {% if this.hasActiveFilters %}
+                {{ 'puzzle_intelligence.elo.no_results'|trans }}
+            {% else %}
+                {{ 'puzzle_intelligence.elo.no_entries'|trans }}
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

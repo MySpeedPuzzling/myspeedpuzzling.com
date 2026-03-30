@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\SkillTier;
+
 readonly final class PlayerEloEntry
 {
     public function __construct(
@@ -14,6 +16,7 @@ readonly final class PlayerEloEntry
         public null|string $playerAvatar,
         public float $eloRating,
         public int $rank,
+        public null|string $skillTierName = null,
     ) {
     }
 
@@ -33,11 +36,16 @@ readonly final class PlayerEloEntry
      *     player_country: null|string,
      *     player_avatar: null|string,
      *     elo_rating: float|string,
+     *     skill_tier: null|int|string,
      *     rank: int|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $skillTierName = $row['skill_tier'] !== null
+            ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+            : null;
+
         return new self(
             playerId: $row['player_id'],
             playerName: $row['player_name'],
@@ -46,6 +54,7 @@ readonly final class PlayerEloEntry
             playerAvatar: $row['player_avatar'],
             eloRating: (float) $row['elo_rating'],
             rank: (int) $row['rank'],
+            skillTierName: $skillTierName,
         );
     }
 }

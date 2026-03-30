@@ -9,7 +9,6 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -36,21 +35,16 @@ final class MspEloLadderController extends AbstractController
         ],
         name: 'msp_elo_ladder',
     )]
-    public function __invoke(Request $request): Response
+    public function __invoke(): Response
     {
         $piecesCount = self::PIECES_COUNT;
-
-        $page = max(1, $request->query->getInt('page', 1));
-        $offset = ($page - 1) * self::PER_PAGE;
-
-        $entries = $this->getPlayerEloRanking->ranking($piecesCount, self::PER_PAGE, $offset);
-        $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount);
-        $totalPages = max(1, (int) ceil($totalCount / self::PER_PAGE));
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $playerPosition = null;
         $playerEloRating = null;
         $eloProgress = null;
+        $myPage = null;
+        $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount);
 
         if ($loggedPlayer !== null) {
             $playerPosition = $this->getPlayerEloRanking->playerPosition($loggedPlayer->playerId, $piecesCount);
@@ -58,18 +52,20 @@ final class MspEloLadderController extends AbstractController
 
             $playerEloData = $this->getPlayerEloRanking->allForPlayer($loggedPlayer->playerId);
             $playerEloRating = $playerEloData[$piecesCount]['elo_rating'] ?? null;
+
+            if ($playerPosition !== null) {
+                $myPage = (int) ceil($playerPosition / self::PER_PAGE);
+            }
         }
 
         return $this->render('msp_elo_ladder/index.html.twig', [
-            'entries' => $entries,
             'total_count' => $totalCount,
             'pieces_count' => $piecesCount,
             'player_position' => $playerPosition,
             'player_elo_rating' => $playerEloRating,
             'elo_progress' => $eloProgress,
             'logged_player' => $loggedPlayer,
-            'current_page' => $page,
-            'total_pages' => $totalPages,
+            'my_page' => $myPage,
             'min_first_attempts' => MspEloCalculator::MINIMUM_FIRST_ATTEMPTS,
             'min_total_solves' => MspEloCalculator::MINIMUM_TOTAL_SOLVES,
         ]);

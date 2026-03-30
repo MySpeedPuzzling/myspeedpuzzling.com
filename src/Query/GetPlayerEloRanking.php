@@ -17,31 +17,55 @@ readonly final class GetPlayerEloRanking
     /**
      * @return list<PlayerEloEntry>
      */
-    public function ranking(int $piecesCount, int $limit = 50, int $offset = 0): array
+    public function ranking(int $piecesCount, int $limit = 50, int $offset = 0, null|string $country = null, null|string $searchTerm = null, null|string $favoriteOfPlayerId = null): array
     {
-        $query = <<<SQL
-SELECT
-    pe.player_id,
-    p.name AS player_name,
-    p.code AS player_code,
-    p.country AS player_country,
-    p.avatar AS player_avatar,
-    pe.elo_rating,
-    RANK() OVER (ORDER BY pe.elo_rating DESC) AS rank
-FROM player_elo pe
-INNER JOIN player p ON p.id = pe.player_id
-WHERE pe.pieces_count = :piecesCount
-    AND p.is_private = false
-ORDER BY pe.elo_rating DESC
-LIMIT :limit OFFSET :offset
-SQL;
-
-        /** @var list<array{player_id: string, player_name: null|string, player_code: string, player_country: null|string, player_avatar: null|string, elo_rating: float|string, rank: int|string}> $rows */
-        $rows = $this->database->executeQuery($query, [
+        $params = [
             'piecesCount' => $piecesCount,
             'limit' => $limit,
             'offset' => $offset,
-        ])->fetchAllAssociative();
+        ];
+
+        $filterClauses = '';
+
+        if ($country !== null) {
+            $filterClauses .= ' AND ranked.player_country = :country';
+            $params['country'] = $country;
+        }
+
+        if ($searchTerm !== null) {
+            $filterClauses .= ' AND (ranked.player_name ILIKE :searchPattern OR ranked.player_code ILIKE :searchPattern)';
+            $params['searchPattern'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm) . '%';
+        }
+
+        if ($favoriteOfPlayerId !== null) {
+            $filterClauses .= ' AND (ranked.player_id = :favoriteOfPlayerId OR ranked.player_id IN (SELECT fav_id::uuid FROM player, json_array_elements_text(player.favorite_players) AS fav_id WHERE player.id = :favoriteOfPlayerId))';
+            $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
+        }
+
+        $query = <<<SQL
+SELECT * FROM (
+    SELECT
+        pe.player_id,
+        p.name AS player_name,
+        p.code AS player_code,
+        p.country AS player_country,
+        p.avatar AS player_avatar,
+        pe.elo_rating,
+        ps.skill_tier,
+        RANK() OVER (ORDER BY pe.elo_rating DESC) AS rank
+    FROM player_elo pe
+    INNER JOIN player p ON p.id = pe.player_id
+    LEFT JOIN player_skill ps ON ps.player_id = pe.player_id AND ps.pieces_count = pe.pieces_count
+    WHERE pe.pieces_count = :piecesCount
+        AND p.is_private = false
+) ranked
+WHERE 1=1{$filterClauses}
+ORDER BY ranked.elo_rating DESC
+LIMIT :limit OFFSET :offset
+SQL;
+
+        /** @var list<array{player_id: string, player_name: null|string, player_code: string, player_country: null|string, player_avatar: null|string, elo_rating: float|string, skill_tier: null|int|string, rank: int|string}> $rows */
+        $rows = $this->database->executeQuery($query, $params)->fetchAllAssociative();
 
         return array_map(
             static fn (array $row): PlayerEloEntry => PlayerEloEntry::fromDatabaseRow($row),
@@ -77,8 +101,26 @@ SQL;
         return (int) $row['rank'];
     }
 
-    public function totalCount(int $piecesCount): int
+    public function totalCount(int $piecesCount, null|string $country = null, null|string $searchTerm = null, null|string $favoriteOfPlayerId = null): int
     {
+        $params = ['piecesCount' => $piecesCount];
+        $filterClauses = '';
+
+        if ($country !== null) {
+            $filterClauses .= ' AND p.country = :country';
+            $params['country'] = $country;
+        }
+
+        if ($searchTerm !== null) {
+            $filterClauses .= ' AND (p.name ILIKE :searchPattern OR p.code ILIKE :searchPattern)';
+            $params['searchPattern'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm) . '%';
+        }
+
+        if ($favoriteOfPlayerId !== null) {
+            $filterClauses .= ' AND (pe.player_id = :favoriteOfPlayerId OR pe.player_id IN (SELECT fav_id::uuid FROM player fp, json_array_elements_text(fp.favorite_players) AS fav_id WHERE fp.id = :favoriteOfPlayerId))';
+            $params['favoriteOfPlayerId'] = $favoriteOfPlayerId;
+        }
+
         /** @var int|string $count */
         $count = $this->database->executeQuery("
             SELECT COUNT(*)
@@ -86,11 +128,31 @@ SQL;
             INNER JOIN player p ON p.id = pe.player_id
             WHERE pe.pieces_count = :piecesCount
                 AND p.is_private = false
-        ", [
-            'piecesCount' => $piecesCount,
-        ])->fetchOne();
+                {$filterClauses}
+        ", $params)->fetchOne();
 
         return (int) $count;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function distinctCountries(int $piecesCount): array
+    {
+        /** @var list<string> $codes */
+        $codes = $this->database->executeQuery("
+            SELECT DISTINCT p.country
+            FROM player_elo pe
+            INNER JOIN player p ON p.id = pe.player_id
+            WHERE pe.pieces_count = :piecesCount
+                AND p.is_private = false
+                AND p.country IS NOT NULL
+            ORDER BY p.country
+        ", [
+            'piecesCount' => $piecesCount,
+        ])->fetchFirstColumn();
+
+        return $codes;
     }
 
     /**

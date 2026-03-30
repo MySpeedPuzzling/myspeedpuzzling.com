@@ -6,18 +6,72 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
-readonly final class PlayerBaselineCalculator
+final class PlayerBaselineCalculator implements ResetInterface
 {
     private const int MINIMUM_SOLVE_COUNT = 5;
     private const float DECAY_HALF_LIFE_MONTHS = 18.0;
     private const int SCALING_EXPONENT_MIN_PLAYERS = 50;
     private const float SCALING_EXPONENT_DEFAULT = 1.3;
 
+    /** @var array<string, array<int, list<array{seconds_to_solve: int|string, solve_date: string}>>>|null */
+    private null|array $firstAttemptsCache = null;
+
     public function __construct(
-        private Connection $connection,
-        private ClockInterface $clock,
+        private readonly Connection $connection,
+        private readonly ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * Bulk-load all first-attempt solves in one query.
+     * Call before the per-player loop for O(1) lookups instead of O(players × pieceCounts) queries.
+     */
+    public function preloadAllFirstAttempts(): void
+    {
+        /** @var list<array{player_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string}> $rows */
+        $rows = $this->connection->fetchAllAssociative("
+            SELECT player_id, pieces_count, seconds_to_solve, solve_date
+            FROM (
+                SELECT
+                    pst.player_id,
+                    p.pieces_count,
+                    pst.seconds_to_solve,
+                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY pst.player_id, pst.puzzle_id
+                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
+                    ) AS rn
+                FROM puzzle_solving_time pst
+                JOIN puzzle p ON p.id = pst.puzzle_id
+                WHERE pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+            ) sub
+            WHERE rn = 1
+        ");
+
+        $cache = [];
+
+        foreach ($rows as $row) {
+            $cache[$row['player_id']][(int) $row['pieces_count']][] = [
+                'seconds_to_solve' => $row['seconds_to_solve'],
+                'solve_date' => $row['solve_date'],
+            ];
+        }
+
+        $this->firstAttemptsCache = $cache;
+    }
+
+    public function clearPreloadedData(): void
+    {
+        $this->firstAttemptsCache = null;
+    }
+
+    public function reset(): void
+    {
+        $this->firstAttemptsCache = null;
     }
 
     /**
@@ -27,7 +81,9 @@ readonly final class PlayerBaselineCalculator
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): null|array
     {
-        $solves = $this->fetchFirstAttemptSolves($playerId, $piecesCount);
+        $solves = $this->firstAttemptsCache !== null
+            ? ($this->firstAttemptsCache[$playerId][$piecesCount] ?? [])
+            : $this->fetchFirstAttemptSolves($playerId, $piecesCount);
 
         if (count($solves) < self::MINIMUM_SOLVE_COUNT) {
             return null;

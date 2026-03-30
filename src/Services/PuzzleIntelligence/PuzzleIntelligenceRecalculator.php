@@ -81,6 +81,11 @@ readonly final class PuzzleIntelligenceRecalculator
      */
     private function computeBaselines(\DateTimeImmutable $now, null|string $specificPlayer): array
     {
+        // Preload all first-attempt data in one query (skip for single-player mode)
+        if ($specificPlayer === null) {
+            $this->baselineCalculator->preloadAllFirstAttempts();
+        }
+
         // Pass 1: Compute direct baselines
         $players = $this->getPlayersWithSolves($specificPlayer);
         $pieceCounts = $this->getDistinctPieceCounts();
@@ -93,11 +98,17 @@ readonly final class PuzzleIntelligenceRecalculator
                 if ($result !== null) {
                     $this->upsertBaseline($playerId, $piecesCount, $result['baseline_seconds'], $result['qualifying_count'], $now, 'direct');
                     $directCount++;
-                } else {
-                    $this->deleteBaseline($playerId, $piecesCount);
                 }
             }
         }
+
+        $this->baselineCalculator->clearPreloadedData();
+
+        // Clean up stale direct baselines so gap detection works correctly
+        $this->connection->executeStatement(
+            "DELETE FROM player_baseline WHERE baseline_type = 'direct' AND computed_at < :now",
+            ['now' => $now->format('Y-m-d H:i:s')],
+        );
 
         // Pass 2: Compute global scaling exponent + interpolated/extrapolated baselines
         $scalingExponent = $this->baselineCalculator->computeScalingExponent();
@@ -163,6 +174,12 @@ readonly final class PuzzleIntelligenceRecalculator
             }
         }
 
+        // Clean up all stale baselines (direct cleanup already happened above, this catches interpolated/extrapolated)
+        $this->connection->executeStatement(
+            'DELETE FROM player_baseline WHERE computed_at < :now',
+            ['now' => $now->format('Y-m-d H:i:s')],
+        );
+
         return [
             'direct' => $directCount,
             'interpolated' => $interpolatedCount,
@@ -172,6 +189,10 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): int
     {
+        if ($specificPuzzle === null) {
+            $this->difficultyCalculator->preloadAllData();
+        }
+
         $puzzleIds = $this->getPuzzlesWithSolves($specificPuzzle);
         $count = 0;
 
@@ -184,11 +205,17 @@ readonly final class PuzzleIntelligenceRecalculator
             }
         }
 
+        $this->difficultyCalculator->clearPreloadedData();
+
         return $count;
     }
 
     private function computeDerivedMetrics(null|string $specificPuzzle): int
     {
+        if ($specificPuzzle === null) {
+            $this->derivedMetricsCalculator->preloadAllData();
+        }
+
         $puzzleIds = $this->getPuzzlesWithDifficulty($specificPuzzle);
         $count = 0;
 
@@ -222,6 +249,8 @@ readonly final class PuzzleIntelligenceRecalculator
             $count++;
         }
 
+        $this->derivedMetricsCalculator->clearPreloadedData();
+
         return $count;
     }
 
@@ -248,8 +277,12 @@ readonly final class PuzzleIntelligenceRecalculator
         $players = $this->getPlayersWithSolves($specificPlayer);
         $count = 0;
 
-        foreach ($players as $playerId) {
-            foreach (self::SKILL_PIECES_COUNTS as $piecesCount) {
+        foreach (self::SKILL_PIECES_COUNTS as $piecesCount) {
+            if ($specificPlayer === null) {
+                $this->skillCalculator->preloadPuzzleData($piecesCount);
+            }
+
+            foreach ($players as $playerId) {
                 $result = $this->skillCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
@@ -257,6 +290,8 @@ readonly final class PuzzleIntelligenceRecalculator
                     $count++;
                 }
             }
+
+            $this->skillCalculator->clearPreloadedData();
         }
 
         // Clean up: remove entries not updated in this run (players who no longer qualify)
@@ -284,6 +319,10 @@ readonly final class PuzzleIntelligenceRecalculator
 
         foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
             $this->eloCalculator->precomputePuzzleRankings($piecesCount);
+
+            if ($specificPlayer === null) {
+                $this->eloCalculator->preloadAllPlayerSolves($piecesCount);
+            }
 
             foreach ($players as $playerId) {
                 $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount);
@@ -485,14 +524,6 @@ readonly final class PuzzleIntelligenceRecalculator
             'baselineType' => $baselineType,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
-    }
-
-    private function deleteBaseline(string $playerId, int $piecesCount): void
-    {
-        $this->connection->executeStatement(
-            'DELETE FROM player_baseline WHERE player_id = :playerId AND pieces_count = :piecesCount',
-            ['playerId' => $playerId, 'piecesCount' => $piecesCount],
-        );
     }
 
     /**

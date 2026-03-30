@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * MSP-ELO v2: Portfolio-based snapshot rating.
@@ -13,7 +14,7 @@ use Psr\Clock\ClockInterface;
  * Evaluates players on their best results from a rolling 12-month window,
  * combining first-attempt and best-time portfolios with difficulty weighting.
  */
-final class MspEloCalculator
+final class MspEloCalculator implements ResetInterface
 {
     public const int MINIMUM_FIRST_ATTEMPTS = 20;
     public const int MINIMUM_TOTAL_SOLVES = 50;
@@ -31,6 +32,20 @@ final class MspEloCalculator
      * @var array<string, array{fa_times: list<int>, bt_times: list<int>, difficulty: float, sample_size: int}>|null
      */
     private null|array $puzzleRankingCache = null;
+
+    /**
+     * Pre-computed per-player solve data: puzzle_id => {first_attempt_time, first_attempt_date, best_time}.
+     *
+     * @var array<string, list<array{puzzle_id: string, first_attempt_time: int|null, first_attempt_date: string|null, best_time: int}>>|null
+     */
+    private null|array $playerSolvesCache = null;
+
+    /**
+     * Pre-computed eligibility data per player.
+     *
+     * @var array<string, array{first_attempts: int, total_solves: int}>|null
+     */
+    private null|array $playerProgressCache = null;
 
     public function __construct(
         private readonly Connection $connection,
@@ -120,11 +135,84 @@ final class MspEloCalculator
     }
 
     /**
-     * Clear the pre-computed cache (call after recalculation).
+     * Bulk-load all player solve data for a piece count in one query.
+     * Call once before the per-player loop.
+     */
+    public function preloadAllPlayerSolves(int $piecesCount): void
+    {
+        $cutoffDate = $this->getCutoffDate();
+
+        /** @var list<array{player_id: string, puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string}> $rows */
+        $rows = $this->connection->fetchAllAssociative("
+            SELECT
+                pst.player_id,
+                pst.puzzle_id,
+                MIN(CASE WHEN pst.first_attempt = true THEN pst.seconds_to_solve END) AS first_attempt_time,
+                MIN(CASE WHEN pst.first_attempt = true THEN COALESCE(pst.finished_at, pst.tracked_at)::text END) AS first_attempt_date,
+                MIN(pst.seconds_to_solve) AS best_time
+            FROM puzzle_solving_time pst
+            JOIN puzzle p ON p.id = pst.puzzle_id
+            JOIN player pl ON pl.id = pst.player_id
+            WHERE p.pieces_count = :piecesCount
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+                AND pl.is_private = false
+            GROUP BY pst.player_id, pst.puzzle_id
+            HAVING MAX(COALESCE(pst.finished_at, pst.tracked_at)) >= :cutoff
+        ", [
+            'piecesCount' => $piecesCount,
+            'cutoff' => $cutoffDate->format('Y-m-d H:i:s'),
+        ]);
+
+        $solvesCache = [];
+        $progressCache = [];
+
+        foreach ($rows as $row) {
+            $playerId = $row['player_id'];
+            $faTime = $row['first_attempt_time'] !== null ? (int) $row['first_attempt_time'] : null;
+            $faDate = $row['first_attempt_date'];
+
+            $solvesCache[$playerId][] = [
+                'puzzle_id' => $row['puzzle_id'],
+                'first_attempt_time' => $faTime,
+                'first_attempt_date' => $faDate,
+                'best_time' => (int) $row['best_time'],
+            ];
+
+            // Compute progress
+            if (!isset($progressCache[$playerId])) {
+                $progressCache[$playerId] = ['first_attempts' => 0, 'total_solves' => 0];
+            }
+
+            $progressCache[$playerId]['total_solves']++;
+
+            if ($faTime !== null && $faDate !== null) {
+                $faDateObj = new \DateTimeImmutable($faDate);
+
+                if ($faDateObj >= $cutoffDate) {
+                    $progressCache[$playerId]['first_attempts']++;
+                }
+            }
+        }
+
+        $this->playerSolvesCache = $solvesCache;
+        $this->playerProgressCache = $progressCache;
+    }
+
+    /**
+     * Clear all pre-computed caches (call after recalculation).
      */
     public function clearCache(): void
     {
         $this->puzzleRankingCache = null;
+        $this->playerSolvesCache = null;
+        $this->playerProgressCache = null;
+    }
+
+    public function reset(): void
+    {
+        $this->clearCache();
     }
 
     public function isEligible(string $playerId, int $piecesCount): bool
@@ -140,6 +228,10 @@ final class MspEloCalculator
      */
     public function getProgress(string $playerId, int $piecesCount): array
     {
+        if ($this->playerProgressCache !== null) {
+            return $this->playerProgressCache[$playerId] ?? ['first_attempts' => 0, 'total_solves' => 0];
+        }
+
         $cutoffDate = $this->getCutoffDate();
 
         /** @var array{first_attempt_count: int|string, total_count: int|string}|false $result */
@@ -180,28 +272,31 @@ final class MspEloCalculator
 
         $cutoffDate = $this->getCutoffDate();
 
-        // Get all puzzles this player solved within the window
-        /** @var list<array{puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string}> $playerSolves */
-        $playerSolves = $this->connection->fetchAllAssociative("
-            SELECT
-                pst.puzzle_id,
-                MIN(CASE WHEN pst.first_attempt = true THEN pst.seconds_to_solve END) AS first_attempt_time,
-                MIN(CASE WHEN pst.first_attempt = true THEN COALESCE(pst.finished_at, pst.tracked_at)::text END) AS first_attempt_date,
-                MIN(pst.seconds_to_solve) AS best_time
-            FROM puzzle_solving_time pst
-            JOIN puzzle p ON p.id = pst.puzzle_id
-            WHERE pst.player_id = :playerId
-                AND p.pieces_count = :piecesCount
-                AND pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-            GROUP BY pst.puzzle_id
-            HAVING MAX(COALESCE(pst.finished_at, pst.tracked_at)) >= :cutoff
-        ", [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-            'cutoff' => $cutoffDate->format('Y-m-d H:i:s'),
-        ]);
+        if ($this->playerSolvesCache !== null) {
+            $playerSolves = $this->playerSolvesCache[$playerId] ?? [];
+        } else {
+            /** @var list<array{puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string}> $playerSolves */
+            $playerSolves = $this->connection->fetchAllAssociative("
+                SELECT
+                    pst.puzzle_id,
+                    MIN(CASE WHEN pst.first_attempt = true THEN pst.seconds_to_solve END) AS first_attempt_time,
+                    MIN(CASE WHEN pst.first_attempt = true THEN COALESCE(pst.finished_at, pst.tracked_at)::text END) AS first_attempt_date,
+                    MIN(pst.seconds_to_solve) AS best_time
+                FROM puzzle_solving_time pst
+                JOIN puzzle p ON p.id = pst.puzzle_id
+                WHERE pst.player_id = :playerId
+                    AND p.pieces_count = :piecesCount
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+                GROUP BY pst.puzzle_id
+                HAVING MAX(COALESCE(pst.finished_at, pst.tracked_at)) >= :cutoff
+            ", [
+                'playerId' => $playerId,
+                'piecesCount' => $piecesCount,
+                'cutoff' => $cutoffDate->format('Y-m-d H:i:s'),
+            ]);
+        }
 
         $firstAttemptEntries = [];
         $bestTimeEntries = [];

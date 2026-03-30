@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
+use Symfony\Contracts\Service\ResetInterface;
 
-readonly final class DerivedMetricsCalculator
+final class DerivedMetricsCalculator implements ResetInterface
 {
     private const int MINIMUM_FOR_MEMORABILITY = 8;
     private const int MINIMUM_FOR_SENSITIVITY = 20;
@@ -15,9 +16,56 @@ readonly final class DerivedMetricsCalculator
     private const int MINIMUM_FOR_BOX_DEPENDENCE_BOXED = 5;
     private const int MINIMUM_FOR_IMPROVEMENT_CEILING = 20;
 
+    /** @var array<string, list<array{player_id: string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, baseline_seconds: int|string|null, solve_date: string}>>|null */
+    private null|array $solveDataCache = null;
+
     public function __construct(
-        private Connection $connection,
+        private readonly Connection $connection,
     ) {
+    }
+
+    /**
+     * Bulk-load all solve data for puzzles with difficulty scores in one query.
+     */
+    public function preloadAllData(): void
+    {
+        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, first_attempt: bool, unboxed: bool, baseline_seconds: int|string|null, solve_date: string}> $rows */
+        $rows = $this->connection->fetchAllAssociative("
+            SELECT
+                pst.puzzle_id,
+                pst.player_id,
+                pst.seconds_to_solve,
+                pst.first_attempt,
+                pst.unboxed,
+                COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
+                pb.baseline_seconds
+            FROM puzzle_solving_time pst
+            JOIN puzzle p ON p.id = pst.puzzle_id
+            LEFT JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
+            WHERE pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+                AND pst.puzzle_id IN (SELECT puzzle_id FROM puzzle_difficulty WHERE difficulty_score IS NOT NULL)
+            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC
+        ");
+
+        $cache = [];
+
+        foreach ($rows as $row) {
+            $cache[$row['puzzle_id']][] = $row;
+        }
+
+        $this->solveDataCache = $cache;
+    }
+
+    public function clearPreloadedData(): void
+    {
+        $this->solveDataCache = null;
+    }
+
+    public function reset(): void
+    {
+        $this->solveDataCache = null;
     }
 
     /**
@@ -35,9 +83,15 @@ readonly final class DerivedMetricsCalculator
      */
     public function calculateForPuzzle(string $puzzleId): array
     {
-        $allIndices = $this->fetchDifficultyIndices($puzzleId);
-        $unboxedIndices = $this->fetchDifficultyIndices($puzzleId, unboxedOnly: true);
-        $boxedIndices = $this->fetchDifficultyIndices($puzzleId, boxedOnly: true);
+        if ($this->solveDataCache !== null) {
+            $allIndices = $this->computeIndicesFromCache($puzzleId);
+            $unboxedIndices = $this->computeIndicesFromCache($puzzleId, unboxedOnly: true);
+            $boxedIndices = $this->computeIndicesFromCache($puzzleId, boxedOnly: true);
+        } else {
+            $allIndices = $this->fetchDifficultyIndices($puzzleId);
+            $unboxedIndices = $this->fetchDifficultyIndices($puzzleId, unboxedOnly: true);
+            $boxedIndices = $this->fetchDifficultyIndices($puzzleId, boxedOnly: true);
+        }
 
         return [
             'memorability_score' => $this->computePuzzleLearningRate($puzzleId),
@@ -49,6 +103,43 @@ readonly final class DerivedMetricsCalculator
     }
 
     /**
+     * Compute difficulty indices from preloaded cache data.
+     *
+     * @return list<float>
+     */
+    private function computeIndicesFromCache(string $puzzleId, bool $unboxedOnly = false, bool $boxedOnly = false): array
+    {
+        $solves = $this->solveDataCache[$puzzleId] ?? [];
+        $indices = [];
+
+        foreach ($solves as $row) {
+            if ($unboxedOnly && !$row['unboxed']) {
+                continue;
+            }
+
+            if ($boxedOnly && $row['unboxed']) {
+                continue;
+            }
+
+            $baseline = (int) ($row['baseline_seconds'] ?? 0);
+
+            if ($baseline <= 0) {
+                continue;
+            }
+
+            $index = (int) $row['seconds_to_solve'] / $baseline;
+
+            if ($index > 5.0) {
+                continue;
+            }
+
+            $indices[] = $index;
+        }
+
+        return $indices;
+    }
+
+    /**
      * v2 Memorability: Learning curve approach.
      * For each player with 3+ attempts, compute (attempt1 - attempt3) / attempt1.
      * Returns the raw puzzle learning rate (median of per-player rates).
@@ -56,6 +147,10 @@ readonly final class DerivedMetricsCalculator
      */
     private function computePuzzleLearningRate(string $puzzleId): null|float
     {
+        if ($this->solveDataCache !== null) {
+            return $this->computeLearningRateFromCache($puzzleId);
+        }
+
         /** @var list<array{player_id: string, seconds_to_solve: int|string, attempt_num: int|string}> $rows */
         $rows = $this->connection->fetchAllAssociative("
             SELECT
@@ -69,7 +164,52 @@ readonly final class DerivedMetricsCalculator
                 AND pst.seconds_to_solve IS NOT NULL
         ", ['puzzleId' => $puzzleId]);
 
-        // Group by player, extract attempt 1 and 3
+        return $this->extractLearningRate($rows);
+    }
+
+    /**
+     * Compute learning rate from preloaded cache (data is already ordered by player+date).
+     */
+    private function computeLearningRateFromCache(string $puzzleId): null|float
+    {
+        $solves = $this->solveDataCache[$puzzleId] ?? [];
+
+        // Data is ordered by player_id, solve_date ASC — compute attempt numbers
+        $playerAttempts = [];
+        $playerCounter = [];
+
+        foreach ($solves as $row) {
+            $playerId = $row['player_id'];
+            $playerCounter[$playerId] = ($playerCounter[$playerId] ?? 0) + 1;
+            $num = $playerCounter[$playerId];
+
+            if ($num === 1 || $num === 3) {
+                $playerAttempts[$playerId][$num] = (int) $row['seconds_to_solve'];
+            }
+        }
+
+        $learningRates = [];
+
+        foreach ($playerAttempts as $attempts) {
+            if (!isset($attempts[1], $attempts[3]) || $attempts[1] <= 0) {
+                continue;
+            }
+
+            $learningRates[] = ($attempts[1] - $attempts[3]) / $attempts[1];
+        }
+
+        if (count($learningRates) < self::MINIMUM_FOR_MEMORABILITY) {
+            return null;
+        }
+
+        return round($this->computeMedian($learningRates), 6);
+    }
+
+    /**
+     * @param list<array{player_id: string, seconds_to_solve: int|string, attempt_num: int|string}> $rows
+     */
+    private function extractLearningRate(array $rows): null|float
+    {
         $playerAttempts = [];
 
         foreach ($rows as $row) {
@@ -182,33 +322,48 @@ readonly final class DerivedMetricsCalculator
      */
     private function computeImprovementCeiling(string $puzzleId): null|float
     {
-        /** @var list<array{seconds_to_solve: int|string}> $firstAttemptRows */
-        $firstAttemptRows = $this->connection->fetchAllAssociative("
-            SELECT pst.seconds_to_solve
-            FROM puzzle_solving_time pst
-            WHERE pst.puzzle_id = :puzzleId
-                AND pst.first_attempt = true
-                AND pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-        ", ['puzzleId' => $puzzleId]);
+        if ($this->solveDataCache !== null) {
+            $solves = $this->solveDataCache[$puzzleId] ?? [];
+            $firstTimes = [];
+            $allTimes = [];
 
-        if (count($firstAttemptRows) < self::MINIMUM_FOR_IMPROVEMENT_CEILING) {
-            return null;
+            foreach ($solves as $row) {
+                $time = (int) $row['seconds_to_solve'];
+                $allTimes[] = $time;
+
+                if ($row['first_attempt']) {
+                    $firstTimes[] = $time;
+                }
+            }
+        } else {
+            /** @var list<array{seconds_to_solve: int|string}> $firstAttemptRows */
+            $firstAttemptRows = $this->connection->fetchAllAssociative("
+                SELECT pst.seconds_to_solve
+                FROM puzzle_solving_time pst
+                WHERE pst.puzzle_id = :puzzleId
+                    AND pst.first_attempt = true
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+            ", ['puzzleId' => $puzzleId]);
+
+            /** @var list<array{seconds_to_solve: int|string}> $allAttemptRows */
+            $allAttemptRows = $this->connection->fetchAllAssociative("
+                SELECT pst.seconds_to_solve
+                FROM puzzle_solving_time pst
+                WHERE pst.puzzle_id = :puzzleId
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+            ", ['puzzleId' => $puzzleId]);
+
+            $firstTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $firstAttemptRows);
+            $allTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $allAttemptRows);
         }
 
-        /** @var list<array{seconds_to_solve: int|string}> $allAttemptRows */
-        $allAttemptRows = $this->connection->fetchAllAssociative("
-            SELECT pst.seconds_to_solve
-            FROM puzzle_solving_time pst
-            WHERE pst.puzzle_id = :puzzleId
-                AND pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-        ", ['puzzleId' => $puzzleId]);
-
-        $firstTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $firstAttemptRows);
-        $allTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $allAttemptRows);
+        if (count($firstTimes) < self::MINIMUM_FOR_IMPROVEMENT_CEILING) {
+            return null;
+        }
 
         $p50First = $this->computePercentile($firstTimes, 50);
         $p10All = $this->computePercentile($allTimes, 10);

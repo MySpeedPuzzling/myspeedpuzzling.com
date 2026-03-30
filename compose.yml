@@ -189,7 +189,7 @@ services:
         image: listmonk/listmonk:latest
         restart: unless-stopped
         ports:
-            - "9000:9000"
+            - "8090:9000"
         environment:
             TZ: Europe/Prague
             LISTMONK_app__address: 0.0.0.0:9000

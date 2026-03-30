@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use SpeedPuzzling\Web\Query\GetPlayerBaselineProgress;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -64,7 +65,7 @@ final class GetPlayerBaselineProgressTest extends KernelTestCase
 
     public function testSolveProgressReturnsDataForPlayer(): void
     {
-        $progress = $this->query->solveProgress(PlayerFixture::PLAYER_REGULAR);
+        $progress = $this->query->solveProgress(PlayerFixture::PLAYER_REGULAR, PlayerSkillCalculator::MIN_SOLVERS_PER_PUZZLE);
 
         self::assertNotEmpty($progress);
         self::assertArrayHasKey(500, $progress);
@@ -73,7 +74,7 @@ final class GetPlayerBaselineProgressTest extends KernelTestCase
 
     public function testSolveProgressReturnsEmptyForUnknownPlayer(): void
     {
-        $progress = $this->query->solveProgress('00000000-0000-0000-0000-000000000099');
+        $progress = $this->query->solveProgress('00000000-0000-0000-0000-000000000099', PlayerSkillCalculator::MIN_SOLVERS_PER_PUZZLE);
 
         self::assertEmpty($progress);
     }

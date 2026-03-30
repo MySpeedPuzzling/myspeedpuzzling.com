@@ -10,7 +10,7 @@ use Symfony\Contracts\Service\ResetInterface;
 
 final class PlayerBaselineCalculator implements ResetInterface
 {
-    private const int MINIMUM_SOLVE_COUNT = 5;
+    public const int MINIMUM_SOLVE_COUNT = 5;
     private const float DECAY_HALF_LIFE_MONTHS = 18.0;
     private const int SCALING_EXPONENT_MIN_PLAYERS = 50;
     private const float SCALING_EXPONENT_DEFAULT = 1.3;

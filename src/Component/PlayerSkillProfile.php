@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\GetPlayerBaselineProgress;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetPlayerSkillHistory;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Results\PlayerSkillHistoryPoint;
 use SpeedPuzzling\Web\Results\PlayerSkillResult;
@@ -50,6 +52,12 @@ final class PlayerSkillProfile
      */
     public array $progress = [];
 
+    public int $minBaselineSolves = PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT;
+
+    public int $minQualifyingPuzzles = PlayerSkillCalculator::MINIMUM_QUALIFYING_PUZZLES;
+
+    public int $minSolversPerPuzzle = PlayerSkillCalculator::MIN_SOLVERS_PER_PUZZLE;
+
     public function __construct(
         readonly private GetPlayerSkill $getPlayerSkill,
         readonly private GetPlayerSkillHistory $getPlayerSkillHistory,
@@ -87,7 +95,7 @@ final class PlayerSkillProfile
         $this->computeBaselineAndTarget();
 
         if ($this->skills === []) {
-            $allProgress = $this->getPlayerBaselineProgress->solveProgress($this->playerId);
+            $allProgress = $this->getPlayerBaselineProgress->solveProgress($this->playerId, PlayerSkillCalculator::MIN_SOLVERS_PER_PUZZLE);
             $this->progress = array_filter(
                 $allProgress,
                 static fn (array $data, int $pc): bool => in_array($pc, PuzzleIntelligenceRecalculator::SKILL_PIECES_COUNTS, true),

@@ -257,7 +257,7 @@ player_skill_score = median(outperformance across all qualifying puzzles)
 
 ### Minimum Threshold
 
-Player needs >= **10 qualifying puzzles** (puzzles that have a difficulty score with at least Low confidence) for a skill tier to be computed.
+Player needs >= **20 qualifying puzzles** (puzzles that have a difficulty score, at least Low confidence, and at least 20 first-attempt solvers) for a skill tier to be computed.
 
 ### Skill Tiers
 
@@ -387,7 +387,7 @@ Mar 2026: 52 min (Expert)
 | Feature | Requirement | "Need X more" display |
 |---------|------------|----------------------|
 | Player baseline | 5 distinct first-attempt solo solves per piece count | "Solve X more new Ypc puzzles" |
-| Player skill tier | 10 first-attempt solos on puzzles with difficulty scores | "X more qualifying puzzles needed" |
+| Player skill tier | 20 first-attempt solos on puzzles with difficulty scores and 20+ solvers | "X more qualifying puzzles needed" |
 | MSP-ELO entry | 15 first attempts + 50 total solos (per piece count) | "11/15 first attempts, 38/50 total" |
 | Puzzle difficulty | 5 qualified player indices | "X more qualified solvers needed" |
 | Memorability | 5+ repeat solvers | Only shown when available |

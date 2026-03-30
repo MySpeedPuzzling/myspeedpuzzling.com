@@ -23,14 +23,11 @@ final class PlayerEloProfile
     #[LiveProp]
     public bool $isOwnProfile = false;
 
-    /** @var array<int, array{elo_rating: int, rank: int, total: int}> */
+    /** @var array<int, array{elo_rating: float, rank: int, total: int}> */
     public array $eloRatings = [];
 
     /** @var array{first_attempts: int, total_solves: int}|null */
     public null|array $eloProgress = null;
-
-    /** @var list<int> */
-    public array $progressPieceCounts = [];
 
     public function __construct(
         readonly private GetPlayerEloRanking $getPlayerEloRanking,
@@ -42,12 +39,10 @@ final class PlayerEloProfile
     #[PreReRender]
     public function populate(): void
     {
-        $period = 'all-time';
-        $this->eloRatings = $this->getPlayerEloRanking->allForPlayer($this->playerId, $period);
+        $this->eloRatings = $this->getPlayerEloRanking->allForPlayer($this->playerId);
 
         // If own profile and no ELO data, show progress for 500pc
         if ($this->isOwnProfile && $this->eloRatings === []) {
-            $this->progressPieceCounts = [500];
             $progress = $this->mspEloCalculator->getProgress($this->playerId, 500);
 
             if ($progress['first_attempts'] > 0 || $progress['total_solves'] > 0) {

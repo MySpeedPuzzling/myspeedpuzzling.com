@@ -109,6 +109,16 @@
                             'box_dependence'
                         ) }}
                     {% endif %}
+                    {% if puzzle_difficulty.improvementCeilingScore is not null %}
+                        <hr class="my-3">
+                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1"><i class="bi bi-graph-up-arrow" style="font-size: 1.1em;"></i>{{ 'puzzle_intelligence.personality.improvement_ceiling'|trans }}</h6>
+                        {{ personality_metric(
+                            'puzzle_intelligence.personality.improvement_ceiling',
+                            'puzzle_intelligence.info.improvement_ceiling',
+                            puzzle_difficulty.improvementCeilingScore,
+                            'improvement_ceiling'
+                        ) }}
+                    {% endif %}
 
                 {% elseif puzzle_difficulty is not null and puzzle_difficulty.sampleSize > 0 %}
                     <small class="text-muted">

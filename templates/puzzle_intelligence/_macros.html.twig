@@ -116,11 +116,11 @@
             {% set bar_color = 'var(--diff-average)' %}
         {% endif %}
     {% elseif metric_type == 'predictability' %}
-        {% if value >= 5.0 %}
+        {% if value >= 0.83 %}
             {% set descriptor = 'puzzle_intelligence.human.predictability_high' %}
             {% set color = 'badge-tier-easy' %}
             {% set bar_color = 'var(--diff-easy)' %}
-        {% elseif value >= 2.5 %}
+        {% elseif value >= 0.67 %}
             {% set descriptor = 'puzzle_intelligence.human.predictability_medium' %}
             {% set color = 'badge-tier-veryeasy' %}
             {% set bar_color = 'var(--diff-very-easy)' %}
@@ -143,6 +143,20 @@
             {% set color = 'badge-tier-average' %}
             {% set bar_color = 'var(--diff-average)' %}
         {% endif %}
+    {% elseif metric_type == 'improvement_ceiling' %}
+        {% if value >= 2.0 %}
+            {% set descriptor = 'puzzle_intelligence.human.ceiling_high' %}
+            {% set color = 'badge-tier-challenging' %}
+            {% set bar_color = 'var(--diff-challenging)' %}
+        {% elseif value >= 1.3 %}
+            {% set descriptor = 'puzzle_intelligence.human.ceiling_medium' %}
+            {% set color = 'badge-tier-veryeasy' %}
+            {% set bar_color = 'var(--diff-very-easy)' %}
+        {% else %}
+            {% set descriptor = 'puzzle_intelligence.human.ceiling_low' %}
+            {% set color = 'badge-tier-average' %}
+            {% set bar_color = 'var(--diff-average)' %}
+        {% endif %}
     {% endif %}
 
     {# Scale bar — map value to 0-100% within typical range #}
@@ -153,18 +167,21 @@
         {% set bar_min = 1.0 %}
         {% set bar_max = 1.8 %}
     {% elseif metric_type == 'predictability' %}
-        {% set bar_min = 1.0 %}
-        {% set bar_max = 20.0 %}
+        {% set bar_min = 0.3 %}
+        {% set bar_max = 1.0 %}
     {% elseif metric_type == 'box_dependence' %}
         {% set bar_min = 0.8 %}
         {% set bar_max = 2.0 %}
+    {% elseif metric_type == 'improvement_ceiling' %}
+        {% set bar_min = 1.0 %}
+        {% set bar_max = 3.0 %}
     {% endif %}
     {% set bar_pct = ((value - bar_min) / (bar_max - bar_min) * 100) %}
     {% set bar_pct = bar_pct < 2 ? 2 : (bar_pct > 100 ? 100 : bar_pct) %}
 
     <div class="py-1">
         <div class="d-flex align-items-center justify-content-between mb-1">
-            <small class="text-muted">{{ value|number_format(1) }}{% if metric_type != 'predictability' %}x{% endif %}</small>
+            <small class="text-muted">{{ value|number_format(metric_type in ['predictability'] ? 2 : 1) }}{% if metric_type not in ['predictability'] %}x{% endif %}</small>
             <span class="badge {{ color ?? 'badge-tier-average' }}" style="font-weight: 500;">{{ descriptor|trans }}</span>
         </div>
         <div class="progress" style="height: 4px;">

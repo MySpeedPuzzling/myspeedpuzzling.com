@@ -44,10 +44,18 @@ SQL;
 
         $predictedSeconds = (int) round($baseline * $difficulty);
 
-        // Compute range using standard deviation of difficulty indices
+        // v2: Bounded confidence band
         $stdDev = $this->getDifficultyStdDev($puzzleId);
-        $rangeLow = (int) round($baseline * max(0.5, $difficulty - $stdDev));
-        $rangeHigh = (int) round($baseline * ($difficulty + $stdDev));
+        $rawLow = $baseline * ($difficulty - $stdDev);
+        $rawHigh = $baseline * ($difficulty + $stdDev);
+
+        // Floor: lower bound at least 30% of predicted, minimum 1 second
+        $rangeLow = (int) round(max($rawLow, $predictedSeconds * 0.30, 1.0));
+        // Ceiling: upper bound at most 300% of predicted
+        $rangeHigh = (int) round(min($rawHigh, $predictedSeconds * 3.00));
+
+        // Flag wide range for potential UI hiding
+        $isWideRange = $rangeHigh > 0 && $rangeLow > 0 && ($rangeHigh / $rangeLow) > 4.0;
 
         return new TimePredictionResult(
             predictedSeconds: $predictedSeconds,

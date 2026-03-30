@@ -30,49 +30,144 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @return array{baselines: int, difficulties: int, metrics: int, skills: int, elo: int, history: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, skills: int, elo: int, history: int, snapshots: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
         $now = $this->clock->now();
 
+        /*
+         * Recalculation dependency chain — each level depends on previous ones.
+         * DO NOT reorder these steps.
+         *
+         * Level 1: Global scaling exponent (computed within baselines)
+         * Level 2: Player baselines (direct + interpolated/extrapolated)
+         * Level 3: Puzzle difficulty (uses baselines for difficulty indices)
+         * Level 4: Global learning rate + derived metrics (uses difficulty)
+         * Level 5: Player skills + MSP-ELO + personality metrics (use difficulty)
+         * Level 6: Rating snapshots + skill history (uses skills + ELO)
+         */
+
+        // Level 1+2: Baselines
         $baselines = $this->computeBaselines($now, $specificPlayer);
+
+        // Level 3: Puzzle difficulty
         $difficulties = $this->computePuzzleDifficulty($now, $specificPuzzle);
+
+        // Level 4+5: Derived metrics, player skills, MSP-ELO
         $metrics = $this->computeDerivedMetrics($specificPuzzle);
         $skills = $this->computePlayerSkills($now, $specificPlayer);
         $elo = $this->computeEloRatings($now, $specificPlayer);
+
+        // Level 6: History + snapshots
         $history = $this->recordSkillHistory($now);
+        $snapshots = $this->recordRatingSnapshots($now);
 
         return [
-            'baselines' => $baselines,
+            'baselines_direct' => $baselines['direct'],
+            'baselines_interpolated' => $baselines['interpolated'],
+            'scaling_exponent' => $baselines['scaling_exponent'],
             'difficulties' => $difficulties,
             'metrics' => $metrics,
             'skills' => $skills,
             'elo' => $elo,
             'history' => $history,
+            'snapshots' => $snapshots,
         ];
     }
 
-    private function computeBaselines(\DateTimeImmutable $now, null|string $specificPlayer): int
+    /**
+     * @return array{direct: int, interpolated: int, scaling_exponent: float}
+     */
+    private function computeBaselines(\DateTimeImmutable $now, null|string $specificPlayer): array
     {
+        // Pass 1: Compute direct baselines
         $players = $this->getPlayersWithSolves($specificPlayer);
         $pieceCounts = $this->getDistinctPieceCounts();
-        $count = 0;
+        $directCount = 0;
 
         foreach ($players as $playerId) {
             foreach ($pieceCounts as $piecesCount) {
                 $result = $this->baselineCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
-                    $this->upsertBaseline($playerId, $piecesCount, $result['baseline_seconds'], $result['qualifying_count'], $now);
-                    $count++;
+                    $this->upsertBaseline($playerId, $piecesCount, $result['baseline_seconds'], $result['qualifying_count'], $now, 'direct');
+                    $directCount++;
                 } else {
                     $this->deleteBaseline($playerId, $piecesCount);
                 }
             }
         }
 
-        return $count;
+        // Pass 2: Compute global scaling exponent + interpolated/extrapolated baselines
+        $scalingExponent = $this->baselineCalculator->computeScalingExponent();
+        $gaps = $this->baselineCalculator->findBaselineGaps();
+        $interpolatedCount = 0;
+
+        // Cache direct baselines per player to avoid repeated queries
+        $playerBaselineCache = [];
+
+        foreach ($gaps as $gap) {
+            $playerId = $gap['player_id'];
+            $targetPieces = $gap['pieces_count'];
+
+            if (!isset($playerBaselineCache[$playerId])) {
+                $playerBaselineCache[$playerId] = $this->baselineCalculator->getDirectBaselinesForPlayer($playerId);
+            }
+
+            $directBaselines = $playerBaselineCache[$playerId];
+
+            if ($directBaselines === []) {
+                continue;
+            }
+
+            $pieceCounts = array_keys($directBaselines);
+            $lower = null;
+            $upper = null;
+
+            // Find bracketing baselines
+            foreach ($pieceCounts as $pc) {
+                if ($pc < $targetPieces) {
+                    $lower = $pc;
+                }
+
+                if ($pc > $targetPieces && $upper === null) {
+                    $upper = $pc;
+                }
+            }
+
+            if ($lower !== null && $upper !== null) {
+                // Interpolated: two brackets exist
+                $baseline = $this->baselineCalculator->interpolateBaseline(
+                    $targetPieces,
+                    $lower,
+                    $directBaselines[$lower],
+                    $upper,
+                    $directBaselines[$upper],
+                );
+                $this->upsertBaseline($playerId, $targetPieces, $baseline, 0, $now, 'interpolated');
+                $interpolatedCount++;
+            } else {
+                // Extrapolated: use closest baseline + scaling exponent
+                $closestPc = $lower ?? $upper;
+                assert($closestPc !== null);
+
+                $baseline = $this->baselineCalculator->extrapolateBaseline(
+                    $targetPieces,
+                    $closestPc,
+                    $directBaselines[$closestPc],
+                    $scalingExponent,
+                );
+                $this->upsertBaseline($playerId, $targetPieces, $baseline, 0, $now, 'extrapolated');
+                $interpolatedCount++;
+            }
+        }
+
+        return [
+            'direct' => $directCount,
+            'interpolated' => $interpolatedCount,
+            'scaling_exponent' => $scalingExponent,
+        ];
     }
 
     private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): int
@@ -97,8 +192,32 @@ readonly final class PuzzleIntelligenceRecalculator
         $puzzleIds = $this->getPuzzlesWithDifficulty($specificPuzzle);
         $count = 0;
 
+        // Pass 1: Compute all metrics. Memorability returns raw puzzle learning rate.
+        $allMetrics = [];
+
         foreach ($puzzleIds as $puzzleId) {
             $metrics = $this->derivedMetricsCalculator->calculateForPuzzle($puzzleId);
+            $allMetrics[$puzzleId] = $metrics;
+        }
+
+        // Pass 2: Compute global learning rate and normalize memorability
+        $rawLearningRates = [];
+
+        foreach ($allMetrics as $metrics) {
+            if ($metrics['memorability_score'] !== null) {
+                $rawLearningRates[] = $metrics['memorability_score'];
+            }
+        }
+
+        $globalLearningRate = $rawLearningRates !== [] ? $this->computeMedianFromArray($rawLearningRates) : null;
+
+        // Pass 3: Write normalized metrics
+        foreach ($allMetrics as $puzzleId => $metrics) {
+            // Normalize memorability against global learning rate
+            if ($metrics['memorability_score'] !== null && $globalLearningRate !== null && $globalLearningRate > 0) {
+                $metrics['memorability_score'] = round($metrics['memorability_score'] / $globalLearningRate, 3);
+            }
+
             $this->updateDerivedMetrics($puzzleId, $metrics);
             $count++;
         }
@@ -106,9 +225,26 @@ readonly final class PuzzleIntelligenceRecalculator
         return $count;
     }
 
+    /**
+     * @param list<float> $values
+     */
+    private function computeMedianFromArray(array $values): float
+    {
+        sort($values);
+        $count = count($values);
+        $mid = intdiv($count, 2);
+
+        if ($count % 2 === 0) {
+            return ($values[$mid - 1] + $values[$mid]) / 2.0;
+        }
+
+        return $values[$mid];
+    }
+
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        $players = $this->getPublicPlayersWithBaselines($specificPlayer);
+        // v2: All players (including private) get skill scores
+        $players = $this->getPlayersWithSolves($specificPlayer);
         $count = 0;
 
         foreach ($players as $playerId) {
@@ -130,29 +266,31 @@ readonly final class PuzzleIntelligenceRecalculator
             ['pieceCounts' => '{' . implode(',', self::SKILL_PIECES_COUNTS) . '}'],
         );
 
-        // Clean up skill data for private players
-        $this->connection->executeStatement(
-            'DELETE FROM player_skill WHERE player_id IN (SELECT id FROM player WHERE is_private = true)',
-        );
-
         return $count;
     }
 
     private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        $players = $this->getPublicPlayersWithBaselines($specificPlayer);
+        // v2: Wipe all ELO data and recompute from scratch (snapshot calculation)
+        $this->connection->executeStatement('DELETE FROM player_elo');
+
+        $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
 
         foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
-            foreach ($players as $playerId) {
-                if (!$this->eloCalculator->isEligible($playerId, $piecesCount)) {
-                    continue;
-                }
+            // Pre-compute puzzle ranking data once for this piece count
+            $this->eloCalculator->precomputePuzzleRankings($piecesCount);
 
-                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount, 'all-time');
-                $this->upsertElo($playerId, $piecesCount, 'all-time', $eloRating, $now);
-                $count++;
+            foreach ($players as $playerId) {
+                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount);
+
+                if ($eloRating > 0.0) {
+                    $this->upsertElo($playerId, $piecesCount, $eloRating, $now);
+                    $count++;
+                }
             }
+
+            $this->eloCalculator->clearCache();
         }
 
         // Clean up ELO data for piece counts no longer computed
@@ -201,6 +339,51 @@ readonly final class PuzzleIntelligenceRecalculator
         return (int) $count;
     }
 
+    private function recordRatingSnapshots(\DateTimeImmutable $now): int
+    {
+        $snapshotDate = $now->format('Y-m-d');
+
+        // Bulk insert snapshots for all players with baselines, joining skill and ELO data
+        $this->connection->executeStatement("
+            INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
+            SELECT
+                gen_random_uuid(),
+                pb.player_id,
+                pb.pieces_count,
+                :snapshotDate::timestamp,
+                ps.skill_score,
+                ps.skill_tier,
+                ps.skill_percentile,
+                pe.elo_rating,
+                (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pb.pieces_count AND p2.is_private = false AND pe2.elo_rating >= pe.elo_rating),
+                pb.baseline_seconds,
+                pb.baseline_type,
+                :now
+            FROM player_baseline pb
+            LEFT JOIN player_skill ps ON ps.player_id = pb.player_id AND ps.pieces_count = pb.pieces_count
+            LEFT JOIN player_elo pe ON pe.player_id = pb.player_id AND pe.pieces_count = pb.pieces_count
+            ON CONFLICT (player_id, pieces_count, snapshot_date) DO UPDATE SET
+                skill_score = EXCLUDED.skill_score,
+                skill_tier = EXCLUDED.skill_tier,
+                skill_percentile = EXCLUDED.skill_percentile,
+                elo_rating = EXCLUDED.elo_rating,
+                elo_rank = EXCLUDED.elo_rank,
+                baseline_seconds = EXCLUDED.baseline_seconds,
+                baseline_type = EXCLUDED.baseline_type,
+                computed_at = EXCLUDED.computed_at
+        ", [
+            'snapshotDate' => $snapshotDate,
+            'now' => $now->format('Y-m-d H:i:s'),
+        ]);
+
+        /** @var int|string $count */
+        $count = $this->connection->fetchOne("
+            SELECT COUNT(*) FROM player_rating_snapshot WHERE snapshot_date = :snapshotDate::timestamp
+        ", ['snapshotDate' => $snapshotDate]);
+
+        return (int) $count;
+    }
+
     /**
      * @return list<string>
      */
@@ -219,7 +402,7 @@ readonly final class PuzzleIntelligenceRecalculator
     /**
      * @return list<string>
      */
-    private function getPublicPlayersWithBaselines(null|string $specificPlayer): array
+    private function getPublicPlayersWithSolves(null|string $specificPlayer): array
     {
         if ($specificPlayer !== null) {
             return [$specificPlayer];
@@ -227,7 +410,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         /** @var list<string> */
         return $this->connection->fetchFirstColumn(
-            'SELECT DISTINCT pb.player_id FROM player_baseline pb INNER JOIN player p ON p.id = pb.player_id WHERE p.is_private = false',
+            'SELECT DISTINCT pst.player_id FROM puzzle_solving_time pst INNER JOIN player p ON p.id = pst.player_id WHERE pst.seconds_to_solve IS NOT NULL AND p.is_private = false',
         );
     }
 
@@ -274,20 +457,22 @@ readonly final class PuzzleIntelligenceRecalculator
         );
     }
 
-    private function upsertBaseline(string $playerId, int $piecesCount, int $baselineSeconds, int $qualifyingCount, \DateTimeImmutable $now): void
+    private function upsertBaseline(string $playerId, int $piecesCount, int $baselineSeconds, int $qualifyingCount, \DateTimeImmutable $now, string $baselineType = 'direct'): void
     {
         $this->connection->executeStatement("
-            INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, :now)
+            INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
+            VALUES (gen_random_uuid(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, :baselineType, :now)
             ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 baseline_seconds = EXCLUDED.baseline_seconds,
                 qualifying_solves_count = EXCLUDED.qualifying_solves_count,
+                baseline_type = EXCLUDED.baseline_type,
                 computed_at = EXCLUDED.computed_at
         ", [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
             'baselineSeconds' => $baselineSeconds,
             'qualifyingCount' => $qualifyingCount,
+            'baselineType' => $baselineType,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
     }
@@ -325,7 +510,7 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @param array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null} $metrics
+     * @param array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null, improvement_ceiling_score: float|null} $metrics
      */
     private function updateDerivedMetrics(string $puzzleId, array $metrics): void
     {
@@ -334,7 +519,8 @@ readonly final class PuzzleIntelligenceRecalculator
                 memorability_score = :memorability,
                 skill_sensitivity_score = :skillSensitivity,
                 predictability_score = :predictability,
-                box_dependence_score = :boxDependence
+                box_dependence_score = :boxDependence,
+                improvement_ceiling_score = :improvementCeiling
             WHERE puzzle_id = :puzzleId
         ", [
             'puzzleId' => $puzzleId,
@@ -342,6 +528,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'skillSensitivity' => $metrics['skill_sensitivity_score'],
             'predictability' => $metrics['predictability_score'],
             'boxDependence' => $metrics['box_dependence_score'],
+            'improvementCeiling' => $metrics['improvement_ceiling_score'],
         ]);
     }
 
@@ -380,18 +567,17 @@ readonly final class PuzzleIntelligenceRecalculator
         );
     }
 
-    private function upsertElo(string $playerId, int $piecesCount, string $period, int $eloRating, \DateTimeImmutable $now): void
+    private function upsertElo(string $playerId, int $piecesCount, float $eloRating, \DateTimeImmutable $now): void
     {
         $this->connection->executeStatement("
-            INSERT INTO player_elo (id, player_id, pieces_count, period, elo_rating, matches_count, last_solve_at, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :period, :eloRating, 0, :now, :now)
-            ON CONFLICT (player_id, pieces_count, period) DO UPDATE SET
+            INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at)
+            VALUES (gen_random_uuid(), :playerId, :piecesCount, :eloRating, :now)
+            ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 elo_rating = EXCLUDED.elo_rating,
                 computed_at = EXCLUDED.computed_at
         ", [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
-            'period' => $period,
             'eloRating' => $eloRating,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);

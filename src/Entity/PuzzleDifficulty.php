@@ -52,6 +52,10 @@ class PuzzleDifficulty
     public null|float $boxDependenceScore = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|float $improvementCeilingScore = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column]
     public DateTimeImmutable $computedAt;
 
@@ -83,10 +87,12 @@ class PuzzleDifficulty
         null|float $skillSensitivityScore,
         null|float $predictabilityScore,
         null|float $boxDependenceScore,
+        null|float $improvementCeilingScore,
     ): void {
         $this->memorabilityScore = $memorabilityScore;
         $this->skillSensitivityScore = $skillSensitivityScore;
         $this->predictabilityScore = $predictabilityScore;
         $this->boxDependenceScore = $boxDependenceScore;
+        $this->improvementCeilingScore = $improvementCeilingScore;
     }
 }

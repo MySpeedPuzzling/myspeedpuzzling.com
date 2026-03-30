@@ -5,46 +5,134 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 
-readonly final class MspEloCalculator
+/**
+ * MSP-ELO v2: Portfolio-based snapshot rating.
+ *
+ * Evaluates players on their best results from a rolling 12-month window,
+ * combining first-attempt and best-time portfolios with difficulty weighting.
+ */
+final class MspEloCalculator
 {
-    public const int MINIMUM_FIRST_ATTEMPTS = 15;
+    public const int MINIMUM_FIRST_ATTEMPTS = 20;
     public const int MINIMUM_TOTAL_SOLVES = 50;
-    private const int STARTING_ELO = 1000;
-    private const int K_FACTOR_PLACEMENT = 60;
-    private const int K_FACTOR_ESTABLISHED = 30;
-    private const int PLACEMENT_MATCHES = 10;
+
+    private const int CAP = 100;
+    private const int WINDOW_MONTHS = 12;
+    private const int MIN_SOLVERS_PER_PUZZLE = 20;
+    private const float DIFFICULTY_BLEND = 0.5;
+    private const int DIFF_CONFIDENCE_THRESHOLD = 50;
+    private const float FIRST_ATTEMPT_WEIGHT = 0.75;
+
+    /**
+     * Pre-computed puzzle ranking data for the current recalculation run.
+     *
+     * @var array<string, array{fa_times: list<int>, bt_times: list<int>, difficulty: float, sample_size: int}>|null
+     */
+    private null|array $puzzleRankingCache = null;
 
     public function __construct(
-        private Connection $connection,
+        private readonly Connection $connection,
+        private readonly ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * Pre-compute puzzle ranking data for all qualifying puzzles.
+     * Call once before the per-player loop for efficiency.
+     */
+    public function precomputePuzzleRankings(int $piecesCount): void
+    {
+        // Get all puzzles with 20+ first-attempt public solvers and a difficulty score
+        /** @var list<array{puzzle_id: string, difficulty_score: float|string, sample_size: int|string}> $puzzles */
+        $puzzles = $this->connection->fetchAllAssociative("
+            SELECT pd.puzzle_id, pd.difficulty_score, pd.sample_size
+            FROM puzzle_difficulty pd
+            JOIN puzzle p ON p.id = pd.puzzle_id
+            WHERE p.pieces_count = :piecesCount
+                AND pd.difficulty_score IS NOT NULL
+                AND pd.confidence != 'insufficient'
+                AND (
+                    SELECT COUNT(DISTINCT pst.player_id)
+                    FROM puzzle_solving_time pst
+                    JOIN player pl ON pl.id = pst.player_id
+                    WHERE pst.puzzle_id = pd.puzzle_id
+                        AND pst.first_attempt = true
+                        AND pst.puzzling_type = 'solo'
+                        AND pst.suspicious = false
+                        AND pst.seconds_to_solve IS NOT NULL
+                        AND pl.is_private = false
+                ) >= :minSolvers
+        ", [
+            'piecesCount' => $piecesCount,
+            'minSolvers' => self::MIN_SOLVERS_PER_PUZZLE,
+        ]);
+
+        $cache = [];
+
+        foreach ($puzzles as $puzzle) {
+            $puzzleId = $puzzle['puzzle_id'];
+
+            // First-attempt times (public players only, one per player)
+            /** @var list<array{seconds_to_solve: int|string}> $faTimes */
+            $faTimes = $this->connection->fetchAllAssociative("
+                SELECT DISTINCT ON (pst.player_id) pst.seconds_to_solve
+                FROM puzzle_solving_time pst
+                JOIN player pl ON pl.id = pst.player_id
+                WHERE pst.puzzle_id = :puzzleId
+                    AND pst.first_attempt = true
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+                    AND pl.is_private = false
+                ORDER BY pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC
+            ", ['puzzleId' => $puzzleId]);
+
+            // Best times per player (public players only)
+            /** @var list<array{best_time: int|string}> $btTimes */
+            $btTimes = $this->connection->fetchAllAssociative("
+                SELECT MIN(pst.seconds_to_solve) AS best_time
+                FROM puzzle_solving_time pst
+                JOIN player pl ON pl.id = pst.player_id
+                WHERE pst.puzzle_id = :puzzleId
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+                    AND pl.is_private = false
+                GROUP BY pst.player_id
+            ", ['puzzleId' => $puzzleId]);
+
+            $faTimesSorted = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $faTimes);
+            $btTimesSorted = array_map(static fn (array $r): int => (int) $r['best_time'], $btTimes);
+            sort($faTimesSorted);
+            sort($btTimesSorted);
+
+            $cache[$puzzleId] = [
+                'fa_times' => $faTimesSorted,
+                'bt_times' => $btTimesSorted,
+                'difficulty' => (float) $puzzle['difficulty_score'],
+                'sample_size' => (int) $puzzle['sample_size'],
+            ];
+        }
+
+        $this->puzzleRankingCache = $cache;
+    }
+
+    /**
+     * Clear the pre-computed cache (call after recalculation).
+     */
+    public function clearCache(): void
+    {
+        $this->puzzleRankingCache = null;
     }
 
     public function isEligible(string $playerId, int $piecesCount): bool
     {
-        $result = $this->connection->fetchAssociative("
-            SELECT
-                COUNT(*) FILTER (WHERE first_attempt = true) AS first_attempt_count,
-                COUNT(*) AS total_count
-            FROM puzzle_solving_time pst
-            JOIN puzzle p ON p.id = pst.puzzle_id
-            WHERE pst.player_id = :playerId
-                AND p.pieces_count = :piecesCount
-                AND pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-        ", [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-        ]);
+        $progress = $this->getProgress($playerId, $piecesCount);
 
-        /** @var array{first_attempt_count: int|string, total_count: int|string}|false $result */
-        if ($result === false) {
-            return false;
-        }
-
-        return (int) $result['first_attempt_count'] >= self::MINIMUM_FIRST_ATTEMPTS
-            && (int) $result['total_count'] >= self::MINIMUM_TOTAL_SOLVES;
+        return $progress['first_attempts'] >= self::MINIMUM_FIRST_ATTEMPTS
+            && $progress['total_solves'] >= self::MINIMUM_TOTAL_SOLVES;
     }
 
     /**
@@ -52,11 +140,13 @@ readonly final class MspEloCalculator
      */
     public function getProgress(string $playerId, int $piecesCount): array
     {
+        $cutoffDate = $this->getCutoffDate();
+
         /** @var array{first_attempt_count: int|string, total_count: int|string}|false $result */
         $result = $this->connection->fetchAssociative("
             SELECT
-                COUNT(*) FILTER (WHERE first_attempt = true) AS first_attempt_count,
-                COUNT(*) AS total_count
+                COUNT(DISTINCT pst.puzzle_id) FILTER (WHERE pst.first_attempt = true AND COALESCE(pst.finished_at, pst.tracked_at) >= :cutoff) AS first_attempt_count,
+                COUNT(DISTINCT pst.puzzle_id) FILTER (WHERE COALESCE(pst.finished_at, pst.tracked_at) >= :cutoff) AS total_count
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
             WHERE pst.player_id = :playerId
@@ -67,6 +157,7 @@ readonly final class MspEloCalculator
         ", [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
+            'cutoff' => $cutoffDate->format('Y-m-d H:i:s'),
         ]);
 
         return [
@@ -76,22 +167,27 @@ readonly final class MspEloCalculator
     }
 
     /**
-     * Calculate full ELO rating for a player by replaying all their solves.
-     * Used during batch recalculation.
+     * Calculate portfolio-based ELO rating for a player.
+     * Returns null if not eligible, or the blended rating as a float.
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): float
     {
         if (!$this->isEligible($playerId, $piecesCount)) {
-            return (float) self::STARTING_ELO;
+            return 0.0;
         }
 
-        // Get first-attempt solo solves for this player, ordered by date
-        // TODO: Replace with v2 portfolio-based calculation in Phase 4
-        $sql = "
+        assert($this->puzzleRankingCache !== null, 'Call precomputePuzzleRankings() before calculateForPlayer()');
+
+        $cutoffDate = $this->getCutoffDate();
+
+        // Get all puzzles this player solved within the window
+        /** @var list<array{puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string}> $playerSolves */
+        $playerSolves = $this->connection->fetchAllAssociative("
             SELECT
                 pst.puzzle_id,
-                pst.seconds_to_solve,
-                COALESCE(pst.finished_at, pst.tracked_at) AS solve_date
+                MIN(CASE WHEN pst.first_attempt = true THEN pst.seconds_to_solve END) AS first_attempt_time,
+                MIN(CASE WHEN pst.first_attempt = true THEN COALESCE(pst.finished_at, pst.tracked_at)::text END) AS first_attempt_date,
+                MIN(pst.seconds_to_solve) AS best_time
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
             WHERE pst.player_id = :playerId
@@ -99,85 +195,103 @@ readonly final class MspEloCalculator
                 AND pst.puzzling_type = 'solo'
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
-                AND pst.first_attempt = true
-            ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC
-        ";
-
-        /** @var list<array{puzzle_id: string, seconds_to_solve: int|string, solve_date: string}> $solves */
-        $solves = $this->connection->fetchAllAssociative($sql, [
+            GROUP BY pst.puzzle_id
+            HAVING MAX(COALESCE(pst.finished_at, pst.tracked_at)) >= :cutoff
+        ", [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
+            'cutoff' => $cutoffDate->format('Y-m-d H:i:s'),
         ]);
 
-        $elo = (float) self::STARTING_ELO;
-        $matchCount = 0;
+        $firstAttemptEntries = [];
+        $bestTimeEntries = [];
 
-        foreach ($solves as $solve) {
+        foreach ($playerSolves as $solve) {
             $puzzleId = $solve['puzzle_id'];
-            $solveTime = (int) $solve['seconds_to_solve'];
 
-            $percentile = $this->getPercentileOnPuzzle($puzzleId, $solveTime, $piecesCount);
-
-            if ($percentile === null) {
-                continue;
+            if (!isset($this->puzzleRankingCache[$puzzleId])) {
+                continue; // Puzzle doesn't qualify (< 20 solvers or no difficulty)
             }
 
-            $avgPoolElo = $this->getAveragePoolElo($piecesCount);
-            $expectedPercentile = 1.0 / (1.0 + (10.0 ** (($avgPoolElo - $elo) / 400.0)));
+            $puzzleData = $this->puzzleRankingCache[$puzzleId];
+            $difficultyWeight = $this->computeDifficultyWeight($puzzleData['difficulty'], $puzzleData['sample_size']);
 
-            $kFactor = $matchCount < self::PLACEMENT_MATCHES ? self::K_FACTOR_PLACEMENT : self::K_FACTOR_ESTABLISHED;
-            $elo += round($kFactor * ($percentile - $expectedPercentile), 6);
+            // Best-time portfolio: any solve in window qualifies
+            $bestTime = (int) $solve['best_time'];
+            $btPercentile = $this->computePercentileInSortedArray($bestTime, $puzzleData['bt_times']);
+            $bestTimeEntries[] = $btPercentile * $difficultyWeight;
 
-            $matchCount++;
+            // First-attempt portfolio: first attempt must exist and be in window
+            if ($solve['first_attempt_time'] !== null && $solve['first_attempt_date'] !== null) {
+                $faDate = new \DateTimeImmutable($solve['first_attempt_date']);
+
+                if ($faDate >= $cutoffDate) {
+                    $faTime = (int) $solve['first_attempt_time'];
+                    $faPercentile = $this->computePercentileInSortedArray($faTime, $puzzleData['fa_times']);
+                    $firstAttemptEntries[] = $faPercentile * $difficultyWeight;
+                }
+            }
         }
 
-        return $elo;
+        // Check minimum entry requirements
+        if (count($firstAttemptEntries) < self::MINIMUM_FIRST_ATTEMPTS) {
+            return 0.0;
+        }
+
+        // Build portfolios: sort descending, take top CAP
+        rsort($firstAttemptEntries);
+        rsort($bestTimeEntries);
+
+        $faTop = array_slice($firstAttemptEntries, 0, self::CAP);
+        $btTop = array_slice($bestTimeEntries, 0, self::CAP);
+
+        $faScore = array_sum($faTop) / count($faTop);
+        $btScore = $btTop !== [] ? array_sum($btTop) / count($btTop) : 0.0;
+
+        return self::FIRST_ATTEMPT_WEIGHT * $faScore + (1.0 - self::FIRST_ATTEMPT_WEIGHT) * $btScore;
     }
 
     /**
-     * Get player's percentile rank on a specific puzzle (0.0 to 1.0).
-     * Only compares against first-attempt solves.
+     * Compute percentile of a time in a sorted array using average rank method.
+     * Returns 0.0 (slowest) to 1.0 (fastest).
+     *
+     * @param list<int> $sortedTimes ascending
      */
-    private function getPercentileOnPuzzle(string $puzzleId, int $solveTime, int $piecesCount): null|float
+    private function computePercentileInSortedArray(int $playerTime, array $sortedTimes): float
     {
-        $result = $this->connection->fetchAssociative("
-            SELECT
-                COUNT(*) FILTER (WHERE seconds_to_solve > :solveTime) AS slower,
-                COUNT(*) AS total
-            FROM puzzle_solving_time pst
-            WHERE pst.puzzle_id = :puzzleId
-                AND pst.puzzling_type = 'solo'
-                AND pst.suspicious = false
-                AND pst.seconds_to_solve IS NOT NULL
-                AND pst.first_attempt = true
-        ", [
-            'puzzleId' => $puzzleId,
-            'solveTime' => $solveTime,
-        ]);
+        $total = count($sortedTimes);
 
-        /** @var array{slower: int|string, total: int|string}|false $result */
-        if ($result === false || (int) $result['total'] <= 1) {
-            return null;
+        if ($total <= 1) {
+            return 0.5;
         }
 
-        return (int) $result['slower'] / ((int) $result['total'] - 1);
+        $slowerCount = 0;
+        $tiedCount = 0;
+
+        foreach ($sortedTimes as $time) {
+            if ($time > $playerTime) {
+                $slowerCount++;
+            } elseif ($time === $playerTime) {
+                $tiedCount++;
+            }
+        }
+
+        // Exclude self from tied count (player is one of the tied entries)
+        $tiedOthers = max(0, $tiedCount - 1);
+
+        return ($slowerCount + $tiedOthers / 2.0) / ($total - 1);
     }
 
-    private function getAveragePoolElo(int $piecesCount): float
+    private function computeDifficultyWeight(float $difficulty, int $sampleSize): float
     {
-        /** @var array{avg_elo: float|string|null}|false $result */
-        $result = $this->connection->fetchAssociative("
-            SELECT AVG(pe.elo_rating) AS avg_elo
-            FROM player_elo pe
-            WHERE pe.pieces_count = :piecesCount
-        ", [
-            'piecesCount' => $piecesCount,
-        ]);
+        $confidence = min(1.0, $sampleSize / self::DIFF_CONFIDENCE_THRESHOLD);
+        $blend = self::DIFFICULTY_BLEND * $confidence;
 
-        if ($result === false || $result['avg_elo'] === null) {
-            return (float) self::STARTING_ELO;
-        }
+        return (1.0 - $blend) + $blend * $difficulty;
+    }
 
-        return (float) $result['avg_elo'];
+    private function getCutoffDate(): \DateTimeImmutable
+    {
+        return $this->clock->now()->modify('-' . self::WINDOW_MONTHS . ' months');
     }
 }

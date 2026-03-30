@@ -47,10 +47,10 @@ final class MspEloCalculatorTest extends KernelTestCase
         self::assertSame(0, $progress['total_solves']);
     }
 
-    public function testCalculateReturnsStartingEloForIneligiblePlayer(): void
+    public function testCalculateReturnsZeroForIneligiblePlayer(): void
     {
         $elo = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
 
-        self::assertSame(1000.0, $elo);
+        self::assertSame(0.0, $elo);
     }
 }

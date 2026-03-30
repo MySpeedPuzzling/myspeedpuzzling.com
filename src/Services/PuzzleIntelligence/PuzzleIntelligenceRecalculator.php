@@ -217,19 +217,24 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        $players = $this->getPublicPlayersWithBaselines($specificPlayer);
+        // v2: Public players only for ELO
+        $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
 
         foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
-            foreach ($players as $playerId) {
-                if (!$this->eloCalculator->isEligible($playerId, $piecesCount)) {
-                    continue;
-                }
+            // Pre-compute puzzle ranking data once for this piece count
+            $this->eloCalculator->precomputePuzzleRankings($piecesCount);
 
+            foreach ($players as $playerId) {
                 $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount);
-                $this->upsertElo($playerId, $piecesCount, $eloRating, $now);
-                $count++;
+
+                if ($eloRating > 0.0) {
+                    $this->upsertElo($playerId, $piecesCount, $eloRating, $now);
+                    $count++;
+                }
             }
+
+            $this->eloCalculator->clearCache();
         }
 
         // Clean up ELO data for piece counts no longer computed
@@ -296,7 +301,7 @@ readonly final class PuzzleIntelligenceRecalculator
     /**
      * @return list<string>
      */
-    private function getPublicPlayersWithBaselines(null|string $specificPlayer): array
+    private function getPublicPlayersWithSolves(null|string $specificPlayer): array
     {
         if ($specificPlayer !== null) {
             return [$specificPlayer];
@@ -304,7 +309,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         /** @var list<string> */
         return $this->connection->fetchFirstColumn(
-            'SELECT DISTINCT pb.player_id FROM player_baseline pb INNER JOIN player p ON p.id = pb.player_id WHERE p.is_private = false',
+            'SELECT DISTINCT pst.player_id FROM puzzle_solving_time pst INNER JOIN player p ON p.id = pst.player_id WHERE pst.seconds_to_solve IS NOT NULL AND p.is_private = false',
         );
     }
 

@@ -271,7 +271,9 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        // v2: Public players only for ELO
+        // v2: Wipe all ELO data and recompute from scratch (snapshot calculation)
+        $this->connection->executeStatement('DELETE FROM player_elo');
+
         $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
 

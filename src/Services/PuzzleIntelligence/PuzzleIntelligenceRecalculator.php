@@ -36,18 +36,30 @@ readonly final class PuzzleIntelligenceRecalculator
     {
         $now = $this->clock->now();
 
-        // Level 1+2: Baselines (direct + interpolated)
+        /*
+         * Recalculation dependency chain — each level depends on previous ones.
+         * DO NOT reorder these steps.
+         *
+         * Level 1: Global scaling exponent (computed within baselines)
+         * Level 2: Player baselines (direct + interpolated/extrapolated)
+         * Level 3: Puzzle difficulty (uses baselines for difficulty indices)
+         * Level 4: Global learning rate + derived metrics (uses difficulty)
+         * Level 5: Player skills + MSP-ELO + personality metrics (use difficulty)
+         * Level 6: Rating snapshots + skill history (uses skills + ELO)
+         */
+
+        // Level 1+2: Baselines
         $baselines = $this->computeBaselines($now, $specificPlayer);
 
         // Level 3: Puzzle difficulty
         $difficulties = $this->computePuzzleDifficulty($now, $specificPuzzle);
 
-        // Level 4+5: Derived metrics, player skills, MSP-ELO (all depend on difficulty)
+        // Level 4+5: Derived metrics, player skills, MSP-ELO
         $metrics = $this->computeDerivedMetrics($specificPuzzle);
         $skills = $this->computePlayerSkills($now, $specificPlayer);
         $elo = $this->computeEloRatings($now, $specificPlayer);
 
-        // Level 6: History snapshots
+        // Level 6: History + snapshots
         $history = $this->recordSkillHistory($now);
         $snapshots = $this->recordRatingSnapshots($now);
 

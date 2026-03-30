@@ -178,13 +178,53 @@ readonly final class PuzzleIntelligenceRecalculator
         $puzzleIds = $this->getPuzzlesWithDifficulty($specificPuzzle);
         $count = 0;
 
+        // Pass 1: Compute all metrics. Memorability returns raw puzzle learning rate.
+        $allMetrics = [];
+
         foreach ($puzzleIds as $puzzleId) {
             $metrics = $this->derivedMetricsCalculator->calculateForPuzzle($puzzleId);
+            $allMetrics[$puzzleId] = $metrics;
+        }
+
+        // Pass 2: Compute global learning rate and normalize memorability
+        $rawLearningRates = [];
+
+        foreach ($allMetrics as $metrics) {
+            if ($metrics['memorability_score'] !== null) {
+                $rawLearningRates[] = $metrics['memorability_score'];
+            }
+        }
+
+        $globalLearningRate = $rawLearningRates !== [] ? $this->computeMedianFromArray($rawLearningRates) : null;
+
+        // Pass 3: Write normalized metrics
+        foreach ($allMetrics as $puzzleId => $metrics) {
+            // Normalize memorability against global learning rate
+            if ($metrics['memorability_score'] !== null && $globalLearningRate !== null && $globalLearningRate > 0) {
+                $metrics['memorability_score'] = round($metrics['memorability_score'] / $globalLearningRate, 3);
+            }
+
             $this->updateDerivedMetrics($puzzleId, $metrics);
             $count++;
         }
 
         return $count;
+    }
+
+    /**
+     * @param list<float> $values
+     */
+    private function computeMedianFromArray(array $values): float
+    {
+        sort($values);
+        $count = count($values);
+        $mid = intdiv($count, 2);
+
+        if ($count % 2 === 0) {
+            return ($values[$mid - 1] + $values[$mid]) / 2.0;
+        }
+
+        return $values[$mid];
     }
 
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int

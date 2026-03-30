@@ -8,10 +8,12 @@ use Doctrine\DBAL\Connection;
 
 readonly final class DerivedMetricsCalculator
 {
-    private const int MINIMUM_FOR_MEMORABILITY = 5;
-    private const int MINIMUM_FOR_SENSITIVITY = 10;
-    private const int MINIMUM_FOR_PREDICTABILITY = 10;
-    private const int MINIMUM_FOR_BOX_DEPENDENCE = 5;
+    private const int MINIMUM_FOR_MEMORABILITY = 8;
+    private const int MINIMUM_FOR_SENSITIVITY = 20;
+    private const int MINIMUM_FOR_PREDICTABILITY = 20;
+    private const int MINIMUM_FOR_BOX_DEPENDENCE_UNBOXED = 10;
+    private const int MINIMUM_FOR_BOX_DEPENDENCE_BOXED = 5;
+    private const int MINIMUM_FOR_IMPROVEMENT_CEILING = 20;
 
     public function __construct(
         private Connection $connection,
@@ -19,6 +21,10 @@ readonly final class DerivedMetricsCalculator
     }
 
     /**
+     * Calculate all derived metrics except memorability normalization.
+     * Memorability returns the raw puzzle learning rate — the orchestrator
+     * normalizes it against the global median in a second pass.
+     *
      * @return array{
      *     memorability_score: float|null,
      *     skill_sensitivity_score: float|null,
@@ -30,42 +36,65 @@ readonly final class DerivedMetricsCalculator
     public function calculateForPuzzle(string $puzzleId): array
     {
         $allIndices = $this->fetchDifficultyIndices($puzzleId);
-        $firstTryIndices = $this->fetchDifficultyIndices($puzzleId, firstAttemptOnly: true);
-        $repeatIndices = $this->fetchDifficultyIndices($puzzleId, repeatOnly: true);
         $unboxedIndices = $this->fetchDifficultyIndices($puzzleId, unboxedOnly: true);
         $boxedIndices = $this->fetchDifficultyIndices($puzzleId, boxedOnly: true);
 
         return [
-            'memorability_score' => $this->computeMemorability($firstTryIndices, $repeatIndices),
+            'memorability_score' => $this->computePuzzleLearningRate($puzzleId),
             'skill_sensitivity_score' => $this->computeSkillSensitivity($allIndices),
             'predictability_score' => $this->computePredictability($allIndices),
             'box_dependence_score' => $this->computeBoxDependence($unboxedIndices, $boxedIndices),
-            'improvement_ceiling_score' => null, // TODO: Implement in Phase 5
+            'improvement_ceiling_score' => $this->computeImprovementCeiling($puzzleId),
         ];
     }
 
     /**
-     * @param list<float> $firstTryIndices
-     * @param list<float> $repeatIndices
+     * v2 Memorability: Learning curve approach.
+     * For each player with 3+ attempts, compute (attempt1 - attempt3) / attempt1.
+     * Returns the raw puzzle learning rate (median of per-player rates).
+     * The orchestrator normalizes against the global median.
      */
-    private function computeMemorability(array $firstTryIndices, array $repeatIndices): null|float
+    private function computePuzzleLearningRate(string $puzzleId): null|float
     {
-        if (count($repeatIndices) < self::MINIMUM_FOR_MEMORABILITY) {
+        /** @var list<array{player_id: string, seconds_to_solve: int|string, attempt_num: int|string}> $rows */
+        $rows = $this->connection->fetchAllAssociative("
+            SELECT
+                pst.player_id,
+                pst.seconds_to_solve,
+                ROW_NUMBER() OVER (PARTITION BY pst.player_id ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC) AS attempt_num
+            FROM puzzle_solving_time pst
+            WHERE pst.puzzle_id = :puzzleId
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+        ", ['puzzleId' => $puzzleId]);
+
+        // Group by player, extract attempt 1 and 3
+        $playerAttempts = [];
+
+        foreach ($rows as $row) {
+            $num = (int) $row['attempt_num'];
+
+            if ($num === 1 || $num === 3) {
+                $playerAttempts[$row['player_id']][$num] = (int) $row['seconds_to_solve'];
+            }
+        }
+
+        $learningRates = [];
+
+        foreach ($playerAttempts as $attempts) {
+            if (!isset($attempts[1], $attempts[3]) || $attempts[1] <= 0) {
+                continue;
+            }
+
+            $learningRates[] = ($attempts[1] - $attempts[3]) / $attempts[1];
+        }
+
+        if (count($learningRates) < self::MINIMUM_FOR_MEMORABILITY) {
             return null;
         }
 
-        if (count($firstTryIndices) < self::MINIMUM_FOR_MEMORABILITY) {
-            return null;
-        }
-
-        $firstTryMedian = $this->computeMedian($firstTryIndices);
-        $repeatMedian = $this->computeMedian($repeatIndices);
-
-        if ($repeatMedian <= 0) {
-            return null;
-        }
-
-        return round($firstTryMedian / $repeatMedian, 3);
+        return round($this->computeMedian($learningRates), 6);
     }
 
     /**
@@ -94,6 +123,9 @@ readonly final class DerivedMetricsCalculator
     }
 
     /**
+     * v2 Predictability: bounded formula 1/(1+CV).
+     * Returns 0.0–1.0 scale (1.0 = perfectly predictable).
+     *
      * @param list<float> $indices
      */
     private function computePredictability(array $indices): null|float
@@ -115,13 +147,9 @@ readonly final class DerivedMetricsCalculator
         }
 
         $stdDev = sqrt($sumSquaredDiffs / count($indices));
-        $coefficientOfVariation = $stdDev / $mean;
+        $cv = $stdDev / $mean;
 
-        if ($coefficientOfVariation <= 0) {
-            return null;
-        }
-
-        return round(1.0 / $coefficientOfVariation, 3);
+        return round(1.0 / (1.0 + $cv), 3);
     }
 
     /**
@@ -130,11 +158,11 @@ readonly final class DerivedMetricsCalculator
      */
     private function computeBoxDependence(array $unboxedIndices, array $boxedIndices): null|float
     {
-        if (count($unboxedIndices) < self::MINIMUM_FOR_BOX_DEPENDENCE) {
+        if (count($unboxedIndices) < self::MINIMUM_FOR_BOX_DEPENDENCE_UNBOXED) {
             return null;
         }
 
-        if (count($boxedIndices) < self::MINIMUM_FOR_BOX_DEPENDENCE) {
+        if (count($boxedIndices) < self::MINIMUM_FOR_BOX_DEPENDENCE_BOXED) {
             return null;
         }
 
@@ -149,12 +177,54 @@ readonly final class DerivedMetricsCalculator
     }
 
     /**
+     * v2 Improvement Ceiling: P50(first_attempt_times) / P10(all_attempt_times).
+     * Measures how much a puzzle can be optimized through practice.
+     */
+    private function computeImprovementCeiling(string $puzzleId): null|float
+    {
+        /** @var list<array{seconds_to_solve: int|string}> $firstAttemptRows */
+        $firstAttemptRows = $this->connection->fetchAllAssociative("
+            SELECT pst.seconds_to_solve
+            FROM puzzle_solving_time pst
+            WHERE pst.puzzle_id = :puzzleId
+                AND pst.first_attempt = true
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+        ", ['puzzleId' => $puzzleId]);
+
+        if (count($firstAttemptRows) < self::MINIMUM_FOR_IMPROVEMENT_CEILING) {
+            return null;
+        }
+
+        /** @var list<array{seconds_to_solve: int|string}> $allAttemptRows */
+        $allAttemptRows = $this->connection->fetchAllAssociative("
+            SELECT pst.seconds_to_solve
+            FROM puzzle_solving_time pst
+            WHERE pst.puzzle_id = :puzzleId
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+        ", ['puzzleId' => $puzzleId]);
+
+        $firstTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $firstAttemptRows);
+        $allTimes = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $allAttemptRows);
+
+        $p50First = $this->computePercentile($firstTimes, 50);
+        $p10All = $this->computePercentile($allTimes, 10);
+
+        if ($p10All <= 0) {
+            return null;
+        }
+
+        return round($p50First / $p10All, 3);
+    }
+
+    /**
      * @return list<float>
      */
     private function fetchDifficultyIndices(
         string $puzzleId,
-        bool $firstAttemptOnly = false,
-        bool $repeatOnly = false,
         bool $unboxedOnly = false,
         bool $boxedOnly = false,
     ): array {
@@ -164,14 +234,6 @@ readonly final class DerivedMetricsCalculator
             'pst.suspicious = false',
             'pst.seconds_to_solve IS NOT NULL',
         ];
-
-        if ($firstAttemptOnly) {
-            $conditions[] = 'pst.first_attempt = true';
-        }
-
-        if ($repeatOnly) {
-            $conditions[] = 'pst.first_attempt = false';
-        }
 
         if ($unboxedOnly) {
             $conditions[] = 'pst.unboxed = true';
@@ -220,7 +282,7 @@ readonly final class DerivedMetricsCalculator
     }
 
     /**
-     * @param list<float> $values
+     * @param list<float|int> $values
      */
     private function computeMedian(array $values): float
     {
@@ -237,6 +299,32 @@ readonly final class DerivedMetricsCalculator
             return ($values[$mid - 1] + $values[$mid]) / 2.0;
         }
 
-        return $values[$mid];
+        return (float) $values[$mid];
+    }
+
+    /**
+     * Compute a specific percentile from an array of values.
+     *
+     * @param list<float|int> $values
+     */
+    private function computePercentile(array $values, int $percentile): float
+    {
+        sort($values);
+        $count = count($values);
+
+        if ($count === 0) {
+            return 0.0;
+        }
+
+        $index = ($percentile / 100.0) * ($count - 1);
+        $lower = (int) floor($index);
+        $upper = (int) ceil($index);
+        $fraction = $index - $lower;
+
+        if ($lower === $upper) {
+            return (float) $values[$lower];
+        }
+
+        return $values[$lower] + $fraction * ($values[$upper] - $values[$lower]);
     }
 }

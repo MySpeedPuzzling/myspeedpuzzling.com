@@ -161,8 +161,8 @@
 
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
-                    <p class="mb-1 fw-medium">Why not just use fastest times?</p>
-                    <p class="mb-0 text-muted">A player who only solves easy puzzles would look fast. Our system adjusts for difficulty — you're measured against what each puzzle <em>should</em> take, not just raw speed.</p>
+                    <p class="mb-1 fw-medium">How does it work?</p>
+                    <p class="mb-0 text-muted">For each puzzle you solved, we rank your time against all other first-attempt solvers. We then weight these rankings by puzzle difficulty — performing well on hard puzzles counts more. Your skill score is the median of all your weighted rankings.</p>
                 </div>
             </div>
 
@@ -207,16 +207,16 @@
                 <div class="col-md-6">
                     <div class="card bg-light border-0 h-100">
                         <div class="card-body py-2 fs-sm">
-                            <h6 class="fs-sm"><i class="bi bi-calendar me-1"></i> {{ 'puzzle_intelligence.elo.period_monthly'|trans }}</h6>
-                            <p class="mb-0 text-muted">Fresh start each month. Everyone begins at 1000. First 10 solves move your rating faster (placement phase).</p>
+                            <h6 class="fs-sm"><i class="bi bi-star me-1"></i> First attempts (75%)</h6>
+                            <p class="mb-0 text-muted">Solving a puzzle cold carries the most weight — it's the purest measure of skill. Your top 100 first-attempt results are evaluated.</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card bg-light border-0 h-100">
                         <div class="card-body py-2 fs-sm">
-                            <h6 class="fs-sm"><i class="bi bi-infinity me-1"></i> {{ 'puzzle_intelligence.elo.period_all_time'|trans }}</h6>
-                            <p class="mb-0 text-muted">Persistent rating that grows over your entire puzzling career. Never resets.</p>
+                            <h6 class="fs-sm"><i class="bi bi-arrow-repeat me-1"></i> Best times (25%)</h6>
+                            <p class="mb-0 text-muted">Your fastest time on each puzzle counts too — genuine improvement through practice is rewarded, but at lower weight than cold solving.</p>
                         </div>
                     </div>
                 </div>
@@ -256,10 +256,11 @@
 
             <div class="row g-3">
                 {% set metrics = [
-                    {icon: 'bi-arrow-repeat', name: 'puzzle_intelligence.personality.memorability', desc: 'puzzle_intelligence.personality.memorability_desc', detail: 'Compares first-try times to repeat times. 1.0 = no difference, 2.0 = twice as easy on repeat.'},
+                    {icon: 'bi-arrow-repeat', name: 'puzzle_intelligence.personality.memorability', desc: 'puzzle_intelligence.personality.memorability_desc', detail: 'Measures how quickly players learn this puzzle across their first 3 attempts. Normalized against the average puzzle learning rate.'},
                     {icon: 'bi-speedometer2', name: 'puzzle_intelligence.personality.skill_sensitivity', desc: 'puzzle_intelligence.personality.skill_sensitivity_desc', detail: 'Compares the 75th and 25th percentile solving times. Higher = bigger gap between fast and slow solvers.'},
-                    {icon: 'bi-bullseye', name: 'puzzle_intelligence.personality.predictability', desc: 'puzzle_intelligence.personality.predictability_desc', detail: 'Inverse of how much solving times vary. Higher = most people agree on how hard it is.'},
+                    {icon: 'bi-bullseye', name: 'puzzle_intelligence.personality.predictability', desc: 'puzzle_intelligence.personality.predictability_desc', detail: 'Score from 0 to 1. Closer to 1 means most players experience similar difficulty. Low values mean wildly different experiences.'},
                     {icon: 'bi-box', name: 'puzzle_intelligence.personality.box_dependence', desc: 'puzzle_intelligence.personality.box_dependence_desc', detail: 'Compares difficulty with and without the box image. 1.0 = no help, 2.0 = twice as hard without box.'},
+                    {icon: 'bi-graph-up-arrow', name: 'puzzle_intelligence.personality.improvement_ceiling', desc: 'puzzle_intelligence.personality.improvement_ceiling_desc', detail: 'Gap between a typical first attempt and the best performances. Higher means practice can significantly improve your time.'},
                 ] %}
                 {% for metric in metrics %}
                     <div class="col-md-6">

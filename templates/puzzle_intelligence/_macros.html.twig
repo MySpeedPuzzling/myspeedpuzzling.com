@@ -129,7 +129,7 @@
             {% set color = 'badge-tier-challenging' %}
             {% set bar_color = 'var(--diff-challenging)' %}
         {% endif %}
-    {% elseif metric_type == 'box_dependence' %>
+    {% elseif metric_type == 'box_dependence' %}
         {% if value >= 1.4 %}
             {% set descriptor = 'puzzle_intelligence.human.box_dep_high' %}
             {% set color = 'badge-tier-challenging' %}

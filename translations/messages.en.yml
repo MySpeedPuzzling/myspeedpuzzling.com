@@ -551,6 +551,11 @@ edit_profile:
     last_used_at: "Last used"
     revoke_access: "Revoke"
     revoke_confirm: "Are you sure you want to revoke access for this application?"
+    features_options: "Feature options"
+    hide_streak: "Hide my streak"
+    hide_streak_help: "Your streak will not be displayed on your statistics page."
+    hide_ranking: "Hide my ranking & skill"
+    hide_ranking_help: "Your skill tier, ELO ranking and time predictions will be hidden. You won't appear on the MSP-ELO ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
 
 puzzle_detail:
     meta:
@@ -628,6 +633,8 @@ statistics:
     time_spent: "Time spent solving"
     longest_streak: "Longest streak"
     longest_streak_help: "Max consecutive days puzzling"
+    streak_opted_out_own: "You have hidden your streak."
+    change_in_settings: "Change in settings"
     most_solved_brand: "Most solved brand"
     all_brands: "All Brands"
     no_results: |
@@ -1921,6 +1928,7 @@ puzzle_intelligence:
         not_enough_data: "Not enough data for %pieces%pc"
         progress_explanation: "Your skill tier shows how you perform relative to puzzle difficulty. Solve more 500 piece puzzles to unlock it."
         private_profile_explanation: "Skill tiers are not available for private profiles. Your solving data still helps rate puzzle difficulty, but rankings require a public profile to keep the system fair."
+        ranking_opted_out: "You have opted out of skill tracking."
         improvement_title: "Your Improvement"
         improved_by: "You improved %percent%% in the last %months% months!"
         next_tier: "Next:"
@@ -1954,6 +1962,7 @@ puzzle_intelligence:
         qualification_title: "MSP-ELO Ranking"
         qualification_desc: "Compete against other players based on your solving speed. Requires enough 500 piece puzzle solves."
         private_profile_explanation: "MSP-ELO ranking is not available for private profiles. Switch to a public profile to compete on the ladder and see your ranking."
+        ranking_opted_out: "You have opted out of rankings."
         not_eligible: "You need %first_attempts%/%min_first_attempts% first attempts and %total%/%min_total% total solves to join"
         period_monthly: "This month"
         period_all_time: "All time"
@@ -1969,7 +1978,7 @@ puzzle_intelligence:
         all_countries: "All countries"
         no_results: "No players match your filters."
         only_favorites: "Only favorites"
-        recalculation_countdown: "Recalculates every hour. Next recalculation in"
+        recalculation_countdown: "Recalculates every hour. Next in"
     solve_analysis:
         title: "Solve Analysis"
         puzzle_difficulty: "Puzzle difficulty"
@@ -2057,3 +2066,5 @@ puzzle_intelligence:
         section_data_quality_recency: "<strong>Recency weighting:</strong> Recent solves count more for player baselines (exponential decay, half-life ~18 months)"
         section_recalculation_note: "All insights metrics are recalculated hourly."
         section_recalculation_countdown: "Next recalculation in"
+        section_opt_out_title: "Opting Out"
+        section_opt_out_desc: "Players can opt out of ranking and skill tracking in their <a href=\"%url%\">profile settings</a>. Opted-out players are still included in all background calculations — their results contribute to puzzle difficulty scores and other players' rankings. They simply don't appear on the public MSP-ELO ladder and don't see their own skill tier or ELO rating. Opting back in restores full visibility immediately."

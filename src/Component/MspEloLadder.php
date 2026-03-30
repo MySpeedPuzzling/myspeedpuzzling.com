@@ -114,11 +114,6 @@ final class MspEloLadder
         return $this->search !== '' || $this->country !== '' || $this->onlyFavorites;
     }
 
-    public function isLoggedIn(): bool
-    {
-        return $this->retrieveLoggedUserProfile->getProfile() !== null;
-    }
-
     /**
      * @return list<array{code: string, name: string}>
      */

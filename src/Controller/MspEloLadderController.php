@@ -46,15 +46,21 @@ final class MspEloLadderController extends AbstractController
         $myPage = null;
         $totalCount = $this->getPlayerEloRanking->totalCount($piecesCount);
 
+        $rankingOptedOut = false;
+
         if ($loggedPlayer !== null) {
-            $playerPosition = $this->getPlayerEloRanking->playerPosition($loggedPlayer->playerId, $piecesCount);
-            $eloProgress = $this->mspEloCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
+            $rankingOptedOut = $loggedPlayer->rankingOptedOut;
 
-            $playerEloData = $this->getPlayerEloRanking->allForPlayer($loggedPlayer->playerId);
-            $playerEloRating = $playerEloData[$piecesCount]['elo_rating'] ?? null;
+            if (!$rankingOptedOut) {
+                $playerPosition = $this->getPlayerEloRanking->playerPosition($loggedPlayer->playerId, $piecesCount);
+                $eloProgress = $this->mspEloCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
 
-            if ($playerPosition !== null) {
-                $myPage = (int) ceil($playerPosition / self::PER_PAGE);
+                $playerEloData = $this->getPlayerEloRanking->allForPlayer($loggedPlayer->playerId);
+                $playerEloRating = $playerEloData[$piecesCount]['elo_rating'] ?? null;
+
+                if ($playerPosition !== null) {
+                    $myPage = (int) ceil($playerPosition / self::PER_PAGE);
+                }
             }
         }
 
@@ -66,6 +72,7 @@ final class MspEloLadderController extends AbstractController
             'elo_progress' => $eloProgress,
             'logged_player' => $loggedPlayer,
             'my_page' => $myPage,
+            'ranking_opted_out' => $rankingOptedOut,
             'min_first_attempts' => MspEloCalculator::MINIMUM_FIRST_ATTEMPTS,
             'min_total_solves' => MspEloCalculator::MINIMUM_TOTAL_SOLVES,
         ]);

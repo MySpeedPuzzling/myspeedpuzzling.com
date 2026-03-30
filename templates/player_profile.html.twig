@@ -66,8 +66,40 @@
         {% if is_granted('ADMIN_ACCESS') %}
             {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
 
+            {# Ranking opted-out player viewing own profile #}
+            {% if player.rankingOptedOut and is_own_profile %}
+                <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+                    <div class="card shadow-sm flex-grow-1">
+                        <div class="card-body py-2 px-3 d-flex flex-column">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-eye-slash text-muted" style="font-size: 1.2rem;"></i>
+                                <small class="fw-medium">{{ 'puzzle_intelligence.skill.title'|trans }}</small>
+                            </div>
+                            <small class="text-muted">
+                                {{ 'puzzle_intelligence.skill.ranking_opted_out'|trans }}
+                                <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card shadow-sm flex-shrink-0 flex-grow-0">
+                        <div class="card-body py-2 px-3 d-flex flex-column">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-eye-slash text-muted" style="font-size: 1.2rem;"></i>
+                                <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                            </div>
+                            <small class="text-muted">
+                                {{ 'puzzle_intelligence.elo.ranking_opted_out'|trans }}
+                                <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+            {# Ranking opted-out player viewed by others — hide entirely #}
+            {% elseif player.rankingOptedOut %}
+
             {# Private player viewing own profile — explain why no rankings #}
-            {% if player.isPrivate and is_own_profile %}
+            {% elseif player.isPrivate and is_own_profile %}
                 <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
                     <div class="card shadow-sm flex-grow-1">
                         <div class="card-body py-2 px-3 d-flex flex-column">

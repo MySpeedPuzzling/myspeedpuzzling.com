@@ -47,7 +47,11 @@ final class AddedTimeRecapController extends AbstractController
         $player = $this->getPlayerProfile->byId($solvingPuzzle->playerId);
 
         $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($solvingPuzzle->puzzleId);
-        $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId);
+
+        $timePrediction = null;
+        if (!$player->rankingOptedOut) {
+            $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId);
+        }
 
         return $this->render('added_time_recap.html.twig', [
             'solved_puzzle' => $solvingPuzzle,

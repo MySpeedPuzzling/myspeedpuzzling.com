@@ -144,6 +144,14 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => true])]
     public bool $newsletterEnabled = true;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $streakOptedOut = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $rankingOptedOut = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -333,6 +341,16 @@ class Player
     public function changeNewsletterEnabled(bool $enabled): void
     {
         $this->newsletterEnabled = $enabled;
+    }
+
+    public function changeStreakOptedOut(bool $optedOut): void
+    {
+        $this->streakOptedOut = $optedOut;
+    }
+
+    public function changeRankingOptedOut(bool $optedOut): void
+    {
+        $this->rankingOptedOut = $optedOut;
     }
 
     public function isMessagingMuted(): bool

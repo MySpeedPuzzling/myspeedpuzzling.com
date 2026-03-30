@@ -62,6 +62,8 @@ SELECT
     newsletter_enabled,
     rating_count,
     average_rating,
+    streak_opted_out,
+    ranking_opted_out,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)
@@ -124,6 +126,8 @@ SELECT
     newsletter_enabled,
     rating_count,
     average_rating,
+    streak_opted_out,
+    ranking_opted_out,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)

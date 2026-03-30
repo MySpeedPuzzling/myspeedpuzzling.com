@@ -43,6 +43,6 @@
         </div>
     </div>
 
-    <twig:PlayerStatistics playerId="{{ player.playerId }}" dateFrom="{{ date_from }}" dateTo="{{ date_to }}" />
+    <twig:PlayerStatistics playerId="{{ player.playerId }}" dateFrom="{{ date_from }}" dateTo="{{ date_to }}" :streakOptedOut="player.streakOptedOut" />
 
 {% endblock %}

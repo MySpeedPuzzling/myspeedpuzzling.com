@@ -58,6 +58,7 @@ SELECT * FROM (
     LEFT JOIN player_skill ps ON ps.player_id = pe.player_id AND ps.pieces_count = pe.pieces_count
     WHERE pe.pieces_count = :piecesCount
         AND p.is_private = false
+        AND p.ranking_opted_out = false
 ) ranked
 WHERE 1=1{$filterClauses}
 ORDER BY ranked.elo_rating DESC
@@ -84,6 +85,7 @@ SELECT rank FROM (
     INNER JOIN player p ON p.id = pe.player_id
     WHERE pe.pieces_count = :piecesCount
         AND p.is_private = false
+        AND p.ranking_opted_out = false
 ) ranked
 WHERE ranked.player_id = :playerId
 SQL;
@@ -128,6 +130,7 @@ SQL;
             INNER JOIN player p ON p.id = pe.player_id
             WHERE pe.pieces_count = :piecesCount
                 AND p.is_private = false
+                AND p.ranking_opted_out = false
                 {$filterClauses}
         ", $params)->fetchOne();
 
@@ -146,6 +149,7 @@ SQL;
             INNER JOIN player p ON p.id = pe.player_id
             WHERE pe.pieces_count = :piecesCount
                 AND p.is_private = false
+                AND p.ranking_opted_out = false
                 AND p.country IS NOT NULL
             ORDER BY p.country
         ", [

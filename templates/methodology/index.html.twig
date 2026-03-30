@@ -417,6 +417,17 @@ Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
         </div>
     </div>
 
+    {# Section 8: Opting Out #}
+    <div class="card shadow-sm mb-3 border-0">
+        <div class="card-body">
+            <h4 class="d-flex align-items-center gap-2 mb-3">
+                <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">8</span>
+                {{ 'puzzle_intelligence.methodology.section_opt_out_title'|trans }}
+            </h4>
+            <p class="fs-sm">{{ 'puzzle_intelligence.methodology.section_opt_out_desc'|trans({'%url%': path('edit_profile')})|raw }}</p>
+        </div>
+    </div>
+
     <p class="text-muted fs-sm text-center mt-4 mb-2" data-controller="next-hour-countdown">
         <i class="bi bi-clock me-1"></i>
         {{ 'puzzle_intelligence.methodology.section_recalculation_countdown'|trans }}

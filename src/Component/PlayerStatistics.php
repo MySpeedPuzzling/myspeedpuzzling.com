@@ -33,6 +33,9 @@ final class PlayerStatistics
     #[LiveProp(writable: true)]
     public bool $onlyFirstTries = false;
 
+    #[LiveProp]
+    public bool $streakOptedOut = false;
+
     public null|Chart $teamPuzzlingTimeChart = null;
     public null|Chart $duoPuzzlingTimeChart = null;
     public null|Chart $soloPuzzlingTimeChart = null;

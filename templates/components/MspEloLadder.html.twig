@@ -1,5 +1,6 @@
 <div {{ attributes }}>
     {# Filters #}
+    {% set isMember = logged_user.profile is not null and logged_user.profile.activeMembership %}
     <div class="d-flex align-items-center gap-2 mb-3">
         <div style="max-width: 200px;">
             <input
@@ -10,21 +11,21 @@
                 placeholder="{{ 'puzzle_intelligence.elo.search_placeholder'|trans }}"
             >
         </div>
-        <div class="marketplace-country-filter-wrapper" style="min-width: 180px; max-width: 220px;" data-live-ignore>
-            <select
-                data-model="on(change)|country"
-                data-controller="marketplace-country-filter"
-                class="form-select form-select-sm"
-            >
-                <option value="">{{ 'puzzle_intelligence.elo.all_countries'|trans }}</option>
-                {% for c in this.countries %}
-                    <option value="{{ c.code }}" data-icon="fi fi-{{ c.code }}" {{ this.country == c.code ? 'selected' }}>
-                        {{ c.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-        {% if this.isLoggedIn %}
+        {% if isMember %}
+            <div class="marketplace-country-filter-wrapper" style="min-width: 180px; max-width: 220px;" data-live-ignore>
+                <select
+                    data-model="on(change)|country"
+                    data-controller="marketplace-country-filter"
+                    class="form-select form-select-sm"
+                >
+                    <option value="">{{ 'puzzle_intelligence.elo.all_countries'|trans }}</option>
+                    {% for c in this.countries %}
+                        <option value="{{ c.code }}" data-icon="fi fi-{{ c.code }}" {{ this.country == c.code ? 'selected' }}>
+                            {{ c.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="form-check mb-0 ms-1">
                 <input
                     type="checkbox"
@@ -35,6 +36,16 @@
                 >
                 <label class="form-check-label text-nowrap fs-sm" for="elo-only-favorites">{{ 'puzzle_intelligence.elo.only_favorites'|trans }}</label>
             </div>
+        {% else %}
+            <button
+                class="btn btn-outline-primary btn-sm position-relative pe-4"
+                data-bs-toggle="modal"
+                data-bs-target="#membersExclusiveModal"
+            >
+                <i class="bi-filter"></i>
+                {{ 'filters.button'|trans }}
+                <i class="ci-locked position-absolute fs-sm" style="right: 4px;top: 7px;"></i>
+            </button>
         {% endif %}
         <div class="text-primary" style="display: none;" data-loading="show">
             <span class="spinner-border spinner-border-sm" role="status"></span>

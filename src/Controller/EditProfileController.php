@@ -8,13 +8,16 @@ use Auth0\Symfony\Models\User;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\NonUniquePlayerCode;
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
+use SpeedPuzzling\Web\FormData\FeaturesOptionsFormData;
 use SpeedPuzzling\Web\FormData\MessagingSettingsFormData;
 use SpeedPuzzling\Web\FormData\PlayerCodeFormData;
 use SpeedPuzzling\Web\FormData\PlayerVisibilityFormData;
 use SpeedPuzzling\Web\FormType\EditProfileFormType;
+use SpeedPuzzling\Web\FormType\FeaturesOptionsFormType;
 use SpeedPuzzling\Web\FormType\MessagingSettingsFormType;
 use SpeedPuzzling\Web\FormType\PlayerCodeFormType;
 use SpeedPuzzling\Web\FormType\PlayerVisibilityFormType;
+use SpeedPuzzling\Web\Message\EditFeaturesOptions;
 use SpeedPuzzling\Web\Message\EditMessagingSettings;
 use SpeedPuzzling\Web\Message\EditPlayerCode;
 use SpeedPuzzling\Web\Message\EditPlayerVisibility;
@@ -158,6 +161,25 @@ final class EditProfileController extends AbstractController
             return $this->redirectToRoute('my_profile');
         }
 
+        $featuresOptionsFormData = FeaturesOptionsFormData::fromPlayerProfile($player);
+
+        $featuresOptionsForm = $this->createForm(FeaturesOptionsFormType::class, $featuresOptionsFormData);
+        $featuresOptionsForm->handleRequest($request);
+
+        if ($featuresOptionsForm->isSubmitted() && $featuresOptionsForm->isValid()) {
+            $this->messageBus->dispatch(
+                new EditFeaturesOptions(
+                    $player->playerId,
+                    $featuresOptionsFormData->streakOptedOut,
+                    $featuresOptionsFormData->rankingOptedOut,
+                )
+            );
+
+            $this->addFlash('success', $this->translator->trans('flashes.profile_saved'));
+
+            return $this->redirectToRoute('my_profile');
+        }
+
         $oauth2Consents = $this->getPlayerOAuth2Consents->byPlayerId($player->playerId);
 
         return $this->render('edit-profile.html.twig', [
@@ -166,6 +188,7 @@ final class EditProfileController extends AbstractController
             'edit_code_form' => $editCodeForm,
             'edit_visibility_form' => $editVisibilityForm,
             'messaging_settings_form' => $messagingSettingsForm,
+            'features_options_form' => $featuresOptionsForm,
             'oauth2_consents' => $oauth2Consents,
         ]);
     }

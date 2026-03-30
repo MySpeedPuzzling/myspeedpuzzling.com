@@ -17,7 +17,17 @@
             </p>
         </div>
 
-        {% if player_position is not null and player_elo_rating is not null %}
+        {% if ranking_opted_out %}
+            <div class="card shadow-custom flex-shrink-0">
+                <div class="card-body py-2 px-3">
+                    <small class="text-muted">
+                        <i class="bi bi-eye-slash me-1"></i>
+                        {{ 'puzzle_intelligence.elo.ranking_opted_out'|trans }}
+                        <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                    </small>
+                </div>
+            </div>
+        {% elseif player_position is not null and player_elo_rating is not null %}
             <a href="{{ path('msp_elo_ladder', {page: my_page}) }}#my-elo-row" class="card shadow-custom flex-shrink-0 text-decoration-none">
                 <div class="card-body py-2 px-3">
                     <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.your_ranking_among'|trans({'%total%': total_count}) }}</small>
@@ -44,7 +54,7 @@
     </p>
 
     {# Qualification banner — full width below header #}
-    {% if player_position is null and logged_player is not null and elo_progress is not null %}
+    {% if not ranking_opted_out and player_position is null and logged_player is not null and elo_progress is not null %}
         {# Not yet qualified — show progress toward qualification #}
         {% set fa_done = elo_progress.first_attempts >= min_first_attempts %}
         {% set ts_done = elo_progress.total_solves >= min_total_solves %}

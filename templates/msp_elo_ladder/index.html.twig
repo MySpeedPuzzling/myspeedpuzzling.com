@@ -24,7 +24,7 @@
                     <div class="d-flex align-items-center gap-2">
                         <span class="h5 mb-0 fw-bold" style="font-family: monospace;">#{{ player_position }}</span>
                         <span class="text-muted">&middot;</span>
-                        <span class="fw-bold" style="font-family: monospace;">{{ player_elo_rating }} ELO</span>
+                        <span class="fw-bold" style="font-family: monospace;">{{ (player_elo_rating * 1000)|round }} ELO</span>
                     </div>
                 </div>
             </div>
@@ -102,7 +102,7 @@
                                 </a>
                             </td>
                             <td class="text-end text-nowrap">
-                                <span class="fw-bold" style="font-family: monospace; color: #111;">{{ entry.eloRating }}</span>
+                                <span class="fw-bold" style="font-family: monospace; color: #111;">{{ (entry.eloRating * 1000)|round }}</span>
                             </td>
                         </tr>
                     {% endfor %}

@@ -84,19 +84,17 @@ final class DerivedMetricsCalculator implements ResetInterface
     public function calculateForPuzzle(string $puzzleId): array
     {
         if ($this->solveDataCache !== null) {
-            $allIndices = $this->computeIndicesFromCache($puzzleId);
-            $unboxedIndices = $this->computeIndicesFromCache($puzzleId, unboxedOnly: true);
             $boxedIndices = $this->computeIndicesFromCache($puzzleId, boxedOnly: true);
+            $unboxedIndices = $this->computeIndicesFromCache($puzzleId, unboxedOnly: true);
         } else {
-            $allIndices = $this->fetchDifficultyIndices($puzzleId);
-            $unboxedIndices = $this->fetchDifficultyIndices($puzzleId, unboxedOnly: true);
             $boxedIndices = $this->fetchDifficultyIndices($puzzleId, boxedOnly: true);
+            $unboxedIndices = $this->fetchDifficultyIndices($puzzleId, unboxedOnly: true);
         }
 
         return [
             'memorability_score' => $this->computePuzzleLearningRate($puzzleId),
-            'skill_sensitivity_score' => $this->computeSkillSensitivity($allIndices),
-            'predictability_score' => $this->computePredictability($allIndices),
+            'skill_sensitivity_score' => $this->computeSkillSensitivity($boxedIndices),
+            'predictability_score' => $this->computePredictability($boxedIndices),
             'box_dependence_score' => $this->computeBoxDependence($unboxedIndices, $boxedIndices),
             'improvement_ceiling_score' => $this->computeImprovementCeiling($puzzleId),
         ];

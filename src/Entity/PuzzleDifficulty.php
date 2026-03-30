@@ -56,6 +56,14 @@ class PuzzleDifficulty
     public null|float $improvementCeilingScore = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|float $indicesP25 = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|float $indicesP75 = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column]
     public DateTimeImmutable $computedAt;
 
@@ -74,11 +82,15 @@ class PuzzleDifficulty
         MetricConfidence $confidence,
         int $sampleSize,
         DateTimeImmutable $computedAt,
+        null|float $indicesP25 = null,
+        null|float $indicesP75 = null,
     ): void {
         $this->difficultyScore = $difficultyScore;
         $this->difficultyTier = $difficultyScore !== null ? DifficultyTier::fromScore($difficultyScore)->value : null;
         $this->confidence = $confidence->value;
         $this->sampleSize = $sampleSize;
+        $this->indicesP25 = $indicesP25;
+        $this->indicesP75 = $indicesP75;
         $this->computedAt = $computedAt;
     }
 

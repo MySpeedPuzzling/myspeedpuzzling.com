@@ -20,6 +20,8 @@ readonly final class PuzzleDifficultyResult
         public null|float $predictabilityScore,
         public null|float $boxDependenceScore,
         public null|float $improvementCeilingScore,
+        public null|float $indicesP25,
+        public null|float $indicesP75,
     ) {
     }
 
@@ -35,6 +37,8 @@ readonly final class PuzzleDifficultyResult
      *     predictability_score: null|float|string,
      *     box_dependence_score: null|float|string,
      *     improvement_ceiling_score: null|float|string,
+     *     indices_p25: null|float|string,
+     *     indices_p75: null|float|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -52,6 +56,8 @@ readonly final class PuzzleDifficultyResult
             predictabilityScore: $row['predictability_score'] !== null ? (float) $row['predictability_score'] : null,
             boxDependenceScore: $row['box_dependence_score'] !== null ? (float) $row['box_dependence_score'] : null,
             improvementCeilingScore: $row['improvement_ceiling_score'] !== null ? (float) $row['improvement_ceiling_score'] : null,
+            indicesP25: $row['indices_p25'] !== null ? (float) $row['indices_p25'] : null,
+            indicesP75: $row['indices_p75'] !== null ? (float) $row['indices_p75'] : null,
         );
     }
 }

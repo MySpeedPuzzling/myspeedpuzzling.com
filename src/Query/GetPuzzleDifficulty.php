@@ -27,12 +27,14 @@ SELECT
     pd.skill_sensitivity_score,
     pd.predictability_score,
     pd.box_dependence_score,
-    pd.improvement_ceiling_score
+    pd.improvement_ceiling_score,
+    pd.indices_p25,
+    pd.indices_p75
 FROM puzzle_difficulty pd
 WHERE pd.puzzle_id = :puzzleId
 SQL;
 
-        /** @var array{puzzle_id: string, difficulty_score: null|float|string, difficulty_tier: null|int|string, confidence: string, sample_size: int|string, memorability_score: null|float|string, skill_sensitivity_score: null|float|string, predictability_score: null|float|string, box_dependence_score: null|float|string, improvement_ceiling_score: null|float|string}|false $row */
+        /** @var array{puzzle_id: string, difficulty_score: null|float|string, difficulty_tier: null|int|string, confidence: string, sample_size: int|string, memorability_score: null|float|string, skill_sensitivity_score: null|float|string, predictability_score: null|float|string, box_dependence_score: null|float|string, improvement_ceiling_score: null|float|string, indices_p25: null|float|string, indices_p75: null|float|string}|false $row */
         $row = $this->database->executeQuery($query, [
             'puzzleId' => $puzzleId,
         ])->fetchAssociative();
@@ -66,12 +68,14 @@ SELECT
     pd.skill_sensitivity_score,
     pd.predictability_score,
     pd.box_dependence_score,
-    pd.improvement_ceiling_score
+    pd.improvement_ceiling_score,
+    pd.indices_p25,
+    pd.indices_p75
 FROM puzzle_difficulty pd
 WHERE pd.puzzle_id = ANY(:puzzleIds)
 SQL;
 
-        /** @var list<array{puzzle_id: string, difficulty_score: null|float|string, difficulty_tier: null|int|string, confidence: string, sample_size: int|string, memorability_score: null|float|string, skill_sensitivity_score: null|float|string, predictability_score: null|float|string, box_dependence_score: null|float|string, improvement_ceiling_score: null|float|string}> $rows */
+        /** @var list<array{puzzle_id: string, difficulty_score: null|float|string, difficulty_tier: null|int|string, confidence: string, sample_size: int|string, memorability_score: null|float|string, skill_sensitivity_score: null|float|string, predictability_score: null|float|string, box_dependence_score: null|float|string, improvement_ceiling_score: null|float|string, indices_p25: null|float|string, indices_p75: null|float|string}> $rows */
         $rows = $this->database->executeQuery($query, [
             'puzzleIds' => '{' . implode(',', $puzzleIds) . '}',
         ])->fetchAllAssociative();

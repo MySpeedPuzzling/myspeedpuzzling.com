@@ -52,6 +52,17 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         self::assertLessThan(2.0, $result['difficulty_score']);
     }
 
+    public function testCalculateForPuzzleReturnsP25AndP75(): void
+    {
+        $result = $this->calculator->calculateForPuzzle(PuzzleFixture::PUZZLE_500_01);
+
+        self::assertNotNull($result['difficulty_score']);
+        self::assertNotNull($result['indices_p25']);
+        self::assertNotNull($result['indices_p75']);
+        self::assertLessThanOrEqual($result['indices_p75'], $result['indices_p25']);
+        self::assertGreaterThan(0.0, $result['indices_p25']);
+    }
+
     public function testReturnsInsufficientForPuzzleWithNoSolvers(): void
     {
         // PUZZLE_9000 has no solving times
@@ -61,6 +72,8 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         self::assertNull($result['difficulty_tier']);
         self::assertSame(MetricConfidence::Insufficient, $result['confidence']);
         self::assertSame(0, $result['sample_size']);
+        self::assertNull($result['indices_p25']);
+        self::assertNull($result['indices_p75']);
     }
 
     public function testDifficultyTierAssignment(): void

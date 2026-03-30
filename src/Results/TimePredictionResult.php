@@ -11,6 +11,8 @@ readonly final class TimePredictionResult
         public int $rangeLowSeconds,
         public int $rangeHighSeconds,
         public float $difficultyForPlayer,
+        public bool $isPersonalized = false,
+        public null|int $personalSolveCount = null,
     ) {
     }
 }

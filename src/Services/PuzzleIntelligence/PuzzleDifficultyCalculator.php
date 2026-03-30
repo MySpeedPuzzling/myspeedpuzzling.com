@@ -46,6 +46,7 @@ final class PuzzleDifficultyCalculator implements ResetInterface
                 WHERE pst.puzzling_type = 'solo'
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
+                    AND pst.unboxed = false
             ) sub
             WHERE rn = 1
         ");
@@ -78,6 +79,8 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      *     difficulty_tier: DifficultyTier|null,
      *     confidence: MetricConfidence,
      *     sample_size: int,
+     *     indices_p25: float|null,
+     *     indices_p75: float|null,
      * }
      */
     public function calculateForPuzzle(string $puzzleId): array
@@ -90,10 +93,14 @@ final class PuzzleDifficultyCalculator implements ResetInterface
                 'difficulty_tier' => null,
                 'confidence' => MetricConfidence::fromSampleSize(count($indices), self::MINIMUM_INDICES),
                 'sample_size' => count($indices),
+                'indices_p25' => null,
+                'indices_p75' => null,
             ];
         }
 
-        $score = $this->computeMedian($indices);
+        sort($indices);
+
+        $score = $this->computeMedianFromSorted($indices);
         $confidence = MetricConfidence::fromSampleSize(count($indices), self::MINIMUM_INDICES);
 
         return [
@@ -101,6 +108,8 @@ final class PuzzleDifficultyCalculator implements ResetInterface
             'difficulty_tier' => DifficultyTier::fromScore($score),
             'confidence' => $confidence,
             'sample_size' => count($indices),
+            'indices_p25' => round($this->computePercentile($indices, 25), 4),
+            'indices_p75' => round($this->computePercentile($indices, 75), 4),
         ];
     }
 
@@ -125,6 +134,7 @@ final class PuzzleDifficultyCalculator implements ResetInterface
                         AND pst.puzzling_type = 'solo'
                         AND pst.suspicious = false
                         AND pst.seconds_to_solve IS NOT NULL
+                        AND pst.unboxed = false
                     ORDER BY pst.player_id,
                         pst.first_attempt DESC,
                         COALESCE(pst.finished_at, pst.tracked_at) ASC
@@ -166,18 +176,43 @@ final class PuzzleDifficultyCalculator implements ResetInterface
     }
 
     /**
-     * @param list<float> $values
+     * @param list<float> $sortedValues Already sorted ascending
      */
-    private function computeMedian(array $values): float
+    private function computeMedianFromSorted(array $sortedValues): float
     {
-        sort($values);
-        $count = count($values);
+        $count = count($sortedValues);
         $mid = intdiv($count, 2);
 
         if ($count % 2 === 0) {
-            return ($values[$mid - 1] + $values[$mid]) / 2.0;
+            return ($sortedValues[$mid - 1] + $sortedValues[$mid]) / 2.0;
         }
 
-        return $values[$mid];
+        return $sortedValues[$mid];
+    }
+
+    /**
+     * Linear interpolation percentile on already-sorted values.
+     *
+     * @param list<float> $sortedValues Already sorted ascending
+     * @param int $percentile 0-100
+     */
+    private function computePercentile(array $sortedValues, int $percentile): float
+    {
+        $count = count($sortedValues);
+
+        if ($count === 1) {
+            return $sortedValues[0];
+        }
+
+        $rank = ($percentile / 100.0) * ($count - 1);
+        $lower = (int) floor($rank);
+        $upper = (int) ceil($rank);
+        $fraction = $rank - $lower;
+
+        if ($lower === $upper) {
+            return $sortedValues[$lower];
+        }
+
+        return $sortedValues[$lower] + $fraction * ($sortedValues[$upper] - $sortedValues[$lower]);
     }
 }

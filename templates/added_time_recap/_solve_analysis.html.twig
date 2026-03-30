@@ -53,6 +53,9 @@
                         <span class="fw-medium">
                             {{ (time_prediction.rangeLowSeconds / 60)|round }}-{{ (time_prediction.rangeHighSeconds / 60)|round }}min
                         </span>
+                        {% if time_prediction.isPersonalized %}
+                            <div><small class="text-muted">{{ 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': time_prediction.personalSolveCount}) }}</small></div>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>

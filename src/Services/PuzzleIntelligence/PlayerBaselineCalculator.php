@@ -48,6 +48,7 @@ final class PlayerBaselineCalculator implements ResetInterface
                 WHERE pst.puzzling_type = 'solo'
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
+                    AND pst.unboxed = false
             ) sub
             WHERE rn = 1
         ");
@@ -199,6 +200,7 @@ final class PlayerBaselineCalculator implements ResetInterface
             WHERE pst.puzzling_type = 'solo'
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
+                AND pst.unboxed = false
                 AND NOT EXISTS (
                     SELECT 1 FROM player_baseline pb
                     WHERE pb.player_id = pst.player_id
@@ -283,6 +285,7 @@ final class PlayerBaselineCalculator implements ResetInterface
                     AND pst.puzzling_type = 'solo'
                     AND pst.suspicious = false
                     AND pst.seconds_to_solve IS NOT NULL
+                    AND pst.unboxed = false
                 ORDER BY pst.puzzle_id,
                     pst.first_attempt DESC,
                     COALESCE(pst.finished_at, pst.tracked_at) ASC

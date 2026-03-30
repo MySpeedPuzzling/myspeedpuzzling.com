@@ -1917,6 +1917,7 @@ puzzle_intelligence:
         range: "%low% - %high%"
         difficulty_for_you: "Difficulty for your level"
         explanation: "Based on your personal solving history and this puzzle's difficulty, here's our estimate."
+        personal_explanation: "Based on your %count% previous solves of this puzzle."
         not_available: "Solve %count% more %pieces%pc puzzles to unlock predictions"
         not_available_generic: "We need more of your solving data for this piece count to predict your time."
     skill:
@@ -2057,7 +2058,7 @@ puzzle_intelligence:
         section_elo_minimum: "<strong>Minimum:</strong> 20 first attempts + 50 qualifying puzzles within a 12-month rolling window. Each puzzle must have 20+ solvers."
         section_elo_periods: "Two periods available: <strong>Monthly</strong> (fresh start each month) and <strong>All-time</strong> (persistent)."
         section_prediction_title: "Time Prediction"
-        section_prediction_formula: "Range computed using standard deviation of the puzzle's difficulty indices."
+        section_prediction_formula: "Range shows where 50%% of solvers with your speed land (P25-P75). For repeat solvers, based on your personal history."
         section_personality_title: "Puzzle Personality Metrics"
         section_confidence_title: "Confidence Levels"
         section_data_quality_title: "Data Quality"

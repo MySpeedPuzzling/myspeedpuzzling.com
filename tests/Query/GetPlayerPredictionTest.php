@@ -28,12 +28,11 @@ final class GetPlayerPredictionTest extends KernelTestCase
         $this->query = $query;
     }
 
-    public function testReturnsValidPrediction(): void
+    public function testReturnsPrediction(): void
     {
         $result = $this->query->forPuzzle(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_01);
 
         if ($result === null) {
-            // If no prediction available (missing baseline or difficulty), that's acceptable
             self::markTestSkipped('No prediction available — puzzle may lack difficulty score');
         }
 
@@ -42,7 +41,36 @@ final class GetPlayerPredictionTest extends KernelTestCase
         self::assertGreaterThan(0, $result->rangeHighSeconds);
         self::assertLessThanOrEqual($result->rangeHighSeconds, $result->predictedSeconds);
         self::assertGreaterThanOrEqual($result->rangeLowSeconds, $result->predictedSeconds);
+    }
+
+    public function testStatisticalPredictionForSingleSolver(): void
+    {
+        // PLAYER_WITH_FAVORITES has only 1 solve on PUZZLE_500_01 — should get statistical prediction
+        $result = $this->query->forPuzzle(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_500_01);
+
+        if ($result === null) {
+            self::markTestSkipped('No prediction available — player may lack baseline');
+        }
+
+        self::assertFalse($result->isPersonalized);
+        self::assertNull($result->personalSolveCount);
         self::assertGreaterThan(0.0, $result->difficultyForPlayer);
+    }
+
+    public function testReturnsPersonalizedPredictionForRepeatSolver(): void
+    {
+        // PLAYER_REGULAR has 3 solves on PUZZLE_500_02: 2200s, 1900s, 1700s
+        $result = $this->query->forPuzzle(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02);
+
+        if ($result === null) {
+            self::markTestSkipped('No prediction available');
+        }
+
+        self::assertTrue($result->isPersonalized);
+        self::assertSame(3, $result->personalSolveCount);
+        self::assertSame(1900, $result->predictedSeconds); // Median of 1700, 1900, 2200
+        self::assertSame(1700, $result->rangeLowSeconds); // Fastest
+        self::assertSame(2200, $result->rangeHighSeconds); // Slowest
     }
 
     public function testReturnsNullForPuzzleWithoutDifficulty(): void

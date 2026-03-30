@@ -63,7 +63,11 @@
                                 }) }}
                             </small>
                         </div>
-                        <small class="text-muted">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>
+                        {% if time_prediction.isPersonalized %}
+                            <small class="text-muted">{{ 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': time_prediction.personalSolveCount}) }}</small>
+                        {% else %}
+                            <small class="text-muted">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>
+                        {% endif %}
                     {% else %}
                         <small class="text-muted">{{ 'puzzle_intelligence.prediction.not_available_generic'|trans }}</small>
                     {% endif %}

@@ -527,18 +527,20 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int} $result
+     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int, indices_p25: float|null, indices_p75: float|null} $result
      */
     private function upsertDifficulty(string $puzzleId, array $result, \DateTimeImmutable $now): void
     {
         $this->connection->executeStatement("
-            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, computed_at)
-            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :now)
+            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, computed_at)
+            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :now)
             ON CONFLICT (puzzle_id) DO UPDATE SET
                 difficulty_score = EXCLUDED.difficulty_score,
                 difficulty_tier = EXCLUDED.difficulty_tier,
                 confidence = EXCLUDED.confidence,
                 sample_size = EXCLUDED.sample_size,
+                indices_p25 = EXCLUDED.indices_p25,
+                indices_p75 = EXCLUDED.indices_p75,
                 computed_at = EXCLUDED.computed_at
         ", [
             'puzzleId' => $puzzleId,
@@ -546,6 +548,8 @@ readonly final class PuzzleIntelligenceRecalculator
             'tier' => $result['difficulty_tier']?->value,
             'confidence' => $result['confidence']->value,
             'sampleSize' => $result['sample_size'],
+            'indicesP25' => $result['indices_p25'],
+            'indicesP75' => $result['indices_p75'],
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
     }

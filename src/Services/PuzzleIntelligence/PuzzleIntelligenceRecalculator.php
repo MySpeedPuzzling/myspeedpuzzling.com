@@ -243,7 +243,8 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        // v2: All players (including private) get skill scores
+        // v2: All players (including private) get skill scores.
+        // Upsert-only approach — no mid-loop deletes (zero downtime).
         $players = $this->getPlayersWithSolves($specificPlayer);
         $count = 0;
 
@@ -254,11 +255,15 @@ readonly final class PuzzleIntelligenceRecalculator
                 if ($result !== null) {
                     $this->upsertSkill($playerId, $piecesCount, $result, $now);
                     $count++;
-                } else {
-                    $this->deleteSkill($playerId, $piecesCount);
                 }
             }
         }
+
+        // Clean up: remove entries not updated in this run (players who no longer qualify)
+        $this->connection->executeStatement(
+            'DELETE FROM player_skill WHERE computed_at < :now',
+            ['now' => $now->format('Y-m-d H:i:s')],
+        );
 
         // Clean up skill data for piece counts no longer computed
         $this->connection->executeStatement(
@@ -271,14 +276,13 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
-        // v2: Wipe all ELO data and recompute from scratch (snapshot calculation)
-        $this->connection->executeStatement('DELETE FROM player_elo');
-
+        // v2: Upsert-only approach — no DELETE before recompute.
+        // Data is always present during recalculation (zero downtime).
+        // Stale entries are cleaned up at the end using computed_at timestamp.
         $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
 
         foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
-            // Pre-compute puzzle ranking data once for this piece count
             $this->eloCalculator->precomputePuzzleRankings($piecesCount);
 
             foreach ($players as $playerId) {
@@ -292,6 +296,12 @@ readonly final class PuzzleIntelligenceRecalculator
 
             $this->eloCalculator->clearCache();
         }
+
+        // Clean up: remove entries not updated in this run (players who no longer qualify)
+        $this->connection->executeStatement(
+            'DELETE FROM player_elo WHERE computed_at < :now',
+            ['now' => $now->format('Y-m-d H:i:s')],
+        );
 
         // Clean up ELO data for piece counts no longer computed
         $this->connection->executeStatement(
@@ -557,14 +567,6 @@ readonly final class PuzzleIntelligenceRecalculator
             'qualifyingCount' => $result['qualifying_puzzles_count'],
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
-    }
-
-    private function deleteSkill(string $playerId, int $piecesCount): void
-    {
-        $this->connection->executeStatement(
-            'DELETE FROM player_skill WHERE player_id = :playerId AND pieces_count = :piecesCount',
-            ['playerId' => $playerId, 'piecesCount' => $piecesCount],
-        );
     }
 
     private function upsertElo(string $playerId, int $piecesCount, float $eloRating, \DateTimeImmutable $now): void

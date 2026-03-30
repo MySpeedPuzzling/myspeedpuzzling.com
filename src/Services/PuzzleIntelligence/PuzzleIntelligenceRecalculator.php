@@ -30,7 +30,7 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, skills: int, elo: int, history: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, skills: int, elo: int, history: int, snapshots: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
@@ -49,6 +49,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         // Level 6: History snapshots
         $history = $this->recordSkillHistory($now);
+        $snapshots = $this->recordRatingSnapshots($now);
 
         return [
             'baselines_direct' => $baselines['direct'],
@@ -59,6 +60,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'skills' => $skills,
             'elo' => $elo,
             'history' => $history,
+            'snapshots' => $snapshots,
         ];
     }
 
@@ -319,6 +321,51 @@ readonly final class PuzzleIntelligenceRecalculator
         $count = $this->connection->fetchOne("
             SELECT COUNT(*) FROM player_skill_history WHERE month = :month
         ", ['month' => $monthStart->format('Y-m-d H:i:s')]);
+
+        return (int) $count;
+    }
+
+    private function recordRatingSnapshots(\DateTimeImmutable $now): int
+    {
+        $snapshotDate = $now->format('Y-m-d');
+
+        // Bulk insert snapshots for all players with baselines, joining skill and ELO data
+        $this->connection->executeStatement("
+            INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
+            SELECT
+                gen_random_uuid(),
+                pb.player_id,
+                pb.pieces_count,
+                :snapshotDate::timestamp,
+                ps.skill_score,
+                ps.skill_tier,
+                ps.skill_percentile,
+                pe.elo_rating,
+                (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pb.pieces_count AND p2.is_private = false AND pe2.elo_rating >= pe.elo_rating),
+                pb.baseline_seconds,
+                pb.baseline_type,
+                :now
+            FROM player_baseline pb
+            LEFT JOIN player_skill ps ON ps.player_id = pb.player_id AND ps.pieces_count = pb.pieces_count
+            LEFT JOIN player_elo pe ON pe.player_id = pb.player_id AND pe.pieces_count = pb.pieces_count
+            ON CONFLICT (player_id, pieces_count, snapshot_date) DO UPDATE SET
+                skill_score = EXCLUDED.skill_score,
+                skill_tier = EXCLUDED.skill_tier,
+                skill_percentile = EXCLUDED.skill_percentile,
+                elo_rating = EXCLUDED.elo_rating,
+                elo_rank = EXCLUDED.elo_rank,
+                baseline_seconds = EXCLUDED.baseline_seconds,
+                baseline_type = EXCLUDED.baseline_type,
+                computed_at = EXCLUDED.computed_at
+        ", [
+            'snapshotDate' => $snapshotDate,
+            'now' => $now->format('Y-m-d H:i:s'),
+        ]);
+
+        /** @var int|string $count */
+        $count = $this->connection->fetchOne("
+            SELECT COUNT(*) FROM player_rating_snapshot WHERE snapshot_date = :snapshotDate::timestamp
+        ", ['snapshotDate' => $snapshotDate]);
 
         return (int) $count;
     }

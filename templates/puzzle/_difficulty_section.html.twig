@@ -1,31 +1,33 @@
 {% from 'puzzle_intelligence/_macros.html.twig' import confidence_indicator, human_difficulty, personality_metric, difficulty_badge %}
 
-{% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-    {# Toggle button + methodology link on same line #}
-    <div class="d-flex align-items-center gap-2 mt-3 mb-2">
-        <button
-            class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-between"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#puzzleInsights"
-            aria-expanded="false"
-            aria-controls="puzzleInsights"
-        >
-            <span>
-                <i class="bi bi-lightbulb me-1"></i>
-                {{ 'puzzle_intelligence.insights.title'|trans }}
-            </span>
-            <i class="bi bi-chevron-down fs-sm transition-transform"></i>
-        </button>
-        <a href="{{ path('methodology', {return: app.request.uri, return_title: 'puzzle_intelligence.insights.title'|trans}) }}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
-            <i class="bi bi-question-circle"></i>
-        </a>
-    </div>
+{% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
 
-    {# Collapsible content #}
-    <div class="collapse mb-3" id="puzzleInsights">
-        <div class="card shadow-sm">
-            <div class="card-body">
+{# Toggle button + methodology link on same line — always visible #}
+<div class="d-flex align-items-center gap-2 mt-3 mb-2">
+    <button
+        class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-between"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#puzzleInsights"
+        aria-expanded="false"
+        aria-controls="puzzleInsights"
+    >
+        <span>
+            <i class="bi bi-lightbulb me-1"></i>
+            {{ 'puzzle_intelligence.insights.title'|trans }}
+        </span>
+        <i class="bi bi-chevron-down fs-sm transition-transform"></i>
+    </button>
+    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'puzzle_intelligence.insights.title'|trans}) }}" class="btn btn-outline-secondary btn-sm flex-shrink-0">
+        <i class="bi bi-question-circle"></i>
+    </a>
+</div>
+
+{# Collapsible content #}
+<div class="collapse mb-3" id="puzzleInsights">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if is_member %}
                 {% if puzzle_difficulty is not null and puzzle_difficulty.difficultyScore is not null %}
                     {% set tier_name = puzzle_difficulty.difficultyTier.name|lower %}
 
@@ -137,17 +139,91 @@
                         {{ 'puzzle_intelligence.insights.no_data'|trans }}
                     </small>
                 {% endif %}
-            </div>
+            {% else %}
+                {# Non-member: blurred dummy content with overlay CTA #}
+                <div class="position-relative">
+                    <div style="filter: blur(5px); user-select: none; padding: 0 0.25rem 0.5rem;" aria-hidden="true">
+                        {# Dummy Difficulty #}
+                        <h6 class="card-title mb-1">Difficulty</h6>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge badge-tier-challenging badge-tier-styled fs-6 d-inline-flex align-items-center gap-1">
+                                <svg class="diff-icon" width="24" height="24" style="color: #fff">
+                                    <use href="/difficulty-icons-sprite.svg#diff-challenging"/>
+                                </svg>
+                                Challenging
+                            </span>
+                            <span class="fs-sm">12% harder than average</span>
+                        </div>
+                        <small class="text-muted">Based on completion times relative to other puzzles with the same piece count.</small>
+
+                        {# Dummy Confidence #}
+                        <hr class="my-3">
+                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
+                            <i class="bi bi-shield-check" style="font-size: 1.1em;"></i>Confidence
+                        </h6>
+                        <small class="text-muted">
+                            <span>
+                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
+                                <i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i>
+                            </span>
+                            24 solves &middot; Medium confidence
+                        </small>
+
+                        {# Dummy Time Prediction #}
+                        <hr class="my-3">
+                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
+                            <i class="bi bi-clock-history" style="font-size: 1.1em;"></i>Time Prediction
+                        </h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold">~48min</span>
+                            <small class="text-muted">Range: 35min - 64min</small>
+                        </div>
+                        <small class="text-muted">Based on average completion times for this puzzle.</small>
+
+                        {# Dummy Personality Traits #}
+                        <hr class="my-3">
+                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
+                            <i class="bi bi-arrow-repeat" style="font-size: 1.1em;"></i>Memorability
+                        </h6>
+                        <div class="py-1">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted">1.3x</small>
+                                <span class="badge badge-tier-veryeasy" style="font-weight: 500;">Moderate</span>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar" style="width: 50%; background-color: var(--diff-very-easy);"></div>
+                            </div>
+                            <small class="text-muted">How much faster people get on repeat solves.</small>
+                        </div>
+
+                        <hr class="my-3">
+                        <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
+                            <i class="bi bi-speedometer2" style="font-size: 1.1em;"></i>Skill Sensitivity
+                        </h6>
+                        <div class="py-1">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted">1.5x</small>
+                                <span class="badge badge-tier-veryeasy" style="font-weight: 500;">Moderate</span>
+                            </div>
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar" style="width: 62%; background-color: var(--diff-very-easy);"></div>
+                            </div>
+                            <small class="text-muted">How much skill level affects solving time.</small>
+                        </div>
+                    </div>
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                        <button
+                            class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                            data-bs-toggle="modal"
+                            data-bs-target="#membersExclusiveModal"
+                        >
+                            <i class="ci-locked me-1"></i>
+                            {{ 'membership.members_exclusive_button'|trans }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
-{% else %}
-    {# Non-member CTA button #}
-    <button
-        class="btn btn-outline-primary btn-sm w-100 mb-3 d-flex align-items-center justify-content-center gap-1"
-        data-bs-toggle="modal"
-        data-bs-target="#membersExclusiveModal"
-    >
-        <svg class="diff-icon" width="16" height="16" style="color: var(--diff-locked)"><use href="/difficulty-icons-sprite.svg#diff-locked"/></svg>
-        {{ 'puzzle_intelligence.insights.title'|trans }}
-    </button>
-{% endif %}
+</div>

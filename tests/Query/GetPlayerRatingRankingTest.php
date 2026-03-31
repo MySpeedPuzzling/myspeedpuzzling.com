@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
+use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class GetPlayerEloRankingTest extends KernelTestCase
+final class GetPlayerRatingRankingTest extends KernelTestCase
 {
-    private GetPlayerEloRanking $query;
+    private GetPlayerRatingRanking $query;
 
     protected function setUp(): void
     {
@@ -22,8 +22,8 @@ final class GetPlayerEloRankingTest extends KernelTestCase
         $recalculator = $container->get(PuzzleIntelligenceRecalculator::class);
         $recalculator->recalculate();
 
-        /** @var GetPlayerEloRanking $query */
-        $query = $container->get(GetPlayerEloRanking::class);
+        /** @var GetPlayerRatingRanking $query */
+        $query = $container->get(GetPlayerRatingRanking::class);
         $this->query = $query;
     }
 
@@ -79,7 +79,7 @@ final class GetPlayerEloRankingTest extends KernelTestCase
         $allEntries = $this->query->ranking(500);
 
         if (count($allEntries) === 0) {
-            self::markTestSkipped('No ELO entries in fixtures');
+            self::markTestSkipped('No rating entries in fixtures');
         }
 
         $countryEntry = null;
@@ -121,7 +121,7 @@ final class GetPlayerEloRankingTest extends KernelTestCase
         $allEntries = $this->query->ranking(500);
 
         if (count($allEntries) === 0) {
-            self::markTestSkipped('No ELO entries in fixtures');
+            self::markTestSkipped('No rating entries in fixtures');
         }
 
         $entry = $allEntries[0];

@@ -152,8 +152,8 @@ ladder:
     most_active_puzzlers: "Most Enthusiastic Puzzlers"
     puzzle_solved_count: "Puzzles Solved"
     link_to_hub: "Looking for most solved puzzle or most active players? We moved it to&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">the new Hub</a>!"
-    msp_elo_banner: "We just launched <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP-ELO Ladder</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — a new skill-based ranking system. It's fresh out of the oven, so expect tweaks as we fine-tune it!"
-    msp_elo_cta: "MSP-ELO Ladder"
+    msp_elo_banner: "We just launched <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Rating Ladder</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — a new skill-based ranking system. It's fresh out of the oven, so expect tweaks as we fine-tune it!"
+    msp_elo_cta: "MSP Rating Ladder"
 
 filters:
     button: "Filters"
@@ -557,7 +557,7 @@ edit_profile:
     hide_streak: "Hide my streak"
     hide_streak_help: "Your streak will not be displayed on your statistics page."
     hide_ranking: "Hide my ranking & skill"
-    hide_ranking_help: "Your skill tier, ELO ranking and time predictions will be hidden. You won't appear on the MSP-ELO ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
+    hide_ranking_help: "Your skill tier, Rating ranking and time predictions will be hidden. You won't appear on the MSP Rating ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
 
 puzzle_detail:
     meta:
@@ -742,10 +742,10 @@ global_modal:
             <li class="mt-2"><strong>Puzzle Difficulty</strong> — calculated ratings based on real solving data</li>
             <li class="mt-2"><strong>Insights & Predictions</strong> — detailed metrics with personalized time predictions</li>
             <li class="mt-2"><strong>Puzzler Tiers</strong> — from Beginner to Legendary, see where you stand</li>
-            <li class="mt-2"><strong>MSP-ELO Ranked Ladder</strong> — competitive ranking inspired by chess ELO. Currently, <strong>Wiktor is our first MSP King</strong>. Congratulations!</li>
+            <li class="mt-2"><strong>MSP Rating Ranked Ladder</strong> — competitive ranking inspired by chess Rating. Currently, <strong>Wiktor is our first MSP King</strong>. Congratulations!</li>
         </ul>
 
-        <p>The formulas, tiers, and ELO calculations <strong>may be adjusted</strong> as we gather more data. Don't want to be ranked? You can <strong>opt out anytime</strong> in your profile settings.</p>
+        <p>The formulas, tiers, and Rating calculations <strong>may be adjusted</strong> as we gather more data. Don't want to be ranked? You can <strong>opt out anytime</strong> in your profile settings.</p>
     button_methodology: "How It Works"
     button_ladder: "See the Ladder"
     button_dismiss: "Got It!"
@@ -792,10 +792,10 @@ added_time_recap:
         skill_tier: "Skill Tier"
         skill_percentile: "Top %percent%% of players"
         skill_tier_unavailable: "Complete %count% more qualifying %pieces%-piece puzzles to unlock your Skill Tier."
-        elo_title: "MSP-ELO Rating"
+        elo_title: "MSP Rating"
         elo_first_attempts: "First attempts"
         elo_total_solves: "Total solves"
-        elo_unavailable: "Solve more %pieces%-piece puzzles to qualify for the MSP-ELO ladder."
+        elo_unavailable: "Solve more %pieces%-piece puzzles to qualify for the MSP Rating ladder."
 
 added_tracking_recap:
     meta:
@@ -2018,7 +2018,7 @@ puzzle_intelligence:
             master: "Master"
             legend: "Legend"
     elo:
-        title: "MSP-ELO Ladder"
+        title: "MSP Rating Ladder"
         subtitle: "Competitive ranking based on head-to-head performance"
         how_it_works: "How is this calculated?"
         beta_badge: "BETA"
@@ -2030,16 +2030,16 @@ puzzle_intelligence:
         your_ranking: "Your ranking"
         your_ranking_among: "Your ranking (among %total% players)"
         ranked_out_of: "Ranked among %total% players"
-        qualification_title: "MSP-ELO Ranking"
+        qualification_title: "MSP Rating Ranking"
         qualification_desc: "Compete against other players based on your solving speed. Requires enough 500 piece puzzle solves."
-        private_profile_explanation: "MSP-ELO ranking is not available for private profiles. Switch to a public profile to compete on the ladder and see your ranking."
+        private_profile_explanation: "MSP Rating ranking is not available for private profiles. Switch to a public profile to compete on the ladder and see your ranking."
         ranking_opted_out: "You have opted out of rankings."
         not_eligible: "You need %first_attempts%/%min_first_attempts% first attempts and %total%/%min_total% total solves to join"
         period_monthly: "This month"
         period_all_time: "All time"
         no_entries: "No players on the ladder yet for this category."
         fresh_notice: "This feature is brand new — we are still fine-tuning the algorithm and rankings are subject to change."
-        profile_title: "MSP-ELO Rating"
+        profile_title: "MSP Rating"
         rank_of_total: "#%rank% of %total%"
         not_ranked_yet: "Not ranked yet"
         progress_first_attempts: "First attempts"
@@ -2120,7 +2120,7 @@ puzzle_intelligence:
         section_skill_formula: "Score > 1.0 = faster than expected. Score < 1.0 = slower than expected."
         section_skill_minimum: "<strong>Minimum:</strong> 10 qualifying puzzles, each with at least 20 first-attempt solvers."
         section_skill_tiers_title: "Skill Tiers"
-        section_elo_title: "MSP-ELO Ladder"
+        section_elo_title: "MSP Rating Ladder"
         section_elo_desc: "A competitive <strong>portfolio-based</strong> rating. Your best puzzle results from the last 24 months are evaluated, combining first-attempt performance (75%) with best-time performance (25%). Harder puzzles are worth more. Recent results carry more weight through gentle time decay."
         section_elo_formula: "K = 60 for first 10 matches (placement), K = 30 after. Starting rating: 1000."
         section_elo_minimum: "<strong>Minimum:</strong> 20 first attempts + 50 qualifying puzzles within a 24-month rolling window. Each puzzle must have 20+ solvers."
@@ -2134,11 +2134,11 @@ puzzle_intelligence:
         section_data_quality_first: "<strong>First attempts:</strong> Only first encounters with each puzzle count for difficulty and baselines"
         section_data_quality_outlier: "<strong>Outlier filter:</strong> Difficulty indices above 5.0 are excluded (likely timer errors)"
         section_data_quality_suspicious: "<strong>Suspicious exclusion:</strong> Times flagged as suspicious are excluded"
-        section_data_quality_recency: "<strong>Recency weighting:</strong> Recent solves count more — baselines, skill tiers, and ELO all use time decay to reflect your current ability"
+        section_data_quality_recency: "<strong>Recency weighting:</strong> Recent solves count more — baselines, skill tiers, and Rating all use time decay to reflect your current ability"
         section_recalculation_note: "All insights metrics are recalculated every 15 minutes."
         section_recalculation_countdown: "Next recalculation in"
         section_opt_out_title: "Opting Out"
-        section_opt_out_desc: "Players can opt out of ranking and skill tracking in their <a href=\"%url%\">profile settings</a>. Opted-out players are still included in all background calculations — their results contribute to puzzle difficulty scores and other players' rankings. They simply don't appear on the public MSP-ELO ladder and don't see their own skill tier or ELO rating. Opting back in restores full visibility immediately."
+        section_opt_out_desc: "Players can opt out of ranking and skill tracking in their <a href=\"%url%\">profile settings</a>. Opted-out players are still included in all background calculations — their results contribute to puzzle difficulty scores and other players' rankings. They simply don't appear on the public MSP Rating ladder and don't see their own skill tier or Rating. Opting back in restores full visibility immediately."
         overview_difficulty_desc: "How hard is each puzzle? We compare your time to your personal average to find out."
         overview_skill_desc: "How skilled are you? We rank you against other solvers on each puzzle, weighted by difficulty and recency."
         overview_elo_desc: "Portfolio-based competitive rating. Your best results from the last 24 months, difficulty-weighted with time decay."
@@ -2164,7 +2164,7 @@ puzzle_intelligence:
         elo_fa_desc: "Solving a puzzle cold carries the most weight — it's the purest measure of skill. Your top 100 first-attempt results are evaluated."
         elo_bt_title: "Best times (25%)"
         elo_bt_desc: "Your fastest time on each puzzle counts too — genuine improvement through practice is rewarded, but at lower weight than cold solving."
-        elo_decay_title: "ELO recency weighting"
+        elo_decay_title: "Rating recency weighting"
         elo_decay_desc: "Portfolio entries are gently decayed by age so recent results matter more, while older strong results still count. A 3-month plateau keeps very recent results at full value."
         elo_decay_cutoff: "Hard cutoff at 24 months — solves older than that are excluded entirely."
         elo_example_title: "Example: Cold Solver vs Grinder"

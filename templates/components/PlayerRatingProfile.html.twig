@@ -1,7 +1,7 @@
 <div {{ attributes }}>
-    {% if eloRatings is not empty %}
-        {# Ranked — card banner matching ELO ladder style #}
-        {% for pc, data in eloRatings %}
+    {% if ratings is not empty %}
+        {# Ranked — card banner matching rating ladder style #}
+        {% for pc, data in ratings %}
             <div class="card shadow-custom flex-shrink-0 flex-grow-0 border-primary d-flex h-100">
                 <div class="card-body py-2 px-3 d-flex flex-column">
                     <div class="d-flex align-items-center justify-content-between mb-1">
@@ -16,17 +16,17 @@
                     <div class="d-flex align-items-center gap-2">
                         <span class="h5 mb-0 fw-bold" style="font-family: monospace;">#{{ data.rank }}</span>
                         <span class="text-muted">&middot;</span>
-                        <span class="fw-bold" style="font-family: monospace;">{{ (data.elo_rating * 1000)|round }} ELO</span>
+                        <span class="fw-bold" style="font-family: monospace;">{{ (data.elo_rating * 1000)|round }}</span>
                     </div>
-                    <a href="{{ path('msp_elo_ladder') }}" class="text-decoration-none"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
+                    <a href="{{ path('msp_rating_ladder') }}" class="text-decoration-none"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
                     </div>
                 </div>
             </div>
         {% endfor %}
-    {% elseif isOwnProfile and eloProgress is not null %}
-        {# Not yet qualified — qualification banner matching ELO ladder style #}
-        {% set fa_done = eloProgress.first_attempts >= minFirstAttempts %}
-        {% set ts_done = eloProgress.total_solves >= 50 %}
+    {% elseif isOwnProfile and ratingProgress is not null %}
+        {# Not yet qualified — qualification banner matching rating ladder style #}
+        {% set fa_done = ratingProgress.first_attempts >= minFirstAttempts %}
+        {% set ts_done = ratingProgress.total_solves >= 50 %}
         <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
             <div class="card-body py-2 px-3">
                 <div class="d-flex align-items-center justify-content-between mb-1">
@@ -42,10 +42,10 @@
                         {{ 'puzzle_intelligence.elo.progress_first_attempts'|trans }}
                     </small>
                     <div class="progress flex-grow-1" style="height: 5px; background-color: #fff;">
-                        {% set fa_pct = (eloProgress.first_attempts / minFirstAttempts * 100) > 100 ? 100 : (eloProgress.first_attempts / minFirstAttempts * 100) %}
+                        {% set fa_pct = (ratingProgress.first_attempts / minFirstAttempts * 100) > 100 ? 100 : (ratingProgress.first_attempts / minFirstAttempts * 100) %}
                         <div class="progress-bar {{ fa_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ fa_pct }}%;"></div>
                     </div>
-                    <small class="text-muted fw-medium">{{ eloProgress.first_attempts }}/{{ minFirstAttempts }}</small>
+                    <small class="text-muted fw-medium">{{ ratingProgress.first_attempts }}/{{ minFirstAttempts }}</small>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <small class="text-muted" style="min-width: 100px;">
@@ -53,12 +53,12 @@
                         {{ 'puzzle_intelligence.elo.progress_total_solves'|trans }}
                     </small>
                     <div class="progress flex-grow-1" style="height: 5px; background-color: #fff;">
-                        {% set ts_pct = (eloProgress.total_solves / 50 * 100) > 100 ? 100 : (eloProgress.total_solves / 50 * 100) %}
+                        {% set ts_pct = (ratingProgress.total_solves / 50 * 100) > 100 ? 100 : (ratingProgress.total_solves / 50 * 100) %}
                         <div class="progress-bar {{ ts_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ ts_pct }}%;"></div>
                     </div>
-                    <small class="text-muted fw-medium">{{ eloProgress.total_solves }}/50</small>
+                    <small class="text-muted fw-medium">{{ ratingProgress.total_solves }}/50</small>
                 </div>
-                <a href="{{ path('msp_elo_ladder') }}" class="text-decoration-none mt-1"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
+                <a href="{{ path('msp_rating_ladder') }}" class="text-decoration-none mt-1"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
             </div>
         </div>
     {% else %}
@@ -74,7 +74,7 @@
                 <small class="text-muted mt-auto">
                     {{ 'puzzle_intelligence.elo.not_ranked_yet'|trans }}
                 </small>
-                <a href="{{ path('msp_elo_ladder') }}" class="text-decoration-none"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
+                <a href="{{ path('msp_rating_ladder') }}" class="text-decoration-none"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
             </div>
         </div>
     {% endif %}

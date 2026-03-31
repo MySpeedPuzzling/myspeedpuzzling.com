@@ -40,7 +40,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
         $result = $this->recalculator->recalculate($specificPlayer, $specificPuzzle);
 
         $io->success(sprintf(
-            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  %d difficulties, %d metrics, %d improvement ratios\n  %d skills, %d ELO\n  %d history, %d snapshots",
+            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  %d difficulties, %d metrics, %d improvement ratios\n  %d skills, %d ratings\n  %d history, %d snapshots",
             $result['baselines_direct'],
             $result['baselines_interpolated'],
             $result['scaling_exponent'],
@@ -48,7 +48,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
             $result['metrics'],
             $result['improvement_ratios'],
             $result['skills'],
-            $result['elo'],
+            $result['rating'],
             $result['history'],
             $result['snapshots'],
         ));

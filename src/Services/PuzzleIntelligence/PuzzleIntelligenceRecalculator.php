@@ -12,8 +12,8 @@ readonly final class PuzzleIntelligenceRecalculator
     /** @var list<int> Piece counts for which player skills are computed */
     public const array SKILL_PIECES_COUNTS = [500];
 
-    /** @var list<int> Piece counts for which MSP-ELO is computed */
-    public const array ELO_PIECES_COUNTS = [500];
+    /** @var list<int> Piece counts for which MSP Rating is computed */
+    public const array RATING_PIECES_COUNTS = [500];
 
     private const int BATCH_SIZE = 200;
 
@@ -24,13 +24,13 @@ readonly final class PuzzleIntelligenceRecalculator
         private PuzzleDifficultyCalculator $difficultyCalculator,
         private PlayerSkillCalculator $skillCalculator,
         private DerivedMetricsCalculator $derivedMetricsCalculator,
-        private MspEloCalculator $eloCalculator,
+        private MspRatingCalculator $ratingCalculator,
         private ImprovementRatioCalculator $improvementRatioCalculator,
     ) {
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, improvement_ratios: int, skills: int, elo: int, history: int, snapshots: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
@@ -45,8 +45,8 @@ readonly final class PuzzleIntelligenceRecalculator
          *          Improvement ratios (independent — uses raw solve times only)
          * Level 3: Puzzle difficulty (uses baselines for difficulty indices)
          * Level 4: Global learning rate + derived metrics (uses difficulty)
-         * Level 5: Player skills + MSP-ELO + personality metrics (use difficulty)
-         * Level 6: Rating snapshots + skill history (uses skills + ELO)
+         * Level 5: Player skills + MSP Rating + personality metrics (use difficulty)
+         * Level 6: Rating snapshots + skill history (uses skills + rating)
          */
 
         // Level 1+2: Baselines + improvement ratios (independent)
@@ -56,10 +56,10 @@ readonly final class PuzzleIntelligenceRecalculator
         // Level 3: Puzzle difficulty
         $difficulties = $this->computePuzzleDifficulty($now, $specificPuzzle);
 
-        // Level 4+5: Derived metrics, player skills, MSP-ELO
+        // Level 4+5: Derived metrics, player skills, MSP Rating
         $metrics = $this->computeDerivedMetrics($specificPuzzle);
         $skills = $this->computePlayerSkills($now, $specificPlayer);
-        $elo = $this->computeEloRatings($now, $specificPlayer);
+        $rating = $this->computeRatings($now, $specificPlayer);
 
         // Level 6: History + snapshots
         $history = $this->recordSkillHistory($now);
@@ -73,7 +73,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'metrics' => $metrics,
             'improvement_ratios' => $improvementRatios,
             'skills' => $skills,
-            'elo' => $elo,
+            'rating' => $rating,
             'history' => $history,
             'snapshots' => $snapshots,
         ];
@@ -405,7 +405,7 @@ readonly final class PuzzleIntelligenceRecalculator
         return $count;
     }
 
-    private function computeEloRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
+    private function computeRatings(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
         // v2: Upsert-only approach — no DELETE before recompute.
         // Data is always present during recalculation (zero downtime).
@@ -413,39 +413,39 @@ readonly final class PuzzleIntelligenceRecalculator
         $players = $this->getPublicPlayersWithSolves($specificPlayer);
         $count = 0;
 
-        foreach (self::ELO_PIECES_COUNTS as $piecesCount) {
-            $this->eloCalculator->precomputePuzzleRankings($piecesCount);
+        foreach (self::RATING_PIECES_COUNTS as $piecesCount) {
+            $this->ratingCalculator->precomputePuzzleRankings($piecesCount);
 
             if ($specificPlayer === null) {
-                $this->eloCalculator->preloadAllPlayerSolves($piecesCount);
+                $this->ratingCalculator->preloadAllPlayerSolves($piecesCount);
             }
 
             $buffer = [];
 
             foreach ($players as $playerId) {
-                $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount);
+                $playerRating = $this->ratingCalculator->calculateForPlayer($playerId, $piecesCount);
 
-                if ($eloRating > 0.0) {
+                if ($playerRating > 0.0) {
                     $buffer[] = [
                         'player_id' => $playerId,
                         'pieces_count' => $piecesCount,
-                        'elo_rating' => $eloRating,
+                        'elo_rating' => $playerRating,
                         'computed_at' => $now->format('Y-m-d H:i:s'),
                     ];
                     $count++;
 
                     if (count($buffer) >= self::BATCH_SIZE) {
-                        $this->flushEloBuffer($buffer);
+                        $this->flushRatingBuffer($buffer);
                         $buffer = [];
                     }
                 }
             }
 
             if ($buffer !== []) {
-                $this->flushEloBuffer($buffer);
+                $this->flushRatingBuffer($buffer);
             }
 
-            $this->eloCalculator->clearCache();
+            $this->ratingCalculator->clearCache();
         }
 
         // Clean up: remove entries not updated in this run (players who no longer qualify)
@@ -454,13 +454,13 @@ readonly final class PuzzleIntelligenceRecalculator
             ['now' => $now->format('Y-m-d H:i:s')],
         );
 
-        // Clean up ELO data for piece counts no longer computed
+        // Clean up rating data for piece counts no longer computed
         $this->connection->executeStatement(
             'DELETE FROM player_elo WHERE pieces_count != ALL(:pieceCounts)',
-            ['pieceCounts' => '{' . implode(',', self::ELO_PIECES_COUNTS) . '}'],
+            ['pieceCounts' => '{' . implode(',', self::RATING_PIECES_COUNTS) . '}'],
         );
 
-        // Clean up ELO data for private players
+        // Clean up rating data for private players
         $this->connection->executeStatement(
             'DELETE FROM player_elo WHERE player_id IN (SELECT id FROM player WHERE is_private = true)',
         );
@@ -504,7 +504,7 @@ readonly final class PuzzleIntelligenceRecalculator
     {
         $snapshotDate = $now->format('Y-m-d');
 
-        // Bulk insert snapshots for all players with baselines, joining skill and ELO data
+        // Bulk insert snapshots for all players with baselines, joining skill and rating data
         $this->connection->executeStatement("
             INSERT INTO player_rating_snapshot (id, player_id, pieces_count, snapshot_date, skill_score, skill_tier, skill_percentile, elo_rating, elo_rank, baseline_seconds, baseline_type, computed_at)
             SELECT
@@ -883,7 +883,7 @@ readonly final class PuzzleIntelligenceRecalculator
     /**
      * @param list<array{player_id: string, pieces_count: int, elo_rating: float, computed_at: string}> $rows
      */
-    private function flushEloBuffer(array $rows): void
+    private function flushRatingBuffer(array $rows): void
     {
         if ($rows === []) {
             return;

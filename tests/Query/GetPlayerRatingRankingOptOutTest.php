@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
-use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
+use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class GetPlayerEloRankingOptOutTest extends KernelTestCase
+final class GetPlayerRatingRankingOptOutTest extends KernelTestCase
 {
-    private GetPlayerEloRanking $query;
+    private GetPlayerRatingRanking $query;
     private PlayerRepository $playerRepository;
 
     protected function setUp(): void
@@ -23,8 +23,8 @@ final class GetPlayerEloRankingOptOutTest extends KernelTestCase
         $recalculator = $container->get(PuzzleIntelligenceRecalculator::class);
         $recalculator->recalculate();
 
-        /** @var GetPlayerEloRanking $query */
-        $query = $container->get(GetPlayerEloRanking::class);
+        /** @var GetPlayerRatingRanking $query */
+        $query = $container->get(GetPlayerRatingRanking::class);
         $this->query = $query;
 
         /** @var PlayerRepository $playerRepository */
@@ -38,7 +38,7 @@ final class GetPlayerEloRankingOptOutTest extends KernelTestCase
         $countBefore = $this->query->totalCount(500);
 
         if ($countBefore === 0) {
-            self::markTestSkipped('No ELO entries in fixtures');
+            self::markTestSkipped('No rating entries in fixtures');
         }
 
         $rankedPlayerId = $entriesBefore[0]->playerId;
@@ -61,7 +61,7 @@ final class GetPlayerEloRankingOptOutTest extends KernelTestCase
         $entriesBefore = $this->query->ranking(500);
 
         if (count($entriesBefore) === 0) {
-            self::markTestSkipped('No ELO entries in fixtures');
+            self::markTestSkipped('No rating entries in fixtures');
         }
 
         $rankedPlayerId = $entriesBefore[0]->playerId;
@@ -107,7 +107,7 @@ final class GetPlayerEloRankingOptOutTest extends KernelTestCase
         $entriesBefore = $this->query->ranking(500);
 
         if (count($entriesBefore) === 0) {
-            self::markTestSkipped('No ELO entries in fixtures');
+            self::markTestSkipped('No rating entries in fixtures');
         }
 
         $rankedPlayerId = $entriesBefore[0]->playerId;

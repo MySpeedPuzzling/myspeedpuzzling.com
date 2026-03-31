@@ -31,10 +31,10 @@
                     type="checkbox"
                     data-model="on(change)|onlyFavorites"
                     class="form-check-input"
-                    id="elo-only-favorites"
+                    id="rating-only-favorites"
                     {{ this.onlyFavorites ? 'checked' }}
                 >
-                <label class="form-check-label text-nowrap fs-sm" for="elo-only-favorites">{{ 'puzzle_intelligence.elo.only_favorites'|trans }}</label>
+                <label class="form-check-label text-nowrap fs-sm" for="rating-only-favorites">{{ 'puzzle_intelligence.elo.only_favorites'|trans }}</label>
             </div>
         {% else %}
             <button
@@ -60,7 +60,7 @@
                 <tbody>
                     {% for entry in entries %}
                         {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}
-                        <tr id="{{ is_current_player ? 'my-elo-row' }}" class="{{ is_current_player ? 'table-active-player' }}">
+                        <tr id="{{ is_current_player ? 'my-rating-row' }}" class="{{ is_current_player ? 'table-active-player' }}">
                             <td class="text-center text-muted pe-md-3" style="font-family: monospace; width: 1%; white-space: nowrap;">
                                 {{ entry.rank }}
                             </td>

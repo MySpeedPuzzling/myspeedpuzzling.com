@@ -281,7 +281,7 @@ Tier = based on percentile rank among all players</code></pre>
         </div>
     </div>
 
-    {# Section 4: MSP-ELO #}
+    {# Section 4: MSP Rating #}
     <div class="card shadow-sm mb-3 border-0">
         <div class="card-body">
             <h4 class="d-flex align-items-center gap-2 mb-3">
@@ -309,21 +309,21 @@ Tier = based on percentile rank among all players</code></pre>
                 </div>
             </div>
 
-            {# ELO recency weighting with progress bars #}
+            {# Rating recency weighting with progress bars #}
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
                     <p class="mb-1 fw-medium"><i class="bi bi-clock-history me-1"></i> {{ 'puzzle_intelligence.methodology.elo_decay_title'|trans }}</p>
                     <p class="mb-2 text-muted">{{ 'puzzle_intelligence.methodology.elo_decay_desc'|trans }}</p>
                     <div class="row">
                         <div class="col-md-6">
-                            {% set elo_decay = [
+                            {% set rating_decay = [
                                 {label: '0 – 3 months', pct: 100, weight: '100%'},
                                 {label: '6 months', pct: 90, weight: '90%'},
                                 {label: '12 months', pct: 74, weight: '74%'},
                                 {label: '18 months', pct: 61, weight: '61%'},
                                 {label: '24 months', pct: 50, weight: '50%'},
                             ] %}
-                            {% for item in elo_decay %}
+                            {% for item in rating_decay %}
                                 <div class="d-flex justify-content-between py-1">
                                     <span>{{ item.label }}</span>
                                     <div>

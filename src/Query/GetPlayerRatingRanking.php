@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\PlayerEloEntry;
+use SpeedPuzzling\Web\Results\PlayerRatingEntry;
 
-readonly final class GetPlayerEloRanking
+readonly final class GetPlayerRatingRanking
 {
     public function __construct(
         private Connection $database,
@@ -15,7 +15,7 @@ readonly final class GetPlayerEloRanking
     }
 
     /**
-     * @return list<PlayerEloEntry>
+     * @return list<PlayerRatingEntry>
      */
     public function ranking(int $piecesCount, int $limit = 50, int $offset = 0, null|string $country = null, null|string $searchTerm = null, null|string $favoriteOfPlayerId = null): array
     {
@@ -69,7 +69,7 @@ SQL;
         $rows = $this->database->executeQuery($query, $params)->fetchAllAssociative();
 
         return array_map(
-            static fn (array $row): PlayerEloEntry => PlayerEloEntry::fromDatabaseRow($row),
+            static fn (array $row): PlayerRatingEntry => PlayerRatingEntry::fromDatabaseRow($row),
             $rows,
         );
     }
@@ -160,7 +160,7 @@ SQL;
     }
 
     /**
-     * Get all ELO ratings for a specific player across piece counts.
+     * Get all ratings for a specific player across piece counts.
      *
      * @return array<int, array{elo_rating: float, rank: int, total: int}>
      */

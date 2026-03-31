@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
-use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
-final class MspEloCalculatorTest extends KernelTestCase
+final class MspRatingCalculatorTest extends KernelTestCase
 {
-    private MspEloCalculator $calculator;
+    private MspRatingCalculator $calculator;
 
     protected function setUp(): void
     {
         self::bootKernel();
-        /** @var MspEloCalculator $calculator */
-        $calculator = self::getContainer()->get(MspEloCalculator::class);
+        /** @var MspRatingCalculator $calculator */
+        $calculator = self::getContainer()->get(MspRatingCalculator::class);
         $this->calculator = $calculator;
     }
 
@@ -49,9 +49,9 @@ final class MspEloCalculatorTest extends KernelTestCase
 
     public function testCalculateReturnsZeroForIneligiblePlayer(): void
     {
-        $elo = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
+        $rating = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
 
-        self::assertSame(0.0, $elo);
+        self::assertSame(0.0, $rating);
     }
 
     public function testProgressCountsWithin24MonthWindow(): void
@@ -71,8 +71,8 @@ final class MspEloCalculatorTest extends KernelTestCase
         $this->calculator->precomputePuzzleRankings(500);
         $this->calculator->preloadAllPlayerSolves(500);
 
-        $elo = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
-        self::assertSame(0.0, $elo); // Still ineligible, but exercises decay code
+        $rating = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
+        self::assertSame(0.0, $rating); // Still ineligible, but exercises decay code
 
         $this->calculator->clearCache();
     }

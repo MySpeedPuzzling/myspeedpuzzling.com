@@ -9,13 +9,13 @@ use Psr\Clock\ClockInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * MSP-ELO v2: Portfolio-based snapshot rating with time decay.
+ * MSP Rating v2: Portfolio-based snapshot rating with time decay.
  *
  * Evaluates players on their best results from a rolling 24-month window,
  * combining first-attempt and best-time portfolios with difficulty weighting
  * and time decay (3-month plateau, gentle exponential decline).
  */
-final class MspEloCalculator implements ResetInterface
+final class MspRatingCalculator implements ResetInterface
 {
     public const int MINIMUM_FIRST_ATTEMPTS = 20;
     public const int MINIMUM_TOTAL_SOLVES = 50;
@@ -264,7 +264,7 @@ final class MspEloCalculator implements ResetInterface
     }
 
     /**
-     * Calculate portfolio-based ELO rating for a player.
+     * Calculate portfolio-based rating for a player.
      * Portfolio entries are decayed by age before sorting and selection.
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): float

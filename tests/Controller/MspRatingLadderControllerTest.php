@@ -8,13 +8,13 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-final class MspEloLadderControllerTest extends WebTestCase
+final class MspRatingLadderControllerTest extends WebTestCase
 {
     public function testAnonymousUserCanAccessPage(): void
     {
         $browser = self::createClient();
 
-        $browser->request('GET', '/en/msp-elo');
+        $browser->request('GET', '/en/msp-rating');
 
         $this->assertResponseIsSuccessful();
     }
@@ -25,8 +25,17 @@ final class MspEloLadderControllerTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/en/msp-elo');
+        $browser->request('GET', '/en/msp-rating');
 
         $this->assertResponseIsSuccessful();
+    }
+
+    public function testOldUrlRedirects(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/msp-elo');
+
+        $this->assertResponseRedirects('/en/msp-rating', 301);
     }
 }

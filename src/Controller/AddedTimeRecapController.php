@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleDifficulty;
 use SpeedPuzzling\Web\Query\GetRanking;
-use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspEloCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,8 +30,8 @@ final class AddedTimeRecapController extends AbstractController
         readonly private GetPlayerPrediction $getPlayerPrediction,
         readonly private GetRanking $getRanking,
         readonly private GetPlayerSkill $getPlayerSkill,
-        readonly private GetPlayerEloRanking $getPlayerEloRanking,
-        readonly private MspEloCalculator $mspEloCalculator,
+        readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
+        readonly private MspRatingCalculator $mspRatingCalculator,
     ) {
     }
 
@@ -61,8 +61,8 @@ final class AddedTimeRecapController extends AbstractController
         $ranking = null;
         $puzzleHistory = [];
         $playerSkill = null;
-        $eloData = [];
-        $eloProgress = null;
+        $ratingData = [];
+        $ratingProgress = null;
 
         if ($isSolo && $solvingPuzzle->time !== null && !$player->rankingOptedOut) {
             $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId, excludeTimeId: $timeId);
@@ -79,10 +79,10 @@ final class AddedTimeRecapController extends AbstractController
                 $solvingPuzzle->piecesCount,
             );
 
-            $eloData = $this->getPlayerEloRanking->allForPlayer($solvingPuzzle->playerId);
+            $ratingData = $this->getPlayerRatingRanking->allForPlayer($solvingPuzzle->playerId);
 
-            if (!isset($eloData[$solvingPuzzle->piecesCount])) {
-                $eloProgress = $this->mspEloCalculator->getProgress(
+            if (!isset($ratingData[$solvingPuzzle->piecesCount])) {
+                $ratingProgress = $this->mspRatingCalculator->getProgress(
                     $solvingPuzzle->playerId,
                     $solvingPuzzle->piecesCount,
                 );
@@ -98,8 +98,8 @@ final class AddedTimeRecapController extends AbstractController
             'ranking' => $ranking,
             'puzzle_history' => $puzzleHistory,
             'player_skill' => $playerSkill,
-            'elo_data' => $eloData,
-            'elo_progress' => $eloProgress,
+            'elo_data' => $ratingData,
+            'elo_progress' => $ratingProgress,
         ]);
     }
 }

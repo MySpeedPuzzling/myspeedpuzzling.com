@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\SkillTier;
 
-readonly final class PlayerEloEntry
+readonly final class PlayerRatingEntry
 {
     public function __construct(
         public string $playerId,
@@ -21,7 +21,7 @@ readonly final class PlayerEloEntry
     }
 
     /**
-     * Display-friendly rating scaled to traditional ELO range (roughly 500–1250).
+     * Display-friendly rating scaled to a human-readable range (roughly 500–1250).
      */
     public function displayRating(): int
     {

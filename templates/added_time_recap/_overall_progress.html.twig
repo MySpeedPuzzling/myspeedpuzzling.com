@@ -31,7 +31,7 @@
                     {% endif %}
                 </div>
 
-                {# MSP-ELO #}
+                {# MSP Rating #}
                 <div class="col-12 col-md-6">
                     <div class="fw-bold mb-1">{{ 'added_time_recap.progress.elo_title'|trans }}</div>
                     {% if elo_data[solved_puzzle.piecesCount] is defined %}
@@ -42,17 +42,17 @@
                         <div class="small">
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="text-muted">{{ 'added_time_recap.progress.elo_first_attempts'|trans }}</span>
-                                <span class="fw-medium">{{ elo_progress.first_attempts }}/{{ constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspEloCalculator::MINIMUM_FIRST_ATTEMPTS') }}</span>
+                                <span class="fw-medium">{{ elo_progress.first_attempts }}/{{ constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS') }}</span>
                             </div>
                             <div class="progress mb-2" style="height: 4px;">
-                                <div class="progress-bar bg-primary" style="width: {{ min((elo_progress.first_attempts / constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspEloCalculator::MINIMUM_FIRST_ATTEMPTS')) * 100, 100) }}%;"></div>
+                                <div class="progress-bar bg-primary" style="width: {{ min((elo_progress.first_attempts / constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS')) * 100, 100) }}%;"></div>
                             </div>
                             <div class="d-flex justify-content-between mb-1">
                                 <span class="text-muted">{{ 'added_time_recap.progress.elo_total_solves'|trans }}</span>
-                                <span class="fw-medium">{{ elo_progress.total_solves }}/{{ constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspEloCalculator::MINIMUM_TOTAL_SOLVES') }}</span>
+                                <span class="fw-medium">{{ elo_progress.total_solves }}/{{ constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_TOTAL_SOLVES') }}</span>
                             </div>
                             <div class="progress" style="height: 4px;">
-                                <div class="progress-bar bg-primary" style="width: {{ min((elo_progress.total_solves / constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspEloCalculator::MINIMUM_TOTAL_SOLVES')) * 100, 100) }}%;"></div>
+                                <div class="progress-bar bg-primary" style="width: {{ min((elo_progress.total_solves / constant('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\MspRatingCalculator::MINIMUM_TOTAL_SOLVES')) * 100, 100) }}%;"></div>
                             </div>
                         </div>
                     {% else %}
@@ -73,7 +73,7 @@
                             <div class="mt-1"><small class="text-muted">Top 18% of players</small></div>
                         </div>
                         <div class="col-6">
-                            <div class="fw-bold mb-1">MSP-ELO Rating</div>
+                            <div class="fw-bold mb-1">MSP Rating</div>
                             <span class="fw-bold fs-5">847</span>
                             <small class="text-muted ms-1">#124 / 582</small>
                         </div>

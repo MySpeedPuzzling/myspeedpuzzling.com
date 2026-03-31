@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Query\GetPlayerEloRanking;
-use SpeedPuzzling\Web\Results\PlayerEloEntry;
+use SpeedPuzzling\Web\Query\GetPlayerRatingRanking;
+use SpeedPuzzling\Web\Results\PlayerRatingEntry;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -17,12 +17,12 @@ use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent]
-final class MspEloLadder
+final class MspRatingLadder
 {
     use DefaultActionTrait;
 
     private const int PER_PAGE = 100;
-    private const int PIECES_COUNT = PuzzleIntelligenceRecalculator::ELO_PIECES_COUNTS[0];
+    private const int PIECES_COUNT = PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS[0];
 
     #[LiveProp(writable: true, url: true)]
     public string $search = '';
@@ -39,13 +39,13 @@ final class MspEloLadder
     #[LiveProp]
     public string $filterHash = '';
 
-    /** @var null|list<PlayerEloEntry> */
+    /** @var null|list<PlayerRatingEntry> */
     private null|array $cachedEntries = null;
 
     private null|int $cachedTotalCount = null;
 
     public function __construct(
-        readonly private GetPlayerEloRanking $getPlayerEloRanking,
+        readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -66,7 +66,7 @@ final class MspEloLadder
     }
 
     /**
-     * @return list<PlayerEloEntry>
+     * @return list<PlayerRatingEntry>
      */
     public function getEntries(): array
     {
@@ -76,7 +76,7 @@ final class MspEloLadder
 
         $offset = (max(1, $this->page) - 1) * self::PER_PAGE;
 
-        $this->cachedEntries = $this->getPlayerEloRanking->ranking(
+        $this->cachedEntries = $this->getPlayerRatingRanking->ranking(
             self::PIECES_COUNT,
             self::PER_PAGE,
             $offset,
@@ -94,7 +94,7 @@ final class MspEloLadder
             return $this->cachedTotalCount;
         }
 
-        $this->cachedTotalCount = $this->getPlayerEloRanking->totalCount(
+        $this->cachedTotalCount = $this->getPlayerRatingRanking->totalCount(
             self::PIECES_COUNT,
             $this->country !== '' ? $this->country : null,
             $this->search !== '' ? $this->search : null,
@@ -119,7 +119,7 @@ final class MspEloLadder
      */
     public function getCountries(): array
     {
-        $codes = $this->getPlayerEloRanking->distinctCountries(self::PIECES_COUNT);
+        $codes = $this->getPlayerRatingRanking->distinctCountries(self::PIECES_COUNT);
         $result = [];
 
         foreach ($codes as $code) {

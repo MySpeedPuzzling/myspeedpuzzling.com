@@ -15,7 +15,7 @@
                 <div class="card-body text-center">
                     <i class="bi bi-bar-chart fs-1 text-primary mb-2 d-block"></i>
                     <h6>{{ 'puzzle_intelligence.difficulty.title'|trans }}</h6>
-                    <p class="text-muted fs-sm mb-0">How hard is each puzzle? We compare your time to your personal average to find out.</p>
+                    <p class="text-muted fs-sm mb-0">{{ 'puzzle_intelligence.methodology.overview_difficulty_desc'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -24,7 +24,7 @@
                 <div class="card-body text-center">
                     <i class="bi bi-trophy fs-1 text-warning mb-2 d-block"></i>
                     <h6>{{ 'puzzle_intelligence.skill.title'|trans }}</h6>
-                    <p class="text-muted fs-sm mb-0">How skilled are you? We rank you against other solvers on each puzzle, weighted by difficulty.</p>
+                    <p class="text-muted fs-sm mb-0">{{ 'puzzle_intelligence.methodology.overview_skill_desc'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -33,7 +33,7 @@
                 <div class="card-body text-center">
                     <i class="bi bi-lightning fs-1 text-danger mb-2 d-block"></i>
                     <h6>{{ 'puzzle_intelligence.elo.title'|trans }}</h6>
-                    <p class="text-muted fs-sm mb-0">Portfolio-based competitive rating. Your best results from the last 12 months, difficulty-weighted.</p>
+                    <p class="text-muted fs-sm mb-0">{{ 'puzzle_intelligence.methodology.overview_elo_desc'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -52,38 +52,33 @@
                 <div class="card-body py-2">
                     <div class="row align-items-center fs-sm">
                         <div class="col-md-6">
-                            <div class="d-flex justify-content-between py-1">
-                                <span>Yesterday</span>
-                                <div>
-                                    <div class="progress" style="width: 120px; height: 6px;">
-                                        <div class="progress-bar bg-primary" style="width: 100%;"></div>
+                            <p class="mb-2 fw-medium">{{ 'puzzle_intelligence.methodology.baseline_decay_title'|trans }}</p>
+                            <p class="mb-2 text-muted">{{ 'puzzle_intelligence.methodology.baseline_decay_desc'|trans }}</p>
+                            {% set baseline_decay = [
+                                {label: '0 – 3 months', pct: 100, weight: '100%'},
+                                {label: '6 months', pct: 80, weight: '80%'},
+                                {label: '12 months', pct: 51, weight: '51%'},
+                                {label: '18 months', pct: 33, weight: '33%'},
+                                {label: '24 months', pct: 21, weight: '21%'},
+                            ] %}
+                            {% for item in baseline_decay %}
+                                <div class="d-flex justify-content-between py-1">
+                                    <span>{{ item.label }}</span>
+                                    <div>
+                                        <div class="progress" style="width: 120px; height: 6px;">
+                                            <div class="progress-bar bg-primary" style="width: {{ item.pct }}%;"></div>
+                                        </div>
+                                        <small class="text-muted">{{ item.weight }} weight</small>
                                     </div>
-                                    <small class="text-muted">100% weight</small>
                                 </div>
-                            </div>
-                            <div class="d-flex justify-content-between py-1">
-                                <span>6 months ago</span>
-                                <div>
-                                    <div class="progress" style="width: 120px; height: 6px;">
-                                        <div class="progress-bar bg-primary" style="width: 72%;"></div>
-                                    </div>
-                                    <small class="text-muted">72% weight</small>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-between py-1">
-                                <span>18 months ago</span>
-                                <div>
-                                    <div class="progress" style="width: 120px; height: 6px;">
-                                        <div class="progress-bar bg-primary" style="width: 37%;"></div>
-                                    </div>
-                                    <small class="text-muted">37% weight</small>
-                                </div>
-                            </div>
+                            {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <div class="bg-white rounded p-2 text-center">
-                                <code class="fs-sm">weight = exp(-age_in_months / 18)</code>
+                            <div class="bg-white rounded p-2 text-center mb-2">
+                                <code class="fs-sm">effective_age = max(0, age_in_months - 3)</code><br>
+                                <code class="fs-sm">weight = exp(-effective_age / 13.5)</code>
                             </div>
+                            <p class="mb-0 text-muted fs-sm">{{ 'puzzle_intelligence.methodology.baseline_decay_formula_note'|trans|raw }}</p>
                         </div>
                     </div>
                 </div>
@@ -91,11 +86,10 @@
 
             <p class="fs-sm">{{ 'puzzle_intelligence.methodology.section_baseline_minimum'|trans|raw }}</p>
 
-            {# Interpolated baselines #}
             <div class="card bg-light border-0 mt-3">
                 <div class="card-body py-2 fs-sm">
-                    <p class="mb-1 fw-medium"><i class="bi bi-diagram-3 me-1"></i> Exotic piece counts</p>
-                    <p class="mb-0 text-muted">For puzzles with unusual piece counts (e.g. 631 pieces), most players won't have 5 solves at that exact count. We solve this by estimating their baseline from nearby piece counts they <em>do</em> have data for, using log-space interpolation. This means more puzzles get difficulty ratings.</p>
+                    <p class="mb-1 fw-medium"><i class="bi bi-diagram-3 me-1"></i> {{ 'puzzle_intelligence.methodology.baseline_exotic_title'|trans }}</p>
+                    <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.baseline_exotic_desc'|trans|raw }}</p>
                 </div>
             </div>
         </div>
@@ -114,15 +108,17 @@
                 <div class="card-body py-2">
                     <div class="row fs-sm">
                         <div class="col-md-6">
-                            <p class="mb-1 fw-medium">Example:</p>
-                            <p class="mb-1">Your baseline: <strong>55 min</strong></p>
-                            <p class="mb-1">You solved this puzzle in: <strong>63 min</strong></p>
-                            <p class="mb-1">Difficulty index: 63 / 55 = <strong>1.15</strong></p>
-                            <p class="mb-0 text-muted">→ 15% harder than average for you</p>
+                            <p class="mb-1 fw-medium">{{ 'puzzle_intelligence.methodology.difficulty_example_baseline'|trans }} <strong>55 min</strong></p>
+                            <p class="mb-1">{{ 'puzzle_intelligence.methodology.difficulty_example_time'|trans }} <strong>63 min</strong></p>
+                            <p class="mb-1">{{ 'puzzle_intelligence.methodology.difficulty_example_index'|trans }} 63 / 55 = <strong>1.15</strong></p>
+                            <p class="mb-0 text-muted">&rarr; {{ 'puzzle_intelligence.methodology.difficulty_example_meaning'|trans }}</p>
                         </div>
                         <div class="col-md-6">
-                            <div class="bg-white rounded p-2 text-center">
+                            <div class="bg-white rounded p-2 text-center mb-2">
                                 <code class="fs-sm">difficulty_index = solve_time / player_baseline</code>
+                            </div>
+                            <div class="bg-white rounded p-2 text-center">
+                                <code class="fs-sm">puzzle_difficulty = median(all player indices)</code>
                             </div>
                         </div>
                     </div>
@@ -131,6 +127,26 @@
 
             <p class="fs-sm">{{ 'puzzle_intelligence.methodology.section_difficulty_median'|trans|raw }}</p>
             <p class="fs-sm">{{ 'puzzle_intelligence.methodology.section_difficulty_minimum'|trans|raw }}</p>
+
+            <button class="btn btn-outline-secondary btn-sm mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#difficultyFormula">
+                <i class="bi bi-code me-1"></i> {{ 'puzzle_intelligence.methodology.show_formula'|trans }}
+            </button>
+            <div class="collapse mb-3" id="difficultyFormula">
+                <div class="card bg-light border-0">
+                    <div class="card-body py-2">
+<pre class="fs-sm mb-0"><code>For each player with a baseline at this piece count:
+  difficulty_index = seconds_to_solve / player_baseline
+
+  Qualification:
+  - First attempt only (one per player per puzzle)
+  - Solo, non-suspicious, completed
+  - Index must be &lt;= 5.0 (outlier ceiling)
+
+puzzle_difficulty = median(all qualifying indices)
+Minimum: 5 indices from different players</code></pre>
+                    </div>
+                </div>
+            </div>
 
             <h6 class="mt-3 mb-2">{{ 'puzzle_intelligence.methodology.section_difficulty_tiers_title'|trans }}</h6>
             <div class="row g-2">
@@ -166,23 +182,58 @@
             </h4>
             <p>{{ 'puzzle_intelligence.methodology.section_skill_desc'|trans|raw }}</p>
 
-            {# Worked example #}
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
-                    <p class="mb-1 fw-medium">Example: How your skill score is calculated</p>
-                    <p class="mb-1">You solved <strong>Puzzle X</strong> in 45 min.</p>
-                    <p class="mb-1">Out of 50 first-attempt solvers, <strong>38 were slower</strong> → your percentile = <strong>0.78</strong></p>
-                    <p class="mb-1">Puzzle X is <strong>Challenging</strong> (difficulty 1.18) → difficulty weight = <strong>1.09</strong></p>
-                    <p class="mb-1">Weighted percentile: 0.78 × 1.09 = <strong>0.85</strong></p>
-                    <p class="mb-0 text-muted">Your skill score = median of all such weighted percentiles across your qualifying puzzles.</p>
+                    <p class="mb-1 fw-medium">{{ 'puzzle_intelligence.methodology.skill_example_title'|trans }}</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.skill_example_desc'|trans|raw }}</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.skill_example_slower'|trans|raw }}</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.skill_example_difficulty'|trans|raw }}</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.skill_example_weighted'|trans|raw }}</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.skill_example_age'|trans|raw }}</p>
+                    <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.skill_example_result'|trans }}</p>
+                </div>
+            </div>
+
+            {# Skill recency weighting with progress bars #}
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body py-2 fs-sm">
+                    <p class="mb-1 fw-medium"><i class="bi bi-clock-history me-1"></i> {{ 'puzzle_intelligence.methodology.skill_decay_title'|trans }}</p>
+                    <p class="mb-2 text-muted">{{ 'puzzle_intelligence.methodology.skill_decay_desc'|trans }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% set skill_decay = [
+                                {label: '0 – 6 months', pct: 100, weight: '100%'},
+                                {label: '12 months', pct: 78, weight: '78%'},
+                                {label: '18 months', pct: 61, weight: '61%'},
+                                {label: '24 months', pct: 47, weight: '47%'},
+                                {label: '36 months', pct: 29, weight: '29%'},
+                            ] %}
+                            {% for item in skill_decay %}
+                                <div class="d-flex justify-content-between py-1">
+                                    <span>{{ item.label }}</span>
+                                    <div>
+                                        <div class="progress" style="width: 120px; height: 6px;">
+                                            <div class="progress-bar bg-warning" style="width: {{ item.pct }}%;"></div>
+                                        </div>
+                                        <small class="text-muted">{{ item.weight }} weight</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="bg-white rounded p-2 text-center">
+                                <code class="fs-sm">effective_age = max(0, age_months - 6)</code><br>
+                                <code class="fs-sm">age_weight = exp(-effective_age / 24)</code>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <p class="fs-sm">{{ 'puzzle_intelligence.methodology.section_skill_minimum'|trans|raw }}</p>
 
-            {# Collapsible exact formula #}
             <button class="btn btn-outline-secondary btn-sm mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#skillFormula">
-                <i class="bi bi-code me-1"></i> Show exact formula
+                <i class="bi bi-code me-1"></i> {{ 'puzzle_intelligence.methodology.show_formula'|trans }}
             </button>
             <div class="collapse mb-3" id="skillFormula">
                 <div class="card bg-light border-0">
@@ -190,11 +241,14 @@
 <pre class="fs-sm mb-0"><code>For each puzzle with 20+ first-attempt solvers:
   percentile = (slower_count + tied_count / 2) / (total_solvers - 1)
   confidence = min(1.0, sample_size / 50)
-  blend = 0.5 × confidence
-  difficulty_weight = (1 - blend) + blend × puzzle_difficulty
-  weighted_percentile = percentile × difficulty_weight
+  blend = 0.5 &times; confidence
+  difficulty_weight = (1 - blend) + blend &times; puzzle_difficulty
+  weighted_percentile = percentile &times; difficulty_weight
 
-skill_score = median(all weighted_percentiles)
+  effective_age = max(0, age_in_months - 6)
+  age_weight = exp(-effective_age / 24)
+
+skill_score = weighted_median(weighted_percentiles, age_weights)
 
 Tier = based on percentile rank among all players</code></pre>
                     </div>
@@ -234,79 +288,125 @@ Tier = based on percentile rank among all players</code></pre>
                 <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 22px;">4</span>
                 {{ 'puzzle_intelligence.methodology.section_elo_title'|trans }}
             </h4>
-            <p>{{ 'puzzle_intelligence.methodology.section_elo_desc'|trans }}</p>
+            <p>{{ 'puzzle_intelligence.methodology.section_elo_desc'|trans|raw }}</p>
 
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <div class="card bg-light border-0 h-100">
                         <div class="card-body py-2 fs-sm">
-                            <h6 class="fs-sm"><i class="bi bi-star me-1"></i> First attempts (75%)</h6>
-                            <p class="mb-0 text-muted">Solving a puzzle cold carries the most weight — it's the purest measure of skill. Your top 100 first-attempt results are evaluated.</p>
+                            <h6 class="fs-sm"><i class="bi bi-star me-1"></i> {{ 'puzzle_intelligence.methodology.elo_fa_title'|trans }}</h6>
+                            <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.elo_fa_desc'|trans }}</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="card bg-light border-0 h-100">
                         <div class="card-body py-2 fs-sm">
-                            <h6 class="fs-sm"><i class="bi bi-arrow-repeat me-1"></i> Best times (25%)</h6>
-                            <p class="mb-0 text-muted">Your fastest time on each puzzle counts too — genuine improvement through practice is rewarded, but at lower weight than cold solving.</p>
+                            <h6 class="fs-sm"><i class="bi bi-arrow-repeat me-1"></i> {{ 'puzzle_intelligence.methodology.elo_bt_title'|trans }}</h6>
+                            <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.elo_bt_desc'|trans }}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {# Worked examples #}
+            {# ELO recency weighting with progress bars #}
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
-                    <p class="mb-1 fw-medium">Example: Cold Solver vs Grinder</p>
-                    <p class="mb-1">Same <strong>Hard</strong> puzzle (difficulty 1.35, weight 1.175):</p>
+                    <p class="mb-1 fw-medium"><i class="bi bi-clock-history me-1"></i> {{ 'puzzle_intelligence.methodology.elo_decay_title'|trans }}</p>
+                    <p class="mb-2 text-muted">{{ 'puzzle_intelligence.methodology.elo_decay_desc'|trans }}</p>
                     <div class="row">
                         <div class="col-md-6">
-                            <p class="mb-1"><strong>Player A:</strong> Strong first attempt (92nd percentile), never re-solves</p>
-                            <p class="mb-0 text-muted">Score: 0.92 × 1.175 = <strong>1.08</strong></p>
+                            {% set elo_decay = [
+                                {label: '0 – 3 months', pct: 100, weight: '100%'},
+                                {label: '6 months', pct: 90, weight: '90%'},
+                                {label: '12 months', pct: 74, weight: '74%'},
+                                {label: '18 months', pct: 61, weight: '61%'},
+                                {label: '24 months', pct: 50, weight: '50%'},
+                            ] %}
+                            {% for item in elo_decay %}
+                                <div class="d-flex justify-content-between py-1">
+                                    <span>{{ item.label }}</span>
+                                    <div>
+                                        <div class="progress" style="width: 120px; height: 6px;">
+                                            <div class="progress-bar bg-danger" style="width: {{ item.pct }}%;"></div>
+                                        </div>
+                                        <small class="text-muted">{{ item.weight }} weight</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
                         </div>
                         <div class="col-md-6">
-                            <p class="mb-1"><strong>Player B:</strong> Weak first attempt (60th), grinds to 95th percentile best</p>
-                            <p class="mb-0 text-muted">Score: 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong></p>
+                            <div class="bg-white rounded p-2 text-center">
+                                <code class="fs-sm">effective_age = max(0, age_months - 3)</code><br>
+                                <code class="fs-sm">decay = exp(-effective_age / 30)</code><br>
+                                <code class="fs-sm">decayed_points = points &times; decay</code>
+                            </div>
+                            <p class="mt-2 mb-0 text-muted">{{ 'puzzle_intelligence.methodology.elo_decay_cutoff'|trans }}</p>
                         </div>
                     </div>
-                    <p class="mt-1 mb-0 text-muted">Player A wins decisively — raw cold-solving talent leads, but B gets partial credit for improvement.</p>
                 </div>
             </div>
 
-            {# Anti-gaming #}
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
-                    <p class="mb-1 fw-medium"><i class="bi bi-shield-check me-1"></i> Anti-gaming properties</p>
+                    <p class="mb-1 fw-medium">{{ 'puzzle_intelligence.methodology.elo_example_title'|trans }}</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.elo_example_desc'|trans|raw }}</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1">{{ 'puzzle_intelligence.methodology.elo_example_player_a'|trans|raw }}</p>
+                            <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.elo_example_player_a_score'|trans|raw }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1">{{ 'puzzle_intelligence.methodology.elo_example_player_b'|trans|raw }}</p>
+                            <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.elo_example_player_b_score'|trans|raw }}</p>
+                        </div>
+                    </div>
+                    <p class="mt-1 mb-0 text-muted">{{ 'puzzle_intelligence.methodology.elo_example_conclusion'|trans }}</p>
+                </div>
+            </div>
+
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body py-2 fs-sm">
+                    <p class="mb-1 fw-medium"><i class="bi bi-shield-check me-1"></i> {{ 'puzzle_intelligence.methodology.elo_antigaming_title'|trans }}</p>
                     <ul class="mb-0 text-muted ps-3">
-                        <li><strong>Grinding same puzzle:</strong> Only affects one best-time entry (25% weight). First-attempt score is locked.</li>
-                        <li><strong>Volume accumulation:</strong> Cap of 100. After 100 puzzles, more solves only help if better than your weakest entry.</li>
-                        <li><strong>Easy puzzle farming:</strong> Difficulty weighting makes hard puzzles worth more at the same percentile.</li>
+                        <li>{{ 'puzzle_intelligence.methodology.elo_antigaming_grinding'|trans|raw }}</li>
+                        <li>{{ 'puzzle_intelligence.methodology.elo_antigaming_volume'|trans|raw }}</li>
+                        <li>{{ 'puzzle_intelligence.methodology.elo_antigaming_easy'|trans|raw }}</li>
+                        <li>{{ 'puzzle_intelligence.methodology.elo_antigaming_inactivity'|trans|raw }}</li>
                     </ul>
                 </div>
             </div>
 
             <p class="fs-sm">{{ 'puzzle_intelligence.methodology.section_elo_minimum'|trans|raw }}</p>
 
-            {# Collapsible exact formula #}
             <button class="btn btn-outline-secondary btn-sm mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#eloFormula">
-                <i class="bi bi-code me-1"></i> Show exact formula
+                <i class="bi bi-code me-1"></i> {{ 'puzzle_intelligence.methodology.show_formula'|trans }}
             </button>
             <div class="collapse" id="eloFormula">
                 <div class="card bg-light border-0">
                     <div class="card-body py-2">
-<pre class="fs-sm mb-0"><code>For each puzzle in 12-month window (20+ public solvers):
-  fa_percentile = rank among first-attempt solvers (0–1)
-  bt_percentile = rank among all players' best times (0–1)
-  difficulty_weight = (1 - 0.5 × confidence) + 0.5 × confidence × difficulty
-  fa_points = fa_percentile × difficulty_weight
-  bt_points = bt_percentile × difficulty_weight
+<pre class="fs-sm mb-0"><code>Rolling window: 24 months. Decay: 3-month plateau.
+
+For each puzzle in window (20+ public solvers):
+  fa_percentile = rank among first-attempt solvers (0&ndash;1)
+  bt_percentile = rank among all players' best times (0&ndash;1)
+
+  confidence = min(1.0, sample_size / 50)
+  blend = 0.5 &times; confidence
+  difficulty_weight = (1 - blend) + blend &times; difficulty
+
+  effective_age = max(0, age_months - 3)
+  decay = exp(-effective_age / 30)
+
+  fa_points = fa_percentile &times; difficulty_weight &times; decay
+  bt_points = bt_percentile &times; difficulty_weight &times; decay
 
 First-attempt portfolio = mean(top 100 fa_points)
 Best-time portfolio = mean(top 100 bt_points)
-Rating = 0.75 × FA_portfolio + 0.25 × BT_portfolio
+Rating = 0.75 &times; FA_portfolio + 0.25 &times; BT_portfolio
 
-Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
+Entry: 20 first attempts + 50 total solves within window
+Display: rating &times; 1000 (e.g., 0.85 &rarr; 850)</code></pre>
                     </div>
                 </div>
             </div>
@@ -321,18 +421,40 @@ Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
                 {{ 'puzzle_intelligence.methodology.section_prediction_title'|trans }}
             </h4>
 
-            <div class="card bg-light border-0 mb-2">
+            <p class="fs-sm mb-3">{{ 'puzzle_intelligence.methodology.prediction_intro'|trans|raw }}</p>
+
+            <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
-                    <p class="mb-1 fw-medium">Example:</p>
-                    <p class="mb-1">Your 500pc baseline: <strong>55 min</strong></p>
-                    <p class="mb-1">Puzzle difficulty: <strong>1.15</strong> (Challenging)</p>
-                    <p class="mb-1">Predicted time: 55 × 1.15 = <strong>~63 min</strong></p>
-                    <p class="mb-0 text-muted">Range: 57 – 70 min (bounded between 30% and 300% of predicted time)</p>
+                    <p class="mb-1 fw-medium"><i class="bi bi-person me-1"></i> {{ 'puzzle_intelligence.methodology.prediction_personal_title'|trans }}</p>
+                    <p class="mb-1 text-muted">{{ 'puzzle_intelligence.methodology.prediction_personal_desc'|trans|raw }}</p>
+                    <div class="bg-white rounded p-2 mt-2">
+<pre class="fs-sm mb-0"><code>Smoothing parameters:
+  &alpha; = 0.5 (level), &beta; = 0.4 (trend), &phi; = 0.8 (dampening)
+
+For each of your past solves (in chronological order):
+  level = &alpha; &times; actual_time + (1-&alpha;) &times; (prev_level + &phi; &times; trend)
+  trend = &beta; &times; (level - prev_level) + (1-&beta;) &times; &phi; &times; trend
+
+predicted = level + &phi; &times; trend
+Floor: max(predicted, best_time &times; 0.90)
+Range: based on residual variance (MAD &times; 1.5, min 5% spread)</code></pre>
+                    </div>
+                    <p class="mt-2 mb-0 text-muted">{{ 'puzzle_intelligence.methodology.prediction_personal_dampening'|trans }}</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded p-2 text-center mb-2">
-                <code class="fs-sm">predicted_time = player_baseline × puzzle_difficulty</code>
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body py-2 fs-sm">
+                    <p class="mb-1 fw-medium"><i class="bi bi-calculator me-1"></i> {{ 'puzzle_intelligence.methodology.prediction_statistical_title'|trans }}</p>
+                    <p class="mb-1 text-muted">{{ 'puzzle_intelligence.methodology.prediction_statistical_desc'|trans }}</p>
+                    <div class="bg-white rounded p-2 text-center mt-2 mb-2">
+                        <code class="fs-sm">predicted_time = player_baseline &times; puzzle_difficulty</code>
+                    </div>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.prediction_statistical_example_baseline'|trans }} <strong>55 min</strong></p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.prediction_statistical_example_difficulty'|trans }} <strong>1.15</strong> ({{ 'puzzle_intelligence.difficulty.tiers.challenging'|trans }})</p>
+                    <p class="mb-1">{{ 'puzzle_intelligence.methodology.prediction_statistical_example_predicted'|trans }} 55 &times; 1.15 = <strong>~63 min</strong></p>
+                    <p class="mb-0 text-muted">{{ 'puzzle_intelligence.methodology.prediction_statistical_range'|trans }}</p>
+                </div>
             </div>
         </div>
     </div>
@@ -347,11 +469,11 @@ Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
 
             <div class="row g-3">
                 {% set metrics = [
-                    {icon: 'bi-arrow-repeat', name: 'puzzle_intelligence.personality.memorability', desc: 'puzzle_intelligence.personality.memorability_desc', detail: 'Measures how quickly players learn this puzzle across their first 3 attempts. Normalized against the average puzzle learning rate. Min: 8 players with 3+ attempts.'},
-                    {icon: 'bi-speedometer2', name: 'puzzle_intelligence.personality.skill_sensitivity', desc: 'puzzle_intelligence.personality.skill_sensitivity_desc', detail: 'Ratio of 75th to 25th percentile difficulty indices. Higher = bigger gap between fast and slow solvers. Min: 20 qualifying indices.'},
-                    {icon: 'bi-bullseye', name: 'puzzle_intelligence.personality.predictability', desc: 'puzzle_intelligence.personality.predictability_desc', detail: 'Score from 0 to 1 (bounded). Formula: 1 / (1 + coefficient of variation). Closer to 1 = more consistent difficulty experience. Min: 20 qualifying indices.'},
-                    {icon: 'bi-box', name: 'puzzle_intelligence.personality.box_dependence', desc: 'puzzle_intelligence.personality.box_dependence_desc', detail: 'Ratio of unboxed to boxed difficulty. 1.0 = no difference, 2.0 = twice as hard without box. Min: 10 unboxed + 5 boxed solvers.'},
-                    {icon: 'bi-graph-up-arrow', name: 'puzzle_intelligence.personality.improvement_ceiling', desc: 'puzzle_intelligence.personality.improvement_ceiling_desc', detail: 'Ratio of median first-attempt time to 10th percentile of all attempts. Higher means practice dramatically improves times. Min: 20 solvers.'},
+                    {icon: 'bi-arrow-repeat', name: 'puzzle_intelligence.personality.memorability', desc: 'puzzle_intelligence.personality.memorability_desc', detail: 'puzzle_intelligence.methodology.personality_memorability_detail', formula: 'learning_rate = (attempt_1 - attempt_3) / attempt_1\nmemorability = puzzle_learning_rate / global_learning_rate'},
+                    {icon: 'bi-speedometer2', name: 'puzzle_intelligence.personality.skill_sensitivity', desc: 'puzzle_intelligence.personality.skill_sensitivity_desc', detail: 'puzzle_intelligence.methodology.personality_skill_sensitivity_detail', formula: 'skill_sensitivity = P75(indices) / P25(indices)'},
+                    {icon: 'bi-bullseye', name: 'puzzle_intelligence.personality.predictability', desc: 'puzzle_intelligence.personality.predictability_desc', detail: 'puzzle_intelligence.methodology.personality_predictability_detail', formula: 'CV = std_dev(indices) / mean(indices)\npredictability = 1 / (1 + CV)'},
+                    {icon: 'bi-box', name: 'puzzle_intelligence.personality.box_dependence', desc: 'puzzle_intelligence.personality.box_dependence_desc', detail: 'puzzle_intelligence.methodology.personality_box_dependence_detail', formula: 'box_dependence = median(unboxed_indices) / median(boxed_indices)'},
+                    {icon: 'bi-graph-up-arrow', name: 'puzzle_intelligence.personality.improvement_ceiling', desc: 'puzzle_intelligence.personality.improvement_ceiling_desc', detail: 'puzzle_intelligence.methodology.personality_improvement_ceiling_detail', formula: 'improvement_ceiling = P50(first_attempts) / P10(all_attempts)'},
                 ] %}
                 {% for metric in metrics %}
                     <div class="col-md-6">
@@ -362,7 +484,10 @@ Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
                                     {{ metric.name|trans }}
                                 </h6>
                                 <p class="fs-sm text-muted mb-1">{{ metric.desc|trans }}</p>
-                                <small class="text-muted fst-italic">{{ metric.detail }}</small>
+                                <small class="text-muted fst-italic">{{ metric.detail|trans }}</small>
+                                <div class="bg-white rounded p-1 mt-2">
+                                    <pre class="fs-sm mb-0 text-center"><code>{{ metric.formula }}</code></pre>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -382,29 +507,27 @@ Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <h6 class="fs-sm"><i class="bi bi-shield-check me-1"></i>{{ 'puzzle_intelligence.methodology.section_confidence_title'|trans }}</h6>
-                    <p class="fs-sm text-muted mb-2">Every metric shows how confident we are, based on the amount of data:</p>
                     <div class="d-flex flex-column gap-2 fs-sm">
                         <div class="d-flex align-items-center gap-2">
                             <span class="text-confidence-high"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></span>
-                            <strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.high'|trans }}</strong> — 20+ qualified solvers
+                            <strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.high'|trans }}</strong> &mdash; 20+ qualified solvers
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="text-confidence-medium"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i><i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i></span>
-                            <strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.medium'|trans }}</strong> — 10-19 solvers
+                            <strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.medium'|trans }}</strong> &mdash; 10-19 solvers
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="text-confidence-low"><i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i><i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i><i class="bi bi-circle text-muted" style="font-size: 0.5rem;"></i></span>
-                            <strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.low'|trans }}</strong> — 5-9 solvers
+                            <strong>{{ 'puzzle_intelligence.difficulty.confidence_levels.low'|trans }}</strong> &mdash; 5-9 solvers
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <span class="text-muted"><i class="bi bi-circle" style="font-size: 0.5rem;"></i><i class="bi bi-circle" style="font-size: 0.5rem;"></i><i class="bi bi-circle" style="font-size: 0.5rem;"></i></span>
-                            {{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }} — fewer than 5 solvers
+                            {{ 'puzzle_intelligence.difficulty.not_enough_data'|trans }} &mdash; < 5 solvers
                         </div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h6 class="fs-sm">{{ 'puzzle_intelligence.methodology.section_data_quality_title'|trans }}</h6>
-                    <p class="fs-sm text-muted mb-2">To ensure accuracy, we only use:</p>
                     <ul class="fs-sm mb-0 ps-3">
                         <li>{{ 'puzzle_intelligence.methodology.section_data_quality_solo'|trans|raw }}</li>
                         <li>{{ 'puzzle_intelligence.methodology.section_data_quality_first'|trans|raw }}</li>
@@ -412,6 +535,26 @@ Display: rating × 1000 (e.g., 0.85 → 850)</code></pre>
                         <li>{{ 'puzzle_intelligence.methodology.section_data_quality_suspicious'|trans|raw }}</li>
                         <li>{{ 'puzzle_intelligence.methodology.section_data_quality_recency'|trans|raw }}</li>
                     </ul>
+                </div>
+            </div>
+
+            <div class="card bg-light border-0">
+                <div class="card-body py-2 fs-sm">
+                    <p class="mb-2 fw-medium">{{ 'puzzle_intelligence.methodology.thresholds_title'|trans }}</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless mb-0 fs-sm">
+                            <tbody>
+                                <tr><td>{{ 'puzzle_intelligence.methodology.section_baseline_title'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_baseline'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.methodology.section_difficulty_title'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_difficulty'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.methodology.section_skill_title'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_skill'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.methodology.section_elo_title'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_elo'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.personality.memorability'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_memorability'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.personality.skill_sensitivity'|trans }} / {{ 'puzzle_intelligence.personality.predictability'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_sensitivity_predictability'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.personality.box_dependence'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_box_dependence'|trans }}</td></tr>
+                                <tr><td>{{ 'puzzle_intelligence.personality.improvement_ceiling'|trans }}</td><td class="text-muted">{{ 'puzzle_intelligence.methodology.threshold_improvement_ceiling'|trans }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

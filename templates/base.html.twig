@@ -355,18 +355,18 @@
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
-                                    <i class="me-1 me-lg-0 bi bi-shop position-relative">
-                                        <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
-                                    </i>
+                                    <i class="me-1 me-lg-0 bi bi-shop"></i>
                                     <small class="d-none d-lg-block">Marketplace</small>
-                                    <span class="d-lg-none">Marketplace <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
+                                    <span class="d-lg-none">Marketplace</span>
                                 </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
-                                    <i class="me-1 me-lg-0 bi bi-trophy"></i>
+                                    <i class="me-1 me-lg-0 bi bi-trophy position-relative">
+                                        <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
+                                    </i>
                                     <small class="d-none d-lg-block">{{ 'menu.ladder'|trans }}</small>
-                                    <span class="d-lg-none">{{ 'menu.ladder'|trans }}</span>
+                                    <span class="d-lg-none">{{ 'menu.ladder'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></span>
                                 </a>
                             </li>
                             <li class="nav-item">
@@ -644,7 +644,7 @@
 
         {% if logged_user.profile and not logged_user.profile.modalDisplayed %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">
-                <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">{{ 'global_modal.title'|trans }}</h5>
@@ -653,8 +653,11 @@
                         <div class="modal-body">
                             <div class="fs-sm">{{ 'global_modal.text'|trans|raw }}</div>
 
-                            <a href="{{ path('marketplace') }}" class="btn btn-sm btn-primary d-inline-block me-2 btn-shadow"><i class="bi bi-shop me-1"></i>{{ 'global_modal.button_cta'|trans }}</a>
-                            <button type="button" class="btn btn-secondary btn-sm float-end" data-bs-dismiss="modal">{{ 'global_modal.button_dismiss'|trans }}</button>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ path('methodology') }}" class="btn btn-sm btn-primary btn-shadow"><i class="bi bi-book me-1"></i>{{ 'global_modal.button_methodology'|trans }}</a>
+                                <a href="{{ path('ladder') }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-trophy me-1"></i>{{ 'global_modal.button_ladder'|trans }}</a>
+                                <button type="button" class="btn btn-secondary btn-sm ms-auto" data-bs-dismiss="modal">{{ 'global_modal.button_dismiss'|trans }}</button>
+                            </div>
                         </div>
                     </div>
                 </div>

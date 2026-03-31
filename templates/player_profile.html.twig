@@ -63,8 +63,7 @@
 
         </div>
     {% else %}
-        {% if is_granted('ADMIN_ACCESS') %}
-            {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
+        {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
 
             {# Ranking opted-out player viewing own profile #}
             {% if player.rankingOptedOut and is_own_profile %}
@@ -146,7 +145,6 @@
                     </button>
                 </div>
             {% endif %}
-        {% endif %}
 
         <div class="my-4">
             <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />

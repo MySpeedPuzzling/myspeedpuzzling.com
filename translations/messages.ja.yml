@@ -496,10 +496,11 @@
   "statistics": "統計"
   "head_to_head": "対戦成績"
 "global_modal":
-  "title": "マーケットプレイスが登場！"
-  "text": "<p>パズルを買いたい、売りたい、交換したいと思ったことはありませんか？今まで以上に簡単になりました！</p>\n<p>新しい<strong>マーケットプレイス</strong>をご覧ください — パズルを出品したり、お得な商品を見つけたり、プラットフォーム上で他のパズラーと直接チャットできます。ぜひご感想をお聞かせください！</p>\n"
-  "button_cta": "マーケットプレイスを見る"
-  "button_dismiss": "また後で"
+  "title": "ランキングシステムが登場！"
+  "text": "<p>ランキングと競争に関する大型アップデートをお届けします：</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>パズル難易度</strong> — 実際の解答データに基づく難易度評価</li><li class=\"mt-2\"><strong>統計と予測</strong> — パーソナライズされたタイム予測を含む詳細な指標</li><li class=\"mt-2\"><strong>パズラーティア</strong> — ビギナーからレジェンドまで、あなたの実力を確認</li><li class=\"mt-2\"><strong>MSP-ELOランキング</strong> — チェスのELOに着想を得た競技ランキング。現在、<strong>Wiktorが初代MSP King</strong>です。おめでとうございます！</li></ul>\n<p>計算式、ティア、ELO計算は、データが増えるにつれて<strong>調整される可能性があります</strong>。ランキングに参加したくない場合は、プロフィール設定から<strong>いつでもオプトアウト</strong>できます。</p>\n"
+  "button_methodology": "仕組みを見る"
+  "button_ladder": "ランキングを見る"
+  "button_dismiss": "了解！"
 "puzzlers_comparison":
   "meta":
     "title": "パズラー比較"

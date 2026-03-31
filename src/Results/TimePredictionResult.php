@@ -13,6 +13,7 @@ readonly final class TimePredictionResult
         public float $difficultyForPlayer,
         public bool $isPersonalized = false,
         public null|int $personalSolveCount = null,
+        public null|int $predictedAttemptNumber = null,
     ) {
     }
 }

@@ -640,10 +640,11 @@
   "back_to_competition": "Volver a la competencia"
   "description": "Conecta tu cuenta de competencia con el perfil de MySpeedPuzzling y descubre cómo te encuentras contra otros participantes. Para hacer las estadísticas relevantes, solo tomamos rompecabezas de 500 piezas de los últimos 3 meses en las estadísticas. ¡Si has resuelto el mismo rompecabezas múltiples veces, tomamos solo el más rápido!"
 "global_modal":
-  "title": "¡El Marketplace ya está aquí!"
-  "text": "<p>¿Alguna vez quisiste comprar, vender o intercambiar un puzzle? ¡Ahora es más fácil que nunca!</p>\n<p>Explora el nuevo <strong>Marketplace</strong> — publica tus puzzles a la venta, encuentra grandes ofertas y chatea directamente con otros puzzleros en la plataforma. ¡Nos encantaría conocer tu opinión!</p>\n"
-  "button_cta": "Explorar Marketplace"
-  "button_dismiss": "Quizás después"
+  "title": "¡El ranking competitivo ha llegado!"
+  "text": "<p>Estamos emocionados de presentar una gran actualización — todo sobre ranking y competitividad:</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Dificultad del puzzle</strong> — calificaciones calculadas basadas en datos reales</li><li class=\"mt-2\"><strong>Estadísticas y predicciones</strong> — métricas detalladas con predicciones de tiempo personalizadas</li><li class=\"mt-2\"><strong>Niveles de puzzleros</strong> — de Principiante a Legendario, descubre dónde te encuentras</li><li class=\"mt-2\"><strong>Escalera MSP-ELO</strong> — ranking competitivo inspirado en el ELO de ajedrez. Actualmente, <strong>Wiktor es nuestro primer MSP King</strong>. ¡Felicidades!</li></ul>\n<p>Las fórmulas, niveles y cálculos ELO <strong>pueden ajustarse</strong> a medida que recopilemos más datos. ¿No quieres ser clasificado? Puedes <strong>desactivarlo en cualquier momento</strong> en la configuración de tu perfil.</p>\n"
+  "button_methodology": "Cómo funciona"
+  "button_ladder": "Ver la escalera"
+  "button_dismiss": "¡Entendido!"
 "added_time_recap":
   "title": "¡Excelente tiempo, sigue así!"
   "add_time": "Añadir nuevo tiempo"

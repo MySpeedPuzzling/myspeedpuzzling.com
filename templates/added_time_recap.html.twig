@@ -7,8 +7,8 @@
 
     <div class="my-4">
         <div class="btn-group btn-group-sm">
-            <a rel="nofollow" href="{{ path('puzzle_add') }}" class="btn btn-outline-primary pe-2"><i class="ci-add"></i> {{ 'added_time_recap.add_time'|trans }}</a>
-            <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+            <a rel="nofollow" href="{{ path('puzzle_add') }}" class="btn btn-primary pe-2"><i class="ci-add"></i> {{ 'added_time_recap.add_time'|trans }}</a>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="visually-hidden">Toggle Dropdown</span>
             </button>
             <ul class="dropdown-menu shadow-custom">
@@ -16,17 +16,17 @@
             </ul>
         </div>
 
-        <a href="{{ path('puzzle_detail', {'puzzleId': solved_puzzle.puzzleId}) }}" class="btn btn-sm btn-outline-primary">{{ 'added_time_recap.puzzle_detail'|trans }}</a>
+        <a href="{{ path('puzzle_detail', {'puzzleId': solved_puzzle.puzzleId}) }}" class="btn btn-sm btn-primary">{{ 'added_time_recap.puzzle_detail'|trans }}</a>
     </div>
 
     <div class="row">
         <div class="col-md-7 col-lg-8 order-2 order-md-1">
             {% if is_solo and solved_puzzle.time is not null %}
-                {{ include('added_time_recap/_performance_summary.html.twig') }}
-
                 {% if not player.rankingOptedOut %}
                     {{ include('added_time_recap/_ranking.html.twig') }}
                 {% endif %}
+
+                {{ include('added_time_recap/_performance_summary.html.twig') }}
 
                 {{ include('added_time_recap/_history.html.twig') }}
 

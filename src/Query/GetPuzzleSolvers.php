@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Results\PuzzleSolver;
 use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetPuzzleSolvers
 {
@@ -21,7 +22,7 @@ readonly final class GetPuzzleSolvers
      * @throws PuzzleNotFound
      * @return array<PuzzleSolver>
      */
-    public function soloByPuzzleId(string $puzzleId): array
+    public function soloByPuzzleId(string $puzzleId, null|int $piecesCount = null): array
     {
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
@@ -42,10 +43,13 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    ps.skill_tier,
+    player.ranking_opted_out
 FROM puzzle_solving_time
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
+LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = :piecesCount
 WHERE puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.puzzling_type = 'solo'
     AND puzzle_solving_time.seconds_to_solve IS NOT NULL
@@ -56,6 +60,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'puzzleId' => $puzzleId,
+                'piecesCount' => $piecesCount,
             ])
             ->fetchAllAssociative();
 
@@ -76,8 +81,14 @@ SQL;
              *     competition_shortcut: null|string,
              *     competition_name: null|string,
              *     competition_slug: null|string,
+             *     skill_tier: null|int,
+             *     ranking_opted_out: bool,
              * } $row
              */
+
+            $row['skill_tier_name'] = $row['skill_tier'] !== null
+                ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+                : null;
 
             return PuzzleSolver::fromDatabaseRow($row);
         }, $data);
@@ -87,7 +98,7 @@ SQL;
      * @throws PuzzleNotFound
      * @return array<PuzzleSolversGroup>
      */
-    public function duoByPuzzleId(string $puzzleId): array
+    public function duoByPuzzleId(string $puzzleId, null|int $piecesCount = null): array
     {
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
@@ -113,7 +124,9 @@ SELECT
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private
+            'is_private', p.is_private,
+            'skill_tier', ps_member.skill_tier,
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -121,6 +134,7 @@ FROM
     LEFT JOIN competition ON competition.id = pst.competition_id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
+    LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = :piecesCount
 WHERE
     pst.puzzle_id = :puzzleId
     AND pst.puzzling_type = 'duo'
@@ -134,6 +148,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'puzzleId' => $puzzleId,
+                'piecesCount' => $piecesCount,
             ])
             ->fetchAllAssociative();
 
@@ -164,7 +179,7 @@ SQL;
      * @throws PuzzleNotFound
      * @return array<PuzzleSolversGroup>
      */
-    public function teamByPuzzleId(string $puzzleId): array
+    public function teamByPuzzleId(string $puzzleId, null|int $piecesCount = null): array
     {
         if (Uuid::isValid($puzzleId) === false) {
             throw new PuzzleNotFound();
@@ -190,7 +205,9 @@ SELECT
             'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private
+            'is_private', p.is_private,
+            'skill_tier', ps_member.skill_tier,
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY player_elem.ordinality
     ) AS players
 FROM
@@ -198,6 +215,7 @@ FROM
     LEFT JOIN competition ON competition.id = pst.competition_id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
+    LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = :piecesCount
 WHERE
     pst.puzzle_id = :puzzleId
     AND pst.puzzling_type = 'team'
@@ -211,6 +229,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'puzzleId' => $puzzleId,
+                'piecesCount' => $piecesCount,
             ])
             ->fetchAllAssociative();
 

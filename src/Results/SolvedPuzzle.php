@@ -40,6 +40,8 @@ readonly final class SolvedPuzzle
         public null|string $competitionName,
         public null|string $competitionSlug,
         public bool $suspicious = false,
+        public null|string $skillTierName = null,
+        public bool $rankingOptedOut = false,
     ) {
     }
 
@@ -73,6 +75,8 @@ readonly final class SolvedPuzzle
      *     competition_shortcut: null|string,
      *     competition_slug: null|string,
      *     suspicious?: bool,
+     *     skill_tier_name?: null|string,
+     *     ranking_opted_out?: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -116,6 +120,8 @@ readonly final class SolvedPuzzle
             competitionName: $row['competition_name'],
             competitionSlug: $row['competition_slug'],
             suspicious: $row['suspicious'] ?? false,
+            skillTierName: $row['skill_tier_name'] ?? null,
+            rankingOptedOut: $row['ranking_opted_out'] ?? false,
         );
     }
 }

@@ -1,3 +1,4 @@
+{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
 <div {{ attributes }}>
     <div class="table-responsive custom-table-wrapper mt-3 mb-3">
         <table class="table custom-table table-striped table-hover mb-0">
@@ -40,6 +41,11 @@
                                     <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                     <i class="bi bi-incognito text-muted"></i>
                                 {% else %}
+                                    {% if logged_user.profile is not null and logged_user.profile.activeMembership and not solving_time.rankingOptedOut %}
+                                        {{ skill_icon(solving_time.skillTierName ?? 'unknown', 16) }}
+                                    {% else %}
+                                        {{ skill_icon('locked', 16) }}
+                                    {% endif %}
                                     <a href="{{ path('player_profile', {playerId: solving_time.playerId}) }}">
                                         {% if logged_user.profile is not null and solving_time.playerId in logged_user.profile.favoritePlayers %}
                                             <i class="ci-star-filled text-warning"></i>
@@ -58,6 +64,11 @@
                                         <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                         <i class="bi bi-incognito text-muted"></i>
                                     {% elseif puzzle_solver.playerId is not null %}
+                                        {% if logged_user.profile is not null and logged_user.profile.activeMembership and not puzzle_solver.rankingOptedOut %}
+                                            {{ skill_icon(puzzle_solver.skillTierName ?? 'unknown', 16) }}
+                                        {% else %}
+                                            {{ skill_icon('locked', 16) }}
+                                        {% endif %}
                                         <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                             {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}
                                                 <i class="ci-star-filled text-warning"></i>

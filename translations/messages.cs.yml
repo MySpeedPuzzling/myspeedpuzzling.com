@@ -639,10 +639,11 @@
   "back_to_competition": "Zpět na soutěž"
   "description": "Propojte váš soutěžní účet s MySpeedPuzzling profilem a porovnejte, jak si stojíte proti ostatním účastníkům. Aby byly statistiky co nejvíce relevantí, do statistik počítáme pouze 500-dílkové puzzle složené za poslední 3 měsíce. Pokud máš složené stejné puzzle vícekrát, počítáme pouze s nejrychlejším časem!"
 "global_modal":
-  "title": "Marketplace je tady!"
-  "text": "<p>Chtěli jste někdy koupit, prodat nebo vyměnit puzzle? Teď je to jednodušší než kdy dřív!</p>\n<p>Prozkoumejte zbrusu nový <strong>Marketplace</strong> — nabídněte své puzzle k prodeji, najděte skvělé nabídky a komunikujte s ostatními puzzlaři přímo na platformě. Budeme rádi za vaši zpětnou vazbu!</p>\n"
-  "button_cta": "Prozkoumat Marketplace"
-  "button_dismiss": "Možná později"
+  "title": "Soutěžní puzzlování je tady!"
+  "text": "<p>S nadšením představujeme velkou aktualizaci — vše o hodnocení a soutěživosti:</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Obtížnost puzzlí</strong> — vypočítané hodnocení na základě reálných dat</li><li class=\"mt-2\"><strong>Statistiky a predikce</strong> — detailní metriky s personalizovanými odhady časů</li><li class=\"mt-2\"><strong>Úrovně puzzlerů</strong> — od Začátečníka po Legendárního, zjistěte, kde stojíte</li><li class=\"mt-2\"><strong>MSP-ELO žebříček</strong> — soutěžní hodnocení inspirované šachovým ELO. Aktuálně je <strong>Wiktor náš první MSP King</strong>. Gratulujeme!</li></ul>\n<p>Vzorce, úrovně a výpočty ELO <strong>mohou být upraveny</strong> na základě dalších dat. Nechcete být hodnoceni? Můžete se <strong>kdykoli odhlásit</strong> v nastavení profilu.</p>\n"
+  "button_methodology": "Jak to funguje"
+  "button_ladder": "Zobrazit žebříček"
+  "button_dismiss": "Rozumím!"
 "added_time_recap":
   "title": "Skvělý čas, jen tak dál!"
   "add_time": "Přidat další čas"

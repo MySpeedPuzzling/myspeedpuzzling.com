@@ -641,10 +641,11 @@
   "back_to_competition": "Retour à la compétition"
   "description": "Connectez votre compte de compétition avec le profil MySpeedPuzzling et découvrez votre position contre les autres participants. Pour rendre les statistiques pertinentes, nous ne prenons que les puzzles de 500 pièces des 3 derniers mois dans les statistiques. Si vous avez résolu le même puzzle plusieurs fois, nous ne prenons que le plus rapide !"
 "global_modal":
-  "title": "Le Marketplace est arrivé !"
-  "text": "<p>Vous avez toujours voulu acheter, vendre ou échanger un puzzle ? C'est maintenant plus facile que jamais !</p>\n<p>Découvrez le tout nouveau <strong>Marketplace</strong> — mettez vos puzzles en vente, trouvez de bonnes affaires et discutez directement avec d'autres puzzleurs sur la plateforme. Nous serions ravis d'avoir vos retours !</p>\n"
-  "button_cta": "Découvrir le Marketplace"
-  "button_dismiss": "Peut-être plus tard"
+  "title": "Le classement compétitif est arrivé !"
+  "text": "<p>Nous sommes ravis de présenter une mise à jour majeure — tout sur le classement et la compétitivité :</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Difficulté des puzzles</strong> — notes calculées à partir de données réelles</li><li class=\"mt-2\"><strong>Statistiques et prédictions</strong> — métriques détaillées avec des prédictions de temps personnalisées</li><li class=\"mt-2\"><strong>Niveaux de puzzleurs</strong> — de Débutant à Légendaire, découvrez où vous vous situez</li><li class=\"mt-2\"><strong>Classement MSP-ELO</strong> — classement compétitif inspiré de l'ELO aux échecs. Actuellement, <strong>Wiktor est notre premier MSP King</strong>. Félicitations !</li></ul>\n<p>Les formules, niveaux et calculs ELO <strong>peuvent être ajustés</strong> au fur et à mesure que nous collectons plus de données. Vous ne voulez pas être classé ? Vous pouvez <strong>vous désinscrire à tout moment</strong> dans les paramètres de votre profil.</p>\n"
+  "button_methodology": "Comment ça marche"
+  "button_ladder": "Voir le classement"
+  "button_dismiss": "Compris !"
 "added_time_recap":
   "title": "Excellent temps, continuez !"
   "add_time": "Ajouter nouveau temps"

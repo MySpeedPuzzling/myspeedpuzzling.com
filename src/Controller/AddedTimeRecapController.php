@@ -65,7 +65,7 @@ final class AddedTimeRecapController extends AbstractController
         $eloProgress = null;
 
         if ($isSolo && $solvingPuzzle->time !== null && !$player->rankingOptedOut) {
-            $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId);
+            $timePrediction = $this->getPlayerPrediction->forPuzzle($solvingPuzzle->playerId, $solvingPuzzle->puzzleId, excludeTimeId: $timeId);
 
             $ranking = $this->getRanking->ofPuzzleForPlayer($solvingPuzzle->puzzleId, $solvingPuzzle->playerId);
 

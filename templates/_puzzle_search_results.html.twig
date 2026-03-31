@@ -62,7 +62,7 @@
                 >
                     {{ 'sorting.z_a'|trans }}
                 </a>
-                {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
+                {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
                     <a
                         class="dropdown-item {% if form_data.sortBy == 'easiest' %}active{% endif %}"
                         href="{{ path('puzzles', app.request.query.all|merge({'sortBy': 'easiest'})) }}"

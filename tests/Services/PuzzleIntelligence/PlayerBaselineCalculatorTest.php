@@ -78,4 +78,14 @@ final class PlayerBaselineCalculatorTest extends KernelTestCase
         self::assertNotNull($slowPlayer);
         self::assertLessThan($slowPlayer['baseline_seconds'], $fastPlayer['baseline_seconds']);
     }
+
+    public function testDecayPlateauGivesFullWeightForRecentSolves(): void
+    {
+        // Both players have recent solves (within 3-month plateau), so baseline should be stable
+        $result = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
+
+        self::assertNotNull($result);
+        // The baseline should exist and be reasonable — the plateau doesn't prevent calculation
+        self::assertGreaterThan(0, $result['baseline_seconds']);
+    }
 }

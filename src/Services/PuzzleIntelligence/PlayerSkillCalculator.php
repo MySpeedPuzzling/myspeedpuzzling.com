@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use SpeedPuzzling\Web\Value\SkillTier;
 use Symfony\Contracts\Service\ResetInterface;
@@ -15,6 +16,8 @@ final class PlayerSkillCalculator implements ResetInterface
     public const int MIN_SOLVERS_PER_PUZZLE = 20;
     private const float DIFFICULTY_BLEND = 0.5;
     private const int DIFF_CONFIDENCE_THRESHOLD = 50;
+    private const float DECAY_PLATEAU_MONTHS = 6.0;
+    private const float DECAY_RATE_MONTHS = 24.0;
 
     /**
      * Pre-computed puzzle data: sorted first-attempt times + difficulty info.
@@ -24,14 +27,15 @@ final class PlayerSkillCalculator implements ResetInterface
     private null|array $puzzleCache = null;
 
     /**
-     * Per-player first-attempt times per puzzle.
+     * Per-player first-attempt times per puzzle with solve dates.
      *
-     * @var array<string, array<string, int>>|null player_id => puzzle_id => time
+     * @var array<string, array<string, array{time: int, solve_date: string}>>|null player_id => puzzle_id => data
      */
     private null|array $playerPuzzleTimesCache = null;
 
     public function __construct(
         private readonly Connection $connection,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -61,10 +65,11 @@ final class PlayerSkillCalculator implements ResetInterface
             ];
         }
 
-        // Load all first-attempt times per puzzle per player
-        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string}> $firstAttempts */
+        // Load all first-attempt times per puzzle per player (with solve dates for decay)
+        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, solve_date: string}> $firstAttempts */
         $firstAttempts = $this->connection->fetchAllAssociative("
-            SELECT pst.puzzle_id, pst.player_id, pst.seconds_to_solve
+            SELECT pst.puzzle_id, pst.player_id, pst.seconds_to_solve,
+                   COALESCE(pst.finished_at, pst.tracked_at) AS solve_date
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
             WHERE p.pieces_count = :piecesCount
@@ -84,7 +89,10 @@ final class PlayerSkillCalculator implements ResetInterface
             $time = (int) $row['seconds_to_solve'];
 
             $puzzleTimesMap[$puzzleId][] = $time;
-            $playerTimes[$playerId][$puzzleId] = $time;
+            $playerTimes[$playerId][$puzzleId] = [
+                'time' => $time,
+                'solve_date' => $row['solve_date'],
+            ];
         }
 
         // Build final puzzle cache (sorted times + difficulty, filtered by min solvers)
@@ -134,53 +142,55 @@ final class PlayerSkillCalculator implements ResetInterface
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): null|array
     {
-        $weightedPercentiles = $this->computeWeightedPercentiles($playerId, $piecesCount);
+        $entries = $this->computeWeightedPercentileEntries($playerId, $piecesCount);
 
-        if (count($weightedPercentiles) < self::MINIMUM_QUALIFYING_PUZZLES) {
+        if (count($entries) < self::MINIMUM_QUALIFYING_PUZZLES) {
             return null;
         }
 
-        $skillScore = $this->computeMedian($weightedPercentiles);
+        $skillScore = $this->computeWeightedMedian($entries);
         $percentile = $this->computePercentile($piecesCount, $skillScore);
-        $confidence = MetricConfidence::fromSampleSize(count($weightedPercentiles), self::MINIMUM_QUALIFYING_PUZZLES);
+        $confidence = MetricConfidence::fromSampleSize(count($entries), self::MINIMUM_QUALIFYING_PUZZLES);
 
         return [
             'skill_score' => round($skillScore, 6),
             'skill_tier' => SkillTier::fromPercentile($percentile),
             'skill_percentile' => round($percentile, 2),
             'confidence' => $confidence,
-            'qualifying_puzzles_count' => count($weightedPercentiles),
+            'qualifying_puzzles_count' => count($entries),
         ];
     }
 
     /**
-     * v2: For each puzzle the player solved (first attempt), compute:
-     *   percentile = (slower_count + tied_count/2) / (total - 1)
-     *   difficulty_weight = (1 - blend*confidence) + blend*confidence * difficulty_score
-     *   weighted_percentile = percentile × difficulty_weight
+     * For each puzzle the player solved (first attempt), compute:
+     *   percentile among all first-attempt solvers
+     *   difficulty_weight with confidence scaling
+     *   weighted_percentile = percentile x difficulty_weight
+     *   age_weight = exponential decay based on solve recency
      *
-     * @return list<float>
+     * @return list<array{value: float, weight: float}>
      */
-    private function computeWeightedPercentiles(string $playerId, int $piecesCount): array
+    private function computeWeightedPercentileEntries(string $playerId, int $piecesCount): array
     {
         if ($this->puzzleCache !== null && $this->playerPuzzleTimesCache !== null) {
-            return $this->computeWeightedPercentilesFromCache($playerId);
+            return $this->computeEntriesFromCache($playerId);
         }
 
-        return $this->computeWeightedPercentilesFromDb($playerId, $piecesCount);
+        return $this->computeEntriesFromDb($playerId, $piecesCount);
     }
 
     /**
-     * @return list<float>
+     * @return list<array{value: float, weight: float}>
      */
-    private function computeWeightedPercentilesFromCache(string $playerId): array
+    private function computeEntriesFromCache(string $playerId): array
     {
         assert($this->puzzleCache !== null && $this->playerPuzzleTimesCache !== null);
 
         $playerTimes = $this->playerPuzzleTimesCache[$playerId] ?? [];
-        $weightedPercentiles = [];
+        $entries = [];
+        $now = $this->clock->now();
 
-        foreach ($playerTimes as $puzzleId => $playerTime) {
+        foreach ($playerTimes as $puzzleId => $solveData) {
             if (!isset($this->puzzleCache[$puzzleId])) {
                 continue;
             }
@@ -188,6 +198,7 @@ final class PlayerSkillCalculator implements ResetInterface
             $puzzle = $this->puzzleCache[$puzzleId];
             $sortedTimes = $puzzle['sorted_times'];
             $totalSolvers = count($sortedTimes);
+            $playerTime = $solveData['time'];
 
             if ($totalSolvers <= 1) {
                 continue;
@@ -214,22 +225,30 @@ final class PlayerSkillCalculator implements ResetInterface
             $blend = self::DIFFICULTY_BLEND * $confidence;
             $difficultyWeight = (1.0 - $blend) + $blend * $puzzle['difficulty_score'];
 
-            $weightedPercentiles[] = $percentile * $difficultyWeight;
+            // Time decay weight
+            $solveDate = new \DateTimeImmutable($solveData['solve_date']);
+            $ageWeight = $this->computeDecayWeight($solveDate, $now);
+
+            $entries[] = [
+                'value' => $percentile * $difficultyWeight,
+                'weight' => $ageWeight,
+            ];
         }
 
-        return $weightedPercentiles;
+        return $entries;
     }
 
     /**
-     * @return list<float>
+     * @return list<array{value: float, weight: float}>
      */
-    private function computeWeightedPercentilesFromDb(string $playerId, int $piecesCount): array
+    private function computeEntriesFromDb(string $playerId, int $piecesCount): array
     {
         $sql = "
             WITH player_first_attempts AS (
                 SELECT DISTINCT ON (pst.puzzle_id)
                     pst.puzzle_id,
-                    pst.seconds_to_solve
+                    pst.seconds_to_solve,
+                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
                 WHERE pst.player_id = :playerId
@@ -245,6 +264,7 @@ final class PlayerSkillCalculator implements ResetInterface
                 SELECT
                     pfa.puzzle_id,
                     pfa.seconds_to_solve AS player_time,
+                    pfa.solve_date,
                     pd.difficulty_score,
                     pd.sample_size,
                     COUNT(*) FILTER (WHERE all_fa.seconds_to_solve > pfa.seconds_to_solve) AS slower_count,
@@ -259,12 +279,13 @@ final class PlayerSkillCalculator implements ResetInterface
                     AND all_fa.first_attempt = true
                 WHERE pd.difficulty_score IS NOT NULL
                     AND pd.confidence != 'insufficient'
-                GROUP BY pfa.puzzle_id, pfa.seconds_to_solve, pd.difficulty_score, pd.sample_size
+                GROUP BY pfa.puzzle_id, pfa.seconds_to_solve, pfa.solve_date, pd.difficulty_score, pd.sample_size
                 HAVING COUNT(*) >= :minSolvers
             )
             SELECT
                 puzzle_id,
                 player_time,
+                solve_date,
                 difficulty_score,
                 sample_size,
                 slower_count,
@@ -273,14 +294,15 @@ final class PlayerSkillCalculator implements ResetInterface
             FROM puzzle_rankings
         ";
 
-        /** @var list<array{puzzle_id: string, player_time: int|string, difficulty_score: float|string, sample_size: int|string, slower_count: int|string, tied_count: int|string, total_solvers: int|string}> $rows */
+        /** @var list<array{puzzle_id: string, player_time: int|string, solve_date: string, difficulty_score: float|string, sample_size: int|string, slower_count: int|string, tied_count: int|string, total_solvers: int|string}> $rows */
         $rows = $this->connection->fetchAllAssociative($sql, [
             'playerId' => $playerId,
             'piecesCount' => $piecesCount,
             'minSolvers' => self::MIN_SOLVERS_PER_PUZZLE,
         ]);
 
-        $weightedPercentiles = [];
+        $entries = [];
+        $now = $this->clock->now();
 
         foreach ($rows as $row) {
             $totalSolvers = (int) $row['total_solvers'];
@@ -301,10 +323,17 @@ final class PlayerSkillCalculator implements ResetInterface
             $blend = self::DIFFICULTY_BLEND * $confidence;
             $difficultyWeight = (1.0 - $blend) + $blend * $difficultyScore;
 
-            $weightedPercentiles[] = $percentile * $difficultyWeight;
+            // Time decay weight
+            $solveDate = new \DateTimeImmutable($row['solve_date']);
+            $ageWeight = $this->computeDecayWeight($solveDate, $now);
+
+            $entries[] = [
+                'value' => $percentile * $difficultyWeight,
+                'weight' => $ageWeight,
+            ];
         }
 
-        return $weightedPercentiles;
+        return $entries;
     }
 
     /**
@@ -336,18 +365,46 @@ final class PlayerSkillCalculator implements ResetInterface
     }
 
     /**
-     * @param list<float> $values
+     * Weighted median: sorts entries by value, accumulates weights,
+     * returns the value where cumulative weight crosses 50%.
+     * Recent solves (higher weight) have more influence on the result.
+     *
+     * @param list<array{value: float, weight: float}> $entries
      */
-    private function computeMedian(array $values): float
+    private function computeWeightedMedian(array $entries): float
     {
-        sort($values);
-        $count = count($values);
-        $mid = intdiv($count, 2);
+        usort($entries, static fn (array $a, array $b): int => $a['value'] <=> $b['value']);
 
-        if ($count % 2 === 0) {
-            return ($values[$mid - 1] + $values[$mid]) / 2.0;
+        $totalWeight = array_sum(array_column($entries, 'weight'));
+        $halfWeight = $totalWeight / 2.0;
+        $cumulativeWeight = 0.0;
+
+        foreach ($entries as $entry) {
+            $cumulativeWeight += $entry['weight'];
+
+            if ($cumulativeWeight >= $halfWeight) {
+                return $entry['value'];
+            }
         }
 
-        return $values[$mid];
+        $lastKey = array_key_last($entries);
+        assert($lastKey !== null);
+
+        return $entries[$lastKey]['value'];
+    }
+
+    private function computeDecayWeight(\DateTimeImmutable $solveDate, \DateTimeImmutable $now): float
+    {
+        $ageInMonths = $this->calculateAgeInMonths($solveDate, $now);
+        $effectiveAge = max(0.0, $ageInMonths - self::DECAY_PLATEAU_MONTHS);
+
+        return exp(-$effectiveAge / self::DECAY_RATE_MONTHS);
+    }
+
+    private function calculateAgeInMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): float
+    {
+        $diff = $from->diff($to);
+
+        return ($diff->y * 12) + $diff->m + ($diff->d / 30.0);
     }
 }

@@ -6,9 +6,6 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
-use SpeedPuzzling\Web\Value\DifficultyTier;
-use SpeedPuzzling\Web\Value\MetricConfidence;
-use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class PuzzleIntelligenceRecalculator
 {
@@ -17,6 +14,8 @@ readonly final class PuzzleIntelligenceRecalculator
 
     /** @var list<int> Piece counts for which MSP-ELO is computed */
     public const array ELO_PIECES_COUNTS = [500];
+
+    private const int BATCH_SIZE = 200;
 
     public function __construct(
         private Connection $connection,
@@ -90,16 +89,33 @@ readonly final class PuzzleIntelligenceRecalculator
         $players = $this->getPlayersWithSolves($specificPlayer);
         $pieceCounts = $this->getDistinctPieceCounts();
         $directCount = 0;
+        $buffer = [];
 
         foreach ($players as $playerId) {
             foreach ($pieceCounts as $piecesCount) {
                 $result = $this->baselineCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
-                    $this->upsertBaseline($playerId, $piecesCount, $result['baseline_seconds'], $result['qualifying_count'], $now, 'direct');
+                    $buffer[] = [
+                        'player_id' => $playerId,
+                        'pieces_count' => $piecesCount,
+                        'baseline_seconds' => $result['baseline_seconds'],
+                        'qualifying_solves_count' => $result['qualifying_count'],
+                        'baseline_type' => 'direct',
+                        'computed_at' => $now->format('Y-m-d H:i:s'),
+                    ];
                     $directCount++;
+
+                    if (count($buffer) >= self::BATCH_SIZE) {
+                        $this->flushBaselineBuffer($buffer);
+                        $buffer = [];
+                    }
                 }
             }
+        }
+
+        if ($buffer !== []) {
+            $this->flushBaselineBuffer($buffer);
         }
 
         $this->baselineCalculator->clearPreloadedData();
@@ -117,6 +133,7 @@ readonly final class PuzzleIntelligenceRecalculator
 
         // Cache direct baselines per player to avoid repeated queries
         $playerBaselineCache = [];
+        $buffer = [];
 
         foreach ($gaps as $gap) {
             $playerId = $gap['player_id'];
@@ -156,8 +173,7 @@ readonly final class PuzzleIntelligenceRecalculator
                     $upper,
                     $directBaselines[$upper],
                 );
-                $this->upsertBaseline($playerId, $targetPieces, $baseline, 0, $now, 'interpolated');
-                $interpolatedCount++;
+                $baselineType = 'interpolated';
             } else {
                 // Extrapolated: use closest baseline + scaling exponent
                 $closestPc = $lower ?? $upper;
@@ -169,9 +185,27 @@ readonly final class PuzzleIntelligenceRecalculator
                     $directBaselines[$closestPc],
                     $scalingExponent,
                 );
-                $this->upsertBaseline($playerId, $targetPieces, $baseline, 0, $now, 'extrapolated');
-                $interpolatedCount++;
+                $baselineType = 'extrapolated';
             }
+
+            $buffer[] = [
+                'player_id' => $playerId,
+                'pieces_count' => $targetPieces,
+                'baseline_seconds' => $baseline,
+                'qualifying_solves_count' => 0,
+                'baseline_type' => $baselineType,
+                'computed_at' => $now->format('Y-m-d H:i:s'),
+            ];
+            $interpolatedCount++;
+
+            if (count($buffer) >= self::BATCH_SIZE) {
+                $this->flushBaselineBuffer($buffer);
+                $buffer = [];
+            }
+        }
+
+        if ($buffer !== []) {
+            $this->flushBaselineBuffer($buffer);
         }
 
         // Clean up all stale baselines (direct cleanup already happened above, this catches interpolated/extrapolated)
@@ -195,14 +229,34 @@ readonly final class PuzzleIntelligenceRecalculator
 
         $puzzleIds = $this->getPuzzlesWithSolves($specificPuzzle);
         $count = 0;
+        $buffer = [];
 
         foreach ($puzzleIds as $puzzleId) {
             $result = $this->difficultyCalculator->calculateForPuzzle($puzzleId);
-            $this->upsertDifficulty($puzzleId, $result, $now);
+
+            $buffer[] = [
+                'puzzle_id' => $puzzleId,
+                'difficulty_score' => $result['difficulty_score'],
+                'difficulty_tier' => $result['difficulty_tier']?->value,
+                'confidence' => $result['confidence']->value,
+                'sample_size' => $result['sample_size'],
+                'indices_p25' => $result['indices_p25'],
+                'indices_p75' => $result['indices_p75'],
+                'computed_at' => $now->format('Y-m-d H:i:s'),
+            ];
 
             if ($result['difficulty_score'] !== null) {
                 $count++;
             }
+
+            if (count($buffer) >= self::BATCH_SIZE) {
+                $this->flushDifficultyBuffer($buffer);
+                $buffer = [];
+            }
+        }
+
+        if ($buffer !== []) {
+            $this->flushDifficultyBuffer($buffer);
         }
 
         $this->difficultyCalculator->clearPreloadedData();
@@ -239,14 +293,32 @@ readonly final class PuzzleIntelligenceRecalculator
         $globalLearningRate = $rawLearningRates !== [] ? $this->computeMedianFromArray($rawLearningRates) : null;
 
         // Pass 3: Write normalized metrics
+        $buffer = [];
+
         foreach ($allMetrics as $puzzleId => $metrics) {
             // Normalize memorability against global learning rate
             if ($metrics['memorability_score'] !== null && $globalLearningRate !== null && $globalLearningRate > 0) {
                 $metrics['memorability_score'] = round($metrics['memorability_score'] / $globalLearningRate, 3);
             }
 
-            $this->updateDerivedMetrics($puzzleId, $metrics);
+            $buffer[] = [
+                'puzzle_id' => $puzzleId,
+                'memorability_score' => $metrics['memorability_score'],
+                'skill_sensitivity_score' => $metrics['skill_sensitivity_score'],
+                'predictability_score' => $metrics['predictability_score'],
+                'box_dependence_score' => $metrics['box_dependence_score'],
+                'improvement_ceiling_score' => $metrics['improvement_ceiling_score'],
+            ];
             $count++;
+
+            if (count($buffer) >= self::BATCH_SIZE) {
+                $this->flushDerivedMetricsBuffer($buffer);
+                $buffer = [];
+            }
+        }
+
+        if ($buffer !== []) {
+            $this->flushDerivedMetricsBuffer($buffer);
         }
 
         $this->derivedMetricsCalculator->clearPreloadedData();
@@ -282,13 +354,33 @@ readonly final class PuzzleIntelligenceRecalculator
                 $this->skillCalculator->preloadPuzzleData($piecesCount);
             }
 
+            $buffer = [];
+
             foreach ($players as $playerId) {
                 $result = $this->skillCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
-                    $this->upsertSkill($playerId, $piecesCount, $result, $now);
+                    $buffer[] = [
+                        'player_id' => $playerId,
+                        'pieces_count' => $piecesCount,
+                        'skill_score' => $result['skill_score'],
+                        'skill_tier' => $result['skill_tier']->value,
+                        'skill_percentile' => $result['skill_percentile'],
+                        'confidence' => $result['confidence']->value,
+                        'qualifying_puzzles_count' => $result['qualifying_puzzles_count'],
+                        'computed_at' => $now->format('Y-m-d H:i:s'),
+                    ];
                     $count++;
+
+                    if (count($buffer) >= self::BATCH_SIZE) {
+                        $this->flushSkillBuffer($buffer);
+                        $buffer = [];
+                    }
                 }
+            }
+
+            if ($buffer !== []) {
+                $this->flushSkillBuffer($buffer);
             }
 
             $this->skillCalculator->clearPreloadedData();
@@ -324,13 +416,29 @@ readonly final class PuzzleIntelligenceRecalculator
                 $this->eloCalculator->preloadAllPlayerSolves($piecesCount);
             }
 
+            $buffer = [];
+
             foreach ($players as $playerId) {
                 $eloRating = $this->eloCalculator->calculateForPlayer($playerId, $piecesCount);
 
                 if ($eloRating > 0.0) {
-                    $this->upsertElo($playerId, $piecesCount, $eloRating, $now);
+                    $buffer[] = [
+                        'player_id' => $playerId,
+                        'pieces_count' => $piecesCount,
+                        'elo_rating' => $eloRating,
+                        'computed_at' => $now->format('Y-m-d H:i:s'),
+                    ];
                     $count++;
+
+                    if (count($buffer) >= self::BATCH_SIZE) {
+                        $this->flushEloBuffer($buffer);
+                        $buffer = [];
+                    }
                 }
+            }
+
+            if ($buffer !== []) {
+                $this->flushEloBuffer($buffer);
             }
 
             $this->eloCalculator->clearCache();
@@ -506,34 +614,76 @@ readonly final class PuzzleIntelligenceRecalculator
         );
     }
 
-    private function upsertBaseline(string $playerId, int $piecesCount, int $baselineSeconds, int $qualifyingCount, \DateTimeImmutable $now, string $baselineType = 'direct'): void
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param list<string> $columns
+     * @return array{sql: string, params: array<string, mixed>}
+     */
+    private function buildValuesClause(array $rows, array $columns, null|string $idExpression = null): array
     {
+        $valuesClauses = [];
+        $params = [];
+
+        foreach ($rows as $i => $row) {
+            $placeholders = [];
+
+            if ($idExpression !== null) {
+                $placeholders[] = $idExpression;
+            }
+
+            foreach ($columns as $col) {
+                $paramName = "r{$i}_{$col}";
+                $placeholders[] = ":{$paramName}";
+                $params[$paramName] = $row[$col];
+            }
+
+            $valuesClauses[] = '(' . implode(', ', $placeholders) . ')';
+        }
+
+        return [
+            'sql' => implode(', ', $valuesClauses),
+            'params' => $params,
+        ];
+    }
+
+    /**
+     * @param list<array{player_id: string, pieces_count: int, baseline_seconds: int, qualifying_solves_count: int, baseline_type: string, computed_at: string}> $rows
+     */
+    private function flushBaselineBuffer(array $rows): void
+    {
+        if ($rows === []) {
+            return;
+        }
+
+        $columns = ['player_id', 'pieces_count', 'baseline_seconds', 'qualifying_solves_count', 'baseline_type', 'computed_at'];
+        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
+
         $this->connection->executeStatement("
             INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :baselineSeconds, :qualifyingCount, :baselineType, :now)
+            VALUES {$values['sql']}
             ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 baseline_seconds = EXCLUDED.baseline_seconds,
                 qualifying_solves_count = EXCLUDED.qualifying_solves_count,
                 baseline_type = EXCLUDED.baseline_type,
                 computed_at = EXCLUDED.computed_at
-        ", [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-            'baselineSeconds' => $baselineSeconds,
-            'qualifyingCount' => $qualifyingCount,
-            'baselineType' => $baselineType,
-            'now' => $now->format('Y-m-d H:i:s'),
-        ]);
+        ", $values['params']);
     }
 
     /**
-     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int, indices_p25: float|null, indices_p75: float|null} $result
+     * @param list<array{puzzle_id: string, difficulty_score: float|null, difficulty_tier: int|null, confidence: string, sample_size: int, indices_p25: float|null, indices_p75: float|null, computed_at: string}> $rows
      */
-    private function upsertDifficulty(string $puzzleId, array $result, \DateTimeImmutable $now): void
+    private function flushDifficultyBuffer(array $rows): void
     {
+        if ($rows === []) {
+            return;
+        }
+
+        $columns = ['puzzle_id', 'difficulty_score', 'difficulty_tier', 'confidence', 'sample_size', 'indices_p25', 'indices_p75', 'computed_at'];
+        $values = $this->buildValuesClause($rows, $columns);
+
         $this->connection->executeStatement("
             INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, computed_at)
-            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :now)
+            VALUES {$values['sql']}
             ON CONFLICT (puzzle_id) DO UPDATE SET
                 difficulty_score = EXCLUDED.difficulty_score,
                 difficulty_tier = EXCLUDED.difficulty_tier,
@@ -542,49 +692,60 @@ readonly final class PuzzleIntelligenceRecalculator
                 indices_p25 = EXCLUDED.indices_p25,
                 indices_p75 = EXCLUDED.indices_p75,
                 computed_at = EXCLUDED.computed_at
-        ", [
-            'puzzleId' => $puzzleId,
-            'score' => $result['difficulty_score'],
-            'tier' => $result['difficulty_tier']?->value,
-            'confidence' => $result['confidence']->value,
-            'sampleSize' => $result['sample_size'],
-            'indicesP25' => $result['indices_p25'],
-            'indicesP75' => $result['indices_p75'],
-            'now' => $now->format('Y-m-d H:i:s'),
-        ]);
+        ", $values['params']);
     }
 
     /**
-     * @param array{memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null, improvement_ceiling_score: float|null} $metrics
+     * @param list<array{puzzle_id: string, memorability_score: float|null, skill_sensitivity_score: float|null, predictability_score: float|null, box_dependence_score: float|null, improvement_ceiling_score: float|null}> $rows
      */
-    private function updateDerivedMetrics(string $puzzleId, array $metrics): void
+    private function flushDerivedMetricsBuffer(array $rows): void
     {
+        if ($rows === []) {
+            return;
+        }
+
+        $valuesClauses = [];
+        $params = [];
+
+        foreach ($rows as $i => $row) {
+            $valuesClauses[] = "(:r{$i}_puzzle_id::uuid, :r{$i}_memorability::double precision, :r{$i}_skill_sensitivity::double precision, :r{$i}_predictability::double precision, :r{$i}_box_dependence::double precision, :r{$i}_improvement_ceiling::double precision)";
+            $params["r{$i}_puzzle_id"] = $row['puzzle_id'];
+            $params["r{$i}_memorability"] = $row['memorability_score'];
+            $params["r{$i}_skill_sensitivity"] = $row['skill_sensitivity_score'];
+            $params["r{$i}_predictability"] = $row['predictability_score'];
+            $params["r{$i}_box_dependence"] = $row['box_dependence_score'];
+            $params["r{$i}_improvement_ceiling"] = $row['improvement_ceiling_score'];
+        }
+
+        $valuesClause = implode(', ', $valuesClauses);
+
         $this->connection->executeStatement("
-            UPDATE puzzle_difficulty SET
-                memorability_score = :memorability,
-                skill_sensitivity_score = :skillSensitivity,
-                predictability_score = :predictability,
-                box_dependence_score = :boxDependence,
-                improvement_ceiling_score = :improvementCeiling
-            WHERE puzzle_id = :puzzleId
-        ", [
-            'puzzleId' => $puzzleId,
-            'memorability' => $metrics['memorability_score'],
-            'skillSensitivity' => $metrics['skill_sensitivity_score'],
-            'predictability' => $metrics['predictability_score'],
-            'boxDependence' => $metrics['box_dependence_score'],
-            'improvementCeiling' => $metrics['improvement_ceiling_score'],
-        ]);
+            UPDATE puzzle_difficulty AS pd SET
+                memorability_score = v.memorability_score,
+                skill_sensitivity_score = v.skill_sensitivity_score,
+                predictability_score = v.predictability_score,
+                box_dependence_score = v.box_dependence_score,
+                improvement_ceiling_score = v.improvement_ceiling_score
+            FROM (VALUES {$valuesClause}) AS v(puzzle_id, memorability_score, skill_sensitivity_score, predictability_score, box_dependence_score, improvement_ceiling_score)
+            WHERE pd.puzzle_id = v.puzzle_id
+        ", $params);
     }
 
     /**
-     * @param array{skill_score: float, skill_tier: SkillTier, skill_percentile: float, confidence: MetricConfidence, qualifying_puzzles_count: int} $result
+     * @param list<array{player_id: string, pieces_count: int, skill_score: float, skill_tier: int, skill_percentile: float, confidence: string, qualifying_puzzles_count: int, computed_at: string}> $rows
      */
-    private function upsertSkill(string $playerId, int $piecesCount, array $result, \DateTimeImmutable $now): void
+    private function flushSkillBuffer(array $rows): void
     {
+        if ($rows === []) {
+            return;
+        }
+
+        $columns = ['player_id', 'pieces_count', 'skill_score', 'skill_tier', 'skill_percentile', 'confidence', 'qualifying_puzzles_count', 'computed_at'];
+        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
+
         $this->connection->executeStatement("
             INSERT INTO player_skill (id, player_id, pieces_count, skill_score, skill_tier, skill_percentile, confidence, qualifying_puzzles_count, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :skillScore, :skillTier, :percentile, :confidence, :qualifyingCount, :now)
+            VALUES {$values['sql']}
             ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 skill_score = EXCLUDED.skill_score,
                 skill_tier = EXCLUDED.skill_tier,
@@ -592,31 +753,27 @@ readonly final class PuzzleIntelligenceRecalculator
                 confidence = EXCLUDED.confidence,
                 qualifying_puzzles_count = EXCLUDED.qualifying_puzzles_count,
                 computed_at = EXCLUDED.computed_at
-        ", [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-            'skillScore' => $result['skill_score'],
-            'skillTier' => $result['skill_tier']->value,
-            'percentile' => $result['skill_percentile'],
-            'confidence' => $result['confidence']->value,
-            'qualifyingCount' => $result['qualifying_puzzles_count'],
-            'now' => $now->format('Y-m-d H:i:s'),
-        ]);
+        ", $values['params']);
     }
 
-    private function upsertElo(string $playerId, int $piecesCount, float $eloRating, \DateTimeImmutable $now): void
+    /**
+     * @param list<array{player_id: string, pieces_count: int, elo_rating: float, computed_at: string}> $rows
+     */
+    private function flushEloBuffer(array $rows): void
     {
+        if ($rows === []) {
+            return;
+        }
+
+        $columns = ['player_id', 'pieces_count', 'elo_rating', 'computed_at'];
+        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
+
         $this->connection->executeStatement("
             INSERT INTO player_elo (id, player_id, pieces_count, elo_rating, computed_at)
-            VALUES (gen_random_uuid(), :playerId, :piecesCount, :eloRating, :now)
+            VALUES {$values['sql']}
             ON CONFLICT (player_id, pieces_count) DO UPDATE SET
                 elo_rating = EXCLUDED.elo_rating,
                 computed_at = EXCLUDED.computed_at
-        ", [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-            'eloRating' => $eloRating,
-            'now' => $now->format('Y-m-d H:i:s'),
-        ]);
+        ", $values['params']);
     }
 }

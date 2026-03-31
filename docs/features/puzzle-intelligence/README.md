@@ -57,15 +57,15 @@ The player baseline is the **weighted median** of their first-attempt solo times
 ### Formula
 
 ```
-weight(solve) = exp(-age_in_months / 18)
+effective_age = max(0, age_in_months - 3)
+weight(solve) = exp(-effective_age / 13.5)
 
-Decay curve:
-  Age  0 months: weight 1.00
-  Age  6 months: weight 0.72
-  Age 12 months: weight 0.51
-  Age 18 months: weight 0.37
-  Age 24 months: weight 0.26
-  Age 36 months: weight 0.14
+Decay curve (3-month plateau):
+  Age  0-3 months: weight 1.00  (plateau)
+  Age  6 months:   weight 0.80
+  Age 12 months:   weight 0.51
+  Age 18 months:   weight 0.33
+  Age 24 months:   weight 0.21
 ```
 
 ### Weighted Median Calculation
@@ -86,19 +86,17 @@ If fewer than 5 qualifying solves exist, no baseline is computed.
 
 Player has 7 first-attempt 500pc solves:
 
-| Puzzle | Time | Age (months) | Weight |
-|--------|------|-------------|--------|
-| A | 45:00 | 2 | 0.895 |
-| B | 48:30 | 4 | 0.801 |
-| C | 50:15 | 6 | 0.717 |
-| D | 52:00 | 8 | 0.641 |
-| E | 47:20 | 10 | 0.574 |
-| F | 55:00 | 14 | 0.460 |
-| G | 62:00 | 20 | 0.329 |
+| Puzzle | Time | Age (months) | Effective Age | Weight |
+|--------|------|-------------|--------------|--------|
+| A | 45:00 | 2 | 0 | 1.000 |
+| B | 48:30 | 4 | 1 | 0.929 |
+| C | 50:15 | 6 | 3 | 0.801 |
+| D | 52:00 | 8 | 5 | 0.690 |
+| E | 47:20 | 10 | 7 | 0.595 |
+| F | 55:00 | 14 | 11 | 0.442 |
+| G | 62:00 | 20 | 17 | 0.283 |
 
-Total weight: 4.417 — **below 5.0 threshold**, no baseline yet.
-
-If they solve one more puzzle (age 0, weight 1.0), total becomes 5.417 — baseline computed.
+Total weight: 4.740 — baseline computed (5 qualifying solves required, 7 present).
 
 ---
 
@@ -226,38 +224,44 @@ box_dependence = median(unboxed_difficulty_indices) / median(boxed_difficulty_in
 
 ## Step 5: Player Skill
 
-Player skill measures how well a player performs **relative to puzzle difficulty**, preventing the gaming of solving only easy puzzles.
+Player skill measures how well a player performs **relative to other solvers on each puzzle**, weighted by difficulty and recency. This prevents gaming by solving only easy puzzles.
 
 ### Formula
 
 For each puzzle the player solved (first-attempt, solo):
 
 ```
-outperformance = puzzle_difficulty / player_difficulty_index
+percentile = (slower_count + tied_count / 2) / (total_solvers - 1)
+  0.0 = slowest, 1.0 = fastest
+
+confidence = min(1.0, sample_size / 50)
+blend = 0.5 × confidence
+difficulty_weight = (1 - blend) + blend × puzzle_difficulty
+
+weighted_percentile = percentile × difficulty_weight
 ```
 
-- outperformance > 1.0: Player was faster than the puzzle's difficulty predicts (skilled)
-- outperformance = 1.0: Exactly average performance
-- outperformance < 1.0: Player was slower than predicted (less skilled)
+### Time Decay (Weighted Median)
+
+Skill uses a **weighted median** where recent solves have more influence. The time decay has a 6-month plateau (full weight) followed by gentle exponential decline:
 
 ```
-player_skill_score = median(outperformance across all qualifying puzzles)
+effective_age = max(0, age_in_months - 6)
+age_weight = exp(-effective_age / 24)
+
+Decay curve:
+  0-6 months:  1.00  (plateau)
+  12 months:   0.78
+  18 months:   0.61
+  24 months:   0.47
+  36 months:   0.29
+
+skill_score = weighted_median(weighted_percentiles, age_weights)
 ```
-
-### Why This Is Fair
-
-**Player who only solves easy puzzles (difficulty ~0.80):**
-- Their baseline is low (fast, because easy puzzles)
-- Their difficulty index on easy puzzle: ~0.80 (close to difficulty)
-- Outperformance: 0.80 / 0.80 = 1.0 — average, not rewarded
-
-**Player who tackles hard puzzles (difficulty ~1.30):**
-- Their baseline is higher (hard puzzles inflate times)
-- If they beat the difficulty: index 1.15, outperformance = 1.30/1.15 = 1.13 — above average
 
 ### Minimum Threshold
 
-Player needs >= **20 qualifying puzzles** (puzzles that have a difficulty score, at least Low confidence, and at least 20 first-attempt solvers) for a skill tier to be computed.
+Player needs >= **20 qualifying puzzles** (puzzles that have a difficulty score and at least 20 first-attempt solvers) for a skill tier to be computed.
 
 ### Skill Tiers
 
@@ -287,45 +291,50 @@ Skills are computed independently for each piece count where enough data exists.
 
 ## Step 6: MSP-ELO Ladder
 
-A competitive ranking system separate from skill tiers. "MSP-ELO" = MySpeedPuzzling ELO.
+A competitive portfolio-based ranking system separate from skill tiers. "MSP-ELO" = MySpeedPuzzling ELO.
 
 ### Entry Requirements (Per Piece Count)
 
-- At least **15 first-attempt solo solves**
-- At least **50 total solo solves**
+- At least **20 first-attempt solves** within 24-month window
+- At least **50 total qualifying puzzle results** within 24-month window
+- Public profile (private players excluded)
 
 ### Algorithm
 
-When processing a solve for player A on puzzle X:
+Portfolio-based snapshot calculation combining first-attempt and best-time performance with difficulty weighting and time decay:
 
-1. Compute A's percentile rank among all solvers of puzzle X
-2. Compute expected percentile based on ELO difference vs. solver pool average
-3. K-factor: **60** for first 10 matches, **30** after
-4. ELO change = K x (actual_percentile - expected_percentile)
-5. Update rating
+1. Collect all puzzles solved within 24-month window (20+ public solvers each)
+2. Compute first-attempt percentile and best-time percentile for each puzzle
+3. Apply difficulty weight (confidence-scaled) and time decay
+4. Build two portfolios (top 100 entries each), compute means
+5. Blend: 75% first-attempt + 25% best-time
+
+### Time Decay
+
+Portfolio entries are gently decayed by age with a 3-month plateau:
 
 ```
-expected_percentile = 1 / (1 + 10^((avg_pool_elo - player_elo) / 400))
-elo_change = K * (actual_percentile - expected_percentile)
-new_elo = old_elo + elo_change
+effective_age = max(0, age_in_months - 3)
+decay = exp(-effective_age / 30)
+
+Decay curve:
+  0-3 months:  1.00  (plateau)
+  6 months:    0.90
+  12 months:   0.74
+  18 months:   0.61
+  24 months:   0.50  → hard cutoff
+
+decayed_points = percentile × difficulty_weight × decay
 ```
 
-### Two Periods
+First-attempt entries decay by the first-attempt date. Best-time entries decay by the most recent solve date on that puzzle.
 
-**Monthly:**
-- Fresh start at 1000 each month
-- Higher K-factor for first 10 matches (placement phase)
-- Creates monthly competition seasons
+### Rating Formula
 
-**All-time:**
-- Persistent, never resets
-- Starting rating: 1000
-- No decay — inactive players keep their rating but active players overtake naturally
-- Shows "last active X days ago" on ladder
-
-### Starting Rating
-
-All players start at **1000 ELO** in both monthly and all-time ratings.
+```
+rating = 0.75 × mean(top 100 FA_decayed_points) + 0.25 × mean(top 100 BT_decayed_points)
+Display: rating × 1000 (e.g., 0.85 → 850)
+```
 
 ---
 
@@ -384,16 +393,52 @@ Mar 2026: 52 min (Expert)
 
 ## Minimum Thresholds Summary
 
-| Feature | Requirement | "Need X more" display |
-|---------|------------|----------------------|
-| Player baseline | 5 distinct first-attempt solo solves per piece count | "Solve X more new Ypc puzzles" |
-| Player skill tier | 20 first-attempt solos on puzzles with difficulty scores and 20+ solvers | "X more qualifying puzzles needed" |
-| MSP-ELO entry | 15 first attempts + 50 total solos (per piece count) | "11/15 first attempts, 38/50 total" |
-| Puzzle difficulty | 5 qualified player indices | "X more qualified solvers needed" |
-| Memorability | 5+ repeat solvers | Only shown when available |
-| Skill sensitivity | 10+ indices | Only shown when available |
-| Predictability | 10+ indices | Only shown when available |
-| Box dependence | 5+ unboxed solvers | Only shown when available |
+| Feature | Requirement |
+|---------|------------|
+| Player baseline | 5 distinct first-attempt solo solves per piece count |
+| Puzzle difficulty | 5 qualifying indices from different players |
+| Player skill tier | 20 qualifying puzzles with 20+ first-attempt solvers each |
+| MSP-ELO entry | 20 first attempts + 50 total solves within 24-month window |
+| Memorability | 8 players with 3+ attempts |
+| Skill sensitivity | 20 qualifying indices |
+| Predictability | 20 qualifying indices |
+| Box dependence | 10 unboxed + 5 boxed solvers |
+| Improvement ceiling | 20 solvers |
+
+---
+
+## Configuration Constants
+
+### Player Baseline
+| Constant | Value |
+|----------|-------|
+| Min solves | 5 |
+| Decay plateau | 3 months |
+| Decay rate | 13.5 |
+
+### Player Skill
+| Constant | Value |
+|----------|-------|
+| Min qualifying puzzles | 20 |
+| Min solvers per puzzle | 20 |
+| Difficulty blend | 0.5 |
+| Diff confidence threshold | 50 |
+| Decay plateau | 6 months |
+| Decay rate | 24 |
+
+### MSP-ELO
+| Constant | Value |
+|----------|-------|
+| Portfolio cap | 100 |
+| Window | 24 months |
+| Decay plateau | 3 months |
+| Decay rate | 30 |
+| Min first attempts | 20 |
+| Min total solves | 50 |
+| Min solvers per puzzle | 20 |
+| First-attempt weight | 0.75 |
+| Difficulty blend | 0.5 |
+| Diff confidence threshold | 50 |
 
 ---
 

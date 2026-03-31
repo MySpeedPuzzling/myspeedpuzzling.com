@@ -9,10 +9,11 @@ use Psr\Clock\ClockInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * MSP-ELO v2: Portfolio-based snapshot rating.
+ * MSP-ELO v2: Portfolio-based snapshot rating with time decay.
  *
- * Evaluates players on their best results from a rolling 12-month window,
- * combining first-attempt and best-time portfolios with difficulty weighting.
+ * Evaluates players on their best results from a rolling 24-month window,
+ * combining first-attempt and best-time portfolios with difficulty weighting
+ * and time decay (3-month plateau, gentle exponential decline).
  */
 final class MspEloCalculator implements ResetInterface
 {
@@ -20,7 +21,9 @@ final class MspEloCalculator implements ResetInterface
     public const int MINIMUM_TOTAL_SOLVES = 50;
 
     private const int CAP = 100;
-    private const int WINDOW_MONTHS = 12;
+    private const int WINDOW_MONTHS = 24;
+    private const float DECAY_PLATEAU_MONTHS = 3.0;
+    private const float DECAY_RATE_MONTHS = 30.0;
     private const int MIN_SOLVERS_PER_PUZZLE = 20;
     private const float DIFFICULTY_BLEND = 0.5;
     private const int DIFF_CONFIDENCE_THRESHOLD = 50;
@@ -34,9 +37,9 @@ final class MspEloCalculator implements ResetInterface
     private null|array $puzzleRankingCache = null;
 
     /**
-     * Pre-computed per-player solve data: puzzle_id => {first_attempt_time, first_attempt_date, best_time}.
+     * Pre-computed per-player solve data: puzzle_id => {first_attempt_time, first_attempt_date, best_time, latest_solve_date}.
      *
-     * @var array<string, list<array{puzzle_id: string, first_attempt_time: int|null, first_attempt_date: string|null, best_time: int}>>|null
+     * @var array<string, list<array{puzzle_id: string, first_attempt_time: int|null, first_attempt_date: string|null, best_time: int, latest_solve_date: string}>>|null
      */
     private null|array $playerSolvesCache = null;
 
@@ -142,14 +145,15 @@ final class MspEloCalculator implements ResetInterface
     {
         $cutoffDate = $this->getCutoffDate();
 
-        /** @var list<array{player_id: string, puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string}> $rows */
+        /** @var list<array{player_id: string, puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string, latest_solve_date: string}> $rows */
         $rows = $this->connection->fetchAllAssociative("
             SELECT
                 pst.player_id,
                 pst.puzzle_id,
                 MIN(CASE WHEN pst.first_attempt = true THEN pst.seconds_to_solve END) AS first_attempt_time,
                 MIN(CASE WHEN pst.first_attempt = true THEN COALESCE(pst.finished_at, pst.tracked_at)::text END) AS first_attempt_date,
-                MIN(pst.seconds_to_solve) AS best_time
+                MIN(pst.seconds_to_solve) AS best_time,
+                MAX(COALESCE(pst.finished_at, pst.tracked_at))::text AS latest_solve_date
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
             JOIN player pl ON pl.id = pst.player_id
@@ -178,6 +182,7 @@ final class MspEloCalculator implements ResetInterface
                 'first_attempt_time' => $faTime,
                 'first_attempt_date' => $faDate,
                 'best_time' => (int) $row['best_time'],
+                'latest_solve_date' => $row['latest_solve_date'],
             ];
 
             // Compute progress
@@ -260,7 +265,7 @@ final class MspEloCalculator implements ResetInterface
 
     /**
      * Calculate portfolio-based ELO rating for a player.
-     * Returns null if not eligible, or the blended rating as a float.
+     * Portfolio entries are decayed by age before sorting and selection.
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): float
     {
@@ -271,17 +276,19 @@ final class MspEloCalculator implements ResetInterface
         assert($this->puzzleRankingCache !== null, 'Call precomputePuzzleRankings() before calculateForPlayer()');
 
         $cutoffDate = $this->getCutoffDate();
+        $now = $this->clock->now();
 
         if ($this->playerSolvesCache !== null) {
             $playerSolves = $this->playerSolvesCache[$playerId] ?? [];
         } else {
-            /** @var list<array{puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string}> $playerSolves */
+            /** @var list<array{puzzle_id: string, first_attempt_time: int|string|null, first_attempt_date: string|null, best_time: int|string, latest_solve_date: string}> $playerSolves */
             $playerSolves = $this->connection->fetchAllAssociative("
                 SELECT
                     pst.puzzle_id,
                     MIN(CASE WHEN pst.first_attempt = true THEN pst.seconds_to_solve END) AS first_attempt_time,
                     MIN(CASE WHEN pst.first_attempt = true THEN COALESCE(pst.finished_at, pst.tracked_at)::text END) AS first_attempt_date,
-                    MIN(pst.seconds_to_solve) AS best_time
+                    MIN(pst.seconds_to_solve) AS best_time,
+                    MAX(COALESCE(pst.finished_at, pst.tracked_at))::text AS latest_solve_date
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
                 WHERE pst.player_id = :playerId
@@ -311,10 +318,12 @@ final class MspEloCalculator implements ResetInterface
             $puzzleData = $this->puzzleRankingCache[$puzzleId];
             $difficultyWeight = $this->computeDifficultyWeight($puzzleData['difficulty'], $puzzleData['sample_size']);
 
-            // Best-time portfolio: any solve in window qualifies
+            // Best-time portfolio: any solve in window qualifies, decayed by latest solve date
             $bestTime = (int) $solve['best_time'];
             $btPercentile = $this->computePercentileInSortedArray($bestTime, $puzzleData['bt_times']);
-            $bestTimeEntries[] = $btPercentile * $difficultyWeight;
+            $latestSolveDate = new \DateTimeImmutable($solve['latest_solve_date']);
+            $btDecay = $this->computeDecayWeight($latestSolveDate, $now);
+            $bestTimeEntries[] = $btPercentile * $difficultyWeight * $btDecay;
 
             // First-attempt portfolio: first attempt must exist and be in window
             if ($solve['first_attempt_time'] !== null && $solve['first_attempt_date'] !== null) {
@@ -323,7 +332,8 @@ final class MspEloCalculator implements ResetInterface
                 if ($faDate >= $cutoffDate) {
                     $faTime = (int) $solve['first_attempt_time'];
                     $faPercentile = $this->computePercentileInSortedArray($faTime, $puzzleData['fa_times']);
-                    $firstAttemptEntries[] = $faPercentile * $difficultyWeight;
+                    $faDecay = $this->computeDecayWeight($faDate, $now);
+                    $firstAttemptEntries[] = $faPercentile * $difficultyWeight * $faDecay;
                 }
             }
         }
@@ -333,7 +343,7 @@ final class MspEloCalculator implements ResetInterface
             return 0.0;
         }
 
-        // Build portfolios: sort descending, take top CAP
+        // Build portfolios: sort descending (decayed points), take top CAP
         rsort($firstAttemptEntries);
         rsort($bestTimeEntries);
 
@@ -383,6 +393,21 @@ final class MspEloCalculator implements ResetInterface
         $blend = self::DIFFICULTY_BLEND * $confidence;
 
         return (1.0 - $blend) + $blend * $difficulty;
+    }
+
+    private function computeDecayWeight(\DateTimeImmutable $solveDate, \DateTimeImmutable $now): float
+    {
+        $ageInMonths = $this->calculateAgeInMonths($solveDate, $now);
+        $effectiveAge = max(0.0, $ageInMonths - self::DECAY_PLATEAU_MONTHS);
+
+        return exp(-$effectiveAge / self::DECAY_RATE_MONTHS);
+    }
+
+    private function calculateAgeInMonths(\DateTimeImmutable $from, \DateTimeImmutable $to): float
+    {
+        $diff = $from->diff($to);
+
+        return ($diff->y * 12) + $diff->m + ($diff->d / 30.0);
     }
 
     private function getCutoffDate(): \DateTimeImmutable

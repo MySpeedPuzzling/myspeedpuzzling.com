@@ -73,7 +73,7 @@
                                             <i class="bi bi-person text-muted"></i>
                                         </span>
                                     {% endif %}
-                                    {% set tier = entry.skillTierName ?? 'unknown' %}
+                                    {% set tier = isMember ? (entry.skillTierName ?? 'unknown') : 'locked' %}
                                     <svg class="rank-icon flex-shrink-0" width="18" height="18" style="color: var(--rank-{{ tier }})"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
                                     <div>
                                         <span style="color: #111;">{{ entry.playerName ?? ('#' ~ entry.playerCode) }}</span>

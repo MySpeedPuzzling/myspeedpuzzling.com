@@ -5,101 +5,155 @@
             {{ 'added_time_recap.history.title'|trans }}
         </h6>
 
-        {% set timed_history = puzzle_history|filter(r => r.time is not null) %}
+        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+            {% set timed_history = puzzle_history|filter(r => r.time is not null) %}
 
-        {% if timed_history|length <= 1 %}
-            <p class="text-muted mb-0">
-                <i class="bi bi-info-circle me-1"></i>
-                {{ 'added_time_recap.history.first_time'|trans }}
-            </p>
-        {% else %}
-            {# Find personal best time #}
-            {% set best_time = null %}
-            {% for result in timed_history %}
-                {% if best_time is null or result.time < best_time %}
-                    {% set best_time = result.time %}
-                {% endif %}
-            {% endfor %}
-
-            {# Check if current solve is the new personal best #}
-            {% set is_new_pb = (solved_puzzle.time == best_time) %}
-
-            {% if is_new_pb %}
-                <div class="alert alert-success d-flex align-items-center py-2 mb-3">
-                    <i class="bi bi-star-fill fs-5 me-2"></i>
-                    <strong>{{ 'added_time_recap.history.new_personal_best'|trans }}</strong>
-                </div>
+            {% if timed_history|length <= 1 %}
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    {{ 'added_time_recap.history.first_time'|trans }}
+                </p>
             {% else %}
-                <div class="text-muted small mb-3">
-                    <i class="bi bi-arrow-up-circle me-1"></i>
-                    {{ 'added_time_recap.history.distance_from_best'|trans({'%time%': (solved_puzzle.time - best_time)|puzzlingTime}) }}
-                </div>
-            {% endif %}
+                {# Find personal best time #}
+                {% set best_time = null %}
+                {% for result in timed_history %}
+                    {% if best_time is null or result.time < best_time %}
+                        {% set best_time = result.time %}
+                    {% endif %}
+                {% endfor %}
 
-            {# Compact table #}
-            <div class="table-responsive">
-                <table class="table table-sm table-borderless mb-0 fs-sm">
-                    <thead>
-                        <tr class="text-muted">
-                            <th>{{ 'added_time_recap.history.date'|trans }}</th>
-                            <th>{{ 'added_time_recap.history.time'|trans }}</th>
-                            <th>{{ 'added_time_recap.history.delta_previous'|trans }}</th>
-                            <th>{{ 'added_time_recap.history.delta_best'|trans }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% set previous_time = null %}
-                        {% for result in timed_history %}
-                            {% set is_current = (result.timeId == solved_puzzle.timeId) %}
-                            {% set is_best = (result.time == best_time) %}
-                            <tr{% if is_current %} class="table-active fw-medium"{% endif %}>
-                                <td>
-                                    {{ (result.finishedAt ?? result.trackedAt)|date('d.m.Y') }}
-                                    {% if is_current %}
-                                        <span class="badge bg-primary ms-1">{{ 'added_time_recap.history.current_solve'|trans }}</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {{ result.time|puzzlingTime }}
-                                    {% if is_best %}
-                                        <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if previous_time is not null %}
-                                        {% set delta = result.time - previous_time %}
-                                        {% if delta < 0 %}
-                                            <span class="text-success">-{{ (delta|abs)|puzzlingTime }}</span>
-                                        {% elseif delta > 0 %}
-                                            <span class="text-danger">+{{ delta|puzzlingTime }}</span>
-                                        {% else %}
-                                            <span class="text-muted">=</span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-muted">&mdash;</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% set delta_best = result.time - best_time %}
-                                    {% if delta_best == 0 %}
-                                        <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
-                                    {% else %}
-                                        <span class="text-muted">+{{ delta_best|puzzlingTime }}</span>
-                                    {% endif %}
-                                </td>
+                {# Check if current solve is the new personal best #}
+                {% set is_new_pb = (solved_puzzle.time == best_time) %}
+
+                {% if is_new_pb %}
+                    <div class="alert alert-success d-flex align-items-center py-2 mb-3">
+                        <i class="bi bi-star-fill fs-5 me-2"></i>
+                        {{ 'added_time_recap.history.new_personal_best'|trans }}
+                    </div>
+                {% else %}
+                    <div class="text-muted small mb-3">
+                        <i class="bi bi-arrow-up-circle me-1"></i>
+                        {{ 'added_time_recap.history.distance_from_best'|trans({'%time%': (solved_puzzle.time - best_time)|puzzlingTime}) }}
+                    </div>
+                {% endif %}
+
+                {# Compact table #}
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless mb-0 fs-sm">
+                        <thead>
+                            <tr class="text-muted">
+                                <th>{{ 'added_time_recap.history.date'|trans }}</th>
+                                <th>{{ 'added_time_recap.history.time'|trans }}</th>
+                                <th>{{ 'added_time_recap.history.delta_previous'|trans }}</th>
+                                <th>{{ 'added_time_recap.history.delta_best'|trans }}</th>
                             </tr>
-                            {% set previous_time = result.time %}
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        </thead>
+                        <tbody>
+                            {# Pre-compute previous times (chronological predecessor) for each entry #}
+                            {% set prev_times = {} %}
+                            {% set prev = null %}
+                            {% for result in timed_history %}
+                                {% set prev_times = prev_times|merge({(result.timeId): prev}) %}
+                                {% set prev = result.time %}
+                            {% endfor %}
 
-            {# Chart — only when more than 1 timed result #}
-            {% if timed_history|length > 1 %}
-                <div class="mt-3">
-                    <twig:Chart:PlayerPuzzleTimesChart :results="timed_history" />
+                            {% for result in timed_history|reverse %}
+                                {% set is_current = (result.timeId == solved_puzzle.timeId) %}
+                                {% set is_best = (result.time == best_time) %}
+                                {% set previous_time = prev_times[result.timeId] %}
+                                <tr{% if is_current %} class="table-active fw-medium"{% endif %}>
+                                    <td>
+                                        {{ (result.finishedAt ?? result.trackedAt)|date('d.m.Y') }}
+                                        {% if is_current %}
+                                            <span class="badge bg-primary ms-1">{{ 'added_time_recap.history.current_solve'|trans }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ result.time|puzzlingTime }}
+                                        {% if is_best %}
+                                            <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if previous_time is not null %}
+                                            {% set delta = result.time - previous_time %}
+                                            {% if delta < 0 %}
+                                                <span class="text-success">-{{ (delta|abs)|puzzlingTime }}</span>
+                                            {% elseif delta > 0 %}
+                                                <span class="text-danger">+{{ delta|puzzlingTime }}</span>
+                                            {% else %}
+                                                <span class="text-muted">=</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">&mdash;</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set delta_best = result.time - best_time %}
+                                        {% if delta_best == 0 %}
+                                            <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
+                                        {% else %}
+                                            <span class="text-muted">+{{ delta_best|puzzlingTime }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
+
+                {# Chart — only when more than 1 timed result #}
+                {% if timed_history|length > 1 %}
+                    <div class="mt-3">
+                        <twig:Chart:PlayerPuzzleTimesChart :results="timed_history" />
+                    </div>
+                {% endif %}
             {% endif %}
+        {% else %}
+            <div class="position-relative">
+                <div style="filter: blur(5px); user-select: none;" aria-hidden="true">
+                    <table class="table table-sm table-borderless mb-0 fs-sm">
+                        <thead>
+                            <tr class="text-muted">
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>vs Previous</th>
+                                <th>vs Best</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-active fw-medium">
+                                <td>31.03.2026</td>
+                                <td>01:02:15</td>
+                                <td><span class="text-success">-00:03:22</span></td>
+                                <td><span class="text-muted">+00:01:44</span></td>
+                            </tr>
+                            <tr>
+                                <td>28.03.2026</td>
+                                <td>01:05:37</td>
+                                <td><span class="text-danger">+00:05:10</span></td>
+                                <td><span class="text-muted">+00:05:06</span></td>
+                            </tr>
+                            <tr>
+                                <td>25.03.2026</td>
+                                <td>01:00:27</td>
+                                <td><span class="text-muted">&mdash;</span></td>
+                                <td><i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                    <button
+                        class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm shadow-custom"
+                        data-bs-toggle="modal"
+                        data-bs-target="#membersExclusiveModal"
+                    >
+                        <i class="ci-locked me-1"></i>
+                        {{ 'membership.members_exclusive_button'|trans }}
+                    </button>
+                </div>
+            </div>
         {% endif %}
     </div>
 </div>

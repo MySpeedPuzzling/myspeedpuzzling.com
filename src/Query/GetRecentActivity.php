@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetRecentActivity
 {
@@ -38,7 +39,7 @@ SELECT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
-    pieces_count,
+    puzzle.pieces_count,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
     puzzle.identification_number AS puzzle_identification_number,
@@ -53,22 +54,28 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    ps.skill_tier,
+    player.ranking_opted_out,
     CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
         (SELECT JSON_AGG(JSON_BUILD_OBJECT(
             'player_id', elem.player ->> 'player_id',
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private
+            'is_private', p.is_private,
+            'skill_tier', ps_m.skill_tier,
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
-        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = puzzle.pieces_count)
     ELSE NULL END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
+LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = puzzle.pieces_count
 WHERE
     (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
 ORDER BY puzzle_solving_time.tracked_at DESC
@@ -111,8 +118,14 @@ SQL;
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              *     players: null|string,
+             *     skill_tier: null|int,
+             *     ranking_opted_out: bool,
              * } $row
              */
+
+            $row['skill_tier_name'] = $row['skill_tier'] !== null
+                ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+                : null;
 
             return RecentActivityItem::fromDatabaseRow($row);
         }, $data);
@@ -135,7 +148,7 @@ SELECT
     player.name AS player_name,
     player.code AS player_code,
     player.country AS player_country,
-    pieces_count,
+    puzzle.pieces_count,
     puzzle_solving_time.comment,
     manufacturer.name AS manufacturer_name,
     puzzle.identification_number AS puzzle_identification_number,
@@ -150,22 +163,28 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    ps.skill_tier,
+    player.ranking_opted_out,
     CASE WHEN puzzle_solving_time.team IS NOT NULL THEN
         (SELECT JSON_AGG(JSON_BUILD_OBJECT(
             'player_id', elem.player ->> 'player_id',
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private
+            'is_private', p.is_private,
+            'skill_tier', ps_m.skill_tier,
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
-        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = puzzle.pieces_count)
     ELSE NULL END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
+LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = puzzle.pieces_count
 WHERE player.is_private = false
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
@@ -206,8 +225,14 @@ SQL;
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              *     players: null|string,
+             *     skill_tier: null|int,
+             *     ranking_opted_out: bool,
              * } $row
              */
+
+            $row['skill_tier_name'] = $row['skill_tier'] !== null
+                ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+                : null;
 
             return RecentActivityItem::fromDatabaseRow($row);
         }, $data);
@@ -269,16 +294,21 @@ SELECT
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
     competition.slug AS competition_slug,
+    ps.skill_tier,
+    player.ranking_opted_out,
     CASE WHEN pst.team IS NOT NULL THEN
         (SELECT JSON_AGG(JSON_BUILD_OBJECT(
             'player_id', elem.player ->> 'player_id',
             'player_name', COALESCE(p.name, elem.player ->> 'player_name'),
             'player_code', p.code,
             'player_country', p.country,
-            'is_private', p.is_private
+            'is_private', p.is_private,
+            'skill_tier', ps_m.skill_tier,
+            'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
-        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID)
+        LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = puzzle.pieces_count)
     ELSE NULL END AS players
 FROM
     filtered_puzzle_solving_time fpt
@@ -287,6 +317,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN player ON pst.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
+LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = puzzle.pieces_count
 WHERE is_private = false
 ORDER BY pst.tracked_at DESC
 SQL;
@@ -327,8 +358,14 @@ SQL;
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
              *     players: null|string,
+             *     skill_tier: null|int,
+             *     ranking_opted_out: bool,
              * } $row
              */
+
+            $row['skill_tier_name'] = $row['skill_tier'] !== null
+                ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+                : null;
 
             return RecentActivityItem::fromDatabaseRow($row);
         }, $data);

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetFastestPlayers
 {
@@ -74,14 +75,17 @@ SELECT
     competition.id AS competition_id,
     competition.shortcut AS competition_shortcut,
     competition.name AS competition_name,
-    competition.slug AS competition_slug
+    competition.slug AS competition_slug,
+    ps.skill_tier,
+    player.ranking_opted_out
 FROM FastestTimes
 INNER JOIN puzzle_solving_time ON puzzle_solving_time.id = FastestTimes.puzzle_solving_time_id
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON player.id = puzzle_solving_time.player_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id, competition.id
+LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = :piecesCount
+GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id, competition.id, ps.skill_tier
 ORDER BY puzzle_solving_time.seconds_to_solve
 SQL;
 
@@ -121,8 +125,14 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     skill_tier: null|int,
+             *     ranking_opted_out: bool,
              * } $row
              */
+
+            $row['skill_tier_name'] = $row['skill_tier'] !== null
+                ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+                : null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);

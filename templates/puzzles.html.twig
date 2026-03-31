@@ -93,7 +93,7 @@
                             <label for="pieces-1001" class="form-option-label">1001+</label>
                         </div>
 
-                        {% if is_granted('ADMIN_ACCESS') and logged_user.profile is not null and logged_user.profile.activeMembership %}
+                        {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
                             {% set tier_options = [
                                 {value: 1, label: 'puzzle_intelligence.difficulty.tiers.veryeasy', icon: 'diff-very-easy'},
                                 {value: 2, label: 'puzzle_intelligence.difficulty.tiers.easy', icon: 'diff-easy'},

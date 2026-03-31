@@ -11,7 +11,8 @@ use Symfony\Contracts\Service\ResetInterface;
 final class PlayerBaselineCalculator implements ResetInterface
 {
     public const int MINIMUM_SOLVE_COUNT = 5;
-    private const float DECAY_HALF_LIFE_MONTHS = 18.0;
+    private const float DECAY_PLATEAU_MONTHS = 3.0;
+    private const float DECAY_HALF_LIFE_MONTHS = 13.5;
     private const int SCALING_EXPONENT_MIN_PLAYERS = 50;
     private const float SCALING_EXPONENT_DEFAULT = 1.3;
 
@@ -96,7 +97,8 @@ final class PlayerBaselineCalculator implements ResetInterface
         foreach ($solves as $solve) {
             $finishedAt = new \DateTimeImmutable($solve['solve_date']);
             $ageInMonths = $this->calculateAgeInMonths($finishedAt, $now);
-            $weight = exp(-$ageInMonths / self::DECAY_HALF_LIFE_MONTHS);
+            $effectiveAge = max(0.0, $ageInMonths - self::DECAY_PLATEAU_MONTHS);
+            $weight = exp(-$effectiveAge / self::DECAY_HALF_LIFE_MONTHS);
 
             $weightedSolves[] = [
                 'seconds' => (int) $solve['seconds_to_solve'],

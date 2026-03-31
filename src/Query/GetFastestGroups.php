@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class GetFastestGroups
 {
@@ -59,13 +60,17 @@ player_data AS (
         competition.shortcut AS competition_shortcut,
         competition.slug AS competition_slug,
         competition.name AS competition_name,
+        ps_main.skill_tier,
+        player.ranking_opted_out,
         JSON_AGG(
             JSON_BUILD_OBJECT(
                 'player_id', player_elem.player ->> 'player_id',
                 'player_name', COALESCE(p.name, player_elem.player ->> 'player_name'),
                 'player_code', p.code,
                 'player_country', p.country,
-                'is_private', p.is_private
+                'is_private', p.is_private,
+                'skill_tier', ps_member.skill_tier,
+                'ranking_opted_out', COALESCE(p.ranking_opted_out, false)
             ) ORDER BY player_elem.ordinality
         ) AS players
     FROM candidate_times ct
@@ -73,10 +78,12 @@ player_data AS (
     INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
     INNER JOIN player ON pst.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-    LEFT JOIN competition ON pst.competition_id = competition.id,
+    LEFT JOIN competition ON pst.competition_id = competition.id
+    LEFT JOIN player_skill ps_main ON ps_main.player_id = player.id AND ps_main.pieces_count = :piecesCount,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id
+    LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = :piecesCount
+    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, ps_main.skill_tier
 )
 SELECT *
 FROM player_data
@@ -132,8 +139,14 @@ SQL;
              *     competition_name: null|string,
              *     competition_shortcut: null|string,
              *     competition_slug: null|string,
+             *     skill_tier: null|int,
+             *     ranking_opted_out: bool,
              * } $row
              */
+
+            $row['skill_tier_name'] = $row['skill_tier'] !== null
+                ? strtolower(SkillTier::from((int) $row['skill_tier'])->name)
+                : null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         }, $data);

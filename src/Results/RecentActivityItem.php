@@ -38,6 +38,8 @@ readonly final class RecentActivityItem
         public null|string $competitionShortcut,
         public null|string $competitionName,
         public null|string $competitionSlug,
+        public null|string $skillTierName = null,
+        public bool $rankingOptedOut = false,
     ) {
     }
 
@@ -79,6 +81,8 @@ readonly final class RecentActivityItem
      *     competition_name: null|string,
      *     competition_shortcut: null|string,
      *     competition_slug: null|string,
+     *     skill_tier_name?: null|string,
+     *     ranking_opted_out?: bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -120,6 +124,8 @@ readonly final class RecentActivityItem
             competitionShortcut: $row['competition_shortcut'],
             competitionName: $row['competition_name'],
             competitionSlug: $row['competition_slug'],
+            skillTierName: $row['skill_tier_name'] ?? null,
+            rankingOptedOut: $row['ranking_opted_out'] ?? false,
         );
     }
 }

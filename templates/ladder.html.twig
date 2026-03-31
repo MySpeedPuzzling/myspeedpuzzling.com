@@ -5,6 +5,13 @@
 {% block content %}
     <h1><span class="me-3">{{ 'ladder.title'|trans }}</span> {{ include('_ladder_dropdown.html.twig') }}</h1>
 
+    <div class="alert alert-primary small d-flex justify-content-between align-items-center mb-4" role="alert">
+        <div>
+            {{ 'ladder.msp_elo_banner'|trans({'%link%': path('msp_elo_ladder')})|raw }}
+        </div>
+        <a href="{{ path('msp_elo_ladder') }}" class="btn btn-primary btn-sm ms-3 text-nowrap">{{ 'ladder.msp_elo_cta'|trans }}</a>
+    </div>
+
     {{ include('_ladder_dropdown_countries.html.twig') }}
 
     <div class="row">

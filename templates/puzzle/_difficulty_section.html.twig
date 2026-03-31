@@ -63,7 +63,9 @@
                                 }) }}
                             </small>
                         </div>
-                        {% if time_prediction.isPersonalized %}
+                        {% if time_prediction.isPersonalized and time_prediction.predictedAttemptNumber is not null %}
+                            <small class="text-muted">{{ 'puzzle_intelligence.prediction.personal_attempt_explanation'|trans({'%attempt%': time_prediction.predictedAttemptNumber, '%count%': time_prediction.personalSolveCount}) }}</small>
+                        {% elseif time_prediction.isPersonalized %}
                             <small class="text-muted">{{ 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': time_prediction.personalSolveCount}) }}</small>
                         {% else %}
                             <small class="text-muted">{{ 'puzzle_intelligence.prediction.explanation'|trans }}</small>

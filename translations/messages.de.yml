@@ -622,10 +622,11 @@
   "back_to_competition": "Zurück zum Wettbewerb"
   "description": "Verbinden Sie Ihr Wettbewerbs-Konto mit dem MySpeedPuzzling-Profil und finden Sie heraus, wie Sie gegen andere Teilnehmer stehen. Um Statistiken relevant zu machen, nehmen wir nur 500-teilige Puzzles der letzten 3 Monate in die Statistiken. Wenn Sie das gleiche Puzzle mehrmals gelöst haben, nehmen wir nur das schnellste!"
 "global_modal":
-  "title": "Der Marktplatz ist da!"
-  "text": "<p>Wollten Sie schon immer ein Puzzle kaufen, verkaufen oder tauschen? Jetzt ist es einfacher als je zuvor!</p>\n<p>Entdecken Sie den brandneuen <strong>Marktplatz</strong> — bieten Sie Ihre Puzzles zum Verkauf an, finden Sie tolle Angebote und chatten Sie direkt mit anderen Puzzlern auf der Plattform. Wir freuen uns auf Ihr Feedback!</p>\n"
-  "button_cta": "Marktplatz entdecken"
-  "button_dismiss": "Vielleicht später"
+  "title": "Ranglistenpuzzeln ist da!"
+  "text": "<p>Wir freuen uns, ein großes Update vorzustellen — alles rund um Ranking und Wettbewerb:</p>\n<ul class=\"ms-0\" style=\"list-style-type: disc;\"><li class=\"mt-2\"><strong>Puzzle-Schwierigkeit</strong> — berechnete Bewertungen basierend auf echten Lösungsdaten</li><li class=\"mt-2\"><strong>Einblicke & Vorhersagen</strong> — detaillierte Metriken mit personalisierten Zeitvorhersagen</li><li class=\"mt-2\"><strong>Puzzler-Stufen</strong> — von Anfänger bis Legendär, finden Sie heraus, wo Sie stehen</li><li class=\"mt-2\"><strong>MSP-ELO Rangliste</strong> — kompetitives Ranking inspiriert vom Schach-ELO. Derzeit ist <strong>Wiktor unser erster MSP King</strong>. Herzlichen Glückwunsch!</li></ul>\n<p>Die Formeln, Stufen und ELO-Berechnungen <strong>können angepasst werden</strong>, wenn wir mehr Daten sammeln. Sie möchten nicht gerankt werden? Sie können sich <strong>jederzeit abmelden</strong> in Ihren Profileinstellungen.</p>\n"
+  "button_methodology": "So funktioniert's"
+  "button_ladder": "Rangliste ansehen"
+  "button_dismiss": "Verstanden!"
 "added_time_recap":
   "title": "Großartige Zeit, machen Sie weiter so!"
   "add_time": "Neue Zeit hinzufügen"

@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetPlayerPredictionTest extends KernelTestCase
@@ -59,7 +60,7 @@ final class GetPlayerPredictionTest extends KernelTestCase
 
     public function testReturnsPersonalizedPredictionForRepeatSolver(): void
     {
-        // PLAYER_REGULAR has 3 solves on PUZZLE_500_02: 2200s, 1900s, 1700s
+        // PLAYER_REGULAR has 3 solves on PUZZLE_500_02: 2200s, 1900s, 1700s (chronological)
         $result = $this->query->forPuzzle(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02);
 
         if ($result === null) {
@@ -68,9 +69,40 @@ final class GetPlayerPredictionTest extends KernelTestCase
 
         self::assertTrue($result->isPersonalized);
         self::assertSame(3, $result->personalSolveCount);
-        self::assertSame(1900, $result->predictedSeconds); // Median of 1700, 1900, 2200
-        self::assertSame(1700, $result->rangeLowSeconds); // Fastest
-        self::assertSame(2200, $result->rangeHighSeconds); // Slowest
+        self::assertSame(4, $result->predictedAttemptNumber);
+        // Trend-based prediction: should be lower than best time (1700) since player is improving
+        self::assertLessThan(1700, $result->predictedSeconds);
+        // But not unreasonably low (floor is best_time * 0.90 = 1530)
+        self::assertGreaterThanOrEqual(1530, $result->predictedSeconds);
+        self::assertLessThanOrEqual($result->rangeHighSeconds, $result->predictedSeconds);
+        self::assertGreaterThanOrEqual($result->rangeLowSeconds, $result->predictedSeconds);
+    }
+
+    public function testExcludeTimeIdReducesSolveCount(): void
+    {
+        // Without exclude: 3 solves → personalized prediction
+        $withAll = $this->query->forPuzzle(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02);
+
+        if ($withAll === null) {
+            self::markTestSkipped('No prediction available');
+        }
+
+        self::assertSame(3, $withAll->personalSolveCount);
+
+        // Excluding the latest solve leaves 2 → still personalized but different prediction
+        $withExclude = $this->query->forPuzzle(
+            PlayerFixture::PLAYER_REGULAR,
+            PuzzleFixture::PUZZLE_500_02,
+            excludeTimeId: PuzzleSolvingTimeFixture::TIME_08,
+        );
+
+        if ($withExclude === null) {
+            self::markTestSkipped('No prediction available with exclude');
+        }
+
+        self::assertTrue($withExclude->isPersonalized);
+        self::assertSame(2, $withExclude->personalSolveCount);
+        self::assertSame(3, $withExclude->predictedAttemptNumber);
     }
 
     public function testReturnsNullForPuzzleWithoutDifficulty(): void

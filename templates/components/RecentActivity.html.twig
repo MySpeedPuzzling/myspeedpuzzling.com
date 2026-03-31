@@ -1,3 +1,4 @@
+{% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
 <div {{ attributes.defaults({'data-controller': 'show-more-recent-activity', 'data-poll': 'delay(120000)|$render'}) }}>
     <div class="table-responsive custom-table-wrapper mt-4">
         <table class="table table-striped custom-table table-hover mb-0">
@@ -78,6 +79,11 @@
                                             <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                             <i class="bi bi-incognito text-muted"></i>
                                         {% else %}
+                                            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not item.rankingOptedOut %}
+                                                {{ skill_icon(item.skillTierName ?? 'unknown', 16) }}
+                                            {% else %}
+                                                {{ skill_icon('locked', 16) }}
+                                            {% endif %}
                                             <a class="player-name-item" href="{{ path('player_profile', {playerId: item.playerId}) }}">
                                                 <small>{{ item.playerName ?? ('#' ~ item.playerCode) }}</small>
                                                 {% if logged_user.profile is not null and item.playerId in logged_user.profile.favoritePlayers %}
@@ -99,6 +105,11 @@
                                             <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                             <i class="bi bi-incognito text-muted"></i>
                                         {% elseif puzzle_solver.playerId is not null %}
+                                            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not puzzle_solver.rankingOptedOut %}
+                                                {{ skill_icon(puzzle_solver.skillTierName ?? 'unknown', 16) }}
+                                            {% else %}
+                                                {{ skill_icon('locked', 16) }}
+                                            {% endif %}
                                             <a class="player-name-item" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
                                                 <small>{{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}</small>
                                                 {% if logged_user.profile is not null and puzzle_solver.playerId in logged_user.profile.favoritePlayers %}

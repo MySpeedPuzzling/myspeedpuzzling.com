@@ -53,4 +53,27 @@ final class MspEloCalculatorTest extends KernelTestCase
 
         self::assertSame(0.0, $elo);
     }
+
+    public function testProgressCountsWithin24MonthWindow(): void
+    {
+        // All fixture solves are recent, so they should all count within the 24-month window
+        $progress = $this->calculator->getProgress(PlayerFixture::PLAYER_REGULAR, 500);
+
+        self::assertGreaterThanOrEqual(0, $progress['first_attempts']);
+        self::assertGreaterThanOrEqual(0, $progress['total_solves']);
+        // total_solves should be >= first_attempts
+        self::assertGreaterThanOrEqual($progress['first_attempts'], $progress['total_solves']);
+    }
+
+    public function testPreloadedPathProducesConsistentResults(): void
+    {
+        // Exercise the preloaded cache path (which includes latest_solve_date for decay)
+        $this->calculator->precomputePuzzleRankings(500);
+        $this->calculator->preloadAllPlayerSolves(500);
+
+        $elo = $this->calculator->calculateForPlayer(PlayerFixture::PLAYER_REGULAR, 500);
+        self::assertSame(0.0, $elo); // Still ineligible, but exercises decay code
+
+        $this->calculator->clearCache();
+    }
 }

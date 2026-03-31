@@ -1920,6 +1920,8 @@ puzzle_intelligence:
         range: "%low% - %high%"
         explanation: "あなたの個人的な完成履歴とこのパズルの難易度に基づく推定です。"
         not_available: "予測を解除するには、あと%count%個の%pieces%pcパズルを解いてください"
+        last_time: "前回のタイム: %time%"
+        expected_improvement: "↓ %delta% 速い (%percent%%)"
         not_available_generic: "このピース数の予測にはもっと多くの完成データが必要です。"
         difficulty_for_you: "あなたのレベルでの難易度"
         personal_explanation: "このパズルの%count%回の過去の完成に基づく予測。"

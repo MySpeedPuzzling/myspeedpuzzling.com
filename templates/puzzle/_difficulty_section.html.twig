@@ -57,14 +57,28 @@
                     </h6>
                     {% if time_prediction is not null %}
                         <div class="d-flex align-items-center gap-2">
-                            <span class="fw-bold">~{{ (time_prediction.predictedSeconds / 60)|round }}min</span>
+                            <span class="fw-bold">~{{ time_prediction.predictedSeconds|compactTime }}</span>
                             <small class="text-muted">
                                 {{ 'puzzle_intelligence.prediction.range'|trans({
-                                    '%low%': (time_prediction.rangeLowSeconds / 60)|round ~ 'min',
-                                    '%high%': (time_prediction.rangeHighSeconds / 60)|round ~ 'min',
+                                    '%low%': time_prediction.rangeLowSeconds|compactTime,
+                                    '%high%': time_prediction.rangeHighSeconds|compactTime,
                                 }) }}
                             </small>
                         </div>
+                        {% if time_prediction.isPersonalized and time_prediction.lastTimeSeconds is not null %}
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <small class="text-muted">
+                                    {{ 'puzzle_intelligence.prediction.last_time'|trans({'%time%': time_prediction.lastTimeSeconds|compactTime}) }}
+                                </small>
+                                {% set delta_seconds = time_prediction.lastTimeSeconds - time_prediction.predictedSeconds %}
+                                {% set improvement_percent = ((delta_seconds / time_prediction.lastTimeSeconds) * 100)|round %}
+                                {% if improvement_percent > 0 %}
+                                    <small class="text-success fw-semibold">
+                                        {{ 'puzzle_intelligence.prediction.expected_improvement'|trans({'%percent%': improvement_percent, '%delta%': delta_seconds|compactTime}) }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        {% endif %}
                         {% if time_prediction.isPersonalized and time_prediction.predictedAttemptNumber is not null %}
                             <small class="text-muted">{{ 'puzzle_intelligence.prediction.personal_attempt_explanation'|trans({'%attempt%': time_prediction.predictedAttemptNumber, '%count%': time_prediction.personalSolveCount}) }}</small>
                         {% elseif time_prediction.isPersonalized %}

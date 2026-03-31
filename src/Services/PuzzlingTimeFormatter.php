@@ -18,6 +18,24 @@ readonly final class PuzzlingTimeFormatter
         );
     }
 
+    public function compactTime(int $interval): string
+    {
+        $interval = abs($interval);
+        $hours = intdiv($interval, 3600);
+        $minutes = intdiv($interval % 3600, 60);
+        $seconds = $interval % 60;
+
+        if ($hours > 0) {
+            return $minutes > 0 ? "{$hours}h {$minutes}min" : "{$hours}h";
+        }
+
+        if ($minutes > 0) {
+            return $seconds > 0 ? "{$minutes}min {$seconds}s" : "{$minutes}min";
+        }
+
+        return "{$seconds}s";
+    }
+
     public function daysElapsed(null|int $interval): int
     {
         $interval = (int) abs($interval ?? 0);

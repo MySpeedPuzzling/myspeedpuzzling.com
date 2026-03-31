@@ -24,6 +24,7 @@ final class PuzzlingTimeTwigExtension extends AbstractExtension
     {
         return [
             new TwigFilter('puzzlingTime', [$this->timeFormatter, 'formatTime']),
+            new TwigFilter('compactTime', [$this->timeFormatter, 'compactTime']),
             new TwigFilter('daysElapsed', [$this->timeFormatter, 'daysElapsed']),
             new TwigFilter('hoursElapsed', [$this->timeFormatter, 'hoursElapsed']),
             new TwigFilter('minutesElapsed', [$this->timeFormatter, 'minutesElapsed']),

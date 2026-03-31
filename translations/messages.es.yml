@@ -1931,6 +1931,8 @@ puzzle_intelligence:
         range: "%low% - %high%"
         explanation: "Basado en tu historial personal de resolución y la dificultad de este puzzle, aquí está nuestra estimación."
         not_available: "Resuelve %count% puzzles más de %pieces% piezas para desbloquear predicciones"
+        last_time: "Tu último tiempo: %time%"
+        expected_improvement: "↓ %delta% más rápido (%percent%%)"
         not_available_generic: "Necesitamos más datos de tus resoluciones para esta cantidad de piezas para predecir tu tiempo."
         difficulty_for_you: "Dificultad para tu nivel"
         personal_explanation: "Basado en tus %count% resoluciones previas de este puzzle."

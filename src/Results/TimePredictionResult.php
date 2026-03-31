@@ -14,6 +14,7 @@ readonly final class TimePredictionResult
         public bool $isPersonalized = false,
         public null|int $personalSolveCount = null,
         public null|int $predictedAttemptNumber = null,
+        public null|int $lastTimeSeconds = null,
     ) {
     }
 }

@@ -147,6 +147,7 @@ SQL;
             isPersonalized: true,
             personalSolveCount: $count,
             predictedAttemptNumber: $nextAttemptNumber,
+            lastTimeSeconds: $lastTime,
         );
     }
 

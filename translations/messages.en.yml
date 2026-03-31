@@ -1988,6 +1988,7 @@ puzzle_intelligence:
         personal_explanation: "Based on your %count% previous solves of this puzzle."
         personal_attempt_explanation: "Prediction for your attempt #%attempt%, based on your %count% previous solves and improvement trend."
         not_available: "Solve %count% more %pieces%pc puzzles to unlock predictions"
+        predicted_label: "Prediction"
         last_time: "Your last time: %time%"
         expected_improvement: "↓ %delta% faster (%percent%%)"
         not_available_generic: "We need more of your solving data for this piece count to predict your time."

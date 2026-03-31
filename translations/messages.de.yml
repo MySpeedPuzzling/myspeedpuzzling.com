@@ -1931,6 +1931,7 @@ puzzle_intelligence:
         range: "%low% - %high%"
         explanation: "Basierend auf deiner persönlichen Lösungsgeschichte und der Schwierigkeit dieses Puzzles, hier ist unsere Schätzung."
         not_available: "Löse %count% weitere %pieces%-Teile-Puzzles, um Vorhersagen freizuschalten"
+        predicted_label: "Vorhersage"
         last_time: "Deine letzte Zeit: %time%"
         expected_improvement: "↓ %delta% schneller (%percent%%)"
         not_available_generic: "Wir brauchen mehr deiner Lösungsdaten für diese Teilezahl, um deine Zeit vorherzusagen."

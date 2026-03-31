@@ -1859,6 +1859,7 @@ puzzle_intelligence:
         range: "%low% - %high%"
         explanation: "Na základě vaší historie skládání a obtížnosti tohoto puzzle je zde náš odhad."
         not_available: "Složte ještě %count% %pieces%-dílkových puzzlí pro odemknutí predikcí"
+        predicted_label: "Predikce"
         last_time: "Váš poslední čas: %time%"
         expected_improvement: "↓ %delta% rychleji (%percent%%)"
         not_available_generic: "Pro predikci vašeho času potřebujeme více vašich dat pro tento počet dílků."

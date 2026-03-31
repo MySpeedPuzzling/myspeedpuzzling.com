@@ -519,6 +519,7 @@
   "competition_duplicate_connection": "Etwas stimmt nicht :-( Sie haben ein Wettbewerbs-Konto gewählt, das bereits mit einem MySpeedPuzzling-Profil verbunden ist. Keine Sorge, wir wurden automatisch benachrichtigt und werden überprüfen, was nicht stimmt."
   "competition_connection_saved": "Schön! Wettbewerbs-Konto erfolgreich mit Ihrem MySpeedPuzzling-Profil verbunden!"
   "membership_subscribed_successfully": "Ihre Mitgliedschaft ist jetzt aktiv!"
+  "membership_processing": "Ihre Zahlung war erfolgreich! Wenn Ihre Mitgliedschaft noch nicht aktiv ist, wird sie automatisch innerhalb weniger Sekunden aktiviert."
   "non_unique_player_code": "Es tut uns leid, aber es scheint, dass dieser Code bereits vergeben ist. Bitte wählen Sie einen anderen."
   "unknown_error": "Es tut uns leid, aber etwas ist schief gelaufen - wir wurden benachrichtigt und werden versuchen, es so schnell wie möglich zu beheben. Bitte versuchen Sie es später erneut."
   "exclusive_membership_feature": "Diese Funktion ist ausschließlich für Mitglieder. Wenn Sie sie nutzen möchten, kaufen Sie bitte eine Mitgliedschaft."

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use Stripe\Exception\ApiErrorException;
 use Stripe\StripeClient;
 use Stripe\Subscription;
 use Symfony\Component\Lock\LockFactory;
@@ -37,7 +38,7 @@ readonly final class UpdateMembershipSubscriptionHandler
         $lock->acquire(blocking: true);
 
         $subscriptionId = $message->stripeSubscriptionId;
-        $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
+        $subscription = $this->retrieveSubscriptionWithRetry($subscriptionId);
 
         // Skip processing when subscription billing is paused (e.g., during voucher free period)
         // The voucher handler already set the correct membership state
@@ -58,7 +59,7 @@ readonly final class UpdateMembershipSubscriptionHandler
         $customerId = $subscription->customer;
         assert(is_string($customerId));
 
-        $customer = $this->stripeClient->customers->retrieve($customerId);
+        $customer = $this->retrieveCustomerWithRetry($customerId);
         $playerId = $customer->metadata->player_id ?? null;
 
         if (!is_string($playerId)) {
@@ -135,5 +136,47 @@ readonly final class UpdateMembershipSubscriptionHandler
         }
 
         $lock->release();
+    }
+
+    private function retrieveSubscriptionWithRetry(string $subscriptionId): \Stripe\Subscription
+    {
+        return $this->retryStripeCall(fn () => $this->stripeClient->subscriptions->retrieve($subscriptionId));
+    }
+
+    private function retrieveCustomerWithRetry(string $customerId): \Stripe\Customer
+    {
+        return $this->retryStripeCall(fn () => $this->stripeClient->customers->retrieve($customerId));
+    }
+
+    /**
+     * @template T
+     * @param callable(): T $call
+     * @return T
+     */
+    private function retryStripeCall(callable $call): mixed
+    {
+        $maxAttempts = 3;
+        $lastException = null;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            try {
+                return $call();
+            } catch (ApiErrorException $e) {
+                $lastException = $e;
+
+                if ($attempt === $maxAttempts) {
+                    throw $e;
+                }
+
+                $this->logger->warning('Stripe API error, retrying', [
+                    'attempt' => $attempt,
+                    'error' => $e->getMessage(),
+                ]);
+
+                usleep($attempt * 1_000_000); // 1s, 2s backoff
+            }
+        }
+
+        throw $lastException;
     }
 }

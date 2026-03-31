@@ -532,6 +532,7 @@
   "competition_duplicate_connection": "Něco je špatně :-( vybrali jste soutěžní účet, který je už propojen s jiným MySpeedPuzzling profilem. Ale nebojte, přišla nám automatická notifikace, vše zkontrolujeme a zjistíme, co je špatně."
   "competition_connection_saved": "Super! Soutěžní účet jsme úspěšně propojili s tvojím MySpeedPuzzling profilem!"
   "membership_subscribed_successfully": "členství je nyní aktivní!"
+  "membership_processing": "Platba proběhla úspěšně! Pokud členství ještě není aktivní, bude automaticky aktivováno během několika sekund."
   "non_unique_player_code": "Je nám líto, ale zdá se, že tento kód je již zabraný. Prosím zvol si jiný."
   "unknown_error": "Je nám líto, ale něco se pokazilo - přišla nám notifikace a pokusíme se to opravit co nejdříve. Prosím zkuste to později."
   "exclusive_membership_feature": "Tato funkce je exkluzivní pouze pro členy. Pokud ji chcete využívat, prosím zakupte si členství."

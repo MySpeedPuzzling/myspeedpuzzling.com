@@ -521,6 +521,7 @@
   "competition_duplicate_connection": "Algo está mal :-( has elegido una cuenta de competencia, que ya está conectada a algún perfil de MySpeedPuzzling. No te preocupes, fuimos automáticamente notificados y verificaremos qué está mal."
   "competition_connection_saved": "¡Genial! ¡Cuenta de competencia conectada exitosamente a tu perfil de MySpeedPuzzling!"
   "membership_subscribed_successfully": "¡Tu membresía ahora está activa!"
+  "membership_processing": "¡Tu pago fue exitoso! Si tu membresía aún no está activa, se activará automáticamente en unos segundos."
   "non_unique_player_code": "Lo sentimos, pero parece que este código ya está tomado. Por favor elige otro."
   "unknown_error": "Lo sentimos, pero algo salió mal - hemos sido notificados e intentaremos arreglarlo tan pronto como sea posible. Por favor intenta de nuevo más tarde."
   "exclusive_membership_feature": "Esta característica es exclusiva solo para miembros. Si quieres usarla, por favor compra una membresía."

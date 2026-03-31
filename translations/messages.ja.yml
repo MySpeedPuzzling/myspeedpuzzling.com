@@ -611,6 +611,7 @@
   "competition_duplicate_connection": "何か問題があります :-( 既に他のMySpeedPuzzlingプロフィールに接続されている競技会アカウントを選択しました。心配しないでください、自動的に通知されており、何が問題かを確認します。"
   "competition_connection_saved": "素晴らしい！競技会アカウントがMySpeedPuzzlingプロフィールに正常に接続されました！"
   "membership_subscribed_successfully": "メンバーシップがアクティブになりました！"
+  "membership_processing": "お支払いが完了しました！メンバーシップがまだアクティブでない場合、数秒以内に自動的にアクティブになります。"
   "non_unique_player_code": "申し訳ございませんが、このコードは既に使用されているようです。別のコードを選択してください。"
   "unknown_error": "申し訳ございませんが、何か問題が発生しました - 通知済みで、できるだけ早く修正を試みます。後でもう一度お試しください。"
   "exclusive_membership_feature": "この機能はメンバー限定です。使用したい場合は、メンバーシップを購入してください。"

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Stripe\StripeClient;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -22,6 +24,7 @@ final class StripeCheckoutSuccessController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
         readonly private StripeClient $stripeClient,
+        readonly private LoggerInterface $logger,
     ) {
     }
 
@@ -48,11 +51,20 @@ final class StripeCheckoutSuccessController extends AbstractController
         $subscriptionId = $checkoutSession->subscription;
         assert(is_string($subscriptionId));
 
-        $this->messageBus->dispatch(
-            new UpdateMembershipSubscription($subscriptionId),
-        );
+        try {
+            $this->messageBus->dispatch(
+                new UpdateMembershipSubscription($subscriptionId),
+            );
 
-        $this->addFlash('success', $this->translator->trans('flashes.membership_subscribed_successfully'));
+            $this->addFlash('success', $this->translator->trans('flashes.membership_subscribed_successfully'));
+        } catch (HandlerFailedException $e) {
+            $this->logger->error('Stripe membership update failed after retries', [
+                'subscription_id' => $subscriptionId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->addFlash('info', $this->translator->trans('flashes.membership_processing'));
+        }
 
         return $this->redirectToRoute('membership');
     }

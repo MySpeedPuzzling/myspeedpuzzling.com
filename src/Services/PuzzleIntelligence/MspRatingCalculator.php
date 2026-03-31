@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -87,42 +88,70 @@ final class MspRatingCalculator implements ResetInterface
             'minSolvers' => self::MIN_SOLVERS_PER_PUZZLE,
         ]);
 
+        if ($puzzles === []) {
+            $this->puzzleRankingCache = [];
+
+            return;
+        }
+
+        $puzzleIds = array_column($puzzles, 'puzzle_id');
+
+        // Bulk first-attempt times (public players only, one per player per puzzle)
+        // Ordered by solved_at ASC so the dedup below keeps the earliest row per player — matches DISTINCT ON behavior
+        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string}> $faRows */
+        $faRows = $this->connection->fetchAllAssociative("
+            SELECT pst.puzzle_id, pst.player_id, pst.seconds_to_solve
+            FROM puzzle_solving_time pst
+            JOIN player pl ON pl.id = pst.player_id
+            WHERE pst.puzzle_id IN (:puzzleIds)
+                AND pst.first_attempt = true
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+                AND pl.is_private = false
+            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC
+        ", ['puzzleIds' => $puzzleIds], ['puzzleIds' => ArrayParameterType::STRING]);
+
+        // Deduplicate: keep first row per (puzzle_id, player_id) — matches DISTINCT ON behavior
+        $faPerPuzzle = [];
+
+        foreach ($faRows as $row) {
+            $puzzleId = $row['puzzle_id'];
+            $playerId = $row['player_id'];
+
+            if (!isset($faPerPuzzle[$puzzleId][$playerId])) {
+                $faPerPuzzle[$puzzleId][$playerId] = (int) $row['seconds_to_solve'];
+            }
+        }
+
+        // Bulk best times per player per puzzle (public players only)
+        /** @var list<array{puzzle_id: string, best_time: int|string}> $btRows */
+        $btRows = $this->connection->fetchAllAssociative("
+            SELECT pst.puzzle_id, MIN(pst.seconds_to_solve) AS best_time
+            FROM puzzle_solving_time pst
+            JOIN player pl ON pl.id = pst.player_id
+            WHERE pst.puzzle_id IN (:puzzleIds)
+                AND pst.puzzling_type = 'solo'
+                AND pst.suspicious = false
+                AND pst.seconds_to_solve IS NOT NULL
+                AND pl.is_private = false
+            GROUP BY pst.puzzle_id, pst.player_id
+        ", ['puzzleIds' => $puzzleIds], ['puzzleIds' => ArrayParameterType::STRING]);
+
+        $btPerPuzzle = [];
+
+        foreach ($btRows as $row) {
+            $btPerPuzzle[$row['puzzle_id']][] = (int) $row['best_time'];
+        }
+
+        // Build cache
         $cache = [];
 
         foreach ($puzzles as $puzzle) {
             $puzzleId = $puzzle['puzzle_id'];
 
-            // First-attempt times (public players only, one per player)
-            /** @var list<array{seconds_to_solve: int|string}> $faTimes */
-            $faTimes = $this->connection->fetchAllAssociative("
-                SELECT DISTINCT ON (pst.player_id) pst.seconds_to_solve
-                FROM puzzle_solving_time pst
-                JOIN player pl ON pl.id = pst.player_id
-                WHERE pst.puzzle_id = :puzzleId
-                    AND pst.first_attempt = true
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-                    AND pl.is_private = false
-                ORDER BY pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC
-            ", ['puzzleId' => $puzzleId]);
-
-            // Best times per player (public players only)
-            /** @var list<array{best_time: int|string}> $btTimes */
-            $btTimes = $this->connection->fetchAllAssociative("
-                SELECT MIN(pst.seconds_to_solve) AS best_time
-                FROM puzzle_solving_time pst
-                JOIN player pl ON pl.id = pst.player_id
-                WHERE pst.puzzle_id = :puzzleId
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-                    AND pl.is_private = false
-                GROUP BY pst.player_id
-            ", ['puzzleId' => $puzzleId]);
-
-            $faTimesSorted = array_map(static fn (array $r): int => (int) $r['seconds_to_solve'], $faTimes);
-            $btTimesSorted = array_map(static fn (array $r): int => (int) $r['best_time'], $btTimes);
+            $faTimesSorted = array_values($faPerPuzzle[$puzzleId] ?? []);
+            $btTimesSorted = $btPerPuzzle[$puzzleId] ?? [];
             sort($faTimesSorted);
             sort($btTimesSorted);
 

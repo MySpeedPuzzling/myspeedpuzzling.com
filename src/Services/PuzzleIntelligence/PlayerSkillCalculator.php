@@ -142,6 +142,30 @@ final class PlayerSkillCalculator implements ResetInterface
      */
     public function calculateForPlayer(string $playerId, int $piecesCount): null|array
     {
+        $score = $this->calculateScoreForPlayer($playerId, $piecesCount);
+
+        if ($score === null) {
+            return null;
+        }
+
+        $percentile = $this->computePercentile($piecesCount, $score['skill_score']);
+
+        return [
+            'skill_score' => $score['skill_score'],
+            'skill_tier' => SkillTier::fromPercentile($percentile),
+            'skill_percentile' => round($percentile, 2),
+            'confidence' => $score['confidence'],
+            'qualifying_puzzles_count' => $score['qualifying_puzzles_count'],
+        ];
+    }
+
+    /**
+     * Compute raw skill score without percentile/tier (used by batch orchestrator).
+     *
+     * @return array{skill_score: float, confidence: MetricConfidence, qualifying_puzzles_count: int}|null
+     */
+    public function calculateScoreForPlayer(string $playerId, int $piecesCount): null|array
+    {
         $entries = $this->computeWeightedPercentileEntries($playerId, $piecesCount);
 
         if (count($entries) < self::MINIMUM_QUALIFYING_PUZZLES) {
@@ -149,13 +173,10 @@ final class PlayerSkillCalculator implements ResetInterface
         }
 
         $skillScore = $this->computeWeightedMedian($entries);
-        $percentile = $this->computePercentile($piecesCount, $skillScore);
         $confidence = MetricConfidence::fromSampleSize(count($entries), self::MINIMUM_QUALIFYING_PUZZLES);
 
         return [
             'skill_score' => round($skillScore, 6),
-            'skill_tier' => SkillTier::fromPercentile($percentile),
-            'skill_percentile' => round($percentile, 2),
             'confidence' => $confidence,
             'qualifying_puzzles_count' => count($entries),
         ];

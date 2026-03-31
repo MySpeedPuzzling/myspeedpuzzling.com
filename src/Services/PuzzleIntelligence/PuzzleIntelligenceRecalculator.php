@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 readonly final class PuzzleIntelligenceRecalculator
 {
@@ -349,7 +350,7 @@ readonly final class PuzzleIntelligenceRecalculator
     private function computePlayerSkills(\DateTimeImmutable $now, null|string $specificPlayer): int
     {
         // v2: All players (including private) get skill scores.
-        // Upsert-only approach — no mid-loop deletes (zero downtime).
+        // Two-pass approach: compute all scores first, then percentiles from in-memory data.
         $players = $this->getPlayersWithSolves($specificPlayer);
         $count = 0;
 
@@ -358,36 +359,65 @@ readonly final class PuzzleIntelligenceRecalculator
                 $this->skillCalculator->preloadPuzzleData($piecesCount);
             }
 
-            $buffer = [];
+            // Pass 1: Compute all raw skill scores
+            /** @var array<string, array{skill_score: float, confidence: \SpeedPuzzling\Web\Value\MetricConfidence, qualifying_puzzles_count: int}> $scores */
+            $scores = [];
+            $allScoreValues = [];
 
             foreach ($players as $playerId) {
-                $result = $this->skillCalculator->calculateForPlayer($playerId, $piecesCount);
+                $result = $this->skillCalculator->calculateScoreForPlayer($playerId, $piecesCount);
 
                 if ($result !== null) {
-                    $buffer[] = [
-                        'player_id' => $playerId,
-                        'pieces_count' => $piecesCount,
-                        'skill_score' => $result['skill_score'],
-                        'skill_tier' => $result['skill_tier']->value,
-                        'skill_percentile' => $result['skill_percentile'],
-                        'confidence' => $result['confidence']->value,
-                        'qualifying_puzzles_count' => $result['qualifying_puzzles_count'],
-                        'computed_at' => $now->format('Y-m-d H:i:s'),
-                    ];
-                    $count++;
+                    $scores[$playerId] = $result;
+                    $allScoreValues[] = $result['skill_score'];
+                }
+            }
 
-                    if (count($buffer) >= self::BATCH_SIZE) {
-                        $this->flushSkillBuffer($buffer);
-                        $buffer = [];
+            $this->skillCalculator->clearPreloadedData();
+
+            // Pass 2: Compute percentiles from in-memory sorted scores, write results
+            sort($allScoreValues);
+            $totalScores = count($allScoreValues);
+            $buffer = [];
+
+            foreach ($scores as $playerId => $result) {
+                // Binary search: count of values <= skillScore in sorted array
+                $lo = 0;
+                $hi = $totalScores;
+
+                while ($lo < $hi) {
+                    $mid = intdiv($lo + $hi, 2);
+
+                    if ($allScoreValues[$mid] <= $result['skill_score']) {
+                        $lo = $mid + 1;
+                    } else {
+                        $hi = $mid;
                     }
+                }
+
+                $percentile = $totalScores > 0 ? ($lo / $totalScores) * 100.0 : 50.0;
+
+                $buffer[] = [
+                    'player_id' => $playerId,
+                    'pieces_count' => $piecesCount,
+                    'skill_score' => $result['skill_score'],
+                    'skill_tier' => SkillTier::fromPercentile($percentile)->value,
+                    'skill_percentile' => round($percentile, 2),
+                    'confidence' => $result['confidence']->value,
+                    'qualifying_puzzles_count' => $result['qualifying_puzzles_count'],
+                    'computed_at' => $now->format('Y-m-d H:i:s'),
+                ];
+                $count++;
+
+                if (count($buffer) >= self::BATCH_SIZE) {
+                    $this->flushSkillBuffer($buffer);
+                    $buffer = [];
                 }
             }
 
             if ($buffer !== []) {
                 $this->flushSkillBuffer($buffer);
             }
-
-            $this->skillCalculator->clearPreloadedData();
         }
 
         // Clean up: remove entries not updated in this run (players who no longer qualify)
@@ -549,6 +579,11 @@ readonly final class PuzzleIntelligenceRecalculator
     {
         $count = 0;
 
+        // Preload all transition data in one query (skip for single-player mode)
+        if ($specificPlayer === null) {
+            $this->improvementRatioCalculator->preloadAllTransitions();
+        }
+
         // Global ratios: per piece count (skip when recalculating a single player)
         if ($specificPlayer === null) {
             $pieceCounts = $this->getDistinctPieceCounts();
@@ -612,6 +647,8 @@ readonly final class PuzzleIntelligenceRecalculator
         if ($buffer !== []) {
             $this->flushPlayerImprovementRatioBuffer($buffer);
         }
+
+        $this->improvementRatioCalculator->clearPreloadedData();
 
         $this->connection->executeStatement(
             'DELETE FROM player_improvement_ratio WHERE computed_at < :now',

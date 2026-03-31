@@ -25,7 +25,7 @@
         {% endfor %}
     {% elseif isOwnProfile and eloProgress is not null %}
         {# Not yet qualified — qualification banner matching ELO ladder style #}
-        {% set fa_done = eloProgress.first_attempts >= 15 %}
+        {% set fa_done = eloProgress.first_attempts >= minFirstAttempts %}
         {% set ts_done = eloProgress.total_solves >= 50 %}
         <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
             <div class="card-body py-2 px-3">
@@ -41,10 +41,10 @@
                         {{ 'puzzle_intelligence.elo.progress_first_attempts'|trans }}
                     </small>
                     <div class="progress flex-grow-1" style="height: 5px; background-color: #fff;">
-                        {% set fa_pct = (eloProgress.first_attempts / 15 * 100) > 100 ? 100 : (eloProgress.first_attempts / 15 * 100) %}
+                        {% set fa_pct = (eloProgress.first_attempts / minFirstAttempts * 100) > 100 ? 100 : (eloProgress.first_attempts / minFirstAttempts * 100) %}
                         <div class="progress-bar {{ fa_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ fa_pct }}%;"></div>
                     </div>
-                    <small class="text-muted fw-medium">{{ eloProgress.first_attempts }}/15</small>
+                    <small class="text-muted fw-medium">{{ eloProgress.first_attempts }}/{{ minFirstAttempts }}</small>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <small class="text-muted" style="min-width: 100px;">
@@ -57,6 +57,21 @@
                     </div>
                     <small class="text-muted fw-medium">{{ eloProgress.total_solves }}/50</small>
                 </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card shadow-sm flex-shrink-0 flex-grow-0 h-100">
+            <div class="card-body py-2 px-3 d-flex flex-column">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-trophy text-muted flex-shrink-0" style="font-size: 1.2rem;"></i>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                    </div>
+                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs"><i class="bi bi-question-circle"></i></a>
+                </div>
+                <small class="text-muted mt-auto">
+                    {{ 'puzzle_intelligence.elo.not_ranked_yet'|trans }}
+                </small>
             </div>
         </div>
     {% endif %}

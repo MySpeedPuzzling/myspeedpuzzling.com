@@ -29,6 +29,8 @@ final class PlayerEloProfile
     /** @var array{first_attempts: int, total_solves: int}|null */
     public null|array $eloProgress = null;
 
+    public int $minFirstAttempts = MspEloCalculator::MINIMUM_FIRST_ATTEMPTS;
+
     public function __construct(
         readonly private GetPlayerEloRanking $getPlayerEloRanking,
         readonly private MspEloCalculator $mspEloCalculator,

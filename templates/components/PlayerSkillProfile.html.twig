@@ -90,21 +90,6 @@
                         {% endfor %}
                     </div>
                 </div>
-            {% else %}
-                <div class="card shadow-sm h-100">
-                    <div class="card-body py-2 px-3 d-flex flex-column">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <div class="d-flex align-items-center gap-2">
-                                <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-                                <small class="fw-medium">{{ 'puzzle_intelligence.skill.title'|trans }}</small>
-                            </div>
-                            <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs"><i class="bi bi-question-circle"></i></a>
-                        </div>
-                        <small class="text-muted mt-auto">
-                            {{ 'puzzle_intelligence.skill.not_enough_data'|trans({'%pieces%': selectedPiecesCount}) }}
-                        </small>
-                    </div>
-                </div>
             {% endif %}
         {% endif %}
     {% endif %}

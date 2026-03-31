@@ -93,11 +93,17 @@ final class PlayerSkillProfile
 
         if ($this->skills === []) {
             $allProgress = $this->getPlayerBaselineProgress->solveProgress($this->playerId, PlayerSkillCalculator::MIN_SOLVERS_PER_PUZZLE);
-            $this->progress = array_filter(
+            $filtered = array_filter(
                 $allProgress,
                 static fn (array $data, int $pc): bool => in_array($pc, PuzzleIntelligenceRecalculator::SKILL_PIECES_COUNTS, true),
                 ARRAY_FILTER_USE_BOTH,
             );
+
+            // Always show progress bars for all skill piece counts, even with zero progress
+            $this->progress = [];
+            foreach (PuzzleIntelligenceRecalculator::SKILL_PIECES_COUNTS as $pc) {
+                $this->progress[$pc] = $filtered[$pc] ?? ['baseline_solves' => 0, 'qualifying_puzzles' => 0];
+            }
         }
     }
 

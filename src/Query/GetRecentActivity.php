@@ -68,14 +68,14 @@ SELECT
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
-        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = puzzle.pieces_count)
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
     ELSE NULL END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = puzzle.pieces_count
+LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE
     (puzzle_solving_time.player_id = :playerId OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID))))
 ORDER BY puzzle_solving_time.tracked_at DESC
@@ -177,14 +177,14 @@ SELECT
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
-        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = puzzle.pieces_count)
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
     ELSE NULL END AS players
 FROM puzzle_solving_time
 INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
 INNER JOIN player ON puzzle_solving_time.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON puzzle_solving_time.competition_id = competition.id
-LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = puzzle.pieces_count
+LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE player.is_private = false
 ORDER BY puzzle_solving_time.tracked_at DESC
 LIMIT :limit
@@ -308,7 +308,7 @@ SELECT
         ) ORDER BY elem.ordinality)
         FROM json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS elem(player, ordinality)
         LEFT JOIN player p ON p.id = (elem.player ->> 'player_id')::UUID
-        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id AND ps_m.pieces_count = puzzle.pieces_count)
+        LEFT JOIN player_skill ps_m ON ps_m.player_id = p.id)
     ELSE NULL END AS players
 FROM
     filtered_puzzle_solving_time fpt
@@ -317,7 +317,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN player ON pst.player_id = player.id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
-LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = puzzle.pieces_count
+LEFT JOIN player_skill ps ON ps.player_id = player.id
 WHERE is_private = false
 ORDER BY pst.tracked_at DESC
 SQL;

@@ -95,7 +95,7 @@ final class PuzzleTimes
             $this->onlyUnboxed = false;
         }
 
-        $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId, $this->piecesCount);
+        $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
 
         if ($this->onlyFirstTries === true) {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
@@ -114,11 +114,11 @@ final class PuzzleTimes
             $soloPuzzleSolversGrouped = $this->puzzlesSorter->filterOutNonUnboxedGrouped($soloPuzzleSolversGrouped);
         }
 
-        $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId, $this->piecesCount);
+        $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
         $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
         $duoPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers);
 
-        $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId, $this->piecesCount);
+        $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
         $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
         $teamPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers);
 

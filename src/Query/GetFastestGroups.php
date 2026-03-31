@@ -39,11 +39,11 @@ player_data AS (
         puzzle.name AS puzzle_name,
         puzzle.alternative_name AS puzzle_alternative_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
-        pieces_count,
-        comment,
-        tracked_at,
-        finished_at,
-        finished_puzzle_photo,
+        puzzle.pieces_count,
+        pst.comment,
+        pst.tracked_at,
+        pst.finished_at,
+        pst.finished_puzzle_photo,
         pst.seconds_to_solve AS time,
         player.name AS player_name,
         player.code AS player_code,
@@ -53,7 +53,7 @@ player_data AS (
         puzzle.identification_number AS puzzle_identification_number,
         pst.id AS time_id,
         pst.team ->> 'team_id' AS team_id,
-        first_attempt,
+        pst.first_attempt,
         pst.unboxed,
         player.is_private,
         competition.id AS competition_id,
@@ -79,10 +79,10 @@ player_data AS (
     INNER JOIN player ON pst.player_id = player.id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN competition ON pst.competition_id = competition.id
-    LEFT JOIN player_skill ps_main ON ps_main.player_id = player.id AND ps_main.pieces_count = :piecesCount,
+    LEFT JOIN player_skill ps_main ON ps_main.player_id = player.id,
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
-    LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id AND ps_member.pieces_count = :piecesCount
+    LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
     GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, ps_main.skill_tier
 )
 SELECT *

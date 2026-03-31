@@ -183,6 +183,8 @@ final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChangeTest exte
         /** @var PlayerBaselineCalculator $baselineCalculator */
         $baselineCalculator = self::getContainer()->get(PlayerBaselineCalculator::class);
 
+        $this->connection->executeStatement('DELETE FROM player_baseline');
+
         $playerIds = [
             PlayerFixture::PLAYER_REGULAR,
             PlayerFixture::PLAYER_PRIVATE,

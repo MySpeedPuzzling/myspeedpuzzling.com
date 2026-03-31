@@ -75,31 +75,17 @@
                             <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs"><i class="bi bi-question-circle"></i></a>
                         </div>
                         {% for pc, data in progress %}
-                            {% set step1_done = data.baseline_solves >= minBaselineSolves %}
                             <div class="{{ not loop.last ? 'mb-2 pb-2 border-bottom' : '' }}">
                                 <div class="fw-medium mb-1">{{ 'pieces_count'|trans({ '%count%': pc })|raw }}</div>
 
-                                {% if not step1_done %}
-                                    {# Baseline not yet built — show simple solve counter #}
-                                    {% set baseline_pct = (data.baseline_solves / minBaselineSolves * 100) %}
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <small class="text-muted">{{ 'puzzle_intelligence.skill.progress_baseline'|trans({'%count%': minBaselineSolves}) }}</small>
-                                        <small class="text-muted">{{ data.baseline_solves }}/{{ minBaselineSolves }}</small>
-                                    </div>
-                                    <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-primary" style="width: {{ baseline_pct }}%;"></div>
-                                    </div>
-                                {% else %}
-                                    {# Baseline done — show qualifying puzzles progress #}
-                                    {% set qual_pct = ((data.qualifying_puzzles / minQualifyingPuzzles * 100) > 100 ? 100 : (data.qualifying_puzzles / minQualifyingPuzzles * 100)) %}
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <small class="text-muted">{{ 'puzzle_intelligence.skill.progress_qualifying'|trans({'%count%': minSolversPerPuzzle}) }}</small>
-                                        <small class="text-muted">{{ data.qualifying_puzzles }}/{{ minQualifyingPuzzles }}</small>
-                                    </div>
-                                    <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-primary" style="width: {{ qual_pct }}%;"></div>
-                                    </div>
-                                {% endif %}
+                                {% set qual_pct = ((data.qualifying_puzzles / minQualifyingPuzzles * 100) > 100 ? 100 : (data.qualifying_puzzles / minQualifyingPuzzles * 100)) %}
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <small class="text-muted">{{ 'puzzle_intelligence.skill.progress_qualifying'|trans({'%count%': minSolversPerPuzzle}) }}</small>
+                                    <small class="text-muted">{{ data.qualifying_puzzles }}/{{ minQualifyingPuzzles }}</small>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" style="width: {{ qual_pct }}%;"></div>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>

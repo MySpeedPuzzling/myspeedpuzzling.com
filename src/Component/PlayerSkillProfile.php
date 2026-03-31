@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\GetPlayerBaselineProgress;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetPlayerSkillHistory;
-use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Results\PlayerSkillHistoryPoint;
@@ -51,8 +50,6 @@ final class PlayerSkillProfile
      * @var array<int, array{baseline_solves: int, qualifying_puzzles: int}>
      */
     public array $progress = [];
-
-    public int $minBaselineSolves = PlayerBaselineCalculator::MINIMUM_SOLVE_COUNT;
 
     public int $minQualifyingPuzzles = PlayerSkillCalculator::MINIMUM_QUALIFYING_PUZZLES;
 

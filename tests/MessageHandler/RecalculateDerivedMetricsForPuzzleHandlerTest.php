@@ -72,12 +72,14 @@ final class RecalculateDerivedMetricsForPuzzleHandlerTest extends KernelTestCase
 
         ($this->handler)($message);
 
+        /** @var string|false $memorability */
         $memorability = $this->connection->fetchOne(
             'SELECT memorability_score FROM puzzle_difficulty WHERE puzzle_id = :puzzleId',
             ['puzzleId' => PuzzleFixture::PUZZLE_500_01],
         );
 
         // Memorability should be left untouched (needs global normalization from hourly batch)
+        self::assertNotFalse($memorability);
         self::assertEqualsWithDelta(1.234, (float) $memorability, 0.001);
     }
 
@@ -91,6 +93,8 @@ final class RecalculateDerivedMetricsForPuzzleHandlerTest extends KernelTestCase
         $baselineCalculator = self::getContainer()->get(PlayerBaselineCalculator::class);
         /** @var PuzzleDifficultyCalculator $difficultyCalculator */
         $difficultyCalculator = self::getContainer()->get(PuzzleDifficultyCalculator::class);
+
+        $this->connection->executeStatement('DELETE FROM player_baseline');
 
         $playerIds = [
             PlayerFixture::PLAYER_REGULAR,

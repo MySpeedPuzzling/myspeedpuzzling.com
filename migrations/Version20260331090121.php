@@ -14,7 +14,7 @@ final class Version20260331090121 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Add improvement ratio tables for data-driven time predictions';
+        return 'Add improvement ratio tables for data-driven time predictions, drop puzzle_pieces_count index';
     }
 
     public function up(Schema $schema): void
@@ -26,9 +26,6 @@ final class Version20260331090121 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_6A90346599E6F5DF ON player_improvement_ratio (player_id)');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6A90346599E6F5DF9EB2E1C9 ON player_improvement_ratio (player_id, from_attempt)');
         $this->addSql('ALTER TABLE player_improvement_ratio ADD CONSTRAINT FK_6A90346599E6F5DF FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');
-        $this->addSql('ALTER TABLE feature_request ADD status VARCHAR(255) DEFAULT \'open\' NOT NULL');
-        $this->addSql('ALTER TABLE feature_request ADD github_url VARCHAR(500) DEFAULT NULL');
-        $this->addSql('ALTER TABLE feature_request ADD admin_comment TEXT DEFAULT NULL');
         $this->addSql('DROP INDEX puzzle_pieces_count');
     }
 
@@ -38,9 +35,6 @@ final class Version20260331090121 extends AbstractMigration
         $this->addSql('ALTER TABLE player_improvement_ratio DROP CONSTRAINT FK_6A90346599E6F5DF');
         $this->addSql('DROP TABLE global_improvement_ratio');
         $this->addSql('DROP TABLE player_improvement_ratio');
-        $this->addSql('ALTER TABLE feature_request DROP status');
-        $this->addSql('ALTER TABLE feature_request DROP github_url');
-        $this->addSql('ALTER TABLE feature_request DROP admin_comment');
         $this->addSql('CREATE INDEX puzzle_pieces_count ON puzzle (pieces_count)');
     }
 }

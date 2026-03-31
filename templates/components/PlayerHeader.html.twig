@@ -3,9 +3,13 @@
 <nav class="player-profile-header player-breadcrumb mt-n2 ms-n3 me-n3 mb-2 py-1 px-3">
     <span class="player-breadcrumb-name">
         {% if not player.isPrivate or (logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId) %}
-            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut and primary_skill is defined and primary_skill is not null %}
-                {% set skill_tier_name = primary_skill.skillTier.name|lower %}
-                <svg class="rank-icon" width="20" height="20" style="color: var(--rank-{{ skill_tier_name }})"><use href="/rank-icons-sprite.svg#rank-{{ skill_tier_name }}"/></svg>
+            {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut %}
+                {% if primary_skill is defined and primary_skill is not null %}
+                    {% set skill_tier_name = primary_skill.skillTier.name|lower %}
+                    <svg class="rank-icon" width="20" height="20" style="color: var(--rank-{{ skill_tier_name }})"><use href="/rank-icons-sprite.svg#rank-{{ skill_tier_name }}"/></svg>
+                {% else %}
+                    <svg class="rank-icon" width="20" height="20" style="color: var(--rank-unknown)"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
+                {% endif %}
             {% else %}
                 <svg class="rank-icon" width="20" height="20" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
             {% endif %}

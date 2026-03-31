@@ -29,11 +29,12 @@
         {% set ts_done = eloProgress.total_solves >= 50 %}
         <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
             <div class="card-body py-2 px-3">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
-                    <div>
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
                         <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
                     </div>
+                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs ms-2"><i class="bi bi-question-circle"></i></a>
                 </div>
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <small class="text-muted" style="min-width: 100px;">
@@ -57,6 +58,7 @@
                     </div>
                     <small class="text-muted fw-medium">{{ eloProgress.total_solves }}/50</small>
                 </div>
+                <a href="{{ path('msp_elo_ladder') }}" class="text-decoration-none mt-1"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
             </div>
         </div>
     {% else %}
@@ -67,11 +69,12 @@
                         <i class="bi bi-trophy text-muted flex-shrink-0" style="font-size: 1.2rem;"></i>
                         <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
                     </div>
-                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs"><i class="bi bi-question-circle"></i></a>
+                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs ms-2"><i class="bi bi-question-circle"></i></a>
                 </div>
                 <small class="text-muted mt-auto">
                     {{ 'puzzle_intelligence.elo.not_ranked_yet'|trans }}
                 </small>
+                <a href="{{ path('msp_elo_ladder') }}" class="text-decoration-none"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
             </div>
         </div>
     {% endif %}

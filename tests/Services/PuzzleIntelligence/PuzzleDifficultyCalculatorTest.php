@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -21,6 +22,7 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
 {
     private PuzzleDifficultyCalculator $calculator;
     private PlayerBaselineCalculator $baselineCalculator;
+    private Connection $connection;
 
     protected function setUp(): void
     {
@@ -32,6 +34,9 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         /** @var PlayerBaselineCalculator $baselineCalculator */
         $baselineCalculator = $container->get(PlayerBaselineCalculator::class);
         $this->baselineCalculator = $baselineCalculator;
+        /** @var Connection $connection */
+        $connection = $container->get(Connection::class);
+        $this->connection = $connection;
 
         // First, compute and persist baselines for all players (required for difficulty calculation)
         $this->persistBaselines();
@@ -119,6 +124,8 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         $clock = self::getContainer()->get(ClockInterface::class);
         /** @var EntityManagerInterface $em */
         $em = self::getContainer()->get(EntityManagerInterface::class);
+
+        $this->connection->executeStatement('DELETE FROM player_baseline');
 
         $playerIds = [
             PlayerFixture::PLAYER_REGULAR,

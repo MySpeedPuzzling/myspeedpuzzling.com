@@ -1939,6 +1939,21 @@ feature_requests:
     report_confirm_message: "Pokud vám tento komentář přijde nevhodný nebo urážlivý, klidně ho nahlaste. Simona ho přezkoumá a podnikne příslušné kroky. Opravdu chcete tento komentář nahlásit?"
     report_confirm_button: "Ano, nahlásit"
     report_cancel_button: "Zrušit"
+    status:
+        open: "Otevřené"
+        in_progress: "Probíhá"
+        completed: "Dokončeno"
+        declined: "Zamítnuto"
+    filter:
+        all_statuses: "Vše"
+        my_requests: "Moje návrhy"
+    sort:
+        most_votes: "Nejvíce hlasů"
+        least_votes: "Nejméně hlasů"
+        newest: "Nejnovější"
+        oldest: "Nejstarší"
+    admin_response: "Odpověď administrátora"
+    view_on_github: "Zobrazit na GitHubu"
     form:
         title_label: "Název"
         title_placeholder: "Krátký výstižný název vašeho nápadu"

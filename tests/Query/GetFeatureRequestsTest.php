@@ -20,7 +20,7 @@ final class GetFeatureRequestsTest extends KernelTestCase
 
     public function testReturnsSortedByVoteCount(): void
     {
-        $results = $this->getFeatureRequests->allSortedByVotes();
+        $results = $this->getFeatureRequests->findAll();
 
         self::assertNotEmpty($results);
 

@@ -31,6 +31,9 @@ SELECT
     fr.title,
     fr.description,
     fr.created_at,
+    fr.status,
+    fr.github_url,
+    fr.admin_comment,
     1 + (SELECT COUNT(*) FROM feature_request_vote fv WHERE fv.feature_request_id = fr.id) AS vote_count,
     p.id AS author_id,
     COALESCE(p.name, '#' || UPPER(p.code)) AS author_name,
@@ -49,7 +52,7 @@ SQL;
             throw new FeatureRequestNotFound();
         }
 
-        /** @var array{id: string, title: string, description: string, created_at: string, vote_count: int|string, author_id: string, author_name: string, author_avatar: null|string, author_country: null|string} $row */
+        /** @var array{id: string, title: string, description: string, created_at: string, vote_count: int|string, author_id: string, author_name: string, author_avatar: null|string, author_country: null|string, status: string, github_url: null|string, admin_comment: null|string} $row */
         return FeatureRequestDetail::fromDatabaseRow($row);
     }
 }

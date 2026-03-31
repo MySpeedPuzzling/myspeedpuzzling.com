@@ -1676,6 +1676,21 @@ feature_requests:
     report_confirm_message: "Si vous trouvez ce commentaire inapproprié ou offensant, n'hésitez pas à le signaler. Simona l'examinera et prendra les mesures appropriées. Êtes-vous sûr de vouloir signaler ce commentaire ?"
     report_confirm_button: "Oui, signaler"
     report_cancel_button: "Annuler"
+    status:
+        open: "Ouvert"
+        in_progress: "En cours"
+        completed: "Terminé"
+        declined: "Refusé"
+    filter:
+        all_statuses: "Tous"
+        my_requests: "Mes suggestions"
+    sort:
+        most_votes: "Plus votés"
+        least_votes: "Moins votés"
+        newest: "Plus récents"
+        oldest: "Plus anciens"
+    admin_response: "Réponse de l'administrateur"
+    view_on_github: "Voir sur GitHub"
     form:
         title_label: "Titre"
         title_placeholder: "Titre court et descriptif pour votre idée"

@@ -1675,6 +1675,21 @@ feature_requests:
     report_confirm_message: "Wenn du diesen Kommentar als unangemessen oder beleidigend empfindest, melde ihn gerne. Simona wird ihn überprüfen und entsprechend handeln. Bist du sicher, dass du diesen Kommentar melden möchtest?"
     report_confirm_button: "Ja, melden"
     report_cancel_button: "Abbrechen"
+    status:
+        open: "Offen"
+        in_progress: "In Bearbeitung"
+        completed: "Abgeschlossen"
+        declined: "Abgelehnt"
+    filter:
+        all_statuses: "Alle"
+        my_requests: "Meine Vorschläge"
+    sort:
+        most_votes: "Meiste Stimmen"
+        least_votes: "Wenigste Stimmen"
+        newest: "Neueste"
+        oldest: "Älteste"
+    admin_response: "Admin-Antwort"
+    view_on_github: "Auf GitHub ansehen"
     form:
         title_label: "Titel"
         title_placeholder: "Kurzer, beschreibender Titel für deine Feature-Idee"

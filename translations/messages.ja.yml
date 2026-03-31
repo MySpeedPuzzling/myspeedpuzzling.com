@@ -1664,6 +1664,21 @@ feature_requests:
     report_confirm_message: "このコメントが不適切または不快だと感じた場合は、ご遠慮なく報告してください。Simonaが確認し、適切な対応を取ります。このコメントを報告しますか？"
     report_confirm_button: "はい、報告します"
     report_cancel_button: "キャンセル"
+    status:
+        open: "未対応"
+        in_progress: "対応中"
+        completed: "完了"
+        declined: "見送り"
+    filter:
+        all_statuses: "すべて"
+        my_requests: "自分の提案"
+    sort:
+        most_votes: "投票数が多い順"
+        least_votes: "投票数が少ない順"
+        newest: "新しい順"
+        oldest: "古い順"
+    admin_response: "管理者の回答"
+    view_on_github: "GitHubで見る"
     form:
         title_label: "タイトル"
         title_placeholder: "機能アイデアの短い説明的なタイトル"

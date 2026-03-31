@@ -15,6 +15,7 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\FeatureRequestStatus;
 
 #[Entity]
 #[Index(columns: ['author_id'])]
@@ -24,6 +25,18 @@ class FeatureRequest
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::INTEGER)]
     public int $voteCount = 0;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: FeatureRequestStatus::class, options: ['default' => 'open'])]
+    public FeatureRequestStatus $status = FeatureRequestStatus::Open;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, length: 500, nullable: true)]
+    public null|string $githubUrl = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::TEXT, nullable: true)]
+    public null|string $adminComment = null;
 
     public function __construct(
         #[Id]
@@ -50,5 +63,15 @@ class FeatureRequest
     {
         $this->title = $title;
         $this->description = $description;
+    }
+
+    public function updateStatus(
+        FeatureRequestStatus $status,
+        null|string $githubUrl = null,
+        null|string $adminComment = null,
+    ): void {
+        $this->status = $status;
+        $this->githubUrl = $githubUrl;
+        $this->adminComment = $adminComment;
     }
 }

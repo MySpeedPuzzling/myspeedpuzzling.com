@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\FeatureRequest;
 
 use SpeedPuzzling\Web\Query\CountPlayerFeatureRequestsThisMonth;
-use SpeedPuzzling\Web\Query\GetFeatureRequests;
 use SpeedPuzzling\Web\Query\GetPlayerVoteCountThisMonth;
 use SpeedPuzzling\Web\Query\IsHintDismissed;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -17,7 +16,6 @@ use Symfony\Component\Routing\Attribute\Route;
 final class FeatureRequestsListController extends AbstractController
 {
     public function __construct(
-        readonly private GetFeatureRequests $getFeatureRequests,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private IsHintDismissed $isHintDismissed,
         readonly private CountPlayerFeatureRequestsThisMonth $countPlayerFeatureRequestsThisMonth,
@@ -39,8 +37,6 @@ final class FeatureRequestsListController extends AbstractController
     )]
     public function __invoke(): Response
     {
-        $featureRequests = $this->getFeatureRequests->allSortedByVotes();
-
         $hintDismissed = false;
         $votesUsedThisMonth = 0;
         $requestsCreatedThisMonth = 0;
@@ -53,7 +49,6 @@ final class FeatureRequestsListController extends AbstractController
         }
 
         return $this->render('feature_request/list.html.twig', [
-            'feature_requests' => $featureRequests,
             'hint_dismissed' => $hintDismissed,
             'votes_used_this_month' => $votesUsedThisMonth,
             'requests_created_this_month' => $requestsCreatedThisMonth,

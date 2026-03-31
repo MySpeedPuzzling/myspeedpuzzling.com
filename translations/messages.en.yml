@@ -1914,6 +1914,21 @@ feature_requests:
     report_confirm_message: "If you find this comment inappropriate or offensive for any reason, feel free to report it. Simona will review it and take appropriate action. Are you sure you want to report this comment?"
     report_confirm_button: "Yes, Report"
     report_cancel_button: "Cancel"
+    status:
+        open: "Open"
+        in_progress: "In Progress"
+        completed: "Completed"
+        declined: "Declined"
+    filter:
+        all_statuses: "All"
+        my_requests: "My Requests"
+    sort:
+        most_votes: "Most Votes"
+        least_votes: "Least Votes"
+        newest: "Newest"
+        oldest: "Oldest"
+    admin_response: "Admin Response"
+    view_on_github: "View on GitHub"
     form:
         title_label: "Title"
         title_placeholder: "Short, descriptive title for your feature idea"

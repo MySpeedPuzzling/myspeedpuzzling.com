@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\FeatureRequestStatus;
+
 /**
  * @phpstan-type FeatureRequestOverviewRow array{
  *     id: string,
@@ -16,6 +18,9 @@ namespace SpeedPuzzling\Web\Results;
  *     author_name: string,
  *     author_avatar: null|string,
  *     author_country: null|string,
+ *     status: string,
+ *     github_url: null|string,
+ *     admin_comment: null|string,
  * }
  */
 readonly final class FeatureRequestOverview
@@ -31,6 +36,9 @@ readonly final class FeatureRequestOverview
         public string $authorName,
         public null|string $authorAvatar,
         public null|string $authorCountry,
+        public FeatureRequestStatus $status,
+        public null|string $githubUrl,
+        public null|string $adminComment,
     ) {
     }
 
@@ -50,6 +58,9 @@ readonly final class FeatureRequestOverview
             authorName: $row['author_name'],
             authorAvatar: $row['author_avatar'],
             authorCountry: $row['author_country'],
+            status: FeatureRequestStatus::from($row['status']),
+            githubUrl: $row['github_url'],
+            adminComment: $row['admin_comment'],
         );
     }
 }

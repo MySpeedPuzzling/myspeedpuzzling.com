@@ -27,6 +27,8 @@ readonly final class PlayerNotification
         public null|string $manufacturerName,
         public null|int $piecesCount,
         public null|int $time,
+        public null|bool $firstAttempt,
+        public null|bool $unboxed,
         public null|string $puzzleImage,
         public null|string $teamId,
         /** @var null|array<Puzzler> */
@@ -138,6 +140,8 @@ readonly final class PlayerNotification
             manufacturerName: is_string($manufacturerName) ? $manufacturerName : null,
             piecesCount: isset($row['pieces_count']) && is_numeric($row['pieces_count']) ? (int) $row['pieces_count'] : null,
             time: isset($row['time']) && is_numeric($row['time']) ? (int) $row['time'] : null,
+            firstAttempt: isset($row['first_attempt']) ? (bool) $row['first_attempt'] : null,
+            unboxed: isset($row['unboxed']) ? (bool) $row['unboxed'] : null,
             puzzleImage: is_string($puzzleImage) ? $puzzleImage : null,
             teamId: is_string($teamId) ? $teamId : null,
             players: $players,

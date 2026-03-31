@@ -30,7 +30,7 @@
         {% elseif player_position is not null and player_elo_rating is not null %}
             <a href="{{ path('msp_elo_ladder', {page: my_page}) }}#my-elo-row" class="card shadow-custom flex-shrink-0 text-decoration-none">
                 <div class="card-body py-2 px-3">
-                    <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.your_ranking_among'|trans({'%total%': total_count}) }}</small>
+                    <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': total_count}) }}</small>
                     <div class="d-flex align-items-center gap-2">
                         <span class="h5 mb-0 fw-bold" style="font-family: monospace; color: #111;">#{{ player_position }}</span>
                         <span class="text-muted">&middot;</span>

@@ -9,7 +9,8 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
 
 readonly final class GetPlayerPrediction
 {
-    private const int PERSONAL_PREDICTION_MIN_SOLVES = 2;
+    private const float DEFAULT_IMPROVEMENT_RATIO = 0.90;
+    private const int MAX_TRANSITION = 4;
 
     public function __construct(
         private Connection $database,
@@ -18,7 +19,7 @@ readonly final class GetPlayerPrediction
 
     public function forPuzzle(string $playerId, string $puzzleId, null|string $excludeTimeId = null): null|TimePredictionResult
     {
-        $personalPrediction = $this->tryPersonalPrediction($playerId, $puzzleId, $excludeTimeId);
+        $personalPrediction = $this->personalPrediction($playerId, $puzzleId, $excludeTimeId);
 
         if ($personalPrediction !== null) {
             return $personalPrediction;
@@ -27,12 +28,12 @@ readonly final class GetPlayerPrediction
         return $this->statisticalPrediction($playerId, $puzzleId);
     }
 
-    private function tryPersonalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId = null): null|TimePredictionResult
+    private function personalPrediction(string $playerId, string $puzzleId, null|string $excludeTimeId = null): null|TimePredictionResult
     {
         $excludeFilter = $excludeTimeId !== null ? 'AND pst.id != :excludeTimeId' : '';
 
         $query = <<<SQL
-SELECT pst.seconds_to_solve
+SELECT pst.seconds_to_solve, COALESCE(pst.finished_at, pst.tracked_at) AS solved_at
 FROM puzzle_solving_time pst
 WHERE pst.player_id = :playerId
     AND pst.puzzle_id = :puzzleId
@@ -53,22 +54,141 @@ SQL;
             $params['excludeTimeId'] = $excludeTimeId;
         }
 
-        /** @var list<array{seconds_to_solve: int|string}> $rows */
+        /** @var list<array{seconds_to_solve: int|string, solved_at: string}> $rows */
         $rows = $this->database->executeQuery($query, $params)->fetchAllAssociative();
 
-        if (count($rows) < self::PERSONAL_PREDICTION_MIN_SOLVES) {
+        $count = count($rows);
+
+        if ($count === 0) {
             return null;
         }
 
         $times = array_map(static fn (array $row): int => (int) $row['seconds_to_solve'], $rows);
-        $count = count($times);
         $bestTime = min($times);
+        $lastTime = $times[$count - 1];
         $nextAttemptNumber = $count + 1;
 
-        // Holt's damped trend exponential smoothing
-        $alpha = 0.5; // level smoothing
-        $beta = 0.4;  // trend smoothing
-        $phi = 0.8;   // trend dampening (creates diminishing returns)
+        // Determine gap since last solve
+        $lastSolvedAt = new \DateTimeImmutable($rows[$count - 1]['solved_at']);
+        $gapDays = (int) (new \DateTimeImmutable())->diff($lastSolvedAt)->days;
+
+        // Get pieces count for global ratio lookup
+        /** @var int|string|false $piecesCount */
+        $piecesCount = $this->database->fetchOne(
+            'SELECT pieces_count FROM puzzle WHERE id = :puzzleId',
+            ['puzzleId' => $puzzleId],
+        );
+
+        if ($piecesCount === false) {
+            return null;
+        }
+
+        $piecesCount = (int) $piecesCount;
+
+        // Get improvement ratio
+        $transition = min($count, self::MAX_TRANSITION);
+        $gapBucket = $this->classifyGap($gapDays);
+
+        $ratio = $this->getPlayerRatio($playerId, $transition);
+
+        if ($ratio !== null) {
+            $ratio = $this->applyGapCorrection($ratio, $piecesCount, $transition, $gapBucket);
+        } else {
+            $ratio = $this->getGlobalRatio($piecesCount, $transition, $gapBucket) ?? self::DEFAULT_IMPROVEMENT_RATIO;
+        }
+
+        $ratioPrediction = $lastTime * $ratio;
+
+        if ($count >= 6) {
+            // Pure Holt's damped trend
+            $predicted = $this->holtsDampedTrend($times);
+        } elseif ($count >= 2) {
+            // Blend ratio-based + Holt's
+            $holtsPrediction = $this->holtsDampedTrend($times);
+            $holtsWeight = min(1.0, ($count - 1) / 5);
+            $predicted = (int) round($holtsWeight * $holtsPrediction + (1.0 - $holtsWeight) * $ratioPrediction);
+        } else {
+            // N=1: pure ratio prediction
+            $predicted = (int) round($ratioPrediction);
+        }
+
+        // Safety floor: can't predict faster than 30% improvement over personal best
+        $predicted = max($predicted, (int) round($bestTime * 0.70));
+
+        // Range calculation
+        if ($count >= 2) {
+            // Use residual-based range from Holt's fitted values
+            $fittedValues = $this->holtsFittedValues($times);
+            $residuals = [];
+
+            for ($i = 0; $i < $count; $i++) {
+                $residuals[] = abs($times[$i] - $fittedValues[$i]);
+            }
+
+            $mad = array_sum($residuals) / count($residuals);
+            $spread = max($mad * 1.5, $predicted * 0.05);
+        } else {
+            // N=1: wider spread (15% or 2 minutes minimum)
+            $spread = max($predicted * 0.15, 120);
+        }
+
+        $rangeLow = (int) round($predicted - $spread);
+        $rangeHigh = (int) round($predicted + $spread);
+
+        // Safety: range low can't be below 70% of best time
+        $rangeLow = max($rangeLow, (int) round($bestTime * 0.70));
+        $rangeLow = max($rangeLow, 1);
+
+        return new TimePredictionResult(
+            predictedSeconds: $predicted,
+            rangeLowSeconds: $rangeLow,
+            rangeHighSeconds: $rangeHigh,
+            difficultyForPlayer: 0.0,
+            isPersonalized: true,
+            personalSolveCount: $count,
+            predictedAttemptNumber: $nextAttemptNumber,
+        );
+    }
+
+    /**
+     * Holt's damped trend exponential smoothing — returns predicted next value.
+     *
+     * @param list<int> $times chronologically ordered solve times
+     */
+    private function holtsDampedTrend(array $times): int
+    {
+        $fitted = $this->holtsFittedValues($times);
+        $count = count($times);
+
+        // Extract final level and trend from the last fitted step
+        $alpha = 0.5;
+        $beta = 0.4;
+        $phi = 0.8;
+
+        $level = (float) $times[0];
+        $trend = (float) ($times[1] - $times[0]);
+
+        for ($i = 1; $i < $count; $i++) {
+            $prevLevel = $level;
+            $level = $alpha * $times[$i] + (1.0 - $alpha) * ($level + $phi * $trend);
+            $trend = $beta * ($level - $prevLevel) + (1.0 - $beta) * $phi * $trend;
+        }
+
+        return (int) round($level + $phi * $trend);
+    }
+
+    /**
+     * Returns fitted values from Holt's damped trend for residual calculation.
+     *
+     * @param list<int> $times
+     * @return list<float>
+     */
+    private function holtsFittedValues(array $times): array
+    {
+        $alpha = 0.5;
+        $beta = 0.4;
+        $phi = 0.8;
+        $count = count($times);
 
         $level = (float) $times[0];
         $trend = (float) ($times[1] - $times[0]);
@@ -82,36 +202,62 @@ SQL;
             $trend = $beta * ($level - $prevLevel) + (1.0 - $beta) * $phi * $trend;
         }
 
-        $predicted = (int) round($level + $phi * $trend);
+        return $fittedValues;
+    }
 
-        // Floor: can't predict more than 10% faster than personal best
-        $predicted = max($predicted, (int) round($bestTime * 0.90));
+    private function getPlayerRatio(string $playerId, int $transition): null|float
+    {
+        /** @var float|string|false $ratio */
+        $ratio = $this->database->fetchOne(
+            'SELECT median_ratio FROM player_improvement_ratio WHERE player_id = :playerId AND from_attempt = :transition',
+            ['playerId' => $playerId, 'transition' => $transition],
+        );
 
-        // Range from residual variance
-        $residuals = [];
-        for ($i = 0; $i < $count; $i++) {
-            $residuals[] = abs($times[$i] - $fittedValues[$i]);
+        return $ratio !== false ? (float) $ratio : null;
+    }
+
+    private function getGlobalRatio(int $piecesCount, int $transition, string $gapBucket): null|float
+    {
+        /** @var float|string|false $ratio */
+        $ratio = $this->database->fetchOne(
+            'SELECT median_ratio FROM global_improvement_ratio WHERE pieces_count = :piecesCount AND from_attempt = :transition AND gap_bucket = :gapBucket',
+            ['piecesCount' => $piecesCount, 'transition' => $transition, 'gapBucket' => $gapBucket],
+        );
+
+        return $ratio !== false ? (float) $ratio : null;
+    }
+
+    /**
+     * Apply gap correction to a player-specific ratio using global gap data.
+     * gap_correction = global_ratio[transition][gap_bucket] / global_ratio[transition][all]
+     */
+    private function applyGapCorrection(float $playerRatio, int $piecesCount, int $transition, string $gapBucket): float
+    {
+        $gapSpecific = $this->getGlobalRatio($piecesCount, $transition, $gapBucket);
+        $gapAll = $this->getGlobalRatio($piecesCount, $transition, 'all');
+
+        if ($gapSpecific === null || $gapAll === null || $gapAll == 0.0) {
+            return $playerRatio;
         }
 
-        $mad = array_sum($residuals) / count($residuals);
-        $spread = max($mad * 1.5, $predicted * 0.05); // at least 5% spread
+        return $playerRatio * ($gapSpecific / $gapAll);
+    }
 
-        $rangeLow = (int) round($predicted - $spread);
-        $rangeHigh = (int) round($predicted + $spread);
+    private function classifyGap(int $gapDays): string
+    {
+        if ($gapDays < 30) {
+            return 'lt30d';
+        }
 
-        // Safety: range low can't be below 85% of best time
-        $rangeLow = max($rangeLow, (int) round($bestTime * 0.85));
-        $rangeLow = max($rangeLow, 1);
+        if ($gapDays < 90) {
+            return '1_3m';
+        }
 
-        return new TimePredictionResult(
-            predictedSeconds: $predicted,
-            rangeLowSeconds: $rangeLow,
-            rangeHighSeconds: $rangeHigh,
-            difficultyForPlayer: 0.0,
-            isPersonalized: true,
-            personalSolveCount: $count,
-            predictedAttemptNumber: $nextAttemptNumber,
-        );
+        if ($gapDays < 365) {
+            return '3_12m';
+        }
+
+        return 'gt12m';
     }
 
     private function statisticalPrediction(string $playerId, string $puzzleId): null|TimePredictionResult

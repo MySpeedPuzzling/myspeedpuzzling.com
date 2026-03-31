@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
 use SpeedPuzzling\Web\Value\DifficultyTier;
@@ -27,6 +28,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
         private ClockInterface $clock,
         private PlayerBaselineCalculator $baselineCalculator,
         private PuzzleDifficultyCalculator $difficultyCalculator,
+        private ImprovementRatioCalculator $improvementRatioCalculator,
         private MessageBusInterface $messageBus,
     ) {
     }
@@ -75,6 +77,14 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
         $difficulty = $this->difficultyCalculator->calculateForPuzzle($puzzleId);
         $this->upsertDifficulty($puzzleId, $difficulty, $now);
 
+        // Tier 1: Recalculate player improvement ratios (if player has repeat solves)
+        $repeatSolveCount = $this->countPlayerSoloSolvesOnPuzzle($playerId, $puzzleId);
+
+        if ($repeatSolveCount > 1) {
+            $ratios = $this->improvementRatioCalculator->calculateForPlayer($playerId);
+            $this->upsertPlayerImprovementRatios($playerId, $ratios, $now);
+        }
+
         // Tier 2: Dispatch async derived metrics recalculation
         if ($difficulty['difficulty_score'] !== null) {
             $this->messageBus->dispatch(new RecalculateDerivedMetricsForPuzzle(Uuid::fromString($puzzleId)));
@@ -98,6 +108,46 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
             'qualifyingCount' => $qualifyingCount,
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    private function countPlayerSoloSolvesOnPuzzle(string $playerId, string $puzzleId): int
+    {
+        /** @var int|string $count */
+        $count = $this->connection->fetchOne("
+            SELECT COUNT(*)
+            FROM puzzle_solving_time
+            WHERE player_id = :playerId
+                AND puzzle_id = :puzzleId
+                AND puzzling_type = 'solo'
+                AND suspicious = false
+                AND seconds_to_solve IS NOT NULL
+                AND unboxed = false
+        ", ['playerId' => $playerId, 'puzzleId' => $puzzleId]);
+
+        return (int) $count;
+    }
+
+    /**
+     * @param list<array{from_attempt: int, median_ratio: float, sample_size: int}> $ratios
+     */
+    private function upsertPlayerImprovementRatios(string $playerId, array $ratios, \DateTimeImmutable $now): void
+    {
+        foreach ($ratios as $ratio) {
+            $this->connection->executeStatement("
+                INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at)
+                VALUES (gen_random_uuid(), :playerId, :fromAttempt, :medianRatio, :sampleSize, :now)
+                ON CONFLICT (player_id, from_attempt) DO UPDATE SET
+                    median_ratio = EXCLUDED.median_ratio,
+                    sample_size = EXCLUDED.sample_size,
+                    computed_at = EXCLUDED.computed_at
+            ", [
+                'playerId' => $playerId,
+                'fromAttempt' => $ratio['from_attempt'],
+                'medianRatio' => $ratio['median_ratio'],
+                'sampleSize' => $ratio['sample_size'],
+                'now' => $now->format('Y-m-d H:i:s'),
+            ]);
+        }
     }
 
     /**

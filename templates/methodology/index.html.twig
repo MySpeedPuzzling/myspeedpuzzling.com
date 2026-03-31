@@ -423,26 +423,42 @@ Display: rating &times; 1000 (e.g., 0.85 &rarr; 850)</code></pre>
 
             <p class="fs-sm mb-3">{{ 'puzzle_intelligence.methodology.prediction_intro'|trans|raw }}</p>
 
+            {# Improvement Ratios #}
+            <div class="card bg-light border-0 mb-3">
+                <div class="card-body py-2 fs-sm">
+                    <p class="mb-1 fw-medium"><i class="bi bi-graph-down me-1"></i> {{ 'puzzle_intelligence.methodology.prediction_ratios_title'|trans }}</p>
+                    <p class="mb-1 text-muted">{{ 'puzzle_intelligence.methodology.prediction_ratios_desc'|trans|raw }}</p>
+                    <div class="bg-white rounded p-2 mt-2 mb-2">
+<pre class="fs-sm mb-0"><code>{{ 'puzzle_intelligence.methodology.prediction_ratios_formula'|trans|raw }}</code></pre>
+                    </div>
+                    <p class="mb-1 text-muted">{{ 'puzzle_intelligence.methodology.prediction_ratios_gap_desc'|trans|raw }}</p>
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm table-bordered fs-sm mb-0">
+                            <thead><tr><th>{{ 'puzzle_intelligence.methodology.prediction_ratios_gap_header'|trans }}</th><th>{{ 'puzzle_intelligence.methodology.prediction_ratios_gap_range'|trans }}</th></tr></thead>
+                            <tbody>
+                                <tr><td>lt30d</td><td>&lt; 30 days</td></tr>
+                                <tr><td>1_3m</td><td>30&ndash;89 days</td></tr>
+                                <tr><td>3_12m</td><td>90&ndash;364 days</td></tr>
+                                <tr><td>gt12m</td><td>365+ days</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {# Personal Prediction with Blending #}
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
                     <p class="mb-1 fw-medium"><i class="bi bi-person me-1"></i> {{ 'puzzle_intelligence.methodology.prediction_personal_title'|trans }}</p>
                     <p class="mb-1 text-muted">{{ 'puzzle_intelligence.methodology.prediction_personal_desc'|trans|raw }}</p>
                     <div class="bg-white rounded p-2 mt-2">
-<pre class="fs-sm mb-0"><code>Smoothing parameters:
-  &alpha; = 0.5 (level), &beta; = 0.4 (trend), &phi; = 0.8 (dampening)
-
-For each of your past solves (in chronological order):
-  level = &alpha; &times; actual_time + (1-&alpha;) &times; (prev_level + &phi; &times; trend)
-  trend = &beta; &times; (level - prev_level) + (1-&beta;) &times; &phi; &times; trend
-
-predicted = level + &phi; &times; trend
-Floor: max(predicted, best_time &times; 0.90)
-Range: based on residual variance (MAD &times; 1.5, min 5% spread)</code></pre>
+<pre class="fs-sm mb-0"><code>{{ 'puzzle_intelligence.methodology.prediction_personal_formula'|trans|raw }}</code></pre>
                     </div>
                     <p class="mt-2 mb-0 text-muted">{{ 'puzzle_intelligence.methodology.prediction_personal_dampening'|trans }}</p>
                 </div>
             </div>
 
+            {# Statistical Prediction #}
             <div class="card bg-light border-0 mb-3">
                 <div class="card-body py-2 fs-sm">
                     <p class="mb-1 fw-medium"><i class="bi bi-calculator me-1"></i> {{ 'puzzle_intelligence.methodology.prediction_statistical_title'|trans }}</p>

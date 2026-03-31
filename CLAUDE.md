@@ -164,7 +164,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Visibility**: All insights data is members-only except raw median, MSP-ELO ladder, and methodology page
 - **Design doc**: Full specification at `docs/features/puzzle-intelligence/README.md`
 - **Cron**: `*/15 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence`
-- **First-time setup**: After migration, run `php bin/console myspeedpuzzling:recalculate-puzzle-intelligence --full`
+- **First-time setup**: After migration, run `php bin/console myspeedpuzzling:recalculate-puzzle-intelligence`
 
 ### Service Worker (PWA)
 - The service worker is at `public/service-worker.js` with a `CACHE_VERSION` constant

@@ -25,11 +25,12 @@ readonly final class PuzzleIntelligenceRecalculator
         private PlayerSkillCalculator $skillCalculator,
         private DerivedMetricsCalculator $derivedMetricsCalculator,
         private MspEloCalculator $eloCalculator,
+        private ImprovementRatioCalculator $improvementRatioCalculator,
     ) {
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, skills: int, elo: int, history: int, snapshots: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, improvement_ratios: int, skills: int, elo: int, history: int, snapshots: int}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
@@ -41,14 +42,16 @@ readonly final class PuzzleIntelligenceRecalculator
          *
          * Level 1: Global scaling exponent (computed within baselines)
          * Level 2: Player baselines (direct + interpolated/extrapolated)
+         *          Improvement ratios (independent — uses raw solve times only)
          * Level 3: Puzzle difficulty (uses baselines for difficulty indices)
          * Level 4: Global learning rate + derived metrics (uses difficulty)
          * Level 5: Player skills + MSP-ELO + personality metrics (use difficulty)
          * Level 6: Rating snapshots + skill history (uses skills + ELO)
          */
 
-        // Level 1+2: Baselines
+        // Level 1+2: Baselines + improvement ratios (independent)
         $baselines = $this->computeBaselines($now, $specificPlayer);
+        $improvementRatios = $this->computeImprovementRatios($now, $specificPlayer);
 
         // Level 3: Puzzle difficulty
         $difficulties = $this->computePuzzleDifficulty($now, $specificPuzzle);
@@ -68,6 +71,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'scaling_exponent' => $baselines['scaling_exponent'],
             'difficulties' => $difficulties,
             'metrics' => $metrics,
+            'improvement_ratios' => $improvementRatios,
             'skills' => $skills,
             'elo' => $elo,
             'history' => $history,
@@ -539,6 +543,126 @@ readonly final class PuzzleIntelligenceRecalculator
         ", ['snapshotDate' => $snapshotDate]);
 
         return (int) $count;
+    }
+
+    private function computeImprovementRatios(\DateTimeImmutable $now, null|string $specificPlayer): int
+    {
+        $count = 0;
+
+        // Global ratios: per piece count (skip when recalculating a single player)
+        if ($specificPlayer === null) {
+            $pieceCounts = $this->getDistinctPieceCounts();
+            $buffer = [];
+
+            foreach ($pieceCounts as $piecesCount) {
+                $ratios = $this->improvementRatioCalculator->computeGlobalRatios($piecesCount);
+
+                foreach ($ratios as $ratio) {
+                    $buffer[] = [
+                        'pieces_count' => $piecesCount,
+                        'from_attempt' => $ratio['from_attempt'],
+                        'gap_bucket' => $ratio['gap_bucket'],
+                        'median_ratio' => $ratio['median_ratio'],
+                        'sample_size' => $ratio['sample_size'],
+                        'computed_at' => $now->format('Y-m-d H:i:s'),
+                    ];
+                    $count++;
+
+                    if (count($buffer) >= self::BATCH_SIZE) {
+                        $this->flushGlobalImprovementRatioBuffer($buffer);
+                        $buffer = [];
+                    }
+                }
+            }
+
+            if ($buffer !== []) {
+                $this->flushGlobalImprovementRatioBuffer($buffer);
+            }
+
+            $this->connection->executeStatement(
+                'DELETE FROM global_improvement_ratio WHERE computed_at < :now',
+                ['now' => $now->format('Y-m-d H:i:s')],
+            );
+        }
+
+        // Player ratios: per player (cross-piece-count)
+        $players = $this->getPlayersWithSolves($specificPlayer);
+        $buffer = [];
+
+        foreach ($players as $playerId) {
+            $ratios = $this->improvementRatioCalculator->calculateForPlayer($playerId);
+
+            foreach ($ratios as $ratio) {
+                $buffer[] = [
+                    'player_id' => $playerId,
+                    'from_attempt' => $ratio['from_attempt'],
+                    'median_ratio' => $ratio['median_ratio'],
+                    'sample_size' => $ratio['sample_size'],
+                    'computed_at' => $now->format('Y-m-d H:i:s'),
+                ];
+                $count++;
+
+                if (count($buffer) >= self::BATCH_SIZE) {
+                    $this->flushPlayerImprovementRatioBuffer($buffer);
+                    $buffer = [];
+                }
+            }
+        }
+
+        if ($buffer !== []) {
+            $this->flushPlayerImprovementRatioBuffer($buffer);
+        }
+
+        $this->connection->executeStatement(
+            'DELETE FROM player_improvement_ratio WHERE computed_at < :now',
+            ['now' => $now->format('Y-m-d H:i:s')],
+        );
+
+        return $count;
+    }
+
+    /**
+     * @param list<array{pieces_count: int, from_attempt: int, gap_bucket: string, median_ratio: float, sample_size: int, computed_at: string}> $rows
+     */
+    private function flushGlobalImprovementRatioBuffer(array $rows): void
+    {
+        if ($rows === []) {
+            return;
+        }
+
+        $columns = ['pieces_count', 'from_attempt', 'gap_bucket', 'median_ratio', 'sample_size', 'computed_at'];
+        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
+
+        $this->connection->executeStatement("
+            INSERT INTO global_improvement_ratio (id, pieces_count, from_attempt, gap_bucket, median_ratio, sample_size, computed_at)
+            VALUES {$values['sql']}
+            ON CONFLICT (pieces_count, from_attempt, gap_bucket) DO UPDATE SET
+                median_ratio = EXCLUDED.median_ratio,
+                sample_size = EXCLUDED.sample_size,
+                computed_at = EXCLUDED.computed_at
+        ", $values['params']);
+    }
+
+    /**
+     * @param list<array{player_id: string, from_attempt: int, median_ratio: float, sample_size: int, computed_at: string}> $rows
+     */
+    private function flushPlayerImprovementRatioBuffer(array $rows): void
+    {
+        if ($rows === []) {
+            return;
+        }
+
+        $columns = ['player_id', 'from_attempt', 'median_ratio', 'sample_size', 'computed_at'];
+        $values = $this->buildValuesClause($rows, $columns, 'gen_random_uuid()');
+
+        $this->connection->executeStatement("
+            INSERT INTO player_improvement_ratio (id, player_id, from_attempt, median_ratio, sample_size, computed_at)
+            VALUES {$values['sql']}
+            ON CONFLICT (player_id, from_attempt) DO UPDATE SET
+                median_ratio = EXCLUDED.median_ratio,
+                sample_size = EXCLUDED.sample_size,
+                computed_at = EXCLUDED.computed_at
+        ", $values['params']);
     }
 
     /**

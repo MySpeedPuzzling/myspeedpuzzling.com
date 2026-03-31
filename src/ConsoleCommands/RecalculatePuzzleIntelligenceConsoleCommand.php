@@ -25,8 +25,7 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
     {
         $this
             ->addOption('player', null, InputOption::VALUE_REQUIRED, 'Recompute only for specific player UUID')
-            ->addOption('puzzle', null, InputOption::VALUE_REQUIRED, 'Recompute only for specific puzzle UUID')
-            ->addOption('full', null, InputOption::VALUE_NONE, 'Force full recomputation');
+            ->addOption('puzzle', null, InputOption::VALUE_REQUIRED, 'Recompute only for specific puzzle UUID');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -41,12 +40,13 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
         $result = $this->recalculator->recalculate($specificPlayer, $specificPuzzle);
 
         $io->success(sprintf(
-            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  %d difficulties, %d metrics\n  %d skills, %d ELO\n  %d history, %d snapshots",
+            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  %d difficulties, %d metrics, %d improvement ratios\n  %d skills, %d ELO\n  %d history, %d snapshots",
             $result['baselines_direct'],
             $result['baselines_interpolated'],
             $result['scaling_exponent'],
             $result['difficulties'],
             $result['metrics'],
+            $result['improvement_ratios'],
             $result['skills'],
             $result['elo'],
             $result['history'],

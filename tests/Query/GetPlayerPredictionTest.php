@@ -44,18 +44,18 @@ final class GetPlayerPredictionTest extends KernelTestCase
         self::assertGreaterThanOrEqual($result->rangeLowSeconds, $result->predictedSeconds);
     }
 
-    public function testStatisticalPredictionForSingleSolver(): void
+    public function testPersonalPredictionForSingleSolver(): void
     {
-        // PLAYER_WITH_FAVORITES has only 1 solve on PUZZLE_500_01 — should get statistical prediction
+        // PLAYER_WITH_FAVORITES has only 1 solve on PUZZLE_500_01 — should get ratio-based personal prediction
         $result = $this->query->forPuzzle(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_500_01);
 
         if ($result === null) {
             self::markTestSkipped('No prediction available — player may lack baseline');
         }
 
-        self::assertFalse($result->isPersonalized);
-        self::assertNull($result->personalSolveCount);
-        self::assertGreaterThan(0.0, $result->difficultyForPlayer);
+        self::assertTrue($result->isPersonalized);
+        self::assertSame(1, $result->personalSolveCount);
+        self::assertSame(2, $result->predictedAttemptNumber);
     }
 
     public function testReturnsPersonalizedPredictionForRepeatSolver(): void
@@ -70,10 +70,10 @@ final class GetPlayerPredictionTest extends KernelTestCase
         self::assertTrue($result->isPersonalized);
         self::assertSame(3, $result->personalSolveCount);
         self::assertSame(4, $result->predictedAttemptNumber);
-        // Trend-based prediction: should be lower than best time (1700) since player is improving
+        // Blended prediction: should be lower than best time (1700) since player is improving
         self::assertLessThan(1700, $result->predictedSeconds);
-        // But not unreasonably low (floor is best_time * 0.90 = 1530)
-        self::assertGreaterThanOrEqual(1530, $result->predictedSeconds);
+        // But not unreasonably low (floor is best_time * 0.70 = 1190)
+        self::assertGreaterThanOrEqual(1190, $result->predictedSeconds);
         self::assertLessThanOrEqual($result->rangeHighSeconds, $result->predictedSeconds);
         self::assertGreaterThanOrEqual($result->rangeLowSeconds, $result->predictedSeconds);
     }

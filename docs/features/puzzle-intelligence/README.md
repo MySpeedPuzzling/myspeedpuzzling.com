@@ -39,13 +39,15 @@ A "first attempt" for a player-puzzle pair is determined as:
 The computation is sequential and non-circular:
 
 ```
-Step 1: Player Baselines    (independent — no puzzle data needed)
-Step 2: Difficulty Indices   (depends on Step 1)
-Step 3: Puzzle Difficulty    (depends on Step 2)
-Step 4: Derived Metrics      (depends on Step 3)
-Step 5: Player Skill         (depends on Steps 1 + 3)
-Step 6: MSP-ELO              (independent ranking system)
-Step 7: Skill History        (snapshot of current state)
+Step 1: Player Baselines       (independent — no puzzle data needed)
+Step 2: Difficulty Indices      (depends on Step 1)
+Step 3: Puzzle Difficulty       (depends on Step 2)
+Step 4: Derived Metrics         (depends on Step 3)
+Step 5: Player Skill            (depends on Steps 1 + 3)
+Step 6: MSP-ELO                 (independent ranking system)
+Step 7: Improvement Ratios      (independent — uses raw solve times)
+Step 8: Time Prediction         (uses Steps 1, 3, 7 at query time)
+Step 9: Skill History           (snapshot of current state)
 ```
 
 ---
@@ -338,33 +340,99 @@ Display: rating × 1000 (e.g., 0.85 → 850)
 
 ---
 
-## Step 7: Time Prediction
+## Step 7: Improvement Ratios (Pre-computed)
+
+Data-driven improvement ratios capture how much faster players get between consecutive attempts.
+
+### Global Ratios
+
+Computed per `(pieces_count, from_attempt, gap_bucket)`:
+
+```
+ratio(N→N+1) = median(time_attempt_N+1 / time_attempt_N)
+```
+
+- Transitions capped at 4 (4 = "4+")
+- Gap buckets: lt30d, 1_3m, 3_12m, gt12m, all
+- Outlier filter: ratios between 0.1 and 5.0
+- Stored in `global_improvement_ratio` table
+
+### Player Ratios
+
+Computed per `(player_id, from_attempt)` — cross-piece-count for data density:
+
+- Minimum 3 puzzles with that transition
+- Stored in `player_improvement_ratio` table
+- No gap bucketing (too sparse per player)
+
+### Gap Correction
+
+Player ratios are adjusted at prediction time using global gap data:
+
+```
+gap_correction = global_ratio[transition][actual_gap_bucket] / global_ratio[transition][all]
+effective_ratio = player_ratio × gap_correction
+```
+
+---
+
+## Step 8: Time Prediction
 
 Personalized estimate for how long a puzzle will take a specific player.
 
-### Formula
+### Prediction Hierarchy
+
+| Prior Solves (N) | Method |
+|---|---|
+| 0 | Statistical: `baseline × difficulty` |
+| 1 | Ratio-based: `last_time × ratio(1→2, gap)` |
+| 2-5 | Blend: ratio + Holt's (Holt's weight = (N-1)/5) |
+| 6+ | Pure Holt's damped trend |
+
+### Ratio Sources (priority order)
+
+1. Player-specific ratio for transition N→N+1
+2. Global ratio for transition N→N+1 with gap bucket
+3. Default: 0.90
+
+### Blending Formula
 
 ```
-predicted_time = player_baseline * puzzle_difficulty
-predicted_range_low = player_baseline * (puzzle_difficulty - stddev_of_indices)
-predicted_range_high = player_baseline * (puzzle_difficulty + stddev_of_indices)
+ratio_prediction = last_time × improvement_ratio
+holts_prediction = Holt's damped trend (α=0.5, β=0.4, φ=0.8)
+
+holts_weight = min(1.0, (N - 1) / 5)
+predicted = holts_weight × holts + (1 - holts_weight) × ratio_prediction
+```
+
+### Safety Bounds
+
+- Floor: `best_time × 0.70` (max 30% improvement over personal best)
+- Range spread: 15% for N=1, residual-based MAD×1.5 for N≥2
+
+### Statistical Prediction (N=0)
+
+```
+predicted_time = player_baseline × puzzle_difficulty
+range_low = baseline × P25
+range_high = baseline × P75
 ```
 
 ### Requirements
 
-- Player must have a valid baseline for the puzzle's piece count
-- Puzzle must have a difficulty score (at least Low confidence)
+- Personal: At least 1 prior solo solve on the same puzzle
+- Statistical: Player baseline + puzzle difficulty score (at least Low confidence)
 
-### Example
+### Example (Personal, N=1)
 
-- Player 500pc baseline: 55 minutes
-- Puzzle difficulty: 1.15 (Challenging)
-- Puzzle index std dev: 0.12
+- Player's 1st attempt: 65 minutes
+- Player's personal 1→2 ratio: 0.87 (13% improvement)
+- Gap: 2 weeks (bucket: lt30d)
 
 ```
-Predicted time: 55 * 1.15 = 63.25 minutes
-Range: 55 * (1.15 - 0.12) to 55 * (1.15 + 0.12) = 56.65 to 69.85 minutes
-Display: "Estimated time: ~63 minutes (57-70 min range)"
+Predicted time: 65 × 0.87 = 56.55 → ~57 minutes
+Range: 57 ± 15% → 48–65 min
+Display: "Attempt #2 (based on 1 prior solve): ~57 minutes (48-65 min range)"
 ```
 
 ---
@@ -403,6 +471,8 @@ Mar 2026: 52 min (Expert)
 | Skill sensitivity | 20 qualifying indices |
 | Predictability | 20 qualifying indices |
 | Box dependence | 10 unboxed + 5 boxed solvers |
+| Player improvement ratio | 3 puzzles with that transition (cross-piece-count) |
+| Personal prediction | 1 prior solo solve on the same puzzle |
 | Improvement ceiling | 20 solvers |
 
 ---
@@ -439,6 +509,23 @@ Mar 2026: 52 min (Expert)
 | First-attempt weight | 0.75 |
 | Difficulty blend | 0.5 |
 | Diff confidence threshold | 50 |
+
+### Improvement Ratios
+| Constant | Value |
+|----------|-------|
+| Max transition | 4 (4 = "4+") |
+| Player min samples | 3 |
+| Ratio outlier bounds | 0.1–5.0 |
+| Gap buckets | lt30d, 1_3m, 3_12m, gt12m, all |
+| Default ratio | 0.90 |
+
+### Time Prediction
+| Constant | Value |
+|----------|-------|
+| Safety floor | best_time × 0.70 |
+| Range spread (N=1) | 15% of predicted |
+| Range spread (N≥2) | MAD × 1.5, min 5% |
+| Holt's blend cutoff | N ≥ 6 (pure Holt's) |
 
 ---
 
@@ -481,21 +568,21 @@ Cron (every 15 minutes):
 ### Execution Order
 
 1. Recompute all player baselines
-2. Recompute all puzzle difficulty scores
-3. Recompute derived metrics
-4. Recompute all player skill scores + percentiles
-5. Recompute MSP-ELO ratings
-6. Record skill history snapshots
+2. Recompute improvement ratios (global + player)
+3. Recompute all puzzle difficulty scores
+4. Recompute derived metrics
+5. Recompute all player skill scores + percentiles
+6. Recompute MSP-ELO ratings
+7. Record skill history snapshots
 
 ### Options
 
-- `--full` — Force full recomputation
 - `--player=UUID` — Recompute only for specific player
 - `--puzzle=UUID` — Recompute only for specific puzzle
 
 ### First-Time Setup
 
-After initial migration, run with `--full` to populate all data:
+After initial migration, run the command to populate all data:
 ```
-docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence --full
+docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 ```

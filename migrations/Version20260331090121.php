@@ -26,7 +26,7 @@ final class Version20260331090121 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_6A90346599E6F5DF ON player_improvement_ratio (player_id)');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_6A90346599E6F5DF9EB2E1C9 ON player_improvement_ratio (player_id, from_attempt)');
         $this->addSql('ALTER TABLE player_improvement_ratio ADD CONSTRAINT FK_6A90346599E6F5DF FOREIGN KEY (player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');
-        $this->addSql('DROP INDEX puzzle_pieces_count');
+        $this->addSql('DROP INDEX IF EXISTS puzzle_pieces_count');
     }
 
     public function down(Schema $schema): void

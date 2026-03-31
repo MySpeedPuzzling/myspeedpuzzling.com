@@ -220,6 +220,14 @@
                                     {% else %}
                                         <i class="bi bi-cup-hot text-muted"></i> <span class="text-muted">{{ 'badge.relax'|trans }}</span>
                                     {% endif %}
+                                    {% if notification.firstAttempt %}
+                                        <br>
+                                        <span class="badge rounded-pill bg-info">{{ 'first_attempt'|trans }}</span>
+                                    {% endif %}
+                                    {% if notification.unboxed %}
+                                        <br>
+                                        <span class="badge rounded-pill bg-warning"><i class="bi bi-eye-slash"></i> {{ 'unboxed'|trans }}</span>
+                                    {% endif %}
                                 </td>
 
                                 <td class="" style="width: 80px;">

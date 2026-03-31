@@ -63,6 +63,7 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
     public const string TIME_42 = '018d0006-0000-0000-0000-000000000042';
     public const string TIME_43 = '018d0006-0000-0000-0000-000000000043';
     public const string TIME_44 = '018d0006-0000-0000-0000-000000000044';
+    public const string TIME_45_UNBOXED = '018d0006-0000-0000-0000-000000000045';
     public const string TIME_46_RELAX_NO_FINISHED_AT = '018d0006-0000-0000-0000-000000000046';
 
     public function __construct(
@@ -332,6 +333,24 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         );
         $manager->persist($time44);
         $this->addReference(self::TIME_44, $time44);
+
+        // Unboxed solving time - for notification badge testing
+        $time45 = new PuzzleSolvingTime(
+            id: Uuid::fromString(self::TIME_45_UNBOXED),
+            secondsToSolve: 2000,
+            player: $player5,
+            puzzle: $puzzle500_02,
+            trackedAt: $this->clock->now()->modify('-2 days'),
+            verified: true,
+            team: null,
+            finishedAt: $this->clock->now()->modify('-2 days'),
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: true,
+            unboxed: true,
+        );
+        $manager->persist($time45);
+        $this->addReference(self::TIME_45_UNBOXED, $time45);
 
         // Relax solving time without finishedAt (user cleared the date)
         $time46 = $this->createPuzzleSolvingTime(

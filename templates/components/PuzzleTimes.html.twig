@@ -36,7 +36,7 @@
         <div class="fs-sm">
             {% if this.times|length > 1 %}
                 {% if this.myTime %}
-                    <strong>{{ 'my_time'|trans }} {{ this.myTime|puzzlingTime }}</strong><br>
+                    <strong>{{ 'my_time'|trans }} <span class="font-monospace">{{ this.myTime|puzzlingTime }}</span></strong><br>
                 {% endif %}
 
                 {% if this.myRank %}
@@ -45,12 +45,12 @@
 
                 {% if this.medianTime %}
                     {{ 'median_time'|trans }}
-                    {{ this.medianTime|puzzlingTime }}
+                    <span class="font-monospace">{{ this.medianTime|puzzlingTime }}</span>
                 {% endif %}
 
                 {% if this.averageTime %}
-                    &middot; {{ 'average_time'|trans }}
-                    {{ this.averageTime|puzzlingTime }}
+                    <br>{{ 'average_time'|trans }}
+                    <span class="font-monospace">{{ this.averageTime|puzzlingTime }}</span>
                 {% endif %}
             {% endif %}
 

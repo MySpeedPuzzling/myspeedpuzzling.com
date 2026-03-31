@@ -190,6 +190,9 @@ final class LentPuzzleTransferFixture extends Fixture implements DependentFixtur
             toPlayerName: $toPlayerName,
             transferredAt: $transferredAt,
             transferType: $transferType,
+            puzzle: $lentPuzzle->puzzle,
+            ownerPlayer: $lentPuzzle->ownerPlayer,
+            ownerName: $lentPuzzle->ownerName,
         );
     }
 }

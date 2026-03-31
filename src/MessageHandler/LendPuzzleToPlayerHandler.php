@@ -74,6 +74,9 @@ readonly final class LendPuzzleToPlayerHandler
                 $borrowerName,
                 new DateTimeImmutable(),
                 TransferType::Pass,
+                $puzzle,
+                $owner,
+                null,
             );
 
             $this->lentPuzzleTransferRepository->save($transfer);
@@ -123,6 +126,9 @@ readonly final class LendPuzzleToPlayerHandler
             $borrowerName,
             $now,
             TransferType::InitialLend,
+            $puzzle,
+            $owner,
+            null,
         );
 
         $this->lentPuzzleTransferRepository->save($transfer);

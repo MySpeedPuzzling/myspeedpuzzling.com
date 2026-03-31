@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'lend_borrow.history.title'|trans }}{% endblock %}
+
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="mb-2">
+        <a href="{{ path('lend_borrow_list_detail', {playerId: player.playerId}) }}" class="btn btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+            <i class="ci-arrow-left me-1"></i> <small class="text-muted">{{ 'back_to'|trans }}</small> {{ 'lend_borrow.title'|trans }}
+        </a>
+    </div>
+
+    <h1 class="h3 mb-4">{{ 'lend_borrow.history.title'|trans }}</h1>
+
+    {% if items is empty %}
+        <div class="text-center py-5">
+            <div class="mb-3">
+                <i class="bi bi-clock-history fs-1 text-muted"></i>
+            </div>
+            <h4 class="text-muted">{{ 'lend_borrow.history.empty'|trans }}</h4>
+        </div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>{{ 'lend_borrow.history.puzzle'|trans }}</th>
+                            <th>{{ 'lend_borrow.history.type'|trans }}</th>
+                            <th>{{ 'lend_borrow.history.from'|trans }}</th>
+                            <th>{{ 'lend_borrow.history.to'|trans }}</th>
+                            <th>{{ 'lend_borrow.history.owner'|trans }}</th>
+                            <th>{{ 'lend_borrow.history.date'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.image %}
+                                            {{ lazy_puzzle_image(
+                                                item.image,
+                                                'puzzle_small',
+                                                item.puzzleName,
+                                                loop.index,
+                                                40,
+                                                'rounded me-2'
+                                            ) }}
+                                        {% endif %}
+                                        <div>
+                                            {% if item.puzzleId %}
+                                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
+                                                    {{ item.puzzleName }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">{{ 'lend_borrow.history.puzzle_deleted'|trans }}</span>
+                                            {% endif %}
+                                            {% if item.piecesCount %}
+                                                <br>
+                                                <small class="text-muted">{{ item.piecesCount }} pcs</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if item.transferType.value == 'InitialLend' %}
+                                        <span class="badge bg-primary">{{ 'lend_borrow.history.type_initial_lend'|trans }}</span>
+                                    {% elseif item.transferType.value == 'Pass' %}
+                                        <span class="badge bg-info">{{ 'lend_borrow.history.type_pass'|trans }}</span>
+                                    {% elseif item.transferType.value == 'Return' %}
+                                        <span class="badge bg-success">{{ 'lend_borrow.history.type_return'|trans }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.fromPlayerId %}
+                                        <a href="{{ path('player_profile', {playerId: item.fromPlayerId}) }}">
+                                            {{ item.fromPlayerName }}
+                                        </a>
+                                    {% elseif item.fromPlayerName %}
+                                        {{ item.fromPlayerName }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.toPlayerId %}
+                                        <a href="{{ path('player_profile', {playerId: item.toPlayerId}) }}">
+                                            {{ item.toPlayerName }}
+                                        </a>
+                                    {% elseif item.toPlayerName %}
+                                        {{ item.toPlayerName }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.ownerPlayerId %}
+                                        <a href="{{ path('player_profile', {playerId: item.ownerPlayerId}) }}">
+                                            {{ item.ownerPlayerName }}
+                                        </a>
+                                    {% elseif item.ownerPlayerName %}
+                                        {{ item.ownerPlayerName }}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ item.transferredAt|format_datetime('short', 'short') }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

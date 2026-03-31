@@ -58,6 +58,9 @@ readonly final class ReturnLentPuzzleHandler
             $lentPuzzle->ownerName,
             new DateTimeImmutable(),
             TransferType::Return,
+            $lentPuzzle->puzzle,
+            $lentPuzzle->ownerPlayer,
+            $lentPuzzle->ownerName,
         );
 
         $this->lentPuzzleTransferRepository->save($transfer);

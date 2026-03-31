@@ -179,8 +179,8 @@ SELECT * FROM (
         lpt.to_player_id,
         COALESCE(to_player.name, to_player.code, lpt.to_player_name) AS to_player_name,
         to_player.avatar AS to_player_avatar,
-        lp.owner_player_id,
-        COALESCE(owner_player.name, owner_player.code, lp.owner_name) AS owner_player_name,
+        COALESCE(lpt.owner_player_id, lp.owner_player_id) AS owner_player_id,
+        COALESCE(owner_player.name, owner_player.code, lpt.owner_name, lp.owner_name) AS owner_player_name,
         puzzle.id AS lending_puzzle_id,
         puzzle.name AS lending_puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS lending_puzzle_image,
@@ -213,12 +213,12 @@ SELECT * FROM (
         NULL::varchar AS conversation_puzzle_image
     FROM notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
-    INNER JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
-    INNER JOIN puzzle ON lp.puzzle_id = puzzle.id
-    INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
+    LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
+    LEFT JOIN puzzle ON COALESCE(lpt.puzzle_id, lp.puzzle_id) = puzzle.id
+    LEFT JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
     LEFT JOIN player from_player ON lpt.from_player_id = from_player.id
     LEFT JOIN player to_player ON lpt.to_player_id = to_player.id
-    LEFT JOIN player owner_player ON lp.owner_player_id = owner_player.id
+    LEFT JOIN player owner_player ON COALESCE(lpt.owner_player_id, lp.owner_player_id) = owner_player.id
     WHERE notification.player_id = :playerId
         AND notification.target_transfer_id IS NOT NULL
 

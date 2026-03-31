@@ -40,7 +40,7 @@ class Notification
         #[Immutable]
         public null|PuzzleSolvingTime $targetSolvingTime = null,
         #[ManyToOne]
-        #[JoinColumn(onDelete: 'CASCADE')]
+        #[JoinColumn(onDelete: 'SET NULL')]
         #[Immutable]
         public null|LentPuzzleTransfer $targetTransfer = null,
         #[ManyToOne]

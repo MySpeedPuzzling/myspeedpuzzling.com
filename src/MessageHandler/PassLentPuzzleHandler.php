@@ -78,6 +78,9 @@ readonly final class PassLentPuzzleHandler
                 $lentPuzzle->ownerName,
                 new DateTimeImmutable(),
                 TransferType::Return,
+                $lentPuzzle->puzzle,
+                $lentPuzzle->ownerPlayer,
+                $lentPuzzle->ownerName,
             );
 
             $this->lentPuzzleTransferRepository->save($transfer);
@@ -104,6 +107,9 @@ readonly final class PassLentPuzzleHandler
                 $newHolderName,
                 new DateTimeImmutable(),
                 TransferType::Pass,
+                $lentPuzzle->puzzle,
+                $lentPuzzle->ownerPlayer,
+                $lentPuzzle->ownerName,
             );
 
             $this->lentPuzzleTransferRepository->save($transfer);

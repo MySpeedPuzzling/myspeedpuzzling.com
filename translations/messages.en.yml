@@ -1461,6 +1461,20 @@ lend_borrow:
         cannot_lend_to_self: "You cannot lend a puzzle to yourself."
         cannot_borrow_from_self: "You cannot borrow a puzzle from yourself."
         cannot_pass_to_self: "You cannot pass a puzzle to yourself."
+    history:
+        title: "Lend & Borrow History"
+        button: "History"
+        empty: "No lending or borrowing history yet."
+        puzzle: "Puzzle"
+        puzzle_deleted: "Deleted puzzle"
+        type: "Type"
+        from: "From"
+        to: "To"
+        owner: "Owner"
+        date: "Date"
+        type_initial_lend: "Lent"
+        type_pass: "Passed"
+        type_return: "Returned"
 
 status:
     solved: "Solved"

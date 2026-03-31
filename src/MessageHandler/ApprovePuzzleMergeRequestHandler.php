@@ -226,6 +226,11 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 }
             }
 
+            // Migrate lent puzzle transfer references to survivor puzzle
+            $this->entityManager->createQuery(
+                'UPDATE SpeedPuzzling\Web\Entity\LentPuzzleTransfer t SET t.puzzle = :survivor WHERE t.puzzle = :merged'
+            )->execute(['survivor' => $survivorPuzzle, 'merged' => $puzzleToMerge]);
+
             // Migrate sold/swapped items (historical records - no unique constraint)
             $soldSwappedItems = $this->entityManager->getRepository(SoldSwappedItem::class)->findBy(['puzzle' => $puzzleToMerge]);
             foreach ($soldSwappedItems as $item) {

@@ -26,8 +26,8 @@ class LentPuzzleTransfer
         public UuidInterface $id,
         #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public LentPuzzle $lentPuzzle,
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|LentPuzzle $lentPuzzle,
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: true)]
@@ -48,6 +48,17 @@ class LentPuzzleTransfer
         #[Immutable]
         #[Column(type: Types::STRING, enumType: TransferType::class)]
         public TransferType $transferType,
+        #[Immutable]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Puzzle $puzzle = null,
+        #[Immutable]
+        #[ManyToOne]
+        #[JoinColumn(nullable: true, onDelete: 'SET NULL')]
+        public null|Player $ownerPlayer = null,
+        #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, length: 200)]
+        public null|string $ownerName = null,
     ) {
     }
 }

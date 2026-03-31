@@ -76,6 +76,9 @@ readonly final class BorrowPuzzleFromPlayerHandler
                 null, // borrower is always registered, no name needed
                 new DateTimeImmutable(),
                 TransferType::Pass,
+                $puzzle,
+                $owner,
+                $ownerName,
             );
 
             $this->lentPuzzleTransferRepository->save($transfer);
@@ -124,6 +127,9 @@ readonly final class BorrowPuzzleFromPlayerHandler
             null, // borrower is always registered, no name needed
             $now,
             TransferType::InitialLend,
+            $puzzle,
+            $owner,
+            $ownerName,
         );
 
         $this->lentPuzzleTransferRepository->save($transfer);

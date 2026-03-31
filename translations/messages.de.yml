@@ -1204,6 +1204,20 @@
     "cannot_lend_to_self": "Du kannst dir kein Puzzle selbst leihen."
     "cannot_borrow_from_self": "Du kannst dir kein Puzzle von dir selbst ausleihen."
     "cannot_pass_to_self": "Sie können ein Puzzle nicht an sich selbst weitergeben."
+  "history":
+    "title": "Leih- & Ausleihverlauf"
+    "button": "Verlauf"
+    "empty": "Noch kein Leih- oder Ausleihverlauf vorhanden."
+    "puzzle": "Puzzle"
+    "puzzle_deleted": "Gelöschtes Puzzle"
+    "type": "Typ"
+    "from": "Von"
+    "to": "An"
+    "owner": "Besitzer"
+    "date": "Datum"
+    "type_initial_lend": "Verliehen"
+    "type_pass": "Weitergegeben"
+    "type_return": "Zurückgegeben"
 "solved_puzzles":
   "name": "Gelöste Puzzles"
   "meta":

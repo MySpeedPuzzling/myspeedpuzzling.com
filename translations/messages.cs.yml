@@ -1021,6 +1021,20 @@
     "cannot_lend_to_self": "Nemůžete si půjčit puzzle sami sobě."
     "cannot_borrow_from_self": "Nemůžete si vypůjčit puzzle od sebe sama."
     "cannot_pass_to_self": "Nemůžete předat puzzle sami sobě."
+  "history":
+    "title": "Historie půjčování"
+    "button": "Historie"
+    "empty": "Zatím žádná historie půjčování."
+    "puzzle": "Puzzle"
+    "puzzle_deleted": "Smazané puzzle"
+    "type": "Typ"
+    "from": "Od"
+    "to": "Komu"
+    "owner": "Vlastník"
+    "date": "Datum"
+    "type_initial_lend": "Půjčeno"
+    "type_pass": "Předáno"
+    "type_return": "Vráceno"
 "wish_list":
   "meta":
     "title": "Seznam přání"

@@ -1647,6 +1647,7 @@ feature_requests:
     voted_button: "Abgestimmt"
     vote_submitted: "Deine Stimme wurde gezählt!"
     cannot_vote_own: "Du kannst nicht für deinen eigenen Vorschlag stimmen."
+    cannot_vote_non_open: "Abstimmung ist nur für offene Vorschläge möglich."
     vote_limit_reached: "Du hast alle %count% monatlichen Stimmen verwendet. Sie werden am 1. des nächsten Monats zurückgesetzt."
     created_successfully: "Dein Feature-Vorschlag wurde eingereicht. Danke!"
     comment_added: "Dein Kommentar wurde hinzugefügt."

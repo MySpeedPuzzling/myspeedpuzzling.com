@@ -1647,6 +1647,7 @@ feature_requests:
     voted_button: "Votado"
     vote_submitted: "¡Tu voto ha sido registrado!"
     cannot_vote_own: "No puedes votar por tu propia sugerencia."
+    cannot_vote_non_open: "Solo se puede votar por sugerencias abiertas."
     vote_limit_reached: "Ya usaste los %count% votos mensuales. Se renuevan el 1 del próximo mes."
     created_successfully: "Tu sugerencia ha sido enviada. ¡Gracias!"
     comment_added: "Tu comentario ha sido añadido."

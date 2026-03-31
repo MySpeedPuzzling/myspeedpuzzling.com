@@ -1636,6 +1636,7 @@ feature_requests:
     voted_button: "投票済み"
     vote_submitted: "投票が記録されました！"
     cannot_vote_own: "自分の機能リクエストには投票できません。"
+    cannot_vote_non_open: "投票は未対応の提案にのみ可能です。"
     vote_limit_reached: "今月の%count%票をすべて使用済みです。翌月1日にリセットされます。"
     created_successfully: "機能の提案が送信されました。ありがとうございます！"
     comment_added: "コメントが追加されました。"

@@ -7,10 +7,12 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\FeatureRequestVote;
+use SpeedPuzzling\Web\Exceptions\CanNotVoteForNonOpenFeatureRequest;
 use SpeedPuzzling\Web\Exceptions\CanNotVoteForOwnFeatureRequest;
 use SpeedPuzzling\Web\Exceptions\FeatureRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\VoteLimitReached;
+use SpeedPuzzling\Web\Value\FeatureRequestStatus;
 use SpeedPuzzling\Web\Message\VoteForFeatureRequest;
 use SpeedPuzzling\Web\Query\GetPlayerVoteCountThisMonth;
 use SpeedPuzzling\Web\Repository\FeatureRequestRepository;
@@ -34,12 +36,17 @@ readonly final class VoteForFeatureRequestHandler
      * @throws PlayerNotFound
      * @throws FeatureRequestNotFound
      * @throws CanNotVoteForOwnFeatureRequest
+     * @throws CanNotVoteForNonOpenFeatureRequest
      * @throws VoteLimitReached
      */
     public function __invoke(VoteForFeatureRequest $message): void
     {
         $player = $this->playerRepository->get($message->voterId);
         $featureRequest = $this->featureRequestRepository->get($message->featureRequestId);
+
+        if ($featureRequest->status !== FeatureRequestStatus::Open) {
+            throw new CanNotVoteForNonOpenFeatureRequest();
+        }
 
         if ($featureRequest->author->id->toString() === $message->voterId) {
             throw new CanNotVoteForOwnFeatureRequest();

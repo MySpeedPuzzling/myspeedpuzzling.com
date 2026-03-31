@@ -1648,6 +1648,7 @@ feature_requests:
     voted_button: "Voté"
     vote_submitted: "Votre vote a été enregistré !"
     cannot_vote_own: "Vous ne pouvez pas voter pour votre propre suggestion."
+    cannot_vote_non_open: "Le vote n'est possible que pour les suggestions ouvertes."
     vote_limit_reached: "Vous avez utilisé vos %count% votes mensuels. Ils se renouvellent le 1er du mois prochain."
     created_successfully: "Votre suggestion a été soumise. Merci !"
     comment_added: "Votre commentaire a été ajouté."

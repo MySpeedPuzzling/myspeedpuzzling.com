@@ -48,11 +48,17 @@
         <div class="d-flex flex-column gap-3">
             {% for fr in items %}
                 {% set is_mine = logged_user.profile is not null and logged_user.profile.playerId == fr.authorId %}
-                <div class="card shadow-sm {{ is_mine ? 'border-primary border-opacity-50' : '' }}">
-                    <div class="card-body">
+                {% set is_open = fr.status.value == 'open' %}
+                <div class="card shadow-sm {% if is_mine and is_open %}border-primary border-opacity-50{% elseif fr.status.value == 'completed' %}border-success border-opacity-50{% elseif fr.status.value == 'in_progress' %}border-info border-opacity-50{% elseif fr.status.value == 'declined' %}border-secondary border-opacity-25{% endif %}">
+                    <div class="card-body {{ fr.status.value == 'declined' ? 'opacity-75' : '' }}">
                         <div class="d-flex align-items-start gap-3">
                             <div class="d-flex flex-column align-items-center flex-shrink-0" style="min-width: 52px;">
-                                {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+                                {% if not is_open %}
+                                    <div class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
+                                        <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>
+                                        <span class="fw-bold" style="font-size: 0.95rem; line-height: 1.2;">{{ fr.voteCount }}</span>
+                                    </div>
+                                {% elseif logged_user.profile is not null and logged_user.profile.activeMembership %}
                                     {% if is_mine %}
                                         <div class="btn btn-outline-secondary btn-sm d-flex flex-column align-items-center py-1 px-2" style="pointer-events: none; min-width: 44px;">
                                             <i class="bi bi-caret-up-fill" style="font-size: 1rem; line-height: 1;"></i>

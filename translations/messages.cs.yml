@@ -1911,6 +1911,7 @@ feature_requests:
     voted_button: "Hlasováno"
     vote_submitted: "Váš hlas byl zaznamenán!"
     cannot_vote_own: "Nemůžete hlasovat pro vlastní návrh."
+    cannot_vote_non_open: "Hlasovat lze pouze pro otevřené návrhy."
     vote_limit_reached: "Tento měsíc jste již použili všech %count% měsíčních hlasů. Obnoví se 1. dne příštího měsíce."
     created_successfully: "Váš návrh funkce byl odeslán. Děkujeme!"
     comment_added: "Váš komentář byl přidán."

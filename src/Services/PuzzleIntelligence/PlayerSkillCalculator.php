@@ -12,7 +12,7 @@ use Symfony\Contracts\Service\ResetInterface;
 
 final class PlayerSkillCalculator implements ResetInterface
 {
-    public const int MINIMUM_QUALIFYING_PUZZLES = 20;
+    public const int MINIMUM_QUALIFYING_PUZZLES = 10;
     public const int MIN_SOLVERS_PER_PUZZLE = 20;
     private const float DIFFICULTY_BLEND = 0.5;
     private const int DIFF_CONFIDENCE_THRESHOLD = 50;

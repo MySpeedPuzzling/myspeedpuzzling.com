@@ -261,7 +261,7 @@ skill_score = weighted_median(weighted_percentiles, age_weights)
 
 ### Minimum Threshold
 
-Player needs >= **20 qualifying puzzles** (puzzles that have a difficulty score and at least 20 first-attempt solvers) for a skill tier to be computed.
+Player needs >= **10 qualifying puzzles** (puzzles that have a difficulty score and at least 20 first-attempt solvers) for a skill tier to be computed.
 
 ### Skill Tiers
 
@@ -397,7 +397,7 @@ Mar 2026: 52 min (Expert)
 |---------|------------|
 | Player baseline | 5 distinct first-attempt solo solves per piece count |
 | Puzzle difficulty | 5 qualifying indices from different players |
-| Player skill tier | 20 qualifying puzzles with 20+ first-attempt solvers each |
+| Player skill tier | 10 qualifying puzzles with 20+ first-attempt solvers each |
 | MSP-ELO entry | 20 first attempts + 50 total solves within 24-month window |
 | Memorability | 8 players with 3+ attempts |
 | Skill sensitivity | 20 qualifying indices |
@@ -419,7 +419,7 @@ Mar 2026: 52 min (Expert)
 ### Player Skill
 | Constant | Value |
 |----------|-------|
-| Min qualifying puzzles | 20 |
+| Min qualifying puzzles | 10 |
 | Min solvers per puzzle | 20 |
 | Difficulty blend | 0.5 |
 | Diff confidence threshold | 50 |
@@ -473,9 +473,9 @@ php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 
 ### Schedule
 
-Hourly cron:
+Cron (every 15 minutes):
 ```
-0 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
+*/15 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 ```
 
 ### Execution Order

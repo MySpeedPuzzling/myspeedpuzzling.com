@@ -157,13 +157,13 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Multi-language**: When adding new features, always do it only in English unless explicitly asked to translate to other locales 
 
 ### Puzzle Insights System
-- **Batch computation**: All insights metrics (difficulty, skill, ELO) are computed hourly via `myspeedpuzzling:recalculate-puzzle-intelligence` console command, NOT event-driven
+- **Batch computation**: All insights metrics (difficulty, skill, ELO) are computed every 15 minutes via `myspeedpuzzling:recalculate-puzzle-intelligence` console command, NOT event-driven
 - **Services**: All calculation logic is in `src/Services/PuzzleIntelligence/` — `PlayerBaselineCalculator`, `PuzzleDifficultyCalculator`, `PlayerSkillCalculator`, `DerivedMetricsCalculator`, `MspEloCalculator`, `PuzzleIntelligenceRecalculator` (orchestrator)
 - **Entities**: `PlayerBaseline`, `PuzzleDifficulty`, `PlayerSkill`, `PlayerSkillHistory`, `PlayerElo`
 - **Queries**: `GetPuzzleDifficulty`, `GetPlayerSkill`, `GetPlayerSkillHistory`, `GetPlayerEloRanking`, `GetPlayerPrediction`
 - **Visibility**: All insights data is members-only except raw median, MSP-ELO ladder, and methodology page
 - **Design doc**: Full specification at `docs/features/puzzle-intelligence/README.md`
-- **Cron**: `0 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence`
+- **Cron**: `*/15 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence`
 - **First-time setup**: After migration, run `php bin/console myspeedpuzzling:recalculate-puzzle-intelligence --full`
 
 ### Service Worker (PWA)

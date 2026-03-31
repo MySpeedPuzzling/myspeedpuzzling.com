@@ -1,12 +1,13 @@
 import { Controller } from '@hotwired/stimulus';
 
 /**
- * Counts down to the next full hour. Auto-resets every hour.
- * Used for the recalculation countdown on the methodology page.
+ * Counts down to the next quarter-hour mark (:00, :15, :30, :45).
+ * Auto-resets every 15 minutes.
+ * Used for the recalculation countdown on the methodology and ELO ladder pages.
  *
  * Usage:
- *   <span data-controller="next-hour-countdown">
- *     <span data-next-hour-countdown-target="display">--:--</span>
+ *   <span data-controller="next-quarter-countdown">
+ *     <span data-next-quarter-countdown-target="display">--:--</span>
  *   </span>
  */
 export default class extends Controller {
@@ -23,7 +24,8 @@ export default class extends Controller {
 
     update() {
         const now = new Date();
-        const mins = 59 - now.getMinutes();
+        const minutesInQuarter = now.getMinutes() % 15;
+        const mins = 14 - minutesInQuarter;
         const secs = 59 - now.getSeconds();
         this.displayTarget.textContent =
             String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');

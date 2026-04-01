@@ -4,30 +4,38 @@
     Variables:
         settings: SellSwapListSettings|null
         editUrl: string - URL for the "Complete setup" button
+        dismissable: bool (optional) - show close button, requires dismiss_url and dismiss_type
+        dismiss_url: string (optional) - URL for dismiss POST
+        dismiss_type: string (optional) - hint type value
 #}
 {% set hasCurrency = settings is not null and (settings.currency or settings.customCurrency) %}
 {% set hasShipping = settings is not null and settings.shippingCountries is not empty %}
 
-<div class="card mb-4 border-primary bg-primary bg-opacity-10 shadow-custom">
-    <div class="card-body py-3">
+<div
+    class="card mb-4 border-primary bg-primary bg-opacity-10 shadow-custom"
+    {% if dismissable|default(false) %}
+        {{ stimulus_controller('dismiss-hint', {
+            url: dismiss_url,
+            type: dismiss_type,
+        }) }}
+    {% endif %}
+>
+    <div class="card-body py-3 position-relative">
+        {% if dismissable|default(false) %}
+            <button type="button" class="btn-close position-absolute top-0 end-0 mt-2 me-2" aria-label="Close" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
+        {% endif %}
+
         <div class="d-flex align-items-start gap-3">
             <div class="flex-shrink-0 d-none d-sm-block">
                 <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                     <i class="bi bi-gear text-white fs-5"></i>
                 </div>
             </div>
-            <div class="flex-grow-1">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div>
-                        <h6 class="mb-0">{{ 'sell_swap_list.settings_alert.title'|trans }}</h6>
-                        <small class="text-muted">{{ 'sell_swap_list.settings_alert.subtitle'|trans }}</small>
-                    </div>
-                    <a href="{{ editUrl }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-primary flex-shrink-0">
-                        <i class="ci-edit me-1"></i>{{ 'sell_swap_list.settings_alert.cta'|trans }}
-                    </a>
-                </div>
+            <div class="flex-grow-1 {{ dismissable|default(false) ? 'pe-4' : '' }}">
+                <h6 class="mb-0">{{ 'sell_swap_list.settings_alert.title'|trans }}</h6>
+                <small class="text-muted">{{ 'sell_swap_list.settings_alert.subtitle'|trans }}</small>
 
-                <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-4">
+                <div class="d-flex flex-column flex-sm-row gap-2 gap-sm-4 mt-2">
                     <div class="d-flex align-items-center gap-2">
                         {% if hasCurrency %}
                             <i class="bi bi-check-circle-fill text-success fs-5"></i>
@@ -47,6 +55,10 @@
                         {% endif %}
                     </div>
                 </div>
+
+                <a href="{{ editUrl }}" data-turbo="true" data-turbo-frame="modal-frame" class="btn btn-sm btn-primary mt-3">
+                    <i class="ci-edit me-1"></i>{{ 'sell_swap_list.settings_alert.cta'|trans }}
+                </a>
             </div>
         </div>
     </div>

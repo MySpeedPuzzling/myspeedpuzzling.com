@@ -201,13 +201,16 @@
         {% endif %}
     {% endif %}
 
-    {# Settings checklist for logged users with active membership #}
-    {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+    {# Settings checklist for logged users with active membership (dismissable in marketplace) #}
+    {% if logged_user.profile is not null and logged_user.profile.activeMembership and not this.settingsChecklistDismissed %}
         {% set sellSwapSettings = logged_user.profile.sellSwapListSettings %}
         {% if sellSwapSettings is null or (not sellSwapSettings.currency and not sellSwapSettings.customCurrency) or sellSwapSettings.shippingCountries is empty %}
             {% include 'sell-swap/_settings_checklist.html.twig' with {
                 settings: sellSwapSettings,
                 editUrl: path('edit_sell_swap_list_settings', {playerId: logged_user.profile.playerId, 'return': path('marketplace'), 'return_title': 'marketplace.title'|trans}),
+                dismissable: true,
+                dismiss_url: path('dismiss_hint'),
+                dismiss_type: 'marketplace_settings_checklist',
             } only %}
         {% endif %}
     {% endif %}

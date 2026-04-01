@@ -51,4 +51,7 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 | Type | Page | Alert style |
 |------|------|-------------|
 | `marketplace_disclaimer` | Marketplace index | `alert-warning` |
+| `marketplace_settings_checklist` | Marketplace listing (Live Component) | Settings checklist card |
 | `feature_requests_intro` | Feature requests list | `alert-info` |
+
+Note: `marketplace_settings_checklist` is only dismissable in the marketplace. The same settings checklist on the sell-swap list detail page (`sell-swap/detail.html.twig`) is always shown without a dismiss option.

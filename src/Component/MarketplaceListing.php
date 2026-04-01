@@ -8,10 +8,12 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Query\GetMarketplaceListings;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
+use SpeedPuzzling\Web\Query\IsHintDismissed;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -83,6 +85,7 @@ final class MarketplaceListing
         readonly private GetMarketplaceListings $getMarketplaceListings,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private IsHintDismissed $isHintDismissed,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private TranslatorInterface $translator,
     ) {
@@ -185,6 +188,17 @@ final class MarketplaceListing
         }
 
         return null;
+    }
+
+    public function isSettingsChecklistDismissed(): bool
+    {
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($profile === null) {
+            return false;
+        }
+
+        return ($this->isHintDismissed)($profile->playerId, HintType::MarketplaceSettingsChecklist);
     }
 
     public function getPuzzleName(): null|string

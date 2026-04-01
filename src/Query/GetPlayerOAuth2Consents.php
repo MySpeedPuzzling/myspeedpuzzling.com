@@ -29,13 +29,7 @@ SELECT
     cl.name AS client_name,
     c.scopes,
     c.consented_at,
-    (
-        SELECT MAX(at.expiry) - INTERVAL '1 hour'
-        FROM oauth2_access_token at
-        WHERE at.client = c.client_identifier
-        AND at.user_identifier = :playerId
-        AND at.revoked = false
-    ) AS last_used_at
+    c.last_used_at
 FROM oauth2_user_consent c
 INNER JOIN oauth2_client cl ON cl.identifier = c.client_identifier
 WHERE c.player_id = :playerId

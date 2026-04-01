@@ -152,6 +152,10 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $rankingOptedOut = false;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $fairUsePolicyAcceptedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -253,6 +257,16 @@ class Player
     public function changeProfileVisibility(bool $isPrivate): void
     {
         $this->isPrivate = $isPrivate;
+    }
+
+    public function acceptFairUsePolicy(): void
+    {
+        $this->fairUsePolicyAcceptedAt = new DateTimeImmutable();
+    }
+
+    public function hasFairUsePolicyAccepted(): bool
+    {
+        return $this->fairUsePolicyAcceptedAt !== null;
     }
 
     public function changePuzzleCollectionVisibility(CollectionVisibility $visibility): void

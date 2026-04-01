@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
-use SpeedPuzzling\Web\Security\OAuth2User;
+use SpeedPuzzling\Web\Security\ApiUser;
 use Symfony\Bundle\SecurityBundle\Security;
 
 /**
@@ -24,9 +24,9 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): CurrentUserResponse
     {
         $user = $this->security->getUser();
-        assert($user instanceof OAuth2User);
+        assert($user instanceof ApiUser);
 
-        $profile = $this->getPlayerProfile->byId($user->player->id->toString());
+        $profile = $this->getPlayerProfile->byId($user->getPlayer()->id->toString());
 
         return new CurrentUserResponse(
             id: $profile->playerId,

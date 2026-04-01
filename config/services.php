@@ -86,11 +86,15 @@ return static function (ContainerConfigurator $configurator): void {
     $services->load('SpeedPuzzling\\Web\\Services\\', __DIR__ . '/../src/Services/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
-        ->exclude([__DIR__ . '/../src/Security/OAuth2User.php']);
+        ->exclude([
+            __DIR__ . '/../src/Security/OAuth2User.php',
+            __DIR__ . '/../src/Security/PatUser.php',
+            __DIR__ . '/../src/Security/ApiUser.php',
+        ]);
     $services->load('SpeedPuzzling\\Web\\EventSubscriber\\', __DIR__ . '/../src/EventSubscriber/**/{*.php}');
 
-    // API Resource Providers
-    $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php}');
+    // API Resource Providers and Processors
+    $services->load('SpeedPuzzling\\Web\\Api\\', __DIR__ . '/../src/Api/**/{*Provider.php,*Processor.php}');
 
     // Components
     $services->load('SpeedPuzzling\\Web\\Component\\', __DIR__ . '/../src/Component/**/{*.php}');

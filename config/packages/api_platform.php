@@ -47,6 +47,8 @@ return static function (ContainerConfigurator $configurator): void {
                 'results:read' => 'Read player results',
                 'statistics:read' => 'Read player statistics',
                 'collections:read' => 'Read player collections',
+                'solving-times:write' => 'Create and edit solving times',
+                'collections:write' => 'Create, edit, and delete collections and items',
             ],
         ],
     ]);

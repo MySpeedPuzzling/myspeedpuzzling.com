@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}OAuth2 Client Requests{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">OAuth2 Client Requests</h1>
+
+    {% if requests is empty %}
+        <p class="text-muted">No OAuth2 client requests yet.</p>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>App Name</th>
+                        <th>Requester</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Requested</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in requests %}
+                        <tr>
+                            <td>{{ request.clientName }}</td>
+                            <td>{{ request.playerName }}</td>
+                            <td><span class="badge bg-secondary">{{ request.applicationType }}</span></td>
+                            <td>
+                                {% if request.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% elseif request.status == 'approved' %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ request.createdAt|date('j. n. Y H:i') }}</td>
+                            <td><a href="{{ path('admin_oauth2_client_request_detail', {requestId: request.id}) }}" class="btn btn-sm btn-outline-primary">Detail</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

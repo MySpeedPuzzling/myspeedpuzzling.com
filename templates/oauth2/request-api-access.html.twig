@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'request_api_access.meta.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="col-lg-8 mx-auto">
+        <h1 class="mb-4">{{ 'request_api_access.heading'|trans }}</h1>
+        <p class="text-muted mb-4">{{ 'request_api_access.description'|trans }}</p>
+
+        {{ form_start(form) }}
+            <div class="card card-body shadow-sm mb-4">
+                <h3 class="h5 mb-3">{{ 'request_api_access.app_info'|trans }}</h3>
+
+                {{ form_row(form.clientName) }}
+                {{ form_row(form.clientDescription) }}
+                {{ form_row(form.purpose) }}
+                {{ form_row(form.applicationType) }}
+            </div>
+
+            <div class="card card-body shadow-sm mb-4">
+                {{ form_row(form.scopes) }}
+            </div>
+
+            <div class="card card-body shadow-sm mb-4">
+                <h3 class="h5 mb-3">{{ 'request_api_access.redirect_uris_heading'|trans }}</h3>
+                {{ form_row(form.redirectUris) }}
+            </div>
+
+            <button type="submit" class="btn btn-primary">{{ 'request_api_access.submit'|trans }}</button>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

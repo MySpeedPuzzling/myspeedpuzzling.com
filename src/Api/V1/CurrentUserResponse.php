@@ -12,7 +12,7 @@ use ApiPlatform\Metadata\Get;
     operations: [
         new Get(
             uriTemplate: '/v1/me',
-            security: "is_granted('ROLE_OAUTH2_PROFILE:READ')",
+            security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_PROFILE:READ')",
             provider: CurrentUserResponseProvider::class,
         ),
     ],

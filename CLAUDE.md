@@ -135,23 +135,28 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **Marketplace**: `docs/features/marketplace/` — Centralized marketplace, messaging, ratings, shipping settings, admin moderation
 - **Hint Dismissing**: `docs/features/hint-dismissing.md` — Dismissable hint banners with `dismiss-hint` Stimulus controller, `HintType` enum, per-user persistence
 - **Puzzle Insights**: `docs/features/puzzle-intelligence/` — Puzzle difficulty, player skill tiers, MSP rating, derived metrics
-- **OAuth2 Server**: `docs/features/oauth2-server/` — OAuth2 authorization server for API access
+- **API & OAuth2**: `docs/features/api/` — Public REST API (V1), OAuth2 server, Swagger docs, internal APIs, deprecated V0
 - **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
 - **Opt-Out Features**: `docs/features/opt-out.md` — Streak and ranking opt-out for players
 
 ### Feature Flags
 Active feature flags are documented in `docs/features/feature_flags.md`. **Always read and update this file** when adding, modifying, or removing feature flags. It tracks which files are gated, what feature each flag belongs to, and when it can be removed.
 
-### OAuth2 Server
-- Powered by `league/oauth2-server-bundle`
-- Endpoints: `/oauth2/authorize` (custom controller), `/oauth2/token` (bundle controller)
-- API firewall (`^/api/v1/`) uses stateless Bearer token authentication
-- Scopes: `profile:read` (default), `results:read`, `statistics:read`, `collections:read`
-- Grants: `authorization_code`, `client_credentials`, `refresh_token` (password and implicit disabled)
-- PKCE required for public clients only; confidential clients use client secret
-- API endpoints: `GET /api/v1/me`, `GET /api/v1/players/{id}/results`, `GET /api/v1/players/{id}/statistics`
-- User consent is tracked in `oauth2_user_consent` table (auto-approves previously consented scopes)
-- Manage clients: `php bin/console myspeedpuzzling:oauth2:create-client`, `php bin/console myspeedpuzzling:oauth2:list-clients`
+### API & Authentication
+- **Two auth methods:** Personal Access Tokens (PAT) for own data, OAuth2 for third-party apps
+- **PAT:** `msp_pat_*` tokens, hashed in DB, `PatAuthenticator` on `api` firewall, `ROLE_PAT`, own data only (`/api/v1/me/*`)
+- **OAuth2:** `league/oauth2-server-bundle`, JWT Bearer tokens, scope-based roles
+- **Scopes:** `profile:read` (default), `results:read`, `statistics:read`, `collections:read`, `solving-times:write`, `collections:write`
+- **Grants:** `authorization_code` (read+write), `client_credentials` (read-only), `refresh_token`
+- **"Me" endpoints:** `/api/v1/me/*` — PAT or OAuth2 with user context
+- **Player endpoints:** `/api/v1/players/{id}/*` — OAuth2 only
+- **Write endpoints:** `POST/PUT /api/v1/me/solving-times`, collection CRUD
+- **Collections:** Membership gating — system collection (`default`) accessible to all, custom collections members-only
+- **OAuth2 client registration:** Web form → admin approval → credential claim link (one-time display)
+- **Audit:** `last_used_at` tracked for both PAT and OAuth2 tokens
+- **`ApiUser` interface:** Shared by `PatUser` and `OAuth2User`, used by all providers
+- **Fair Use Policy:** Required acceptance for PAT generation and OAuth2 client registration
+- **Full docs:** `docs/features/api/README.md`
 
 ### Notable Features
 - **Puzzle Time Tracking**: Sophisticated stopwatch with pause/resume and verification

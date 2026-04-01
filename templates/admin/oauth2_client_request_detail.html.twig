@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}OAuth2 Request: {{ request.clientName }}{% endblock %}
+
+{% block content %}
+    <div class="col-lg-8 mx-auto">
+        <h1 class="mb-4">{{ request.clientName }}</h1>
+
+        <div class="card card-body shadow-sm mb-4">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Requester</dt>
+                <dd class="col-sm-8">{{ request.player.name ?? 'Unknown' }}</dd>
+
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8">
+                    {% if request.status.value == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% elseif request.status.value == 'approved' %}
+                        <span class="badge bg-success">Approved</span>
+                    {% else %}
+                        <span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                </dd>
+
+                <dt class="col-sm-4">Description</dt>
+                <dd class="col-sm-8">{{ request.clientDescription }}</dd>
+
+                <dt class="col-sm-4">Purpose</dt>
+                <dd class="col-sm-8">{{ request.purpose }}</dd>
+
+                <dt class="col-sm-4">Application Type</dt>
+                <dd class="col-sm-8">{{ request.applicationType.value|capitalize }}</dd>
+
+                <dt class="col-sm-4">Requested Scopes</dt>
+                <dd class="col-sm-8">
+                    {% for scope in request.requestedScopes %}
+                        <span class="badge bg-secondary">{{ scope }}</span>
+                    {% endfor %}
+                </dd>
+
+                <dt class="col-sm-4">Redirect URIs</dt>
+                <dd class="col-sm-8">
+                    {% for uri in request.redirectUris %}
+                        <code>{{ uri }}</code>{% if not loop.last %}<br>{% endif %}
+                    {% else %}
+                        <em class="text-muted">None</em>
+                    {% endfor %}
+                </dd>
+
+                <dt class="col-sm-4">Requested</dt>
+                <dd class="col-sm-8">{{ request.createdAt|date('j. n. Y H:i') }}</dd>
+
+                {% if request.reviewedAt is not null %}
+                    <dt class="col-sm-4">Reviewed</dt>
+                    <dd class="col-sm-8">{{ request.reviewedAt|date('j. n. Y H:i') }}</dd>
+                {% endif %}
+
+                {% if request.clientIdentifier is not null %}
+                    <dt class="col-sm-4">Client ID</dt>
+                    <dd class="col-sm-8"><code>{{ request.clientIdentifier }}</code></dd>
+                {% endif %}
+
+                {% if request.rejectionReason is not null %}
+                    <dt class="col-sm-4">Rejection Reason</dt>
+                    <dd class="col-sm-8">{{ request.rejectionReason }}</dd>
+                {% endif %}
+
+                <dt class="col-sm-4">Credentials Claimed</dt>
+                <dd class="col-sm-8">{{ request.credentialsClaimed ? 'Yes' : 'No' }}</dd>
+            </dl>
+        </div>
+
+        {% if request.status.value == 'pending' %}
+            <div class="d-flex gap-3">
+                <form method="post" action="{{ path('admin_approve_oauth2_client_request', {requestId: request.id}) }}" onsubmit="return confirm('Approve this application?')">
+                    <button type="submit" class="btn btn-success">Approve</button>
+                </form>
+
+                <form method="post" action="{{ path('admin_reject_oauth2_client_request', {requestId: request.id}) }}">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="reason" placeholder="Rejection reason..." required>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Reject this application?')">Reject</button>
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+
+        <a href="{{ path('admin_oauth2_client_requests') }}" class="btn btn-secondary mt-3">Back to list</a>
+    </div>
+{% endblock %}

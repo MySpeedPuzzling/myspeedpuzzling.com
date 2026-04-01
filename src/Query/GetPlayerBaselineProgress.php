@@ -101,7 +101,6 @@ readonly final class GetPlayerBaselineProgress
                     JOIN puzzle p ON p.id = pst.puzzle_id
                     WHERE pst.player_id = :playerId
                         AND p.pieces_count = :piecesCount
-                        AND pst.first_attempt = true
                         AND pst.puzzling_type = 'solo'
                         AND pst.suspicious = false
                         AND pst.seconds_to_solve IS NOT NULL

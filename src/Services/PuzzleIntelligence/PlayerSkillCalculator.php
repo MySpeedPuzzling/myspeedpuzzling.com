@@ -28,8 +28,9 @@ final class PlayerSkillCalculator implements ResetInterface
 
     /**
      * Per-player first-attempt times per puzzle with solve dates.
+     * Uses "eldest as proxy" rule: prefers first_attempt=true, falls back to earliest solve.
      *
-     * @var array<string, array<string, array{time: int, solve_date: string}>>|null player_id => puzzle_id => data
+     * @var array<string, array<string, array{time: int, solve_date: string, is_first_attempt: bool}>>|null player_id => puzzle_id => data
      */
     private null|array $playerPuzzleTimesCache = null;
 
@@ -65,11 +66,10 @@ final class PlayerSkillCalculator implements ResetInterface
             ];
         }
 
-        // Load all first-attempt times per puzzle per player (with solve dates for decay)
-        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, solve_date: string}> $firstAttempts */
-        $firstAttempts = $this->connection->fetchAllAssociative("
-            SELECT pst.puzzle_id, pst.player_id, pst.seconds_to_solve,
-                   COALESCE(pst.finished_at, pst.tracked_at) AS solve_date
+        // Load strict first-attempt times per puzzle (for comparison pool / sorted_times)
+        /** @var list<array{puzzle_id: string, seconds_to_solve: int|string}> $strictFirstAttempts */
+        $strictFirstAttempts = $this->connection->fetchAllAssociative("
+            SELECT pst.puzzle_id, pst.seconds_to_solve
             FROM puzzle_solving_time pst
             JOIN puzzle p ON p.id = pst.puzzle_id
             WHERE p.pieces_count = :piecesCount
@@ -79,19 +79,45 @@ final class PlayerSkillCalculator implements ResetInterface
                 AND pst.seconds_to_solve IS NOT NULL
         ", ['piecesCount' => $piecesCount]);
 
-        // Build sorted times per puzzle + player lookup
+        // Build sorted times per puzzle (comparison pool)
         $puzzleTimesMap = [];
+
+        foreach ($strictFirstAttempts as $row) {
+            $puzzleTimesMap[$row['puzzle_id']][] = (int) $row['seconds_to_solve'];
+        }
+
+        // Load player times using "eldest as proxy" rule: prefer first_attempt=true, fall back to earliest solve
+        /** @var list<array{puzzle_id: string, player_id: string, seconds_to_solve: int|string, solve_date: string, is_first_attempt: string}> $playerFirstAttempts */
+        $playerFirstAttempts = $this->connection->fetchAllAssociative("
+            SELECT puzzle_id, player_id, seconds_to_solve, solve_date, is_first_attempt
+            FROM (
+                SELECT
+                    pst.puzzle_id,
+                    pst.player_id,
+                    pst.seconds_to_solve,
+                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
+                    pst.first_attempt AS is_first_attempt,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY pst.player_id, pst.puzzle_id
+                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
+                    ) AS rn
+                FROM puzzle_solving_time pst
+                JOIN puzzle p ON p.id = pst.puzzle_id
+                WHERE p.pieces_count = :piecesCount
+                    AND pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+            ) sub
+            WHERE rn = 1
+        ", ['piecesCount' => $piecesCount]);
+
         $playerTimes = [];
 
-        foreach ($firstAttempts as $row) {
-            $puzzleId = $row['puzzle_id'];
-            $playerId = $row['player_id'];
-            $time = (int) $row['seconds_to_solve'];
-
-            $puzzleTimesMap[$puzzleId][] = $time;
-            $playerTimes[$playerId][$puzzleId] = [
-                'time' => $time,
+        foreach ($playerFirstAttempts as $row) {
+            $playerTimes[$row['player_id']][$row['puzzle_id']] = [
+                'time' => (int) $row['seconds_to_solve'],
                 'solve_date' => $row['solve_date'],
+                'is_first_attempt' => (bool) $row['is_first_attempt'],
             ];
         }
 
@@ -220,10 +246,7 @@ final class PlayerSkillCalculator implements ResetInterface
             $sortedTimes = $puzzle['sorted_times'];
             $totalSolvers = count($sortedTimes);
             $playerTime = $solveData['time'];
-
-            if ($totalSolvers <= 1) {
-                continue;
-            }
+            $isFirstAttempt = $solveData['is_first_attempt'];
 
             // Count slower and tied using sorted array
             $slowerCount = 0;
@@ -237,9 +260,20 @@ final class PlayerSkillCalculator implements ResetInterface
                 }
             }
 
-            // Average rank method — exclude self from tied count
-            $tiedOthers = max(0, $tiedCount - 1);
-            $percentile = ($slowerCount + $tiedOthers / 2.0) / ($totalSolvers - 1);
+            // Exclude self from tied count and denominator only if player is in the comparison pool
+            if ($isFirstAttempt) {
+                $tiedOthers = max(0, $tiedCount - 1);
+                $denominator = $totalSolvers - 1;
+            } else {
+                $tiedOthers = $tiedCount;
+                $denominator = $totalSolvers;
+            }
+
+            if ($denominator <= 0) {
+                continue;
+            }
+
+            $percentile = ($slowerCount + $tiedOthers / 2.0) / $denominator;
 
             // Confidence-scaled difficulty weight
             $confidence = min(1.0, $puzzle['sample_size'] / self::DIFF_CONFIDENCE_THRESHOLD);

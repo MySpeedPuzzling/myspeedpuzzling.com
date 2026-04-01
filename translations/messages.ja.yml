@@ -1978,3 +1978,10 @@ puzzle_intelligence:
         result_faster: "予測より%percent%%速い！"
         result_on_target: "予測通り！"
         result_slower: "予測より%percent%%遅い"
+
+qr_code:
+    button: "QRコード"
+    title: "QRコード"
+    print: "印刷"
+    save: "保存"
+    share: "共有"

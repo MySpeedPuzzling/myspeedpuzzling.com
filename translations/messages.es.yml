@@ -1989,3 +1989,10 @@ puzzle_intelligence:
         result_faster: "¡%percent%% más rápido de lo predicho!"
         result_on_target: "¡Justo en el objetivo!"
         result_slower: "%percent%% más lento de lo predicho"
+
+qr_code:
+    button: "Código QR"
+    title: "Código QR"
+    print: "Imprimir"
+    save: "Guardar"
+    share: "Compartir"

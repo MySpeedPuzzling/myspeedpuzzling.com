@@ -60,6 +60,12 @@
     </li>
 {% endif %}
 
+<li>
+    <a class="dropdown-item" href="{{ path('puzzle_qr_code_modal', {puzzleId: puzzle_id}) }}" data-turbo-frame="modal-frame">
+        <i class="bi bi-qr-code me-1"></i> {{ 'qr_code.button'|trans }}
+    </a>
+</li>
+
 {# Visible to all users - redirects to login if not authenticated #}
 {{ include('puzzle-report/_dropdown_action.html.twig', {
     puzzle_id: puzzle_id,

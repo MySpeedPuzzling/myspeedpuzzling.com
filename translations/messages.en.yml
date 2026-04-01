@@ -2228,3 +2228,10 @@ puzzle_intelligence:
         threshold_box_dependence: "10 unboxed + 5 boxed solvers with baselines"
         threshold_improvement_ceiling: "20 solvers"
         show_formula: "Show exact formula"
+
+qr_code:
+    button: "QR code"
+    title: "QR Code"
+    print: "Print"
+    save: "Save"
+    share: "Share"

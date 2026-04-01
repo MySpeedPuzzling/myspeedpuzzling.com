@@ -1987,3 +1987,10 @@ feature_requests:
         description_help: "Zaměřte se na 'proč' — jaký problém to řeší nebo jakou hodnotu to přináší? Max 2000 znaků."
         submit: "Odeslat návrh"
         save: "Uložit změny"
+
+qr_code:
+    button: "QR kód"
+    title: "QR kód"
+    print: "Tisk"
+    save: "Uložit"
+    share: "Sdílet"

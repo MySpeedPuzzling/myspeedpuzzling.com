@@ -1990,3 +1990,10 @@ puzzle_intelligence:
         result_faster: "%percent%% plus rapide que prévu !"
         result_on_target: "Pile dans le mille !"
         result_slower: "%percent%% plus lent que prévu"
+
+qr_code:
+    button: "Code QR"
+    title: "Code QR"
+    print: "Imprimer"
+    save: "Enregistrer"
+    share: "Partager"

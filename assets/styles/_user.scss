@@ -328,3 +328,35 @@ $confidence-high: #42d697;   // green
 .badge-tier-low-confidence {
     opacity: 0.6;
 }
+
+// Print styles for QR code modal
+@media print {
+    body > *:not(.modal) {
+        display: none !important;
+    }
+
+    .modal-backdrop {
+        display: none !important;
+    }
+
+    .modal {
+        position: static !important;
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    .modal-dialog {
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+
+    .modal-content {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .modal-header .btn-close,
+    .qr-code-actions {
+        display: none !important;
+    }
+}

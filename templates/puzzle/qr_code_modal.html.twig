@@ -1,0 +1,35 @@
+<turbo-frame id="modal-frame">
+    <div data-controller="qr-code"
+         data-qr-code-image-url-value="{{ qr_image_url }}"
+         data-qr-code-puzzle-name-value="{{ puzzle.puzzleName }}">
+        <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title">{{ 'qr_code.title'|trans }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body text-center px-4 pb-4" id="qr-code-print-area">
+            <div class="d-inline-block p-3 mb-3">
+                <img src="{{ qr_image_url }}" alt="QR code" class="img-fluid" style="max-width: 250px;">
+            </div>
+
+            <p class="fw-medium mb-1">{{ puzzle.puzzleName }}</p>
+            <p class="text-muted small mb-3">
+                {% if puzzle.manufacturerName is not null %}{{ puzzle.manufacturerName }} &middot; {% endif %}{{ puzzle.piecesCount }} pcs
+            </p>
+
+            <div class="d-flex gap-2 justify-content-center qr-code-actions">
+                <button class="btn btn-primary btn-sm" data-action="qr-code#print">
+                    <i class="bi bi-printer me-1"></i> {{ 'qr_code.print'|trans }}
+                </button>
+                <a href="{{ qr_image_url }}" download="{{ puzzle.puzzleName|slug }}-qr.png" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-download me-1"></i> {{ 'qr_code.save'|trans }}
+                </a>
+                <button class="btn btn-outline-primary btn-sm" style="display: none;"
+                        {{ stimulus_target('qr-code', 'shareButton') }}
+                        data-action="qr-code#share">
+                    <i class="bi bi-share me-1"></i> {{ 'qr_code.share'|trans }}
+                </button>
+            </div>
+        </div>
+    </div>
+</turbo-frame>

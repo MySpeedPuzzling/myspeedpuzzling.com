@@ -55,7 +55,7 @@
                 </div>
             {% endfor %}
 
-            {# Improvement chart #}
+            {# Improvement chart - commented out, not ready yet
             {% if improvementChart is not null %}
                 <h6 class="fs-sm text-muted mb-2 mt-3 d-flex align-items-center gap-1">
                     <i class="bi bi-graph-up" style="font-size: 1.1em;"></i>
@@ -65,6 +65,7 @@
                     {{ render_chart(improvementChart) }}
                 </div>
             {% endif %}
+            #}
         {% else %}
             {# No skill tiers yet — show progress #}
             {% if progress is not empty %}

@@ -6,12 +6,12 @@ namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetPlayerBaselineProgress;
 use SpeedPuzzling\Web\Query\GetPlayerSkill;
-use SpeedPuzzling\Web\Query\GetPlayerSkillHistory;
+// use SpeedPuzzling\Web\Query\GetPlayerSkillHistory;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
-use SpeedPuzzling\Web\Results\PlayerSkillHistoryPoint;
+// use SpeedPuzzling\Web\Results\PlayerSkillHistoryPoint;
 use SpeedPuzzling\Web\Results\PlayerSkillResult;
-use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
+// use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -57,9 +57,9 @@ final class PlayerSkillProfile
 
     public function __construct(
         readonly private GetPlayerSkill $getPlayerSkill,
-        readonly private GetPlayerSkillHistory $getPlayerSkillHistory,
+        // readonly private GetPlayerSkillHistory $getPlayerSkillHistory,
         readonly private GetPlayerBaselineProgress $getPlayerBaselineProgress,
-        readonly private ChartBuilderInterface $chartBuilder,
+        // readonly private ChartBuilderInterface $chartBuilder,
     ) {
     }
 
@@ -88,7 +88,8 @@ final class PlayerSkillProfile
             $this->selectedPiecesCount = $this->currentSkill->piecesCount;
         }
 
-        $this->improvementChart = $this->buildImprovementChart();
+        // Improvement chart temporarily disabled in template
+        $this->improvementChart = null;
         $this->computeBaselineAndTarget();
 
         if ($this->skills === []) {
@@ -138,60 +139,61 @@ final class PlayerSkillProfile
         );
     }
 
-    private function buildImprovementChart(): null|Chart
-    {
-        $history = $this->getPlayerSkillHistory->byPlayerId($this->playerId, $this->selectedPiecesCount);
-
-        if (count($history) < 2) {
-            return null;
-        }
-
-        $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
-
-        $labels = array_map(
-            static fn (PlayerSkillHistoryPoint $point): string => $point->month->format('M Y'),
-            $history,
-        );
-
-        $data = array_map(
-            static fn (PlayerSkillHistoryPoint $point): float => round($point->baselineSeconds / 60, 1),
-            $history,
-        );
-
-        $chart->setData([
-            'labels' => $labels,
-            'datasets' => [
-                [
-                    'label' => 'Average solving time (min)',
-                    'data' => $data,
-                    'borderColor' => '#0d6efd',
-                    'backgroundColor' => 'rgba(13, 110, 253, 0.1)',
-                    'fill' => true,
-                    'tension' => 0.3,
-                    'pointRadius' => 4,
-                ],
-            ],
-        ]);
-
-        $chart->setOptions([
-            'responsive' => true,
-            'maintainAspectRatio' => false,
-            'scales' => [
-                'y' => [
-                    'reverse' => true,
-                    'title' => [
-                        'display' => true,
-                        'text' => 'Minutes',
-                    ],
-                ],
-            ],
-            'plugins' => [
-                'legend' => [
-                    'display' => false,
-                ],
-            ],
-        ]);
-
-        return $chart;
-    }
+    // Improvement chart temporarily disabled - uncomment when ready
+    // private function buildImprovementChart(): null|Chart
+    // {
+    //     $history = $this->getPlayerSkillHistory->byPlayerId($this->playerId, $this->selectedPiecesCount);
+    //
+    //     if (count($history) < 2) {
+    //         return null;
+    //     }
+    //
+    //     $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);
+    //
+    //     $labels = array_map(
+    //         static fn (PlayerSkillHistoryPoint $point): string => $point->month->format('M Y'),
+    //         $history,
+    //     );
+    //
+    //     $data = array_map(
+    //         static fn (PlayerSkillHistoryPoint $point): float => round($point->baselineSeconds / 60, 1),
+    //         $history,
+    //     );
+    //
+    //     $chart->setData([
+    //         'labels' => $labels,
+    //         'datasets' => [
+    //             [
+    //                 'label' => 'Average solving time (min)',
+    //                 'data' => $data,
+    //                 'borderColor' => '#0d6efd',
+    //                 'backgroundColor' => 'rgba(13, 110, 253, 0.1)',
+    //                 'fill' => true,
+    //                 'tension' => 0.3,
+    //                 'pointRadius' => 4,
+    //             ],
+    //         ],
+    //     ]);
+    //
+    //     $chart->setOptions([
+    //         'responsive' => true,
+    //         'maintainAspectRatio' => false,
+    //         'scales' => [
+    //             'y' => [
+    //                 'reverse' => true,
+    //                 'title' => [
+    //                     'display' => true,
+    //                     'text' => 'Minutes',
+    //                 ],
+    //             ],
+    //         ],
+    //         'plugins' => [
+    //             'legend' => [
+    //                 'display' => false,
+    //             ],
+    //         ],
+    //     ]);
+    //
+    //     return $chart;
+    // }
 }

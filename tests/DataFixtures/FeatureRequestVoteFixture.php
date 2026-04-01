@@ -34,7 +34,7 @@ final class FeatureRequestVoteFixture extends Fixture implements DependentFixtur
             id: Uuid::fromString(self::VOTE_ADMIN_FOR_POPULAR),
             featureRequest: $popularRequest,
             voter: $playerAdmin,
-            votedAt: $this->clock->now()->modify('-2 days'),
+            votedAt: $this->clock->now()->modify('first day of this month noon'),
         );
         $manager->persist($vote1);
 

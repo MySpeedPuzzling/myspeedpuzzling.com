@@ -20,7 +20,7 @@ final class GetPlayerVoteCountThisMonthTest extends KernelTestCase
 
     public function testCountsVotesThisMonth(): void
     {
-        // PLAYER_ADMIN voted for POPULAR 2 days ago - should count
+        // PLAYER_ADMIN voted for POPULAR this month - should count
         $count = ($this->getPlayerVoteCountThisMonth)(PlayerFixture::PLAYER_ADMIN);
         self::assertSame(1, $count);
     }

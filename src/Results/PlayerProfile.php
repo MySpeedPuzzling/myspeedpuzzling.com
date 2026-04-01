@@ -30,6 +30,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     stripe_customer_id: null|string,
  *     modal_displayed: bool,
  *     locale: null|string,
+ *     has_active_stripe_subscription: bool,
  *     membership_ends_at: null|string,
  *     is_admin: bool,
  *     is_private: bool,
@@ -107,6 +108,10 @@ readonly final class PlayerProfile
 
         $membershipEndsAt = null;
         $hasMembership = false;
+
+        if ($row['has_active_stripe_subscription']) {
+            $hasMembership = true;
+        }
 
         if ($row['membership_ends_at'] !== null) {
             $membershipEndsAt = new DateTimeImmutable($row['membership_ends_at']);

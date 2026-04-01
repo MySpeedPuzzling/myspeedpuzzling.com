@@ -64,6 +64,7 @@ SELECT
     average_rating,
     streak_opted_out,
     ranking_opted_out,
+    (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)
@@ -128,6 +129,7 @@ SELECT
     average_rating,
     streak_opted_out,
     ranking_opted_out,
+    (membership.ends_at IS NULL AND membership.billing_period_ends_at IS NOT NULL) AS has_active_stripe_subscription,
     GREATEST(
         COALESCE(membership.ends_at, membership.billing_period_ends_at, '1970-01-01'::timestamp),
         COALESCE(membership.granted_until, '1970-01-01'::timestamp)

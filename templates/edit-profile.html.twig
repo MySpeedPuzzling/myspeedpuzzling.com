@@ -103,6 +103,63 @@
                 {% endif %}
             </div>
 
+            <div class="card card-body shadow-lg my-3">
+                <h3 class="h5">{{ 'edit_profile.personal_access_tokens'|trans }}</h3>
+                <p class="text-muted fs-sm mb-2">{{ 'edit_profile.personal_access_tokens_description'|trans }}</p>
+                <p class="fs-sm mb-3"><code>Authorization: Token msp_pat_...</code></p>
+
+                {% if player.fairUsePolicyAccepted %}
+                    {% for flash_token in app.flashes('pat_created') %}
+                        <div class="border border-warning rounded p-4 mb-4 bg-warning bg-opacity-10">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-2"></i>
+                                <strong class="fs-5">{{ 'edit_profile.pat_created_title'|trans }}</strong>
+                            </div>
+                            <p class="text-danger fw-bold mb-2">{{ 'edit_profile.pat_created_warning'|trans }}</p>
+                            <div class="bg-white border rounded p-3 mb-3">
+                                <code class="user-select-all d-block text-break fs-6">{{ flash_token }}</code>
+                            </div>
+                            <p class="text-muted fs-sm mb-0"><i class="bi bi-info-circle me-1"></i>{{ 'edit_profile.pat_created_hint'|trans }}</p>
+                        </div>
+                    {% endfor %}
+
+                    {% for token in personal_access_tokens %}
+                        <div class="d-flex justify-content-between align-items-start{% if not loop.last %} mb-3 pb-3 border-bottom{% endif %}">
+                            <div>
+                                <strong>{{ token.name }}</strong>
+                                <div class="fs-sm text-muted mt-1">
+                                    <code>{{ token.tokenPrefix }}...</code>
+                                    <br>{{ 'edit_profile.pat_created_at'|trans }}: {{ token.createdAt|date('j. n. Y') }}
+                                    {% if token.lastUsedAt is not null %}
+                                        <br>{{ 'edit_profile.last_used_at'|trans }}: {{ token.lastUsedAt|date('j. n. Y') }}
+                                    {% else %}
+                                        <br>{{ 'edit_profile.last_used_at'|trans }}: {{ 'edit_profile.pat_never_used'|trans }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <form method="post" action="{{ path('revoke_personal_access_token', {tokenId: token.id}) }}" onsubmit="return confirm('{{ 'edit_profile.pat_revoke_confirm'|trans }}')">
+                                <input type="hidden" name="_token" value="{{ csrf_token('revoke_pat_' ~ token.id) }}">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.revoke_access'|trans }}</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+
+                    <hr>
+                    <form method="post" action="{{ path('create_personal_access_token') }}">
+                        <div class="mb-3">
+                            <label for="token_name" class="form-label">{{ 'edit_profile.pat_name_label'|trans }}</label>
+                            <input type="text" class="form-control" id="token_name" name="token_name" required maxlength="100" placeholder="{{ 'edit_profile.pat_name_placeholder'|trans }}">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm">{{ 'edit_profile.pat_create_button'|trans }}</button>
+                    </form>
+                {% else %}
+                    <p class="text-muted mb-3">{{ 'edit_profile.pat_accept_fup_first'|trans }}</p>
+                    <a href="{{ path('fair_use_policy') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-file-text me-1"></i> {{ 'edit_profile.read_accept_fup'|trans }}
+                    </a>
+                {% endif %}
+            </div>
+
             {% if oauth2_consents is not empty %}
                 <div class="card card-body shadow-lg my-3">
                     <h3 class="h5">{{ 'edit_profile.connected_applications'|trans }}</h3>
@@ -132,6 +189,45 @@
                     {% endfor %}
                 </div>
             {% endif %}
+
+            <div class="card card-body shadow-lg my-3">
+                <h3 class="h5">{{ 'edit_profile.my_applications'|trans }}</h3>
+                <p class="text-muted fs-sm mb-3">{{ 'edit_profile.my_applications_description'|trans }}</p>
+
+                {% if player.fairUsePolicyAccepted %}
+                    {% for app in my_applications %}
+                        <div class="d-flex justify-content-between align-items-start{% if not loop.last %} mb-3 pb-3 border-bottom{% endif %}">
+                            <div>
+                                <strong>{{ app.clientName }}</strong>
+                                {% if app.status == 'pending' %}
+                                    <span class="badge bg-warning text-dark ms-2">Pending</span>
+                                {% elseif app.status == 'approved' %}
+                                    <span class="badge bg-success ms-2">Approved</span>
+                                {% else %}
+                                    <span class="badge bg-danger ms-2">Rejected</span>
+                                {% endif %}
+                                <div class="fs-sm text-muted mt-1">
+                                    {{ 'edit_profile.pat_created_at'|trans }}: {{ app.createdAt|date('j. n. Y') }}
+                                    {% if app.clientIdentifier is not null %}
+                                        <br>Client ID: <code>{{ app.clientIdentifier }}</code>
+                                    {% endif %}
+                                    {% if app.rejectionReason is not null %}
+                                        <br>Reason: {{ app.rejectionReason }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <hr>
+                    <a href="{{ path('request_api_access') }}" class="btn btn-primary btn-sm">{{ 'edit_profile.request_api_access'|trans }}</a>
+                {% else %}
+                    <p class="text-muted mb-3">{{ 'edit_profile.oauth2_accept_fup_first'|trans }}</p>
+                    <a href="{{ path('fair_use_policy') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-file-text me-1"></i> {{ 'edit_profile.read_accept_fup'|trans }}
+                    </a>
+                {% endif %}
+            </div>
         </div>
 
         <div class="col-sm-6">

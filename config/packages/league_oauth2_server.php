@@ -29,6 +29,8 @@ return App::config([
                 'results:read',
                 'statistics:read',
                 'collections:read',
+                'solving-times:write',
+                'collections:write',
             ],
             'default' => [
                 'profile:read',

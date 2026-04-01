@@ -139,6 +139,7 @@ final class PlayerProfileMembershipTest extends TestCase
      *     average_rating: null|string,
      *     streak_opted_out: bool,
      *     ranking_opted_out: bool,
+     *     fair_use_policy_accepted_at: null|string,
      * }
      */
     private function createRow(
@@ -180,6 +181,7 @@ final class PlayerProfileMembershipTest extends TestCase
             'average_rating' => null,
             'streak_opted_out' => false,
             'ranking_opted_out' => false,
+            'fair_use_policy_accepted_at' => null,
         ];
     }
 }

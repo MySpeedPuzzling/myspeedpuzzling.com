@@ -48,6 +48,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     average_rating: null|string,
  *     streak_opted_out: bool,
  *     ranking_opted_out: bool,
+ *     fair_use_policy_accepted_at: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -89,6 +90,7 @@ readonly final class PlayerProfile
         public null|float $averageRating = null,
         public bool $streakOptedOut = false,
         public bool $rankingOptedOut = false,
+        public bool $fairUsePolicyAccepted = false,
     ) {
     }
 
@@ -176,6 +178,7 @@ readonly final class PlayerProfile
             averageRating: $row['average_rating'] !== null ? (float) $row['average_rating'] : null,
             streakOptedOut: (bool) $row['streak_opted_out'],
             rankingOptedOut: (bool) $row['ranking_opted_out'],
+            fairUsePolicyAccepted: $row['fair_use_policy_accepted_at'] !== null,
         );
     }
 }

@@ -7,6 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Auth0\Symfony\Security\UserProvider;
 use SpeedPuzzling\Web\Security\Auth0EntryPoint;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
+use SpeedPuzzling\Web\Security\PatAuthenticator;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
 
 return App::config([
@@ -34,6 +35,7 @@ return App::config([
                 'stateless' => true,
                 'provider' => 'oauth2_provider',
                 'oauth2' => true,
+                'custom_authenticators' => [PatAuthenticator::class],
             ],
             'main' => [
                 'pattern' => '^/',
@@ -54,7 +56,7 @@ return App::config([
             ],
             [
                 'path' => '^/api/v1/me',
-                'roles' => ['ROLE_OAUTH2_PROFILE:READ'],
+                'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
             ],
             [
                 'path' => '^/api/v1/players/.*/results',
@@ -63,6 +65,10 @@ return App::config([
             [
                 'path' => '^/api/v1/players/.*/statistics',
                 'roles' => ['ROLE_OAUTH2_STATISTICS:READ'],
+            ],
+            [
+                'path' => '^/api/v1/players/.*/collections',
+                'roles' => ['ROLE_OAUTH2_COLLECTIONS:READ'],
             ],
             [
                 'path' => '^/admin',

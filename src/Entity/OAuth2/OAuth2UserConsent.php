@@ -23,6 +23,10 @@ use SpeedPuzzling\Web\Entity\Player;
 #[Index(name: 'idx_oauth2_user_consent_player_client', columns: ['player_id', 'client_identifier'])]
 class OAuth2UserConsent
 {
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|DateTimeImmutable $lastUsedAt = null;
+
     /**
      * @param array<string> $scopes
      */
@@ -52,5 +56,10 @@ class OAuth2UserConsent
     public function updateScopes(array $scopes): void
     {
         $this->scopes = $scopes;
+    }
+
+    public function updateLastUsedAt(): void
+    {
+        $this->lastUsedAt = new DateTimeImmutable();
     }
 }

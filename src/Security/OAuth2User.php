@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Security;
 
 use SpeedPuzzling\Web\Entity\Player;
-use Symfony\Component\Security\Core\User\UserInterface;
 
-final readonly class OAuth2User implements UserInterface
+final readonly class OAuth2User implements ApiUser
 {
     public function __construct(
         public Player $player,
     ) {
+    }
+
+    public function getPlayer(): Player
+    {
+        return $this->player;
     }
 
     public function getRoles(): array

@@ -1,0 +1,139 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'fair_use_policy.meta.title'|trans }}{% endblock %}
+
+{% block meta_description %}{{ 'fair_use_policy.meta.description'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="col-lg-8 mx-auto">
+        <h1 class="mb-2">{{ 'fair_use_policy.heading'|trans }}</h1>
+        <p class="text-muted fs-sm mb-5">{{ 'fair_use_policy.last_updated'|trans }}</p>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-hand-thumbs-up me-2 text-primary"></i>{{ 'fair_use_policy.intro_title'|trans }}</h2>
+                <p>{{ 'fair_use_policy.intro_p1'|trans }}</p>
+                <p class="mb-0">{{ 'fair_use_policy.intro_p2'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-speedometer2 me-2 text-primary"></i>{{ 'fair_use_policy.rate_limits_title'|trans }}</h2>
+                <p>{{ 'fair_use_policy.rate_limits_p1'|trans }}</p>
+                <p>{{ 'fair_use_policy.rate_limits_p2'|trans }}</p>
+                <p>{{ 'fair_use_policy.rate_limits_p3'|trans }}</p>
+                <p>{{ 'fair_use_policy.rate_limits_p4'|trans }} <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a></p>
+                <p class="mb-0">{{ 'fair_use_policy.rate_limits_p5'|trans|raw }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-check-circle me-2 text-primary"></i>{{ 'fair_use_policy.permitted_title'|trans }}</h2>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'fair_use_policy.permitted_personal'|trans|raw }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.permitted_no_sell'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.permitted_no_bulk'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.permitted_no_scrape'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.permitted_no_compete'|trans }}</li>
+                    <li class="mb-0">{{ 'fair_use_policy.permitted_no_interfere'|trans }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-database me-2 text-primary"></i>{{ 'fair_use_policy.data_title'|trans }}</h2>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'fair_use_policy.data_ownership'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.data_personal'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.data_cache'|trans }}</li>
+                    <li class="mb-0">{{ 'fair_use_policy.data_misrepresent'|trans }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-key me-2 text-primary"></i>{{ 'fair_use_policy.keys_title'|trans }}</h2>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'fair_use_policy.keys_personal'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.keys_responsible'|trans }}</li>
+                    <li class="mb-0">{{ 'fair_use_policy.keys_no_automated'|trans }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-shield-exclamation me-2 text-primary"></i>{{ 'fair_use_policy.monitoring_title'|trans }}</h2>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'fair_use_policy.monitoring_active'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.monitoring_retention'|trans }}</li>
+                    <li class="mb-2">{{ 'fair_use_policy.monitoring_revoke'|trans }}</li>
+                    <li class="mb-0">{{ 'fair_use_policy.monitoring_circumvent'|trans }}</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-heart me-2 text-primary"></i>{{ 'fair_use_policy.attribution_title'|trans }}</h2>
+                <p>{{ 'fair_use_policy.attribution_mention'|trans }}</p>
+                <p>{{ 'fair_use_policy.attribution_logo'|trans }}</p>
+                <div class="bg-light rounded p-3 mb-3 text-center">
+                    <img src="https://myspeedpuzzling.com/img/speedpuzzling-logo.svg" alt="MySpeedPuzzling Logo" style="max-height: 48px;" class="mb-2">
+                    <br>
+                    <a href="https://myspeedpuzzling.com/img/speedpuzzling-logo.svg" class="btn btn-outline-primary btn-sm mt-1" download>
+                        <i class="bi bi-download me-1"></i> {{ 'fair_use_policy.attribution_download'|trans }}
+                    </a>
+                </div>
+                <p class="mb-0">{{ 'fair_use_policy.attribution_link'|trans }} <a href="https://myspeedpuzzling.com">myspeedpuzzling.com</a></p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-chat-dots me-2 text-primary"></i>{{ 'fair_use_policy.tell_us_title'|trans }}</h2>
+                <p>{{ 'fair_use_policy.tell_us_p1'|trans }}</p>
+                <p>{{ 'fair_use_policy.tell_us_p2'|trans }}</p>
+                <p class="mb-0">{{ 'fair_use_policy.tell_us_p3'|trans }} <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a></p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-arrow-repeat me-2 text-primary"></i>{{ 'fair_use_policy.updates_title'|trans }}</h2>
+                <p>{{ 'fair_use_policy.updates_notice'|trans }}</p>
+                <p class="mb-0">{{ 'fair_use_policy.updates_email'|trans }}</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3"><i class="bi bi-envelope me-2 text-primary"></i>{{ 'fair_use_policy.contact_title'|trans }}</h2>
+                <p>{{ 'fair_use_policy.contact_info'|trans }}</p>
+                <p class="mb-0"><a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a></p>
+            </div>
+        </div>
+
+        <div class="text-center mb-4 py-3">
+            <p class="lead text-muted fst-italic mb-4">{{ 'fair_use_policy.closing'|trans }}</p>
+
+            {% if logged_user.profile is not null %}
+                {% if fair_use_policy_accepted %}
+                    <div class="alert alert-success d-inline-block">
+                        <i class="bi bi-check-circle me-2"></i>{{ 'fair_use_policy.already_accepted'|trans }}
+                    </div>
+                {% else %}
+                    <form method="post" action="{{ path('accept_fair_use_policy') }}">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check2-circle me-2"></i>{{ 'fair_use_policy.accept_button'|trans }}
+                        </button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

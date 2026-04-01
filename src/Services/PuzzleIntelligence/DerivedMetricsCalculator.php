@@ -46,7 +46,7 @@ final class DerivedMetricsCalculator implements ResetInterface
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
                 AND pst.puzzle_id IN (SELECT puzzle_id FROM puzzle_difficulty WHERE difficulty_score IS NOT NULL)
-            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC
+            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
         ");
 
         $cache = [];
@@ -154,7 +154,7 @@ final class DerivedMetricsCalculator implements ResetInterface
             SELECT
                 pst.player_id,
                 pst.seconds_to_solve,
-                ROW_NUMBER() OVER (PARTITION BY pst.player_id ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC) AS attempt_num
+                ROW_NUMBER() OVER (PARTITION BY pst.player_id ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC) AS attempt_num
             FROM puzzle_solving_time pst
             WHERE pst.puzzle_id = :puzzleId
                 AND pst.puzzling_type = 'solo'

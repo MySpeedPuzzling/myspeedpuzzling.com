@@ -66,6 +66,11 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
     public const string TIME_45_UNBOXED = '018d0006-0000-0000-0000-000000000045';
     public const string TIME_46_RELAX_NO_FINISHED_AT = '018d0006-0000-0000-0000-000000000046';
 
+    // Same-day solves for ordering regression test (PLAYER_ADMIN on PUZZLE_1000_01)
+    public const string TIME_47_SAME_DAY_SLOW = '018d0006-0000-0000-0000-000000000047';
+    public const string TIME_48_SAME_DAY_MEDIUM = '018d0006-0000-0000-0000-000000000048';
+    public const string TIME_49_SAME_DAY_FAST = '018d0006-0000-0000-0000-000000000049';
+
     public function __construct(
         private readonly ClockInterface $clock,
     ) {
@@ -351,6 +356,62 @@ final class PuzzleSolvingTimeFixture extends Fixture implements DependentFixture
         );
         $manager->persist($time45);
         $this->addReference(self::TIME_45_UNBOXED, $time45);
+
+        // Same-day solves for ordering regression test
+        // PLAYER_ADMIN solves PUZZLE_1000_01 three times on the same day, improving each time
+        // All share the same finishedAt date, but trackedAt differs by hours
+        $sameDayDate = $this->clock->now()->modify('-5 days')->setTime(0, 0, 0);
+
+        $time47 = new PuzzleSolvingTime(
+            id: Uuid::fromString(self::TIME_47_SAME_DAY_SLOW),
+            secondsToSolve: 5200,
+            player: $player3,
+            puzzle: $puzzle1000_01,
+            trackedAt: $sameDayDate->setTime(9, 0, 0),
+            verified: true,
+            team: null,
+            finishedAt: $sameDayDate,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        );
+        $manager->persist($time47);
+        $this->addReference(self::TIME_47_SAME_DAY_SLOW, $time47);
+
+        $time48 = new PuzzleSolvingTime(
+            id: Uuid::fromString(self::TIME_48_SAME_DAY_MEDIUM),
+            secondsToSolve: 4600,
+            player: $player3,
+            puzzle: $puzzle1000_01,
+            trackedAt: $sameDayDate->setTime(13, 0, 0),
+            verified: true,
+            team: null,
+            finishedAt: $sameDayDate,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        );
+        $manager->persist($time48);
+        $this->addReference(self::TIME_48_SAME_DAY_MEDIUM, $time48);
+
+        $time49 = new PuzzleSolvingTime(
+            id: Uuid::fromString(self::TIME_49_SAME_DAY_FAST),
+            secondsToSolve: 4000,
+            player: $player3,
+            puzzle: $puzzle1000_01,
+            trackedAt: $sameDayDate->setTime(18, 0, 0),
+            verified: true,
+            team: null,
+            finishedAt: $sameDayDate,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+        );
+        $manager->persist($time49);
+        $this->addReference(self::TIME_49_SAME_DAY_FAST, $time49);
 
         // Relax solving time without finishedAt (user cleared the date)
         $time46 = $this->createPuzzleSolvingTime(

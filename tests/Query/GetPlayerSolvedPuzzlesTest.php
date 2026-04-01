@@ -122,6 +122,32 @@ final class GetPlayerSolvedPuzzlesTest extends KernelTestCase
         self::assertNull($date);
     }
 
+    public function testSameDaySolvesAreOrderedChronologicallyByTrackedAt(): void
+    {
+        // PLAYER_ADMIN has 3 same-day solves on PUZZLE_1000_01: 5200s→4600s→4000s (improving)
+        // Same-day solves must appear in trackedAt order, not by solve time
+        $results = $this->query->soloByPlayerIdAndPuzzleId(
+            PlayerFixture::PLAYER_ADMIN,
+            PuzzleFixture::PUZZLE_1000_01,
+        );
+
+        // Find the three same-day entries
+        $sameDayResults = array_values(array_filter(
+            $results,
+            static fn ($r) => in_array($r->timeId, [
+                PuzzleSolvingTimeFixture::TIME_47_SAME_DAY_SLOW,
+                PuzzleSolvingTimeFixture::TIME_48_SAME_DAY_MEDIUM,
+                PuzzleSolvingTimeFixture::TIME_49_SAME_DAY_FAST,
+            ], true),
+        ));
+
+        self::assertCount(3, $sameDayResults);
+        // Must be in chronological order: slow (09:00) → medium (13:00) → fast (18:00)
+        self::assertSame(PuzzleSolvingTimeFixture::TIME_47_SAME_DAY_SLOW, $sameDayResults[0]->timeId);
+        self::assertSame(PuzzleSolvingTimeFixture::TIME_48_SAME_DAY_MEDIUM, $sameDayResults[1]->timeId);
+        self::assertSame(PuzzleSolvingTimeFixture::TIME_49_SAME_DAY_FAST, $sameDayResults[2]->timeId);
+    }
+
     public function testSoloByPlayerIdWithDateRangeExcludesNullFinishedAt(): void
     {
         // TIME_46_RELAX_NO_FINISHED_AT has finished_at=null, tracked_at=3 days ago

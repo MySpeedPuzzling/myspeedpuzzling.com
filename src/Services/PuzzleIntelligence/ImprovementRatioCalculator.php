@@ -38,7 +38,7 @@ final class ImprovementRatioCalculator implements ResetInterface
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
                 AND pst.unboxed = false
-            ORDER BY pst.player_id, pst.puzzle_id, COALESCE(pst.finished_at, pst.tracked_at)
+            ORDER BY pst.player_id, pst.puzzle_id, COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at ASC
         ");
 
         $playerCache = [];
@@ -308,7 +308,7 @@ final class ImprovementRatioCalculator implements ResetInterface
                     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
                     ROW_NUMBER() OVER (
                         PARTITION BY pst.player_id, pst.puzzle_id
-                        ORDER BY COALESCE(pst.finished_at, pst.tracked_at)
+                        ORDER BY COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at ASC
                     ) AS attempt_num
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
@@ -373,7 +373,7 @@ final class ImprovementRatioCalculator implements ResetInterface
                     COALESCE(pst.finished_at, pst.tracked_at) AS solved_at,
                     ROW_NUMBER() OVER (
                         PARTITION BY pst.player_id, pst.puzzle_id
-                        ORDER BY COALESCE(pst.finished_at, pst.tracked_at)
+                        ORDER BY COALESCE(pst.finished_at, pst.tracked_at), pst.tracked_at ASC
                     ) AS attempt_num
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id

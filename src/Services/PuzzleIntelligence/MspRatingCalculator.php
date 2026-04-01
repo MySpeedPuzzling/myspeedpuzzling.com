@@ -109,7 +109,7 @@ final class MspRatingCalculator implements ResetInterface
                 AND pst.suspicious = false
                 AND pst.seconds_to_solve IS NOT NULL
                 AND pl.is_private = false
-            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC
+            ORDER BY pst.puzzle_id, pst.player_id, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
         ", ['puzzleIds' => $puzzleIds], ['puzzleIds' => ArrayParameterType::STRING]);
 
         // Deduplicate: keep first row per (puzzle_id, player_id) — matches DISTINCT ON behavior

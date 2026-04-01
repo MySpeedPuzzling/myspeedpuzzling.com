@@ -105,6 +105,23 @@ final class GetPlayerPredictionTest extends KernelTestCase
         self::assertSame(3, $withExclude->predictedAttemptNumber);
     }
 
+    public function testSameDaySolvesUseTrackedAtOrdering(): void
+    {
+        // PLAYER_ADMIN has TIME_17 (3900s, 21 days ago) + 3 same-day solves on PUZZLE_1000_01:
+        // 5200s (09:00), 4600s (13:00), 4000s (18:00) — all 5 days ago, improving
+        // The prediction must see lastTime = 4000 (the latest same-day solve by trackedAt),
+        // NOT 5200 (slowest) which would indicate regression
+        $result = $this->query->forPuzzle(PlayerFixture::PLAYER_ADMIN, PuzzleFixture::PUZZLE_1000_01);
+
+        if ($result === null) {
+            self::markTestSkipped('No prediction available');
+        }
+
+        self::assertTrue($result->isPersonalized);
+        // lastTime should be the latest same-day solve (4000s), not the slowest (5200s)
+        self::assertSame(4000, $result->lastTimeSeconds);
+    }
+
     public function testReturnsNullForPuzzleWithoutDifficulty(): void
     {
         $result = $this->query->forPuzzle(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_9000);

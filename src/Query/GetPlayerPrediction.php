@@ -42,7 +42,7 @@ WHERE pst.player_id = :playerId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.unboxed = false
     {$excludeFilter}
-ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC
+ORDER BY COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC
 SQL;
 
         $params = [

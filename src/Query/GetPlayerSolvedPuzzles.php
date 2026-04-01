@@ -330,7 +330,7 @@ WHERE
     puzzle_solving_time.player_id = :playerId
     AND puzzle_solving_time.puzzle_id = :puzzleId
     AND puzzle_solving_time.puzzling_type = 'solo'
-ORDER BY COALESCE(finished_at, puzzle_solving_time.tracked_at) ASC
+ORDER BY COALESCE(finished_at, puzzle_solving_time.tracked_at) ASC, puzzle_solving_time.tracked_at ASC
 SQL;
 
         $data = $this->database

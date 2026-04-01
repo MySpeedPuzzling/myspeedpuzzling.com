@@ -155,7 +155,7 @@ readonly final class PuzzlesSorter
             $bDate = self::getEffectiveFinishedAt($b);
 
             if ($aDate->getTimestamp() === $bDate->getTimestamp()) {
-                return self::compareTimesAscending($a->time, $b->time);
+                return $a->trackedAt <=> $b->trackedAt;
             }
 
             return $aDate <=> $bDate;

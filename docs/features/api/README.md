@@ -124,9 +124,9 @@ Puzzle difficulty and player skill tiers are included in responses only if the t
 
 ### Self-Service Flow
 
-1. User navigates to `/en/request-api-access` (linked from `/en/for-developers` and profile settings)
-2. Fills in: app name, description, purpose, application type (confidential/public), scopes, redirect URIs
-3. Accepts Fair Use Policy
+1. User accepts the Fair Use Policy at `/en/fair-use-policy` (required before accessing the form)
+2. User navigates to `/en/request-api-access` (linked from `/en/for-developers` and profile settings)
+3. Fills in Symfony form: app name, description, purpose, application type (confidential/public), scopes, redirect URIs
 4. Admin receives email notification about the new request
 5. Admin reviews at `/admin/oauth2-requests` — approve or reject with reason
 6. **On approval:** User receives email with a one-time credential claim link (valid 7 days)
@@ -162,9 +162,11 @@ php bin/console myspeedpuzzling:oauth2:list-clients
 
 ## Security Architecture
 
-Three authenticators on the `api` firewall (`^/api/v1/`):
-- `PatAuthenticator` — handles `Bearer msp_pat_*` tokens, creates `PatUser` with `ROLE_PAT`
-- OAuth2 authenticator (from bundle) — handles JWT Bearer tokens, creates `OAuth2User` with scope-based roles
+Two authenticators on the `api` firewall (`^/api/v1/`):
+- `PatAuthenticator` — handles `Token msp_pat_*` header (custom scheme, not Bearer), creates `PatUser` with `ROLE_PAT`
+- OAuth2 authenticator (from bundle) — handles `Bearer` JWT tokens, creates `OAuth2User` with scope-based roles
+
+PAT uses `Authorization: Token ...` (not `Bearer`) to avoid collision with the OAuth2 authenticator which intercepts all `Bearer` tokens.
 
 Both `PatUser` and `OAuth2User` implement the `ApiUser` interface (`getPlayer(): Player`).
 
@@ -176,7 +178,12 @@ Access control:
 
 ## Fair Use Policy
 
-Page at `/en/fair-use-policy` — content placeholder (to be filled). Required acceptance for both PAT generation and OAuth2 client registration.
+Full policy page at `/en/fair-use-policy` with 10 sections: welcome, rate limits, permitted use, data ownership, API keys, monitoring, attribution, community, policy updates, and contact.
+
+**Acceptance flow:** Users must read the full policy and click "I Accept the API Usage Policy" at the bottom. Acceptance is stored as `fairUsePolicyAcceptedAt` on the `Player` entity. Until accepted, PAT generation and OAuth2 client request forms are locked with a CTA to read and accept the policy.
+
+- Controller: `FairUsePolicyController` (GET), `AcceptFairUsePolicyController` (POST)
+- Message: `AcceptFairUsePolicy` → `AcceptFairUsePolicyHandler`
 
 ## CORS
 
@@ -232,9 +239,15 @@ Stub endpoints for in-app purchase verification (not implemented).
 | `src/Entity/OAuth2/OAuth2ClientRequest.php` | Client registration request entity |
 | `src/Entity/OAuth2/OAuth2UserConsent.php` | Consent entity with `lastUsedAt` |
 | `src/Api/V1/` | All API Platform resources, providers, and processors |
+| `src/Controller/FairUsePolicyController.php` | Fair use policy page |
+| `src/Controller/AcceptFairUsePolicyController.php` | Accept FUP action |
+| `src/Controller/CreatePersonalAccessTokenController.php` | PAT generation |
+| `src/Controller/RevokePersonalAccessTokenController.php` | PAT revocation |
 | `src/Controller/OAuth2/RequestApiAccessController.php` | OAuth2 client registration form |
 | `src/Controller/OAuth2/ClaimOAuth2CredentialsController.php` | One-time credential display |
 | `src/Controller/Admin/OAuth2ClientRequests*.php` | Admin review pages |
+| `src/FormType/RequestApiAccessFormType.php` | OAuth2 request Symfony form type |
+| `src/FormData/RequestApiAccessFormData.php` | OAuth2 request form data with validation |
 | `src/EventSubscriber/ApiTokenUsageSubscriber.php` | OAuth2 usage tracking |
 | `config/packages/security.php` | Firewalls and access control |
 | `config/packages/league_oauth2_server.php` | OAuth2 config (scopes, grants, TTLs) |

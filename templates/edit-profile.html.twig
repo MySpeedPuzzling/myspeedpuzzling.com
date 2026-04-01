@@ -124,27 +124,31 @@
                     {% endfor %}
 
                     {% for token in personal_access_tokens %}
-                        <div class="d-flex justify-content-between align-items-start{% if not loop.last %} mb-3 pb-3 border-bottom{% endif %}">
-                            <div>
-                                <strong>{{ token.name }}</strong>
-                                <div class="fs-sm text-muted mt-1">
-                                    <code>{{ token.tokenPrefix }}...</code>
-                                    <br>{{ 'edit_profile.pat_created_at'|trans }}: {{ token.createdAt|date('j. n. Y') }}
-                                    {% if token.lastUsedAt is not null %}
-                                        <br>{{ 'edit_profile.last_used_at'|trans }}: {{ token.lastUsedAt|date('j. n. Y') }}
-                                    {% else %}
-                                        <br>{{ 'edit_profile.last_used_at'|trans }}: {{ 'edit_profile.pat_never_used'|trans }}
-                                    {% endif %}
+                        <div class="card border mb-2">
+                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ token.name }}</strong>
+                                    <code class="ms-2 text-muted">{{ token.tokenPrefix }}...</code>
+                                    <div class="fs-sm text-muted mt-1">
+                                        {{ 'edit_profile.pat_created_at'|trans }}: {{ token.createdAt|date('j. n. Y') }}
+                                        <span class="mx-1">&middot;</span>
+                                        {{ 'edit_profile.last_used_at'|trans }}:
+                                        {% if token.lastUsedAt is not null %}
+                                            {{ token.lastUsedAt|date('j. n. Y') }}
+                                        {% else %}
+                                            {{ 'edit_profile.pat_never_used'|trans }}
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                <form method="post" action="{{ path('revoke_personal_access_token', {tokenId: token.id}) }}" onsubmit="return confirm('{{ 'edit_profile.pat_revoke_confirm'|trans }}')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('revoke_pat_' ~ token.id) }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.revoke_access'|trans }}</button>
+                                </form>
                             </div>
-                            <form method="post" action="{{ path('revoke_personal_access_token', {tokenId: token.id}) }}" onsubmit="return confirm('{{ 'edit_profile.pat_revoke_confirm'|trans }}')">
-                                <input type="hidden" name="_token" value="{{ csrf_token('revoke_pat_' ~ token.id) }}">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.revoke_access'|trans }}</button>
-                            </form>
                         </div>
                     {% endfor %}
 
-                    <hr>
+                    <hr class="my-2">
                     <form method="post" action="{{ path('create_personal_access_token') }}">
                         <div class="mb-3">
                             <label for="token_name" class="form-label">{{ 'edit_profile.pat_name_label'|trans }}</label>

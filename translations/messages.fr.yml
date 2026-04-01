@@ -1111,7 +1111,7 @@
     "cta": "Terminer la configuration"
     "missing_currency": "Définir votre devise"
     "missing_shipping_countries": "Ajouter des pays d'expédition"
-    "subtitle": "Veuillez compléter ces étapes pour que vos puzzles puissent être trouvés sur le marché."
+    "subtitle": "Si vous souhaitez publier des offres sur le Marketplace, veuillez d'abord compléter ces étapes."
     "title": "Presque terminé !"
 "puzzler_offers":
   "badge": "%count% offres"

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Tests\Controller\Marketplace;
+namespace Controller;
 
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;

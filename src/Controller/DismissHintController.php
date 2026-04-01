@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace SpeedPuzzling\Web\Controller\Marketplace;
+namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Message\DismissHint;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;

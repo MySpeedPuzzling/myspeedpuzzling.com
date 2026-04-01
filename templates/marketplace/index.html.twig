@@ -16,13 +16,19 @@
     </div>
 
     {% if not disclaimer_dismissed %}
-        <div class="alert alert-warning small mb-3 d-flex align-items-start">
+        <div
+            class="alert alert-warning small mb-3 d-flex align-items-start"
+            {{ stimulus_controller('dismiss-hint', {
+                url: path('dismiss_hint'),
+                type: 'marketplace_disclaimer',
+            }) }}
+        >
             <div class="flex-grow-1">
                 <i class="bi bi-exclamation-triangle me-1"></i>
                 {{ 'marketplace.disclaimer'|trans }}
             </div>
             {% if logged_user.profile is not null %}
-                <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="Close" onclick="fetch('{{ path('dismiss_hint') }}',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'type=marketplace_disclaimer'});this.closest('.alert').remove()"></button>
+                <button type="button" class="btn-close ms-2 flex-shrink-0" aria-label="Close" {{ stimulus_action('dismiss-hint', 'dismiss') }}></button>
             {% endif %}
         </div>
     {% endif %}

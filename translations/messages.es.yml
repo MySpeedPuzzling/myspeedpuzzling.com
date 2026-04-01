@@ -1110,7 +1110,7 @@
     "cta": "Completar configuración"
     "missing_currency": "Configurar moneda"
     "missing_shipping_countries": "Agregar países de envío"
-    "subtitle": "Por favor completa estos pasos para que tus puzzles puedan ser encontrados en el mercado."
+    "subtitle": "Si deseas publicar ofertas en el Marketplace, por favor completa estos pasos primero."
     "title": "¡Ya casi!"
 "puzzler_offers":
   "badge": "%count% ofertas"

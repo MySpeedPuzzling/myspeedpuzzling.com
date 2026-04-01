@@ -1991,6 +1991,5 @@ feature_requests:
 qr_code:
     button: "QR kód"
     title: "QR kód"
-    print: "Tisk"
     save: "Uložit"
     share: "Sdílet"

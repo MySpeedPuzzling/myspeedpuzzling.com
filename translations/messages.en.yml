@@ -2232,6 +2232,5 @@ puzzle_intelligence:
 qr_code:
     button: "QR code"
     title: "QR Code"
-    print: "Print"
     save: "Save"
     share: "Share"

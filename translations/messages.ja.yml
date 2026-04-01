@@ -1982,6 +1982,5 @@ puzzle_intelligence:
 qr_code:
     button: "QRコード"
     title: "QRコード"
-    print: "印刷"
     save: "保存"
     share: "共有"

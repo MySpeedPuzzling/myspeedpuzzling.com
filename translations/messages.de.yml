@@ -1993,6 +1993,5 @@ puzzle_intelligence:
 qr_code:
     button: "QR-Code"
     title: "QR-Code"
-    print: "Drucken"
     save: "Speichern"
     share: "Teilen"

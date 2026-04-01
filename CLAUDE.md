@@ -137,6 +137,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **Puzzle Insights**: `docs/features/puzzle-intelligence/` — Puzzle difficulty, player skill tiers, MSP rating, derived metrics
 - **OAuth2 Server**: `docs/features/oauth2-server/` — OAuth2 authorization server for API access
 - **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
+- **Opt-Out Features**: `docs/features/opt-out.md` — Streak and ranking opt-out for players
 
 ### Feature Flags
 Active feature flags are documented in `docs/features/feature_flags.md`. **Always read and update this file** when adding, modifying, or removing feature flags. It tracks which files are gated, what feature each flag belongs to, and when it can be removed.

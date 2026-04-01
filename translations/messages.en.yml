@@ -636,7 +636,6 @@ statistics:
     time_spent: "Time spent solving"
     longest_streak: "Longest streak"
     longest_streak_help: "Max consecutive days puzzling"
-    streak_opted_out_own: "You have hidden your streak."
     change_in_settings: "Change in settings"
     most_solved_brand: "Most solved brand"
     all_brands: "All Brands"

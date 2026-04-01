@@ -131,18 +131,8 @@
                 </div>
             {% endif %}
 
-            <div class="col-md-6 col-lg-4">
-                {% if streakOptedOut %}
-                    {% if logged_user.profile is not null and logged_user.profile.playerId is same as playerId %}
-                        <div class="card card-body shadow my-2">
-                            <div class="text-muted text-center">
-                                <i class="bi-fire me-1"></i>
-                                {{ 'statistics.streak_opted_out_own'|trans }}
-                                <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
-                            </div>
-                        </div>
-                    {% endif %}
-                {% else %}
+            {% if not streakOptedOut %}
+                <div class="col-md-6 col-lg-4">
                     <div class="card card-body shadow my-2">
                         <div class="d-flex justify-content-between">
                             <h4 class="mb-0">
@@ -155,7 +145,8 @@
                             </div>
                         </div>
                     </div>
-                {% endif %}
+                </div>
+            {% endif %}
 
                 {% if
                     overallStatistics.solvedPuzzle.count != soloStatistics.solvedPuzzle.count

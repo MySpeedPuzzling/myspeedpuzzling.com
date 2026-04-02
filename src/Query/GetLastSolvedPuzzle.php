@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
@@ -13,6 +14,7 @@ readonly final class GetLastSolvedPuzzle
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -32,7 +34,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     player.name AS player_name,
@@ -79,6 +81,7 @@ SQL;
             ->executeQuery($query, [
                 'limit' => $limit,
                 'playerId' => $playerId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -129,7 +132,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     player.name AS player_name,
@@ -174,6 +177,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'limit' => $limit,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -248,7 +252,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     player.name AS player_name,
@@ -295,6 +299,7 @@ SQL;
             ->executeQuery($query, [
                 'limit' => $limit,
                 'playerId' => $playerId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

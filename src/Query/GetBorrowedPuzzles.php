@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\BorrowedPuzzleOverview;
 use SpeedPuzzling\Web\Results\UnsolvedPuzzleItem;
 
@@ -13,6 +14,7 @@ readonly final class GetBorrowedPuzzles
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -31,7 +33,7 @@ SELECT
     p.name as puzzle_name,
     p.alternative_name as puzzle_alternative_name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     owner.id as owner_id,
     owner.name as owner_name,
@@ -46,7 +48,7 @@ ORDER BY lp.lent_at DESC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['holderId' => $holderId])
+            ->executeQuery($query, ['holderId' => $holderId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): BorrowedPuzzleOverview {
@@ -130,7 +132,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     lp.lent_at as added_at,
     lp.owner_name as owner_text_name,
@@ -151,7 +153,7 @@ ORDER BY lp.lent_at DESC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['holderId' => $holderId])
+            ->executeQuery($query, ['holderId' => $holderId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): UnsolvedPuzzleItem {

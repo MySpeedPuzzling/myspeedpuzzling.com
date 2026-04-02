@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PlayerNotification;
 
 readonly final class GetNotifications
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -81,7 +83,7 @@ SELECT * FROM (
         puzzle_solving_time.seconds_to_solve AS time,
         puzzle_solving_time.first_attempt,
         puzzle_solving_time.unboxed,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
         puzzle_solving_time.team ->> 'team_id' AS team_id,
         CASE
             WHEN puzzle_solving_time.team IS NOT NULL THEN JSON_AGG(
@@ -183,7 +185,7 @@ SELECT * FROM (
         COALESCE(owner_player.name, owner_player.code, lpt.owner_name, lp.owner_name) AS owner_player_name,
         puzzle.id AS lending_puzzle_id,
         puzzle.name AS lending_puzzle_name,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS lending_puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS lending_puzzle_image,
         manufacturer.name AS lending_manufacturer_name,
         puzzle.pieces_count AS lending_pieces_count,
         -- Puzzle report fields (NULL for lending notifications)
@@ -266,7 +268,7 @@ SELECT * FROM (
         pcr.id AS change_request_id,
         puzzle.id AS change_request_puzzle_id,
         puzzle.name AS change_request_puzzle_name,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS change_request_puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS change_request_puzzle_image,
         pcr.rejection_reason AS change_request_rejection_reason,
         NULL::uuid AS merge_request_id,
         NULL::uuid AS merge_request_puzzle_id,
@@ -342,7 +344,7 @@ SELECT * FROM (
         pmr.id AS merge_request_id,
         source_puzzle.id AS merge_request_puzzle_id,
         source_puzzle.name AS merge_request_puzzle_name,
-        CASE WHEN source_puzzle.hide_image_until IS NOT NULL AND source_puzzle.hide_image_until > NOW() THEN NULL ELSE source_puzzle.image END AS merge_request_puzzle_image,
+        CASE WHEN source_puzzle.hide_image_until IS NOT NULL AND source_puzzle.hide_image_until > :now::timestamp THEN NULL ELSE source_puzzle.image END AS merge_request_puzzle_image,
         pmr.rejection_reason AS merge_request_rejection_reason,
         -- Rating notification fields (NULL for merge request notifications)
         NULL::uuid AS sold_swapped_item_id,
@@ -418,7 +420,7 @@ SELECT * FROM (
         -- Rating notification fields
         ssi.id AS sold_swapped_item_id,
         puzzle.name AS rating_puzzle_name,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS rating_puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS rating_puzzle_image,
         CASE
             WHEN ssi.seller_id = notification.player_id THEN COALESCE(buyer.name, buyer.code)
             ELSE COALESCE(seller.name, seller.code)
@@ -507,7 +509,7 @@ SELECT * FROM (
         initiator.avatar AS conversation_initiator_avatar,
         (conv.sell_swap_list_item_id IS NOT NULL) AS conversation_is_marketplace,
         conv_puzzle.name AS conversation_puzzle_name,
-        CASE WHEN conv_puzzle.hide_image_until IS NOT NULL AND conv_puzzle.hide_image_until > NOW() THEN NULL ELSE conv_puzzle.image END AS conversation_puzzle_image
+        CASE WHEN conv_puzzle.hide_image_until IS NOT NULL AND conv_puzzle.hide_image_until > :now::timestamp THEN NULL ELSE conv_puzzle.image END AS conversation_puzzle_image
     FROM notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
@@ -525,6 +527,7 @@ SQL;
                 'playerId' => $playerId,
                 'limit' => $limit,
                 'offset' => $offset,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\SkillTier;
@@ -13,6 +14,7 @@ readonly final class GetFastestPairs
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -38,7 +40,7 @@ player_data AS (
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
         puzzle.alternative_name AS puzzle_alternative_name,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
         puzzle.pieces_count,
         pst.comment,
         pst.tracked_at,
@@ -109,6 +111,7 @@ SQL;
                 'piecesCount' => $piecesCount,
                 'countryCode' => $countryCode?->name,
                 'howManyPlayers' => $howManyPlayers,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

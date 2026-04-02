@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\CompetitionParticipantInfo;
@@ -15,6 +16,7 @@ readonly final class GetCompetitionParticipants
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -138,15 +140,15 @@ SQL;
 SELECT
     puzzle_solving_time.player_id,
     AVG(CASE
-            WHEN puzzle_solving_time.finished_at >= NOW() - INTERVAL '3 months'
+            WHEN puzzle_solving_time.finished_at >= :now::timestamp - INTERVAL '3 months'
             THEN puzzle_solving_time.seconds_to_solve
         END) AS average_time,
     MIN(CASE
-            WHEN puzzle_solving_time.finished_at >= NOW() - INTERVAL '3 months'
+            WHEN puzzle_solving_time.finished_at >= :now::timestamp - INTERVAL '3 months'
             THEN puzzle_solving_time.seconds_to_solve
         END) AS fastest_time,
     COUNT(CASE
-            WHEN puzzle_solving_time.finished_at >= NOW() - INTERVAL '3 months'
+            WHEN puzzle_solving_time.finished_at >= :now::timestamp - INTERVAL '3 months'
             THEN puzzle_solving_time.seconds_to_solve
         END) AS solved_puzzle_count
 FROM 
@@ -172,6 +174,7 @@ SQL;
         $times = $this->database
             ->executeQuery($query2, [
                 'playerIds' => $playerIds,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ], [
                 'playerIds' => ArrayParameterType::STRING,
             ])

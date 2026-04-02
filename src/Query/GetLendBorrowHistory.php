@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\LendBorrowHistoryItem;
 use SpeedPuzzling\Web\Value\TransferType;
 
@@ -13,6 +14,7 @@ readonly final class GetLendBorrowHistory
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -39,7 +41,7 @@ SELECT
     p.name as puzzle_name,
     p.alternative_name as puzzle_alternative_name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     lpt.lent_puzzle_id IS NOT NULL as is_active
 FROM lent_puzzle_transfer lpt
@@ -55,7 +57,7 @@ ORDER BY lpt.transferred_at DESC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
+            ->executeQuery($query, ['playerId' => $playerId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): LendBorrowHistoryItem {

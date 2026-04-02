@@ -61,3 +61,29 @@ unread_messages:
     pending_requests_context: "Může jít o puzzle z tržiště, dotaz ohledně vaší sbírky, nebo jen pozdrav od puzzlera."
     view_requests: "Zobrazit žádosti o konverzaci"
     opt_out: 'Tato e-mailová upozornění můžete spravovat v <a href="%settingsUrl%">nastavení profilu</a>.'
+
+oauth2_client_request:
+    subject: "Nová žádost o OAuth2 klienta: %clientName%"
+    title: "Nová žádost o API přístup"
+    content: |
+        <p>Byla odeslána nová žádost o přístup OAuth2 klienta.</p>
+        <p><strong>Žadatel:</strong> %playerName%<br><strong>Aplikace:</strong> %clientName%</p>
+        <p><strong>Účel:</strong> %purpose%</p>
+        <p><a href="%adminUrl%">Zkontrolovat žádost v administraci</a></p>
+
+oauth2_client_approved:
+    subject: "Vaše API aplikace byla schválena!"
+    title: "Vaše aplikace byla schválena!"
+    content: |
+        <p>Skvělá zpráva! Vaše OAuth2 aplikace <strong>%clientName%</strong> byla schválena.</p>
+        <p>Klikněte na odkaz níže pro získání vašich přihlašovacích údajů. Odkaz je platný 7 dní.</p>
+        <p><strong>Důležité:</strong> Vaše přihlašovací údaje budou zobrazeny pouze jednou. Ujistěte se, že je uložíte na bezpečné místo.</p>
+        <p><a href="%claimUrl%">Získat přihlašovací údaje</a></p>
+
+oauth2_client_rejected:
+    subject: "Vaše žádost o API aplikaci nebyla schválena"
+    title: "Aplikace nebyla schválena"
+    content: |
+        <p>Bohužel vaše žádost o OAuth2 aplikaci <strong>%clientName%</strong> nebyla schválena.</p>
+        <p><strong>Důvod:</strong> %reason%</p>
+        <p>Máte-li dotazy nebo byste chtěli toto dále prodiskutovat, kontaktujte nás prosím na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

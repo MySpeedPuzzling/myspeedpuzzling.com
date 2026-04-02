@@ -8,9 +8,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\RejectOAuth2ClientRequest;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Mime\Email;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
 final readonly class RejectOAuth2ClientRequestHandler
@@ -19,6 +20,7 @@ final readonly class RejectOAuth2ClientRequestHandler
         private EntityManagerInterface $entityManager,
         private OAuth2ClientRequestRepository $requestRepository,
         private MailerInterface $mailer,
+        private TranslatorInterface $translator,
     ) {
     }
 
@@ -34,16 +36,24 @@ final readonly class RejectOAuth2ClientRequestHandler
         $playerEmail = $request->player->email;
 
         if ($playerEmail !== null) {
-            $email = (new Email())
+            $playerLocale = $request->player->locale ?? 'en';
+
+            $subject = $this->translator->trans(
+                'oauth2_client_rejected.subject',
+                domain: 'emails',
+                locale: $playerLocale,
+            );
+
+            $email = (new TemplatedEmail())
                 ->to($playerEmail)
-                ->subject('Your OAuth2 application request was not approved')
-                ->html(sprintf(
-                    '<p>Your OAuth2 application request for <strong>%s</strong> was not approved.</p>'
-                    . '<p>Reason: %s</p>'
-                    . '<p>If you have questions, please contact us.</p>',
-                    $request->clientName,
-                    $message->reason,
-                ));
+                ->locale($playerLocale)
+                ->subject($subject)
+                ->htmlTemplate('emails/oauth2_client_rejected.html.twig')
+                ->context([
+                    'clientName' => $request->clientName,
+                    'reason' => $message->reason,
+                ]);
+            $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
             $this->mailer->send($email);
         }

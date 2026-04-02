@@ -25,7 +25,7 @@ SELECT
     r.id, r.client_name, r.client_description, r.purpose, r.application_type,
     r.requested_scopes, r.redirect_uris, r.status, r.created_at, r.reviewed_at,
     r.rejection_reason, r.client_identifier, r.credentials_claimed,
-    p.name AS player_name
+    p.id AS player_id, p.name AS player_name, p.code AS player_code
 FROM oauth2_client_request r
 INNER JOIN player p ON p.id = r.player_id
 ORDER BY
@@ -48,7 +48,7 @@ SELECT
     r.id, r.client_name, r.client_description, r.purpose, r.application_type,
     r.requested_scopes, r.redirect_uris, r.status, r.created_at, r.reviewed_at,
     r.rejection_reason, r.client_identifier, r.credentials_claimed,
-    p.name AS player_name
+    p.id AS player_id, p.name AS player_name, p.code AS player_code
 FROM oauth2_client_request r
 INNER JOIN player p ON p.id = r.player_id
 WHERE r.player_id = :playerId
@@ -67,8 +67,12 @@ SQL;
     {
         /** @var string $id */
         $id = $row['id'];
+        /** @var string $playerId */
+        $playerId = $row['player_id'];
         /** @var string $playerName */
         $playerName = $row['player_name'] ?? 'Unknown';
+        /** @var string $playerCode */
+        $playerCode = $row['player_code'];
         /** @var string $clientName */
         $clientName = $row['client_name'];
         /** @var string $clientDescription */
@@ -99,7 +103,9 @@ SQL;
 
         return new OAuth2ClientRequestOverview(
             id: $id,
+            playerId: $playerId,
             playerName: $playerName,
+            playerCode: $playerCode,
             clientName: $clientName,
             clientDescription: $clientDescription,
             purpose: $purpose,

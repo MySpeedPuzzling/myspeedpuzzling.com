@@ -10,10 +10,11 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OAuth2\OAuth2ClientRequest;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\RequestOAuth2ClientAccess;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
 final readonly class RequestOAuth2ClientAccessHandler
@@ -22,6 +23,7 @@ final readonly class RequestOAuth2ClientAccessHandler
         private EntityManagerInterface $entityManager,
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
+        private TranslatorInterface $translator,
     ) {
     }
 
@@ -52,19 +54,23 @@ final readonly class RequestOAuth2ClientAccessHandler
             'requestId' => $message->requestId,
         ], UrlGeneratorInterface::ABSOLUTE_URL);
 
-        $email = (new Email())
+        $subject = $this->translator->trans(
+            'oauth2_client_request.subject',
+            ['%clientName%' => $message->clientName],
+            domain: 'emails',
+        );
+
+        $email = (new TemplatedEmail())
             ->to('jan.mikes@myspeedpuzzling.com')
-            ->subject('New OAuth2 Client Request: ' . $message->clientName)
-            ->html(sprintf(
-                '<p>New OAuth2 client access request from <strong>%s</strong>.</p>'
-                . '<p>Application: <strong>%s</strong></p>'
-                . '<p>Purpose: %s</p>'
-                . '<p><a href="%s">Review in admin</a></p>',
-                $player->name ?? 'Unknown',
-                $message->clientName,
-                $message->purpose,
-                $adminUrl,
-            ));
+            ->subject($subject)
+            ->htmlTemplate('emails/oauth2_client_request.html.twig')
+            ->context([
+                'playerName' => $player->name ?? 'Unknown',
+                'clientName' => $message->clientName,
+                'purpose' => $message->purpose,
+                'adminUrl' => $adminUrl,
+            ]);
+        $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
         $this->mailer->send($email);
     }

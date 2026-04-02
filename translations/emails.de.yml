@@ -61,3 +61,29 @@ unread_messages:
     pending_requests_context: "Es könnte um ein Puzzle vom Marktplatz gehen, eine Frage zu deiner Sammlung oder einfach ein Gruß von einem Puzzler."
     view_requests: "Konversationsanfragen ansehen"
     opt_out: 'Du kannst diese E-Mail-Benachrichtigungen in deinen <a href="%settingsUrl%">Profileinstellungen</a> verwalten.'
+
+oauth2_client_request:
+    subject: "Neue OAuth2-Client-Anfrage: %clientName%"
+    title: "Neue API-Zugriffsanfrage"
+    content: |
+        <p>Eine neue OAuth2-Client-Zugriffsanfrage wurde eingereicht.</p>
+        <p><strong>Antragsteller:</strong> %playerName%<br><strong>Anwendung:</strong> %clientName%</p>
+        <p><strong>Zweck:</strong> %purpose%</p>
+        <p><a href="%adminUrl%">Diese Anfrage in der Verwaltung prüfen</a></p>
+
+oauth2_client_approved:
+    subject: "Deine API-Anwendung wurde genehmigt!"
+    title: "Deine Anwendung wurde genehmigt!"
+    content: |
+        <p>Tolle Neuigkeiten! Deine OAuth2-Anwendung <strong>%clientName%</strong> wurde genehmigt.</p>
+        <p>Klicke auf den Link unten, um deine Zugangsdaten abzurufen. Der Link ist 7 Tage gültig.</p>
+        <p><strong>Wichtig:</strong> Deine Zugangsdaten werden nur einmal angezeigt. Stelle sicher, dass du sie an einem sicheren Ort speicherst.</p>
+        <p><a href="%claimUrl%">Zugangsdaten abrufen</a></p>
+
+oauth2_client_rejected:
+    subject: "Deine API-Anwendungsanfrage wurde nicht genehmigt"
+    title: "Anwendung nicht genehmigt"
+    content: |
+        <p>Leider wurde deine OAuth2-Anwendungsanfrage für <strong>%clientName%</strong> nicht genehmigt.</p>
+        <p><strong>Grund:</strong> %reason%</p>
+        <p>Wenn du Fragen hast oder dies weiter besprechen möchtest, kontaktiere uns bitte unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

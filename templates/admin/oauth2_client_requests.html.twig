@@ -24,7 +24,10 @@
                     {% for request in requests %}
                         <tr>
                             <td>{{ request.clientName }}</td>
-                            <td>{{ request.playerName }}</td>
+                            <td>
+                                <a href="{{ path('player_profile', {playerId: request.playerId}) }}">{{ request.playerName }}</a>
+                                <span class="text-muted ms-1 fs-sm">#{{ request.playerCode|upper }}</span>
+                            </td>
                             <td><span class="badge bg-secondary">{{ request.applicationType }}</span></td>
                             <td>
                                 {% if request.status == 'pending' %}

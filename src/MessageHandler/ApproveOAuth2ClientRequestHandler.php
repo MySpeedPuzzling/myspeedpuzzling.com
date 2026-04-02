@@ -14,10 +14,11 @@ use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Message\ApproveOAuth2ClientRequest;
 use SpeedPuzzling\Web\Repository\OAuth2ClientRequestRepository;
 use SpeedPuzzling\Web\Value\OAuth2ApplicationType;
+use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsMessageHandler]
 final readonly class ApproveOAuth2ClientRequestHandler
@@ -28,6 +29,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
         private ClientManagerInterface $clientManager,
         private MailerInterface $mailer,
         private UrlGeneratorInterface $urlGenerator,
+        private TranslatorInterface $translator,
     ) {
     }
 
@@ -81,17 +83,24 @@ final readonly class ApproveOAuth2ClientRequestHandler
         $playerEmail = $request->player->email;
 
         if ($playerEmail !== null) {
-            $email = (new Email())
+            $playerLocale = $request->player->locale ?? 'en';
+
+            $subject = $this->translator->trans(
+                'oauth2_client_approved.subject',
+                domain: 'emails',
+                locale: $playerLocale,
+            );
+
+            $email = (new TemplatedEmail())
                 ->to($playerEmail)
-                ->subject('Your OAuth2 application has been approved!')
-                ->html(sprintf(
-                    '<p>Your OAuth2 application <strong>%s</strong> has been approved.</p>'
-                    . '<p>Click the link below to claim your credentials. The link is valid for 7 days.</p>'
-                    . '<p><strong>Important:</strong> Your credentials will be shown only once. Save them in a secure location.</p>'
-                    . '<p><a href="%s">Claim your credentials</a></p>',
-                    $request->clientName,
-                    $claimUrl,
-                ));
+                ->locale($playerLocale)
+                ->subject($subject)
+                ->htmlTemplate('emails/oauth2_client_approved.html.twig')
+                ->context([
+                    'clientName' => $request->clientName,
+                    'claimUrl' => $claimUrl,
+                ]);
+            $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 
             $this->mailer->send($email);
         }

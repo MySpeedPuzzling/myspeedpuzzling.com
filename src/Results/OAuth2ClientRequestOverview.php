@@ -14,7 +14,9 @@ final readonly class OAuth2ClientRequestOverview
      */
     public function __construct(
         public string $id,
+        public string $playerId,
         public string $playerName,
+        public string $playerCode,
         public string $clientName,
         public string $clientDescription,
         public string $purpose,

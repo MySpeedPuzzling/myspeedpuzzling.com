@@ -61,3 +61,29 @@ unread_messages:
     pending_requests_context: "These could be about a puzzle from the marketplace, a question about your collection, or just a fellow puzzler saying hi."
     view_requests: "Review conversation requests"
     opt_out: 'You can manage these email notifications in your <a href="%settingsUrl%">profile settings</a>.'
+
+oauth2_client_request:
+    subject: "New OAuth2 Client Request: %clientName%"
+    title: "New API Access Request"
+    content: |
+        <p>A new OAuth2 client access request has been submitted.</p>
+        <p><strong>Requester:</strong> %playerName%<br><strong>Application:</strong> %clientName%</p>
+        <p><strong>Purpose:</strong> %purpose%</p>
+        <p><a href="%adminUrl%">Review this request in admin</a></p>
+
+oauth2_client_approved:
+    subject: "Your API application has been approved!"
+    title: "Your application has been approved!"
+    content: |
+        <p>Great news! Your OAuth2 application <strong>%clientName%</strong> has been approved.</p>
+        <p>Click the link below to claim your credentials. The link is valid for 7 days.</p>
+        <p><strong>Important:</strong> Your credentials will be shown only once. Make sure to save them in a secure location.</p>
+        <p><a href="%claimUrl%">Claim your credentials</a></p>
+
+oauth2_client_rejected:
+    subject: "Your API application request was not approved"
+    title: "Application not approved"
+    content: |
+        <p>Unfortunately, your OAuth2 application request for <strong>%clientName%</strong> was not approved.</p>
+        <p><strong>Reason:</strong> %reason%</p>
+        <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

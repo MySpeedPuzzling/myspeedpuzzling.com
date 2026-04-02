@@ -61,3 +61,29 @@ unread_messages:
     pending_requests_context: "Il pourrait s'agir d'un puzzle du marketplace, d'une question sur votre collection, ou simplement d'un puzzleur qui dit bonjour."
     view_requests: "Voir les demandes de conversation"
     opt_out: 'Vous pouvez gérer ces notifications par e-mail dans les <a href="%settingsUrl%">paramètres de votre profil</a>.'
+
+oauth2_client_request:
+    subject: "Nouvelle demande de client OAuth2 : %clientName%"
+    title: "Nouvelle demande d''accès API"
+    content: |
+        <p>Une nouvelle demande d'accès client OAuth2 a été soumise.</p>
+        <p><strong>Demandeur :</strong> %playerName%<br><strong>Application :</strong> %clientName%</p>
+        <p><strong>Objectif :</strong> %purpose%</p>
+        <p><a href="%adminUrl%">Examiner cette demande dans l'administration</a></p>
+
+oauth2_client_approved:
+    subject: "Votre application API a été approuvée !"
+    title: "Votre application a été approuvée !"
+    content: |
+        <p>Bonne nouvelle ! Votre application OAuth2 <strong>%clientName%</strong> a été approuvée.</p>
+        <p>Cliquez sur le lien ci-dessous pour récupérer vos identifiants. Le lien est valide pendant 7 jours.</p>
+        <p><strong>Important :</strong> Vos identifiants ne seront affichés qu'une seule fois. Assurez-vous de les enregistrer dans un endroit sécurisé.</p>
+        <p><a href="%claimUrl%">Récupérer vos identifiants</a></p>
+
+oauth2_client_rejected:
+    subject: "Votre demande d''application API n''a pas été approuvée"
+    title: "Application non approuvée"
+    content: |
+        <p>Malheureusement, votre demande d'application OAuth2 pour <strong>%clientName%</strong> n'a pas été approuvée.</p>
+        <p><strong>Raison :</strong> %reason%</p>
+        <p>Si vous avez des questions ou souhaitez en discuter davantage, veuillez nous contacter à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

@@ -9,7 +9,10 @@
         <div class="card card-body shadow-sm mb-4">
             <dl class="row mb-0">
                 <dt class="col-sm-4">Requester</dt>
-                <dd class="col-sm-8">{{ request.player.name ?? 'Unknown' }}</dd>
+                <dd class="col-sm-8">
+                    <a href="{{ path('player_profile', {playerId: request.player.id}) }}">{{ request.player.name ?? 'Unknown' }}</a>
+                    <span class="text-muted ms-1">#{{ request.player.code|upper }}</span>
+                </dd>
 
                 <dt class="col-sm-4">Status</dt>
                 <dd class="col-sm-8">

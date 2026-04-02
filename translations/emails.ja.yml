@@ -61,3 +61,29 @@ unread_messages:
     pending_requests_context: "マーケットプレイスのパズルについて、コレクションへの質問、またはパズラー仲間からの挨拶かもしれません。"
     view_requests: "会話リクエストを確認する"
     opt_out: 'これらのメール通知は<a href="%settingsUrl%">プロフィール設定</a>から管理できます。'
+
+oauth2_client_request:
+    subject: "新しいOAuth2クライアントリクエスト: %clientName%"
+    title: "新しいAPIアクセスリクエスト"
+    content: |
+        <p>新しいOAuth2クライアントアクセスリクエストが送信されました。</p>
+        <p><strong>申請者:</strong> %playerName%<br><strong>アプリケーション:</strong> %clientName%</p>
+        <p><strong>目的:</strong> %purpose%</p>
+        <p><a href="%adminUrl%">管理画面でこのリクエストを確認する</a></p>
+
+oauth2_client_approved:
+    subject: "APIアプリケーションが承認されました！"
+    title: "アプリケーションが承認されました！"
+    content: |
+        <p>朗報です！OAuth2アプリケーション<strong>%clientName%</strong>が承認されました。</p>
+        <p>以下のリンクをクリックして認証情報を取得してください。リンクの有効期限は7日間です。</p>
+        <p><strong>重要:</strong> 認証情報は一度しか表示されません。安全な場所に必ず保存してください。</p>
+        <p><a href="%claimUrl%">認証情報を取得する</a></p>
+
+oauth2_client_rejected:
+    subject: "APIアプリケーションリクエストが承認されませんでした"
+    title: "アプリケーションが承認されませんでした"
+    content: |
+        <p>残念ながら、OAuth2アプリケーション<strong>%clientName%</strong>のリクエストは承認されませんでした。</p>
+        <p><strong>理由:</strong> %reason%</p>
+        <p>ご質問がある場合やさらに詳しく話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>までお問い合わせください。</p>

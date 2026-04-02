@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Put;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
@@ -13,6 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Put(
             uriTemplate: '/v1/me/solving-times/{timeId}',
+            openapi: new OpenApiOperation(tags: ['My Results & Solving Times']),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_SOLVING_TIMES:WRITE')",
             output: SolvingTimeResponse::class,
             processor: UpdateSolvingTimeProcessor::class,

@@ -15,6 +15,7 @@ use ApiPlatform\OpenApi\Model\Parameter;
         new Get(
             uriTemplate: '/v1/players/{playerId}/results',
             openapi: new OpenApiOperation(
+                tags: ['Players'],
                 parameters: [
                     new Parameter(
                         name: 'type',

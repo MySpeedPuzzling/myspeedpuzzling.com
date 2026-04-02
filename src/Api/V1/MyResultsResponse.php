@@ -15,6 +15,7 @@ use ApiPlatform\OpenApi\Model\Parameter;
         new Get(
             uriTemplate: '/v1/me/results',
             openapi: new OpenApiOperation(
+                tags: ['My Results & Solving Times'],
                 parameters: [
                     new Parameter(
                         name: 'type',

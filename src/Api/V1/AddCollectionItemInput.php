@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Api\V1;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
+use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ApiResource(
@@ -13,6 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Post(
             uriTemplate: '/v1/me/collections/{collectionId}/items',
+            openapi: new OpenApiOperation(tags: ['My Collections']),
             security: "is_granted('ROLE_PAT') or is_granted('ROLE_OAUTH2_COLLECTIONS:WRITE')",
             output: CollectionItemResponse::class,
             processor: AddCollectionItemProcessor::class,

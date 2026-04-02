@@ -6,27 +6,20 @@
 
 {% block content %}
     <div class="text-center mb-5">
-        <h1 class="mb-3"><i class="bi bi-code-slash me-2"></i>For Developers</h1>
-        <p class="lead text-muted col-lg-8 mx-auto">
-            Build integrations with the MySpeedPuzzling platform.
-            Access player results, statistics, collections, and more through our REST API.
-        </p>
+        <h1 class="mb-3"><i class="bi bi-code-slash me-2"></i>{{ 'for_developers.heading'|trans }}</h1>
+        <p class="lead text-muted col-lg-8 mx-auto">{{ 'for_developers.subtitle'|trans }}</p>
     </div>
 
     <div class="row g-4 mb-5">
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm text-center">
                 <div class="card-body d-flex flex-column">
-                    <div class="mb-3">
-                        <i class="bi bi-book fs-1 text-primary"></i>
-                    </div>
-                    <h5>API Documentation</h5>
-                    <p class="text-muted mb-3">
-                        Interactive Swagger UI with all available endpoints, request parameters, and response schemas.
-                    </p>
+                    <div class="mb-3"><i class="bi bi-book fs-1 text-primary"></i></div>
+                    <h5>{{ 'for_developers.card_api_docs_title'|trans }}</h5>
+                    <p class="text-muted mb-3">{{ 'for_developers.card_api_docs_description'|trans }}</p>
                     <div class="mt-auto">
                         <a href="{{ path('api_doc', {_format: 'html'}) }}" class="btn btn-primary btn-shadow" target="_blank">
-                            <i class="bi bi-box-arrow-up-right me-1"></i> Open API Docs
+                            <i class="bi bi-box-arrow-up-right me-1"></i> {{ 'for_developers.card_api_docs_button'|trans }}
                         </a>
                     </div>
                 </div>
@@ -35,16 +28,12 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm text-center">
                 <div class="card-body d-flex flex-column">
-                    <div class="mb-3">
-                        <i class="bi bi-play-circle fs-1 text-primary"></i>
-                    </div>
-                    <h5>Live Demo</h5>
-                    <p class="text-muted mb-3">
-                        See a working OAuth2 integration in action. Authenticate, fetch data, and explore the flow.
-                    </p>
+                    <div class="mb-3"><i class="bi bi-play-circle fs-1 text-primary"></i></div>
+                    <h5>{{ 'for_developers.card_demo_title'|trans }}</h5>
+                    <p class="text-muted mb-3">{{ 'for_developers.card_demo_description'|trans }}</p>
                     <div class="mt-auto">
                         <a href="https://oauth2-demo.myspeedpuzzling.com" class="btn btn-outline-primary" target="_blank" rel="noopener">
-                            <i class="bi bi-box-arrow-up-right me-1"></i> Try the Demo
+                            <i class="bi bi-box-arrow-up-right me-1"></i> {{ 'for_developers.card_demo_button'|trans }}
                         </a>
                     </div>
                 </div>
@@ -53,16 +42,12 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm text-center">
                 <div class="card-body d-flex flex-column">
-                    <div class="mb-3">
-                        <i class="bi bi-github fs-1 text-primary"></i>
-                    </div>
-                    <h5>Source Code</h5>
-                    <p class="text-muted mb-3">
-                        Full PHP demo application showing OAuth2 authorization code flow. Clone it and start building.
-                    </p>
+                    <div class="mb-3"><i class="bi bi-github fs-1 text-primary"></i></div>
+                    <h5>{{ 'for_developers.card_source_title'|trans }}</h5>
+                    <p class="text-muted mb-3">{{ 'for_developers.card_source_description'|trans }}</p>
                     <div class="mt-auto">
                         <a href="https://github.com/MySpeedPuzzling/oauth2-client-demo-application" class="btn btn-outline-primary" target="_blank" rel="noopener">
-                            <i class="bi bi-github me-1"></i> View on GitHub
+                            <i class="bi bi-github me-1"></i> {{ 'for_developers.card_source_button'|trans }}
                         </a>
                     </div>
                 </div>
@@ -70,11 +55,8 @@
         </div>
     </div>
 
-    <h2 class="h4 mb-3"><i class="bi bi-shield-lock me-2"></i>Authentication</h2>
-
-    <p class="text-muted mb-4">
-        Two ways to authenticate with the API, depending on your use case.
-    </p>
+    <h2 class="h4 mb-3"><i class="bi bi-shield-lock me-2"></i>{{ 'for_developers.auth_title'|trans }}</h2>
+    <p class="text-muted mb-4">{{ 'for_developers.auth_subtitle'|trans }}</p>
 
     <div class="row g-4 mb-5">
         <div class="col-md-4">
@@ -82,15 +64,10 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-key fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">Personal Access Token</h5>
+                        <h5 class="mb-0">{{ 'for_developers.auth_pat_title'|trans }}</h5>
                     </div>
-                    <p class="text-muted mb-2">
-                        Generate a token to access <strong>your own data</strong> programmatically.
-                        Great for Home Assistant, personal scripts, and automations.
-                    </p>
-                    <p class="text-muted mb-0 fs-sm">
-                        <code>Authorization: Token msp_pat_...</code>
-                    </p>
+                    <p class="text-muted mb-2">{{ 'for_developers.auth_pat_description'|trans|raw }}</p>
+                    <p class="text-muted mb-0 fs-sm"><code>Authorization: Token msp_pat_...</code></p>
                 </div>
             </div>
         </div>
@@ -99,12 +76,9 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-person-badge fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">OAuth2 &mdash; User Auth</h5>
+                        <h5 class="mb-0">{{ 'for_developers.auth_code_title'|trans }}</h5>
                     </div>
-                    <p class="text-muted mb-0">
-                        Authorization code flow for third-party apps. Users authorize your app to access their data
-                        with granular scopes. Supports read and write operations.
-                    </p>
+                    <p class="text-muted mb-0">{{ 'for_developers.auth_code_description'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -113,26 +87,108 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-hdd-network fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">OAuth2 &mdash; Service</h5>
+                        <h5 class="mb-0">{{ 'for_developers.auth_client_title'|trans }}</h5>
                     </div>
-                    <p class="text-muted mb-0">
-                        Client credentials flow for service-to-service communication.
-                        Read-only access to any public player's data without user interaction.
-                    </p>
+                    <p class="text-muted mb-0">{{ 'for_developers.auth_client_description'|trans }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <h2 class="h4 mb-3"><i class="bi bi-unlock me-2"></i>Available Scopes</h2>
+    <h2 class="h4 mb-3"><i class="bi bi-terminal me-2"></i>{{ 'for_developers.how_to_auth_title'|trans }}</h2>
+
+    <div class="accordion mb-5" id="authGuide">
+        <div class="accordion-item border-0 shadow-sm mb-2">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#authPat">
+                    <i class="bi bi-key me-2 text-primary"></i> {{ 'for_developers.auth_pat_title'|trans }}
+                </button>
+            </h3>
+            <div id="authPat" class="accordion-collapse collapse" data-bs-parent="#authGuide">
+                <div class="accordion-body">
+                    <h6 class="text-primary mb-2">{{ 'for_developers.what_is_good_for'|trans }}</h6>
+                    <p>{{ 'for_developers.pat_good_for'|trans }}</p>
+                    <hr class="my-3">
+                    <p class="mb-0">{{ 'for_developers.pat_how_to'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Token msp_pat_YOUR_TOKEN_HERE" \
+  https://myspeedpuzzling.com/api/v1/me</code></pre>
+                    <p class="text-muted fs-sm mb-0">{{ 'for_developers.pat_note'|trans|raw }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item border-0 shadow-sm mb-2">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#authCode">
+                    <i class="bi bi-person-badge me-2 text-primary"></i> {{ 'for_developers.auth_code_flow_title'|trans }}
+                </button>
+            </h3>
+            <div id="authCode" class="accordion-collapse collapse" data-bs-parent="#authGuide">
+                <div class="accordion-body">
+                    <h6 class="text-primary mb-2">{{ 'for_developers.what_is_good_for'|trans }}</h6>
+                    <p>{{ 'for_developers.auth_code_good_for'|trans }}</p>
+                    <hr class="my-3">
+                    <p class="mb-0">{{ 'for_developers.auth_code_step1'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>https://myspeedpuzzling.com/oauth2/authorize?
+  client_id=YOUR_CLIENT_ID
+  &amp;response_type=code
+  &amp;redirect_uri=https://your-app.com/callback
+  &amp;scope=profile:read results:read
+  &amp;state=RANDOM_STATE</code></pre>
+                    <p class="mb-0">{{ 'for_developers.auth_code_step2'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>curl -X POST https://myspeedpuzzling.com/oauth2/token \
+  -d "grant_type=authorization_code" \
+  -d "code=AUTH_CODE_FROM_REDIRECT" \
+  -d "redirect_uri=https://your-app.com/callback" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET"</code></pre>
+                    <p class="mb-0">{{ 'for_developers.auth_code_step3'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Bearer ACCESS_TOKEN" \
+  https://myspeedpuzzling.com/api/v1/me/results</code></pre>
+                    <p class="mb-0">{{ 'for_developers.auth_code_step4'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>curl -X POST https://myspeedpuzzling.com/oauth2/token \
+  -d "grant_type=refresh_token" \
+  -d "refresh_token=REFRESH_TOKEN" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET"</code></pre>
+                    <p class="text-muted fs-sm mb-0">{{ 'for_developers.auth_code_note'|trans }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item border-0 shadow-sm">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#authClient">
+                    <i class="bi bi-hdd-network me-2 text-primary"></i> {{ 'for_developers.client_cred_flow_title'|trans }}
+                </button>
+            </h3>
+            <div id="authClient" class="accordion-collapse collapse" data-bs-parent="#authGuide">
+                <div class="accordion-body">
+                    <h6 class="text-primary mb-2">{{ 'for_developers.what_is_good_for'|trans }}</h6>
+                    <p>{{ 'for_developers.client_cred_good_for'|trans }}</p>
+                    <hr class="my-3">
+                    <p class="mb-0">{{ 'for_developers.client_cred_step1'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>curl -X POST https://myspeedpuzzling.com/oauth2/token \
+  -d "grant_type=client_credentials" \
+  -d "client_id=YOUR_CLIENT_ID" \
+  -d "client_secret=YOUR_CLIENT_SECRET" \
+  -d "scope=results:read statistics:read"</code></pre>
+                    <p class="mb-0">{{ 'for_developers.client_cred_step2'|trans|raw }}</p>
+                    <pre class="bg-light p-3 rounded"><code>curl -H "Authorization: Bearer ACCESS_TOKEN" \
+  https://myspeedpuzzling.com/api/v1/players/PLAYER_UUID/results</code></pre>
+                    <p class="text-muted fs-sm mb-0">{{ 'for_developers.client_cred_note'|trans|raw }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h4 mb-3"><i class="bi bi-unlock me-2"></i>{{ 'for_developers.scopes_title'|trans }}</h2>
 
     <div class="row g-3 mb-5">
         <div class="col-md-6 col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
                     <code class="text-primary fw-bold">profile:read</code>
-                    <span class="badge bg-success ms-2">default</span>
-                    <p class="text-muted mb-0 mt-1 fs-sm">Read user profile data (name, avatar, country, bio)</p>
+                    <span class="badge bg-success ms-2">{{ 'for_developers.scope_default'|trans }}</span>
+                    <p class="text-muted mb-0 mt-1 fs-sm">{{ 'request_api_access.scope_profile'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -140,7 +196,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
                     <code class="text-primary fw-bold">results:read</code>
-                    <p class="text-muted mb-0 mt-1 fs-sm">Read puzzle solving results (times, puzzles, attempts)</p>
+                    <p class="text-muted mb-0 mt-1 fs-sm">{{ 'request_api_access.scope_results'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -148,7 +204,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
                     <code class="text-primary fw-bold">statistics:read</code>
-                    <p class="text-muted mb-0 mt-1 fs-sm">Read player statistics (total times, pieces, counts)</p>
+                    <p class="text-muted mb-0 mt-1 fs-sm">{{ 'request_api_access.scope_statistics'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -156,7 +212,7 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
                     <code class="text-primary fw-bold">collections:read</code>
-                    <p class="text-muted mb-0 mt-1 fs-sm">Read player puzzle collections and items</p>
+                    <p class="text-muted mb-0 mt-1 fs-sm">{{ 'request_api_access.scope_collections_read'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -164,8 +220,8 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
                     <code class="text-warning fw-bold">solving-times:write</code>
-                    <span class="badge bg-info ms-2">auth code only</span>
-                    <p class="text-muted mb-0 mt-1 fs-sm">Create and edit puzzle solving times</p>
+                    <span class="badge bg-info ms-2">{{ 'for_developers.scope_auth_code_only'|trans }}</span>
+                    <p class="text-muted mb-0 mt-1 fs-sm">{{ 'request_api_access.scope_solving_times'|trans }}</p>
                 </div>
             </div>
         </div>
@@ -173,10 +229,106 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body py-3">
                     <code class="text-warning fw-bold">collections:write</code>
-                    <span class="badge bg-info ms-2">auth code only</span>
-                    <p class="text-muted mb-0 mt-1 fs-sm">Create, edit, delete collections and items</p>
+                    <span class="badge bg-info ms-2">{{ 'for_developers.scope_auth_code_only'|trans }}</span>
+                    <p class="text-muted mb-0 mt-1 fs-sm">{{ 'request_api_access.scope_collections_write'|trans }}</p>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <h2 class="h4 mb-3"><i class="bi bi-list-check me-2"></i>{{ 'for_developers.endpoints_title'|trans }}</h2>
+    <p class="text-muted mb-3">{{ 'for_developers.endpoints_subtitle'|trans }}</p>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">{{ 'for_developers.table_endpoint'|trans }}</th>
+                            <th class="text-center"><i class="bi bi-key me-1"></i>PAT</th>
+                            <th class="text-center"><i class="bi bi-person-badge me-1"></i>Auth Code</th>
+                            <th class="text-center"><i class="bi bi-hdd-network me-1"></i>Client Credentials</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ 'for_developers.table_section_me'|trans }}</td></tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/results</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/statistics</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/collections</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">POST /api/v1/me/solving-times</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">PUT /api/v1/me/solving-times/{id}</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">POST/PUT/DELETE /api/v1/me/collections/*</code></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                        </tr>
+                        <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ 'for_developers.table_section_players'|trans }}</td></tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/results</code></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/statistics</code></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/collections</code></td>
+                            <td class="text-center text-muted">&mdash;</td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-4">
+            <div class="alert alert-light border mb-0 fs-sm">{{ 'for_developers.summary_pat'|trans|raw }}</div>
+        </div>
+        <div class="col-md-4">
+            <div class="alert alert-light border mb-0 fs-sm">{{ 'for_developers.summary_auth_code'|trans|raw }}</div>
+        </div>
+        <div class="col-md-4">
+            <div class="alert alert-light border mb-0 fs-sm">{{ 'for_developers.summary_client_cred'|trans|raw }}</div>
         </div>
     </div>
 
@@ -184,16 +336,15 @@
         <div class="card-body d-flex align-items-center">
             <i class="bi bi-file-earmark-text fs-4 text-primary me-3"></i>
             <div>
-                <h5 class="mb-1">Fair Use Policy</h5>
+                <h5 class="mb-1">{{ 'for_developers.fup_title'|trans }}</h5>
                 <p class="text-muted mb-0">
-                    Before generating tokens or requesting API access, please read and accept our
-                    <a href="{{ path('fair_use_policy') }}">API Fair Use Policy</a>.
+                    {{ 'for_developers.fup_description'|trans({'%link%': path('fair_use_policy')})|raw }}
                 </p>
             </div>
         </div>
     </div>
 
-    <h2 class="h4 mb-3"><i class="bi bi-rocket-takeoff me-2"></i>Get Started</h2>
+    <h2 class="h4 mb-3"><i class="bi bi-rocket-takeoff me-2"></i>{{ 'for_developers.get_started_title'|trans }}</h2>
 
     <div class="row g-4 mb-4">
         <div class="col-md-6">
@@ -201,19 +352,16 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-key fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">Personal Use</h5>
+                        <h5 class="mb-0">{{ 'for_developers.get_started_personal_title'|trans }}</h5>
                     </div>
-                    <p class="text-muted mb-3">
-                        Want to access your own data? Generate a Personal Access Token instantly from your profile settings.
-                        No approval needed.
-                    </p>
+                    <p class="text-muted mb-3">{{ 'for_developers.get_started_personal_description'|trans }}</p>
                     {% if logged_user.profile is not null %}
                         <a href="{{ path('edit_profile') }}" class="btn btn-primary btn-sm">
-                            <i class="bi bi-gear me-1"></i> Go to Settings
+                            <i class="bi bi-gear me-1"></i> {{ 'for_developers.get_started_personal_button'|trans }}
                         </a>
                     {% else %}
                         <a href="{{ path('my_profile') }}" class="btn btn-primary btn-sm">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                            <i class="bi bi-box-arrow-in-right me-1"></i> {{ 'for_developers.sign_in'|trans }}
                         </a>
                     {% endif %}
                 </div>
@@ -224,19 +372,16 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
                         <i class="bi bi-building fs-4 text-primary me-3"></i>
-                        <h5 class="mb-0">Third-Party Application</h5>
+                        <h5 class="mb-0">{{ 'for_developers.get_started_app_title'|trans }}</h5>
                     </div>
-                    <p class="text-muted mb-3">
-                        Building an app that needs OAuth2 access? Submit a request and we'll review it.
-                        You'll receive credentials once approved.
-                    </p>
+                    <p class="text-muted mb-3">{{ 'for_developers.get_started_app_description'|trans }}</p>
                     {% if logged_user.profile is not null %}
                         <a href="{{ path('request_api_access') }}" class="btn btn-primary btn-sm">
-                            <i class="bi bi-send me-1"></i> Request API Access
+                            <i class="bi bi-send me-1"></i> {{ 'for_developers.get_started_app_button'|trans }}
                         </a>
                     {% else %}
                         <a href="{{ path('my_profile') }}" class="btn btn-primary btn-sm">
-                            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Request
+                            <i class="bi bi-box-arrow-in-right me-1"></i> {{ 'for_developers.sign_in_to_request'|trans }}
                         </a>
                     {% endif %}
                 </div>
@@ -245,8 +390,6 @@
     </div>
 
     <div class="text-center text-muted mb-4">
-        <p class="mb-0 fs-sm">
-            Questions? Reach out at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.
-        </p>
+        <p class="mb-0 fs-sm">{{ 'for_developers.questions'|trans|raw }}</p>
     </div>
 {% endblock %}

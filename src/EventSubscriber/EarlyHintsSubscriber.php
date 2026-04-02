@@ -36,7 +36,7 @@ final class EarlyHintsSubscriber implements EventSubscriberInterface
 
         $pathInfo = $event->getRequest()->getPathInfo();
 
-        if (str_starts_with($pathInfo, '/api/') || str_starts_with($pathInfo, '/webhook/')) {
+        if (str_starts_with($pathInfo, '/api/') || str_starts_with($pathInfo, '/oauth2/') || str_starts_with($pathInfo, '/webhook/')) {
             return;
         }
 

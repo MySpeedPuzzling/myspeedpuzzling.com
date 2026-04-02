@@ -56,7 +56,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
             ));
         }
 
-        $grants = [new Grant('authorization_code'), new Grant('refresh_token')];
+        $grants = [new Grant('authorization_code'), new Grant('client_credentials'), new Grant('refresh_token')];
         $client->setGrants(...$grants);
 
         $validScopes = array_filter($request->requestedScopes, static fn(string $scope) => $scope !== '');

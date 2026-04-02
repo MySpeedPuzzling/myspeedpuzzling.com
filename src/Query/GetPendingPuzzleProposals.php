@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MergePuzzleInfo;
 use SpeedPuzzling\Web\Results\PendingPuzzleProposal;
 
@@ -12,6 +13,7 @@ readonly final class GetPendingPuzzleProposals
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -133,7 +135,7 @@ SELECT
     p.id,
     p.name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > ?::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     (SELECT COUNT(*) FROM puzzle_solving_time pst WHERE pst.puzzle_id = p.id) as times_count
 FROM puzzle p
@@ -141,7 +143,7 @@ LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE p.id IN ({$placeholders})
 SQL;
 
-        $rows = $this->database->fetchAllAssociative($query, array_values($puzzleIds));
+        $rows = $this->database->fetchAllAssociative($query, [...array_values($puzzleIds), $this->clock->now()->format('Y-m-d H:i:s')]);
 
         $result = [];
         foreach ($rows as $row) {

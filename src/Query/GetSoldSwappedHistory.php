@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\SoldSwappedItemOverview;
 use SpeedPuzzling\Web\Value\ListingType;
 
@@ -13,6 +14,7 @@ readonly final class GetSoldSwappedHistory
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -33,7 +35,7 @@ SELECT
     p.alternative_name as puzzle_alternative_name,
     p.identification_number as puzzle_identification_number,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     bp.id as buyer_player_id,
     bp.name as buyer_player_name,
@@ -47,7 +49,7 @@ ORDER BY ssi.sold_at DESC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
+            ->executeQuery($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s'), 'playerId' => $playerId])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): SoldSwappedItemOverview {

@@ -39,7 +39,7 @@ SELECT
     p.name AS puzzle_name,
     p.pieces_count AS puzzle_pieces_count,
     ssi.listing_type AS transaction_type,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     p.id AS puzzle_id
 FROM transaction_rating tr
 JOIN player reviewer ON tr.reviewer_id = reviewer.id
@@ -53,6 +53,7 @@ SQL;
 
         $data = $this->database
             ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'playerId' => $playerId,
                 'limit' => $limit,
                 'offset' => $offset,
@@ -158,7 +159,7 @@ SQL;
 SELECT
     ssi.id AS sold_swapped_item_id,
     p.name AS puzzle_name,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     p.pieces_count,
     CASE
         WHEN ssi.seller_id = :playerId THEN COALESCE(buyer.name, buyer.code)
@@ -191,6 +192,7 @@ SQL;
 
         $data = $this->database
             ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'playerId' => $playerId,
                 'cutoffDate' => $this->clock->now()->modify('-30 days')->format('Y-m-d H:i:s'),
             ])

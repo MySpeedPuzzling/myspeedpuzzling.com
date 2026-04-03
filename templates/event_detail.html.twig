@@ -3,6 +3,8 @@
 {% block title %}{{ event.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
+
     <div class="d-flex">
         <div class="flex-fill">
             <h1 class="h4 mb-2">

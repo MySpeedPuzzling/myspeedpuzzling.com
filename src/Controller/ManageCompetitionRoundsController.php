@@ -25,6 +25,10 @@ final class ManageCompetitionRoundsController extends AbstractController
         path: [
             'cs' => '/sprava-kol-udalosti/{competitionId}',
             'en' => '/en/manage-event-rounds/{competitionId}',
+            'es' => '/es/manage-event-rounds/{competitionId}',
+            'ja' => '/ja/manage-event-rounds/{competitionId}',
+            'fr' => '/fr/manage-event-rounds/{competitionId}',
+            'de' => '/de/manage-event-rounds/{competitionId}',
         ],
         name: 'manage_competition_rounds',
     )]

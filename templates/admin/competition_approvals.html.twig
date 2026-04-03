@@ -13,6 +13,13 @@
             </div>
         {% endfor %}
 
+        {% for flash_message in app.flashes('danger') %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
         {% if competitions|length > 0 %}
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -59,6 +66,24 @@
                                         <button type="submit" class="btn btn-sm btn-success">
                                             <i class="bi bi-check-lg me-1"></i>Approve
                                         </button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="collapse" data-bs-target="#reject-{{ competition.id }}">
+                                        <i class="bi bi-x-lg me-1"></i>Reject
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="reject-{{ competition.id }}">
+                                <td colspan="5">
+                                    <form method="post" action="{{ path('admin_reject_competition', {'competitionId': competition.id}) }}">
+                                        <div class="d-flex gap-2 align-items-end">
+                                            <div class="flex-grow-1">
+                                                <label for="reason-{{ competition.id }}" class="form-label">Rejection reason</label>
+                                                <textarea name="reason" id="reason-{{ competition.id }}" class="form-control" rows="2" required></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="bi bi-x-lg me-1"></i>Reject
+                                            </button>
+                                        </div>
                                     </form>
                                 </td>
                             </tr>

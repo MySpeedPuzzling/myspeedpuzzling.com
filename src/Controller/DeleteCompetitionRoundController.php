@@ -28,6 +28,10 @@ final class DeleteCompetitionRoundController extends AbstractController
         path: [
             'cs' => '/smazat-kolo-udalosti/{roundId}',
             'en' => '/en/delete-event-round/{roundId}',
+            'es' => '/es/delete-event-round/{roundId}',
+            'ja' => '/ja/delete-event-round/{roundId}',
+            'fr' => '/fr/delete-event-round/{roundId}',
+            'de' => '/de/delete-event-round/{roundId}',
         ],
         name: 'delete_competition_round',
         methods: ['POST'],

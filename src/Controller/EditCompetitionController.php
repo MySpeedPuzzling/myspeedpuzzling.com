@@ -33,6 +33,10 @@ final class EditCompetitionController extends AbstractController
         path: [
             'cs' => '/upravit-udalost/{competitionId}',
             'en' => '/en/edit-event/{competitionId}',
+            'es' => '/es/edit-event/{competitionId}',
+            'ja' => '/ja/edit-event/{competitionId}',
+            'fr' => '/fr/edit-event/{competitionId}',
+            'de' => '/de/edit-event/{competitionId}',
         ],
         name: 'edit_competition',
     )]

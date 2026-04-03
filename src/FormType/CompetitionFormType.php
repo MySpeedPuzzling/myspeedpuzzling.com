@@ -118,6 +118,12 @@ final class CompetitionFormType extends AbstractType
             'required' => false,
         ]);
 
+        $builder->add('isRecurring', CheckboxType::class, [
+            'label' => 'competition.form.is_recurring',
+            'help' => 'competition.form.is_recurring_help',
+            'required' => false,
+        ]);
+
         $builder->add('logo', FileType::class, [
             'label' => 'competition.form.logo',
             'required' => false,

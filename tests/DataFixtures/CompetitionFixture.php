@@ -19,6 +19,7 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
     public const string COMPETITION_WJPC_2024 = '018d0004-0000-0000-0000-000000000001';
     public const string COMPETITION_CZECH_NATIONALS_2024 = '018d0004-0000-0000-0000-000000000002';
     public const string COMPETITION_UNAPPROVED = '018d0004-0000-0000-0000-000000000003';
+    public const string COMPETITION_RECURRING_ONLINE = '018d0004-0000-0000-0000-000000000004';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -80,6 +81,22 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         $manager->persist($unapprovedCompetition);
         $this->addReference(self::COMPETITION_UNAPPROVED, $unapprovedCompetition);
 
+        $recurringOnlineCompetition = $this->createCompetition(
+            id: self::COMPETITION_RECURRING_ONLINE,
+            name: 'Euro Jigsaw Jam',
+            location: 'Online',
+            locationCountryCode: 'eu',
+            tag: null,
+            daysFromNow: 0,
+            slug: 'euro-jigsaw-jam',
+            description: 'Monthly online jigsaw puzzle competition',
+            isOnline: true,
+            isRecurring: true,
+            approvedAt: $this->clock->now(),
+        );
+        $manager->persist($recurringOnlineCompetition);
+        $this->addReference(self::COMPETITION_RECURRING_ONLINE, $recurringOnlineCompetition);
+
         $manager->flush();
     }
 
@@ -104,6 +121,8 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         null|string $link = null,
         null|string $registrationLink = null,
         null|string $resultsLink = null,
+        bool $isOnline = false,
+        bool $isRecurring = false,
         null|DateTimeImmutable $approvedAt = null,
         null|Player $addedByPlayer = null,
         null|DateTimeImmutable $createdAt = null,
@@ -126,6 +145,8 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             dateFrom: $dateFrom,
             dateTo: $dateTo,
             tag: $tag,
+            isOnline: $isOnline,
+            isRecurring: $isRecurring,
             approvedAt: $approvedAt,
             addedByPlayer: $addedByPlayer,
             createdAt: $createdAt,

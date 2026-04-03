@@ -44,8 +44,16 @@
                             <div class="flex-fill">
                                 <h3 class="h5 mb-2">
                                     {{ event.name }}
-                                    {% if event.approvedAt is null %}
+                                    {% if event.rejectedAt is not null %}
+                                        <span class="badge bg-danger ms-2">{{ 'competition.rejected'|trans }}</span>
+                                    {% elseif event.approvedAt is null %}
                                         <span class="badge bg-warning text-dark ms-2">{{ 'competition.pending_approval'|trans }}</span>
+                                    {% endif %}
+                                    {% if event.isOnline %}
+                                        <span class="badge bg-info text-dark ms-2">{{ 'competition.online'|trans }}</span>
+                                    {% endif %}
+                                    {% if event.isRecurring %}
+                                        <span class="badge bg-secondary ms-2">{{ 'competition.recurring'|trans }}</span>
                                     {% endif %}
                                 </h3>
                                 <div>
@@ -86,6 +94,16 @@
             {% endif %}
 
             {% for event in upcoming_events %}
+                {{ include('_competition_event.html.twig') }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if recurring_events|length > 0 %}
+        <h2 class="mt-4">{{ 'events.recurring'|trans }}</h2>
+
+        <div class="row">
+            {% for event in recurring_events %}
                 {{ include('_competition_event.html.twig') }}
             {% endfor %}
         </div>

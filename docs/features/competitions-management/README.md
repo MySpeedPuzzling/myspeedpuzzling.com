@@ -8,7 +8,7 @@ Community-driven competition and event management. Any logged-in player can subm
 
 Any authenticated player can submit a new competition with:
 - **Required:** name, location
-- **Optional:** shortcut (e.g. "WJPC"), description, website/registration/results links, country, date range, online flag, logo image
+- **Optional:** shortcut (e.g. "WJPC"), description, website/registration/results links, country, date range, online flag, recurring flag, logo image
 - **Maintainers:** other players who should have edit access (searchable autocomplete)
 
 A URL slug is auto-generated from the name (with a random suffix if collisions exist). The competition is stored with `approvedAt = null` (pending state) and is **not visible** in the public listing.
@@ -30,7 +30,13 @@ Changing the name regenerates the slug. Maintainer lists are fully replaced on e
 
 ### 4. Public Listing
 
-The events page shows three sections: **Live** (date range includes today), **Upcoming** (starts in the future), and **Past** (already ended). All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended.
+The events page shows four sections:
+- **Live** — one-time events where today's date falls within the event date range
+- **Upcoming** — one-time events starting in the future
+- **Recurring** — all approved recurring events (sorted alphabetically)
+- **Past** — one-time events that have ended
+
+Recurring events are excluded from Live/Upcoming/Past sections. All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. Online and recurring badges are displayed on event cards.
 
 Each competition also appears in "My Competitions" for its creator/maintainers regardless of approval status.
 
@@ -45,6 +51,37 @@ Each competition also appears in "My Competitions" for its creator/maintainers r
 | Approve or reject a competition | Admin only |
 
 Access is enforced via a `CompetitionEditVoter` that checks whether the player is admin, the creator, or in the maintainers list. All management controllers use this same voter, including round-level controllers (which resolve the competition from the round).
+
+## Event Types
+
+Every competition has two independent flags: `isOnline` and `isRecurring`. This creates four combinations:
+
+| Type | Online | Recurring | Example | Dates | Tables |
+|------|--------|-----------|---------|-------|--------|
+| One-time offline | No | No | WJPC 2024 | dateFrom/dateTo | Yes |
+| One-time online | Yes | No | Online Challenge 2024 | dateFrom/dateTo | No |
+| Recurring offline | No | Yes | Monthly Puzzle Meetup | Optional | Yes |
+| Recurring online | Yes | Yes | Euro Jigsaw Jam | Optional | No |
+
+**Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format.
+
+### Recurring Events
+
+Recurring events (e.g. "Euro Jigsaw Jam" with 70+ monthly editions) use **rounds as editions**. Instead of appearing 70 times in the events listing, the event appears once in the "Recurring" section.
+
+**How it works:**
+- The competition itself represents the series (e.g. "Euro Jigsaw Jam")
+- Each round represents one edition (e.g. "EJJ #68 — March 2026")
+- Each edition has its own date, puzzles, stopwatch, and (for offline) table layout
+- The event detail page shows upcoming and past editions instead of a flat puzzle list
+- The management UI labels rounds as "Editions" for recurring events
+
+**Public event detail page for recurring events:**
+- Competition header with name, description, logo, links
+- "Upcoming editions" table: name, date, time limit, puzzle count (sorted by date ascending)
+- "Past editions" table: same columns (sorted by date descending, most recent first)
+
+**For non-recurring events:** the detail page shows the traditional puzzle grid and participants section.
 
 ## Round Management
 
@@ -148,3 +185,5 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 7. **External links get automatic UTM tracking** — `utm_source=myspeedpuzzling` is appended
 8. **Rejected competitions are excluded from the approval queue** — they no longer appear as "pending"
 9. **Email notifications require creator to have an email** — if the creator has no email on their profile, no notification is sent (no error)
+10. **Recurring events get their own listing section** — they're excluded from Live/Upcoming/Past and shown in a dedicated "Recurring" section
+11. **Online and offline are mutually exclusive** — one competition cannot be both; users create separate events

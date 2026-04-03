@@ -3,14 +3,13 @@
 {% block title %}{{ 'competition.stopwatch.manage'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans}) }}
+
     <div class="pb-4">
         <h1 class="h2">{{ 'competition.stopwatch.manage'|trans }}</h1>
         <h2 class="h5 text-muted">{{ competition.name }} — {{ round.name }}</h2>
 
         <div class="mb-3 mt-3">
-            <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
-                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.stopwatch.back_to_rounds'|trans }}
-            </a>
             <a href="{{ path('round_stopwatch', {'roundId': round.id}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-display me-1"></i>{{ 'competition.stopwatch.view_public'|trans }}
             </a>

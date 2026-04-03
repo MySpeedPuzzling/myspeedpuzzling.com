@@ -22,10 +22,10 @@
                 {% endif %}
 
                 <div class="mb-3">
-                    <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
+                    <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary me-2">
                         <i class="bi bi-list-ol me-1"></i>{{ competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans }}
                     </a>
-                    <a href="{{ path('manage_competition_participants', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary">
+                    <a href="{{ path('manage_competition_participants', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
                     </a>
                 </div>
@@ -40,23 +40,56 @@
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {{ form_start(form) }}
-                            {{ form_row(form.name) }}
+                        <div data-controller="competition-form">
+                            <div class="required">{{ form_row(form.name) }}</div>
                             {{ form_row(form.shortcut) }}
                             {{ form_row(form.description) }}
-                            {{ form_row(form.location) }}
-                            {{ form_row(form.locationCountryCode) }}
-                            {{ form_row(form.isOnline) }}
-                            {{ form_row(form.dateFrom) }}
-                            {{ form_row(form.dateTo) }}
+                            <div class="required" data-action="change->competition-form#toggle">
+                                {{ form_row(form.isOnline) }}
+                            </div>
+                            <div data-competition-form-target="recurringField">
+                                {{ form_row(form.isRecurring) }}
+                            </div>
+                            <div class="mb-3" data-competition-form-target="offlineFields">
+                                {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
+                                {{ form_widget(form.location) }}
+                                {{ form_errors(form.location) }}
+                            </div>
+                            <div data-competition-form-target="typeSelectedFields" data-controller="country-autocomplete">
+                                {{ form_row(form.locationCountryCode) }}
+                            </div>
+
+                            <div class="mb-3" data-competition-form-target="offlineFields">
+                                {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label required'}}) }}
+                                <div class="input-group">
+                                    {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                                    <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                </div>
+                                {{ form_help(form.dateFrom) }}
+                                {{ form_errors(form.dateFrom) }}
+                            </div>
+
+                            <div class="mb-3" data-competition-form-target="offlineFields">
+                                {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label required'}}) }}
+                                <div class="input-group">
+                                    {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                                    <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                </div>
+                                {{ form_errors(form.dateTo) }}
+                            </div>
+
                             {{ form_row(form.link) }}
                             {{ form_row(form.registrationLink) }}
                             {{ form_row(form.resultsLink) }}
                             {{ form_row(form.logo) }}
-                            {{ form_row(form.maintainers) }}
+                            <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                                {{ form_row(form.maintainers) }}
+                            </div>
 
                             <button type="submit" class="btn btn-primary mt-3">
                                 {{ 'competition.save_changes'|trans }}
                             </button>
+                        </div>
                         {{ form_end(form) }}
                     </div>
                 </div>

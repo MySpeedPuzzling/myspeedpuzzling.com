@@ -45,8 +45,8 @@ class Competition
         public null|string $registrationLink,
         #[Column(nullable: true)]
         public null|string $resultsLink,
-        #[Column]
-        public string $location,
+        #[Column(nullable: true)]
+        public null|string $location,
         #[Column(nullable: true)]
         public null|string $locationCountryCode,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
@@ -116,7 +116,7 @@ class Competition
         null|string $link,
         null|string $registrationLink,
         null|string $resultsLink,
-        string $location,
+        null|string $location,
         null|string $locationCountryCode,
         null|DateTimeImmutable $dateFrom,
         null|DateTimeImmutable $dateTo,

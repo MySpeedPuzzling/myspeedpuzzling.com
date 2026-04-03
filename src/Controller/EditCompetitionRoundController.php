@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\FormType\CompetitionRoundFormType;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
@@ -48,21 +50,54 @@ final class EditCompetitionRoundController extends AbstractController
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
 
+        $isSingleDay = $competition->dateFrom !== null
+            && $competition->dateTo !== null
+            && $competition->dateFrom->format('Y-m-d') === $competition->dateTo->format('Y-m-d');
+
         $formData = CompetitionRoundFormData::fromCompetitionRound($round);
-        $form = $this->createForm(CompetitionRoundFormType::class, $formData);
+        $form = $this->createForm(CompetitionRoundFormType::class, $formData, [
+            'date_from' => $competition->dateFrom,
+            'date_to' => $competition->dateTo,
+            'country_code' => $competition->locationCountryCode?->name,
+        ]);
+
+        if ($isSingleDay) {
+            $form->get('startsAtTime')->setData($round->startsAt->format('H:i'));
+        }
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
             assert($data->name !== null);
             assert($data->minutesLimit !== null);
-            assert($data->startsAt !== null);
+
+            /** @var string $timezone */
+            $timezone = $form->get('timezone')->getData();
+            $tz = new DateTimeZone($timezone);
+
+            if ($isSingleDay) {
+                /** @var string $time */
+                $time = $form->get('startsAtTime')->getData();
+                $localDateTime = new DateTimeImmutable(
+                    $competition->dateFrom->format('Y-m-d') . ' ' . $time,
+                    $tz,
+                );
+                $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
+            } else {
+                assert($data->startsAt !== null);
+                $localDateTime = new DateTimeImmutable(
+                    $data->startsAt->format('Y-m-d H:i:s'),
+                    $tz,
+                );
+                $startsAt = $localDateTime->setTimezone(new DateTimeZone('UTC'));
+            }
 
             $this->messageBus->dispatch(new EditCompetitionRound(
                 roundId: $roundId,
                 name: $data->name,
                 minutesLimit: $data->minutesLimit,
-                startsAt: $data->startsAt,
+                startsAt: $startsAt,
                 badgeBackgroundColor: $data->badgeBackgroundColor,
                 badgeTextColor: $data->badgeTextColor,
             ));

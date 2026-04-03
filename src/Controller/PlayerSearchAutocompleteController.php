@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\SearchPlayers;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +17,7 @@ final class PlayerSearchAutocompleteController extends AbstractController
 {
     public function __construct(
         private readonly SearchPlayers $searchPlayers,
+        private readonly ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
@@ -35,15 +37,31 @@ final class PlayerSearchAutocompleteController extends AbstractController
 
         $results = [];
         foreach ($players as $player) {
-            $label = $player->playerName ?? $player->playerCode;
+            $name = htmlspecialchars($player->playerName ?? $player->playerCode);
+            $code = htmlspecialchars($player->playerCode);
 
-            if ($player->playerCountry !== null) {
-                $label .= " ({$player->playerCountry->name})";
+            $avatar = '';
+            if ($player->playerAvatar !== null) {
+                $avatarUrl = htmlspecialchars($this->imageThumbnail->thumbnailUrl($player->playerAvatar, 'puzzle_small'));
+                $avatar = <<<HTML
+<img alt="" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;" src="{$avatarUrl}">
+HTML;
+            } else {
+                $avatar = '<i class="ci-user me-2"></i>';
             }
+
+            $flag = '';
+            if ($player->playerCountry !== null) {
+                $flag = '<span class="shadow-custom fi fi-' . $player->playerCountry->name . ' me-1"></span> ';
+            }
+
+            $html = <<<HTML
+<div class="d-flex align-items-center">{$avatar}{$flag}<span>{$name}</span><small class="text-muted ms-1">#{$code}</small></div>
+HTML;
 
             $results[] = [
                 'value' => $player->playerId,
-                'text' => $label,
+                'text' => $html,
             ];
         }
 

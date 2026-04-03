@@ -38,4 +38,40 @@ final class EditCompetitionControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(403);
     }
+
+    public function testMaintainerCanSubmitForm(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/edit-event/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        $this->assertResponseIsSuccessful();
+
+        $browser->submitForm('Save Changes', [
+            'competition_form[name]' => 'Updated Puzzle Event',
+            'competition_form[location]' => 'Berlin',
+        ]);
+
+        $this->assertResponseRedirects();
+        $browser->followRedirect();
+        $this->assertResponseIsSuccessful();
+    }
+
+    public function testMaintainerCanSubmitWithoutMaintainers(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/edit-event/' . CompetitionFixture::COMPETITION_UNAPPROVED);
+        $this->assertResponseIsSuccessful();
+
+        $browser->submitForm('Save Changes', [
+            'competition_form[name]' => 'Event Without Maintainers',
+            'competition_form[maintainers]' => '',
+        ]);
+
+        $this->assertResponseRedirects();
+        $browser->followRedirect();
+        $this->assertResponseIsSuccessful();
+    }
 }

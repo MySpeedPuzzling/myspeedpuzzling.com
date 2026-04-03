@@ -25,6 +25,7 @@ SELECT
     name AS player_name,
     country AS player_country,
     code AS player_code,
+    avatar AS player_avatar,
     (
       CASE
         WHEN LOWER(code) = LOWER(:searchQuery) THEN 6 -- Exact match on code with diacritics

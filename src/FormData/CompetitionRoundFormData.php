@@ -17,8 +17,8 @@ final class CompetitionRoundFormData
         public null|int $minutesLimit = null,
         #[Assert\NotNull]
         public null|DateTimeImmutable $startsAt = null,
-        public null|string $badgeBackgroundColor = null,
-        public null|string $badgeTextColor = null,
+        public null|string $badgeBackgroundColor = '#fe696a',
+        public null|string $badgeTextColor = '#ffffff',
     ) {
     }
 

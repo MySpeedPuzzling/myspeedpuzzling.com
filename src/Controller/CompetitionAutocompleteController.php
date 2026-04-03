@@ -56,7 +56,7 @@ HTML;
                 $location = '<span class="shadow-custom fi fi-' . $competition->locationCountryCode->name . ' me-2"></span>';
             }
 
-            $location .= $competition->location;
+            $location .= $competition->location ?? '';
 
             $html = <<<HTML
 <div class="py-1 d-flex low-line-height">

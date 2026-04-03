@@ -12,10 +12,10 @@
             >
         </div>
         {% if isMember %}
-            <div class="marketplace-country-filter-wrapper" style="min-width: 180px; max-width: 220px;" data-live-ignore>
+            <div class="country-select-wrapper" style="min-width: 180px; max-width: 220px;" data-live-ignore>
                 <select
                     data-model="on(change)|country"
-                    data-controller="marketplace-country-filter"
+                    data-controller="country-select"
                     class="form-select form-select-sm"
                 >
                     <option value="">{{ 'puzzle_intelligence.elo.all_countries'|trans }}</option>

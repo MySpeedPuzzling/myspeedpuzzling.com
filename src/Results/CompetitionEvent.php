@@ -26,6 +26,8 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     is_online: bool|string,
  *     added_by_player_id: null|string,
  *     approved_at: null|string,
+ *     rejected_at: null|string,
+ *     rejection_reason: null|string,
  *     created_at: null|string,
  * }
  */
@@ -53,6 +55,8 @@ readonly final class CompetitionEvent
         public bool $isOnline,
         public null|string $addedByPlayerId,
         public null|DateTimeImmutable $approvedAt,
+        public null|DateTimeImmutable $rejectedAt,
+        public null|string $rejectionReason,
         public null|DateTimeImmutable $createdAt,
     ) {
         $this->link = $this->appendUtm($link);
@@ -88,6 +92,8 @@ readonly final class CompetitionEvent
             isOnline: $isOnline,
             addedByPlayerId: $row['added_by_player_id'],
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
+            rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
+            rejectionReason: $row['rejection_reason'],
             createdAt: $row['created_at'] !== null ? new DateTimeImmutable($row['created_at']) : null,
         );
     }

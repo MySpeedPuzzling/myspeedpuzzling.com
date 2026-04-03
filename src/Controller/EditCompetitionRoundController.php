@@ -33,6 +33,10 @@ final class EditCompetitionRoundController extends AbstractController
         path: [
             'cs' => '/upravit-kolo-udalosti/{roundId}',
             'en' => '/en/edit-event-round/{roundId}',
+            'es' => '/es/edit-event-round/{roundId}',
+            'ja' => '/ja/edit-event-round/{roundId}',
+            'fr' => '/fr/edit-event-round/{roundId}',
+            'de' => '/de/edit-event-round/{roundId}',
         ],
         name: 'edit_competition_round',
     )]

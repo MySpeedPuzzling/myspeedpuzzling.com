@@ -87,3 +87,26 @@ oauth2_client_rejected:
         <p>Unfortunately, your OAuth2 application request for <strong>%clientName%</strong> was not approved.</p>
         <p><strong>Reason:</strong> %reason%</p>
         <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+competition_submitted:
+    subject: "New event submitted: %competitionName%"
+    title: "New Event Submission"
+    content: |
+        <p>A new event has been submitted for approval.</p>
+        <p><strong>Submitted by:</strong> %playerName%<br><strong>Event:</strong> %competitionName%<br><strong>Location:</strong> %location%</p>
+        <p><a href="%adminUrl%">Review pending events in admin</a></p>
+
+competition_approved:
+    subject: "Your event has been approved!"
+    title: "Your event has been approved!"
+    content: |
+        <p>Great news! Your event <strong>%competitionName%</strong> has been approved and is now publicly visible on MySpeedPuzzling.</p>
+        <p><a href="%eventUrl%">View your event page</a></p>
+
+competition_rejected:
+    subject: "Your event submission was not approved"
+    title: "Event not approved"
+    content: |
+        <p>Unfortunately, your event <strong>%competitionName%</strong> was not approved.</p>
+        <p><strong>Reason:</strong> %reason%</p>
+        <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

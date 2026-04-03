@@ -3,12 +3,19 @@
 {% block title %}{{ 'competition.edit_event'|trans }} - {{ competition.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
+
     <div class="pb-4">
         <div class="row gy-3 pb-3">
             <div class="col-lg-8">
                 <h1 class="h2">{{ 'competition.edit_event'|trans }}: {{ competition.name }}</h1>
 
-                {% if competition.approvedAt is null %}
+                {% if competition.rejectedAt is not null %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle me-2"></i>{{ 'competition.rejected_info'|trans }}
+                        <br><strong>{{ 'competition.rejection_reason'|trans }}:</strong> {{ competition.rejectionReason }}
+                    </div>
+                {% elseif competition.approvedAt is null %}
                     <div class="alert alert-warning">
                         <i class="bi bi-clock me-2"></i>{{ 'competition.pending_approval_info'|trans }}
                     </div>

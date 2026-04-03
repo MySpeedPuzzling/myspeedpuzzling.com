@@ -27,6 +27,10 @@ final class ManageRoundPuzzlesController extends AbstractController
         path: [
             'cs' => '/sprava-puzzli-kola/{roundId}',
             'en' => '/en/manage-round-puzzles/{roundId}',
+            'es' => '/es/manage-round-puzzles/{roundId}',
+            'ja' => '/ja/manage-round-puzzles/{roundId}',
+            'fr' => '/fr/manage-round-puzzles/{roundId}',
+            'de' => '/de/manage-round-puzzles/{roundId}',
         ],
         name: 'manage_round_puzzles',
     )]

@@ -1,7 +1,7 @@
 <div class="mb-3 mb-md-4 col-md-6">
     <div class="card shadow position-relative">
         {% if is_granted('COMPETITION_EDIT', event.id) %}
-            <a href="{{ path('edit_competition', {'competitionId': event.id}) }}" class="puzzle-list-dropdown" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
+            <a href="{{ path('edit_competition', {'competitionId': event.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="puzzle-list-dropdown" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
                 <i class="bi bi-pencil"></i>
             </a>
         {% endif %}
@@ -9,7 +9,7 @@
             <div class="flex-fill">
                 <h3 class="h5 mb-2">
                     {% if event.slug and event.tagId %}
-                        <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug}) }}">
+                        <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug, return: path('events'), return_title: 'events.title'|trans}) }}">
                             {{ event.name }}
                         </a>
                     {% else %}

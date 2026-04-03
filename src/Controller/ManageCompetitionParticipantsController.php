@@ -23,6 +23,10 @@ final class ManageCompetitionParticipantsController extends AbstractController
         path: [
             'cs' => '/sprava-ucastniku-udalosti/{competitionId}',
             'en' => '/en/manage-event-participants/{competitionId}',
+            'es' => '/es/manage-event-participants/{competitionId}',
+            'ja' => '/ja/manage-event-participants/{competitionId}',
+            'fr' => '/fr/manage-event-participants/{competitionId}',
+            'de' => '/de/manage-event-participants/{competitionId}',
         ],
         name: 'manage_competition_participants',
     )]

@@ -33,6 +33,10 @@ final class AddCompetitionController extends AbstractController
         path: [
             'cs' => '/pridat-udalost',
             'en' => '/en/add-event',
+            'es' => '/es/add-event',
+            'ja' => '/ja/add-event',
+            'fr' => '/fr/add-event',
+            'de' => '/de/add-event',
         ],
         name: 'add_competition',
     )]

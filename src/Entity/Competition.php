@@ -64,6 +64,12 @@ class Competition
         public null|DateTimeImmutable $approvedAt = null,
         #[ManyToOne]
         public null|Player $approvedByPlayer = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $rejectedAt = null,
+        #[ManyToOne]
+        public null|Player $rejectedByPlayer = null,
+        #[Column(type: Types::TEXT, nullable: true)]
+        public null|string $rejectionReason = null,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $createdAt = null,
@@ -82,9 +88,21 @@ class Competition
         $this->approvedByPlayer = $approvedBy;
     }
 
+    public function reject(Player $rejectedBy, DateTimeImmutable $rejectedAt, string $reason): void
+    {
+        $this->rejectedAt = $rejectedAt;
+        $this->rejectedByPlayer = $rejectedBy;
+        $this->rejectionReason = $reason;
+    }
+
     public function isApproved(): bool
     {
         return $this->approvedAt !== null;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->rejectedAt !== null;
     }
 
     public function edit(

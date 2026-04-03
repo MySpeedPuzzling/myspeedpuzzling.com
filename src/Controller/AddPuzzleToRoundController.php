@@ -36,6 +36,10 @@ final class AddPuzzleToRoundController extends AbstractController
         path: [
             'cs' => '/pridat-puzzle-do-kola/{roundId}',
             'en' => '/en/add-puzzle-to-round/{roundId}',
+            'es' => '/es/add-puzzle-to-round/{roundId}',
+            'ja' => '/ja/add-puzzle-to-round/{roundId}',
+            'fr' => '/fr/add-puzzle-to-round/{roundId}',
+            'de' => '/de/add-puzzle-to-round/{roundId}',
         ],
         name: 'add_puzzle_to_round',
     )]

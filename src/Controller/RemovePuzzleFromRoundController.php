@@ -28,6 +28,10 @@ final class RemovePuzzleFromRoundController extends AbstractController
         path: [
             'cs' => '/odebrat-puzzle-z-kola/{roundPuzzleId}',
             'en' => '/en/remove-puzzle-from-round/{roundPuzzleId}',
+            'es' => '/es/remove-puzzle-from-round/{roundPuzzleId}',
+            'ja' => '/ja/remove-puzzle-from-round/{roundPuzzleId}',
+            'fr' => '/fr/remove-puzzle-from-round/{roundPuzzleId}',
+            'de' => '/de/remove-puzzle-from-round/{roundPuzzleId}',
         ],
         name: 'remove_puzzle_from_round',
         methods: ['POST'],

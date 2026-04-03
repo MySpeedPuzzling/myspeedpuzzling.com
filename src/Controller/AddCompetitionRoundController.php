@@ -32,6 +32,10 @@ final class AddCompetitionRoundController extends AbstractController
         path: [
             'cs' => '/pridat-kolo-udalosti/{competitionId}',
             'en' => '/en/add-event-round/{competitionId}',
+            'es' => '/es/add-event-round/{competitionId}',
+            'ja' => '/ja/add-event-round/{competitionId}',
+            'fr' => '/fr/add-event-round/{competitionId}',
+            'de' => '/de/add-event-round/{competitionId}',
         ],
         name: 'add_competition_round',
     )]

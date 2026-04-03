@@ -4,7 +4,7 @@ export default class extends Controller {
     async connect() {
         const [{ default: Coloris }] = await Promise.all([
             import('@melloware/coloris'),
-            import('@melloware/coloris/dist/coloris.min.css'),
+            import('@melloware/coloris/dist/coloris.css'),
         ]);
 
         Coloris.init();

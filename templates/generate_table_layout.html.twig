@@ -3,15 +3,11 @@
 {% block title %}{{ 'competition.tables.generate_layout'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_round_tables', {roundId: round.id}), fallbackTitle: 'competition.tables.manage_tables'|trans}) }}
+
     <div class="pb-4">
         <h1 class="h2">{{ 'competition.tables.generate_layout'|trans }}</h1>
         <p class="text-muted">{{ competition.name }} - {{ round.name }}</p>
-
-        <div class="mb-3">
-            <a href="{{ path('manage_round_tables', {'roundId': round.id}) }}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.tables.back_to_tables'|trans }}
-            </a>
-        </div>
 
         <div class="alert alert-info">
             <i class="bi bi-info-circle me-1"></i>{{ 'competition.tables.generate_info'|trans }}

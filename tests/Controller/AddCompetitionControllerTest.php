@@ -27,4 +27,52 @@ final class AddCompetitionControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
     }
+
+    public function testSubmitWithOnlyRequiredFields(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/add-event');
+        $this->assertResponseIsSuccessful();
+
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Test Puzzle Event',
+            'competition_form[isOnline]' => '0',
+            'competition_form[location]' => 'Prague',
+            'competition_form[dateFrom]' => '15.06.2026',
+            'competition_form[dateTo]' => '17.06.2026',
+        ]);
+
+        $this->assertResponseRedirects();
+        $browser->followRedirect();
+        $this->assertResponseIsSuccessful();
+    }
+
+    public function testSubmitWithAllFields(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/add-event');
+        $this->assertResponseIsSuccessful();
+
+        $browser->submitForm('Submit for Approval', [
+            'competition_form[name]' => 'Full Puzzle Championship',
+            'competition_form[shortcut]' => 'FPC',
+            'competition_form[description]' => 'A test competition with all fields filled.',
+            'competition_form[location]' => 'Prague',
+            'competition_form[dateFrom]' => '15.06.2026',
+            'competition_form[dateTo]' => '17.06.2026',
+            'competition_form[link]' => 'https://example.com',
+            'competition_form[registrationLink]' => 'https://example.com/register',
+            'competition_form[resultsLink]' => 'https://example.com/results',
+            'competition_form[isOnline]' => '1',
+            'competition_form[isRecurring]' => true,
+        ]);
+
+        $this->assertResponseRedirects();
+        $browser->followRedirect();
+        $this->assertResponseIsSuccessful();
+    }
 }

@@ -3,15 +3,14 @@
 {% block title %}{{ 'competition.tables.manage_tables'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans}) }}
+
     <div class="pb-4">
         <h1 class="h2">{{ round.name }}</h1>
         <p class="text-muted">{{ competition.name }}</p>
 
         <div class="mb-3">
-            <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
-                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.back_to_rounds'|trans }}
-            </a>
-            <a href="{{ path('generate_table_layout', {'roundId': round.id}) }}" class="btn btn-outline-primary me-2">
+            <a href="{{ path('generate_table_layout', {'roundId': round.id, return: path('manage_round_tables', {roundId: round.id}), return_title: 'competition.tables.manage_tables'|trans}) }}" class="btn btn-outline-primary me-2">
                 <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.generate_layout'|trans }}
             </a>
             <a href="{{ path('print_round_tables', {'roundId': round.id}) }}" class="btn btn-outline-secondary" target="_blank">

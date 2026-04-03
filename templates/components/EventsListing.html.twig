@@ -1,0 +1,62 @@
+<div {{ attributes }}>
+    <div class="row g-2 align-items-end mb-3">
+        <div class="col-6 col-md-3">
+            <label class="form-label form-label-sm mb-0"><small>{{ 'events.filter.time_period'|trans }}</small></label>
+            <select data-model="timePeriod" class="form-select form-select-sm">
+                <option value="all" {{ this.timePeriod == 'all' ? 'selected' }}>{{ 'events.filter.all'|trans }}</option>
+                <option value="live" {{ this.timePeriod == 'live' ? 'selected' }}>{{ 'events.filter.live'|trans }}</option>
+                <option value="upcoming" {{ this.timePeriod == 'upcoming' ? 'selected' }}>{{ 'events.filter.upcoming'|trans }}</option>
+                <option value="past" {{ this.timePeriod == 'past' ? 'selected' }}>{{ 'events.filter.past'|trans }}</option>
+            </select>
+        </div>
+
+        <div class="col-6 col-md-3 country-select-wrapper" data-live-ignore>
+            <label class="form-label form-label-sm mb-0"><small>{{ 'events.filter.country'|trans }}</small></label>
+            <select
+                data-model="on(change)|country"
+                data-controller="country-select"
+                class="form-select form-select-sm"
+            >
+                <option value="">{{ 'events.filter.all_countries'|trans }}</option>
+                {% for regionName, countries in this.countryChoicesGroupedByRegion %}
+                    <optgroup label="{{ regionName }}">
+                        {% for code, name in countries %}
+                            <option value="{{ code }}" data-icon="fi fi-{{ code }}" {{ this.country == code ? 'selected' }}>{{ name }}</option>
+                        {% endfor %}
+                    </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-auto d-flex align-items-center">
+            <div class="form-check mb-0">
+                <input
+                    type="checkbox"
+                    data-model="onlineOnly"
+                    class="form-check-input"
+                    id="eventsOnlineOnly"
+                    {{ this.onlineOnly ? 'checked' }}
+                >
+                <label class="form-check-label small" for="eventsOnlineOnly">{{ 'events.filter.online_only'|trans }}</label>
+            </div>
+        </div>
+
+        <div class="col-auto d-flex align-items-center ms-auto">
+            <span class="spinner-border spinner-border-sm text-primary invisible" data-loading="removeClass(invisible)"></span>
+        </div>
+    </div>
+
+    {% set items = this.items %}
+
+    {% if items is empty %}
+        <div class="text-center text-muted py-4">
+            {{ 'events.no_results'|trans }}
+        </div>
+    {% else %}
+        <div class="row">
+            {% for event in items %}
+                {{ include('_competition_event.html.twig') }}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

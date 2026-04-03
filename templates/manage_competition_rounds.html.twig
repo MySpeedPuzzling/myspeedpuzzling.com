@@ -3,14 +3,16 @@
 {% block title %}{{ 'competition.manage_rounds'|trans }} - {{ competition.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
     <div class="pb-4">
         <h1 class="h2">{{ competition.name }}</h1>
 
+        {% set roundsReturnUrl = path('manage_competition_rounds', {competitionId: competition.id}) %}
+        {% set roundsReturnTitle = competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans %}
+
         <div class="mb-3">
-            <a href="{{ path('edit_competition', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
-                <i class="bi bi-arrow-left me-1"></i>{{ 'competition.back_to_edit'|trans }}
-            </a>
-            <a href="{{ path('add_competition_round', {'competitionId': competition.id}) }}" class="btn btn-primary">
+            <a href="{{ path('add_competition_round', {'competitionId': competition.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ competition.isRecurring ? 'competition.add_edition'|trans : 'competition.add_round'|trans }}
             </a>
         </div>
@@ -52,18 +54,20 @@
                                 <td>{{ round.minutesLimit }} min</td>
                                 <td>{{ round.puzzleCount }}</td>
                                 <td class="text-end">
-                                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
                                         <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
                                     </a>
-                                    {% if not competition.isOnline %}
-                                        <a href="{{ path('manage_round_tables', {'roundId': round.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
-                                            <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.tables'|trans }}
+                                    {% if is_granted('ADMIN_ACCESS') %}
+                                        {% if not competition.isOnline %}
+                                            <a href="{{ path('manage_round_tables', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
+                                                <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.tables'|trans }}
+                                            </a>
+                                        {% endif %}
+                                        <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
                                         </a>
                                     {% endif %}
-                                    <a href="{{ path('round_stopwatch', {'roundId': round.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
-                                        <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
-                                    </a>
-                                    <a href="{{ path('edit_competition_round', {'roundId': round.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                    <a href="{{ path('edit_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_delete_round'|trans }}')">

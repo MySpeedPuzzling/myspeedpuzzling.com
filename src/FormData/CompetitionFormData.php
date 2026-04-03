@@ -8,7 +8,9 @@ use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\Competition;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
+#[Assert\Callback('validateOfflineFields')]
 final class CompetitionFormData
 {
     public function __construct(
@@ -22,17 +24,42 @@ final class CompetitionFormData
         public null|string $registrationLink = null,
         #[Assert\Url]
         public null|string $resultsLink = null,
-        #[Assert\NotBlank]
         public null|string $location = null,
         public null|string $locationCountryCode = null,
         public null|DateTimeImmutable $dateFrom = null,
         public null|DateTimeImmutable $dateTo = null,
-        public bool $isOnline = false,
+        #[Assert\NotNull]
+        public null|bool $isOnline = null,
         public bool $isRecurring = false,
         public null|UploadedFile $logo = null,
         /** @var array<string> */
         public array $maintainers = [],
     ) {
+    }
+
+    public function validateOfflineFields(ExecutionContextInterface $context): void
+    {
+        if ($this->isOnline !== false) {
+            return;
+        }
+
+        if ($this->location === null || $this->location === '') {
+            $context->buildViolation('This value should not be blank.')
+                ->atPath('location')
+                ->addViolation();
+        }
+
+        if ($this->dateFrom === null) {
+            $context->buildViolation('This value should not be blank.')
+                ->atPath('dateFrom')
+                ->addViolation();
+        }
+
+        if ($this->dateTo === null) {
+            $context->buildViolation('This value should not be blank.')
+                ->atPath('dateTo')
+                ->addViolation();
+        }
     }
 
     public static function fromCompetition(Competition $competition): self

@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormType;
 
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
+use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -15,7 +19,6 @@ use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -26,7 +29,8 @@ final class CompetitionFormType extends AbstractType
 {
     public function __construct(
         private readonly TranslatorInterface $translator,
-        private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly Connection $database,
+        private readonly ImageThumbnailTwigExtension $imageThumbnail,
     ) {
     }
 
@@ -65,6 +69,7 @@ final class CompetitionFormType extends AbstractType
 
         $builder->add('location', TextType::class, [
             'label' => 'competition.form.location',
+            'required' => false,
         ]);
 
         $allCountries = [];
@@ -98,24 +103,41 @@ final class CompetitionFormType extends AbstractType
             'choices' => $countries,
             'required' => false,
             'placeholder' => 'competition.form.country_placeholder',
+            'autocomplete' => true,
+            'choice_attr' => static function (string $countryCode): array {
+                return ['data-icon' => 'fi fi-' . $countryCode];
+            },
         ]);
 
         $builder->add('dateFrom', DateType::class, [
             'label' => 'competition.form.date_from',
-            'widget' => 'single_text',
             'required' => false,
+            'widget' => 'single_text',
+            'format' => 'dd.MM.yyyy',
+            'html5' => false,
+            'input' => 'datetime_immutable',
+            'input_format' => 'd.m.Y',
             'help' => 'competition.form.dates_help',
         ]);
 
         $builder->add('dateTo', DateType::class, [
             'label' => 'competition.form.date_to',
-            'widget' => 'single_text',
             'required' => false,
+            'widget' => 'single_text',
+            'format' => 'dd.MM.yyyy',
+            'html5' => false,
+            'input' => 'datetime_immutable',
+            'input_format' => 'd.m.Y',
         ]);
 
-        $builder->add('isOnline', CheckboxType::class, [
-            'label' => 'competition.form.is_online',
-            'required' => false,
+        $builder->add('isOnline', ChoiceType::class, [
+            'label' => 'competition.form.event_type',
+            'choices' => [
+                'competition.form.event_type_offline' => false,
+                'competition.form.event_type_online' => true,
+            ],
+            'expanded' => true,
+            'placeholder' => false,
         ]);
 
         $builder->add('isRecurring', CheckboxType::class, [
@@ -139,8 +161,25 @@ final class CompetitionFormType extends AbstractType
         $data = $builder->getData();
 
         $maintainerChoices = [];
-        foreach ($data->maintainers as $playerId) {
-            $maintainerChoices[$playerId] = $playerId;
+        if ($data->maintainers !== []) {
+            $rows = $this->database->executeQuery(
+                'SELECT id, name, code, country, avatar FROM player WHERE id IN (?)',
+                [$data->maintainers],
+                [ArrayParameterType::STRING],
+            )->fetchAllAssociative();
+
+            foreach ($rows as $row) {
+                /** @var array{id: string, name: null|string, code: string, country: null|string, avatar: null|string} $row */
+                $maintainerChoices[] = [
+                    'value' => $row['id'],
+                    'text' => $this->buildPlayerOptionHtml(
+                        $row['name'] ?? $row['code'],
+                        $row['code'],
+                        $row['country'],
+                        $row['avatar'],
+                    ),
+                ];
+            }
         }
 
         $builder->add('maintainers', TextType::class, [
@@ -148,7 +187,6 @@ final class CompetitionFormType extends AbstractType
             'help' => 'competition.form.maintainers_help',
             'required' => false,
             'autocomplete' => true,
-            'options_as_html' => true,
             'tom_select_options' => [
                 'create' => false,
                 'persist' => false,
@@ -156,10 +194,24 @@ final class CompetitionFormType extends AbstractType
                 'options' => $maintainerChoices,
                 'closeAfterSelect' => true,
             ],
-            'attr' => [
-                'data-fetch-url' => $this->urlGenerator->generate('player_search_autocomplete', ['_locale' => 'en']),
-            ],
         ]);
+
+        $builder->get('maintainers')->addModelTransformer(new CallbackTransformer(
+            function (null|array $value): string {
+                if ($value === null || $value === []) {
+                    return '';
+                }
+
+                return implode(',', $value);
+            },
+            function (null|string $value): array {
+                if ($value === null || $value === '') {
+                    return [];
+                }
+
+                return array_filter(explode(',', $value));
+            },
+        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -167,5 +219,34 @@ final class CompetitionFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => CompetitionFormData::class,
         ]);
+    }
+
+    private function buildPlayerOptionHtml(
+        string $name,
+        string $code,
+        null|string $country,
+        null|string $avatar,
+    ): string {
+        $name = htmlspecialchars($name);
+        $code = htmlspecialchars($code);
+
+        if ($avatar !== null) {
+            $avatarUrl = htmlspecialchars($this->imageThumbnail->thumbnailUrl($avatar, 'puzzle_small'));
+            $avatarHtml = <<<HTML
+<img alt="" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;" src="{$avatarUrl}">
+HTML;
+        } else {
+            $avatarHtml = '<i class="ci-user me-2"></i>';
+        }
+
+        $flagHtml = '';
+        $countryCode = CountryCode::fromCode($country);
+        if ($countryCode !== null) {
+            $flagHtml = '<span class="shadow-custom fi fi-' . $countryCode->name . ' me-1"></span> ';
+        }
+
+        return <<<HTML
+<div class="d-flex align-items-center">{$avatarHtml}{$flagHtml}<span>{$name}</span><small class="text-muted ms-1">#{$code}</small></div>
+HTML;
     }
 }

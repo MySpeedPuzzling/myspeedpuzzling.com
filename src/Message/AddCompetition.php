@@ -22,7 +22,7 @@ readonly final class AddCompetition
         public null|string $link,
         public null|string $registrationLink,
         public null|string $resultsLink,
-        public string $location,
+        public null|string $location,
         public null|string $locationCountryCode,
         public null|DateTimeImmutable $dateFrom,
         public null|DateTimeImmutable $dateTo,

@@ -440,6 +440,17 @@ events:
     past_editions: "Past editions"
     edition_date: "Date"
     no_editions_yet: "No editions yet."
+    filter:
+        filters: "Filters"
+        time_period: "Time period"
+        all: "All"
+        upcoming: "Upcoming"
+        live: "Live"
+        past: "Past"
+        online_only: "Online only"
+        country: "Country"
+        all_countries: "All countries"
+    no_results: "No events found."
 
 
 for_developers:
@@ -2415,6 +2426,7 @@ competition:
     online: "Online"
     recurring: "Recurring"
     add_event_info: "Add a new competition or event. It will be reviewed by an admin before being published."
+    managed_event_info: "Interested in fully managing participant registrations and payments through MySpeedPuzzling? Contact me at <a href=\"mailto:%email%\">%email%</a>."
     submit_for_approval: "Submit for Approval"
     save_changes: "Save Changes"
     manage_rounds: "Manage Rounds"
@@ -2438,7 +2450,7 @@ competition:
     confirm_delete_round: "Are you sure you want to delete this round?"
     confirm_remove_puzzle: "Are you sure you want to remove this puzzle from this round?"
     hidden_until_start: "Hidden until start"
-    participants_coming_soon: "Participant management will be added soon."
+    participants_coming_soon: "Participant management is expected to be ready by %date%."
     round:
         name: "Name"
         starts_at: "Starts at"
@@ -2448,6 +2460,10 @@ competition:
             name: "Round name"
             minutes_limit: "Time limit (minutes)"
             starts_at: "Start date and time"
+            starts_at_time: "Start time"
+            date: "Date"
+            timezone: "Timezone"
+            timezone_help: "Times will be displayed in this timezone."
             badge_background_color: "Badge color"
             badge_text_color: "Badge text color"
     puzzle:
@@ -2469,12 +2485,14 @@ competition:
         date_from: "Start date"
         date_to: "End date"
         dates_help: "For regular online events, leave dates empty"
-        is_online: "This is an online event"
+        event_type: "Event type"
+        event_type_offline: "Offline event"
+        event_type_online: "Online event"
         is_recurring: "This is a recurring event"
         is_recurring_help: "Check this for events that happen regularly (e.g. monthly, weekly). Each occurrence will be managed as a separate edition."
         logo: "Logo"
         maintainers: "Maintainers"
-        maintainers_help: "Other users who can manage this event"
+        maintainers_help: "Start typing a player name to search. Selected users will be able to manage this event."
     round_puzzle:
         form:
             hide_until_round_starts: "Do not reveal until round starts"

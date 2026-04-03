@@ -3,6 +3,14 @@
 // --------------------------------------------------
 
 
+// Required field indicator
+
+.required > label::after,
+.required > .form-label::after {
+  content: ' *';
+  color: $danger;
+}
+
 // Label for use with horizontal and inline forms
 
 .col-form-label {

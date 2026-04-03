@@ -11,7 +11,7 @@
                 <i class="bi bi-arrow-left me-1"></i>{{ 'competition.back_to_edit'|trans }}
             </a>
             <a href="{{ path('add_competition_round', {'competitionId': competition.id}) }}" class="btn btn-primary">
-                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_round'|trans }}
+                <i class="bi bi-plus-lg me-1"></i>{{ competition.isRecurring ? 'competition.add_edition'|trans : 'competition.add_round'|trans }}
             </a>
         </div>
 
@@ -22,7 +22,7 @@
             </div>
         {% endfor %}
 
-        <h2 class="h4 mt-4">{{ 'competition.rounds'|trans }}</h2>
+        <h2 class="h4 mt-4">{{ competition.isRecurring ? 'competition.editions'|trans : 'competition.rounds'|trans }}</h2>
 
         {% if rounds|length > 0 %}
             <div class="table-responsive">
@@ -79,7 +79,7 @@
                 </table>
             </div>
         {% else %}
-            <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
+            <p class="text-muted">{{ competition.isRecurring ? 'competition.no_editions'|trans : 'competition.no_rounds'|trans }}</p>
         {% endif %}
     </div>
 {% endblock %}

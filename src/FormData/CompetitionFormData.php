@@ -28,6 +28,7 @@ final class CompetitionFormData
         public null|DateTimeImmutable $dateFrom = null,
         public null|DateTimeImmutable $dateTo = null,
         public bool $isOnline = false,
+        public bool $isRecurring = false,
         public null|UploadedFile $logo = null,
         /** @var array<string> */
         public array $maintainers = [],
@@ -48,6 +49,7 @@ final class CompetitionFormData
         $data->dateFrom = $competition->dateFrom;
         $data->dateTo = $competition->dateTo;
         $data->isOnline = $competition->isOnline;
+        $data->isRecurring = $competition->isRecurring;
 
         $maintainerIds = [];
         foreach ($competition->maintainers as $maintainer) {

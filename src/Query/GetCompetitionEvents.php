@@ -52,6 +52,7 @@ readonly final class GetCompetitionEvents
 SELECT *
 FROM competition
 WHERE approved_at IS NOT NULL
+    AND NOT is_recurring
     AND (COALESCE(date_to, date_from)::date < :date::date
     OR date_from IS NULL)
 ORDER BY date_from DESC;
@@ -79,6 +80,7 @@ SQL;
 SELECT *
 FROM competition
 WHERE approved_at IS NOT NULL
+    AND NOT is_recurring
     AND COALESCE(date_from, date_to)::date > :date::date
 ORDER BY date_from;
 SQL;
@@ -105,6 +107,7 @@ SQL;
 SELECT *
 FROM competition
 WHERE approved_at IS NOT NULL
+    AND NOT is_recurring
     AND :date::date
       BETWEEN COALESCE(date_from, date_to)::date
           AND COALESCE(date_to, date_from)::date;
@@ -132,6 +135,29 @@ SQL;
 SELECT *
 FROM competition
 ORDER BY date_from DESC;
+SQL;
+
+        $data = $this->database
+            ->executeQuery($query)
+            ->fetchAllAssociative();
+
+        return array_map(static function (array $row): CompetitionEvent {
+            /** @var CompetitionEventDatabaseRow $row */
+            return CompetitionEvent::fromDatabaseRow($row);
+        }, $data);
+    }
+
+    /**
+     * @return array<CompetitionEvent>
+     */
+    public function allRecurring(): array
+    {
+        $query = <<<SQL
+SELECT *
+FROM competition
+WHERE approved_at IS NOT NULL
+    AND is_recurring
+ORDER BY name;
 SQL;
 
         $data = $this->database

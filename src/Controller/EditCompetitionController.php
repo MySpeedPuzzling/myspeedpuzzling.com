@@ -67,6 +67,7 @@ final class EditCompetitionController extends AbstractController
                 dateFrom: $data->dateFrom,
                 dateTo: $data->dateTo,
                 isOnline: $data->isOnline,
+                isRecurring: $data->isRecurring,
                 logo: $data->logo,
                 maintainerIds: $data->maintainers,
             ));

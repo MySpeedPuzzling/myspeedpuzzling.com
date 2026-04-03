@@ -23,7 +23,7 @@
 
                 <div class="mb-3">
                     <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary me-2">
-                        <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
+                        <i class="bi bi-list-ol me-1"></i>{{ competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans }}
                     </a>
                     <a href="{{ path('manage_competition_participants', {'competitionId': competition.id}) }}" class="btn btn-outline-secondary">
                         <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}

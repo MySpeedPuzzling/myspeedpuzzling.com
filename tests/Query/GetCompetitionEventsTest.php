@@ -44,4 +44,24 @@ final class GetCompetitionEventsTest extends KernelTestCase
         $ids = array_map(static fn($c) => $c->id, $unapproved);
         self::assertNotContains(CompetitionFixture::COMPETITION_UNAPPROVED, $ids);
     }
+
+    public function testRecurringEventsExcludedFromUpcomingAndPast(): void
+    {
+        $upcoming = $this->query->allUpcoming();
+        $past = $this->query->allPast();
+
+        $upcomingIds = array_map(static fn($c) => $c->id, $upcoming);
+        $pastIds = array_map(static fn($c) => $c->id, $past);
+
+        self::assertNotContains(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $upcomingIds);
+        self::assertNotContains(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $pastIds);
+    }
+
+    public function testRecurringEventsReturnedByAllRecurring(): void
+    {
+        $recurring = $this->query->allRecurring();
+
+        $ids = array_map(static fn($c) => $c->id, $recurring);
+        self::assertContains(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $ids);
+    }
 }

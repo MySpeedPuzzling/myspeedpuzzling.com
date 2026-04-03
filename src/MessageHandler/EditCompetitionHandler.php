@@ -67,6 +67,7 @@ readonly final class EditCompetitionHandler
             dateFrom: $message->dateFrom,
             dateTo: $message->dateTo,
             isOnline: $message->isOnline,
+            isRecurring: $message->isRecurring,
         );
 
         // Sync maintainers

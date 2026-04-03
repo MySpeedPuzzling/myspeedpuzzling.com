@@ -41,6 +41,7 @@ final class EventsController extends AbstractController
         return $this->render('events.html.twig', [
             'live_events' => $this->getCompetitionEvents->allLive(),
             'upcoming_events' => $this->getCompetitionEvents->allUpcoming(),
+            'recurring_events' => $this->getCompetitionEvents->allRecurring(),
             'past_events' => $this->getCompetitionEvents->allPast(),
             'player_competitions' => $playerCompetitions,
         ]);

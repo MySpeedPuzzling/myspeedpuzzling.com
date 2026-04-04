@@ -91,7 +91,6 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             slug: 'euro-jigsaw-jam',
             description: 'Monthly online jigsaw puzzle competition',
             isOnline: true,
-            isRecurring: true,
             approvedAt: $this->clock->now(),
         );
         $manager->persist($recurringOnlineCompetition);
@@ -122,7 +121,6 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
         null|string $registrationLink = null,
         null|string $resultsLink = null,
         bool $isOnline = false,
-        bool $isRecurring = false,
         null|DateTimeImmutable $approvedAt = null,
         null|Player $addedByPlayer = null,
         null|DateTimeImmutable $createdAt = null,
@@ -146,7 +144,6 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             dateTo: $dateTo,
             tag: $tag,
             isOnline: $isOnline,
-            isRecurring: $isRecurring,
             approvedAt: $approvedAt,
             addedByPlayer: $addedByPlayer,
             createdAt: $createdAt,

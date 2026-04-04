@@ -90,23 +90,23 @@ readonly final class UpdateCompetitionParticipantHandler
             return;
         }
 
-        // Look for existing CompetitionParticipantRound
+        // Check if participant is already linked to this specific round
         $queryBuilder = $this->entityManager->createQueryBuilder();
         $existingParticipantRound = $queryBuilder
             ->select('cpr')
             ->from(CompetitionParticipantRound::class, 'cpr')
             ->where('cpr.participant = :participant')
+            ->andWhere('cpr.round = :round')
             ->setParameter('participant', $participant)
+            ->setParameter('round', $competitionRound)
             ->getQuery()
             ->getOneOrNullResult();
 
-        if ($existingParticipantRound instanceof CompetitionParticipantRound) {
-            $existingParticipantRound->changeRound($competitionRound);
-        } else {
+        if ($existingParticipantRound === null) {
             $participantRound = new CompetitionParticipantRound(
                 Uuid::uuid7(),
                 $participant,
-                $competitionRound
+                $competitionRound,
             );
 
             $this->entityManager->persist($participantRound);

@@ -58,32 +58,17 @@ readonly final class GetCompetitionEvents
         WITH event_classified AS (
             SELECT c.*,
                 CASE
-                    WHEN NOT c.is_recurring
-                        AND c.date_from IS NOT NULL
+                    WHEN c.date_from IS NOT NULL
                         AND :date::date BETWEEN COALESCE(c.date_from, c.date_to)::date AND COALESCE(c.date_to, c.date_from)::date
                         THEN 'live'
-                    WHEN NOT c.is_recurring
-                        AND COALESCE(c.date_from, c.date_to)::date > :date::date
-                        THEN 'upcoming'
-                    WHEN NOT c.is_recurring
-                        THEN 'past'
-                    WHEN c.is_recurring
-                        AND EXISTS (SELECT 1 FROM competition_round cr WHERE cr.competition_id = c.id AND cr.starts_at::date = :date::date)
-                        THEN 'live'
-                    WHEN c.is_recurring
-                        AND EXISTS (SELECT 1 FROM competition_round cr WHERE cr.competition_id = c.id AND cr.starts_at::date > :date::date)
+                    WHEN COALESCE(c.date_from, c.date_to)::date > :date::date
                         THEN 'upcoming'
                     ELSE 'past'
                 END AS event_status,
-                CASE
-                    WHEN NOT c.is_recurring THEN COALESCE(c.date_from, c.date_to)
-                    ELSE COALESCE(
-                        (SELECT MIN(cr.starts_at) FROM competition_round cr WHERE cr.competition_id = c.id AND cr.starts_at::date >= :date::date),
-                        (SELECT MAX(cr.starts_at) FROM competition_round cr WHERE cr.competition_id = c.id)
-                    )
-                END AS sort_date
+                COALESCE(c.date_from, c.date_to) AS sort_date
             FROM competition c
             WHERE c.approved_at IS NOT NULL
+                AND c.series_id IS NULL
         )
         SQL;
 
@@ -137,7 +122,7 @@ readonly final class GetCompetitionEvents
 SELECT *
 FROM competition
 WHERE approved_at IS NOT NULL
-    AND NOT is_recurring
+    AND series_id IS NULL
     AND (COALESCE(date_to, date_from)::date < :date::date
     OR date_from IS NULL)
 ORDER BY date_from DESC;
@@ -165,7 +150,7 @@ SQL;
 SELECT *
 FROM competition
 WHERE approved_at IS NOT NULL
-    AND NOT is_recurring
+    AND series_id IS NULL
     AND COALESCE(date_from, date_to)::date > :date::date
 ORDER BY date_from;
 SQL;
@@ -192,7 +177,7 @@ SQL;
 SELECT *
 FROM competition
 WHERE approved_at IS NOT NULL
-    AND NOT is_recurring
+    AND series_id IS NULL
     AND :date::date
       BETWEEN COALESCE(date_from, date_to)::date
           AND COALESCE(date_to, date_from)::date;
@@ -220,29 +205,6 @@ SQL;
 SELECT *
 FROM competition
 ORDER BY date_from DESC;
-SQL;
-
-        $data = $this->database
-            ->executeQuery($query)
-            ->fetchAllAssociative();
-
-        return array_map(static function (array $row): CompetitionEvent {
-            /** @var CompetitionEventDatabaseRow $row */
-            return CompetitionEvent::fromDatabaseRow($row);
-        }, $data);
-    }
-
-    /**
-     * @return array<CompetitionEvent>
-     */
-    public function allRecurring(): array
-    {
-        $query = <<<SQL
-SELECT *
-FROM competition
-WHERE approved_at IS NOT NULL
-    AND is_recurring
-ORDER BY name;
 SQL;
 
         $data = $this->database
@@ -286,8 +248,9 @@ SQL;
         $query = <<<SQL
 SELECT c.*
 FROM competition c
-WHERE c.added_by_player_id = :playerId
-   OR c.id IN (SELECT competition_id FROM competition_maintainer WHERE player_id = :playerId)
+WHERE c.series_id IS NULL
+   AND (c.added_by_player_id = :playerId
+       OR c.id IN (SELECT competition_id FROM competition_maintainer WHERE player_id = :playerId))
 ORDER BY c.created_at DESC NULLS LAST, c.date_from DESC;
 SQL;
 

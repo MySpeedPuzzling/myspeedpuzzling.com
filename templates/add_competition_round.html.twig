@@ -3,7 +3,7 @@
 {% block title %}{{ 'competition.add_round'|trans }} - {{ competition.name }}{% endblock %}
 
 {% block content %}
-    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
 
     <div class="pb-4">
         <div class="row gy-3 pb-3">

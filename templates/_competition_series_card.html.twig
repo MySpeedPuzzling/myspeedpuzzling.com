@@ -1,0 +1,51 @@
+<div class="mb-3 mb-md-4 col-md-6">
+    <div class="card shadow position-relative">
+        {% if is_granted('COMPETITION_SERIES_EDIT', series_item.id) %}
+            <a href="{{ path('manage_competition_series', {'seriesId': series_item.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
+                <i class="bi bi-pencil"></i>
+            </a>
+        {% endif %}
+        <div class="card-body d-flex w-100 p-3">
+            <div class="flex-fill">
+                <h3 class="h5 mb-2">
+                    {% if series_item.slug %}
+                        <a class="text-decoration-underline" href="{{ path('competition_series_detail', {'slug': series_item.slug}) }}">
+                            {{ series_item.name }}
+                        </a>
+                    {% else %}
+                        {{ series_item.name }}
+                    {% endif %}
+                    {% if series_item.isOnline %}
+                        <span class="badge bg-info text-dark ms-1">{{ 'competition.online'|trans }}</span>
+                    {% endif %}
+                    <span class="badge bg-secondary ms-1">{{ 'competition.recurring'|trans }}</span>
+                </h3>
+
+                <div class="row">
+                    <div class="col-sm-6">
+                        {% if not series_item.isOnline %}
+                            {% if series_item.locationCountryCode %}
+                                <span class="shadow-custom fi fi-{{ series_item.locationCountryCode.name }} me-2"></span>
+                            {% endif %}
+                            {{ series_item.location }}
+                        {% endif %}
+                    </div>
+
+                    {% if series_item.link %}
+                        <div class="col-sm-6 mt-2 mt-sm-0">
+                            <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ series_item.link }}">
+                                <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="ms-3 flex-shrink-0 event-image">
+                {% if series_item.logo %}
+                    <img style="max-height: 84px;" src="{{ series_item.logo|thumbnail('puzzle_small') }}" alt="{{ series_item.name }} logo" class="img-fluid">
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

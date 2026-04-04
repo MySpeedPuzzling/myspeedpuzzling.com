@@ -63,92 +63,18 @@
         </div>
     </div>
 
-    {% if event.isRecurring %}
-        {% if upcoming_editions|length > 0 %}
-            <h2 class="h5 mt-4 mb-3">{{ 'events.upcoming_editions'|trans }}</h2>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>{{ 'competition.round.name'|trans }}</th>
-                            <th>{{ 'events.edition_date'|trans }}</th>
-                            <th>{{ 'competition.round.minutes_limit'|trans }}</th>
-                            <th>{{ 'competition.round.puzzles'|trans }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for edition in upcoming_editions %}
-                            <tr>
-                                <td>
-                                    {% if edition.badgeBackgroundColor %}
-                                        <span class="badge" style="background-color: {{ edition.badgeBackgroundColor }}; color: {{ edition.badgeTextColor ?? '#000' }}">
-                                            {{ edition.name }}
-                                        </span>
-                                    {% else %}
-                                        {{ edition.name }}
-                                    {% endif %}
-                                </td>
-                                <td>{{ edition.startsAt|date('d.m.Y H:i') }}</td>
-                                <td>{{ edition.minutesLimit }} min</td>
-                                <td>{{ edition.puzzleCount }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
+    <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
 
-        {% if past_editions|length > 0 %}
-            <h2 class="h5 mt-4 mb-3">{{ 'events.past_editions'|trans }}</h2>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>{{ 'competition.round.name'|trans }}</th>
-                            <th>{{ 'events.edition_date'|trans }}</th>
-                            <th>{{ 'competition.round.minutes_limit'|trans }}</th>
-                            <th>{{ 'competition.round.puzzles'|trans }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for edition in past_editions %}
-                            <tr>
-                                <td>
-                                    {% if edition.badgeBackgroundColor %}
-                                        <span class="badge" style="background-color: {{ edition.badgeBackgroundColor }}; color: {{ edition.badgeTextColor ?? '#000' }}">
-                                            {{ edition.name }}
-                                        </span>
-                                    {% else %}
-                                        {{ edition.name }}
-                                    {% endif %}
-                                </td>
-                                <td>{{ edition.startsAt|date('d.m.Y H:i') }}</td>
-                                <td>{{ edition.minutesLimit }} min</td>
-                                <td>{{ edition.puzzleCount }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% endif %}
-
-        {% if upcoming_editions|length == 0 and past_editions|length == 0 %}
-            <p class="text-muted mt-4">{{ 'events.no_editions_yet'|trans }}</p>
-        {% endif %}
+    {% if puzzles|length > 0 %}
+        <div class="row g-2 g-md-3">
+            {% for puzzle in puzzles %}
+                {{ include('_puzzle_item.html.twig', {
+                    'search': '',
+                }) }}
+            {% endfor %}
+        </div>
     {% else %}
-        <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
-
-        {% if puzzles|length > 0 %}
-            <div class="row g-2 g-md-3">
-                {% for puzzle in puzzles %}
-                    {{ include('_puzzle_item.html.twig', {
-                        'search': '',
-                    }) }}
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
-        {% endif %}
+        <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
     {% endif %}
 
     <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />

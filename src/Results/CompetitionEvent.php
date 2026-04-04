@@ -24,7 +24,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     slug: null|string,
  *     tag_id: null|string,
  *     is_online: bool|string,
- *     is_recurring: bool|string,
+ *     series_id: null|string,
  *     added_by_player_id: null|string,
  *     approved_at: null|string,
  *     rejected_at: null|string,
@@ -56,7 +56,6 @@ readonly final class CompetitionEvent
         public null|string $slug,
         public null|string $tagId,
         public bool $isOnline,
-        public bool $isRecurring,
         public null|string $addedByPlayerId,
         public null|DateTimeImmutable $approvedAt,
         public null|DateTimeImmutable $rejectedAt,
@@ -79,11 +78,6 @@ readonly final class CompetitionEvent
             $isOnline = $isOnline === 't' || $isOnline === '1' || $isOnline === 'true';
         }
 
-        $isRecurring = $row['is_recurring'];
-        if (is_string($isRecurring)) {
-            $isRecurring = $isRecurring === 't' || $isRecurring === '1' || $isRecurring === 'true';
-        }
-
         return new self(
             id: $row['id'],
             name: $row['name'],
@@ -100,7 +94,6 @@ readonly final class CompetitionEvent
             slug: $row['slug'],
             tagId: $row['tag_id'],
             isOnline: $isOnline,
-            isRecurring: $isRecurring,
             addedByPlayerId: $row['added_by_player_id'],
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,

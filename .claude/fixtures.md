@@ -166,10 +166,27 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 
 ## Competitions
 
+### Standalone Competitions
+
 | Const | Name | Location | Tag |
 |-------|------|----------|-----|
 | `COMPETITION_WJPC_2024` | WJPC 2024 | Prague, CZ | WJPC |
 | `COMPETITION_CZECH_NATIONALS_2024` | Czech National Championship 2024 | Brno, CZ | National Championship |
+| `COMPETITION_UNAPPROVED` | Unapproved Puzzle Event | Vienna, AT | none |
+| `COMPETITION_RECURRING_ONLINE` | Euro Jigsaw Jam | Online | none (legacy recurring) |
+
+### Competition Series
+
+| Const | Name | Online | Approved |
+|-------|------|--------|----------|
+| `SERIES_EJJ` | Euro Jigsaw Jam | Yes | Yes |
+
+### Series Editions (Competitions with series_id)
+
+| Const | Series | Name | Date |
+|-------|--------|------|------|
+| `EDITION_EJJ_68` | SERIES_EJJ | EJJ #68 — February 2026 | -30 days |
+| `EDITION_EJJ_69` | SERIES_EJJ | EJJ #69 — May 2026 | +30 days |
 
 ### Competition Rounds
 
@@ -178,6 +195,8 @@ Players with membership (`PLAYER_WITH_STRIPE` and `PLAYER_ADMIN`) have sell/swap
 | `ROUND_WJPC_QUALIFICATION` | WJPC 2024 | Qualification Round | 60 min | PUZZLE_500_01, PUZZLE_500_02 |
 | `ROUND_WJPC_FINAL` | WJPC 2024 | Final Round | 120 min | PUZZLE_1000_01, PUZZLE_1000_02 |
 | `ROUND_CZECH_FINAL` | Czech Nationals 2024 | Final Round | 90 min | PUZZLE_500_01 |
+| `ROUND_EJJ_68` | EDITION_EJJ_68 | EJJ #68 — February 2026 | 120 min | - |
+| `ROUND_EJJ_69` | EDITION_EJJ_69 | EJJ #69 — May 2026 | 120 min | - |
 
 ## Tags
 

@@ -67,19 +67,17 @@
                     <div class="shadow">
                         <div class="d-flex py-2">
                             <div style="width: 90px;">
-                                {% if puzzle.puzzleImage is not null%}
-                                    <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
-                                        {{ lazy_puzzle_image(
-                                            puzzle.puzzleImage,
-                                            'puzzle_small',
-                                            'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
-                                            loop.index,
-                                            90,
-                                            'rounded-2',
-                                            88
-                                        ) }}
-                                    </a>
-                                {% endif %}
+                                <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                                    {{ lazy_puzzle_image(
+                                        puzzle.puzzleImage,
+                                        'puzzle_small',
+                                        'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}),
+                                        loop.index,
+                                        90,
+                                        'rounded-2',
+                                        88
+                                    ) }}
+                                </a>
                             </div>
 
                             <div class="ps-2 flex-grow-1">

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\AutocompletePuzzle;
@@ -16,6 +17,7 @@ readonly final class SearchPuzzle
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -133,7 +135,7 @@ WITH puzzle_base AS (
     SELECT DISTINCT ON (puzzle.id)
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE puzzle.image END AS puzzle_image,
         puzzle.alternative_name AS puzzle_alternative_name,
         puzzle.pieces_count,
         puzzle.is_available,
@@ -254,6 +256,7 @@ SQL;
             'offset' => $offset,
             'useTags' => $tag !== null ? 1 : 0,
             'tag' => $tag ? [$tag] : [],
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ];
 
         $types = [
@@ -317,7 +320,7 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.ean AS puzzle_ean,
     puzzle.pieces_count,
     manufacturer.id AS manufacturer_id,
@@ -331,6 +334,7 @@ SQL;
         $rows = $this->database
             ->executeQuery($query, [
                 'eanPattern' => '%' . $eanSearch . '%',
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -346,12 +350,12 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.approved AS puzzle_approved,
     manufacturer.name AS manufacturer_name,
-    ean AS puzzle_ean,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE ean END AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number
 FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
@@ -363,6 +367,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'manufacturerId' => $brandId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

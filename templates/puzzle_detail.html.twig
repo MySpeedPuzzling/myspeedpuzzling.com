@@ -79,7 +79,7 @@
                         {% endif %}
                     </div>
 
-                    {% if puzzle.puzzleEan %}
+                    {% if puzzle.puzzleEan and not is_image_hidden %}
                         <small class="text-muted"><i class="bi-upc-scan"></i> {{ puzzle.puzzleEan }}</small>
                     {% endif %}
 

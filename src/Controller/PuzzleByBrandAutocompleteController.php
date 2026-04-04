@@ -45,16 +45,16 @@ HTML;
                 $puzzleName = $puzzle->puzzleName;
             }
 
-            $img = '';
+            $imgSrc = $puzzle->puzzleImage !== null
+                ? $this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, 'puzzle_small')
+                : '/img/placeholder-puzzle.jpg';
 
-            if ($puzzle->puzzleImage !== null) {
-                $img = <<<HTML
+            $img = <<<HTML
 <img alt="Puzzle image" class="img-fluid rounded-2"
     style="max-width: 60px; max-height: 60px;"
-    src="{$this->imageThumbnail->thumbnailUrl($puzzle->puzzleImage, 'puzzle_small')}"
+    src="{$imgSrc}"
 />
 HTML;
-            }
 
             $eanHtml = $puzzle->puzzleEan !== null
                 ? "<small class=\"text-muted ms-2\">EAN: {$puzzle->puzzleEan}</small>"

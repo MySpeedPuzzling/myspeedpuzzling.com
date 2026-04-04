@@ -4,19 +4,17 @@
             {% for solved_puzzle in solved_puzzles %}
                 <tr class="{{ solved_puzzle[0].suspicious ? 'table-warning' }}">
                     <td class="text-center" style="width: 90px;">
-                        {% if solved_puzzle[0].puzzleImage is not null%}
-                            <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
-                                {{ lazy_puzzle_image(
-                                    solved_puzzle[0].puzzleImage,
-                                    'puzzle_small',
-                                    'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}),
-                                    loop.index,
-                                    90,
-                                    'rounded-2',
-                                    60
-                                ) }}
-                            </a>
-                        {% endif %}
+                        <a href="{{ path('puzzle_detail', {puzzleId: solved_puzzle[0].puzzleId}) }}">
+                            {{ lazy_puzzle_image(
+                                solved_puzzle[0].puzzleImage,
+                                'puzzle_small',
+                                'puzzle_img_alt'|trans({'%puzzle%': solved_puzzle[0].manufacturerName ~ ' ' ~ solved_puzzle[0].puzzleName}),
+                                loop.index,
+                                90,
+                                'rounded-2',
+                                60
+                            ) }}
+                        </a>
 
                         {# Display photo of finished puzzle only to logged user #}
                         {% if logged_user.profile is not null and logged_user.profile.playerId is same as solved_puzzle[0].playerId %}

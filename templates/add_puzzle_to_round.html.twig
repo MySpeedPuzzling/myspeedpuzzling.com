@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.add_puzzle'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_round_puzzles', {roundId: round.id}), fallbackTitle: 'competition.manage_puzzles'|trans}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'competition.add_puzzle'|trans }}</h1>
+                <p class="text-muted">{{ competition.name }} - {{ round.name }}</p>
+
+                <div class="card shadow my-4">
+                    <div class="card-body"
+                         data-controller="time-form-autocomplete"
+                         data-time-form-autocomplete-add-new-brand-message-value="{{ 'forms.add_new_brand'|trans }}"
+                         data-time-form-autocomplete-add-new-puzzle-message-value="{{ 'forms.add_new_puzzle'|trans }}">
+                        {{ form_start(form) }}
+                            {{ form_row(form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
+                            {{ form_row(form.puzzle, {'attr': {'data-time-form-autocomplete-target': 'puzzle'}}) }}
+
+                            <div data-time-form-autocomplete-target="newPuzzle" class="d-none">
+                                <p>
+                                    <small class="text-muted">{{ 'puzzle_add.need_approve_info'|trans }}</small>
+                                </p>
+                                {{ form_row(form.piecesCount) }}
+                                {{ form_row(form.puzzlePhoto) }}
+                                {{ form_row(form.puzzleEan) }}
+                                {{ form_row(form.puzzleIdentificationNumber) }}
+                            </div>
+
+                            {{ form_row(form.hideUntilRoundStarts) }}
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                {{ 'competition.add_puzzle'|trans }}
+                            </button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

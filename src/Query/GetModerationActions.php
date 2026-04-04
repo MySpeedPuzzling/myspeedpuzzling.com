@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ModerationActionView;
 use SpeedPuzzling\Web\Value\ModerationActionType;
 
@@ -13,6 +14,7 @@ readonly final class GetModerationActions
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -62,7 +64,7 @@ JOIN player tp ON ma.target_player_id = tp.id
 JOIN player ap ON ma.admin_id = ap.id
 WHERE ma.target_player_id = :playerId
     AND ma.action_type = :actionType
-    AND (ma.expires_at IS NULL OR ma.expires_at > NOW())
+    AND (ma.expires_at IS NULL OR ma.expires_at > :now::timestamp)
 ORDER BY ma.performed_at DESC
 LIMIT 1
 SQL;
@@ -71,6 +73,7 @@ SQL;
             ->executeQuery($query, [
                 'playerId' => $playerId,
                 'actionType' => ModerationActionType::TemporaryMute->value,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAssociative();
 

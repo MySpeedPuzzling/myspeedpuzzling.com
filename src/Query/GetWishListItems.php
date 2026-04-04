@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\WishListItemOverview;
 
 readonly final class GetWishListItems
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -31,7 +33,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name
 FROM wish_list_item wli
 JOIN puzzle p ON wli.puzzle_id = p.id
@@ -41,7 +43,7 @@ ORDER BY wli.added_at DESC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
+            ->executeQuery($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s'), 'playerId' => $playerId])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): WishListItemOverview {

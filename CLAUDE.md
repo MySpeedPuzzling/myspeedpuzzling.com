@@ -138,6 +138,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **API & OAuth2**: `docs/features/api/` — Public REST API (V1), OAuth2 server, Swagger docs, internal APIs, deprecated V0
 - **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
 - **Opt-Out Features**: `docs/features/opt-out.md` — Streak and ranking opt-out for players
+- **Competitions Management**: `docs/features/competitions-management/` — Community-driven event creation with admin approval, round management, puzzle assignment, table layout planning, and live stopwatch
 
 ### Feature Flags
 Active feature flags are documented in `docs/features/feature_flags.md`. **Always read and update this file** when adding, modifying, or removing feature flags. It tracks which files are gated, what feature each flag belongs to, and when it can be removed.

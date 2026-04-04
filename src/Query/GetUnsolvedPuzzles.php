@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\UnsolvedPuzzleItem;
 
 readonly final class GetUnsolvedPuzzles
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -28,7 +30,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     MIN(ci.added_at) as added_at
 FROM collection_item ci
@@ -51,7 +53,7 @@ ORDER BY added_at DESC
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
+            ->executeQuery($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s'), 'playerId' => $playerId])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): UnsolvedPuzzleItem {
@@ -122,7 +124,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name,
     MIN(ci.added_at) as added_at
 FROM collection_item ci
@@ -145,7 +147,7 @@ GROUP BY p.id, p.name, p.alternative_name, p.identification_number, p.ean, p.pie
 SQL;
 
         $data = $this->database
-            ->executeQuery($query, ['playerId' => $playerId, 'puzzleId' => $puzzleId])
+            ->executeQuery($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s'), 'playerId' => $playerId, 'puzzleId' => $puzzleId])
             ->fetchAssociative();
 
         if ($data === false) {

@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Competition Approvals{% endblock %}
+
+{% block content %}
+    <div class="pb-4">
+        <h1 class="h2">Competition Approvals</h1>
+
+        {% for flash_message in app.flashes('success') %}
+            <div class="alert alert-success">
+                <i class="ci-check-circle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        {% for flash_message in app.flashes('danger') %}
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        {% if competitions|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Dates</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for competition in competitions %}
+                            <tr>
+                                <td>{{ competition.name }}</td>
+                                <td>
+                                    {% if competition.locationCountryCode %}
+                                        <span class="shadow-custom fi fi-{{ competition.locationCountryCode.name }} me-2"></span>
+                                    {% endif %}
+                                    {{ competition.location }}
+                                </td>
+                                <td>
+                                    {% if competition.dateFrom %}
+                                        {{ competition.dateFrom|date('d.m.Y') }}
+                                        {% if competition.dateTo %}
+                                            - {{ competition.dateTo|date('d.m.Y') }}
+                                        {% endif %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if competition.createdAt %}
+                                        {{ competition.createdAt|date('d.m.Y H:i') }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ path('edit_competition', {'competitionId': competition.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                    <form method="post" action="{{ path('admin_approve_competition', {'competitionId': competition.id}) }}" class="d-inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('approve_' ~ competition.id) }}">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-lg me-1"></i>Approve
+                                        </button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="collapse" data-bs-target="#reject-{{ competition.id }}">
+                                        <i class="bi bi-x-lg me-1"></i>Reject
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="reject-{{ competition.id }}">
+                                <td colspan="5">
+                                    <form method="post" action="{{ path('admin_reject_competition', {'competitionId': competition.id}) }}">
+                                        <div class="d-flex gap-2 align-items-end">
+                                            <div class="flex-grow-1">
+                                                <label for="reason-{{ competition.id }}" class="form-label">Rejection reason</label>
+                                                <textarea name="reason" id="reason-{{ competition.id }}" class="form-control" rows="2" required></textarea>
+                                            </div>
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="bi bi-x-lg me-1"></i>Reject
+                                            </button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No competitions pending approval.</p>
+        {% endif %}
+    </div>
+{% endblock %}

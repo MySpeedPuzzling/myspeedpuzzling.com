@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MarketplaceListingItem;
 use SpeedPuzzling\Web\Value\ListingType;
 use SpeedPuzzling\Web\Value\PuzzleCondition;
@@ -13,6 +14,7 @@ readonly final class GetMarketplaceListings
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -45,7 +47,7 @@ readonly final class GetMarketplaceListings
     p.name AS puzzle_name,
     p.alternative_name AS puzzle_alternative_name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     m.name AS manufacturer_name,
     ssli.listing_type,
     ssli.price,
@@ -214,6 +216,7 @@ ORDER BY ssli.added_at DESC';
 LIMIT :limit OFFSET :offset';
         $params['limit'] = $limit;
         $params['offset'] = $offset;
+        $params['now'] = $this->clock->now()->format('Y-m-d H:i:s');
 
         $data = $this->database
             ->executeQuery($query, $params)
@@ -302,7 +305,7 @@ SELECT
     p.name AS puzzle_name,
     p.alternative_name AS puzzle_alternative_name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     m.name AS manufacturer_name,
     ssli.listing_type,
     ssli.price,
@@ -329,7 +332,7 @@ WHERE ssli.id = :itemId
 SQL;
 
         $row = $this->database
-            ->executeQuery($query, ['itemId' => $itemId])
+            ->executeQuery($query, ['itemId' => $itemId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')])
             ->fetchAssociative();
 
         if ($row === false) {

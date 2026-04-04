@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
 
 readonly final class GetPuzzlesOverview
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -23,7 +25,7 @@ readonly final class GetPuzzlesOverview
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.is_available,
@@ -44,13 +46,14 @@ FROM puzzle
 LEFT JOIN puzzle_statistics ON puzzle_statistics.puzzle_id = puzzle.id
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
 WHERE
-    puzzle.approved = true
-    OR puzzle.added_by_user_id = :playerId
+    (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+    AND (puzzle.approved = true OR puzzle.added_by_user_id = :playerId)
 ORDER BY COALESCE(puzzle.alternative_name, puzzle.name) ASC, manufacturer_name ASC, pieces_count ASC
 SQL;
 
         $data = $this->database
             ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'playerId' => $playerId,
             ])
             ->fetchAllAssociative();

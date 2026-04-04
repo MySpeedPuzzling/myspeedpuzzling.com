@@ -25,39 +25,103 @@
 {% endblock %}
 
 {% block content %}
-    <h1>{{ 'events.title'|trans }}</h1>
+    <div class="d-flex align-items-center mb-3">
+        <h1 class="mb-0">{{ 'events.title'|trans }}</h1>
+        {% if is_granted('IS_AUTHENTICATED_FULLY') %}
+            <a href="{{ path('add_competition', {return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary ms-3">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_event'|trans }}
+            </a>
+        {% endif %}
+    </div>
 
-    {% if live_events|length > 0 %}
+    {% if player_competitions|length > 0 %}
+        <h2 class="mt-4">{{ 'competition.my_competitions'|trans }}</h2>
         <div class="row">
-            <h2 class="mt-4">{{ 'events.live'|trans }}</h2>
+            {% for event in player_competitions %}
+                <div class="mb-3 mb-md-4 col-md-6">
+                    <div class="card shadow position-relative">
+                        <a href="{{ path('edit_competition', {'competitionId': event.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <div class="card-body d-flex w-100 p-3">
+                            <div class="flex-fill">
+                                <h3 class="h5 mb-2">
+                                    {% if event.slug and event.tagId %}
+                                        <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug, return: path('events'), return_title: 'events.title'|trans}) }}">
+                                            {{ event.name }}
+                                        </a>
+                                    {% else %}
+                                        {{ event.name }}
+                                    {% endif %}
+                                    {% if event.rejectedAt is not null %}
+                                        <span class="badge bg-danger ms-1">{{ 'competition.rejected'|trans }}</span>
+                                    {% elseif event.approvedAt is null %}
+                                        <span class="badge bg-warning text-dark ms-1">{{ 'competition.pending_approval'|trans }}</span>
+                                    {% endif %}
+                                    {% if event.isOnline %}
+                                        <span class="badge bg-info text-dark ms-1">{{ 'competition.online'|trans }}</span>
+                                    {% endif %}
+                                    {% if event.isRecurring %}
+                                        <span class="badge bg-secondary ms-1">{{ 'competition.recurring'|trans }}</span>
+                                    {% endif %}
+                                </h3>
 
-            {% for event in live_events %}
-                {{ include('_competition_event.html.twig', {
-                    'live': true,
-                }) }}
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        {% if event.locationCountryCode %}
+                                            <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
+                                        {% endif %}
+
+                                        {{ event.location }}
+
+                                        {% if event.dateFrom %}
+                                            <div class="mt-1">
+                                                <i class="ci-calendar me-2 ps-1"></i>
+                                                {% if event.dateTo and event.dateFrom != event.dateTo %}
+                                                    {{ event.dateFrom|date('d.') }}-{{ event.dateTo|date('d.m.') }}
+                                                {% else %}
+                                                    {{ event.dateFrom|date('d.m.') }}
+                                                {% endif %}
+                                                <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if event.link or event.registrationLink or event.resultsLink %}
+                                        <div class="col-sm-6 mt-2 mt-sm-0">
+                                            {% if event.link %}
+                                                <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.link }}">
+                                                    <i class="bi bi-info-circle me-1"></i>{{ 'events.website_link'|trans }}
+                                                </a>
+                                            {% endif %}
+
+                                            {% if event.registrationLink %}
+                                                <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
+                                                    <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}
+                                                </a>
+                                            {% endif %}
+
+                                            {% if event.resultsLink %}
+                                                <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
+                                                    <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="ms-3 flex-shrink-0 event-image">
+                                {% if event.logo %}
+                                    <img style="max-height: 84px;" src="{{ event.logo|thumbnail('puzzle_small') }}" alt="{{ event.name }} logo" class="img-fluid">
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             {% endfor %}
         </div>
     {% endif %}
 
-    {% if upcoming_events|length > 0 %}
-        <div class="row">
-            {% if live_events|length > 0 %}
-                <h2 class="mt-4">{{ 'events.upcoming'|trans }}</h2>
-            {% endif %}
-
-            {% for event in upcoming_events %}
-                {{ include('_competition_event.html.twig') }}
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if past_events|length > 0 %}
-        <h2 class="mt-4">{{ 'events.past'|trans }}</h2>
-
-        <div class="row">
-            {% for event in past_events %}
-                {{ include('_competition_event.html.twig') }}
-            {% endfor %}
-        </div>
-    {% endif %}
+    <twig:EventsListing />
 {% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.add_event'|trans }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'competition.add_event'|trans }}</h1>
+
+                <p class="text-muted">{{ 'competition.add_event_info'|trans }}</p>
+
+                {% for flash_message in app.flashes('success') %}
+                    <div class="alert alert-success">
+                        <i class="ci-check-circle me-2"></i>
+                        {{ flash_message }}
+                    </div>
+                {% endfor %}
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form) }}
+                        <div data-controller="competition-form">
+                            <div class="required">{{ form_row(form.name) }}</div>
+                            {{ form_row(form.shortcut) }}
+                            {{ form_row(form.description) }}
+                            <div class="required" data-action="change->competition-form#toggle">
+                                {{ form_row(form.isOnline) }}
+                            </div>
+                            <div data-competition-form-target="recurringField">
+                                {{ form_row(form.isRecurring) }}
+                            </div>
+                            <div class="mb-3" data-competition-form-target="offlineFields">
+                                {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
+                                {{ form_widget(form.location) }}
+                                {{ form_errors(form.location) }}
+                            </div>
+                            <div data-competition-form-target="typeSelectedFields" data-controller="country-autocomplete">
+                                {{ form_row(form.locationCountryCode) }}
+                            </div>
+
+                            <div class="row" data-competition-form-target="offlineFields">
+                                <div class="col-6 mb-3">
+                                    {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label required'}}) }}
+                                    <div class="input-group">
+                                        {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                    </div>
+                                    {{ form_help(form.dateFrom) }}
+                                    {{ form_errors(form.dateFrom) }}
+                                </div>
+                                <div class="col-6 mb-3">
+                                    {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label required'}}) }}
+                                    <div class="input-group">
+                                        {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                    </div>
+                                    {{ form_errors(form.dateTo) }}
+                                </div>
+                            </div>
+
+                            {{ form_row(form.link) }}
+                            {{ form_row(form.registrationLink) }}
+                            {{ form_row(form.resultsLink) }}
+                            {{ form_row(form.logo) }}
+                            <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                                {{ form_row(form.maintainers) }}
+                            </div>
+
+                            <div class="alert alert-light border d-flex align-items-start small mt-3" role="alert">
+                                <i class="ci-announcement me-2 mt-1 text-primary"></i>
+                                <span>{{ 'competition.managed_event_info'|trans({'%email%': 'jan@myspeedpuzzling.com'})|raw }}</span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                {{ 'competition.submit_for_approval'|trans }}
+                            </button>
+                        </div>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

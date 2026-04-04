@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
@@ -12,6 +13,7 @@ readonly final class GetPuzzleChangeRequests
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -94,7 +96,7 @@ SELECT
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.pieces_count as puzzle_pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     pm.name as puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
@@ -117,6 +119,7 @@ SQL;
 
         $row = $this->database->fetchAssociative($query, [
             'id' => $id,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         if ($row === false) {
@@ -151,7 +154,7 @@ SELECT
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.pieces_count as puzzle_pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     pm.name as puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
@@ -175,6 +178,7 @@ SQL;
 
         $rows = $this->database->fetchAllAssociative($query, [
             'status' => $status->value,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         return array_map(

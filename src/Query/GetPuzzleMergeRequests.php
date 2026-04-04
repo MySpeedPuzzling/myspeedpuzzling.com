@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleMergeRequestOverview;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
@@ -12,6 +13,7 @@ readonly final class GetPuzzleMergeRequests
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -88,11 +90,11 @@ SELECT
     source_p.id as source_puzzle_id,
     source_p.name as source_puzzle_name,
     source_p.pieces_count as source_puzzle_pieces_count,
-    CASE WHEN source_p.hide_image_until IS NOT NULL AND source_p.hide_image_until > NOW() THEN NULL ELSE source_p.image END AS source_puzzle_image,
+    CASE WHEN source_p.hide_image_until IS NOT NULL AND source_p.hide_image_until > :now::timestamp THEN NULL ELSE source_p.image END AS source_puzzle_image,
     source_m.name as source_puzzle_manufacturer_name,
     survivor_p.name as survivor_puzzle_name,
     survivor_p.pieces_count as survivor_puzzle_pieces_count,
-    CASE WHEN survivor_p.hide_image_until IS NOT NULL AND survivor_p.hide_image_until > NOW() THEN NULL ELSE survivor_p.image END AS survivor_puzzle_image,
+    CASE WHEN survivor_p.hide_image_until IS NOT NULL AND survivor_p.hide_image_until > :now::timestamp THEN NULL ELSE survivor_p.image END AS survivor_puzzle_image,
     survivor_m.name as survivor_puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
@@ -111,6 +113,7 @@ SQL;
 
         $row = $this->database->fetchAssociative($query, [
             'id' => $id,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         if ($row === false) {
@@ -139,11 +142,11 @@ SELECT
     source_p.id as source_puzzle_id,
     source_p.name as source_puzzle_name,
     source_p.pieces_count as source_puzzle_pieces_count,
-    CASE WHEN source_p.hide_image_until IS NOT NULL AND source_p.hide_image_until > NOW() THEN NULL ELSE source_p.image END AS source_puzzle_image,
+    CASE WHEN source_p.hide_image_until IS NOT NULL AND source_p.hide_image_until > :now::timestamp THEN NULL ELSE source_p.image END AS source_puzzle_image,
     source_m.name as source_puzzle_manufacturer_name,
     survivor_p.name as survivor_puzzle_name,
     survivor_p.pieces_count as survivor_puzzle_pieces_count,
-    CASE WHEN survivor_p.hide_image_until IS NOT NULL AND survivor_p.hide_image_until > NOW() THEN NULL ELSE survivor_p.image END AS survivor_puzzle_image,
+    CASE WHEN survivor_p.hide_image_until IS NOT NULL AND survivor_p.hide_image_until > :now::timestamp THEN NULL ELSE survivor_p.image END AS survivor_puzzle_image,
     survivor_m.name as survivor_puzzle_manufacturer_name,
     reporter.id as reporter_id,
     reporter.name as reporter_name,
@@ -163,6 +166,7 @@ SQL;
 
         $rows = $this->database->fetchAllAssociative($query, [
             'status' => $status->value,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ]);
 
         return array_map(

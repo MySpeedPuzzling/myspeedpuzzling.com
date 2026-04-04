@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PendingRequestNotification;
 use SpeedPuzzling\Web\Results\UnreadMessageNotification;
 use SpeedPuzzling\Web\Results\UnreadMessageSummary;
@@ -25,6 +26,7 @@ SQL;
 
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -51,7 +53,7 @@ WHERE p.email IS NOT NULL
   AND c.status = 'accepted'
   AND cm.sender_id != p.id
   AND cm.read_at IS NULL
-  AND cm.sent_at < NOW() - {$frequencyInterval}
+  AND cm.sent_at < :now::timestamp - {$frequencyInterval}
   AND NOT EXISTS (
       SELECT 1 FROM user_block ub
       WHERE ub.blocker_id = p.id
@@ -60,7 +62,7 @@ WHERE p.email IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM digest_email_log del
       WHERE del.player_id = p.id
-      AND del.sent_at > NOW() - {$frequencyInterval}
+      AND del.sent_at > :now::timestamp - {$frequencyInterval}
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(cm.sent_at) > COALESCE(
@@ -73,7 +75,9 @@ LIMIT {$limit}
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): UnreadMessageNotification {
@@ -118,7 +122,7 @@ JOIN conversation c ON c.recipient_id = p.id
 WHERE p.email IS NOT NULL
   AND p.email_notifications_enabled = true
   AND c.status = 'pending'
-  AND c.created_at < NOW() - {$frequencyInterval}
+  AND c.created_at < :now::timestamp - {$frequencyInterval}
   AND NOT EXISTS (
       SELECT 1 FROM user_block ub
       WHERE ub.blocker_id = p.id
@@ -127,7 +131,7 @@ WHERE p.email IS NOT NULL
   AND NOT EXISTS (
       SELECT 1 FROM digest_email_log del
       WHERE del.player_id = p.id
-      AND del.sent_at > NOW() - {$frequencyInterval}
+      AND del.sent_at > :now::timestamp - {$frequencyInterval}
   )
 GROUP BY p.id, p.email, p.name, p.locale
 HAVING MIN(c.created_at) > COALESCE(
@@ -140,7 +144,9 @@ LIMIT {$limit}
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            ])
             ->fetchAllAssociative();
 
         return array_map(static function (array $row): PendingRequestNotification {

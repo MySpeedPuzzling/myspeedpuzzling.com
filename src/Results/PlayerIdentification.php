@@ -13,6 +13,7 @@ readonly final class PlayerIdentification
         public string $playerCode,
         public null|string $playerName,
         public null|CountryCode $playerCountry,
+        public null|string $playerAvatar = null,
     ) {
     }
 
@@ -22,6 +23,7 @@ readonly final class PlayerIdentification
      *     player_code: string,
      *     player_name: null|string,
      *     player_country: null|string,
+     *     player_avatar?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -31,6 +33,7 @@ readonly final class PlayerIdentification
             playerCode: $row['player_code'],
             playerName: $row['player_name'],
             playerCountry: CountryCode::fromCode($row['player_country']),
+            playerAvatar: $row['player_avatar'] ?? null,
         );
     }
 }

@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\CollectionItemOverview;
 
 readonly final class GetCollectionItems
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -24,7 +26,7 @@ readonly final class GetCollectionItems
             ? 'ci.collection_id IS NULL'
             : 'ci.collection_id = :collectionId';
 
-        $params = ['playerId' => $playerId];
+        $params = ['playerId' => $playerId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')];
         if ($collectionId !== null) {
             $params['collectionId'] = $collectionId;
         }
@@ -40,7 +42,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name
 FROM collection_item ci
 JOIN puzzle p ON ci.puzzle_id = p.id
@@ -115,7 +117,7 @@ SQL;
             ? 'ci.collection_id IS NULL'
             : 'ci.collection_id = :collectionId';
 
-        $params = ['playerId' => $playerId, 'puzzleId' => $puzzleId];
+        $params = ['playerId' => $playerId, 'puzzleId' => $puzzleId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')];
         if ($collectionId !== null) {
             $params['collectionId'] = $collectionId;
         }
@@ -131,7 +133,7 @@ SELECT
     p.identification_number as puzzle_identification_number,
     p.ean,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS image,
     m.name as manufacturer_name
 FROM collection_item ci
 JOIN puzzle p ON ci.puzzle_id = p.id

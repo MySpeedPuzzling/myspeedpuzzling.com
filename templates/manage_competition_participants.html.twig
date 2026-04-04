@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.manage_participants'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ competition.name }}</h1>
+
+        <h2 class="h4 mt-4">{{ 'competition.manage_participants'|trans }}</h2>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>{{ 'competition.participants_coming_soon'|trans({'%date%': '7. 4. 2026'}) }}
+        </div>
+    </div>
+{% endblock %}

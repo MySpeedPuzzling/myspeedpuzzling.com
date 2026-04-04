@@ -23,7 +23,7 @@
 
                 <div class="mb-3">
                     <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary me-2">
-                        <i class="bi bi-list-ol me-1"></i>{{ competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans }}
+                        <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
                     </a>
                     <a href="{{ path('manage_competition_participants', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
@@ -46,9 +46,6 @@
                             {{ form_row(form.description) }}
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}
-                            </div>
-                            <div data-competition-form-target="recurringField">
-                                {{ form_row(form.isRecurring) }}
                             </div>
                             <div class="mb-3" data-competition-form-target="offlineFields">
                                 {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}

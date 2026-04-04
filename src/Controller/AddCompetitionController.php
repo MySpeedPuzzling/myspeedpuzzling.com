@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use SpeedPuzzling\Web\FormType\CompetitionFormType;
 use SpeedPuzzling\Web\Message\AddCompetition;
+use SpeedPuzzling\Web\Message\AddCompetitionSeries;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,6 +55,29 @@ final class AddCompetitionController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
+            $isRecurring = $data->isOnline === true && $data->isRecurring;
+
+            if ($isRecurring) {
+                $seriesId = Uuid::uuid7();
+
+                $this->messageBus->dispatch(new AddCompetitionSeries(
+                    seriesId: $seriesId,
+                    playerId: $player->playerId,
+                    name: $data->name ?? '',
+                    description: $data->description,
+                    link: $data->link,
+                    isOnline: true,
+                    location: null,
+                    locationCountryCode: null,
+                    logo: $data->logo,
+                    maintainerIds: $data->maintainers,
+                ));
+
+                $this->addFlash('success', $this->translator->trans('competition.flash.created'));
+
+                return $this->redirectToRoute('manage_competition_series', ['seriesId' => $seriesId->toString()]);
+            }
+
             $competitionId = Uuid::uuid7();
 
             $this->messageBus->dispatch(new AddCompetition(
@@ -70,7 +94,6 @@ final class AddCompetitionController extends AbstractController
                 dateFrom: $data->isOnline === true ? null : $data->dateFrom,
                 dateTo: $data->isOnline === true ? null : $data->dateTo,
                 isOnline: $data->isOnline === true,
-                isRecurring: $data->isOnline === true ? $data->isRecurring : false,
                 logo: $data->logo,
                 maintainerIds: $data->maintainers,
             ));

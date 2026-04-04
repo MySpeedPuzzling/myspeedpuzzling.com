@@ -54,34 +54,59 @@ Access is enforced via a `CompetitionEditVoter` that checks whether the player i
 
 ## Event Types
 
-Every competition has two independent flags: `isOnline` and `isRecurring`. This creates four combinations:
-
-| Type | Online | Recurring | Example | Dates | Tables |
-|------|--------|-----------|---------|-------|--------|
-| One-time offline | No | No | WJPC 2024 | dateFrom/dateTo | Yes |
-| One-time online | Yes | No | Online Challenge 2024 | dateFrom/dateTo | No |
-| Recurring offline | No | Yes | Monthly Puzzle Meetup | Optional | Yes |
-| Recurring online | Yes | Yes | Euro Jigsaw Jam | Optional | No |
-
 **Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format.
 
-### Recurring Events
+### Standalone Competitions (One-Time Events)
 
-Recurring events (e.g. "Euro Jigsaw Jam" with 70+ monthly editions) use **rounds as editions**. Instead of appearing 70 times in the events listing, the event appears once in the "Recurring" section.
+One-time events (`Competition` with `series_id = NULL`) represent individual competitions:
+- **Offline events** (e.g. WJPC 2024): Have location, dateFrom/dateTo, table layouts, multiple rounds
+- **Online events** (e.g. Online Challenge 2024): No location, have dateFrom/dateTo, typically single round
 
-**How it works:**
-- The competition itself represents the series (e.g. "Euro Jigsaw Jam")
-- Each round represents one edition (e.g. "EJJ #68 — March 2026")
-- Each edition has its own date, puzzles, stopwatch, and (for offline) table layout
-- The event detail page shows upcoming and past editions instead of a flat puzzle list
-- The management UI labels rounds as "Editions" for recurring events
+### Competition Series (Recurring Events)
 
-**Public event detail page for recurring events:**
-- Competition header with name, description, logo, links
-- "Upcoming editions" table: name, date, time limit, puzzle count (sorted by date ascending)
-- "Past editions" table: same columns (sorted by date descending, most recent first)
+Recurring events use a **`CompetitionSeries` entity** that groups multiple editions. Each edition is a full `Competition` with its own participants, rounds, and metadata.
 
-**For non-recurring events:** the detail page shows the traditional puzzle grid and participants section.
+```
+CompetitionSeries ("Euro Jigsaw Jam")
+├── name, slug, description, logo, website link
+├── isOnline, location, country
+├── maintainers, approval workflow
+└── Competition ("EJJ #68")          ← edition = full Competition
+     ├── name, dateFrom/dateTo
+     ├── registrationLink, resultsLink  ← per-edition
+     ├── series_id (FK → CompetitionSeries)
+     ├── CompetitionRound              ← usually just 1 for online
+     └── CompetitionParticipant        ← edition-scoped
+```
+
+**Key design**: Participants always belong to a `Competition`, whether it's a standalone event or a series edition. Zero behavioral branching in participant handlers/queries.
+
+**Creating a series:**
+1. User submits a new event with "recurring event series" checked
+2. A `CompetitionSeries` is created (pending approval)
+3. From the series management page, organizer adds editions
+4. Each edition auto-creates a `Competition` + `CompetitionRound` in one step
+
+**Adding an edition (streamlined form):**
+- Name (e.g. "EJJ #68 — March 2026")
+- Date & time, time limit
+- Registration link, results link (optional)
+
+**Public series page** (`/en/series/{slug}`):
+- Series header with name, description, logo, website link, badges
+- Upcoming editions table: name, date, time limit, puzzle count, participant count, registration link
+- Past editions table: same columns with results link
+- Each edition row links to an edition detail page
+
+**Public edition detail page** (`/en/edition/{competitionId}`):
+- Edition header with link back to series
+- Puzzle grid (from the edition's round)
+- Participants component (competition-scoped)
+
+**Events listing:**
+- Standalone competitions appear in Live/Upcoming/Past sections
+- Series appear in a dedicated "Recurring" section as single cards
+- Editions (competitions with `series_id`) are excluded from Live/Upcoming/Past
 
 ## Round Management
 
@@ -162,7 +187,11 @@ A Stimulus controller handles the display:
 
 ## Participant Management
 
-Currently a placeholder — the management page shows a "coming soon" message. The underlying database tables and queries exist from prior functionality but are not wired up in this feature yet.
+`CompetitionParticipant` always belongs to a `Competition`. This means:
+- **For standalone events**: participants belong to the competition, assigned to rounds via `CompetitionParticipantRound`
+- **For series editions**: participants belong to the edition (which IS a Competition), completely independent from other editions
+
+This eliminates all behavioral branching — the same participant handlers, queries, and components work for both standalone events and series editions.
 
 ## Email Notifications
 
@@ -185,5 +214,8 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 7. **External links get automatic UTM tracking** — `utm_source=myspeedpuzzling` is appended
 8. **Rejected competitions are excluded from the approval queue** — they no longer appear as "pending"
 9. **Email notifications require creator to have an email** — if the creator has no email on their profile, no notification is sent (no error)
-10. **Recurring events get their own listing section** — they're excluded from Live/Upcoming/Past and shown in a dedicated "Recurring" section
+10. **Series get their own listing section** — `CompetitionSeries` appear in a dedicated "Recurring" section; editions are excluded from Live/Upcoming/Past
 11. **Online and offline are mutually exclusive** — one competition cannot be both; users create separate events
+12. **Series editions don't need individual approval** — the series approval controls visibility for all editions
+13. **Series maintainers manage all editions** — `IsCompetitionMaintainer` checks series maintainers for edition-level operations
+14. **Each edition is a full Competition** — has its own participants, rounds, registration/results links

@@ -9,11 +9,11 @@
         <h1 class="h2">{{ competition.name }}</h1>
 
         {% set roundsReturnUrl = path('manage_competition_rounds', {competitionId: competition.id}) %}
-        {% set roundsReturnTitle = competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans %}
+        {% set roundsReturnTitle = 'competition.manage_rounds'|trans %}
 
         <div class="mb-3">
             <a href="{{ path('add_competition_round', {'competitionId': competition.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-outline-primary">
-                <i class="bi bi-plus-lg me-1"></i>{{ competition.isRecurring ? 'competition.add_edition'|trans : 'competition.add_round'|trans }}
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_round'|trans }}
             </a>
         </div>
 
@@ -24,7 +24,7 @@
             </div>
         {% endfor %}
 
-        <h2 class="h4 mt-4">{{ competition.isRecurring ? 'competition.editions'|trans : 'competition.rounds'|trans }}</h2>
+        <h2 class="h4 mt-4">{{ 'competition.rounds'|trans }}</h2>
 
         {% if rounds|length > 0 %}
             <div class="row g-3">
@@ -84,7 +84,7 @@
                 {% endfor %}
             </div>
         {% else %}
-            <p class="text-muted">{{ competition.isRecurring ? 'competition.no_editions'|trans : 'competition.no_rounds'|trans }}</p>
+            <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
         {% endif %}
     </div>
 {% endblock %}

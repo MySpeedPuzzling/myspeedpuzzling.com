@@ -1,0 +1,64 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ event.name }} - {{ series.name }}{% endblock %}
+
+{% block content %}
+    {% if series.slug %}
+        {{ include('_return_back_button.html.twig', {fallbackUrl: path('competition_series_detail', {slug: series.slug}), fallbackTitle: series.name}) }}
+    {% else %}
+        {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
+    {% endif %}
+
+    <div class="d-flex">
+        <div class="flex-fill">
+            <h1 class="h4 mb-1">{{ event.name }}</h1>
+            <p class="text-muted mb-2">
+                {% if series.slug %}
+                    <a href="{{ path('competition_series_detail', {slug: series.slug}) }}" class="text-decoration-underline">{{ series.name }}</a>
+                {% else %}
+                    {{ series.name }}
+                {% endif %}
+            </p>
+
+            {% if event.dateFrom %}
+                <div class="mb-2">
+                    <i class="ci-calendar me-2 ps-1"></i>
+                    {{ event.dateFrom|date('d.m.Y H:i') }}
+                    <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
+                </div>
+            {% endif %}
+
+            <div class="d-flex gap-2">
+                {% if event.registrationLink %}
+                    <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.registrationLink }}">
+                        <i class="bi bi-person-plus me-1"></i>{{ 'events.registration_link'|trans }}
+                    </a>
+                {% endif %}
+                {% if event.resultsLink %}
+                    <a target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary" href="{{ event.resultsLink }}">
+                        <i class="bi bi-trophy me-1"></i>{{ 'events.results_link'|trans }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="ms-3 flex-shrink-0 event-image">
+            {% if series.logo %}
+                <img style="max-height: 84px;" src="{{ series.logo|thumbnail('puzzle_small') }}" alt="{{ series.name }} logo" class="img-fluid">
+            {% endif %}
+        </div>
+    </div>
+
+    {% if puzzles|length > 0 %}
+        <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
+        <div class="row g-2 g-md-3">
+            {% for puzzle in puzzles %}
+                {{ include('_puzzle_item.html.twig', {
+                    'search': '',
+                }) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ series.slug }}" />
+{% endblock %}

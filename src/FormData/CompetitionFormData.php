@@ -76,7 +76,6 @@ final class CompetitionFormData
         $data->dateFrom = $competition->dateFrom;
         $data->dateTo = $competition->dateTo;
         $data->isOnline = $competition->isOnline;
-        $data->isRecurring = $competition->isRecurring;
 
         $maintainerIds = [];
         foreach ($competition->maintainers as $maintainer) {

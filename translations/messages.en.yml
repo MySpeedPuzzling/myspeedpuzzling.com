@@ -2547,3 +2547,22 @@ competition:
         puzzle_removed: "Puzzle removed from round."
         rejected: "Competition rejected. Creator has been notified."
         rejection_reason_required: "Please provide a rejection reason."
+
+series:
+    manage: "Manage Series"
+    edit_series: "Edit Series"
+    add_edition: "Add Edition"
+    upcoming_editions: "Upcoming Editions"
+    past_editions: "Past Editions"
+    no_editions: "No editions yet. Add an edition to get started."
+
+edition:
+    edit: "Edit Edition"
+    form:
+        name: "Edition name"
+        starts_at: "Date and time"
+        minutes_limit: "Time limit (minutes)"
+        registration_link: "Registration URL"
+        results_link: "Results URL"
+    flash:
+        created: "Edition added."

@@ -57,8 +57,8 @@ class Competition
         public null|Tag $tag,
         #[Column(options: ['default' => false])]
         public bool $isOnline = false,
-        #[Column(options: ['default' => false])]
-        public bool $isRecurring = false,
+        #[ManyToOne]
+        public null|CompetitionSeries $series = null,
         #[Immutable]
         #[ManyToOne]
         public null|Player $addedByPlayer = null,
@@ -121,7 +121,6 @@ class Competition
         null|DateTimeImmutable $dateFrom,
         null|DateTimeImmutable $dateTo,
         bool $isOnline,
-        bool $isRecurring,
     ): void {
         $this->name = $name;
         $this->slug = $slug;
@@ -136,6 +135,5 @@ class Competition
         $this->dateFrom = $dateFrom;
         $this->dateTo = $dateTo;
         $this->isOnline = $isOnline;
-        $this->isRecurring = $isRecurring;
     }
 }

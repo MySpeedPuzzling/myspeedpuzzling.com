@@ -67,7 +67,6 @@ final class EditCompetitionController extends AbstractController
                 dateFrom: $data->isOnline === true ? null : $data->dateFrom,
                 dateTo: $data->isOnline === true ? null : $data->dateTo,
                 isOnline: $data->isOnline === true,
-                isRecurring: $data->isOnline === true ? $data->isRecurring : false,
                 logo: $data->logo,
                 maintainerIds: $data->maintainers,
             ));

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Component;
 
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
+use SpeedPuzzling\Web\Results\CompetitionSeriesOverview;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -31,6 +33,7 @@ final class EventsListing
 
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
+        readonly private GetCompetitionSeries $getCompetitionSeries,
         readonly private TranslatorInterface $translator,
     ) {
     }
@@ -54,6 +57,14 @@ final class EventsListing
         );
 
         return $this->cachedItems;
+    }
+
+    /**
+     * @return array<CompetitionSeriesOverview>
+     */
+    public function getSeriesItems(): array
+    {
+        return $this->getCompetitionSeries->allApproved();
     }
 
     /**

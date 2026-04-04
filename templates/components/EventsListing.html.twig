@@ -47,8 +47,9 @@
     </div>
 
     {% set items = this.items %}
+    {% set seriesItems = this.seriesItems %}
 
-    {% if items is empty %}
+    {% if items is empty and seriesItems is empty %}
         <div class="text-center text-muted py-4">
             {{ 'events.no_results'|trans }}
         </div>
@@ -75,5 +76,14 @@
                 {{ include('_competition_event.html.twig') }}
             {% if loop.last %}</div>{% endif %}
         {% endfor %}
+
+        {% if seriesItems|length > 0 and (this.timePeriod == 'all' or this.timePeriod == 'upcoming') %}
+            <h2 class="mt-4 mb-3">{{ 'events.recurring'|trans }}</h2>
+            <div class="row">
+                {% for series_item in seriesItems %}
+                    {{ include('_competition_series_card.html.twig') }}
+                {% endfor %}
+            </div>
+        {% endif %}
     {% endif %}
 </div>

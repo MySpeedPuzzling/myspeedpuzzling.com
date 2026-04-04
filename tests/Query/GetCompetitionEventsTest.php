@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 use SpeedPuzzling\Web\Message\RejectCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -45,7 +46,7 @@ final class GetCompetitionEventsTest extends KernelTestCase
         self::assertNotContains(CompetitionFixture::COMPETITION_UNAPPROVED, $ids);
     }
 
-    public function testRecurringEventsExcludedFromUpcomingAndPast(): void
+    public function testSeriesEditionsExcludedFromUpcomingAndPast(): void
     {
         $upcoming = $this->query->allUpcoming();
         $past = $this->query->allPast();
@@ -53,15 +54,7 @@ final class GetCompetitionEventsTest extends KernelTestCase
         $upcomingIds = array_map(static fn($c) => $c->id, $upcoming);
         $pastIds = array_map(static fn($c) => $c->id, $past);
 
-        self::assertNotContains(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $upcomingIds);
-        self::assertNotContains(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $pastIds);
-    }
-
-    public function testRecurringEventsReturnedByAllRecurring(): void
-    {
-        $recurring = $this->query->allRecurring();
-
-        $ids = array_map(static fn($c) => $c->id, $recurring);
-        self::assertContains(CompetitionFixture::COMPETITION_RECURRING_ONLINE, $ids);
+        self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_68, $pastIds);
+        self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_69, $upcomingIds);
     }
 }

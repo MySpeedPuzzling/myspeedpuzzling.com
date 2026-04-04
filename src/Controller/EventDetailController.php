@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\Competition;
-use SpeedPuzzling\Web\Query\GetCompetitionEditions;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -21,7 +20,6 @@ final class EventDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
-        readonly private GetCompetitionEditions $getCompetitionEditions,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -54,20 +52,10 @@ final class EventDetailController extends AbstractController
 
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
-        $upcomingEditions = [];
-        $pastEditions = [];
-        if ($competitionEvent->isRecurring) {
-            $competitionId = $competition->id->toString();
-            $upcomingEditions = $this->getCompetitionEditions->upcomingForCompetition($competitionId);
-            $pastEditions = $this->getCompetitionEditions->pastForCompetition($competitionId);
-        }
-
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
             'puzzle_statuses' => $puzzleStatuses,
-            'upcoming_editions' => $upcomingEditions,
-            'past_editions' => $pastEditions,
         ]);
     }
 }

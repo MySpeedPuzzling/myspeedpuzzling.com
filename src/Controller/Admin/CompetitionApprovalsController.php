@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,6 +16,7 @@ final class CompetitionApprovalsController extends AbstractController
 {
     public function __construct(
         private readonly GetCompetitionEvents $getCompetitionEvents,
+        private readonly GetCompetitionSeries $getCompetitionSeries,
     ) {
     }
 
@@ -26,9 +28,11 @@ final class CompetitionApprovalsController extends AbstractController
     public function __invoke(): Response
     {
         $unapprovedCompetitions = $this->getCompetitionEvents->allUnapproved();
+        $unapprovedSeries = $this->getCompetitionSeries->allUnapproved();
 
         return $this->render('admin/competition_approvals.html.twig', [
             'competitions' => $unapprovedCompetitions,
+            'series' => $unapprovedSeries,
         ]);
     }
 }

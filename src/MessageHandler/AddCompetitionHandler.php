@@ -73,7 +73,6 @@ readonly final class AddCompetitionHandler
             dateTo: $message->dateTo,
             tag: null,
             isOnline: $message->isOnline,
-            isRecurring: $message->isRecurring,
             addedByPlayer: $player,
             createdAt: $now,
         );

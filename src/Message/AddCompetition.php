@@ -27,7 +27,6 @@ readonly final class AddCompetition
         public null|DateTimeImmutable $dateFrom,
         public null|DateTimeImmutable $dateTo,
         public bool $isOnline,
-        public bool $isRecurring,
         public null|UploadedFile $logo,
         public array $maintainerIds,
     ) {

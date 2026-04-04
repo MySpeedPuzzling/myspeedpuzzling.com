@@ -30,6 +30,8 @@ use SpeedPuzzling\Web\Value\CountryCode;
  *     rejected_at: null|string,
  *     rejection_reason: null|string,
  *     created_at: null|string,
+ *     event_status?: null|string,
+ *     sort_date?: null|string,
  * }
  */
 readonly final class CompetitionEvent
@@ -60,6 +62,7 @@ readonly final class CompetitionEvent
         public null|DateTimeImmutable $rejectedAt,
         public null|string $rejectionReason,
         public null|DateTimeImmutable $createdAt,
+        public null|string $eventStatus = null,
     ) {
         $this->link = $this->appendUtm($link);
         $this->registrationLink = $this->appendUtm($registrationLink);
@@ -103,6 +106,7 @@ readonly final class CompetitionEvent
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
             rejectionReason: $row['rejection_reason'],
             createdAt: $row['created_at'] !== null ? new DateTimeImmutable($row['created_at']) : null,
+            eventStatus: $row['event_status'] ?? null,
         );
     }
 

@@ -451,6 +451,7 @@ events:
         country: "Country"
         all_countries: "All countries"
     no_results: "No events found."
+    no_participants_message: "No participants list available yet. Would you love to see how you compare with other competitors? Kindly ask the event organizer to upload the participants list — it makes the experience so much better for everyone!"
 
 
 for_developers:

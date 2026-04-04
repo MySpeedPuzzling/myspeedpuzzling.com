@@ -10,7 +10,7 @@
         <p class="text-muted">{{ competition.name }}</p>
 
         <div class="mb-3">
-            <a href="{{ path('add_puzzle_to_round', {'roundId': round.id, return: path('manage_round_puzzles', {roundId: round.id}), return_title: 'competition.manage_puzzles'|trans}) }}" class="btn btn-primary">
+            <a href="{{ path('add_puzzle_to_round', {'roundId': round.id, return: path('manage_round_puzzles', {roundId: round.id}), return_title: 'competition.manage_puzzles'|trans}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_puzzle'|trans }}
             </a>
         </div>

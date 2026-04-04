@@ -14,6 +14,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TimezoneType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @extends AbstractType<CompetitionRoundFormData>
@@ -54,6 +55,7 @@ final class CompetitionRoundFormType extends AbstractType
                 'format' => 'dd.MM.yyyy HH:mm',
                 'input' => 'datetime_immutable',
                 'input_format' => 'd.m.Y H:i',
+                'constraints' => [new Assert\NotNull()],
             ]);
         }
 

@@ -12,7 +12,7 @@
         {% set roundsReturnTitle = competition.isRecurring ? 'competition.manage_editions'|trans : 'competition.manage_rounds'|trans %}
 
         <div class="mb-3">
-            <a href="{{ path('add_competition_round', {'competitionId': competition.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-primary">
+            <a href="{{ path('add_competition_round', {'competitionId': competition.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ competition.isRecurring ? 'competition.add_edition'|trans : 'competition.add_round'|trans }}
             </a>
         </div>
@@ -27,60 +27,61 @@
         <h2 class="h4 mt-4">{{ competition.isRecurring ? 'competition.editions'|trans : 'competition.rounds'|trans }}</h2>
 
         {% if rounds|length > 0 %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>{{ 'competition.round.name'|trans }}</th>
-                            <th>{{ 'competition.round.starts_at'|trans }}</th>
-                            <th>{{ 'competition.round.minutes_limit'|trans }}</th>
-                            <th>{{ 'competition.round.puzzles'|trans }}</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for round in rounds %}
-                            <tr>
-                                <td>
-                                    {% if round.badgeBackgroundColor %}
-                                        <span class="badge" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#000' }}">
-                                            {{ round.name }}
-                                        </span>
-                                    {% else %}
-                                        {{ round.name }}
-                                    {% endif %}
-                                </td>
-                                <td>{{ round.startsAt|date('d.m.Y H:i') }}</td>
-                                <td>{{ round.minutesLimit }} min</td>
-                                <td>{{ round.puzzleCount }}</td>
-                                <td class="text-end">
-                                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
+            <div class="row g-3">
+                {% for round in rounds %}
+                    <div class="col-12 col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        {% if round.badgeBackgroundColor %}
+                                            <span class="badge fs-6" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#000' }}">
+                                                {{ round.name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="fw-semibold">{{ round.name }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <a href="{{ path('edit_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_delete_round'|trans }}')">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_round_' ~ round.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <div class="small text-body-secondary mb-3">
+                                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
+                                    <span class="mx-1">&middot;</span>
+                                    <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
+                                    <span class="mx-1">&middot;</span>
+                                    <i class="bi bi-puzzle me-1"></i>{{ round.puzzleCount }} {{ 'competition.round.puzzles'|trans|lower }}
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-1">
+                                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
                                     </a>
                                     {% if is_granted('ADMIN_ACCESS') %}
                                         {% if not competition.isOnline %}
-                                            <a href="{{ path('manage_round_tables', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
+                                            <a href="{{ path('manage_round_tables', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.tables'|trans }}
                                             </a>
                                         {% endif %}
-                                        <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
+                                        <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
                                         </a>
                                     {% endif %}
-                                    <a href="{{ path('edit_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary me-1">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_delete_round'|trans }}')">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_round_' ~ round.id) }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         {% else %}
             <p class="text-muted">{{ competition.isRecurring ? 'competition.no_editions'|trans : 'competition.no_rounds'|trans }}</p>

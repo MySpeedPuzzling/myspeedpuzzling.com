@@ -53,10 +53,27 @@
             {{ 'events.no_results'|trans }}
         </div>
     {% else %}
-        <div class="row">
-            {% for event in items %}
+        {% set currentStatus = null %}
+        {% for event in items %}
+            {% if this.timePeriod == 'all' and event.eventStatus is not null and event.eventStatus != currentStatus %}
+                {% if not loop.first %}</div>{% endif %}
+                <h2 class="mt-4 mb-3">
+                    {% if event.eventStatus == 'live' %}
+                        {{ 'events.live'|trans }}
+                    {% elseif event.eventStatus == 'upcoming' %}
+                        {{ 'events.upcoming'|trans }}
+                    {% elseif event.eventStatus == 'past' %}
+                        {{ 'events.past'|trans }}
+                    {% endif %}
+                </h2>
+                <div class="row">
+                {% set currentStatus = event.eventStatus %}
+            {% endif %}
+            {% if loop.first and (this.timePeriod != 'all' or event.eventStatus is null) %}
+                <div class="row">
+            {% endif %}
                 {{ include('_competition_event.html.twig') }}
-            {% endfor %}
-        </div>
+            {% if loop.last %}</div>{% endif %}
+        {% endfor %}
     {% endif %}
 </div>

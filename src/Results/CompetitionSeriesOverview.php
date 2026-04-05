@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\CountryCode;
 
 readonly final class CompetitionSeriesOverview
@@ -21,6 +22,9 @@ readonly final class CompetitionSeriesOverview
         public null|string $location,
         public null|CountryCode $locationCountryCode,
         public null|string $addedByPlayerId,
+        public null|DateTimeImmutable $nextEditionDate = null,
+        public null|DateTimeImmutable $approvedAt = null,
+        public null|DateTimeImmutable $rejectedAt = null,
     ) {
         $this->link = $link !== null
             ? $link . (str_contains($link, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'

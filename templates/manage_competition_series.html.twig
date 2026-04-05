@@ -3,6 +3,10 @@
 {% block title %}{{ 'series.manage'|trans }} - {{ series.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name},
+    ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
 
     <div class="pb-4">

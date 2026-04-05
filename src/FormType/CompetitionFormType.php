@@ -104,6 +104,7 @@ final class CompetitionFormType extends AbstractType
             'required' => false,
             'placeholder' => 'competition.form.country_placeholder',
             'autocomplete' => true,
+            'choice_translation_domain' => false,
             'choice_attr' => static function (string $countryCode): array {
                 return ['data-icon' => 'fi fi-' . $countryCode];
             },

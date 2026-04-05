@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -37,5 +38,15 @@ final class AddPuzzleToRoundControllerTest extends WebTestCase
         $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
 
         $this->assertResponseStatusCodeSame(403);
+    }
+
+    public function testAdminCanAccessPageForSeriesEditionRound(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/add-puzzle-to-round/' . CompetitionSeriesFixture::ROUND_EJJ_69);
+
+        $this->assertResponseIsSuccessful();
     }
 }

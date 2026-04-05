@@ -20,6 +20,11 @@ return static function (ContainerConfigurator $configurator): void {
     // Puzzle Intelligence services (public for testing)
     $services->load('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\', __DIR__ . '/../src/Services/PuzzleIntelligence/{*.php}');
 
+    // Competition participant services (public for testing)
+    $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantImporter::class)->public();
+    $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantExporter::class)->public();
+    $services->set(\SpeedPuzzling\Web\Query\GetCompetitionParticipantsForManagement::class)->public();
+
     // Mercure test double
     $services->set(NullMercureHub::class);
     $services->alias(HubInterface::class, NullMercureHub::class);

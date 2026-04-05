@@ -26,7 +26,7 @@ readonly final class GetCompetitionSeries
     public function byId(string $seriesId): CompetitionSeriesOverview
     {
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id
+SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
 FROM competition_series
 WHERE id = :seriesId
 SQL;
@@ -48,7 +48,7 @@ SQL;
     public function bySlug(string $slug): CompetitionSeriesOverview
     {
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id
+SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
 FROM competition_series
 WHERE slug = :slug
 SQL;
@@ -69,15 +69,23 @@ SQL;
      */
     public function allApproved(): array
     {
+        $now = $this->clock->now();
+
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id
-FROM competition_series
-WHERE approved_at IS NOT NULL
-ORDER BY name
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+    (
+        SELECT MIN(cr.starts_at)
+        FROM competition c
+        INNER JOIN competition_round cr ON cr.competition_id = c.id
+        WHERE c.series_id = cs.id AND cr.starts_at >= :now
+    ) AS next_edition_date
+FROM competition_series cs
+WHERE cs.approved_at IS NOT NULL
+ORDER BY cs.name
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, ['now' => $now->format('Y-m-d H:i:s')])
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
@@ -89,7 +97,7 @@ SQL;
     public function allUnapproved(): array
     {
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id
+SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
 FROM competition_series
 WHERE approved_at IS NULL AND rejected_at IS NULL
 ORDER BY created_at DESC NULLS LAST
@@ -107,8 +115,16 @@ SQL;
      */
     public function allForPlayer(string $playerId): array
     {
+        $now = $this->clock->now();
+
         $query = <<<SQL
-SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+    (
+        SELECT MIN(cr.starts_at)
+        FROM competition c
+        INNER JOIN competition_round cr ON cr.competition_id = c.id
+        WHERE c.series_id = cs.id AND cr.starts_at >= :now
+    ) AS next_edition_date
 FROM competition_series cs
 WHERE cs.added_by_player_id = :playerId
     OR cs.id IN (SELECT competition_series_id FROM competition_series_maintainer WHERE player_id = :playerId)
@@ -116,7 +132,10 @@ ORDER BY cs.created_at DESC NULLS LAST
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query, ['playerId' => $playerId])
+            ->executeQuery($query, [
+                'playerId' => $playerId,
+                'now' => $now->format('Y-m-d H:i:s'),
+            ])
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
@@ -221,6 +240,9 @@ SQL;
          *     location: null|string,
          *     location_country_code: null|string,
          *     added_by_player_id: null|string,
+         *     approved_at: null|string,
+         *     rejected_at: null|string,
+         *     next_edition_date?: null|string,
          * } $row
          */
 
@@ -228,6 +250,10 @@ SQL;
         if (is_string($isOnline)) {
             $isOnline = $isOnline === 't' || $isOnline === '1' || $isOnline === 'true';
         }
+
+        $nextEditionDate = isset($row['next_edition_date'])
+            ? new DateTimeImmutable($row['next_edition_date'])
+            : null;
 
         return new CompetitionSeriesOverview(
             id: $row['id'],
@@ -240,6 +266,9 @@ SQL;
             location: $row['location'],
             locationCountryCode: $row['location_country_code'] !== null ? CountryCode::fromCode($row['location_country_code']) : null,
             addedByPlayerId: $row['added_by_player_id'],
+            nextEditionDate: $nextEditionDate,
+            approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
+            rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
         );
     }
 }

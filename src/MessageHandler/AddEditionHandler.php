@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[AsMessageHandler]
 readonly final class AddEditionHandler
@@ -17,6 +18,7 @@ readonly final class AddEditionHandler
     public function __construct(
         private EntityManagerInterface $entityManager,
         private CompetitionSeriesRepository $seriesRepository,
+        private SluggerInterface $slugger,
     ) {
     }
 
@@ -27,7 +29,7 @@ readonly final class AddEditionHandler
         $competition = new Competition(
             id: $message->competitionId,
             name: $message->name,
-            slug: null,
+            slug: $this->generateUniqueSlug($message->name),
             shortcut: null,
             logo: null,
             description: null,
@@ -54,5 +56,25 @@ readonly final class AddEditionHandler
         );
 
         $this->entityManager->persist($round);
+    }
+
+    private function generateUniqueSlug(string $name): string
+    {
+        $slug = (string) $this->slugger->slug(strtolower($name));
+
+        /** @var int|string $existingCount */
+        $existingCount = $this->entityManager->getConnection()
+            ->executeQuery(
+                'SELECT COUNT(*) FROM competition WHERE slug = :slug',
+                ['slug' => $slug],
+            )
+            ->fetchOne();
+        $existingCount = (int) $existingCount;
+
+        if ($existingCount > 0) {
+            $slug .= '-' . substr(md5(uniqid()), 0, 6);
+        }
+
+        return $slug;
     }
 }

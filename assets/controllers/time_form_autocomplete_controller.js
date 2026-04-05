@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import * as bootstrap from 'bootstrap';
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput'];
+    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'hideOptions'];
 
     static values = {
         eanSearchUrl: String,
@@ -260,6 +260,16 @@ export default class extends Controller {
         puzzleTomSelect.inputState();
 
         this.newPuzzleTarget.classList.add('d-none');
+    }
+
+    toggleHideOptions(event) {
+        if (this.hasHideOptionsTarget) {
+            if (event.target.checked) {
+                this.hideOptionsTarget.classList.remove('d-none');
+            } else {
+                this.hideOptionsTarget.classList.add('d-none');
+            }
+        }
     }
 
     removeDiacritics(str) {

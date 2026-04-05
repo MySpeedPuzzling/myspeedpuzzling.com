@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\RoundPuzzleFormData;
 use SpeedPuzzling\Web\Services\BrandChoicesBuilder;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -109,6 +111,16 @@ final class RoundPuzzleFormType extends AbstractType
         $builder->add('hideUntilRoundStarts', CheckboxType::class, [
             'label' => 'competition.round_puzzle.form.hide_until_round_starts',
             'required' => false,
+        ]);
+
+        $builder->add('hideMode', EnumType::class, [
+            'class' => PuzzleHideMode::class,
+            'label' => false,
+            'expanded' => true,
+            'choice_label' => fn (PuzzleHideMode $mode) => match ($mode) {
+                PuzzleHideMode::ImageOnly => 'competition.round_puzzle.form.hide_mode_image_only',
+                PuzzleHideMode::Entirely => 'competition.round_puzzle.form.hide_mode_entirely',
+            },
         ]);
     }
 

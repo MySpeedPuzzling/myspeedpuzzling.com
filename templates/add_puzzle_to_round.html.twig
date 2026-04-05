@@ -3,6 +3,13 @@
 {% block title %}{{ 'competition.add_puzzle'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: round.name, url: path('manage_round_puzzles', {roundId: round.id})},
+        {label: 'competition.add_puzzle'|trans},
+    ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_round_puzzles', {roundId: round.id}), fallbackTitle: 'competition.manage_puzzles'|trans}) }}
 
     <div class="pb-4">
@@ -30,7 +37,26 @@
                                 {{ form_row(form.puzzleIdentificationNumber) }}
                             </div>
 
-                            {{ form_row(form.hideUntilRoundStarts) }}
+                            <div class="mb-3">
+                                {{ form_row(form.hideUntilRoundStarts, {
+                                    'attr': {'data-action': 'change->time-form-autocomplete#toggleHideOptions'},
+                                    'help': 'competition.round_puzzle.form.hide_help'|trans({'%date%': round.startsAt|date('j. n. Y H:i')}),
+                                }) }}
+
+                                <div data-time-form-autocomplete-target="hideOptions" class="d-none ms-4 mt-2">
+                                    {% for child in form.hideMode %}
+                                        <div class="form-check mb-2">
+                                            {{ form_widget(child, {'attr': {'class': 'form-check-input'}}) }}
+                                            {{ form_label(child, null, {'label_attr': {'class': 'form-check-label'}}) }}
+                                            {% if child.vars.value == 'image_only' %}
+                                                <div class="form-text">{{ 'competition.round_puzzle.form.hide_mode_image_only_help'|trans }}</div>
+                                            {% elseif child.vars.value == 'entirely' %}
+                                                <div class="form-text">{{ 'competition.round_puzzle.form.hide_mode_entirely_help'|trans }}</div>
+                                            {% endif %}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
 
                             <button type="submit" class="btn btn-primary mt-3">
                                 {{ 'competition.add_puzzle'|trans }}

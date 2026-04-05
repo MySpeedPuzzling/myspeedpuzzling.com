@@ -3,6 +3,12 @@
 {% block title %}{{ 'competition.stopwatch.manage'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'competition.stopwatch.manage'|trans},
+    ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
 
     <div class="pb-4">

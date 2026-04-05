@@ -3,6 +3,11 @@
 {% block title %}{{ 'competition.manage_rounds'|trans }} - {{ competition.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans},
+    ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
 
     <div class="pb-4">

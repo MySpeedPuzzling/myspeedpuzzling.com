@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 
 #[Entity]
 class CompetitionRoundPuzzle
@@ -29,6 +30,8 @@ class CompetitionRoundPuzzle
         public Puzzle $puzzle,
         #[Column(options: ['default' => false])]
         public bool $hideUntilRoundStarts = false,
+        #[Column(nullable: true, enumType: PuzzleHideMode::class)]
+        public null|PuzzleHideMode $hideMode = null,
     ) {
     }
 }

@@ -36,7 +36,7 @@ The events page shows four sections:
 - **Recurring** — all approved recurring events (sorted alphabetically)
 - **Past** — one-time events that have ended
 
-Recurring events are excluded from Live/Upcoming/Past sections. All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. Online and recurring badges are displayed on event cards.
+Recurring events are excluded from Live/Upcoming/Past sections. All sections only show approved competitions. External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. Online and recurring badges are displayed on event cards. Recurring series cards display the next upcoming edition date (derived from the nearest future round's `starts_at` across all editions).
 
 Each competition also appears in "My Competitions" for its creator/maintainers regardless of approval status.
 
@@ -54,7 +54,7 @@ Access is enforced via a `CompetitionEditVoter` that checks whether the player i
 
 ## Event Types
 
-**Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format.
+**Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format. The "Recurring event" checkbox is only shown for online events. Date fields (dateFrom/dateTo) are shown for offline events and non-recurring online events — they are hidden only when both online and recurring are selected (toggled via `competition-form` Stimulus controller's `offlineFields`, `dateFields`, and `recurringField` targets).
 
 ### Standalone Competitions (One-Time Events)
 
@@ -103,9 +103,11 @@ CompetitionSeries ("Euro Jigsaw Jam")
 - Puzzle grid (from the edition's round)
 - Participants component (competition-scoped)
 
+**Editions get auto-generated slugs** — when an edition is created via `AddEditionHandler`, a unique slug is generated from the edition name (same collision-handling as standalone competitions).
+
 **Events listing:**
 - Standalone competitions appear in Live/Upcoming/Past sections
-- Series appear in a dedicated "Recurring" section as single cards
+- Series appear in a dedicated "Recurring" section as single cards, showing the next upcoming edition date
 - Editions (competitions with `series_id`) are excluded from Live/Upcoming/Past
 
 ## Round Management
@@ -126,7 +128,20 @@ Puzzles are assigned to rounds via a `CompetitionRoundPuzzle` join. When adding 
 
 ### Hide Until Round Starts
 
-Each puzzle assignment has a `hideUntilRoundStarts` flag. When enabled, the puzzle's own `hideUntil` field is set to the round's start time, making it invisible in the general puzzle database until the round begins. This prevents spoiling which puzzles will be used.
+Each puzzle assignment has a `hideUntilRoundStarts` flag and a `hideMode` enum (`PuzzleHideMode`). This controls puzzle visibility **only on competition pages** — the puzzle remains fully visible everywhere else on the platform (search, collections, etc.). Available for both new and existing puzzles.
+
+Two hide modes:
+
+| Mode | Enum value | Behavior on competition pages |
+|------|-----------|-------------------------------|
+| **Hide image only** | `image_only` | Puzzle name and brand visible, image replaced with placeholder |
+| **Hide entirely** | `entirely` | Puzzle completely hidden from competition pages |
+
+**Scoping rules:**
+- **Existing puzzles:** Hiding is scoped to `CompetitionRoundPuzzle` only — the `Puzzle` entity is **never modified**. Display logic on competition pages checks `CompetitionRoundPuzzle.hideUntilRoundStarts` + `hideMode` against `CompetitionRound.startsAt`.
+- **New puzzles** (created on the fly): The `Puzzle` entity's `hideUntil` or `hideImageUntil` is also set to the round's start time, hiding the puzzle platform-wide. This is correct because the puzzle was created specifically for this competition and shouldn't be discoverable before the round starts.
+
+The puzzle is revealed automatically 10 minutes after the round starts.
 
 ## Table Layout System
 
@@ -193,6 +208,14 @@ A Stimulus controller handles the display:
 
 This eliminates all behavioral branching — the same participant handlers, queries, and components work for both standalone events and series editions.
 
+**Full specification:** See [participants.md](participants.md) for the complete participant management design including:
+- Unified "I'm going" + pairing flow (replaces old `CompetitionConnectionController`)
+- Organizer management UI with inline editing (Live Component)
+- Excel import/export with upsert logic
+- Soft delete mechanism
+- Secret/private player handling fix
+- Replaces admin-only import routes (`/admin/import-competition-puzzlers`)
+
 ## Email Notifications
 
 Three email notifications are sent during the competition lifecycle:
@@ -210,7 +233,7 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 3. **Layout generation is destructive** — it wipes the entire existing layout before creating a new grid
 4. **`times_up` is client-only** — the server does not track when time expires; it's purely a display state
 5. **New puzzles created via round assignment need separate approval** — they are created with `approved = false`
-6. **Removing a puzzle from a round does not clear the puzzle's `hideUntil` field**
+6. **Puzzle hiding is competition-scoped** — `CompetitionRoundPuzzle` flags control visibility only on competition pages; the `Puzzle` entity is never modified
 7. **External links get automatic UTM tracking** — `utm_source=myspeedpuzzling` is appended
 8. **Rejected competitions are excluded from the approval queue** — they no longer appear as "pending"
 9. **Email notifications require creator to have an email** — if the creator has no email on their profile, no notification is sent (no error)

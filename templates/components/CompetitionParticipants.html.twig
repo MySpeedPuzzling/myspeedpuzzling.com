@@ -9,7 +9,7 @@
     {% else %}
         {% if this.notConnectedParticipants|length > 0 %}
             <p class="mt-5">
-                <a href="{{ path('competition_connection', {'slug': eventSlug}) }}" class="btn btn-sm btn-primary">
+                <a href="{{ path('join_competition', {'competitionId': competitionId}) }}" class="btn btn-sm btn-primary">
                     <i class="bi-people"></i>
                     {{ 'my_profile.wjpc_connection'|trans }}
                 </a>
@@ -134,9 +134,15 @@
                         </td>
 
                         <td class="text-end text-nowrap" style="line-height: 120%;">
-                            <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
-                            <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>
-                            <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
+                            {% if participant.isPrivate %}
+                                <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> -<br>
+                                <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">-</span><br>
+                                <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> -
+                            {% else %}
+                                <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
+                                <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>
+                                <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
+                            {% endif %}
                         </td>
                     </tr>
                 {% endfor %}

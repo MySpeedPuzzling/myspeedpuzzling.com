@@ -71,6 +71,7 @@ final class AddPuzzleToRoundController extends AbstractController
                 puzzleEan: $data->puzzleEan,
                 puzzleIdentificationNumber: $data->puzzleIdentificationNumber,
                 hideUntilRoundStarts: $data->hideUntilRoundStarts,
+                hideMode: $data->hideMode,
             ));
 
             $this->addFlash('success', $this->translator->trans('competition.flash.puzzle_added'));

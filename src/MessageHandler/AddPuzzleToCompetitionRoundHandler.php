@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Repository\CompetitionRoundPuzzleRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
@@ -40,16 +41,20 @@ readonly final class AddPuzzleToCompetitionRoundHandler
     {
         $round = $this->competitionRoundRepository->get($message->roundId);
 
-        if (Uuid::isValid($message->puzzle)) {
-            // Existing puzzle
-            $puzzle = $this->puzzleRepository->get($message->puzzle);
-        } else {
-            // New puzzle
+        $isNewPuzzle = !Uuid::isValid($message->puzzle);
+
+        if ($isNewPuzzle) {
             $puzzle = $this->createNewPuzzle($message);
+        } else {
+            $puzzle = $this->puzzleRepository->get($message->puzzle);
         }
 
-        if ($message->hideUntilRoundStarts) {
-            $puzzle->hideUntil = $round->startsAt;
+        // For new puzzles, also hide platform-wide since they don't exist anywhere else yet
+        if ($isNewPuzzle && $message->hideUntilRoundStarts) {
+            match ($message->hideMode) {
+                PuzzleHideMode::ImageOnly => $puzzle->hideImageUntil = $round->startsAt,
+                PuzzleHideMode::Entirely => $puzzle->hideUntil = $round->startsAt,
+            };
         }
 
         $roundPuzzle = new CompetitionRoundPuzzle(
@@ -57,6 +62,7 @@ readonly final class AddPuzzleToCompetitionRoundHandler
             round: $round,
             puzzle: $puzzle,
             hideUntilRoundStarts: $message->hideUntilRoundStarts,
+            hideMode: $message->hideUntilRoundStarts ? $message->hideMode : null,
         );
 
         $this->competitionRoundPuzzleRepository->save($roundPuzzle);

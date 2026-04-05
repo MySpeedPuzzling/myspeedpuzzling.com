@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\FormData;
 
+use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -19,6 +20,7 @@ final class RoundPuzzleFormData
         public null|string $puzzleEan = null,
         public null|string $puzzleIdentificationNumber = null,
         public bool $hideUntilRoundStarts = false,
+        public PuzzleHideMode $hideMode = PuzzleHideMode::ImageOnly,
     ) {
     }
 }

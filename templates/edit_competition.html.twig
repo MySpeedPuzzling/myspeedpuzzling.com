@@ -3,6 +3,10 @@
 {% block title %}{{ 'competition.edit_event'|trans }} - {{ competition.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name},
+    ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
 
     <div class="pb-4">
@@ -47,6 +51,7 @@
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}
                             </div>
+
                             <div class="mb-3" data-competition-form-target="offlineFields">
                                 {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
                                 {{ form_widget(form.location) }}
@@ -56,7 +61,7 @@
                                 {{ form_row(form.locationCountryCode) }}
                             </div>
 
-                            <div class="row" data-competition-form-target="offlineFields">
+                            <div class="row" data-competition-form-target="dateFields">
                                 <div class="col-6 mb-3">
                                     {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label required'}}) }}
                                     <div class="input-group">

@@ -53,11 +53,24 @@
                                     {% else %}
                                         {{ series_item.name }}
                                     {% endif %}
+                                    {% if series_item.rejectedAt is not null %}
+                                        <span class="badge bg-danger ms-1">{{ 'competition.rejected'|trans }}</span>
+                                    {% elseif series_item.approvedAt is null %}
+                                        <span class="badge bg-warning text-dark ms-1">{{ 'competition.pending_approval'|trans }}</span>
+                                    {% endif %}
                                     {% if series_item.isOnline %}
                                         <span class="badge bg-info text-dark ms-1">{{ 'competition.online'|trans }}</span>
                                     {% endif %}
                                     <span class="badge bg-secondary ms-1">{{ 'competition.recurring'|trans }}</span>
                                 </h3>
+
+                                {% if series_item.nextEditionDate %}
+                                    <div class="mt-1">
+                                        <i class="ci-calendar me-2 ps-1"></i>
+                                        {{ 'competition.next_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
+                                        <small class="text-muted ps-1">({{ series_item.nextEditionDate|ago }})</small>
+                                    </div>
+                                {% endif %}
                             </div>
 
                             <div class="ms-3 flex-shrink-0 event-image">
@@ -79,7 +92,7 @@
                         <div class="card-body d-flex w-100 p-3">
                             <div class="flex-fill">
                                 <h3 class="h5 mb-2">
-                                    {% if event.slug and event.tagId %}
+                                    {% if event.slug %}
                                         <a class="text-decoration-underline" href="{{ path('event_detail', {'slug': event.slug, return: path('events'), return_title: 'events.title'|trans}) }}">
                                             {{ event.name }}
                                         </a>

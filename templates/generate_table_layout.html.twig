@@ -3,6 +3,13 @@
 {% block title %}{{ 'competition.tables.generate_layout'|trans }} - {{ round.name }}{% endblock %}
 
 {% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: round.name, url: path('manage_round_tables', {roundId: round.id})},
+        {label: 'competition.tables.generate_layout'|trans},
+    ]}) }}
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_round_tables', {roundId: round.id}), fallbackTitle: 'competition.tables.manage_tables'|trans}) }}
 
     <div class="pb-4">

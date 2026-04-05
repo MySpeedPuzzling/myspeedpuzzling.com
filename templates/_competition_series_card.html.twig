@@ -15,6 +15,11 @@
                     {% else %}
                         {{ series_item.name }}
                     {% endif %}
+                    {% if series_item.rejectedAt is not null %}
+                        <span class="badge bg-danger ms-1">{{ 'competition.rejected'|trans }}</span>
+                    {% elseif series_item.approvedAt is null %}
+                        <span class="badge bg-warning text-dark ms-1">{{ 'competition.pending_approval'|trans }}</span>
+                    {% endif %}
                     {% if series_item.isOnline %}
                         <span class="badge bg-info text-dark ms-1">{{ 'competition.online'|trans }}</span>
                     {% endif %}
@@ -28,6 +33,14 @@
                                 <span class="shadow-custom fi fi-{{ series_item.locationCountryCode.name }} me-2"></span>
                             {% endif %}
                             {{ series_item.location }}
+                        {% endif %}
+
+                        {% if series_item.nextEditionDate %}
+                            <div class="mt-1">
+                                <i class="ci-calendar me-2 ps-1"></i>
+                                {{ 'competition.next_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
+                                <small class="text-muted ps-1">({{ series_item.nextEditionDate|ago }})</small>
+                            </div>
                         {% endif %}
                     </div>
 

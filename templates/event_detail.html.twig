@@ -77,6 +77,30 @@
         <p class="lead">{{ 'events.no_puzzle_text'|trans|raw }}</p>
     {% endif %}
 
+    <div class="mt-4 mb-3">
+        {% if is_going %}
+            <span class="btn btn-sm btn-success disabled me-2">
+                <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.you_are_going'|trans }}
+            </span>
+            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                {{ 'competition.join.change'|trans }}
+            </a>
+            <form method="post" action="{{ path('leave_competition', {'competitionId': event.id}) }}" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    {{ 'competition.join.leave'|trans }}
+                </button>
+            </form>
+        {% elseif logged_user.profile is not null %}
+            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
+            </a>
+        {% else %}
+            <a href="{{ path('join_competition', {'competitionId': event.id}) }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.im_going'|trans }}
+            </a>
+        {% endif %}
+    </div>
+
     <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ event.slug }}" />
 
 {% endblock %}

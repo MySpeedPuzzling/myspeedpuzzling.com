@@ -62,6 +62,29 @@ unread_messages:
     view_requests: "Zobrazit žádosti o konverzaci"
     opt_out: 'Tato e-mailová upozornění můžete spravovat v <a href="%settingsUrl%">nastavení profilu</a>.'
 
+competition_submitted:
+    subject: "Nová událost odeslána: %competitionName%"
+    title: "Nová událost k posouzení"
+    content: |
+        <p>Nová událost byla odeslána ke schválení.</p>
+        <p><strong>Odeslal:</strong> %playerName%<br><strong>Událost:</strong> %competitionName%<br><strong>Místo:</strong> %location%</p>
+        <p><a href="%adminUrl%">Zkontrolovat čekající události v administraci</a></p>
+
+competition_approved:
+    subject: "Vaše událost byla schválena!"
+    title: "Vaše událost byla schválena!"
+    content: |
+        <p>Skvělá zpráva! Vaše událost <strong>%competitionName%</strong> byla schválena a je nyní veřejně viditelná na MySpeedPuzzling.</p>
+        <p><a href="%eventUrl%">Zobrazit stránku události</a></p>
+
+competition_rejected:
+    subject: "Vaše událost nebyla schválena"
+    title: "Událost nebyla schválena"
+    content: |
+        <p>Bohužel vaše událost <strong>%competitionName%</strong> nebyla schválena.</p>
+        <p><strong>Důvod:</strong> %reason%</p>
+        <p>Pokud máte dotazy nebo byste to chtěli probrat, kontaktujte nás na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
 oauth2_client_request:
     subject: "Nová žádost o OAuth2 klienta: %clientName%"
     title: "Nová žádost o API přístup"

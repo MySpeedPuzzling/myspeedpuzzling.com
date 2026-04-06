@@ -30,25 +30,25 @@ final class EditionDetailController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/edice/{competitionId}',
-            'en' => '/en/edition/{competitionId}',
-            'es' => '/es/edition/{competitionId}',
-            'ja' => '/ja/edition/{competitionId}',
-            'fr' => '/fr/edition/{competitionId}',
-            'de' => '/de/edition/{competitionId}',
+            'cs' => '/serie/{seriesSlug}/{editionSlug}',
+            'en' => '/en/series/{seriesSlug}/{editionSlug}',
+            'es' => '/es/series/{seriesSlug}/{editionSlug}',
+            'ja' => '/ja/series/{seriesSlug}/{editionSlug}',
+            'fr' => '/fr/series/{seriesSlug}/{editionSlug}',
+            'de' => '/de/series/{seriesSlug}/{editionSlug}',
         ],
         name: 'edition_detail',
     )]
     public function __invoke(
-        string $competitionId,
+        string $seriesSlug,
+        string $editionSlug,
         #[CurrentUser] null|UserInterface $user,
     ): Response {
-        $competition = $this->competitionRepository->get($competitionId);
+        $competition = $this->competitionRepository->getBySeriesAndEditionSlug($seriesSlug, $editionSlug);
 
-        if ($competition->series === null) {
-            return $this->redirectToRoute('events');
-        }
+        assert($competition->series !== null);
 
+        $competitionId = $competition->id->toString();
         $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
         $seriesOverview = $this->getCompetitionSeries->byId($competition->series->id->toString());
 

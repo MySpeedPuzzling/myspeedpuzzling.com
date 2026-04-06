@@ -87,3 +87,26 @@ oauth2_client_rejected:
         <p>Leider wurde deine OAuth2-Anwendungsanfrage für <strong>%clientName%</strong> nicht genehmigt.</p>
         <p><strong>Grund:</strong> %reason%</p>
         <p>Wenn du Fragen hast oder dies weiter besprechen möchtest, kontaktiere uns bitte unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+competition_submitted:
+    subject: "Neue Veranstaltung eingereicht: %competitionName%"
+    title: "Neue Veranstaltung eingereicht"
+    content: |
+        <p>Eine neue Veranstaltung wurde zur Genehmigung eingereicht.</p>
+        <p><strong>Eingereicht von:</strong> %playerName%<br><strong>Veranstaltung:</strong> %competitionName%<br><strong>Ort:</strong> %location%</p>
+        <p><a href="%adminUrl%">Ausstehende Veranstaltungen in der Verwaltung prüfen</a></p>
+
+competition_approved:
+    subject: "Ihre Veranstaltung wurde genehmigt!"
+    title: "Ihre Veranstaltung wurde genehmigt!"
+    content: |
+        <p>Tolle Neuigkeiten! Ihre Veranstaltung <strong>%competitionName%</strong> wurde genehmigt und ist jetzt öffentlich auf MySpeedPuzzling sichtbar.</p>
+        <p><a href="%eventUrl%">Veranstaltungsseite anzeigen</a></p>
+
+competition_rejected:
+    subject: "Ihre Veranstaltung wurde nicht genehmigt"
+    title: "Veranstaltung nicht genehmigt"
+    content: |
+        <p>Leider wurde Ihre Veranstaltung <strong>%competitionName%</strong> nicht genehmigt.</p>
+        <p><strong>Grund:</strong> %reason%</p>
+        <p>Bei Fragen oder wenn Sie dies besprechen möchten, kontaktieren Sie uns unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

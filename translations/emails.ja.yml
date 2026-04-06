@@ -87,3 +87,26 @@ oauth2_client_rejected:
         <p>残念ながら、OAuth2アプリケーション<strong>%clientName%</strong>のリクエストは承認されませんでした。</p>
         <p><strong>理由:</strong> %reason%</p>
         <p>ご質問がある場合やさらに詳しく話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>までお問い合わせください。</p>
+
+competition_submitted:
+    subject: "新しいイベントが送信されました: %competitionName%"
+    title: "新しいイベントの送信"
+    content: |
+        <p>新しいイベントが承認のために送信されました。</p>
+        <p><strong>送信者:</strong> %playerName%<br><strong>イベント:</strong> %competitionName%<br><strong>場所:</strong> %location%</p>
+        <p><a href="%adminUrl%">管理画面で保留中のイベントを確認する</a></p>
+
+competition_approved:
+    subject: "イベントが承認されました！"
+    title: "イベントが承認されました！"
+    content: |
+        <p>素晴らしいニュースです！イベント <strong>%competitionName%</strong> が承認され、MySpeedPuzzlingで公開されました。</p>
+        <p><a href="%eventUrl%">イベントページを表示</a></p>
+
+competition_rejected:
+    subject: "イベントは承認されませんでした"
+    title: "イベント未承認"
+    content: |
+        <p>残念ながら、イベント <strong>%competitionName%</strong> は承認されませんでした。</p>
+        <p><strong>理由:</strong> %reason%</p>
+        <p>ご質問がある場合やさらに話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。</p>

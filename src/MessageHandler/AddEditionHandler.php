@@ -29,7 +29,7 @@ readonly final class AddEditionHandler
         $competition = new Competition(
             id: $message->competitionId,
             name: $message->name,
-            slug: $this->generateUniqueSlug($message->name),
+            slug: $this->generateUniqueSlug($message->name, $message->seriesId),
             shortcut: null,
             logo: null,
             description: null,
@@ -58,15 +58,15 @@ readonly final class AddEditionHandler
         $this->entityManager->persist($round);
     }
 
-    private function generateUniqueSlug(string $name): string
+    private function generateUniqueSlug(string $name, string $seriesId): string
     {
         $slug = (string) $this->slugger->slug(strtolower($name));
 
         /** @var int|string $existingCount */
         $existingCount = $this->entityManager->getConnection()
             ->executeQuery(
-                'SELECT COUNT(*) FROM competition WHERE slug = :slug',
-                ['slug' => $slug],
+                'SELECT COUNT(*) FROM competition WHERE slug = :slug AND series_id = :seriesId',
+                ['slug' => $slug, 'seriesId' => $seriesId],
             )
             ->fetchOne();
         $existingCount = (int) $existingCount;

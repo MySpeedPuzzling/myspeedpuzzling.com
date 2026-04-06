@@ -15,6 +15,7 @@ readonly final class SeriesEdition
         public string $competitionId,
         public string $roundId,
         public string $name,
+        public string $editionSlug,
         public DateTimeImmutable $startsAt,
         public int $minutesLimit,
         public int $puzzleCount,

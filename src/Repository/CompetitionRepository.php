@@ -35,6 +35,26 @@ readonly final class CompetitionRepository
         $this->entityManager->persist($competition);
     }
 
+    /**
+     * @throws CompetitionNotFound
+     */
+    public function getBySeriesAndEditionSlug(string $seriesSlug, string $editionSlug): Competition
+    {
+        /** @var null|Competition $competition */
+        $competition = $this->entityManager->createQueryBuilder()
+            ->select('c')
+            ->from(Competition::class, 'c')
+            ->join('c.series', 's')
+            ->where('s.slug = :seriesSlug')
+            ->andWhere('c.slug = :editionSlug')
+            ->setParameter('seriesSlug', $seriesSlug)
+            ->setParameter('editionSlug', $editionSlug)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $competition ?? throw new CompetitionNotFound();
+    }
+
     public function delete(Competition $competition): void
     {
         $this->entityManager->remove($competition);

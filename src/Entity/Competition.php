@@ -14,11 +14,15 @@ use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\JoinTable;
 use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
+use Doctrine\ORM\Mapping\Table;
+use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 
 #[Entity]
+#[Table]
+#[UniqueConstraint(columns: ['series_id', 'slug'])]
 class Competition
 {
     /**
@@ -31,7 +35,7 @@ class Competition
         public UuidInterface $id,
         #[Column]
         public string $name,
-        #[Column(unique: true, nullable: true)]
+        #[Column(nullable: true)]
         public null|string $slug,
         #[Column(unique: true, nullable: true)]
         public null|string $shortcut,

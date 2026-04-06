@@ -53,7 +53,7 @@
                     <div class="card shadow h-100">
                         <div class="card-body p-3">
                             <h3 class="h5 mb-2">
-                                <a href="{{ path('edition_detail', {'competitionId': edition.competitionId}) }}" class="text-decoration-underline">
+                                <a href="{{ path('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug}) }}" class="text-decoration-underline">
                                     {{ edition.name }}
                                 </a>
                             </h3>
@@ -92,7 +92,7 @@
                     <div class="card shadow h-100">
                         <div class="card-body p-3">
                             <h3 class="h5 mb-2">
-                                <a href="{{ path('edition_detail', {'competitionId': edition.competitionId}) }}" class="text-decoration-underline">
+                                <a href="{{ path('edition_detail', {'seriesSlug': series.slug, 'editionSlug': edition.editionSlug}) }}" class="text-decoration-underline">
                                     {{ edition.name }}
                                 </a>
                             </h3>

@@ -1,0 +1,95 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.manage_rounds'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ competition.name }}</h1>
+
+        {% set roundsReturnUrl = path('manage_competition_rounds', {competitionId: competition.id}) %}
+        {% set roundsReturnTitle = 'competition.manage_rounds'|trans %}
+
+        <div class="mb-3">
+            <a href="{{ path('add_competition_round', {'competitionId': competition.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-outline-primary">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'competition.add_round'|trans }}
+            </a>
+        </div>
+
+        {% for flash_message in app.flashes('success') %}
+            <div class="alert alert-success">
+                <i class="ci-check-circle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        <h2 class="h4 mt-4">{{ 'competition.rounds'|trans }}</h2>
+
+        {% if rounds|length > 0 %}
+            <div class="row g-3">
+                {% for round in rounds %}
+                    <div class="col-12 col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        {% if round.badgeBackgroundColor %}
+                                            <span class="badge fs-6" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#000' }}">
+                                                {{ round.name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="fw-semibold">{{ round.name }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <a href="{{ path('edit_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_delete_round'|trans }}')">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_round_' ~ round.id) }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <div class="small text-body-secondary mb-3">
+                                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
+                                    <span class="mx-1">&middot;</span>
+                                    <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
+                                    <span class="mx-1">&middot;</span>
+                                    <i class="bi bi-puzzle me-1"></i>{{ round.puzzleCount }} {{ 'competition.round.puzzles'|trans|lower }}
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-1">
+                                    <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
+                                    </a>
+                                    {% if is_granted('ADMIN_ACCESS') %}
+                                        {% if not competition.isOnline %}
+                                            <a href="{{ path('manage_round_tables', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.tables'|trans }}
+                                            </a>
+                                        {% endif %}
+                                        <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">{{ 'competition.no_rounds'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

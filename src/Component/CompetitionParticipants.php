@@ -100,10 +100,10 @@ final class CompetitionParticipants
         $chartData = [];
         $backgrounds = [];
 
-        // Filter participants with valid average time
+        // Filter participants with valid average time, exclude private players
         $participantsWithAverageTime = array_filter(
             array: $this->connectedParticipants,
-            callback: fn (ConnectedCompetitionParticipant $participant): bool => $participant->averageTime !== null
+            callback: fn (ConnectedCompetitionParticipant $participant): bool => $participant->averageTime !== null && $participant->isPrivate === false,
         );
 
         foreach ($participantsWithAverageTime as $index => $participant) {

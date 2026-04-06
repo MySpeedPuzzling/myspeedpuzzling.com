@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'series.manage'|trans }} - {{ series.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('events'), fallbackTitle: 'events.title'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ series.name }}</h1>
+
+        <div class="mb-3">
+            <a href="{{ path('edit_competition_series', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-pencil me-1"></i>{{ 'series.edit_series'|trans }}
+            </a>
+            <a href="{{ path('add_edition', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary">
+                <i class="bi bi-plus-lg me-1"></i>{{ 'series.add_edition'|trans }}
+            </a>
+        </div>
+
+        {% for flash_message in app.flashes('success') %}
+            <div class="alert alert-success">
+                <i class="ci-check-circle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        {% if upcoming_editions|length > 0 %}
+            <h2 class="h4 mt-4 mb-3">{{ 'series.upcoming_editions'|trans }}</h2>
+            {{ include('_series_editions_table.html.twig', {editions: upcoming_editions, series: series}) }}
+        {% endif %}
+
+        {% if past_editions|length > 0 %}
+            <h2 class="h4 mt-4 mb-3">{{ 'series.past_editions'|trans }}</h2>
+            {{ include('_series_editions_table.html.twig', {editions: past_editions, series: series}) }}
+        {% endif %}
+
+        {% if upcoming_editions|length == 0 and past_editions|length == 0 %}
+            <p class="text-muted mt-4">{{ 'series.no_editions'|trans }}</p>
+        {% endif %}
+    </div>
+{% endblock %}

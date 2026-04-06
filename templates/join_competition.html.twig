@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.join.title'|trans({'%competitionName%': competition.name}) }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('event_detail', {'slug': competition.slug})},
+        {label: 'competition.join.title'|trans({'%competitionName%': ''})},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('event_detail', {'slug': competition.slug}), fallbackTitle: competition.name}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ 'competition.join.title'|trans({'%competitionName%': competition.name}) }}</h1>
+
+        <div class="p-4 mt-4 shadow mx-auto" style="max-width: 500px;">
+            {% if pairingMapping|length > 0 %}
+                <p class="mb-3">{{ 'competition.join.picker_description'|trans }}</p>
+
+                <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
+                    <div class="mb-3">
+                        <select name="participant_id" class="form-select">
+                            <option value="">{{ 'competition.join.select_name'|trans }}</option>
+                            {% for name, id in pairingMapping %}
+                                <option value="{{ id }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-lg me-1"></i>{{ 'competition.join.connect_confirm'|trans }}
+                    </button>
+                </form>
+
+                <hr class="my-4">
+
+                <p class="text-muted small mb-2">{{ 'competition.join.not_on_list'|trans }}</p>
+
+                <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
+                    <button type="submit" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.join_as'|trans({'%name%': profile.playerName, '%country%': profile.playerCountry ? profile.playerCountry.value : ''}) }}
+                    </button>
+                </form>
+            {% else %}
+                <p>{{ 'competition.join.no_list_description'|trans }}</p>
+
+                <form method="post" action="{{ path('join_competition', {'competitionId': competition.id}) }}">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-person-plus me-1"></i>{{ 'competition.join.join_as'|trans({'%name%': profile.playerName, '%country%': profile.playerCountry ? profile.playerCountry.value : ''}) }}
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

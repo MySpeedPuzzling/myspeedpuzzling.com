@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
@@ -18,6 +19,7 @@ readonly final class GetPlayerSolvedPuzzles
     public function __construct(
         private Connection $database,
         private GetTeamPlayers $getTeamPlayers,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -67,7 +69,7 @@ SELECT
     puzzle_solving_time.team ->> 'team_id' AS team_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -129,6 +131,7 @@ SQL;
         $row = $this->database
             ->executeQuery($query, [
                 'timeId' => $timeId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAssociative();
 
@@ -170,7 +173,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -235,6 +238,7 @@ SQL;
                 'playerId' => $playerId,
                 'dateFrom' => $dateFrom?->format('Y-m-d H:i:s'),
                 'dateTo' => $dateTo?->format('Y-m-d H:i:s'),
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -299,7 +303,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle_solving_time.seconds_to_solve AS time,
     puzzle_solving_time.player_id AS player_id,
     pieces_count,
@@ -337,6 +341,7 @@ SQL;
             ->executeQuery($query, [
                 'playerId' => $playerId,
                 'puzzleId' => $puzzleId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -431,7 +436,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     pieces_count,
@@ -462,6 +467,7 @@ SQL;
                 'playerId' => $playerId,
                 'dateFrom' => $dateFrom?->format('Y-m-d H:i:s'),
                 'dateTo' => $dateTo?->format('Y-m-d H:i:s'),
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -568,7 +574,7 @@ SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     pst.seconds_to_solve AS time,
     pst.player_id AS player_id,
     pieces_count,
@@ -599,6 +605,7 @@ SQL;
                 'playerId' => $playerId,
                 'dateFrom' => $dateFrom?->format('Y-m-d H:i:s'),
                 'dateTo' => $dateTo?->format('Y-m-d H:i:s'),
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -696,7 +703,7 @@ SELECT
     puzzle.ean AS ean,
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
     puzzle_solving_time.finished_at
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -714,6 +721,7 @@ SQL;
             ->executeQuery($query, [
                 'puzzleId' => $puzzleId,
                 'playerId' => $playerId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAssociative();
 
@@ -769,7 +777,7 @@ SELECT DISTINCT ON (puzzle.name, puzzle.id)
     puzzle.ean AS ean,
     puzzle.pieces_count,
     manufacturer.name AS manufacturer_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS image,
     puzzle_solving_time.finished_at
 FROM puzzle_solving_time
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -783,6 +791,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'playerId' => $playerId,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

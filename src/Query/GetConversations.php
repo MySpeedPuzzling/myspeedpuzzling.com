@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ConversationOverview;
 use SpeedPuzzling\Web\Value\ConversationStatus;
 
@@ -13,6 +14,7 @@ readonly final class GetConversations
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -22,7 +24,7 @@ readonly final class GetConversations
     public function forPlayer(string $playerId, null|ConversationStatus $status = null): array
     {
         $statusFilter = '';
-        $params = ['playerId' => $playerId];
+        $params = ['playerId' => $playerId, 'now' => $this->clock->now()->format('Y-m-d H:i:s')];
 
         if ($status !== null) {
             $statusFilter = 'AND c.status = :status';
@@ -85,7 +87,7 @@ SELECT
     -- Puzzle context
     p.id AS puzzle_id,
     p.name AS puzzle_name,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -172,7 +174,7 @@ SELECT
     ip.country AS other_player_country,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -193,6 +195,7 @@ SQL;
             ->executeQuery($query, [
                 'playerId' => $playerId,
                 'status' => ConversationStatus::Pending->value,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -277,7 +280,7 @@ SELECT
     ) AS last_message_system_type,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     sli.listing_type AS listing_type,
     sli.price AS listing_price
 FROM conversation c
@@ -298,6 +301,7 @@ SQL;
             ->executeQuery($query, [
                 'playerId' => $playerId,
                 'status' => ConversationStatus::Ignored->value,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

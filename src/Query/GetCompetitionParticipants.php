@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\ConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\NotConnectedCompetitionParticipant;
 use SpeedPuzzling\Web\Results\CompetitionParticipantInfo;
@@ -15,6 +16,7 @@ readonly final class GetCompetitionParticipants
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -27,6 +29,7 @@ readonly final class GetCompetitionParticipants
 SELECT name, id
 FROM competition_participant
 WHERE competition_id = :competitionId
+AND deleted_at IS NULL
 SQL;
         $results = [];
 
@@ -56,6 +59,7 @@ SQL;
 SELECT player_id, name
 FROM competition_participant
 WHERE player_id IS NOT NULL AND competition_id = :competitionId
+AND deleted_at IS NULL
 SQL;
         $results = [];
 
@@ -89,10 +93,11 @@ SELECT DISTINCT
     player.id AS player_id,
     player.name AS player_name,
     player.code AS player_code,
-    player.country AS player_country
-FROM 
+    player.country AS player_country,
+    player.is_private AS is_private
+FROM
     competition_participant
-INNER JOIN 
+INNER JOIN
     player ON player.id = competition_participant.player_id
 SQL;
 
@@ -106,9 +111,10 @@ SQL;
 
         $query1 .= <<<SQL
 
-WHERE 
+WHERE
     competition_participant.player_id IS NOT NULL
     AND competition_participant.competition_id = :competitionId
+    AND competition_participant.deleted_at IS NULL
 SQL;
 
         if (count($roundsFilter) > 0) {
@@ -138,15 +144,15 @@ SQL;
 SELECT
     puzzle_solving_time.player_id,
     AVG(CASE
-            WHEN puzzle_solving_time.finished_at >= NOW() - INTERVAL '3 months'
+            WHEN puzzle_solving_time.finished_at >= :now::timestamp - INTERVAL '3 months'
             THEN puzzle_solving_time.seconds_to_solve
         END) AS average_time,
     MIN(CASE
-            WHEN puzzle_solving_time.finished_at >= NOW() - INTERVAL '3 months'
+            WHEN puzzle_solving_time.finished_at >= :now::timestamp - INTERVAL '3 months'
             THEN puzzle_solving_time.seconds_to_solve
         END) AS fastest_time,
     COUNT(CASE
-            WHEN puzzle_solving_time.finished_at >= NOW() - INTERVAL '3 months'
+            WHEN puzzle_solving_time.finished_at >= :now::timestamp - INTERVAL '3 months'
             THEN puzzle_solving_time.seconds_to_solve
         END) AS solved_puzzle_count
 FROM 
@@ -172,6 +178,7 @@ SQL;
         $times = $this->database
             ->executeQuery($query2, [
                 'playerIds' => $playerIds,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ], [
                 'playerIds' => ArrayParameterType::STRING,
             ])
@@ -203,6 +210,7 @@ SQL;
              *     player_name: null|string,
              *     player_code: string,
              *     player_country: null|string,
+             *     is_private: bool,
              * } $participant
              */
 
@@ -229,6 +237,7 @@ SQL;
                 averageTime: is_numeric($timeData['average_time']) ? (int) $timeData['average_time'] : null,
                 solvedPuzzleCount: $timeData['solved_puzzle_count'],
                 rounds: $rounds,
+                isPrivate: (bool) $participant['is_private'],
             );
         }, $participants);
 
@@ -268,6 +277,7 @@ SQL;
         $query .= <<<SQL
 
 WHERE competition_participant.player_id IS NULL AND competition_participant.competition_id = :competitionId
+AND competition_participant.deleted_at IS NULL
 SQL;
 
         if (count($roundsFilter) > 0) {
@@ -310,6 +320,7 @@ SQL;
 SELECT id
 FROM competition_participant
 WHERE player_id = :playerId AND competition_id = :competitionId
+AND deleted_at IS NULL
 SQL;
 
         /** @var array<string> $rows */
@@ -332,8 +343,9 @@ SELECT
     competition_participant.rounds
 FROM 
     competition_participant
-WHERE 
+WHERE
     competition_participant.player_id = :playerId
+    AND competition_participant.deleted_at IS NULL
 SQL;
 
         /**

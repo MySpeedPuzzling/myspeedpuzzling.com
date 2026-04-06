@@ -1,0 +1,150 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.manage_participants'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_participants'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('edit_competition', {competitionId: competition.id}), fallbackTitle: 'competition.edit_event'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ competition.name }}</h1>
+
+        <h2 class="h4 mt-4">{{ 'competition.manage_participants'|trans }}</h2>
+
+        {# Import section #}
+        <details class="mb-4">
+            <summary class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-upload me-1"></i>{{ 'competition.participants.import_export'|trans }}
+            </summary>
+            <div class="card card-body mt-2">
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <h6>{{ 'competition.participants.import_title'|trans }}</h6>
+
+                        <form action="{{ path('import_competition_participants', {'competitionId': competition.id}) }}" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="{{ import_form.vars.id ~ '[_token]' }}" value="{{ csrf_token(import_form.vars.id) }}">
+                            <div class="mb-2">
+                                {{ form_widget(import_form.file, {'attr': {'class': 'form-control form-control-sm'}}) }}
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-upload me-1"></i>{{ 'competition.participants.import_button'|trans }}
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>{{ 'competition.participants.export_title'|trans }}</h6>
+                        <div class="d-flex flex-column gap-2">
+                            <a href="{{ path('export_competition_participants', {'competitionId': competition.id}) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-download me-1"></i>{{ 'competition.participants.export_current'|trans }}
+                            </a>
+                            <a href="{{ path('download_competition_participant_template') }}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i>{{ 'competition.participants.download_template'|trans }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="small text-muted">
+                    <strong>{{ 'competition.participants.how_it_works'|trans }}</strong>
+                    <p class="mt-1 mb-2">{{ 'competition.participants.how_it_works_intro'|trans }}</p>
+                    <ul class="mb-2">
+                        <li>{{ 'competition.participants.how_it_works_new'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_existing'|trans }}</li>
+                        <li>{{ 'competition.participants.how_it_works_no_remove'|trans }}</li>
+                    </ul>
+
+                    <strong>{{ 'competition.participants.columns_title'|trans }}</strong>
+                    <table class="table table-sm table-bordered mt-1 mb-2">
+                        <thead>
+                            <tr>
+                                <th>{{ 'competition.participants.col_header'|trans }}</th>
+                                <th>{{ 'competition.participants.col_required'|trans }}</th>
+                                <th>{{ 'competition.participants.col_description'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>name</code></td>
+                                <td>{{ 'competition.participants.col_yes'|trans }}</td>
+                                <td>{{ 'competition.participants.col_name_desc'|trans }}</td>
+                            </tr>
+                            <tr>
+                                <td><code>country</code></td>
+                                <td>{{ 'competition.participants.col_no'|trans }}</td>
+                                <td>{{ 'competition.participants.col_country_desc'|trans }}</td>
+                            </tr>
+                            <tr>
+                                <td><code>external_id</code></td>
+                                <td>{{ 'competition.participants.col_no'|trans }}</td>
+                                <td>{{ 'competition.participants.col_external_id_desc'|trans }}</td>
+                            </tr>
+                            <tr>
+                                <td><code>msp_player_id</code></td>
+                                <td>{{ 'competition.participants.col_no'|trans }}</td>
+                                <td>{{ 'competition.participants.col_player_id_desc'|trans }}</td>
+                            </tr>
+                            <tr>
+                                <td><code>status</code></td>
+                                <td>{{ 'competition.participants.col_no'|trans }}</td>
+                                <td>{{ 'competition.participants.col_status_desc'|trans }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <strong>{{ 'competition.participants.recommended_workflow'|trans }}</strong>
+                    <ol class="mb-0 mt-1">
+                        <li>{{ 'competition.participants.workflow_step_1'|trans }}</li>
+                        <li>{{ 'competition.participants.workflow_step_2'|trans }}</li>
+                        <li>{{ 'competition.participants.workflow_step_3'|trans }}</li>
+                    </ol>
+                </div>
+            </div>
+        </details>
+
+        {# Organizer checklist - hidden when everything is done #}
+        {% if roundCount == 0 or participantCount == 0 %}
+            <div class="alert alert-light border mb-4">
+                <strong class="d-block mb-2">{{ 'competition.participants.setup_checklist'|trans }}</strong>
+                <div class="d-flex flex-column gap-1 small">
+                    <div>
+                        {% if roundCount > 0 %}
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                        {% else %}
+                            <i class="bi bi-circle text-muted me-1"></i>
+                        {% endif %}
+                        {{ 'competition.participants.checklist_rounds'|trans({'%count%': roundCount}) }}
+                        <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id}) }}" class="ms-1">{{ 'competition.manage_rounds'|trans }}</a>
+                    </div>
+                    <div>
+                        {% if participantCount > 0 %}
+                            <i class="bi bi-check-circle-fill text-success me-1"></i>
+                        {% else %}
+                            <i class="bi bi-circle text-muted me-1"></i>
+                        {% endif %}
+                        {{ 'competition.participants.checklist_participants'|trans }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# Flash messages for import results #}
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        {% endfor %}
+        {% for message in app.flashes('warning') %}
+            <div class="alert alert-warning alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        {% endfor %}
+        {% for message in app.flashes('danger') %}
+            <div class="alert alert-danger alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        {% endfor %}
+
+        {# Live Component #}
+        <twig:ManageCompetitionParticipants competitionId="{{ competition.id }}" />
+    </div>
+{% endblock %}

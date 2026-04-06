@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.add_round'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'competition.add_round'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'competition.add_round'|trans }}</h1>
+                <p class="text-muted">{{ competition.name }}</p>
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form) }}
+                            {{ form_row(form.name) }}
+                            {{ form_row(form.minutesLimit) }}
+
+                            {% set isSingleDay = competition.dateFrom is not null and competition.dateTo is not null and competition.dateFrom|date('Y-m-d') == competition.dateTo|date('Y-m-d') %}
+
+                            {% if isSingleDay %}
+                                <div class="mb-3">
+                                    <label class="form-label">{{ 'competition.round.form.date'|trans }}</label>
+                                    <div class="form-control-plaintext fw-medium">
+                                        <i class="ci-calendar me-1"></i>{{ competition.dateFrom|date('d.m.Y') }}
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        {{ form_label(form.startsAtTime) }}
+                                        <div class="input-group">
+                                            {{ form_widget(form.startsAtTime, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"noCalendar": true, "enableTime": true, "time_24hr": true, "dateFormat": "H:i"}'}}) }}
+                                            <i class="bi bi-clock position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                        </div>
+                                        {{ form_errors(form.startsAtTime) }}
+                                    </div>
+                                    <div class="col-6">
+                                        {{ form_row(form.timezone) }}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="mb-3">
+                                    {{ form_label(form.startsAt) }}
+                                    <div class="input-group">
+                                        {{ form_widget(form.startsAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y H:i", "dateFormat": "d.m.Y H:i", "enableTime": true, "time_24hr": true}'}}) }}
+                                        <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
+                                    </div>
+                                    {{ form_errors(form.startsAt) }}
+                                </div>
+                                {{ form_row(form.timezone) }}
+                            {% endif %}
+                            <div class="row">
+                                <div class="col-6">{{ form_row(form.badgeBackgroundColor) }}</div>
+                                <div class="col-6">{{ form_row(form.badgeTextColor) }}</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                {{ 'competition.add_round'|trans }}
+                            </button>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

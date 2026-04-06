@@ -2,7 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import * as bootstrap from 'bootstrap';
 
 export default class extends Controller {
-    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput'];
+    static targets = ['brand', 'puzzle', 'competition', 'newPuzzle', 'scannerModal', 'scannerMessage', 'eanInput', 'hideOptions'];
 
     static values = {
         eanSearchUrl: String,
@@ -29,10 +29,13 @@ export default class extends Controller {
     connect() {
         this.initialBrandValue = this.brandTarget.value;
         this.initialPuzzleValue = this.puzzleTarget.value;
-        this.initialCompetitionValue = this.competitionTarget.value;
         this.brandTarget.addEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.addEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
-        this.competitionTarget.addEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
+
+        if (this.hasCompetitionTarget) {
+            this.initialCompetitionValue = this.competitionTarget.value;
+            this.competitionTarget.addEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
+        }
 
         // Listen for barcode scanner events
         document.addEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
@@ -42,7 +45,11 @@ export default class extends Controller {
         // Remove listeners when the controller is disconnected to avoid side-effects
         this.brandTarget.removeEventListener('autocomplete:pre-connect', this._onBrandConnect);
         this.puzzleTarget.removeEventListener('autocomplete:pre-connect', this._onPuzzleConnect);
-        this.competitionTarget.removeEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
+
+        if (this.hasCompetitionTarget) {
+            this.competitionTarget.removeEventListener('autocomplete:pre-connect', this._onCompetitionConnect);
+        }
+
         document.removeEventListener('barcode-scanner:scanned', this._handleBarcodeScanned);
     }
 
@@ -253,6 +260,16 @@ export default class extends Controller {
         puzzleTomSelect.inputState();
 
         this.newPuzzleTarget.classList.add('d-none');
+    }
+
+    toggleHideOptions(event) {
+        if (this.hasHideOptionsTarget) {
+            if (event.target.checked) {
+                this.hideOptionsTarget.classList.remove('d-none');
+            } else {
+                this.hideOptionsTarget.classList.add('d-none');
+            }
+        }
     }
 
     removeDiacritics(str) {

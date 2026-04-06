@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'series.edit_series'|trans }} - {{ series.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: series.name, url: path('manage_competition_series', {seriesId: series.id})},
+        {label: 'series.edit_series'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_series', {seriesId: series.id}), fallbackTitle: 'series.manage'|trans}) }}
+
+    <div class="pb-4">
+        <div class="row gy-3 pb-3">
+            <div class="col-lg-8">
+                <h1 class="h2">{{ 'series.edit_series'|trans }}: {{ series.name }}</h1>
+
+                {% for flash_message in app.flashes('success') %}
+                    <div class="alert alert-success">
+                        <i class="ci-check-circle me-2"></i>
+                        {{ flash_message }}
+                    </div>
+                {% endfor %}
+
+                <div class="card shadow my-4">
+                    <div class="card-body">
+                        {{ form_start(form) }}
+                        <div data-controller="competition-form">
+                            <div class="required">{{ form_row(form.name) }}</div>
+                            {{ form_row(form.description) }}
+                            <div class="required" data-action="change->competition-form#toggle">
+                                {{ form_row(form.isOnline) }}
+                            </div>
+                            <div data-competition-form-target="offlineFields">
+                                <div class="mb-3">
+                                    {{ form_label(form.location, null, {label_attr: {class: 'form-label required'}}) }}
+                                    {{ form_widget(form.location) }}
+                                    {{ form_errors(form.location) }}
+                                </div>
+                            </div>
+                            <div data-competition-form-target="typeSelectedFields" data-controller="country-autocomplete">
+                                {{ form_row(form.locationCountryCode) }}
+                            </div>
+
+                            {{ form_row(form.link) }}
+                            {{ form_row(form.logo) }}
+                            <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">
+                                {{ form_row(form.maintainers) }}
+                            </div>
+
+                            <button type="submit" class="btn btn-primary mt-3">
+                                {{ 'competition.save_changes'|trans }}
+                            </button>
+                        </div>
+                        {{ form_end(form) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

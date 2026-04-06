@@ -19,6 +19,7 @@ readonly final class ConnectedCompetitionParticipant
         public int $solvedPuzzleCount,
         /** @var array<string> */
         public array $rounds = [],
+        public bool $isPrivate = false,
     ) {
     }
 }

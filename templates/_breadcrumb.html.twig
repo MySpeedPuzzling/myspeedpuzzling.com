@@ -1,0 +1,15 @@
+{# Usage: {{ include('_breadcrumb.html.twig', {items: [{label: 'Events', url: path('events')}, {label: 'Edit Event'}]}) }} #}
+{# Last item is the active page (no link). #}
+{% if items|length > 0 %}
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0" style="font-size: 0.8rem;">
+            {% for item in items %}
+                {% if loop.last %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ item.label }}</li>
+                {% else %}
+                    <li class="breadcrumb-item"><a href="{{ item.url }}">{{ item.label }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ol>
+    </nav>
+{% endif %}

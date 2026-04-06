@@ -87,3 +87,26 @@ oauth2_client_rejected:
         <p>Malheureusement, votre demande d'application OAuth2 pour <strong>%clientName%</strong> n'a pas été approuvée.</p>
         <p><strong>Raison :</strong> %reason%</p>
         <p>Si vous avez des questions ou souhaitez en discuter davantage, veuillez nous contacter à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+competition_submitted:
+    subject: "Nouvel événement soumis : %competitionName%"
+    title: "Nouvel événement soumis"
+    content: |
+        <p>Un nouvel événement a été soumis pour approbation.</p>
+        <p><strong>Soumis par :</strong> %playerName%<br><strong>Événement :</strong> %competitionName%<br><strong>Lieu :</strong> %location%</p>
+        <p><a href="%adminUrl%">Examiner les événements en attente dans l'administration</a></p>
+
+competition_approved:
+    subject: "Votre événement a été approuvé !"
+    title: "Votre événement a été approuvé !"
+    content: |
+        <p>Bonne nouvelle ! Votre événement <strong>%competitionName%</strong> a été approuvé et est maintenant visible publiquement sur MySpeedPuzzling.</p>
+        <p><a href="%eventUrl%">Voir la page de l'événement</a></p>
+
+competition_rejected:
+    subject: "Votre événement n'a pas été approuvé"
+    title: "Événement non approuvé"
+    content: |
+        <p>Malheureusement, votre événement <strong>%competitionName%</strong> n'a pas été approuvé.</p>
+        <p><strong>Raison :</strong> %reason%</p>
+        <p>Si vous avez des questions ou souhaitez en discuter, contactez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>

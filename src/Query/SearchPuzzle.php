@@ -53,7 +53,8 @@ FROM puzzle
 LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
 {$difficultyJoin}
 WHERE
-    (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
+    (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+    AND (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
     AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
     AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
     AND (
@@ -71,6 +72,7 @@ SQL;
         $eanSearch = trim($search ?? '', '0');
 
         $params = [
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             'searchFullLikeQuery' => "%$search%",
             'eanSearchFullLikeQuery' => "%$eanSearch%",
             'brandId' => $brandId,
@@ -135,7 +137,7 @@ WITH puzzle_base AS (
     SELECT DISTINCT ON (puzzle.id)
         puzzle.id AS puzzle_id,
         puzzle.name AS puzzle_name,
-        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE puzzle.image END AS puzzle_image,
+        CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
         puzzle.alternative_name AS puzzle_alternative_name,
         puzzle.pieces_count,
         puzzle.is_available,
@@ -173,7 +175,8 @@ WITH puzzle_base AS (
     LEFT JOIN tag_puzzle ON tag_puzzle.puzzle_id = puzzle.id
     {$difficultyJoin}
     WHERE
-        (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
+        (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
+        AND (:brandId::uuid IS NULL OR manufacturer_id = :brandId)
         AND (:minPieces::int IS NULL OR pieces_count >= :minPieces)
         AND (:maxPieces::int IS NULL OR pieces_count <= :maxPieces)
         AND (
@@ -241,6 +244,7 @@ SQL;
         $eanSearch = trim($search ?? '', '0');
 
         $params = [
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             'searchQuery' => $search,
             'searchStartLikeQuery' => "%$search",
             'searchEndLikeQuery' => "$search%",
@@ -256,7 +260,6 @@ SQL;
             'offset' => $offset,
             'useTags' => $tag !== null ? 1 : 0,
             'tag' => $tag ? [$tag] : [],
-            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
         ];
 
         $types = [
@@ -320,7 +323,7 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.ean AS puzzle_ean,
     puzzle.pieces_count,
     manufacturer.id AS manufacturer_id,
@@ -333,8 +336,8 @@ SQL;
         /** @var array<array{puzzle_id: string, puzzle_name: string, puzzle_image: null|string, puzzle_ean: null|string, pieces_count: int, manufacturer_id: string, manufacturer_name: string}> $rows */
         $rows = $this->database
             ->executeQuery($query, [
-                'eanPattern' => '%' . $eanSearch . '%',
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'eanPattern' => '%' . $eanSearch . '%',
             ])
             ->fetchAllAssociative();
 
@@ -350,12 +353,12 @@ SQL;
 SELECT
     puzzle.id AS puzzle_id,
     puzzle.name AS puzzle_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
     puzzle.approved AS puzzle_approved,
     manufacturer.name AS manufacturer_name,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now THEN NULL ELSE ean END AS puzzle_ean,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE ean END AS puzzle_ean,
     puzzle.identification_number AS puzzle_identification_number
 FROM puzzle
 INNER JOIN manufacturer ON puzzle.manufacturer_id = manufacturer.id
@@ -366,8 +369,8 @@ SQL;
 
         $data = $this->database
             ->executeQuery($query, [
-                'manufacturerId' => $brandId,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                'manufacturerId' => $brandId,
             ])
             ->fetchAllAssociative();
 

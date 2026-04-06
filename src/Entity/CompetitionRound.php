@@ -12,8 +12,8 @@ use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\JoinColumn;
-use Doctrine\ORM\Mapping\ManyToMany;
 use Doctrine\ORM\Mapping\ManyToOne;
+use Doctrine\ORM\Mapping\OneToMany;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
@@ -36,14 +36,49 @@ class CompetitionRound
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $startsAt,
         /**
-         * @var Collection<int, Puzzle>
+         * @var Collection<int, CompetitionRoundPuzzle>
          */
-        #[ManyToMany(targetEntity: Puzzle::class)]
-        public Collection $puzzles = new ArrayCollection(),
+        #[OneToMany(targetEntity: CompetitionRoundPuzzle::class, mappedBy: 'round')]
+        public Collection $roundPuzzles = new ArrayCollection(),
         #[Column(nullable: true)]
         public null|string $badgeBackgroundColor = null,
         #[Column(nullable: true)]
         public null|string $badgeTextColor = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $stopwatchStartedAt = null,
+        #[Column(nullable: true)]
+        public null|string $stopwatchStatus = null,
     ) {
+    }
+
+    public function edit(
+        string $name,
+        int $minutesLimit,
+        DateTimeImmutable $startsAt,
+        null|string $badgeBackgroundColor,
+        null|string $badgeTextColor,
+    ): void {
+        $this->name = $name;
+        $this->minutesLimit = $minutesLimit;
+        $this->startsAt = $startsAt;
+        $this->badgeBackgroundColor = $badgeBackgroundColor;
+        $this->badgeTextColor = $badgeTextColor;
+    }
+
+    public function startStopwatch(DateTimeImmutable $startedAt): void
+    {
+        $this->stopwatchStartedAt = $startedAt;
+        $this->stopwatchStatus = 'running';
+    }
+
+    public function stopStopwatch(): void
+    {
+        $this->stopwatchStatus = 'stopped';
+    }
+
+    public function resetStopwatch(): void
+    {
+        $this->stopwatchStartedAt = null;
+        $this->stopwatchStatus = null;
     }
 }

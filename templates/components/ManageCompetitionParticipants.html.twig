@@ -1,0 +1,279 @@
+<div{{ attributes }}>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">
+            {{ this.activeCount }} {{ 'competition.participants.active'|trans }}
+            {% if this.deletedCount > 0 %}
+                &middot; {{ this.deletedCount }} {{ 'competition.participants.deleted'|trans }}
+            {% endif %}
+        </span>
+
+        <button
+            class="btn btn-sm btn-primary"
+            data-action="live#action"
+            data-live-action-param="showAdd"
+        >
+            <i class="bi bi-plus-lg me-1"></i>{{ 'competition.participants.add'|trans }}
+        </button>
+    </div>
+
+    <div class="d-flex gap-2 mb-3">
+        <input
+            type="text"
+            class="form-control form-control-sm"
+            placeholder="{{ 'competition.participants.search'|trans }}"
+            data-model="debounce(300)|searchQuery"
+        >
+
+        {% if this.deletedCount > 0 %}
+            <div class="form-check form-switch d-flex align-items-center text-nowrap ms-2">
+                <input
+                    data-model="showDeleted"
+                    type="checkbox"
+                    class="form-check-input"
+                    role="switch"
+                    id="show-deleted"
+                    {{ this.showDeleted ? 'checked' }}
+                >
+                <label for="show-deleted" class="form-check-label ms-1 small">{{ 'competition.participants.show_deleted'|trans }}</label>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if this.showAddForm %}
+        <div class="card mb-3 border-primary">
+            <div class="card-body">
+                <h6 class="card-title mb-3">{{ 'competition.participants.add'|trans }}</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-4">
+                        <input type="text" class="form-control form-control-sm" placeholder="{{ 'competition.participants.name'|trans }}" data-model="addName" autofocus>
+                    </div>
+                    <div class="col-md-3 country-select-wrapper" data-live-ignore>
+                        <select
+                            data-model="on(change)|addCountry"
+                            data-controller="country-select"
+                            class="form-select form-select-sm"
+                        >
+                            <option value="">{{ 'competition.participants.country'|trans }}</option>
+                            {% for regionName, countries in this.countryChoicesGroupedByRegion %}
+                                <optgroup label="{{ regionName }}">
+                                    {% for code, name in countries %}
+                                        <option value="{{ code }}" data-icon="fi fi-{{ code }}" {{ this.addCountry == code ? 'selected' }}>{{ name }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" placeholder="{{ 'competition.participants.external_id'|trans }}" data-model="addExternalId">
+                    </div>
+                    <div class="col-md-3">
+                        {% if this.addPlayerId %}
+                            <div class="input-group input-group-sm">
+                                <span class="form-control form-control-sm bg-light">{{ this.addPlayerName }}</span>
+                                <button class="btn btn-outline-secondary btn-sm" data-action="live#action" data-live-action-param="clearAddPlayer">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                        {% else %}
+                            <input type="text" class="form-control form-control-sm" placeholder="{{ 'competition.participants.search_player'|trans }}" data-model="debounce(200)|addPlayerSearchQuery">
+                            {% if this.addPlayerSearchQuery|length >= 2 %}
+                                {% set addResults = computed.addSearchResults %}
+                                {% if addResults|length > 0 %}
+                                    <div class="list-group list-group-flush small position-absolute shadow bg-white" style="z-index: 10; max-height: 200px; overflow-y: auto;">
+                                        {% for player in addResults %}
+                                            <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                                                data-action="live#action"
+                                                data-live-action-param="selectAddPlayer"
+                                                data-live-player-id-param="{{ player.playerId }}"
+                                                data-live-player-name-param="{{ player.playerName }}">
+                                                {{ player.playerName }}
+                                                {% if player.playerCode %}<code class="text-muted">#{{ player.playerCode|upper }}</code>{% endif %}
+                                                {% if player.playerCountry is not null %}<small class="fi fi-{{ player.playerCountry.name }}"></small>{% endif %}
+                                            </button>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-primary" data-action="live#action" data-live-action-param="addParticipant">
+                        <i class="bi bi-check-lg me-1"></i>{{ 'forms.save'|trans }}
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" data-action="live#action" data-live-action-param="cancelAdd">
+                        {{ 'forms.cancel'|trans }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {% if this.participants|length == 0 %}
+        <div class="text-center py-5">
+            <i class="bi bi-people fs-1 text-muted"></i>
+            <p class="mt-3 mb-0 text-muted">{{ 'competition.participants.no_participants'|trans }}</p>
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>{{ 'competition.participants.name'|trans }}</th>
+                        <th style="width: 60px;">{{ 'competition.participants.country_short'|trans }}</th>
+                        <th>{{ 'competition.participants.external_id'|trans }}</th>
+                        <th>{{ 'competition.participants.msp_player'|trans }}</th>
+                        <th>{{ 'competition.participants.rounds'|trans }}</th>
+                        <th style="width: 80px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for participant in this.participants %}
+                    {% if this.searchQuery == '' or participant.participantName|lower is same as(this.searchQuery|lower) or (participant.participantName|lower starts with this.searchQuery|lower) or (this.searchQuery|lower in participant.participantName|lower) %}
+                    {% if this.editingParticipantId == participant.participantId %}
+                        {# EDIT MODE #}
+                        <tr class="table-warning">
+                            <td>
+                                <input type="text" class="form-control form-control-sm" data-model="editName" autofocus>
+                            </td>
+                            <td class="country-select-wrapper" data-live-ignore>
+                                <select
+                                    data-model="on(change)|editCountry"
+                                    data-controller="country-select"
+                                    class="form-select form-select-sm"
+                                >
+                                    <option value="">—</option>
+                                    {% for regionName, countries in this.countryChoicesGroupedByRegion %}
+                                        <optgroup label="{{ regionName }}">
+                                            {% for code, name in countries %}
+                                                <option value="{{ code }}" data-icon="fi fi-{{ code }}" {{ this.editCountry == code ? 'selected' }}>{{ name }}</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm" data-model="editExternalId">
+                            </td>
+                            <td>
+                                {% if this.editPlayerId %}
+                                    <div class="input-group input-group-sm">
+                                        <span class="form-control form-control-sm bg-light text-truncate">{{ this.editPlayerName }}</span>
+                                        <button class="btn btn-outline-secondary btn-sm" data-action="live#action" data-live-action-param="clearEditPlayer">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    <input type="text" class="form-control form-control-sm" placeholder="{{ 'competition.participants.search_player'|trans }}" data-model="debounce(200)|playerSearchQuery">
+                                    {% if this.playerSearchQuery|length >= 2 %}
+                                        {% set editResults = computed.editSearchResults %}
+                                        {% if editResults|length > 0 %}
+                                            <div class="list-group list-group-flush small position-absolute shadow bg-white" style="z-index: 10; max-height: 200px; overflow-y: auto;">
+                                                {% for player in editResults %}
+                                                    <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                                                        data-action="live#action"
+                                                        data-live-action-param="selectEditPlayer"
+                                                        data-live-player-id-param="{{ player.playerId }}"
+                                                        data-live-player-name-param="{{ player.playerName }}">
+                                                        {{ player.playerName }}
+                                                        {% if player.playerCode %}<code class="text-muted">#{{ player.playerCode|upper }}</code>{% endif %}
+                                                        {% if player.playerCountry is not null %}<small class="fi fi-{{ player.playerCountry.name }}"></small>{% endif %}
+                                                    </button>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for roundId, round in this.competitionRounds %}
+                                    {% set isAssigned = roundId in this.editRoundIds %}
+                                    <button
+                                        class="btn btn-sm px-2 py-0 mb-1 border-0"
+                                        style="opacity: {{ isAssigned ? '1' : '0.3' }}; background: {{ round.color }} !important; color: {{ round.textColor }} !important; font-size: 0.75rem;"
+                                        data-action="live#action"
+                                        data-live-action-param="toggleEditRound"
+                                        data-live-round-id-param="{{ roundId }}"
+                                    >
+                                        {{ round.name }}
+                                    </button>
+                                {% endfor %}
+                            </td>
+                            <td class="text-nowrap">
+                                <button class="btn btn-sm btn-primary py-0 px-1" data-action="live#action" data-live-action-param="saveEdit" title="{{ 'forms.save'|trans }}">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-1" data-action="live#action" data-live-action-param="cancelEdit" title="{{ 'forms.cancel'|trans }}">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    {% else %}
+                        {# DISPLAY MODE #}
+                        <tr class="{{ participant.isDeleted ? 'text-decoration-line-through text-muted' }}">
+                            <td>{{ participant.participantName }}</td>
+                            <td>
+                                {% if participant.participantCountry %}
+                                    <small class="fi fi-{{ participant.participantCountry.name }}"></small>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted small">{{ participant.externalId }}</td>
+                            <td>
+                                {% if participant.playerId %}
+                                    <a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" target="_blank" class="text-decoration-underline small">
+                                        {{ participant.playerName ?? participant.playerCode }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for roundId in participant.roundIds %}
+                                    {% if this.competitionRounds[roundId] is defined %}
+                                        <span class="badge px-2 py-0" style="background: {{ this.competitionRounds[roundId].color }} !important; color: {{ this.competitionRounds[roundId].textColor }} !important; font-size: 0.7rem;">
+                                            {{ this.competitionRounds[roundId].name }}
+                                        </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td class="text-nowrap">
+                                {% if participant.isDeleted %}
+                                    <button
+                                        class="btn btn-sm btn-outline-success py-0 px-1"
+                                        data-action="live#action"
+                                        data-live-action-param="restoreParticipant"
+                                        data-live-participant-id-param="{{ participant.participantId }}"
+                                        title="{{ 'competition.participants.restore'|trans }}"
+                                    >
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                {% else %}
+                                    <button
+                                        class="btn btn-sm btn-outline-secondary py-0 px-1"
+                                        data-action="live#action"
+                                        data-live-action-param="startEdit"
+                                        data-live-participant-id-param="{{ participant.participantId }}"
+                                        title="{{ 'competition.participants.edit'|trans }}"
+                                    >
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button
+                                        class="btn btn-sm btn-outline-danger py-0 px-1"
+                                        data-action="live#action"
+                                        data-live-action-param="deleteParticipant"
+                                        data-live-participant-id-param="{{ participant.participantId }}"
+                                        title="{{ 'competition.participants.delete'|trans }}"
+                                    >
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>

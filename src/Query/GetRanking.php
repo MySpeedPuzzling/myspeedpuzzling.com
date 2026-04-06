@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -21,6 +22,7 @@ final class GetRanking implements ResetInterface
 
     public function __construct(
         private readonly Connection $database,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -82,7 +84,7 @@ SELECT
     p.name AS puzzle_name,
     p.alternative_name AS puzzle_alternative_name,
     p.pieces_count,
-    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > NOW() THEN NULL ELSE p.image END AS puzzle_image,
+    CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image END AS puzzle_image,
     m.name AS manufacturer_name
 FROM
     RankedTimes rt
@@ -96,6 +98,7 @@ SQL;
 
         $data = $this->database
             ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'playerId' => $playerId,
             ])
             ->fetchAllAssociative();
@@ -179,7 +182,7 @@ SELECT
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle.pieces_count,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     manufacturer.name AS manufacturer_name
 FROM
     RankedTimes
@@ -206,6 +209,7 @@ SQL;
          */
         $row = $this->database
             ->executeQuery($query, [
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
                 'playerId' => $playerId,
                 'puzzleId' => $puzzleId,
             ])

@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.stopwatch.manage'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'competition.stopwatch.manage'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">{{ 'competition.stopwatch.manage'|trans }}</h1>
+        <h2 class="h5 text-muted">{{ competition.name }} — {{ round.name }}</h2>
+
+        <div class="mb-3 mt-3">
+            <a href="{{ path('round_stopwatch', {'roundId': round.id}) }}" class="btn btn-outline-primary">
+                <i class="bi bi-display me-1"></i>{{ 'competition.stopwatch.view_public'|trans }}
+            </a>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-body">
+                <p class="mb-3">
+                    <strong>{{ 'competition.round.minutes_limit'|trans }}:</strong> {{ round.minutesLimit }} min
+                </p>
+                <p class="mb-3">
+                    <strong>Status:</strong>
+                    {% if round.stopwatchStatus == 'running' %}
+                        <span class="badge bg-success">{{ 'competition.stopwatch.running'|trans }}</span>
+                    {% elseif round.stopwatchStatus == 'stopped' %}
+                        <span class="badge bg-warning text-dark">{{ 'competition.stopwatch.stopped'|trans }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ 'competition.stopwatch.not_started'|trans }}</span>
+                    {% endif %}
+                </p>
+
+                <div class="d-flex gap-2">
+                    {% if round.stopwatchStatus != 'running' %}
+                        <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-play-fill me-1"></i>{{ 'competition.stopwatch.start'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if round.stopwatchStatus == 'running' %}
+                        <form method="post" action="{{ path('stop_round_stopwatch', {'roundId': round.id}) }}" onsubmit="return confirm('{{ 'competition.stopwatch.confirm_stop'|trans }}')">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-stop-fill me-1"></i>{{ 'competition.stopwatch.stop'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {% if round.stopwatchStatus is not null %}
+                        <form method="post" action="{{ path('reset_round_stopwatch', {'roundId': round.id}) }}" onsubmit="return confirm('{{ 'competition.stopwatch.confirm_reset'|trans }}')">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'competition.stopwatch.reset'|trans }}
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

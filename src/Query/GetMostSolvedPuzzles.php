@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\MostSolvedPuzzle;
 
 readonly final class GetMostSolvedPuzzles
 {
     public function __construct(
         private Connection $database,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -22,7 +24,7 @@ readonly final class GetMostSolvedPuzzles
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     puzzle_statistics.solved_times_count AS solved_times,
@@ -41,6 +43,7 @@ SQL;
         $data = $this->database
             ->executeQuery($query, [
                 'howManyPuzzles' => $howManyPuzzles,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 
@@ -76,7 +79,7 @@ SQL;
         $query = <<<SQL
 SELECT
     puzzle.id AS puzzle_id,
-    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > NOW() THEN NULL ELSE puzzle.image END AS puzzle_image,
+    CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS puzzle_image,
     puzzle.name AS puzzle_name,
     puzzle.alternative_name AS puzzle_alternative_name,
     count(puzzle_solving_time.puzzle_id) AS solved_times,
@@ -99,6 +102,7 @@ SQL;
                 'howManyPuzzles' => $limit,
                 'startDate' => $startDate,
                 'endDate' => $endDate,
+                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();
 

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -20,6 +21,7 @@ final class EventDetailController extends AbstractController
 {
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
+        readonly private GetCompetitionParticipants $getCompetitionParticipants,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -52,10 +54,19 @@ final class EventDetailController extends AbstractController
 
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
+        $playerConnections = [];
+        if ($loggedPlayer !== null) {
+            $playerConnections = $this->getCompetitionParticipants->getPlayerConnections(
+                $competition->id->toString(),
+                $loggedPlayer->playerId,
+            );
+        }
+
         return $this->render('event_detail.html.twig', [
             'event' => $competitionEvent,
             'puzzles' => $puzzles,
             'puzzle_statuses' => $puzzleStatuses,
+            'is_going' => count($playerConnections) > 0,
         ]);
     }
 }

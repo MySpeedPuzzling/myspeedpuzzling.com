@@ -420,17 +420,15 @@
                 <twig:GlobalSearch />
             </div>
 
-            {% for label, messages in app.flashes %}
-                {% if label != 'pat_created' %}
+            {% for label in ['success', 'danger', 'warning', 'info'] %}
+                {% for message in app.flashes(label) %}
                     <div class="container mt-3">
-                        {% for message in messages %}
-                            <div class="alert-dismissible mb-0 fade show alert alert-{{ label }}" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
+                        <div class="alert-dismissible mb-0 fade show alert alert-{{ label }}" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
                     </div>
-                {% endif %}
+                {% endfor %}
             {% endfor %}
 
             {% block full_content %}
@@ -494,6 +492,9 @@
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('for_developers') }}" class="widget-list-link">{{ 'menu.for_developers'|trans }}</a>
+                                </li>
+                                <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
+                                    <a href="{{ path('for_organizers') }}" class="widget-list-link">{{ 'menu.for_organizers'|trans }}</a>
                                 </li>
                             </ul>
                         </div>

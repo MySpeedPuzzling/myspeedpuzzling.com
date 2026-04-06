@@ -94,16 +94,17 @@ CompetitionSeries ("Euro Jigsaw Jam")
 
 **Public series page** (`/en/series/{slug}`):
 - Series header with name, description, logo, website link, badges
-- Upcoming editions table: name, date, time limit, puzzle count, participant count, registration link
-- Past editions table: same columns with results link
-- Each edition row links to an edition detail page
+- Upcoming editions as cards (2-column grid on desktop, single column on mobile): name, date with relative time, time limit, puzzle count, participant count, registration link
+- Past editions as cards (same layout): with results link instead of registration link
+- Each edition card links to the edition detail page
 
-**Public edition detail page** (`/en/edition/{competitionId}`):
+**Public edition detail page** (`/en/series/{seriesSlug}/{editionSlug}`):
 - Edition header with link back to series
 - Puzzle grid (from the edition's round)
 - Participants component (competition-scoped)
+- Legacy URLs (`/en/edition/{competitionId}`) 301 redirect to the new slug-based URL
 
-**Editions get auto-generated slugs** — when an edition is created via `AddEditionHandler`, a unique slug is generated from the edition name (same collision-handling as standalone competitions).
+**Editions get auto-generated slugs** — when an edition is created via `AddEditionHandler`, a unique slug is generated from the edition name. Slug uniqueness is scoped to the parent series (not globally), enforced by a composite unique constraint on `(series_id, slug)`.
 
 **Events listing:**
 - Standalone competitions appear in Live/Upcoming/Past sections

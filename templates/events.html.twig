@@ -67,7 +67,11 @@
                                 {% if series_item.nextEditionDate %}
                                     <div class="mt-1">
                                         <i class="ci-calendar me-2 ps-1"></i>
-                                        {{ 'competition.next_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
+                                        {% if series_item.nextEditionDate > date() %}
+                                            {{ 'competition.next_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
+                                        {% else %}
+                                            {{ 'competition.last_edition'|trans }}: {{ series_item.nextEditionDate|date('d.m.') }}
+                                        {% endif %}
                                         <small class="text-muted ps-1">({{ series_item.nextEditionDate|ago }})</small>
                                     </div>
                                 {% endif %}

@@ -55,6 +55,8 @@
         </div>
     {% else %}
         {% set currentStatus = null %}
+        {% set seriesRendered = false %}
+
         {% for event in items %}
             {% if this.timePeriod == 'all' and event.eventStatus is not null and event.eventStatus != currentStatus %}
                 {% if not loop.first %}</div>{% endif %}
@@ -68,17 +70,31 @@
                     {% endif %}
                 </h2>
                 <div class="row">
+                {# Render series cards at the start of the "Upcoming" section #}
+                {% if not seriesRendered and event.eventStatus == 'upcoming' and seriesItems|length > 0 %}
+                    {% for series_item in seriesItems %}
+                        {{ include('_competition_series_card.html.twig') }}
+                    {% endfor %}
+                    {% set seriesRendered = true %}
+                {% endif %}
                 {% set currentStatus = event.eventStatus %}
             {% endif %}
             {% if loop.first and (this.timePeriod != 'all' or event.eventStatus is null) %}
                 <div class="row">
+                {# For non-"all" views, render series at the top #}
+                {% if not seriesRendered and seriesItems|length > 0 %}
+                    {% for series_item in seriesItems %}
+                        {{ include('_competition_series_card.html.twig') }}
+                    {% endfor %}
+                    {% set seriesRendered = true %}
+                {% endif %}
             {% endif %}
                 {{ include('_competition_event.html.twig') }}
             {% if loop.last %}</div>{% endif %}
         {% endfor %}
 
-        {% if seriesItems|length > 0 and (this.timePeriod == 'all' or this.timePeriod == 'upcoming') %}
-            <h2 class="mt-4 mb-3">{{ 'events.recurring'|trans }}</h2>
+        {# Render series cards if not yet rendered (no events, or no upcoming section appeared) #}
+        {% if not seriesRendered and seriesItems|length > 0 %}
             <div class="row">
                 {% for series_item in seriesItems %}
                     {{ include('_competition_series_card.html.twig') }}

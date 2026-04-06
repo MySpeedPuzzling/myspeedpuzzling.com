@@ -73,11 +73,19 @@ SQL;
 
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-    (
-        SELECT MIN(cr.starts_at)
-        FROM competition c
-        INNER JOIN competition_round cr ON cr.competition_id = c.id
-        WHERE c.series_id = cs.id AND cr.starts_at >= :now
+    COALESCE(
+        (
+            SELECT MIN(cr.starts_at)
+            FROM competition c
+            INNER JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND cr.starts_at >= :now
+        ),
+        (
+            SELECT MAX(cr.starts_at)
+            FROM competition c
+            INNER JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND cr.starts_at < :now
+        )
     ) AS next_edition_date
 FROM competition_series cs
 WHERE cs.approved_at IS NOT NULL
@@ -96,15 +104,31 @@ SQL;
      */
     public function allUnapproved(): array
     {
+        $now = $this->clock->now();
+
         $query = <<<SQL
-SELECT id, name, slug, logo, description, link, is_online, location, location_country_code, added_by_player_id, approved_at, rejected_at
-FROM competition_series
-WHERE approved_at IS NULL AND rejected_at IS NULL
-ORDER BY created_at DESC NULLS LAST
+SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+    COALESCE(
+        (
+            SELECT MIN(cr.starts_at)
+            FROM competition c
+            INNER JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND cr.starts_at >= :now
+        ),
+        (
+            SELECT MAX(cr.starts_at)
+            FROM competition c
+            INNER JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND cr.starts_at < :now
+        )
+    ) AS next_edition_date
+FROM competition_series cs
+WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL
+ORDER BY cs.created_at DESC NULLS LAST
 SQL;
 
         $rows = $this->database
-            ->executeQuery($query)
+            ->executeQuery($query, ['now' => $now->format('Y-m-d H:i:s')])
             ->fetchAllAssociative();
 
         return array_map($this->mapRow(...), $rows);
@@ -119,11 +143,19 @@ SQL;
 
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
-    (
-        SELECT MIN(cr.starts_at)
-        FROM competition c
-        INNER JOIN competition_round cr ON cr.competition_id = c.id
-        WHERE c.series_id = cs.id AND cr.starts_at >= :now
+    COALESCE(
+        (
+            SELECT MIN(cr.starts_at)
+            FROM competition c
+            INNER JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND cr.starts_at >= :now
+        ),
+        (
+            SELECT MAX(cr.starts_at)
+            FROM competition c
+            INNER JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND cr.starts_at < :now
+        )
     ) AS next_edition_date
 FROM competition_series cs
 WHERE cs.added_by_player_id = :playerId

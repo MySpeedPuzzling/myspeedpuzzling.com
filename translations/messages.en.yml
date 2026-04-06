@@ -2431,6 +2431,7 @@ competition:
     online: "Online"
     recurring: "Recurring"
     next_edition: "Next"
+    last_edition: "Last"
     add_event_info: "Add a new competition or event. It will be reviewed by an admin before being published."
     managed_event_info: "Interested in fully managing participant registrations and payments through MySpeedPuzzling? Contact me at <a href=\"mailto:%email%\">%email%</a>."
     submit_for_approval: "Submit for Approval"

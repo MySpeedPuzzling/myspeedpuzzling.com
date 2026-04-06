@@ -543,7 +543,7 @@ for_organizers:
             description: "Modern infrastructure designed to handle traffic spikes during live events. Real-time features powered by server-sent events — no page refreshes needed."
         free:
             title: "Completely free and ad-free"
-            description: "No subscriptions, no premium tiers, no ads. We built this platform for the puzzle community and it will stay that way."
+            description: "All competition management tools are completely free — no paywalls, no ads, no hidden fees. Organizing events on MySpeedPuzzling will always be free."
     features:
         title: "Everything you need to run a great event"
         subtitle: "A comprehensive toolkit designed specifically for puzzle competition organizers."

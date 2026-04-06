@@ -143,7 +143,7 @@ LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE p.id IN ({$placeholders})
 SQL;
 
-        $rows = $this->database->fetchAllAssociative($query, [...array_values($puzzleIds), $this->clock->now()->format('Y-m-d H:i:s')]);
+        $rows = $this->database->fetchAllAssociative($query, [$this->clock->now()->format('Y-m-d H:i:s'), ...array_values($puzzleIds)]);
 
         $result = [];
         foreach ($rows as $row) {

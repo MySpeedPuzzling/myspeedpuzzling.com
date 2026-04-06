@@ -5,6 +5,20 @@
 {% block content %}
     <h1>{{ 'edit_profile.title'|trans }}</h1>
 
+    {% for flash_token in app.flashes('pat_created') %}
+        <div class="border border-warning rounded p-4 mb-4 bg-warning bg-opacity-10">
+            <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-2"></i>
+                <strong class="fs-5">{{ 'edit_profile.pat_created_title'|trans }}</strong>
+            </div>
+            <p class="text-danger fw-bold mb-2">{{ 'edit_profile.pat_created_warning'|trans }}</p>
+            <div class="bg-white border rounded p-3 mb-3">
+                <code class="user-select-all d-block text-break fs-6">{{ flash_token }}</code>
+            </div>
+            <p class="text-muted fs-sm mb-0"><i class="bi bi-info-circle me-1"></i>{{ 'edit_profile.pat_created_hint'|trans }}</p>
+        </div>
+    {% endfor %}
+
     <div class="row">
         <div class="col-sm-6">
             <div class="card card-body shadow-lg">
@@ -109,20 +123,6 @@
                 <p class="fs-sm mb-3"><code>Authorization: Token msp_pat_...</code></p>
 
                 {% if player.fairUsePolicyAccepted %}
-                    {% for flash_token in app.flashes('pat_created') %}
-                        <div class="border border-warning rounded p-4 mb-4 bg-warning bg-opacity-10">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="bi bi-exclamation-triangle-fill text-warning fs-4 me-2"></i>
-                                <strong class="fs-5">{{ 'edit_profile.pat_created_title'|trans }}</strong>
-                            </div>
-                            <p class="text-danger fw-bold mb-2">{{ 'edit_profile.pat_created_warning'|trans }}</p>
-                            <div class="bg-white border rounded p-3 mb-3">
-                                <code class="user-select-all d-block text-break fs-6">{{ flash_token }}</code>
-                            </div>
-                            <p class="text-muted fs-sm mb-0"><i class="bi bi-info-circle me-1"></i>{{ 'edit_profile.pat_created_hint'|trans }}</p>
-                        </div>
-                    {% endfor %}
-
                     {% for token in personal_access_tokens %}
                         <div class="card border mb-2">
                             <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">

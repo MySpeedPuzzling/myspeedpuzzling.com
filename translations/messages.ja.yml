@@ -23,6 +23,7 @@
   "puzzle_library": "パズルライブラリ"
   "export_data": "データエクスポート"
   "for_developers": "開発者向け"
+  "for_organizers": "主催者向け"
   "feature_requests": "機能リクエスト"
 "accessibility":
   "toggle_navigation": "ナビゲーション切替"
@@ -463,6 +464,7 @@
     "country": "国"
     "all_countries": "すべての国"
   "no_results": "イベントが見つかりません。"
+  "more_info_for_organizers": "主催者向け詳細情報"
   "no_participants_message": "参加者リストはまだ利用できません。他の参加者と自分を比較したいですか？イベント主催者に参加者リストのアップロードをお願いしてください — みんなの体験がずっと良くなります！"
 "puzzlers":
   "meta":
@@ -547,6 +549,79 @@
   "sign_in": "サインイン"
   "sign_in_to_request": "サインインしてリクエスト"
   "questions": "ご質問がありましたら <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a> までお気軽にどうぞ。"
+"for_organizers":
+  "meta":
+    "title": "主催者向け — パズル大会を開催しよう"
+    "description": "パズル大会の運営に必要なすべて：イベント設定、ラウンド、ライブストップウォッチ、参加者管理、テーブルレイアウトなど。無料・広告なし。"
+  "hero":
+    "title": "自信を持ってパズル大会を開催しよう"
+    "lead": "MySpeedPuzzlingは、パズルイベントの企画から終了まで、必要なすべてを提供します。パズラーによる、コミュニティのためのプラットフォームです。"
+    "cta_start": "イベントを作成"
+    "cta_browse": "イベントを探す"
+    "trust_free": "永久無料"
+    "trust_no_ads": "広告なし、手数料なし"
+  "benefits":
+    "title": "主催者がMySpeedPuzzlingを選ぶ理由"
+    "community":
+      "title": "あなたの観客はすでにここにいます"
+      "description": "何千人ものパズラーが、すでにMySpeedPuzzlingでタイム、コレクション、統計を記録しています。あなたのイベントはコミュニティで即座に注目されます。"
+    "reliability":
+      "title": "信頼性のために構築"
+      "description": "ライブイベント中のトラフィックスパイクに対応できるモダンなインフラストラクチャ。Server-Sent Eventsによるリアルタイム機能 — ページの再読み込みは不要です。"
+    "free":
+      "title": "完全無料・広告なし"
+      "description": "サブスクリプションなし、プレミアムティアなし、広告なし。パズルコミュニティのためにこのプラットフォームを構築し、これからもそうあり続けます。"
+  "features":
+    "title": "素晴らしいイベントに必要なすべて"
+    "subtitle": "パズル大会主催者のために特別に設計された包括的なツールキット。"
+    "create_event":
+      "title": "イベントを作成"
+      "description": "名前、場所、日程、ロゴ、リンクなど、すべての詳細を設定。オンラインと対面イベントの両方に対応。"
+    "rounds":
+      "title": "ラウンドを管理"
+      "description": "制限時間、開始時刻、色分けバッジで複数のラウンドを設定。マルチラウンドトーナメントに最適です。"
+    "puzzles":
+      "title": "パズルを割り当て"
+      "description": "数千のデータベースからラウンドにパズルを追加。ラウンド開始まで非表示にして、公平なサプライズを。"
+    "stopwatch":
+      "title": "ライブストップウォッチ"
+      "description": "すべてのブラウザで同期されるリアルタイムカウントダウン。大画面に投影 — 参加者はスマートフォンで確認できます。"
+    "participants":
+      "title": "参加者を管理"
+      "description": "参加者は自分で参加登録でき、手動追加やExcelからのインポートも可能。スマートマッチングでプロフィールと紐付けます。"
+    "tables":
+      "title": "テーブルレイアウトを計画"
+      "description": "対面イベント用のビジュアル座席配置。参加者に席を割り当て、会場用にレイアウトを印刷。"
+  "how_it_works":
+    "title": "数分で準備完了"
+    "step1":
+      "title": "作成"
+      "description": "すべての詳細を入力してイベントを送信。チームの簡単な審査後に公開されます。"
+    "step2":
+      "title": "設定"
+      "description": "ラウンドを追加し、パズルを割り当て、参加者リストをインポート。イベントリンクをコミュニティと共有。"
+    "step3":
+      "title": "実行"
+      "description": "ライブストップウォッチを開始し、リアルタイムで結果を管理。参加者と観客はすべてをリアルタイムで確認できます。"
+  "more_features":
+    "title": "さらに便利な機能"
+    "series":
+      "title": "定期シリーズ"
+      "description": "毎週・毎月のイベントを開催？エディションをシリーズにまとめましょう。各エディションは独自の参加者と結果を保持します。"
+    "co_maintainers":
+      "title": "共同管理者"
+      "description": "チームと管理アクセスを共有。複数の主催者が同じイベントを同時に編集できます。"
+    "excel":
+      "title": "Excelインポート＆エクスポート"
+      "description": "スプレッドシートで参加者を一括管理。登録システムからインポート、記録用にエクスポート。"
+    "responsive":
+      "title": "あらゆるデバイスで動作"
+      "description": "完全レスポンシブ — スマートフォン、タブレット、デスクトップで快適に動作。アプリのダウンロードは不要です。"
+  "cta":
+    "title": "何か特別なことが必要ですか？"
+    "description": "<a href=\"mailto:%email%\">%email%</a> までご連絡ください。あなたのイベントを特別なものにしましょう！"
+    "button": "最初のイベントを作成"
+    "note": "無料。アカウント料金なし。広告なし。"
 "faq":
   "meta":
     "title": "よくある質問"

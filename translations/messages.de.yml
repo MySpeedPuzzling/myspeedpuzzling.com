@@ -23,6 +23,7 @@
   "events": "Veranstaltungen"
   "export_data": "Daten exportieren"
   "for_developers": "Für Entwickler"
+  "for_organizers": "Für Veranstalter"
   "feature_requests": "Feature-Vorschläge"
 "accessibility":
   "toggle_navigation": "Navigation umschalten"
@@ -402,6 +403,7 @@
     "country": "Land"
     "all_countries": "Alle Länder"
   "no_results": "Keine Veranstaltungen gefunden."
+  "more_info_for_organizers": "Mehr Infos für Veranstalter"
   "no_participants_message": "Noch keine Teilnehmerliste verfügbar. Möchten Sie sehen, wie Sie im Vergleich zu anderen Teilnehmern abschneiden? Bitten Sie den Veranstalter, die Teilnehmerliste hochzuladen — das verbessert das Erlebnis für alle!"
 "for_developers":
   "meta":
@@ -466,6 +468,79 @@
   "sign_in": "Anmelden"
   "sign_in_to_request": "Anmelden, um zu beantragen"
   "questions": "Fragen? Schreiben Sie uns an <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+"for_organizers":
+  "meta":
+    "title": "Für Veranstalter — Organisieren Sie Ihren Puzzle-Wettbewerb"
+    "description": "Alles, was Sie für die Verwaltung von Puzzle-Wettbewerben brauchen: Event-Setup, Runden, Live-Stoppuhr, Teilnehmerverwaltung, Tischlayouts und mehr. Kostenlos und werbefrei."
+  "hero":
+    "title": "Organisieren Sie Ihren Puzzle-Wettbewerb mit Zuversicht"
+    "lead": "MySpeedPuzzling gibt Ihnen alles, was Sie brauchen, um Puzzle-Events zu organisieren — von der Vorbereitung bis zur Ziellinie. Von Puzzlern für die Community entwickelt."
+    "cta_start": "Event erstellen"
+    "cta_browse": "Events durchsuchen"
+    "trust_free": "Für immer kostenlos"
+    "trust_no_ads": "Keine Werbung, keine Gebühren"
+  "benefits":
+    "title": "Warum Veranstalter MySpeedPuzzling wählen"
+    "community":
+      "title": "Ihr Publikum ist bereits hier"
+      "description": "Tausende Puzzler nutzen MySpeedPuzzling bereits, um ihre Zeiten, Sammlungen und Statistiken zu verfolgen. Ihr Event erhält sofortige Sichtbarkeit in der Community."
+    "reliability":
+      "title": "Für Zuverlässigkeit gebaut"
+      "description": "Moderne Infrastruktur, die Traffic-Spitzen bei Live-Events bewältigt. Echtzeit-Funktionen über Server-Sent Events — kein Neuladen der Seite nötig."
+    "free":
+      "title": "Komplett kostenlos und werbefrei"
+      "description": "Keine Abonnements, keine Premium-Stufen, keine Werbung. Wir haben diese Plattform für die Puzzle-Community gebaut und dabei bleibt es."
+  "features":
+    "title": "Alles, was Sie für ein großartiges Event brauchen"
+    "subtitle": "Ein umfassendes Toolkit, speziell für Puzzle-Wettbewerbs-Veranstalter entwickelt."
+    "create_event":
+      "title": "Erstellen Sie Ihr Event"
+      "description": "Richten Sie Wettbewerbe mit allen Details ein — Name, Ort, Daten, Logo und Links. Unterstützt sowohl Online- als auch Vor-Ort-Events."
+    "rounds":
+      "title": "Runden verwalten"
+      "description": "Konfigurieren Sie mehrere Runden mit Zeitlimits, Startzeiten und farbcodierten Badges. Perfekt für Mehrrunden-Turniere."
+    "puzzles":
+      "title": "Puzzles zuweisen"
+      "description": "Fügen Sie Puzzles aus einer Datenbank mit Tausenden von Puzzles zu Runden hinzu. Verstecken Sie sie bis zum Rundenstart für eine faire Überraschung."
+    "stopwatch":
+      "title": "Live-Stoppuhr"
+      "description": "Echtzeit-Countdown synchronisiert über alle Browser. Projizieren Sie es auf eine große Leinwand — Teilnehmer verfolgen es auf ihren Handys."
+    "participants":
+      "title": "Teilnehmer verwalten"
+      "description": "Teilnehmer können sich selbst anmelden, oder Sie fügen sie manuell hinzu oder importieren sie aus Excel. Intelligente Zuordnung verknüpft sie mit ihren Profilen."
+    "tables":
+      "title": "Tischlayouts planen"
+      "description": "Visuelle Sitzordnung für Vor-Ort-Events. Weisen Sie Teilnehmern Plätze zu und drucken Sie das Layout für den Veranstaltungsort aus."
+  "how_it_works":
+    "title": "In wenigen Minuten startklar"
+    "step1":
+      "title": "Erstellen"
+      "description": "Reichen Sie Ihr Event mit allen Details ein. Nach einer kurzen Prüfung durch unser Team geht es online."
+    "step2":
+      "title": "Einrichten"
+      "description": "Fügen Sie Runden hinzu, weisen Sie Puzzles zu und importieren Sie Ihre Teilnehmerliste. Teilen Sie den Event-Link mit Ihrer Community."
+    "step3":
+      "title": "Durchführen"
+      "description": "Starten Sie die Live-Stoppuhr, verwalten Sie Ergebnisse in Echtzeit. Teilnehmer und Zuschauer sehen alles live."
+  "more_features":
+    "title": "Und es gibt noch mehr"
+    "series":
+      "title": "Wiederkehrende Serien"
+      "description": "Veranstalten Sie wöchentliche oder monatliche Events? Gruppieren Sie Ausgaben in einer Serie. Jede behält ihre eigenen Teilnehmer und Ergebnisse."
+    "co_maintainers":
+      "title": "Mitverwalter"
+      "description": "Teilen Sie den Verwaltungszugang mit Ihrem Team. Mehrere Veranstalter können dasselbe Event gleichzeitig bearbeiten."
+    "excel":
+      "title": "Excel-Import & -Export"
+      "description": "Verwalten Sie Teilnehmer massenweise mit Tabellen. Importieren Sie aus Ihrem Registrierungssystem, exportieren Sie für Ihre Unterlagen."
+    "responsive":
+      "title": "Funktioniert auf jedem Gerät"
+      "description": "Vollständig responsiv — funktioniert hervorragend auf Handys, Tablets und Desktops. Kein App-Download erforderlich."
+  "cta":
+    "title": "Brauchen Sie etwas Besonderes?"
+    "description": "Schreiben Sie uns an <a href=\"mailto:%email%\">%email%</a> und lassen Sie uns Ihr Event außergewöhnlich machen!"
+    "button": "Erstellen Sie Ihr erstes Event"
+    "note": "Kostenlos. Keine Kontogebühren. Keine Werbung."
 "faq":
   "meta":
     "title": "Speed Puzzling FAQ | Verfolgen & Konkurrieren"

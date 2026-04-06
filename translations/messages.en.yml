@@ -23,6 +23,7 @@ menu:
     events: "Events"
     export_data: "Export data"
     for_developers: "For Developers"
+    for_organizers: "For Organizers"
     feature_requests: "Feature Requests"
 
 accessibility:
@@ -452,6 +453,7 @@ events:
         online_only: "Online only"
         country: "Country"
         all_countries: "All countries"
+    more_info_for_organizers: "More info for organizers"
     no_results: "No events found."
     no_participants_message: "No participants list available yet. Would you love to see how you compare with other competitors? Kindly ask the event organizer to upload the participants list — it makes the experience so much better for everyone!"
 
@@ -519,6 +521,80 @@ for_developers:
     sign_in: "Sign In"
     sign_in_to_request: "Sign In to Request"
     questions: "Questions? Reach out at <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+
+for_organizers:
+    meta:
+        title: "For Organizers — Run Your Puzzle Competition"
+        description: "Everything you need to manage puzzle competitions: event setup, rounds, live stopwatch, participant management, table layouts, and more. Free and ad-free."
+    hero:
+        title: "Run your puzzle competition with confidence"
+        lead: "MySpeedPuzzling gives you everything you need to organize jigsaw puzzle events — from setup to the finish line. Built by puzzlers, for the community."
+        cta_start: "Create an event"
+        cta_browse: "Browse events"
+        trust_free: "Free forever"
+        trust_no_ads: "No ads, no fees"
+    benefits:
+        title: "Why organizers choose MySpeedPuzzling"
+        community:
+            title: "Your audience is already here"
+            description: "Thousands of puzzlers already use MySpeedPuzzling to track their times, collections, and stats. Your event gets instant visibility in the community."
+        reliability:
+            title: "Built for reliability"
+            description: "Modern infrastructure designed to handle traffic spikes during live events. Real-time features powered by server-sent events — no page refreshes needed."
+        free:
+            title: "Completely free and ad-free"
+            description: "No subscriptions, no premium tiers, no ads. We built this platform for the puzzle community and it will stay that way."
+    features:
+        title: "Everything you need to run a great event"
+        subtitle: "A comprehensive toolkit designed specifically for puzzle competition organizers."
+        create_event:
+            title: "Create your event"
+            description: "Set up competitions with all the details — name, location, dates, logo, and links. Supports both online and in-person events."
+        rounds:
+            title: "Manage rounds"
+            description: "Configure multiple rounds with time limits, start times, and color-coded badges. Perfect for multi-round tournaments."
+        puzzles:
+            title: "Assign puzzles"
+            description: "Add puzzles to rounds from a database of thousands. Hide them until the round starts for a fair surprise reveal."
+        stopwatch:
+            title: "Live stopwatch"
+            description: "Real-time countdown synced across all browsers. Project it on a big screen — participants follow along on their phones."
+        participants:
+            title: "Manage participants"
+            description: "Participants can join themselves, or you can add them manually or import from Excel. Smart matching links them to their profiles."
+        tables:
+            title: "Plan table layouts"
+            description: "Visual seating arrangement for in-person events. Assign spots to participants, then print the layout for the venue."
+    how_it_works:
+        title: "Up and running in minutes"
+        step1:
+            title: "Create"
+            description: "Submit your event with all the details. It goes live after a quick review by our team."
+        step2:
+            title: "Set up"
+            description: "Add rounds, assign puzzles, and import your participant list. Share the event link with your community."
+        step3:
+            title: "Run it"
+            description: "Start the live stopwatch, manage results in real time. Participants and spectators see everything as it happens."
+    more_features:
+        title: "And there's more"
+        series:
+            title: "Recurring series"
+            description: "Run weekly or monthly events? Group editions under a series. Each keeps its own participants and results."
+        co_maintainers:
+            title: "Co-maintainers"
+            description: "Share management access with your team. Multiple organizers can edit the same event simultaneously."
+        excel:
+            title: "Excel import & export"
+            description: "Bulk-manage participants with spreadsheets. Import from your registration system, export for your records."
+        responsive:
+            title: "Works on any device"
+            description: "Fully responsive — works great on phones, tablets, and desktops. No app download required."
+    cta:
+        title: "Need something extra?"
+        description: "Tell us at <a href=\"mailto:%email%\">%email%</a> and let's make your event extraordinary!"
+        button: "Create your first event"
+        note: "Free. No account fees. No ads."
 
 request_api_access:
     meta:

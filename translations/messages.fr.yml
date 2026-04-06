@@ -23,6 +23,7 @@
   "puzzle_library": "Bibliothèque de puzzles"
   "export_data": "Exporter les données"
   "for_developers": "Pour développeurs"
+  "for_organizers": "Pour organisateurs"
   "feature_requests": "Suggestions"
 "accessibility":
   "toggle_navigation": "Basculer la navigation"
@@ -405,6 +406,7 @@
     "country": "Pays"
     "all_countries": "Tous les pays"
   "no_results": "Aucun événement trouvé."
+  "more_info_for_organizers": "Plus d'infos pour les organisateurs"
   "no_participants_message": "Pas encore de liste de participants disponible. Aimeriez-vous voir comment vous vous comparez aux autres compétiteurs ? Demandez gentiment à l'organisateur de l'événement de télécharger la liste des participants — cela améliore l'expérience pour tout le monde !"
 "for_developers":
   "meta":
@@ -469,6 +471,79 @@
   "sign_in": "Se connecter"
   "sign_in_to_request": "Connectez-vous pour faire une demande"
   "questions": "Des questions ? Contactez-nous à <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+"for_organizers":
+  "meta":
+    "title": "Pour organisateurs — Organisez votre compétition de puzzles"
+    "description": "Tout ce qu'il faut pour gérer des compétitions de puzzles : configuration d'événements, manches, chronomètre en direct, gestion des participants, plans de tables et plus. Gratuit et sans publicité."
+  "hero":
+    "title": "Organisez votre compétition de puzzles en toute confiance"
+    "lead": "MySpeedPuzzling vous donne tout ce qu'il faut pour organiser des événements de puzzles — de la préparation à la ligne d'arrivée. Créé par des puzzlers, pour la communauté."
+    "cta_start": "Créer un événement"
+    "cta_browse": "Parcourir les événements"
+    "trust_free": "Gratuit pour toujours"
+    "trust_no_ads": "Sans publicité, sans frais"
+  "benefits":
+    "title": "Pourquoi les organisateurs choisissent MySpeedPuzzling"
+    "community":
+      "title": "Votre public est déjà ici"
+      "description": "Des milliers de puzzlers utilisent déjà MySpeedPuzzling pour suivre leurs temps, collections et statistiques. Votre événement obtient une visibilité instantanée dans la communauté."
+    "reliability":
+      "title": "Conçu pour la fiabilité"
+      "description": "Infrastructure moderne conçue pour gérer les pics de trafic lors d'événements en direct. Fonctionnalités en temps réel via server-sent events — pas besoin de recharger la page."
+    "free":
+      "title": "Entièrement gratuit et sans publicité"
+      "description": "Pas d'abonnement, pas de niveaux premium, pas de publicité. Nous avons construit cette plateforme pour la communauté du puzzle et ça restera ainsi."
+  "features":
+    "title": "Tout ce qu'il faut pour un super événement"
+    "subtitle": "Une boîte à outils complète conçue spécialement pour les organisateurs de compétitions de puzzles."
+    "create_event":
+      "title": "Créez votre événement"
+      "description": "Configurez des compétitions avec tous les détails — nom, lieu, dates, logo et liens. Supporte les événements en ligne et en présentiel."
+    "rounds":
+      "title": "Gérez les manches"
+      "description": "Configurez plusieurs manches avec des limites de temps, heures de début et badges colorés. Parfait pour les tournois à plusieurs manches."
+    "puzzles":
+      "title": "Attribuez des puzzles"
+      "description": "Ajoutez des puzzles aux manches depuis une base de données de milliers. Cachez-les jusqu'au début de la manche pour une surprise équitable."
+    "stopwatch":
+      "title": "Chronomètre en direct"
+      "description": "Compte à rebours en temps réel synchronisé sur tous les navigateurs. Projetez-le sur grand écran — les participants suivent sur leurs téléphones."
+    "participants":
+      "title": "Gérez les participants"
+      "description": "Les participants peuvent s'inscrire eux-mêmes, ou vous pouvez les ajouter manuellement ou les importer depuis Excel. L'appariement intelligent les relie à leurs profils."
+    "tables":
+      "title": "Planifiez la disposition des tables"
+      "description": "Disposition visuelle des places pour les événements en présentiel. Attribuez des places aux participants, puis imprimez le plan pour le lieu."
+  "how_it_works":
+    "title": "Prêt en quelques minutes"
+    "step1":
+      "title": "Créez"
+      "description": "Soumettez votre événement avec tous les détails. Il est mis en ligne après une vérification rapide par notre équipe."
+    "step2":
+      "title": "Configurez"
+      "description": "Ajoutez des manches, attribuez des puzzles et importez votre liste de participants. Partagez le lien de l'événement avec votre communauté."
+    "step3":
+      "title": "Lancez"
+      "description": "Démarrez le chronomètre en direct, gérez les résultats en temps réel. Participants et spectateurs voient tout en direct."
+  "more_features":
+    "title": "Et ce n'est pas tout"
+    "series":
+      "title": "Séries récurrentes"
+      "description": "Vous organisez des événements hebdomadaires ou mensuels ? Regroupez les éditions en série. Chacune conserve ses propres participants et résultats."
+    "co_maintainers":
+      "title": "Co-organisateurs"
+      "description": "Partagez l'accès de gestion avec votre équipe. Plusieurs organisateurs peuvent modifier le même événement simultanément."
+    "excel":
+      "title": "Import & export Excel"
+      "description": "Gérez les participants en masse avec des tableurs. Importez depuis votre système d'inscription, exportez pour vos archives."
+    "responsive":
+      "title": "Fonctionne sur tout appareil"
+      "description": "Entièrement responsive — fonctionne parfaitement sur téléphones, tablettes et ordinateurs. Aucun téléchargement d'application requis."
+  "cta":
+    "title": "Besoin de quelque chose en plus ?"
+    "description": "Écrivez-nous à <a href=\"mailto:%email%\">%email%</a> et rendons votre événement extraordinaire !"
+    "button": "Créez votre premier événement"
+    "note": "Gratuit. Pas de frais de compte. Pas de publicité."
 "faq":
   "meta":
     "title": "FAQ Speed Puzzling | Suivre et Concourir"

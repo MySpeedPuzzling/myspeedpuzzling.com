@@ -23,6 +23,7 @@
   "events": "Eventy"
   "export_data": "Export dat"
   "for_developers": "Pro vývojáře"
+  "for_organizers": "Pro organizátory"
   "feature_requests": "Návrhy funkcí"
 "accessibility":
   "toggle_navigation": "Přepnout navigaci"
@@ -419,6 +420,7 @@
     "country": "Země"
     "all_countries": "Všechny země"
   "no_results": "Nebyly nalezeny žádné události."
+  "more_info_for_organizers": "Více info pro organizátory"
   "no_participants_message": "Seznam účastníků zatím není k dispozici. Chtěli byste vidět, jak si stojíte ve srovnání s ostatními soutěžícími? Laskavě požádejte organizátora události o nahrání seznamu účastníků — zlepší to zážitek pro všechny!"
 "for_developers":
   "meta":
@@ -483,6 +485,79 @@
   "sign_in": "Přihlásit se"
   "sign_in_to_request": "Přihlaste se pro odeslání žádosti"
   "questions": "Máte otázky? Ozvěte se nám na <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+"for_organizers":
+  "meta":
+    "title": "Pro organizátory — Uspořádejte svou puzzle soutěž"
+    "description": "Vše, co potřebujete pro správu puzzle soutěží: nastavení události, kola, živé stopky, správa účastníků, rozložení stolů a další. Zdarma a bez reklam."
+  "hero":
+    "title": "Uspořádejte svou puzzle soutěž s jistotou"
+    "lead": "MySpeedPuzzling vám dá vše, co potřebujete k organizaci puzzle událostí — od přípravy až po cílovou čáru. Vytvořeno puzzlery pro komunitu."
+    "cta_start": "Vytvořit událost"
+    "cta_browse": "Procházet události"
+    "trust_free": "Navždy zdarma"
+    "trust_no_ads": "Bez reklam, bez poplatků"
+  "benefits":
+    "title": "Proč organizátoři volí MySpeedPuzzling"
+    "community":
+      "title": "Vaše publikum je už tady"
+      "description": "Tisíce puzzlerů již používají MySpeedPuzzling ke sledování svých časů, sbírek a statistik. Vaše událost získá okamžitou viditelnost v komunitě."
+    "reliability":
+      "title": "Postaveno pro spolehlivost"
+      "description": "Moderní infrastruktura navržená zvládat nápory návštěvnosti během živých událostí. Real-time funkce poháněné server-sent events — žádné obnovování stránek."
+    "free":
+      "title": "Kompletně zdarma a bez reklam"
+      "description": "Žádné předplatné, žádné prémiové úrovně, žádné reklamy. Tuto platformu jsme vytvořili pro puzzle komunitu a tak to zůstane."
+  "features":
+    "title": "Vše, co potřebujete pro skvělou událost"
+    "subtitle": "Kompletní sada nástrojů navržená speciálně pro organizátory puzzle soutěží."
+    "create_event":
+      "title": "Vytvořte svou událost"
+      "description": "Nastavte soutěže se všemi detaily — název, místo, datum, logo a odkazy. Podporuje online i prezenční události."
+    "rounds":
+      "title": "Spravujte kola"
+      "description": "Nakonfigurujte více kol s časovými limity, časy zahájení a barevnými štítky. Ideální pro vícekolové turnaje."
+    "puzzles":
+      "title": "Přiřaďte puzzle"
+      "description": "Přidejte puzzle do kol z databáze tisíců puzzlí. Skryjte je do začátku kola pro férové překvapení."
+    "stopwatch":
+      "title": "Živé stopky"
+      "description": "Odpočítávání v reálném čase synchronizované napříč všemi prohlížeči. Promítněte je na velkou obrazovku — účastníci sledují na svých telefonech."
+    "participants":
+      "title": "Spravujte účastníky"
+      "description": "Účastníci se mohou přihlásit sami, nebo je můžete přidat ručně či importovat z Excelu. Chytré párování je propojí s jejich profily."
+    "tables":
+      "title": "Plánujte rozložení stolů"
+      "description": "Vizuální uspořádání míst k sezení pro prezenční události. Přiřaďte místa účastníkům a pak rozložení vytiskněte."
+  "how_it_works":
+    "title": "Připraveno za pár minut"
+    "step1":
+      "title": "Vytvořte"
+      "description": "Odešlete svou událost se všemi detaily. Po rychlé kontrole naším týmem bude zveřejněna."
+    "step2":
+      "title": "Nastavte"
+      "description": "Přidejte kola, přiřaďte puzzle a importujte seznam účastníků. Sdílejte odkaz na událost se svou komunitou."
+    "step3":
+      "title": "Spusťte"
+      "description": "Spusťte živé stopky, spravujte výsledky v reálném čase. Účastníci i diváci vidí vše, jak se to děje."
+  "more_features":
+    "title": "A to není vše"
+    "series":
+      "title": "Opakující se série"
+      "description": "Pořádáte týdenní nebo měsíční události? Seskupte edice do série. Každá si zachová své účastníky a výsledky."
+    "co_maintainers":
+      "title": "Spolupořadatelé"
+      "description": "Sdílejte přístup ke správě se svým týmem. Více organizátorů může upravovat stejnou událost současně."
+    "excel":
+      "title": "Import a export z Excelu"
+      "description": "Hromadně spravujte účastníky pomocí tabulek. Importujte z registračního systému, exportujte pro své záznamy."
+    "responsive":
+      "title": "Funguje na jakémkoli zařízení"
+      "description": "Plně responzivní — skvěle funguje na telefonech, tabletech i počítačích. Není potřeba stahovat žádnou aplikaci."
+  "cta":
+    "title": "Potřebujete něco navíc?"
+    "description": "Napište nám na <a href=\"mailto:%email%\">%email%</a> a pojďme společně udělat vaši událost výjimečnou!"
+    "button": "Vytvořte svou první událost"
+    "note": "Zdarma. Žádné poplatky. Žádné reklamy."
 "faq":
   "meta":
     "title": "Speed Puzzling FAQ | Sledovat"

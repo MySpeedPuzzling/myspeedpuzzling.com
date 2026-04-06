@@ -23,6 +23,7 @@
   "puzzle_library": "Biblioteca de puzzles"
   "export_data": "Exportar datos"
   "for_developers": "Para desarrolladores"
+  "for_organizers": "Para organizadores"
   "feature_requests": "Sugerencias"
 "accessibility":
   "toggle_navigation": "Alternar navegación"
@@ -490,6 +491,7 @@
     "country": "País"
     "all_countries": "Todos los países"
   "no_results": "No se encontraron eventos."
+  "more_info_for_organizers": "Más información para organizadores"
   "no_participants_message": "Aún no hay lista de participantes disponible. ¿Te gustaría ver cómo te comparas con otros competidores? Pide amablemente al organizador del evento que suba la lista de participantes — ¡mejora la experiencia para todos!"
 "for_developers":
   "meta":
@@ -554,6 +556,79 @@
   "sign_in": "Iniciar sesión"
   "sign_in_to_request": "Inicia sesión para solicitar"
   "questions": "¿Preguntas? Escríbenos a <a href=\"mailto:jan@myspeedpuzzling.com\">jan@myspeedpuzzling.com</a>."
+"for_organizers":
+  "meta":
+    "title": "Para organizadores — Organiza tu competición de puzzles"
+    "description": "Todo lo que necesitas para gestionar competiciones de puzzles: configuración de eventos, rondas, cronómetro en vivo, gestión de participantes, distribución de mesas y más. Gratis y sin publicidad."
+  "hero":
+    "title": "Organiza tu competición de puzzles con confianza"
+    "lead": "MySpeedPuzzling te da todo lo que necesitas para organizar eventos de puzzles — desde la preparación hasta la línea de meta. Creado por puzzlers, para la comunidad."
+    "cta_start": "Crear un evento"
+    "cta_browse": "Explorar eventos"
+    "trust_free": "Gratis para siempre"
+    "trust_no_ads": "Sin anuncios, sin tarifas"
+  "benefits":
+    "title": "Por qué los organizadores eligen MySpeedPuzzling"
+    "community":
+      "title": "Tu audiencia ya está aquí"
+      "description": "Miles de puzzlers ya usan MySpeedPuzzling para registrar sus tiempos, colecciones y estadísticas. Tu evento obtiene visibilidad instantánea en la comunidad."
+    "reliability":
+      "title": "Diseñado para la fiabilidad"
+      "description": "Infraestructura moderna diseñada para manejar picos de tráfico durante eventos en vivo. Funciones en tiempo real con server-sent events — sin necesidad de recargar la página."
+    "free":
+      "title": "Completamente gratis y sin publicidad"
+      "description": "Sin suscripciones, sin niveles premium, sin anuncios. Construimos esta plataforma para la comunidad de puzzles y así seguirá."
+  "features":
+    "title": "Todo lo que necesitas para un gran evento"
+    "subtitle": "Un conjunto de herramientas completo diseñado específicamente para organizadores de competiciones de puzzles."
+    "create_event":
+      "title": "Crea tu evento"
+      "description": "Configura competiciones con todos los detalles — nombre, ubicación, fechas, logo y enlaces. Compatible con eventos online y presenciales."
+    "rounds":
+      "title": "Gestiona rondas"
+      "description": "Configura múltiples rondas con límites de tiempo, horas de inicio e insignias de colores. Perfecto para torneos de varias rondas."
+    "puzzles":
+      "title": "Asigna puzzles"
+      "description": "Añade puzzles a las rondas desde una base de datos de miles. Ocúltalos hasta que comience la ronda para una sorpresa justa."
+    "stopwatch":
+      "title": "Cronómetro en vivo"
+      "description": "Cuenta regresiva en tiempo real sincronizada en todos los navegadores. Proyéctalo en una pantalla grande — los participantes siguen desde sus teléfonos."
+    "participants":
+      "title": "Gestiona participantes"
+      "description": "Los participantes pueden unirse solos, o puedes añadirlos manualmente o importarlos desde Excel. El emparejamiento inteligente los vincula con sus perfiles."
+    "tables":
+      "title": "Planifica la distribución de mesas"
+      "description": "Disposición visual de asientos para eventos presenciales. Asigna lugares a los participantes y luego imprime la distribución."
+  "how_it_works":
+    "title": "Listo en minutos"
+    "step1":
+      "title": "Crea"
+      "description": "Envía tu evento con todos los detalles. Se publica después de una rápida revisión por nuestro equipo."
+    "step2":
+      "title": "Configura"
+      "description": "Añade rondas, asigna puzzles e importa tu lista de participantes. Comparte el enlace del evento con tu comunidad."
+    "step3":
+      "title": "Ejecútalo"
+      "description": "Inicia el cronómetro en vivo, gestiona resultados en tiempo real. Participantes y espectadores ven todo mientras sucede."
+  "more_features":
+    "title": "Y hay más"
+    "series":
+      "title": "Series recurrentes"
+      "description": "¿Organizas eventos semanales o mensuales? Agrupa ediciones en una serie. Cada una conserva sus propios participantes y resultados."
+    "co_maintainers":
+      "title": "Co-organizadores"
+      "description": "Comparte el acceso de gestión con tu equipo. Varios organizadores pueden editar el mismo evento simultáneamente."
+    "excel":
+      "title": "Importación y exportación Excel"
+      "description": "Gestiona participantes masivamente con hojas de cálculo. Importa desde tu sistema de registro, exporta para tus archivos."
+    "responsive":
+      "title": "Funciona en cualquier dispositivo"
+      "description": "Totalmente responsivo — funciona genial en teléfonos, tablets y escritorios. No requiere descarga de aplicación."
+  "cta":
+    "title": "¿Necesitas algo extra?"
+    "description": "Escríbenos a <a href=\"mailto:%email%\">%email%</a> y ¡hagamos tu evento extraordinario!"
+    "button": "Crea tu primer evento"
+    "note": "Gratis. Sin tarifas de cuenta. Sin publicidad."
 "faq":
   "meta":
     "title": "Speed Puzzling FAQ | Registrar"

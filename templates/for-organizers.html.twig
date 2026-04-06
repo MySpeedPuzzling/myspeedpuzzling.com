@@ -1,0 +1,248 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'for_organizers.meta.title'|trans }}{% endblock %}
+
+{% block meta_description %}{{ 'for_organizers.meta.description'|trans }}{% endblock %}
+
+{% block full_content %}
+    {# Hero Section #}
+    <section class="bg-secondary py-5">
+        <div class="container px-3">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h1 class="display-5 fw-bold mb-3">{{ 'for_organizers.hero.title'|trans }}</h1>
+                    <p class="lead text-muted mb-4">{{ 'for_organizers.hero.lead'|trans }}</p>
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <a href="{{ path('add_competition') }}" class="btn btn-primary btn-shadow px-3 py-2 px-md-4 py-md-3">
+                            {{ 'for_organizers.hero.cta_start'|trans }}
+                        </a>
+                        <a href="{{ path('events') }}" class="btn btn-outline-primary px-3 py-2 px-md-4 py-md-3">
+                            {{ 'for_organizers.hero.cta_browse'|trans }}
+                        </a>
+                    </div>
+                    <div class="d-flex flex-wrap gap-4 text-muted small">
+                        <span><i class="bi bi-check-circle text-primary me-1"></i> {{ 'for_organizers.hero.trust_free'|trans }}</span>
+                        <span><i class="bi bi-check-circle text-primary me-1"></i> {{ 'for_organizers.hero.trust_no_ads'|trans }}</span>
+                    </div>
+                </div>
+                <div class="col-lg-5 text-center mt-4 mt-lg-0">
+                    <picture>
+                        <source srcset="{{ asset('img/for-organizers-hero.webp') }}" type="image/webp">
+                        <img class="img-fluid" src="{{ asset('img/for-organizers-hero.png') }}" alt="{{ 'for_organizers.meta.title'|trans }}" style="max-height: 350px;">
+                    </picture>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Why MySpeedPuzzling #}
+    <section class="py-5">
+        <div class="container px-3">
+            <div class="text-center mb-4">
+                <h2 class="mb-3">{{ 'for_organizers.benefits.title'|trans }}</h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4 text-center">
+                            <i class="bi bi-people-fill fs-1 text-primary mb-3 d-block"></i>
+                            <h3 class="h5">{{ 'for_organizers.benefits.community.title'|trans }}</h3>
+                            <p class="text-muted mb-0">{{ 'for_organizers.benefits.community.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4 text-center">
+                            <i class="bi bi-shield-check fs-1 text-primary mb-3 d-block"></i>
+                            <h3 class="h5">{{ 'for_organizers.benefits.reliability.title'|trans }}</h3>
+                            <p class="text-muted mb-0">{{ 'for_organizers.benefits.reliability.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4 text-center">
+                            <i class="bi bi-gift fs-1 text-primary mb-3 d-block"></i>
+                            <h3 class="h5">{{ 'for_organizers.benefits.free.title'|trans }}</h3>
+                            <p class="text-muted mb-0">{{ 'for_organizers.benefits.free.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Feature Showcase #}
+    <section class="bg-secondary py-5">
+        <div class="container px-3">
+            <div class="text-center mb-5">
+                <h2 class="mb-3">{{ 'for_organizers.features.title'|trans }}</h2>
+                <p class="lead text-muted col-lg-8 mx-auto">{{ 'for_organizers.features.subtitle'|trans }}</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-calendar-plus fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'for_organizers.features.create_event.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.features.create_event.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-list-ol fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'for_organizers.features.rounds.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.features.rounds.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-puzzle fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'for_organizers.features.puzzles.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.features.puzzles.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-stopwatch fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'for_organizers.features.stopwatch.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.features.stopwatch.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-person-plus fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'for_organizers.features.participants.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.features.participants.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <i class="bi bi-grid-3x3 fs-3 text-primary mb-3 d-block"></i>
+                            <h3 class="h6">{{ 'for_organizers.features.tables.title'|trans }}</h3>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.features.tables.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# How It Works #}
+    <section class="py-5">
+        <div class="container px-3">
+            <div class="text-center mb-5">
+                <h2 class="mb-3">{{ 'for_organizers.how_it_works.title'|trans }}</h2>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center">
+                        <div class="card-body p-4">
+                            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: bold;">1</div>
+                            <h3 class="h5">{{ 'for_organizers.how_it_works.step1.title'|trans }}</h3>
+                            <p class="text-muted mb-0">{{ 'for_organizers.how_it_works.step1.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center">
+                        <div class="card-body p-4">
+                            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: bold;">2</div>
+                            <h3 class="h5">{{ 'for_organizers.how_it_works.step2.title'|trans }}</h3>
+                            <p class="text-muted mb-0">{{ 'for_organizers.how_it_works.step2.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100 text-center">
+                        <div class="card-body p-4">
+                            <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: bold;">3</div>
+                            <h3 class="h5">{{ 'for_organizers.how_it_works.step3.title'|trans }}</h3>
+                            <p class="text-muted mb-0">{{ 'for_organizers.how_it_works.step3.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# More Features #}
+    <section class="bg-secondary py-5">
+        <div class="container px-3">
+            <div class="text-center mb-4">
+                <h2 class="mb-3">{{ 'for_organizers.more_features.title'|trans }}</h2>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-arrow-repeat fs-4 text-primary me-3"></i>
+                                <h3 class="h6 mb-0">{{ 'for_organizers.more_features.series.title'|trans }}</h3>
+                            </div>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.more_features.series.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-people fs-4 text-primary me-3"></i>
+                                <h3 class="h6 mb-0">{{ 'for_organizers.more_features.co_maintainers.title'|trans }}</h3>
+                            </div>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.more_features.co_maintainers.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-file-earmark-spreadsheet fs-4 text-primary me-3"></i>
+                                <h3 class="h6 mb-0">{{ 'for_organizers.more_features.excel.title'|trans }}</h3>
+                            </div>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.more_features.excel.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="bi bi-phone fs-4 text-primary me-3"></i>
+                                <h3 class="h6 mb-0">{{ 'for_organizers.more_features.responsive.title'|trans }}</h3>
+                            </div>
+                            <p class="text-muted mb-0 small">{{ 'for_organizers.more_features.responsive.description'|trans }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {# Final CTA #}
+    <section class="py-5">
+        <div class="container px-3">
+            <div class="text-center col-lg-8 mx-auto">
+                <h2 class="mb-3">{{ 'for_organizers.cta.title'|trans }}</h2>
+                <p class="lead text-muted mb-4">{{ 'for_organizers.cta.description'|trans({'%email%': 'jan@myspeedpuzzling.com'})|raw }}</p>
+                <a href="{{ path('add_competition') }}" class="btn btn-primary btn-lg btn-shadow">
+                    {{ 'for_organizers.cta.button'|trans }}
+                </a>
+                <p class="text-muted small mt-3">{{ 'for_organizers.cta.note'|trans }}</p>
+            </div>
+        </div>
+    </section>
+{% endblock %}

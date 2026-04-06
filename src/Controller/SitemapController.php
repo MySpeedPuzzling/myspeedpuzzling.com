@@ -32,7 +32,7 @@ final class SitemapController extends AbstractController
             ],
         ];
 
-        $staticRoutes = ['homepage', 'contact', 'faq', 'for_developers', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events', 'marketplace', 'puzzle_tracker_app', 'feature_requests', 'methodology', 'msp_rating_ladder'];
+        $staticRoutes = ['homepage', 'contact', 'faq', 'for_developers', 'for_organizers', 'ladder', 'ladder_solo_500_pieces', 'ladder_solo_1000_pieces', 'ladder_pairs_500_pieces', 'ladder_pairs_1000_pieces', 'ladder_groups_500_pieces', 'ladder_groups_1000_pieces', 'privacy_policy', 'puzzles', 'players', 'recent_activity', 'terms_of_service', 'hub', 'events', 'marketplace', 'puzzle_tracker_app', 'feature_requests', 'methodology', 'msp_rating_ladder'];
 
         foreach ($staticRoutes as $route) {
             foreach (self::LOCALES as $locale) {

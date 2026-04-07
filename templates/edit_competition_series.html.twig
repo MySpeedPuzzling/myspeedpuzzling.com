@@ -27,6 +27,7 @@
                         {{ form_start(form) }}
                         <div data-controller="competition-form">
                             <div class="required">{{ form_row(form.name) }}</div>
+                            {{ form_row(form.shortcut) }}
                             {{ form_row(form.description) }}
                             <div class="required" data-action="change->competition-form#toggle">
                                 {{ form_row(form.isOnline) }}

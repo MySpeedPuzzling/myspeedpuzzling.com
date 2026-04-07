@@ -2393,6 +2393,12 @@ qr_code:
     "puzzle_removed": "Puzzle aus der Runde entfernt."
     "rejected": "Wettbewerb abgelehnt. Der Ersteller wurde benachrichtigt."
     "rejection_reason_required": "Bitte geben Sie einen Ablehnungsgrund an."
+    "converted_to_series": "Veranstaltung wurde in eine wiederkehrende Serie umgewandelt."
+  "convert_to_series":
+    "title": "In wiederkehrende Serie umwandeln"
+    "description": "Wandeln Sie diese Veranstaltung in eine wiederkehrende Serie um. Die aktuelle Veranstaltung wird zur ersten Ausgabe der neuen Serie. Alle Teilnehmer, Runden und Daten bleiben erhalten."
+    "button": "In Serie umwandeln"
+    "confirm": "Sind Sie sicher, dass Sie diese Veranstaltung in eine wiederkehrende Serie umwandeln möchten? Diese Aktion kann nicht rückgängig gemacht werden."
   "participants":
     "setup_checklist": "Einrichtungs-Checkliste"
     "checklist_rounds": "%count% Runde(n) konfiguriert"

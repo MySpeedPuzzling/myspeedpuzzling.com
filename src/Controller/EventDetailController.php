@@ -43,6 +43,13 @@ final class EventDetailController extends AbstractController
         #[MapEntity(mapping: ['slug' => 'slug'])] Competition $competition,
         #[CurrentUser] null|UserInterface $user,
     ): Response {
+        if ($competition->series !== null && $competition->series->slug !== null && $competition->slug !== null) {
+            return $this->redirectToRoute('edition_detail', [
+                'seriesSlug' => $competition->series->slug,
+                'editionSlug' => $competition->slug,
+            ], Response::HTTP_MOVED_PERMANENTLY);
+        }
+
         $competitionEvent = $this->getCompetitionEvents->byId($competition->id->toString());
         $puzzles = [];
 

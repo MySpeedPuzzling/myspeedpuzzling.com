@@ -62,6 +62,7 @@ readonly final class EditCompetitionSeriesHandler
             isOnline: $message->isOnline,
             location: $message->location,
             locationCountryCode: $message->locationCountryCode,
+            shortcut: $message->shortcut,
         );
 
         $series->maintainers->clear();

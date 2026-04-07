@@ -67,6 +67,7 @@ readonly final class AddCompetitionSeriesHandler
             isOnline: $message->isOnline,
             location: $message->location,
             locationCountryCode: $message->locationCountryCode,
+            shortcut: $message->shortcut,
             addedByPlayer: $player,
             createdAt: $now,
         );

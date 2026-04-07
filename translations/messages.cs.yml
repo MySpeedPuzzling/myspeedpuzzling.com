@@ -2391,6 +2391,12 @@ qr_code:
     "puzzle_removed": "Puzzle odstraněno z kola."
     "rejected": "Soutěž zamítnuta. Autor byl upozorněn."
     "rejection_reason_required": "Uveďte prosím důvod zamítnutí."
+    "converted_to_series": "Událost byla převedena na opakovanou sérii."
+  "convert_to_series":
+    "title": "Převést na opakovanou sérii"
+    "description": "Převeďte tuto událost na opakovanou sérii. Aktuální událost se stane první edicí nové série. Všichni účastníci, kola a data budou zachována."
+    "button": "Převést na sérii"
+    "confirm": "Opravdu chcete převést tuto událost na opakovanou sérii? Tuto akci nelze vrátit zpět."
   "participants":
     "setup_checklist": "Kontrolní seznam nastavení"
     "checklist_rounds": "%count% kol(o) nakonfigurováno"

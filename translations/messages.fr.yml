@@ -2394,6 +2394,12 @@ competition:
     "puzzle_removed": "Puzzle retiré de la manche."
     "rejected": "Compétition rejetée. Le créateur a été notifié."
     "rejection_reason_required": "Veuillez fournir une raison de rejet."
+    "converted_to_series": "L'événement a été converti en série récurrente."
+  "convert_to_series":
+    "title": "Convertir en série récurrente"
+    "description": "Convertissez cet événement en une série récurrente. L'événement actuel deviendra la première édition de la nouvelle série. Tous les participants, tours et données seront préservés."
+    "button": "Convertir en série"
+    "confirm": "Êtes-vous sûr de vouloir convertir cet événement en une série récurrente ? Cette action est irréversible."
   "participants":
     "setup_checklist": "Liste de vérification"
     "checklist_rounds": "%count% manche(s) configurée(s)"

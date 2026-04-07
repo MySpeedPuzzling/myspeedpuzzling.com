@@ -2393,6 +2393,12 @@ fair_use_policy:
     "puzzle_removed": "Puzzle eliminado de la ronda."
     "rejected": "Competición rechazada. El creador ha sido notificado."
     "rejection_reason_required": "Por favor proporciona una razón de rechazo."
+    "converted_to_series": "El evento ha sido convertido en una serie recurrente."
+  "convert_to_series":
+    "title": "Convertir en serie recurrente"
+    "description": "Convierte este evento en una serie recurrente. El evento actual se convertirá en la primera edición de la nueva serie. Todos los participantes, rondas y datos se conservarán."
+    "button": "Convertir en serie"
+    "confirm": "¿Estás seguro de que quieres convertir este evento en una serie recurrente? Esta acción no se puede deshacer."
   "participants":
     "setup_checklist": "Lista de verificación"
     "checklist_rounds": "%count% ronda(s) configurada(s)"

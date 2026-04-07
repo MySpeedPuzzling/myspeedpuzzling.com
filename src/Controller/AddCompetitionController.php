@@ -64,6 +64,7 @@ final class AddCompetitionController extends AbstractController
                     seriesId: $seriesId,
                     playerId: $player->playerId,
                     name: $data->name ?? '',
+                    shortcut: $data->shortcut,
                     description: $data->description,
                     link: $data->link,
                     isOnline: true,

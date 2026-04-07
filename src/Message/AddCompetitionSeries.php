@@ -16,6 +16,7 @@ readonly final class AddCompetitionSeries
         public UuidInterface $seriesId,
         public string $playerId,
         public string $name,
+        public null|string $shortcut,
         public null|string $description,
         public null|string $link,
         public bool $isOnline,

@@ -41,6 +41,20 @@
                     </div>
                 {% endfor %}
 
+                {% if competition.isOnline and competition.seriesId is null %}
+                    <div class="card shadow my-4 border-info">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-arrow-repeat me-2"></i>{{ 'competition.convert_to_series.title'|trans }}</h5>
+                            <p class="card-text text-muted">{{ 'competition.convert_to_series.description'|trans }}</p>
+                            <form method="post" action="{{ path('convert_competition_to_series', {'competitionId': competition.id}) }}" onsubmit="return confirm('{{ 'competition.convert_to_series.confirm'|trans }}')">
+                                <button type="submit" class="btn btn-outline-info">
+                                    <i class="bi bi-arrow-repeat me-1"></i>{{ 'competition.convert_to_series.button'|trans }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+
                 <div class="card shadow my-4">
                     <div class="card-body">
                         {{ form_start(form) }}

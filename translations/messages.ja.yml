@@ -2382,6 +2382,12 @@ qr_code:
     "puzzle_removed": "パズルをラウンドから削除しました。"
     "rejected": "コンペティションを却下しました。作成者に通知されました。"
     "rejection_reason_required": "却下理由を入力してください。"
+    "converted_to_series": "イベントが定期シリーズに変換されました。"
+  "convert_to_series":
+    "title": "定期シリーズに変換"
+    "description": "このイベントを定期シリーズに変換します。現在のイベントは新しいシリーズの最初のエディションになります。すべての参加者、ラウンド、データは保持されます。"
+    "button": "シリーズに変換"
+    "confirm": "このイベントを定期シリーズに変換してもよろしいですか？この操作は元に戻せません。"
   "participants":
     "setup_checklist": "セットアップチェックリスト"
     "checklist_rounds": "%count%ラウンド設定済み"

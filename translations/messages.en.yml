@@ -2634,6 +2634,12 @@ competition:
         puzzle_removed: "Puzzle removed from round."
         rejected: "Competition rejected. Creator has been notified."
         rejection_reason_required: "Please provide a rejection reason."
+        converted_to_series: "Event has been converted to a recurring series."
+    convert_to_series:
+        title: "Convert to recurring series"
+        description: "Convert this event into a recurring series. The current event will become the first edition of the new series. All participants, rounds, and data will be preserved."
+        button: "Convert to series"
+        confirm: "Are you sure you want to convert this event to a recurring series? This action cannot be undone."
     participants:
         setup_checklist: "Setup checklist"
         checklist_rounds: "%count% round(s) configured"

@@ -45,6 +45,10 @@ class CompetitionSeries
         public null|string $location = null,
         #[Column(nullable: true)]
         public null|string $locationCountryCode = null,
+        #[Column(unique: true, nullable: true)]
+        public null|string $shortcut = null,
+        #[ManyToOne]
+        public null|Tag $tag = null,
         #[Immutable]
         #[ManyToOne]
         public null|Player $addedByPlayer = null,
@@ -102,6 +106,7 @@ class CompetitionSeries
         bool $isOnline,
         null|string $location,
         null|string $locationCountryCode,
+        null|string $shortcut,
     ): void {
         $this->name = $name;
         $this->slug = $slug;
@@ -111,5 +116,6 @@ class CompetitionSeries
         $this->isOnline = $isOnline;
         $this->location = $location;
         $this->locationCountryCode = $locationCountryCode;
+        $this->shortcut = $shortcut;
     }
 }

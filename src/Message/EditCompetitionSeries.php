@@ -14,6 +14,7 @@ readonly final class EditCompetitionSeries
     public function __construct(
         public string $seriesId,
         public string $name,
+        public null|string $shortcut,
         public null|string $description,
         public null|string $link,
         public bool $isOnline,

@@ -49,6 +49,7 @@ final class EditCompetitionSeriesController extends AbstractController
 
         $formData = new CompetitionFormData();
         $formData->name = $series->name;
+        $formData->shortcut = $series->shortcut;
         $formData->description = $series->description;
         $formData->link = $series->link;
         $formData->isOnline = $series->isOnline;
@@ -70,6 +71,7 @@ final class EditCompetitionSeriesController extends AbstractController
             $this->messageBus->dispatch(new EditCompetitionSeries(
                 seriesId: $seriesId,
                 name: $data->name ?? '',
+                shortcut: $data->shortcut,
                 description: $data->description,
                 link: $data->link,
                 isOnline: $data->isOnline === true,

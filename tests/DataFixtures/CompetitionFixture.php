@@ -90,9 +90,13 @@ final class CompetitionFixture extends Fixture implements DependentFixtureInterf
             daysFromNow: 0,
             slug: 'euro-jigsaw-jam',
             description: 'Monthly online jigsaw puzzle competition',
+            link: 'https://eurojj.com',
             isOnline: true,
             approvedAt: $this->clock->now(),
+            addedByPlayer: $regularPlayer,
+            createdAt: $this->clock->now(),
         );
+        $recurringOnlineCompetition->maintainers->add($regularPlayer);
         $manager->persist($recurringOnlineCompetition);
         $this->addReference(self::COMPETITION_RECURRING_ONLINE, $recurringOnlineCompetition);
 

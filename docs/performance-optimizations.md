@@ -8,9 +8,13 @@ Optimizations targeting Largest Contentful Paint (LCP) and Cumulative Layout Shi
 - Footer remains hidden until full CSS loads.
 - Inline critical CSS in `<style>` block includes: `.row`, `.col-lg-6`, `.table`, `.nav-tabs`, `.placeholder-glow`, `.tab-content`, `.custom-table-wrapper`, and other layout primitives needed for above-the-fold skeleton rendering.
 
-## Font Loading (`display=optional`)
+## Font Loading (Self-hosted Rubik, `display=optional`)
 
-Google Fonts uses `display=optional` instead of `display=swap`. This eliminates FOUT (Flash of Unstyled Text) — if Rubik isn't cached, the system font is used for that pageview with zero layout shift. On repeat visits, Rubik is cached and used.
+Rubik is self-hosted as a variable font (WOFF2) in `public/fonts/rubik/`, with only latin and latin-ext subsets (needed for Czech diacritics). The `@font-face` declarations are inlined in the critical CSS `<style>` block and use `display=optional` to eliminate FOUT.
+
+Both font files are `<link rel="preload">`-ed so the browser starts downloading them at highest priority before CSS parsing. Combined with same-origin serving (no cross-origin DNS/TLS overhead), the font typically arrives within the ~100ms `optional` window even on first visit. On slow connections, the system font is used gracefully with zero layout shift.
+
+The service worker precaches both font files on install, so repeat visits serve fonts instantly from cache.
 
 ## Dynamic Imports
 

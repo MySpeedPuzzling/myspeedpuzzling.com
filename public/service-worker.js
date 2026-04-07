@@ -1,10 +1,16 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
 
 const OFFLINE_URL = '/offline.html';
 const ENTRYPOINTS_URL = '/build/entrypoints.json';
 const IMAGES_CACHE_LIMIT = 200;
+
+// Self-hosted fonts to precache on install (instant on repeat visits)
+const FONT_URLS = [
+    '/fonts/rubik/rubik-latin.woff2',
+    '/fonts/rubik/rubik-latin-ext.woff2',
+];
 
 // Patterns that should never be cached (network-only)
 const NETWORK_ONLY_PATHS = [
@@ -17,8 +23,8 @@ const NETWORK_ONLY_PATHS = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(STATIC_CACHE).then(async (cache) => {
-            // Always cache the offline page
-            await cache.add(OFFLINE_URL);
+            // Always cache the offline page and self-hosted fonts
+            await cache.addAll([OFFLINE_URL, ...FONT_URLS]);
 
             // Try to pre-cache current build assets from entrypoints.json
             try {
@@ -63,13 +69,7 @@ self.addEventListener('fetch', (event) => {
 
     // Skip cross-origin requests — let the browser's native HTTP cache handle them.
     // CDN images (img.myspeedpuzzling.com) have their own Cache-Control headers via Traefik.
-    // Exception: Google Fonts are cache-first below (immutable, great offline win).
-    if (url.origin !== self.location.origin) {
-        if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-            event.respondWith(cacheFirst(request, STATIC_CACHE));
-        }
-        return;
-    }
+    if (url.origin !== self.location.origin) return;
 
     // Network-only: specific paths
     if (NETWORK_ONLY_PATHS.some((path) => url.pathname.startsWith(path))) return;
@@ -81,8 +81,8 @@ self.addEventListener('fetch', (event) => {
     const accept = request.headers.get('Accept') || '';
     if (accept.includes('text/vnd.turbo-stream.html')) return;
 
-    // Strategy: Cache-first for /build/* (content-hashed assets)
-    if (url.pathname.startsWith('/build/')) {
+    // Strategy: Cache-first for /build/* (content-hashed) and /fonts/* (self-hosted fonts)
+    if (url.pathname.startsWith('/build/') || url.pathname.startsWith('/fonts/')) {
         event.respondWith(cacheFirst(request, STATIC_CACHE));
         return;
     }

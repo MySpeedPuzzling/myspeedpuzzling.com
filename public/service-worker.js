@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const STATIC_CACHE = 'static-' + CACHE_VERSION;
 const IMAGES_CACHE = 'images-' + CACHE_VERSION;
 
@@ -10,6 +10,12 @@ const IMAGES_CACHE_LIMIT = 200;
 const FONT_URLS = [
     '/fonts/rubik/rubik-latin.woff2',
     '/fonts/rubik/rubik-latin-ext.woff2',
+];
+
+// Icon font source paths to resolve from manifest.json (content-hashed in production)
+const ICON_FONT_KEYS = [
+    'build/fonts/cartzilla-icons.woff',
+    'build/fonts/bootstrap-icons.woff2',
 ];
 
 // Patterns that should never be cached (network-only)
@@ -40,6 +46,20 @@ self.addEventListener('install', (event) => {
                 }
             } catch (e) {
                 // First visit may be offline — skip precaching
+            }
+
+            // Pre-cache icon fonts (resolve content-hashed URLs from manifest)
+            try {
+                const manifestResponse = await fetch('/build/manifest.json');
+                if (manifestResponse.ok) {
+                    const manifest = await manifestResponse.json();
+                    const fontUrls = ICON_FONT_KEYS
+                        .map((key) => manifest[key])
+                        .filter(Boolean);
+                    if (fontUrls.length) await cache.addAll(fontUrls);
+                }
+            } catch (e) {
+                // Non-critical — fonts will load from network on first request
             }
         }).then(() => self.skipWaiting())
     );

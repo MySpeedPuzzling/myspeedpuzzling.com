@@ -1,11 +1,13 @@
 import { Controller } from '@hotwired/stimulus';
-import Chart from 'chart.js/auto';
 
 export default class extends Controller {
     static targets = ['zoomButton'];
 
     connect() {
         this.canvasElement = this.element.querySelector('canvas');
+
+        // Pre-load chart.js (already cached by ux-chartjs controller, resolves instantly)
+        import('chart.js/auto').then(mod => { this._ChartClass = mod.default; });
 
         this.element.addEventListener('chartjs:pre-connect', this._onPreConnect.bind(this));
         this.element.addEventListener('chartjs:view-value-change', this._onViewValueChanged.bind(this));
@@ -134,6 +136,6 @@ export default class extends Controller {
     }
 
     get chart() {
-        return Chart.getChart(this.canvasElement);
+        return this._ChartClass ? this._ChartClass.getChart(this.canvasElement) : null;
     }
 }

@@ -13,6 +13,7 @@ tests/
 vendor/
 node_modules/
 var/
+public/build/
 
 compose.yml
 compose.override.yml

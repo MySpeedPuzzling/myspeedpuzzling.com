@@ -21,6 +21,12 @@ RUN npm run build
 
 COPY . .
 
+# Pre-compress static assets at maximum quality for Caddy's precompressed file_server.
+# Brotli q11 is ~10-17% smaller than on-the-fly q5-6, with zero serving CPU overhead.
+RUN find public -type f \( -name '*.js' -o -name '*.css' -o -name '*.svg' \) \
+        -exec brotli -q 11 --keep {} \; \
+        -exec gzip -9 --keep {} \;
+
 # Need to run again to trigger scripts with application code present
 RUN composer install --no-dev --no-interaction --classmap-authoritative
 

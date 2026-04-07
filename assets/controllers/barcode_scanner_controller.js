@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus';
-import Barcoder from 'barcoder';
 
 export default class extends Controller {
     static targets = [
@@ -182,6 +181,10 @@ export default class extends Controller {
     }
 
     async scanLoop() {
+        if (!this._Barcoder) {
+            const mod = await import('barcoder');
+            this._Barcoder = mod.default;
+        }
         await this._ensureBarcodeDetector();
 
         if (typeof BarcodeDetector === 'undefined') {
@@ -220,7 +223,7 @@ export default class extends Controller {
                         ctx.stroke();
                     }
 
-                    if (Barcoder.validate(code) && (barcode.quality === undefined || barcode.quality > 8)) {
+                    if (this._Barcoder.validate(code) && (barcode.quality === undefined || barcode.quality > 8)) {
                         const now = Date.now();
                         // Only push if at least X...ms have elapsed since the last push.
                         if (!this.lastPushTime || now - this.lastPushTime >= 2) {

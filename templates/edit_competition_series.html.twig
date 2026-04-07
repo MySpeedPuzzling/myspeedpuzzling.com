@@ -53,6 +53,11 @@
                                 {{ 'competition.save_changes'|trans }}
                             </button>
                         </div>
+                        {% do form.isRecurring.setRendered %}
+                        {% do form.dateFrom.setRendered %}
+                        {% do form.dateTo.setRendered %}
+                        {% do form.registrationLink.setRendered %}
+                        {% do form.resultsLink.setRendered %}
                         {{ form_end(form) }}
                     </div>
                 </div>

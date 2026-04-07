@@ -41,7 +41,7 @@
                     </div>
                 {% endfor %}
 
-                {% if competition.isOnline and competition.seriesId is null %}
+                {% if competition.isOnline and competition.seriesId is null and competition.approvedAt is null and competition.rejectedAt is null %}
                     <div class="card shadow my-4 border-info">
                         <div class="card-body">
                             <h5 class="card-title"><i class="bi bi-arrow-repeat me-2"></i>{{ 'competition.convert_to_series.title'|trans }}</h5>
@@ -107,6 +107,7 @@
                                 {{ 'competition.save_changes'|trans }}
                             </button>
                         </div>
+                        {% do form.isRecurring.setRendered %}
                         {{ form_end(form) }}
                     </div>
                 </div>

@@ -90,7 +90,7 @@ SELECT
     ap.id AS payout_id,
     ap.affiliate_id,
     afp.name AS affiliate_player_name,
-    t.subscriber_id,
+    r.subscriber_id,
     sp.name AS subscriber_name,
     ap.stripe_invoice_id,
     ap.payment_amount_cents,

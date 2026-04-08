@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
-use SpeedPuzzling\Web\EventSubscriber\TributeReferralCookieSubscriber;
-use SpeedPuzzling\Web\Message\AttributeTribute;
+use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
+use SpeedPuzzling\Web\Message\AttributeReferral;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Stripe\StripeClient;
@@ -71,26 +71,26 @@ final class StripeCheckoutSuccessController extends AbstractController
         }
 
         // Attribute tribute from session (manual code entry) or cookie (referral link)
-        $sessionTributeCode = $request->getSession()->get('tribute_code');
-        $cookieTributeCode = $request->cookies->get(TributeReferralCookieSubscriber::COOKIE_NAME);
+        $sessionReferralCode = $request->getSession()->get('referral_code');
+        $cookieReferralCode = $request->cookies->get(ReferralCookieSubscriber::COOKIE_NAME);
 
-        if (is_string($sessionTributeCode) || is_string($cookieTributeCode)) {
+        if (is_string($sessionReferralCode) || is_string($cookieReferralCode)) {
             $this->messageBus->dispatch(
-                new AttributeTribute(
+                new AttributeReferral(
                     subscriberPlayerId: $player->playerId,
-                    sessionTributeCode: is_string($sessionTributeCode) ? $sessionTributeCode : null,
-                    cookieTributeCode: is_string($cookieTributeCode) ? $cookieTributeCode : null,
+                    sessionReferralCode: is_string($sessionReferralCode) ? $sessionReferralCode : null,
+                    cookieReferralCode: is_string($cookieReferralCode) ? $cookieReferralCode : null,
                 ),
             );
 
-            $request->getSession()->remove('tribute_code');
+            $request->getSession()->remove('referral_code');
         }
 
         $response = new RedirectResponse($this->generateUrl('membership'));
 
         // Clear the tribute referral cookie
-        if ($request->cookies->has(TributeReferralCookieSubscriber::COOKIE_NAME)) {
-            $response->headers->clearCookie(TributeReferralCookieSubscriber::COOKIE_NAME, '/');
+        if ($request->cookies->has(ReferralCookieSubscriber::COOKIE_NAME)) {
+            $response->headers->clearCookie(ReferralCookieSubscriber::COOKIE_NAME, '/');
         }
 
         return $response;

@@ -8,10 +8,10 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\AffiliatePayout;
-use SpeedPuzzling\Web\Exceptions\TributeNotFound;
+use SpeedPuzzling\Web\Exceptions\ReferralNotFound;
 use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
 use SpeedPuzzling\Web\Repository\AffiliatePayoutRepository;
-use SpeedPuzzling\Web\Repository\TributeRepository;
+use SpeedPuzzling\Web\Repository\ReferralRepository;
 use Stripe\StripeClient;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
@@ -22,7 +22,7 @@ readonly final class CreateAffiliatePayoutHandler
 
     public function __construct(
         private StripeClient $stripeClient,
-        private TributeRepository $tributeRepository,
+        private ReferralRepository $referralRepository,
         private AffiliatePayoutRepository $affiliatePayoutRepository,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -49,16 +49,16 @@ readonly final class CreateAffiliatePayoutHandler
             return;
         }
 
-        // Check if subscriber has a tribute
+        // Check if subscriber has a referral
         try {
-            $tribute = $this->tributeRepository->getBySubscriberId($playerId);
-        } catch (TributeNotFound) {
+            $referral = $this->referralRepository->getBySubscriberId($playerId);
+        } catch (ReferralNotFound) {
             return;
         }
 
-        if (!$tribute->affiliate->isActive()) {
+        if (!$referral->affiliate->isActive()) {
             $this->logger->info('Affiliate is not active, skipping payout creation', [
-                'affiliate_id' => $tribute->affiliate->id->toString(),
+                'affiliate_id' => $referral->affiliate->id->toString(),
                 'invoice_id' => $message->stripeInvoiceId,
             ]);
             return;
@@ -80,8 +80,8 @@ readonly final class CreateAffiliatePayoutHandler
 
         $payout = new AffiliatePayout(
             id: Uuid::uuid7(),
-            affiliate: $tribute->affiliate,
-            tribute: $tribute,
+            affiliate: $referral->affiliate,
+            referral: $referral,
             stripeInvoiceId: $message->stripeInvoiceId,
             paymentAmountCents: $amountPaid,
             payoutAmountCents: $payoutAmount,
@@ -93,7 +93,7 @@ readonly final class CreateAffiliatePayoutHandler
 
         $this->logger->info('Affiliate payout created', [
             'payout_id' => $payout->id->toString(),
-            'affiliate_id' => $tribute->affiliate->id->toString(),
+            'affiliate_id' => $referral->affiliate->id->toString(),
             'amount_cents' => $payoutAmount,
             'currency' => $currency,
         ]);

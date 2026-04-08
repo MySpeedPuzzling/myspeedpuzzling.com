@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\AffiliateOverview;
 use SpeedPuzzling\Web\Results\PayoutOverview;
-use SpeedPuzzling\Web\Results\TributeOverview;
+use SpeedPuzzling\Web\Results\ReferralOverview;
 
 readonly final class GetAffiliateDetail
 {
@@ -27,7 +27,7 @@ SELECT
     a.code,
     a.status,
     a.created_at,
-    COALESCE((SELECT COUNT(*) FROM tribute t WHERE t.affiliate_id = a.id), 0) AS supporter_count,
+    COALESCE((SELECT COUNT(*) FROM referral r WHERE r.affiliate_id = a.id), 0) AS supporter_count,
     COALESCE((SELECT SUM(ap.payout_amount_cents) FROM affiliate_payout ap WHERE ap.affiliate_id = a.id), 0) AS total_earned_cents,
     COALESCE((SELECT SUM(ap.payout_amount_cents) FROM affiliate_payout ap WHERE ap.affiliate_id = a.id AND ap.status = 'pending'), 0) AS pending_payout_cents
 FROM affiliate a
@@ -47,27 +47,27 @@ SQL;
     }
 
     /**
-     * @return array<TributeOverview>
+     * @return array<ReferralOverview>
      */
-    public function tributes(string $affiliateId): array
+    public function referrals(string $affiliateId): array
     {
         $query = <<<SQL
 SELECT
-    t.id AS tribute_id,
-    t.subscriber_id,
+    r.id AS referral_id,
+    r.subscriber_id,
     sp.name AS subscriber_name,
     sp.avatar AS subscriber_avatar,
-    t.affiliate_id,
+    r.affiliate_id,
     ap.name AS affiliate_player_name,
     a.code AS affiliate_code,
-    t.source,
-    t.created_at
-FROM tribute t
-JOIN player sp ON sp.id = t.subscriber_id
-JOIN affiliate a ON a.id = t.affiliate_id
+    r.source,
+    r.created_at
+FROM referral r
+JOIN player sp ON sp.id = r.subscriber_id
+JOIN affiliate a ON a.id = r.affiliate_id
 JOIN player ap ON ap.id = a.player_id
-WHERE t.affiliate_id = :affiliateId
-ORDER BY t.created_at DESC
+WHERE r.affiliate_id = :affiliateId
+ORDER BY r.created_at DESC
 SQL;
 
         $rows = $this->database->fetchAllAssociative($query, [
@@ -75,7 +75,7 @@ SQL;
         ]);
 
         return array_map(
-            static fn(array $row): TributeOverview => TributeOverview::fromDatabaseRow($row),
+            static fn(array $row): ReferralOverview => ReferralOverview::fromDatabaseRow($row),
             $rows,
         );
     }
@@ -100,8 +100,8 @@ SELECT
     ap.created_at,
     ap.paid_at
 FROM affiliate_payout ap
-JOIN tribute t ON t.id = ap.tribute_id
-JOIN player sp ON sp.id = t.subscriber_id
+JOIN referral r ON r.id = ap.referral_id
+JOIN player sp ON sp.id = r.subscriber_id
 JOIN affiliate a ON a.id = ap.affiliate_id
 JOIN player afp ON afp.id = a.player_id
 WHERE ap.affiliate_id = :affiliateId

@@ -12,10 +12,10 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Affiliate;
 use SpeedPuzzling\Web\Entity\AffiliatePayout;
 use SpeedPuzzling\Web\Entity\Player;
-use SpeedPuzzling\Web\Entity\Tribute;
+use SpeedPuzzling\Web\Entity\Referral;
 use SpeedPuzzling\Web\Value\AffiliateStatus;
 use SpeedPuzzling\Web\Value\PayoutStatus;
-use SpeedPuzzling\Web\Value\TributeSource;
+use SpeedPuzzling\Web\Value\ReferralSource;
 
 final class AffiliateFixture extends Fixture implements DependentFixtureInterface
 {
@@ -25,7 +25,7 @@ final class AffiliateFixture extends Fixture implements DependentFixtureInterfac
     public const string AFFILIATE_PENDING_CODE = 'PEND002';
     public const string AFFILIATE_SUSPENDED_ID = '019f0000-0000-0000-0000-000000000003';
     public const string AFFILIATE_SUSPENDED_CODE = 'SUSP003';
-    public const string TRIBUTE_ID = '019f0000-0000-0000-0000-000000000010';
+    public const string REFERRAL_ID = '019f0000-0000-0000-0000-000000000010';
     public const string PAYOUT_PENDING_ID = '019f0000-0000-0000-0000-000000000020';
     public const string PAYOUT_PAID_ID = '019f0000-0000-0000-0000-000000000021';
 
@@ -72,22 +72,22 @@ final class AffiliateFixture extends Fixture implements DependentFixtureInterfac
         );
         $manager->persist($suspendedAffiliate);
 
-        // Tribute: PLAYER_PRIVATE is a supporter of active affiliate
+        // Referral: PLAYER_PRIVATE is a supporter of active affiliate
         $subscriber = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
-        $tribute = new Tribute(
-            id: Uuid::fromString(self::TRIBUTE_ID),
+        $referral = new Referral(
+            id: Uuid::fromString(self::REFERRAL_ID),
             subscriber: $subscriber,
             affiliate: $activeAffiliate,
-            source: TributeSource::Link,
+            source: ReferralSource::Link,
             createdAt: $now->modify('-15 days'),
         );
-        $manager->persist($tribute);
+        $manager->persist($referral);
 
         // Pending payout
         $pendingPayout = new AffiliatePayout(
             id: Uuid::fromString(self::PAYOUT_PENDING_ID),
             affiliate: $activeAffiliate,
-            tribute: $tribute,
+            referral: $referral,
             stripeInvoiceId: 'in_test_pending_001',
             paymentAmountCents: 600,
             payoutAmountCents: 60,
@@ -100,7 +100,7 @@ final class AffiliateFixture extends Fixture implements DependentFixtureInterfac
         $paidPayout = new AffiliatePayout(
             id: Uuid::fromString(self::PAYOUT_PAID_ID),
             affiliate: $activeAffiliate,
-            tribute: $tribute,
+            referral: $referral,
             stripeInvoiceId: 'in_test_paid_001',
             paymentAmountCents: 600,
             payoutAmountCents: 60,

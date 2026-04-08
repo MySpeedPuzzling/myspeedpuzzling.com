@@ -3,7 +3,7 @@
         <div class="alert alert-success d-flex align-items-center mb-3 py-2">
             <i class="ci-check-circle fs-5 me-2"></i>
             <div>
-                <small>{{ 'tribute.crediting'|trans }}</small>
+                <small>{{ 'referral.crediting'|trans }}</small>
                 <strong>{{ this.validatedAffiliateName }}</strong>
                 <button class="btn btn-sm btn-link text-muted p-0 ms-2"
                         data-action="live#action"
@@ -18,7 +18,7 @@
                     data-action="live#action"
                     data-live-action-param="expand">
                 <i class="ci-heart me-1"></i>
-                {{ 'tribute.know_someone'|trans }}
+                {{ 'referral.know_someone'|trans }}
             </button>
         </div>
     {% else %}
@@ -26,18 +26,18 @@
             <div class="card border-0 bg-light">
                 <div class="card-body py-2 px-3">
                     <label class="form-label small text-muted mb-1">
-                        {{ 'tribute.enter_code_label'|trans }}
+                        {{ 'referral.enter_code_label'|trans }}
                     </label>
                     <div class="input-group input-group-sm">
                         <input type="text"
                                class="form-control {% if this.error %}is-invalid{% endif %}"
                                data-model="code"
-                               placeholder="{{ 'tribute.code_placeholder'|trans }}"
+                               placeholder="{{ 'referral.code_placeholder'|trans }}"
                                autocomplete="off">
                         <button class="btn btn-primary"
                                 data-action="live#action"
                                 data-live-action-param="validateCode">
-                            {{ 'tribute.apply_button'|trans }}
+                            {{ 'referral.apply_button'|trans }}
                         </button>
                     </div>
                     {% if this.error %}
@@ -46,7 +46,7 @@
                         </div>
                     {% endif %}
                     <div class="form-text mt-1">
-                        {{ 'tribute.code_help'|trans }}
+                        {{ 'referral.code_help'|trans }}
                     </div>
                 </div>
             </div>

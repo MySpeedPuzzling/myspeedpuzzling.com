@@ -67,13 +67,13 @@
                 </div>
             </div>
 
-            {# Tributes #}
+            {# Referrals #}
             <div class="card shadow mb-3">
                 <div class="card-header">
-                    <h3 class="h5 mb-0">Tributes ({{ tributes|length }})</h3>
+                    <h3 class="h5 mb-0">Referrals ({{ referrals|length }})</h3>
                 </div>
-                {% if tributes is empty %}
-                    <div class="card-body text-muted">No tributes yet.</div>
+                {% if referrals is empty %}
+                    <div class="card-body text-muted">No referrals yet.</div>
                 {% else %}
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
@@ -85,23 +85,23 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for tribute in tributes %}
+                                {% for tribute in referrals %}
                                     <tr>
                                         <td>
-                                            <a href="{{ path('player_profile', {playerId: tribute.subscriberId}) }}">
-                                                {{ tribute.subscriberName ?? 'Unknown' }}
+                                            <a href="{{ path('player_profile', {playerId: referral.subscriberId}) }}">
+                                                {{ referral.subscriberName ?? 'Unknown' }}
                                             </a>
                                         </td>
                                         <td>
-                                            {% if tribute.source.value == 'link' %}
+                                            {% if referral.source.value == 'link' %}
                                                 <span class="badge bg-info">Link</span>
-                                            {% elseif tribute.source.value == 'code' %}
+                                            {% elseif referral.source.value == 'code' %}
                                                 <span class="badge bg-primary">Code</span>
                                             {% else %}
                                                 <span class="badge bg-secondary">Manual</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ tribute.createdAt|ago }}</td>
+                                        <td>{{ referral.createdAt|ago }}</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

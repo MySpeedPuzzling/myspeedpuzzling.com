@@ -11,9 +11,9 @@ use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-final readonly class TributeReferralCookieSubscriber implements EventSubscriberInterface
+final readonly class ReferralCookieSubscriber implements EventSubscriberInterface
 {
-    public const string COOKIE_NAME = 'tribute_ref';
+    public const string COOKIE_NAME = 'referral_ref';
     private const int COOKIE_LIFETIME_DAYS = 30;
 
     public function __construct(

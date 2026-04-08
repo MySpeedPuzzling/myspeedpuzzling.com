@@ -179,7 +179,7 @@ function createCustomIndexes(): void
     // Chat message unread optimization (Version20260212002500)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_chat_message_unread ON chat_message (conversation_id, sender_id) WHERE read_at IS NULL');
 
-    // Affiliate code case-insensitive uniqueness (Version20260408083538)
+    // Affiliate code case-insensitive uniqueness
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_affiliate_code_lower ON affiliate (LOWER(code))');
 }
 

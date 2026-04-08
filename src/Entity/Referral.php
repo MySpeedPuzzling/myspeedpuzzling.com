@@ -14,10 +14,10 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
-use SpeedPuzzling\Web\Value\TributeSource;
+use SpeedPuzzling\Web\Value\ReferralSource;
 
 #[Entity]
-class Tribute
+class Referral
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[ManyToOne]
@@ -25,8 +25,8 @@ class Tribute
     public Affiliate $affiliate;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
-    #[Column(type: Types::STRING, enumType: TributeSource::class)]
-    public TributeSource $source;
+    #[Column(type: Types::STRING, enumType: ReferralSource::class)]
+    public ReferralSource $source;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE)]
@@ -42,7 +42,7 @@ class Tribute
         #[Immutable]
         public Player $subscriber,
         Affiliate $affiliate,
-        TributeSource $source,
+        ReferralSource $source,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
@@ -52,7 +52,7 @@ class Tribute
         $this->updatedAt = $createdAt;
     }
 
-    public function changeAffiliate(Affiliate $affiliate, TributeSource $source, DateTimeImmutable $now): void
+    public function changeAffiliate(Affiliate $affiliate, ReferralSource $source, DateTimeImmutable $now): void
     {
         $this->affiliate = $affiliate;
         $this->source = $source;

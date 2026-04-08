@@ -39,7 +39,7 @@ class AffiliatePayout
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public Tribute $tribute,
+        public Referral $referral,
         #[Immutable]
         #[Column(length: 64, unique: true)]
         public string $stripeInvoiceId,

@@ -9,10 +9,10 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Affiliate;
 use SpeedPuzzling\Web\Entity\Player;
-use SpeedPuzzling\Web\Entity\Tribute;
-use SpeedPuzzling\Web\Value\TributeSource;
+use SpeedPuzzling\Web\Entity\Referral;
+use SpeedPuzzling\Web\Value\ReferralSource;
 
-final class TributeTest extends TestCase
+final class ReferralTest extends TestCase
 {
     public function testConstructionSetsAllFields(): void
     {
@@ -20,19 +20,19 @@ final class TributeTest extends TestCase
         $subscriber = $this->createMock(Player::class);
         $now = new DateTimeImmutable('2026-01-15');
 
-        $tribute = new Tribute(
+        $referral = new Referral(
             id: Uuid::uuid7(),
             subscriber: $subscriber,
             affiliate: $affiliate,
-            source: TributeSource::Link,
+            source: ReferralSource::Link,
             createdAt: $now,
         );
 
-        self::assertSame($affiliate, $tribute->affiliate);
-        self::assertSame($subscriber, $tribute->subscriber);
-        self::assertSame(TributeSource::Link, $tribute->source);
-        self::assertSame($now, $tribute->createdAt);
-        self::assertSame($now, $tribute->updatedAt);
+        self::assertSame($affiliate, $referral->affiliate);
+        self::assertSame($subscriber, $referral->subscriber);
+        self::assertSame(ReferralSource::Link, $referral->source);
+        self::assertSame($now, $referral->createdAt);
+        self::assertSame($now, $referral->updatedAt);
     }
 
     public function testChangeAffiliateUpdatesFieldsAndTimestamp(): void
@@ -43,19 +43,19 @@ final class TributeTest extends TestCase
         $createdAt = new DateTimeImmutable('2026-01-15');
         $updatedAt = new DateTimeImmutable('2026-02-20');
 
-        $tribute = new Tribute(
+        $referral = new Referral(
             id: Uuid::uuid7(),
             subscriber: $subscriber,
             affiliate: $originalAffiliate,
-            source: TributeSource::Link,
+            source: ReferralSource::Link,
             createdAt: $createdAt,
         );
 
-        $tribute->changeAffiliate($newAffiliate, TributeSource::Manual, $updatedAt);
+        $referral->changeAffiliate($newAffiliate, ReferralSource::Manual, $updatedAt);
 
-        self::assertSame($newAffiliate, $tribute->affiliate);
-        self::assertSame(TributeSource::Manual, $tribute->source);
-        self::assertSame($updatedAt, $tribute->updatedAt);
-        self::assertSame($createdAt, $tribute->createdAt);
+        self::assertSame($newAffiliate, $referral->affiliate);
+        self::assertSame(ReferralSource::Manual, $referral->source);
+        self::assertSame($updatedAt, $referral->updatedAt);
+        self::assertSame($createdAt, $referral->createdAt);
     }
 }

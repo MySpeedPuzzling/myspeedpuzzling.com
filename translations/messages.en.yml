@@ -2718,8 +2718,8 @@ edition:
     flash:
         created: "Edition added."
 
-# Tribute Program
-tribute:
+# Referral Program
+referral:
     know_someone: "Know someone who sent you here?"
     enter_code_label: "Enter their tribute code"
     code_placeholder: "e.g. ABC123"
@@ -2731,14 +2731,14 @@ tribute:
         title: "Supporters"
         privacy_note: "%total% supporters total, %shown% shown publicly"
     dashboard:
-        meta_title: "Tribute Program"
-        title: "Tribute Program"
+        meta_title: "Referral Program"
+        title: "Referral Program"
         not_enrolled_title: "You're not enrolled yet"
-        not_enrolled_description: "The Tribute Program lets community members earn 10% of subscription revenue from people they refer. Contact us to join!"
+        not_enrolled_description: "The Referral Program lets community members earn 10% of subscription revenue from people they refer. Contact us to join!"
         pending_title: "Application pending"
-        pending_description: "Your Tribute Program application is being reviewed. We'll let you know once you're approved!"
+        pending_description: "Your Referral Program application is being reviewed. We'll let you know once you're approved!"
         suspended_title: "Account suspended"
-        suspended_description: "Your Tribute Program account has been suspended. Please contact us for more information."
+        suspended_description: "Your Referral Program account has been suspended. Please contact us for more information."
         your_referral_link: "Your referral link"
         copy_link: "Copy"
         your_code: "Your code"

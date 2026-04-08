@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
-enum TributeSource: string
+enum ReferralSource: string
 {
     case Link = 'link';
     case Code = 'code';

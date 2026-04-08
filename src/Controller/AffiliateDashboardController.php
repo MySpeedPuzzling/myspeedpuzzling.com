@@ -27,12 +27,12 @@ final class AffiliateDashboardController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/tribute-program',
-            'en' => '/en/tribute-program',
-            'es' => '/es/tribute-program',
-            'ja' => '/ja/tribute-program',
-            'fr' => '/fr/tribute-program',
-            'de' => '/de/tribute-program',
+            'cs' => '/referral-program',
+            'en' => '/en/referral-program',
+            'es' => '/es/referral-program',
+            'ja' => '/ja/referral-program',
+            'fr' => '/fr/referral-program',
+            'de' => '/de/referral-program',
         ],
         name: 'affiliate_dashboard',
     )]

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
-use SpeedPuzzling\Web\EventSubscriber\TributeReferralCookieSubscriber;
+use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
 use SpeedPuzzling\Web\Repository\AffiliateRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\AffiliateFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -13,9 +13,9 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
-final class TributeReferralCookieSubscriberTest extends KernelTestCase
+final class ReferralCookieSubscriberTest extends KernelTestCase
 {
-    private TributeReferralCookieSubscriber $subscriber;
+    private ReferralCookieSubscriber $subscriber;
     private HttpKernelInterface $httpKernel;
 
     protected function setUp(): void
@@ -23,7 +23,7 @@ final class TributeReferralCookieSubscriberTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $affiliateRepository = $container->get(AffiliateRepository::class);
-        $this->subscriber = new TributeReferralCookieSubscriber($affiliateRepository);
+        $this->subscriber = new ReferralCookieSubscriber($affiliateRepository);
         $this->httpKernel = $this->createMock(HttpKernelInterface::class);
     }
 
@@ -43,7 +43,7 @@ final class TributeReferralCookieSubscriberTest extends KernelTestCase
 
         $cookies = $response->headers->getCookies();
         self::assertCount(1, $cookies);
-        self::assertSame(TributeReferralCookieSubscriber::COOKIE_NAME, $cookies[0]->getName());
+        self::assertSame(ReferralCookieSubscriber::COOKIE_NAME, $cookies[0]->getName());
         self::assertSame(AffiliateFixture::AFFILIATE_ACTIVE_CODE, $cookies[0]->getValue());
         self::assertTrue($cookies[0]->isHttpOnly());
     }
@@ -85,7 +85,7 @@ final class TributeReferralCookieSubscriberTest extends KernelTestCase
     public function testExistingCookieNotOverwritten(): void
     {
         $request = Request::create('/?ref=' . AffiliateFixture::AFFILIATE_ACTIVE_CODE);
-        $request->cookies->set(TributeReferralCookieSubscriber::COOKIE_NAME, 'EXISTING');
+        $request->cookies->set(ReferralCookieSubscriber::COOKIE_NAME, 'EXISTING');
         $response = new Response();
 
         $event = new ResponseEvent(

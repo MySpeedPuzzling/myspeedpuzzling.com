@@ -13,11 +13,11 @@ use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 #[AsLiveComponent]
-final class TributeCodeInput
+final class ReferralCodeInput
 {
     use DefaultActionTrait;
 
-    private const string SESSION_KEY = 'tribute_code';
+    private const string SESSION_KEY = 'referral_code';
 
     #[LiveProp(writable: true)]
     public string $code = '';
@@ -53,14 +53,14 @@ final class TributeCodeInput
             $affiliate = $this->affiliateRepository->getByCode($code);
         } catch (AffiliateNotFound) {
             $this->validatedAffiliateName = null;
-            $this->error = 'tribute.code_not_found';
+            $this->error = 'referral.code_not_found';
             $this->clearSession();
             return;
         }
 
         if (!$affiliate->isActive()) {
             $this->validatedAffiliateName = null;
-            $this->error = 'tribute.code_not_found';
+            $this->error = 'referral.code_not_found';
             $this->clearSession();
             return;
         }

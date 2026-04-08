@@ -6,6 +6,6 @@ namespace SpeedPuzzling\Web\Exceptions;
 
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-final class TributeNotFound extends NotFoundHttpException
+final class ReferralNotFound extends NotFoundHttpException
 {
 }

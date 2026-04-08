@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Affiliate;
 use SpeedPuzzling\Web\Entity\AffiliatePayout;
-use SpeedPuzzling\Web\Entity\Tribute;
+use SpeedPuzzling\Web\Entity\Referral;
 use SpeedPuzzling\Web\Value\PayoutStatus;
 
 final class AffiliatePayoutTest extends TestCase
@@ -19,7 +19,7 @@ final class AffiliatePayoutTest extends TestCase
         $payout = new AffiliatePayout(
             id: Uuid::uuid7(),
             affiliate: $this->createMock(Affiliate::class),
-            tribute: $this->createMock(Tribute::class),
+            referral: $this->createMock(Referral::class),
             stripeInvoiceId: 'in_test_123',
             paymentAmountCents: 600,
             payoutAmountCents: 60,
@@ -36,7 +36,7 @@ final class AffiliatePayoutTest extends TestCase
         $payout = new AffiliatePayout(
             id: Uuid::uuid7(),
             affiliate: $this->createMock(Affiliate::class),
-            tribute: $this->createMock(Tribute::class),
+            referral: $this->createMock(Referral::class),
             stripeInvoiceId: 'in_test_123',
             paymentAmountCents: 600,
             payoutAmountCents: 60,
@@ -56,7 +56,7 @@ final class AffiliatePayoutTest extends TestCase
         $payout = new AffiliatePayout(
             id: Uuid::uuid7(),
             affiliate: $this->createMock(Affiliate::class),
-            tribute: $this->createMock(Tribute::class),
+            referral: $this->createMock(Referral::class),
             stripeInvoiceId: 'in_test_456',
             paymentAmountCents: 15000,
             payoutAmountCents: 1500,

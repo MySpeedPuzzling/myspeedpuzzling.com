@@ -25,7 +25,7 @@ SELECT
     a.code,
     a.status,
     a.created_at,
-    COALESCE((SELECT COUNT(*) FROM tribute t WHERE t.affiliate_id = a.id), 0) AS supporter_count,
+    COALESCE((SELECT COUNT(*) FROM referral r WHERE r.affiliate_id = a.id), 0) AS supporter_count,
     COALESCE((SELECT SUM(ap.payout_amount_cents) FROM affiliate_payout ap WHERE ap.affiliate_id = a.id), 0) AS total_earned_cents,
     COALESCE((SELECT SUM(ap.payout_amount_cents) FROM affiliate_payout ap WHERE ap.affiliate_id = a.id AND ap.status = 'pending'), 0) AS pending_payout_cents
 FROM affiliate a

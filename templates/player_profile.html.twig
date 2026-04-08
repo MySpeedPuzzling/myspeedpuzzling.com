@@ -263,13 +263,13 @@
             <div class="mt-4">
                 <h3>
                     <i class="ci-heart me-1"></i>
-                    {{ 'tribute.supporters.title'|trans }}
+                    {{ 'referral.supporters.title'|trans }}
                     <span class="badge bg-primary ms-1 align-middle fs-sm">{{ affiliate_supporters.total_count }}</span>
                 </h3>
 
                 {% if affiliate_supporters.public_supporters|length < affiliate_supporters.total_count %}
                     <p class="text-muted small">
-                        {{ 'tribute.supporters.privacy_note'|trans({'%total%': affiliate_supporters.total_count, '%shown%': affiliate_supporters.public_supporters|length}) }}
+                        {{ 'referral.supporters.privacy_note'|trans({'%total%': affiliate_supporters.total_count, '%shown%': affiliate_supporters.public_supporters|length}) }}
                     </p>
                 {% endif %}
 

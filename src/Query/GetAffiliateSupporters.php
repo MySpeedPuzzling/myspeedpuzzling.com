@@ -22,7 +22,7 @@ readonly final class GetAffiliateSupporters
     public function byAffiliateId(string $affiliateId): array
     {
         $totalQuery = <<<SQL
-SELECT COUNT(*) FROM tribute WHERE affiliate_id = :affiliateId
+SELECT COUNT(*) FROM referral WHERE affiliate_id = :affiliateId
 SQL;
 
         /** @var int|string|false $totalResult */
@@ -36,12 +36,12 @@ SELECT
     p.id AS player_id,
     p.name AS player_name,
     p.avatar AS player_avatar,
-    t.created_at
-FROM tribute t
-JOIN player p ON p.id = t.subscriber_id
-WHERE t.affiliate_id = :affiliateId
+    r.created_at
+FROM referral r
+JOIN player p ON p.id = r.subscriber_id
+WHERE r.affiliate_id = :affiliateId
     AND p.is_private = false
-ORDER BY t.created_at DESC
+ORDER BY r.created_at DESC
 SQL;
 
         $rows = $this->database->fetchAllAssociative($publicQuery, [

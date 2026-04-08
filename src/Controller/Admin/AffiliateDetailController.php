@@ -30,7 +30,7 @@ final class AffiliateDetailController extends AbstractController
 
         return $this->render('admin/affiliate_detail.html.twig', [
             'affiliate' => $affiliate,
-            'tributes' => $this->getAffiliateDetail->tributes($affiliateId),
+            'referrals' => $this->getAffiliateDetail->referrals($affiliateId),
             'payouts' => $this->getAffiliateDetail->payouts($affiliateId),
         ]);
     }

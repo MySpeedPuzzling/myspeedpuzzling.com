@@ -37,7 +37,7 @@ final class ReferralCodeInput
     #[LiveAction]
     public function validateCode(): void
     {
-        $code = trim($this->code);
+        $code = ltrim(trim($this->code), '#');
 
         if ($code === '') {
             $this->validatedAffiliateName = null;

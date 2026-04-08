@@ -12,11 +12,23 @@
             <div class="col-lg-7">
                 <div class="card shadow">
                     <div class="card-body text-center py-5">
-                        <i class="ci-heart fs-1 text-muted mb-3 d-block"></i>
-                        <h2 class="h4 mb-3">{{ 'referral.dashboard.not_enrolled_title'|trans }}</h2>
-                        <p class="text-muted mb-0">
-                            {{ 'referral.dashboard.not_enrolled_description'|trans }}
+                        <i class="ci-heart fs-1 text-primary mb-3 d-block"></i>
+                        <h2 class="h4 mb-3">{{ 'referral.dashboard.join_title'|trans }}</h2>
+                        <p class="text-muted mb-4">
+                            {{ 'referral.dashboard.join_description'|trans }}
                         </p>
+                        {% if logged_user.profile.activeMembership %}
+                            <form method="post" action="{{ path('join_referral_program') }}">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="ci-heart me-1"></i> {{ 'referral.dashboard.join_button'|trans }}
+                                </button>
+                            </form>
+                        {% else %}
+                            <p class="text-muted small mb-3">{{ 'referral.dashboard.members_only'|trans }}</p>
+                            <a href="{{ path('membership') }}" class="btn btn-outline-primary">
+                                {{ 'referral.dashboard.become_member'|trans }}
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>

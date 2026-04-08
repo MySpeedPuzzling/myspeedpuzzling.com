@@ -17,6 +17,8 @@ menu:
     statistics: "Statistics"
     favorite_puzzlers: "Favorite puzzlers"
     edit_profile: "Edit profile"
+    referral_program: "Referral Program"
+    new_badge: "NEW"
     change_player_code: "Change player code"
     profile: "Profile"
     puzzle_library: "Puzzle library"
@@ -2721,15 +2723,17 @@ edition:
 # Referral Program
 referral:
     know_someone: "Know someone who sent you here?"
-    enter_code_label: "Enter their tribute code"
+    enter_code_label: "Enter their referral code"
     code_placeholder: "e.g. ABC123"
     apply_button: "Apply"
     code_not_found: "This code is not valid. Please check and try again."
-    code_help: "Your supporter will earn a small tribute from your subscription."
+    code_help: "Your supporter will earn a small referral reward from your subscription."
     crediting: "Crediting"
     supporters:
         title: "Supporters"
         privacy_note: "%total% supporters total, %shown% shown publicly"
+    profile:
+        share_link: "Share your referral link"
     dashboard:
         meta_title: "Referral Program"
         title: "Referral Program"

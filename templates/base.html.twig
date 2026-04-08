@@ -291,6 +291,12 @@
                                         </a>
                                     </li>
                                     <li>
+                                        <a class="dropdown-item {% if currentRoute == 'affiliate_dashboard' %}active{% endif %}" href="{{ path('affiliate_dashboard') }}">
+                                            <i class="bi bi-megaphone me-1"></i> {{ 'menu.referral_program'|trans }}
+                                            <span class="badge bg-success ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                        </a>
+                                    </li>
+                                    <li>
                                         <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
                                             <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
                                         </a>

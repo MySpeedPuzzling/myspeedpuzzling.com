@@ -71,10 +71,12 @@ final class PlayerProfileController extends AbstractController
         $primarySkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount($player->playerId, 500);
 
         $affiliateSupporters = null;
+        $affiliateCode = null;
         try {
             $affiliate = $this->affiliateRepository->getByPlayerId($player->playerId);
             if ($affiliate->isActive()) {
                 $affiliateSupporters = $this->getAffiliateSupporters->byAffiliateId($affiliate->id->toString());
+                $affiliateCode = $affiliate->code;
             }
         } catch (AffiliateNotFound) {
             // Not an affiliate
@@ -89,6 +91,7 @@ final class PlayerProfileController extends AbstractController
             'can_message' => $canMessage,
             'primary_skill' => $primarySkill,
             'affiliate_supporters' => $affiliateSupporters,
+            'affiliate_code' => $affiliateCode,
         ]);
     }
 }

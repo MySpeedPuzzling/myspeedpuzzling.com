@@ -270,6 +270,7 @@ forms:
     remove: "Remove"
     reset: "Reset"
     saving: "Saving..."
+    compressing_images: "Compressing images..."
     search: "Search"
     submit: "Submit"
     update: "Update"

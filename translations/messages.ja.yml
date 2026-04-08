@@ -249,6 +249,7 @@
   "required_field": "この項目は必須です！"
   "max_characters": "最大500文字"
   "saving": "保存中..."
+  "compressing_images": "画像を圧縮中..."
   "removing": "削除中..."
   "add_puzzle_to_collection":
     "choose_collection": "- コレクションを選択 -"

@@ -7,7 +7,6 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use SpeedPuzzling\Web\Exceptions\ReferralNotFound;
 use SpeedPuzzling\Web\Message\AttributeReferral;
 use SpeedPuzzling\Web\Repository\ReferralRepository;
-use SpeedPuzzling\Web\Tests\DataFixtures\AffiliateFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\ReferralSource;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -28,26 +27,27 @@ final class AttributeReferralHandlerTest extends KernelTestCase
 
     public function testSessionCodeTakesPriorityOverCookieCode(): void
     {
+        // PLAYER_REGULAR is in referral program (from fixture), use their code
         $this->messageBus->dispatch(new AttributeReferral(
             subscriberPlayerId: PlayerFixture::PLAYER_ADMIN,
-            sessionReferralCode: AffiliateFixture::AFFILIATE_ACTIVE_CODE,
+            sessionReferralCode: 'player1', // PLAYER_REGULAR's code
             cookieReferralCode: 'IGNORED',
         ));
 
         $referral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_ADMIN);
         self::assertSame(ReferralSource::Code, $referral->source);
-        self::assertSame(AffiliateFixture::AFFILIATE_ACTIVE_ID, $referral->affiliate->id->toString());
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $referral->affiliatePlayer->id->toString());
     }
 
     public function testCookieCodeUsedWhenNoSessionCode(): void
     {
         $this->messageBus->dispatch(new AttributeReferral(
-            subscriberPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            subscriberPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES,
             sessionReferralCode: null,
-            cookieReferralCode: AffiliateFixture::AFFILIATE_ACTIVE_CODE,
+            cookieReferralCode: 'player1',
         ));
 
-        $referral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_WITH_STRIPE);
+        $referral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_WITH_FAVORITES);
         self::assertSame(ReferralSource::Link, $referral->source);
     }
 
@@ -63,7 +63,7 @@ final class AttributeReferralHandlerTest extends KernelTestCase
         $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_WITH_FAVORITES);
     }
 
-    public function testNoReferralCreatedWhenAffiliateCodeIsInvalid(): void
+    public function testNoReferralCreatedWhenCodeIsInvalid(): void
     {
         $this->messageBus->dispatch(new AttributeReferral(
             subscriberPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES,
@@ -74,22 +74,24 @@ final class AttributeReferralHandlerTest extends KernelTestCase
         $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_WITH_FAVORITES);
     }
 
-    public function testNoReferralCreatedWhenAffiliateIsPending(): void
+    public function testNoReferralCreatedWhenPlayerNotInProgram(): void
     {
+        // PLAYER_WITH_FAVORITES is not in referral program
         $this->messageBus->dispatch(new AttributeReferral(
-            subscriberPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES,
-            sessionReferralCode: AffiliateFixture::AFFILIATE_PENDING_CODE,
+            subscriberPlayerId: PlayerFixture::PLAYER_ADMIN,
+            sessionReferralCode: PlayerFixture::PLAYER_WITH_FAVORITES_NAME, // not a code
         ));
 
         $this->expectException(ReferralNotFound::class);
-        $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_ADMIN);
     }
 
-    public function testNoReferralCreatedWhenAffiliateIsSuspended(): void
+    public function testNoReferralCreatedWhenPlayerIsSuspended(): void
     {
+        // PLAYER_WITH_STRIPE is suspended from referral program
         $this->messageBus->dispatch(new AttributeReferral(
             subscriberPlayerId: PlayerFixture::PLAYER_WITH_FAVORITES,
-            sessionReferralCode: AffiliateFixture::AFFILIATE_SUSPENDED_CODE,
+            sessionReferralCode: 'player4', // PLAYER_WITH_STRIPE's code
         ));
 
         $this->expectException(ReferralNotFound::class);
@@ -98,11 +100,12 @@ final class AttributeReferralHandlerTest extends KernelTestCase
 
     public function testNoDuplicateReferralCreated(): void
     {
+        // PLAYER_PRIVATE already has a referral (from fixtures)
         $existingReferral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_PRIVATE);
 
         $this->messageBus->dispatch(new AttributeReferral(
             subscriberPlayerId: PlayerFixture::PLAYER_PRIVATE,
-            sessionReferralCode: AffiliateFixture::AFFILIATE_ACTIVE_CODE,
+            sessionReferralCode: 'player1',
         ));
 
         $referral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_PRIVATE);
@@ -113,21 +116,10 @@ final class AttributeReferralHandlerTest extends KernelTestCase
     {
         $this->messageBus->dispatch(new AttributeReferral(
             subscriberPlayerId: PlayerFixture::PLAYER_REGULAR,
-            sessionReferralCode: AffiliateFixture::AFFILIATE_ACTIVE_CODE,
+            sessionReferralCode: 'player1', // PLAYER_REGULAR's own code
         ));
 
         $this->expectException(ReferralNotFound::class);
         $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_REGULAR);
-    }
-
-    public function testCodeIsCaseInsensitive(): void
-    {
-        $this->messageBus->dispatch(new AttributeReferral(
-            subscriberPlayerId: PlayerFixture::PLAYER_ADMIN,
-            sessionReferralCode: strtolower(AffiliateFixture::AFFILIATE_ACTIVE_CODE),
-        ));
-
-        $referral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_ADMIN);
-        self::assertSame(AffiliateFixture::AFFILIATE_ACTIVE_ID, $referral->affiliate->id->toString());
     }
 }

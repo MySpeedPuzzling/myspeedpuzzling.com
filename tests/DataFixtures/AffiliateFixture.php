@@ -9,22 +9,14 @@ use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\Affiliate;
 use SpeedPuzzling\Web\Entity\AffiliatePayout;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Referral;
-use SpeedPuzzling\Web\Value\AffiliateStatus;
 use SpeedPuzzling\Web\Value\PayoutStatus;
 use SpeedPuzzling\Web\Value\ReferralSource;
 
 final class AffiliateFixture extends Fixture implements DependentFixtureInterface
 {
-    public const string AFFILIATE_ACTIVE_ID = '019f0000-0000-0000-0000-000000000001';
-    public const string AFFILIATE_ACTIVE_CODE = 'ACTV001';
-    public const string AFFILIATE_PENDING_ID = '019f0000-0000-0000-0000-000000000002';
-    public const string AFFILIATE_PENDING_CODE = 'PEND002';
-    public const string AFFILIATE_SUSPENDED_ID = '019f0000-0000-0000-0000-000000000003';
-    public const string AFFILIATE_SUSPENDED_CODE = 'SUSP003';
     public const string REFERRAL_ID = '019f0000-0000-0000-0000-000000000010';
     public const string PAYOUT_PENDING_ID = '019f0000-0000-0000-0000-000000000020';
     public const string PAYOUT_PAID_ID = '019f0000-0000-0000-0000-000000000021';
@@ -38,46 +30,21 @@ final class AffiliateFixture extends Fixture implements DependentFixtureInterfac
     {
         $now = $this->clock->now();
 
-        // Active affiliate (PLAYER_REGULAR)
+        // PLAYER_REGULAR joins referral program (active)
         $activePlayer = $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class);
-        $activeAffiliate = new Affiliate(
-            id: Uuid::fromString(self::AFFILIATE_ACTIVE_ID),
-            player: $activePlayer,
-            code: self::AFFILIATE_ACTIVE_CODE,
-            createdAt: $now->modify('-30 days'),
-            status: AffiliateStatus::Active,
-        );
-        $manager->persist($activeAffiliate);
-        $this->addReference(self::AFFILIATE_ACTIVE_ID, $activeAffiliate);
+        $activePlayer->joinReferralProgram($now->modify('-30 days'));
 
-        // Pending affiliate (PLAYER_WITH_FAVORITES)
-        $pendingPlayer = $this->getReference(PlayerFixture::PLAYER_WITH_FAVORITES, Player::class);
-        $pendingAffiliate = new Affiliate(
-            id: Uuid::fromString(self::AFFILIATE_PENDING_ID),
-            player: $pendingPlayer,
-            code: self::AFFILIATE_PENDING_CODE,
-            createdAt: $now->modify('-2 days'),
-            status: AffiliateStatus::Pending,
-        );
-        $manager->persist($pendingAffiliate);
-
-        // Suspended affiliate (PLAYER_WITH_STRIPE)
+        // PLAYER_WITH_STRIPE joins but is suspended
         $suspendedPlayer = $this->getReference(PlayerFixture::PLAYER_WITH_STRIPE, Player::class);
-        $suspendedAffiliate = new Affiliate(
-            id: Uuid::fromString(self::AFFILIATE_SUSPENDED_ID),
-            player: $suspendedPlayer,
-            code: self::AFFILIATE_SUSPENDED_CODE,
-            createdAt: $now->modify('-60 days'),
-            status: AffiliateStatus::Suspended,
-        );
-        $manager->persist($suspendedAffiliate);
+        $suspendedPlayer->joinReferralProgram($now->modify('-60 days'));
+        $suspendedPlayer->suspendFromReferralProgram();
 
-        // Referral: PLAYER_PRIVATE is a supporter of active affiliate
+        // Referral: PLAYER_PRIVATE is a supporter of PLAYER_REGULAR
         $subscriber = $this->getReference(PlayerFixture::PLAYER_PRIVATE, Player::class);
         $referral = new Referral(
             id: Uuid::fromString(self::REFERRAL_ID),
             subscriber: $subscriber,
-            affiliate: $activeAffiliate,
+            affiliatePlayer: $activePlayer,
             source: ReferralSource::Link,
             createdAt: $now->modify('-15 days'),
         );
@@ -86,7 +53,7 @@ final class AffiliateFixture extends Fixture implements DependentFixtureInterfac
         // Pending payout
         $pendingPayout = new AffiliatePayout(
             id: Uuid::fromString(self::PAYOUT_PENDING_ID),
-            affiliate: $activeAffiliate,
+            affiliatePlayer: $activePlayer,
             referral: $referral,
             stripeInvoiceId: 'in_test_pending_001',
             paymentAmountCents: 600,
@@ -99,7 +66,7 @@ final class AffiliateFixture extends Fixture implements DependentFixtureInterfac
         // Paid payout
         $paidPayout = new AffiliatePayout(
             id: Uuid::fromString(self::PAYOUT_PAID_ID),
-            affiliate: $activeAffiliate,
+            affiliatePlayer: $activePlayer,
             referral: $referral,
             stripeInvoiceId: 'in_test_paid_001',
             paymentAmountCents: 600,

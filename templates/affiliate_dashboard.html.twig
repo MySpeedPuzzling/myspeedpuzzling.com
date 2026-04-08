@@ -7,7 +7,7 @@
 
     <h1 class="h2 mb-4">{{ 'referral.dashboard.title'|trans }}</h1>
 
-    {% if affiliate is null %}
+    {% if logged_user.profile.referralProgramJoinedAt is null %}
         <div class="row">
             <div class="col-lg-7">
                 <div class="card shadow">
@@ -18,7 +18,7 @@
                             {{ 'referral.dashboard.join_description'|trans }}
                         </p>
                         {% if logged_user.profile.activeMembership %}
-                            <form method="post" action="{{ path('join_referral_program') }}">
+                            <form method="post" action="{{ path('affiliate_dashboard') }}">
                                 <button type="submit" class="btn btn-primary btn-lg">
                                     <i class="ci-heart me-1"></i> {{ 'referral.dashboard.join_button'|trans }}
                                 </button>
@@ -33,21 +33,7 @@
                 </div>
             </div>
         </div>
-    {% elseif affiliate.status.value == 'pending' %}
-        <div class="row">
-            <div class="col-lg-7">
-                <div class="card shadow">
-                    <div class="card-body text-center py-5">
-                        <i class="ci-time fs-1 text-warning mb-3 d-block"></i>
-                        <h2 class="h4 mb-3">{{ 'referral.dashboard.pending_title'|trans }}</h2>
-                        <p class="text-muted mb-0">
-                            {{ 'referral.dashboard.pending_description'|trans }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% elseif affiliate.status.value == 'suspended' %}
+    {% elseif logged_user.profile.referralProgramSuspended %}
         <div class="row">
             <div class="col-lg-7">
                 <div class="alert alert-warning d-flex align-items-start gap-3">
@@ -89,8 +75,13 @@
                         <div class="mt-3 p-3 bg-light rounded">
                             <div class="d-flex align-items-center gap-2">
                                 <span class="text-muted small">{{ 'referral.dashboard.your_code'|trans }}:</span>
-                                <code class="fs-5 fw-bold">{{ affiliate.code }}</code>
+                                <code class="fs-5 fw-bold">{{ logged_user.profile.code }}</code>
                             </div>
+                        </div>
+
+                        <div class="alert alert-info small mt-3 mb-0 d-flex align-items-start gap-2">
+                            <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+                            <span>{{ 'referral.dashboard.code_change_warning'|trans }}</span>
                         </div>
                     </div>
                 </div>
@@ -100,7 +91,7 @@
                     <div class="col-sm-4">
                         <div class="card shadow text-center">
                             <div class="card-body py-3">
-                                <div class="fs-3 fw-bold text-primary">{{ affiliate.supporterCount }}</div>
+                                <div class="fs-3 fw-bold text-primary">{{ supporters.total_count }}</div>
                                 <small class="text-muted">{{ 'referral.dashboard.supporters'|trans }}</small>
                             </div>
                         </div>
@@ -108,7 +99,7 @@
                     <div class="col-sm-4">
                         <div class="card shadow text-center">
                             <div class="card-body py-3">
-                                <div class="fs-3 fw-bold text-success">{{ (affiliate.totalEarnedCents / 100)|number_format(2) }}</div>
+                                <div class="fs-3 fw-bold text-success">{{ (supporters.total_earned_cents / 100)|number_format(2) }}</div>
                                 <small class="text-muted">{{ 'referral.dashboard.total_earned'|trans }}</small>
                             </div>
                         </div>
@@ -116,7 +107,7 @@
                     <div class="col-sm-4">
                         <div class="card shadow text-center">
                             <div class="card-body py-3">
-                                <div class="fs-3 fw-bold text-warning">{{ (affiliate.pendingPayoutCents / 100)|number_format(2) }}</div>
+                                <div class="fs-3 fw-bold text-warning">{{ (supporters.pending_payout_cents / 100)|number_format(2) }}</div>
                                 <small class="text-muted">{{ 'referral.dashboard.pending_payout'|trans }}</small>
                             </div>
                         </div>

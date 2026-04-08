@@ -56,9 +56,9 @@ readonly final class CreateAffiliatePayoutHandler
             return;
         }
 
-        if (!$referral->affiliate->isActive()) {
-            $this->logger->info('Affiliate is not active, skipping payout creation', [
-                'affiliate_id' => $referral->affiliate->id->toString(),
+        if (!$referral->affiliatePlayer->isInReferralProgram()) {
+            $this->logger->info('Affiliate player is not in referral program, skipping payout creation', [
+                'affiliate_player_id' => $referral->affiliatePlayer->id->toString(),
                 'invoice_id' => $message->stripeInvoiceId,
             ]);
             return;
@@ -80,7 +80,7 @@ readonly final class CreateAffiliatePayoutHandler
 
         $payout = new AffiliatePayout(
             id: Uuid::uuid7(),
-            affiliate: $referral->affiliate,
+            affiliatePlayer: $referral->affiliatePlayer,
             referral: $referral,
             stripeInvoiceId: $message->stripeInvoiceId,
             paymentAmountCents: $amountPaid,
@@ -93,7 +93,7 @@ readonly final class CreateAffiliatePayoutHandler
 
         $this->logger->info('Affiliate payout created', [
             'payout_id' => $payout->id->toString(),
-            'affiliate_id' => $referral->affiliate->id->toString(),
+            'affiliate_player_id' => $referral->affiliatePlayer->id->toString(),
             'amount_cents' => $payoutAmount,
             'currency' => $currency,
         ]);

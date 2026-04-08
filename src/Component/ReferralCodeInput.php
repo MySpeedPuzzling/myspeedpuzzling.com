@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Exceptions\AffiliateNotFound;
-use SpeedPuzzling\Web\Repository\AffiliateRepository;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -32,7 +32,7 @@ final class ReferralCodeInput
     public bool $isExpanded = false;
 
     public function __construct(
-        private readonly AffiliateRepository $affiliateRepository,
+        private readonly PlayerRepository $playerRepository,
         private readonly RequestStack $requestStack,
     ) {
     }
@@ -50,27 +50,27 @@ final class ReferralCodeInput
         }
 
         try {
-            $affiliate = $this->affiliateRepository->getByCode($code);
-        } catch (AffiliateNotFound) {
+            $player = $this->playerRepository->getByCode($code);
+        } catch (PlayerNotFound) {
             $this->validatedAffiliateName = null;
             $this->error = 'referral.code_not_found';
             $this->clearSession();
             return;
         }
 
-        if (!$affiliate->isActive()) {
+        if (!$player->isInReferralProgram()) {
             $this->validatedAffiliateName = null;
             $this->error = 'referral.code_not_found';
             $this->clearSession();
             return;
         }
 
-        $this->validatedAffiliateName = $affiliate->player->name ?? ('#' . $affiliate->player->code);
+        $this->validatedAffiliateName = $player->name ?? ('#' . $player->code);
         $this->error = null;
         $this->isExpanded = true;
 
         $session = $this->requestStack->getSession();
-        $session->set(self::SESSION_KEY, $affiliate->code);
+        $session->set(self::SESSION_KEY, $player->code);
     }
 
     #[LiveAction]

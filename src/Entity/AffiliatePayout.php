@@ -35,7 +35,7 @@ class AffiliatePayout
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-        public Affiliate $affiliate,
+        public Player $affiliatePlayer,
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]

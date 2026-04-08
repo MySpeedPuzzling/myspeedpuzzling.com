@@ -7,69 +7,79 @@ namespace SpeedPuzzling\Web\Tests\Entity;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\Affiliate;
 use SpeedPuzzling\Web\Entity\Player;
-use SpeedPuzzling\Web\Value\AffiliateStatus;
 
 final class AffiliateTest extends TestCase
 {
-    public function testNewAffiliateHasPendingStatus(): void
+    public function testNewPlayerIsNotInReferralProgram(): void
     {
-        $affiliate = new Affiliate(
+        $player = new Player(
             id: Uuid::uuid7(),
-            player: $this->createMock(Player::class),
-            code: 'TEST001',
-            createdAt: new DateTimeImmutable(),
+            code: 'test1',
+            userId: null,
+            email: null,
+            name: null,
+            registeredAt: new DateTimeImmutable(),
         );
 
-        self::assertSame(AffiliateStatus::Pending, $affiliate->status);
-        self::assertFalse($affiliate->isActive());
+        self::assertFalse($player->isInReferralProgram());
+        self::assertNull($player->referralProgramJoinedAt);
     }
 
-    public function testApproveChangesStatusToActive(): void
+    public function testJoinReferralProgram(): void
     {
-        $affiliate = new Affiliate(
+        $player = new Player(
             id: Uuid::uuid7(),
-            player: $this->createMock(Player::class),
-            code: 'TEST001',
-            createdAt: new DateTimeImmutable(),
+            code: 'test1',
+            userId: null,
+            email: null,
+            name: null,
+            registeredAt: new DateTimeImmutable(),
         );
 
-        $affiliate->approve();
+        $now = new DateTimeImmutable();
+        $player->joinReferralProgram($now);
 
-        self::assertSame(AffiliateStatus::Active, $affiliate->status);
-        self::assertTrue($affiliate->isActive());
+        self::assertTrue($player->isInReferralProgram());
+        self::assertSame($now, $player->referralProgramJoinedAt);
+        self::assertFalse($player->referralProgramSuspended);
     }
 
-    public function testSuspendChangesStatusToSuspended(): void
+    public function testSuspendFromReferralProgram(): void
     {
-        $affiliate = new Affiliate(
+        $player = new Player(
             id: Uuid::uuid7(),
-            player: $this->createMock(Player::class),
-            code: 'TEST001',
-            createdAt: new DateTimeImmutable(),
-            status: AffiliateStatus::Active,
+            code: 'test1',
+            userId: null,
+            email: null,
+            name: null,
+            registeredAt: new DateTimeImmutable(),
         );
 
-        $affiliate->suspend();
+        $player->joinReferralProgram(new DateTimeImmutable());
+        $player->suspendFromReferralProgram();
 
-        self::assertSame(AffiliateStatus::Suspended, $affiliate->status);
-        self::assertFalse($affiliate->isActive());
+        self::assertFalse($player->isInReferralProgram());
+        self::assertTrue($player->referralProgramSuspended);
+        self::assertNotNull($player->referralProgramJoinedAt);
     }
 
-    public function testReactivateChangesStatusToActive(): void
+    public function testUnsuspendFromReferralProgram(): void
     {
-        $affiliate = new Affiliate(
+        $player = new Player(
             id: Uuid::uuid7(),
-            player: $this->createMock(Player::class),
-            code: 'TEST001',
-            createdAt: new DateTimeImmutable(),
-            status: AffiliateStatus::Suspended,
+            code: 'test1',
+            userId: null,
+            email: null,
+            name: null,
+            registeredAt: new DateTimeImmutable(),
         );
 
-        $affiliate->reactivate();
+        $player->joinReferralProgram(new DateTimeImmutable());
+        $player->suspendFromReferralProgram();
+        $player->unsuspendFromReferralProgram();
 
-        self::assertSame(AffiliateStatus::Active, $affiliate->status);
-        self::assertTrue($affiliate->isActive());
+        self::assertTrue($player->isInReferralProgram());
+        self::assertFalse($player->referralProgramSuspended);
     }
 }

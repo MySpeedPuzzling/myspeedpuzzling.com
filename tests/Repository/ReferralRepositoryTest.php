@@ -38,7 +38,7 @@ final class ReferralRepositoryTest extends KernelTestCase
         $referral = $this->referralRepository->getBySubscriberId(PlayerFixture::PLAYER_PRIVATE);
 
         self::assertSame(AffiliateFixture::REFERRAL_ID, $referral->id->toString());
-        self::assertSame(AffiliateFixture::AFFILIATE_ACTIVE_ID, $referral->affiliate->id->toString());
+        self::assertSame(PlayerFixture::PLAYER_REGULAR, $referral->affiliatePlayer->id->toString());
     }
 
     public function testGetBySubscriberIdThrowsForNonReferredPlayer(): void

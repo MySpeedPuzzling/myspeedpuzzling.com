@@ -13,8 +13,6 @@ use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Query\GetTags;
 use SpeedPuzzling\Web\Query\HasExistingConversation;
-use SpeedPuzzling\Web\Exceptions\AffiliateNotFound;
-use SpeedPuzzling\Web\Repository\AffiliateRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,7 +33,6 @@ final class PlayerProfileController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private GetPlayerSkill $getPlayerSkill,
-        readonly private AffiliateRepository $affiliateRepository,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
     ) {
     }
@@ -71,15 +68,8 @@ final class PlayerProfileController extends AbstractController
         $primarySkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount($player->playerId, 500);
 
         $affiliateSupporters = null;
-        $affiliateCode = null;
-        try {
-            $affiliate = $this->affiliateRepository->getByPlayerId($player->playerId);
-            if ($affiliate->isActive()) {
-                $affiliateSupporters = $this->getAffiliateSupporters->byAffiliateId($affiliate->id->toString());
-                $affiliateCode = $affiliate->code;
-            }
-        } catch (AffiliateNotFound) {
-            // Not an affiliate
+        if ($player->isInReferralProgram()) {
+            $affiliateSupporters = $this->getAffiliateSupporters->byPlayerId($player->playerId);
         }
 
         return $this->render('player_profile.html.twig', [
@@ -91,7 +81,6 @@ final class PlayerProfileController extends AbstractController
             'can_message' => $canMessage,
             'primary_skill' => $primarySkill,
             'affiliate_supporters' => $affiliateSupporters,
-            'affiliate_code' => $affiliateCode,
         ]);
     }
 }

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
-use SpeedPuzzling\Web\Exceptions\AffiliateNotFound;
-use SpeedPuzzling\Web\Repository\AffiliateRepository;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -17,7 +17,7 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
     private const int COOKIE_LIFETIME_DAYS = 30;
 
     public function __construct(
-        private AffiliateRepository $affiliateRepository,
+        private PlayerRepository $playerRepository,
     ) {
     }
 
@@ -50,19 +50,19 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
         }
 
         try {
-            $affiliate = $this->affiliateRepository->getByCode($refCode);
-        } catch (AffiliateNotFound) {
+            $player = $this->playerRepository->getByCode($refCode);
+        } catch (PlayerNotFound) {
             return;
         }
 
-        if (!$affiliate->isActive()) {
+        if (!$player->isInReferralProgram()) {
             return;
         }
 
         $response = $event->getResponse();
         $response->headers->setCookie(
             Cookie::create(self::COOKIE_NAME)
-                ->withValue($affiliate->code)
+                ->withValue($player->code)
                 ->withExpires(new \DateTimeImmutable('+' . self::COOKIE_LIFETIME_DAYS . ' days'))
                 ->withPath('/')
                 ->withHttpOnly(true)

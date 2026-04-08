@@ -22,7 +22,7 @@ class Referral
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[ManyToOne]
     #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
-    public Affiliate $affiliate;
+    public Player $affiliatePlayer;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: ReferralSource::class)]
@@ -41,20 +41,20 @@ class Referral
         #[JoinColumn(nullable: false, onDelete: 'CASCADE', unique: true)]
         #[Immutable]
         public Player $subscriber,
-        Affiliate $affiliate,
+        Player $affiliatePlayer,
         ReferralSource $source,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
     ) {
-        $this->affiliate = $affiliate;
+        $this->affiliatePlayer = $affiliatePlayer;
         $this->source = $source;
         $this->updatedAt = $createdAt;
     }
 
-    public function changeAffiliate(Affiliate $affiliate, ReferralSource $source, DateTimeImmutable $now): void
+    public function changeAffiliatePlayer(Player $affiliatePlayer, ReferralSource $source, DateTimeImmutable $now): void
     {
-        $this->affiliate = $affiliate;
+        $this->affiliatePlayer = $affiliatePlayer;
         $this->source = $source;
         $this->updatedAt = $now;
     }

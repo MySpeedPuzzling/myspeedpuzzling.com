@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
-use SpeedPuzzling\Web\Repository\AffiliateRepository;
-use SpeedPuzzling\Web\Tests\DataFixtures\AffiliateFixture;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,14 +21,15 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
     {
         self::bootKernel();
         $container = self::getContainer();
-        $affiliateRepository = $container->get(AffiliateRepository::class);
-        $this->subscriber = new ReferralCookieSubscriber($affiliateRepository);
+        $playerRepository = $container->get(PlayerRepository::class);
+        $this->subscriber = new ReferralCookieSubscriber($playerRepository);
         $this->httpKernel = $this->createMock(HttpKernelInterface::class);
     }
 
     public function testCookieSetOnValidRefCodeWithActiveAffiliate(): void
     {
-        $request = Request::create('/?ref=' . AffiliateFixture::AFFILIATE_ACTIVE_CODE);
+        // player1 is PLAYER_REGULAR who is in the referral program
+        $request = Request::create('/?ref=player1');
         $response = new Response();
 
         $event = new ResponseEvent(
@@ -44,11 +44,11 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         $cookies = $response->headers->getCookies();
         self::assertCount(1, $cookies);
         self::assertSame(ReferralCookieSubscriber::COOKIE_NAME, $cookies[0]->getName());
-        self::assertSame(AffiliateFixture::AFFILIATE_ACTIVE_CODE, $cookies[0]->getValue());
+        self::assertSame('player1', $cookies[0]->getValue());
         self::assertTrue($cookies[0]->isHttpOnly());
     }
 
-    public function testCookieNotSetWhenAffiliateDoesNotExist(): void
+    public function testCookieNotSetWhenPlayerDoesNotExist(): void
     {
         $request = Request::create('/?ref=NONEXISTENT');
         $response = new Response();
@@ -65,9 +65,10 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         self::assertEmpty($response->headers->getCookies());
     }
 
-    public function testCookieNotSetWhenAffiliateIsNotActive(): void
+    public function testCookieNotSetWhenPlayerNotInReferralProgram(): void
     {
-        $request = Request::create('/?ref=' . AffiliateFixture::AFFILIATE_PENDING_CODE);
+        // player3 = PLAYER_WITH_FAVORITES who is NOT in referral program
+        $request = Request::create('/?ref=player3');
         $response = new Response();
 
         $event = new ResponseEvent(
@@ -84,7 +85,7 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
 
     public function testExistingCookieNotOverwritten(): void
     {
-        $request = Request::create('/?ref=' . AffiliateFixture::AFFILIATE_ACTIVE_CODE);
+        $request = Request::create('/?ref=player1');
         $request->cookies->set(ReferralCookieSubscriber::COOKIE_NAME, 'EXISTING');
         $response = new Response();
 
@@ -97,7 +98,6 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
 
         $this->subscriber->onKernelResponse($event);
 
-        // No new cookie should be set
         self::assertEmpty($response->headers->getCookies());
     }
 
@@ -118,9 +118,10 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         self::assertEmpty($response->headers->getCookies());
     }
 
-    public function testCookieNotSetForSuspendedAffiliate(): void
+    public function testCookieNotSetForSuspendedPlayer(): void
     {
-        $request = Request::create('/?ref=' . AffiliateFixture::AFFILIATE_SUSPENDED_CODE);
+        // player4 = PLAYER_WITH_STRIPE who is suspended from referral program
+        $request = Request::create('/?ref=player4');
         $response = new Response();
 
         $event = new ResponseEvent(

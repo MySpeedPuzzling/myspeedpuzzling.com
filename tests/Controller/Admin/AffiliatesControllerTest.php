@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
-use SpeedPuzzling\Web\Tests\DataFixtures\AffiliateFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AffiliatesControllerTest extends WebTestCase
@@ -17,7 +17,7 @@ final class AffiliatesControllerTest extends WebTestCase
         $this->assertResponseRedirects('/login');
     }
 
-    public function testAffiliatesActiveTabNotAccessibleByAnonymous(): void
+    public function testActiveTabNotAccessibleByAnonymous(): void
     {
         $browser = self::createClient();
         $browser->request('GET', '/admin/affiliates?tab=active');
@@ -25,7 +25,7 @@ final class AffiliatesControllerTest extends WebTestCase
         $this->assertResponseRedirects('/login');
     }
 
-    public function testAffiliatesSuspendedTabNotAccessibleByAnonymous(): void
+    public function testSuspendedTabNotAccessibleByAnonymous(): void
     {
         $browser = self::createClient();
         $browser->request('GET', '/admin/affiliates?tab=suspended');
@@ -33,42 +33,18 @@ final class AffiliatesControllerTest extends WebTestCase
         $this->assertResponseRedirects('/login');
     }
 
-    public function testAffiliateDetailNotAccessibleByAnonymous(): void
+    public function testSuspendNotAccessibleByAnonymous(): void
     {
         $browser = self::createClient();
-        $browser->request('GET', '/admin/affiliates/' . AffiliateFixture::AFFILIATE_ACTIVE_ID);
+        $browser->request('POST', '/admin/affiliates/' . PlayerFixture::PLAYER_REGULAR . '/suspend');
 
         $this->assertResponseRedirects('/login');
     }
 
-    public function testApproveAffiliateNotAccessibleByAnonymous(): void
+    public function testUnsuspendNotAccessibleByAnonymous(): void
     {
         $browser = self::createClient();
-        $browser->request('POST', '/admin/affiliates/' . AffiliateFixture::AFFILIATE_PENDING_ID . '/approve');
-
-        $this->assertResponseRedirects('/login');
-    }
-
-    public function testSuspendAffiliateNotAccessibleByAnonymous(): void
-    {
-        $browser = self::createClient();
-        $browser->request('POST', '/admin/affiliates/' . AffiliateFixture::AFFILIATE_ACTIVE_ID . '/suspend');
-
-        $this->assertResponseRedirects('/login');
-    }
-
-    public function testReactivateAffiliateNotAccessibleByAnonymous(): void
-    {
-        $browser = self::createClient();
-        $browser->request('POST', '/admin/affiliates/' . AffiliateFixture::AFFILIATE_SUSPENDED_ID . '/reactivate');
-
-        $this->assertResponseRedirects('/login');
-    }
-
-    public function testMarkPayoutPaidNotAccessibleByAnonymous(): void
-    {
-        $browser = self::createClient();
-        $browser->request('POST', '/admin/payouts/' . AffiliateFixture::PAYOUT_PENDING_ID . '/mark-paid?affiliateId=' . AffiliateFixture::AFFILIATE_ACTIVE_ID);
+        $browser->request('POST', '/admin/affiliates/' . PlayerFixture::PLAYER_WITH_STRIPE . '/unsuspend');
 
         $this->assertResponseRedirects('/login');
     }

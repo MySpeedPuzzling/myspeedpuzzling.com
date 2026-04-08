@@ -140,6 +140,8 @@ final class PlayerProfileMembershipTest extends TestCase
      *     streak_opted_out: bool,
      *     ranking_opted_out: bool,
      *     fair_use_policy_accepted_at: null|string,
+     *     referral_program_joined_at: null|string,
+     *     referral_program_suspended: bool,
      * }
      */
     private function createRow(
@@ -182,6 +184,8 @@ final class PlayerProfileMembershipTest extends TestCase
             'streak_opted_out' => false,
             'ranking_opted_out' => false,
             'fair_use_policy_accepted_at' => null,
+            'referral_program_joined_at' => null,
+            'referral_program_suspended' => false,
         ];
     }
 }

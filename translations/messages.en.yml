@@ -2756,6 +2756,7 @@ referral:
         pending_payout: "Pending payout"
         your_supporters: "Your supporters"
         supporters_privacy_note: "%total% supporters total, %shown% shown publicly"
+        code_change_warning: "Your referral code is your player code. If you change your player code in Edit Profile, your referral link will change too."
         how_it_works_title: "How it works"
         how_it_works_step1: "Share your referral link or code with your community"
         how_it_works_step2: "When someone subscribes using your link or code, they become your supporter"

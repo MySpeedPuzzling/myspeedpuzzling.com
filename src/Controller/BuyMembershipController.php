@@ -6,9 +6,9 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
-use SpeedPuzzling\Web\Exceptions\AffiliateNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerAlreadyHaveMembership;
-use SpeedPuzzling\Web\Repository\AffiliateRepository;
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\MembershipManagement;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\BillingPeriod;
@@ -25,7 +25,7 @@ final class BuyMembershipController extends AbstractController
     public function __construct(
         readonly private MembershipManagement $membershipManagement,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private AffiliateRepository $affiliateRepository,
+        readonly private PlayerRepository $playerRepository,
     ) {
     }
 
@@ -75,15 +75,15 @@ final class BuyMembershipController extends AbstractController
         }
 
         try {
-            $affiliate = $this->affiliateRepository->getByCode($code);
-        } catch (AffiliateNotFound) {
+            $player = $this->playerRepository->getByCode($code);
+        } catch (PlayerNotFound) {
             return null;
         }
 
-        if (!$affiliate->isActive()) {
+        if (!$player->isInReferralProgram()) {
             return null;
         }
 
-        return $affiliate->player->id->toString();
+        return $player->id->toString();
     }
 }

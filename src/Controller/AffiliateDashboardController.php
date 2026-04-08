@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\Query\GetAffiliateDashboard;
+use SpeedPuzzling\Web\Message\JoinReferralProgram;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -20,8 +22,8 @@ final class AffiliateDashboardController extends AbstractController
 {
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private GetAffiliateDashboard $getAffiliateDashboard,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
+        readonly private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -36,7 +38,7 @@ final class AffiliateDashboardController extends AbstractController
         ],
         name: 'affiliate_dashboard',
     )]
-    public function __invoke(#[CurrentUser] User $user): Response
+    public function __invoke(#[CurrentUser] User $user, Request $request): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
 
@@ -44,28 +46,20 @@ final class AffiliateDashboardController extends AbstractController
             return $this->redirectToRoute('homepage');
         }
 
-        $affiliate = $this->getAffiliateDashboard->byPlayerId($profile->playerId);
+        // Handle join POST
+        if ($request->isMethod('POST')) {
+            $this->messageBus->dispatch(new JoinReferralProgram($profile->playerId));
 
-        if ($affiliate === null) {
-            return $this->render('affiliate_dashboard.html.twig', [
-                'affiliate' => null,
-                'supporters' => null,
-                'referralUrl' => null,
-            ]);
+            return $this->redirectToRoute('affiliate_dashboard');
         }
 
-        $supporters = $this->getAffiliateSupporters->byAffiliateId($affiliate->affiliateId);
-
-        $referralUrl = $this->generateUrl(
-            'homepage',
-            ['ref' => $affiliate->code],
-            UrlGeneratorInterface::ABSOLUTE_URL,
-        );
-
         return $this->render('affiliate_dashboard.html.twig', [
-            'affiliate' => $affiliate,
-            'supporters' => $supporters,
-            'referralUrl' => $referralUrl,
+            'supporters' => $profile->referralProgramJoinedAt !== null
+                ? $this->getAffiliateSupporters->byPlayerId($profile->playerId)
+                : null,
+            'referralUrl' => $profile->referralProgramJoinedAt !== null
+                ? $this->generateUrl('homepage', ['ref' => $profile->code], UrlGeneratorInterface::ABSOLUTE_URL)
+                : null,
         ]);
     }
 }

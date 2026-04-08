@@ -13,6 +13,21 @@ final class ReferralCodeInputTest extends WebTestCase
 {
     use InteractsWithLiveComponents;
 
+    public function testInputIsAlwaysVisible(): void
+    {
+        $client = self::createClient();
+        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $testComponent = $this->createLiveComponent('ReferralCodeInput', [], $client);
+        $testComponent->setRouteLocale('en');
+
+        $rendered = $testComponent->render();
+        $html = $rendered->toString();
+
+        $this->assertStringContainsString('data-model="code"', $html);
+        $this->assertStringContainsString('ci-heart', $html);
+    }
+
     public function testValidCodeShowsAffiliateName(): void
     {
         $client = self::createClient();
@@ -21,7 +36,6 @@ final class ReferralCodeInputTest extends WebTestCase
         $testComponent = $this->createLiveComponent('ReferralCodeInput', [], $client);
         $testComponent->setRouteLocale('en');
 
-        // player1 = PLAYER_REGULAR who is in the referral program
         $testComponent->set('code', 'player1');
         $testComponent->call('validateCode');
 
@@ -29,7 +43,7 @@ final class ReferralCodeInputTest extends WebTestCase
         $html = $rendered->toString();
 
         $this->assertStringContainsString(PlayerFixture::PLAYER_REGULAR_NAME, $html);
-        $this->assertStringContainsString('alert-success', $html);
+        $this->assertStringContainsString('ci-heart', $html);
     }
 
     public function testInvalidCodeShowsError(): void
@@ -40,7 +54,6 @@ final class ReferralCodeInputTest extends WebTestCase
         $testComponent = $this->createLiveComponent('ReferralCodeInput', [], $client);
         $testComponent->setRouteLocale('en');
 
-        $testComponent->call('expand');
         $testComponent->set('code', 'INVALIDCODE');
         $testComponent->call('validateCode');
 
@@ -58,8 +71,6 @@ final class ReferralCodeInputTest extends WebTestCase
         $testComponent = $this->createLiveComponent('ReferralCodeInput', [], $client);
         $testComponent->setRouteLocale('en');
 
-        // player3 = PLAYER_WITH_FAVORITES who is NOT in referral program
-        $testComponent->call('expand');
         $testComponent->set('code', 'player3');
         $testComponent->call('validateCode');
 
@@ -99,21 +110,5 @@ final class ReferralCodeInputTest extends WebTestCase
 
         $session = $client->getRequest()->getSession();
         $this->assertNull($session->get('referral_code'));
-    }
-
-    public function testExpandShowsInputForm(): void
-    {
-        $client = self::createClient();
-        TestingLogin::asPlayer($client, PlayerFixture::PLAYER_WITH_FAVORITES);
-
-        $testComponent = $this->createLiveComponent('ReferralCodeInput', [], $client);
-        $testComponent->setRouteLocale('en');
-
-        $rendered = $testComponent->render();
-        $this->assertStringContainsString('expand', $rendered->toString());
-
-        $testComponent->call('expand');
-        $rendered = $testComponent->render();
-        $this->assertStringContainsString('data-model="code"', $rendered->toString());
     }
 }

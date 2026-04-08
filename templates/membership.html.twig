@@ -160,8 +160,6 @@
                                 </p>
                             {% endif %}
 
-                            <twig:ReferralCodeInput />
-
                             <hr class="my-3">
                             <p class="text-center mb-0">
                                 <a href="{{ path('claim_voucher') }}" class="text-decoration-none">
@@ -171,6 +169,10 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {% if not membership or not membership.isActive(now) %}
+                    <twig:ReferralCodeInput />
+                {% endif %}
 
                 {% if membership and membership.isActive(now) %}
                     <div class="text-center mt-3">

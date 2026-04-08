@@ -1,55 +1,45 @@
 <div {{ attributes }}>
-    {% if this.validatedAffiliateName %}
-        <div class="alert alert-success d-flex align-items-center mb-3 py-2">
-            <i class="ci-check-circle fs-5 me-2"></i>
-            <div>
-                <small>{{ 'referral.crediting'|trans }}</small>
-                <strong>{{ this.validatedAffiliateName }}</strong>
-                <button class="btn btn-sm btn-link text-muted p-0 ms-2"
-                        data-action="live#action"
-                        data-live-action-param="clearCode">
-                    <i class="ci-close"></i>
-                </button>
-            </div>
-        </div>
-    {% elseif not this.isExpanded %}
-        <div class="text-center mb-3">
-            <button class="btn btn-link btn-sm text-muted text-decoration-none"
-                    data-action="live#action"
-                    data-live-action-param="expand">
-                <i class="ci-heart me-1"></i>
-                {{ 'referral.know_someone'|trans }}
-            </button>
-        </div>
-    {% else %}
-        <div class="mb-3">
-            <div class="card border-0 bg-light">
-                <div class="card-body py-2 px-3">
-                    <label class="form-label small text-muted mb-1">
-                        {{ 'referral.enter_code_label'|trans }}
-                    </label>
-                    <div class="input-group input-group-sm">
-                        <input type="text"
-                               class="form-control {% if this.error %}is-invalid{% endif %}"
-                               data-model="code"
-                               placeholder="{{ 'referral.code_placeholder'|trans }}"
-                               autocomplete="off">
-                        <button class="btn btn-primary"
-                                data-action="live#action"
-                                data-live-action-param="validateCode">
-                            {{ 'referral.apply_button'|trans }}
-                        </button>
+    <div class="card border-0 bg-light my-4">
+        <div class="card-body">
+            {% if this.validatedAffiliateName %}
+                <div class="d-flex align-items-center gap-2">
+                    <i class="ci-heart text-danger fs-5"></i>
+                    <div class="flex-grow-1">
+                        <span class="small">{{ 'referral.crediting'|trans }}</span>
+                        <strong>{{ this.validatedAffiliateName }}</strong>
                     </div>
-                    {% if this.error %}
-                        <div class="invalid-feedback d-block">
-                            {{ this.error|trans }}
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-action="live#action"
+                            data-live-action-param="clearCode">
+                        <i class="ci-close"></i>
+                    </button>
+                </div>
+            {% else %}
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ci-heart text-primary fs-4 flex-shrink-0 mt-1"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-medium mb-1">{{ 'referral.know_someone'|trans }}</div>
+                        <p class="text-muted small mb-2">{{ 'referral.code_help'|trans }}</p>
+                        <div class="input-group input-group-sm" style="max-width: 320px;">
+                            <input type="text"
+                                   class="form-control {% if this.error %}is-invalid{% endif %}"
+                                   data-model="code"
+                                   placeholder="{{ 'referral.code_placeholder'|trans }}"
+                                   autocomplete="off">
+                            <button class="btn btn-primary"
+                                    data-action="live#action"
+                                    data-live-action-param="validateCode">
+                                {{ 'referral.apply_button'|trans }}
+                            </button>
                         </div>
-                    {% endif %}
-                    <div class="form-text mt-1">
-                        {{ 'referral.code_help'|trans }}
+                        {% if this.error %}
+                            <div class="invalid-feedback d-block">
+                                {{ this.error|trans }}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
-    {% endif %}
+    </div>
 </div>

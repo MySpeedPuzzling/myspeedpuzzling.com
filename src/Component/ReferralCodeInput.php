@@ -28,9 +28,6 @@ final class ReferralCodeInput
     #[LiveProp]
     public null|string $error = null;
 
-    #[LiveProp]
-    public bool $isExpanded = false;
-
     public function __construct(
         private readonly PlayerRepository $playerRepository,
         private readonly RequestStack $requestStack,
@@ -67,16 +64,9 @@ final class ReferralCodeInput
 
         $this->validatedAffiliateName = $player->name ?? ('#' . $player->code);
         $this->error = null;
-        $this->isExpanded = true;
 
         $session = $this->requestStack->getSession();
         $session->set(self::SESSION_KEY, $player->code);
-    }
-
-    #[LiveAction]
-    public function expand(): void
-    {
-        $this->isExpanded = true;
     }
 
     #[LiveAction]

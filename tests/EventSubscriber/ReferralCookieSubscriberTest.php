@@ -80,15 +80,19 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         self::assertFalse($event->hasResponse());
     }
 
-    public function testNoRedirectWhenCookieAlreadyExists(): void
+    public function testOverwritesExistingCookie(): void
     {
         $request = Request::create('/?ref=player1');
-        $request->cookies->set(ReferralCookieSubscriber::COOKIE_NAME, 'EXISTING');
+        $request->cookies->set(ReferralCookieSubscriber::COOKIE_NAME, 'old_code');
         $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
         $this->subscriber->onKernelRequest($event);
 
-        self::assertFalse($event->hasResponse());
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+
+        $cookies = $response->headers->getCookies();
+        self::assertSame('player1', $cookies[0]->getValue());
     }
 
     public function testNoRedirectWhenNoRefParam(): void

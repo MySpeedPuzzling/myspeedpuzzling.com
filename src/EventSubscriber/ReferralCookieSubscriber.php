@@ -50,11 +50,6 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
             return;
         }
 
-        // First-touch wins: don't overwrite existing cookie
-        if ($request->cookies->has(self::COOKIE_NAME)) {
-            return;
-        }
-
         try {
             $player = $this->playerRepository->getByCode($refCode);
         } catch (PlayerNotFound) {

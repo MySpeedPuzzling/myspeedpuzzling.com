@@ -2717,3 +2717,37 @@ edition:
         results_link: "Results URL"
     flash:
         created: "Edition added."
+
+# Tribute Program
+tribute:
+    know_someone: "Know someone who sent you here?"
+    enter_code_label: "Enter their tribute code"
+    code_placeholder: "e.g. ABC123"
+    apply_button: "Apply"
+    code_not_found: "This code is not valid. Please check and try again."
+    code_help: "Your supporter will earn a small tribute from your subscription."
+    crediting: "Crediting"
+    supporters:
+        title: "Supporters"
+        privacy_note: "%total% supporters total, %shown% shown publicly"
+    dashboard:
+        meta_title: "Tribute Program"
+        title: "Tribute Program"
+        not_enrolled_title: "You're not enrolled yet"
+        not_enrolled_description: "The Tribute Program lets community members earn 10% of subscription revenue from people they refer. Contact us to join!"
+        pending_title: "Application pending"
+        pending_description: "Your Tribute Program application is being reviewed. We'll let you know once you're approved!"
+        suspended_title: "Account suspended"
+        suspended_description: "Your Tribute Program account has been suspended. Please contact us for more information."
+        your_referral_link: "Your referral link"
+        copy_link: "Copy"
+        your_code: "Your code"
+        supporters: "Supporters"
+        total_earned: "Total earned"
+        pending_payout: "Pending payout"
+        your_supporters: "Your supporters"
+        supporters_privacy_note: "%total% supporters total, %shown% shown publicly"
+        how_it_works_title: "How it works"
+        how_it_works_step1: "Share your referral link or code with your community"
+        how_it_works_step2: "When someone subscribes using your link or code, they become your supporter"
+        how_it_works_step3: "You earn 10% of their subscription payment for as long as they stay subscribed"

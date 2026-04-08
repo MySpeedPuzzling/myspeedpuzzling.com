@@ -1,0 +1,104 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tribute Program — Affiliates{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-4">Tribute Program — Affiliates</h1>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'pending' ? 'active' : '' }}"
+               href="{{ path('admin_affiliates', {tab: 'pending'}) }}">
+                Pending
+                {% if counts.pending > 0 %}
+                    <span class="badge bg-warning">{{ counts.pending }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'active' ? 'active' : '' }}"
+               href="{{ path('admin_affiliates', {tab: 'active'}) }}">
+                Active
+                {% if counts.active > 0 %}
+                    <span class="badge bg-success">{{ counts.active }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'suspended' ? 'active' : '' }}"
+               href="{{ path('admin_affiliates', {tab: 'suspended'}) }}">
+                Suspended
+                {% if counts.suspended > 0 %}
+                    <span class="badge bg-danger">{{ counts.suspended }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if affiliates is empty %}
+        <div class="alert alert-info">
+            No {{ active_tab }} affiliates.
+        </div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="d-none d-md-table-header-group">
+                        <tr>
+                            <th>Player</th>
+                            <th>Code</th>
+                            <th>Supporters</th>
+                            <th>Total Earned</th>
+                            <th>Pending</th>
+                            <th>Created</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for affiliate in affiliates %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('player_profile', {playerId: affiliate.playerId}) }}">
+                                        {{ affiliate.playerName ?? 'Unknown' }}
+                                    </a>
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            <code>{{ affiliate.code }}</code>
+                                            &bull; {{ affiliate.supporterCount }} supporters
+                                            &bull; {{ affiliate.createdAt|ago }}
+                                        </small>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <code>{{ affiliate.code }}</code>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ affiliate.supporterCount }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ (affiliate.totalEarnedCents / 100)|number_format(2) }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if affiliate.pendingPayoutCents > 0 %}
+                                        <span class="text-warning fw-bold">{{ (affiliate.pendingPayoutCents / 100)|number_format(2) }}</span>
+                                    {% else %}
+                                        <span class="text-muted">0.00</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ affiliate.createdAt|ago }}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ path('admin_affiliate_detail', {affiliateId: affiliate.affiliateId}) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -259,6 +259,38 @@
             </div>
         {% endif %}
 
+        {% if affiliate_supporters is not null and affiliate_supporters.total_count > 0 %}
+            <div class="mt-4">
+                <h3>
+                    <i class="ci-heart me-1"></i>
+                    {{ 'tribute.supporters.title'|trans }}
+                    <span class="badge bg-primary ms-1 align-middle fs-sm">{{ affiliate_supporters.total_count }}</span>
+                </h3>
+
+                {% if affiliate_supporters.public_supporters|length < affiliate_supporters.total_count %}
+                    <p class="text-muted small">
+                        {{ 'tribute.supporters.privacy_note'|trans({'%total%': affiliate_supporters.total_count, '%shown%': affiliate_supporters.public_supporters|length}) }}
+                    </p>
+                {% endif %}
+
+                <div class="d-flex flex-wrap gap-2">
+                    {% for supporter in affiliate_supporters.public_supporters %}
+                        <a href="{{ path('player_profile', {playerId: supporter.player_id}) }}"
+                           class="d-flex align-items-center gap-2 text-decoration-none bg-light rounded-pill px-3 py-1">
+                            {% if supporter.player_avatar %}
+                                <img src="{{ supporter.player_avatar|thumbnail('avatar_small') }}"
+                                     class="rounded-circle"
+                                     width="24" height="24"
+                                     alt="">
+                            {% else %}
+                                <i class="ci-user text-muted"></i>
+                            {% endif %}
+                            <small class="text-body">{{ supporter.player_name ?? 'Secret Puzzler' }}</small>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
 
         <div>
             <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>

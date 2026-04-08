@@ -76,6 +76,8 @@ SQL;
         /** @var list<array{player_id: string, player_name: null|string, code: string, referral_program_joined_at: string, referral_program_suspended: bool, supporter_count: int, total_earned_cents: int, pending_payout_cents: int}> */
         return $this->database->fetchAllAssociative($query, [
             'suspended' => $suspended,
+        ], [
+            'suspended' => \Doctrine\DBAL\ParameterType::BOOLEAN,
         ]);
     }
 }

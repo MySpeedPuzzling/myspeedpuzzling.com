@@ -139,6 +139,7 @@ Feature design documents and implementation plans are in `docs/features/`. Each 
 - **Stripe Payments**: `docs/features/stripe.md` — Stripe integration for premium membership
 - **Opt-Out Features**: `docs/features/opt-out.md` — Streak and ranking opt-out for players
 - **Competitions Management**: `docs/features/competitions-management/` — Community-driven event creation with admin approval, round management, puzzle assignment, table layout planning, and live stopwatch
+- **Referral Program**: `docs/features/referral-program.md` — Members earn 10% of referred subscription revenue. No separate entity — `player.referralProgramJoinedAt` + `player.referralProgramSuspended`. Code = player code. Cookie-based + code-input attribution. Payouts per currency, manual admin payout marking
 
 ### Feature Flags
 Active feature flags are documented in `docs/features/feature_flags.md`. **Always read and update this file** when adding, modifying, or removing feature flags. It tracks which files are gated, what feature each flag belongs to, and when it can be removed.

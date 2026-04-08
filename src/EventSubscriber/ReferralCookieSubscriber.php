@@ -8,8 +8,11 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class ReferralCookieSubscriber implements EventSubscriberInterface
 {
@@ -18,6 +21,8 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
 
     public function __construct(
         private PlayerRepository $playerRepository,
+        private TranslatorInterface $translator,
+        private RequestStack $requestStack,
     ) {
     }
 
@@ -57,6 +62,21 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
 
         if (!$player->isInReferralProgram()) {
             return;
+        }
+
+        $playerName = $player->name ?? ('#' . $player->code);
+
+        try {
+            $session = $this->requestStack->getSession();
+
+            if ($session instanceof FlashBagAwareSessionInterface) {
+                $session->getFlashBag()->add(
+                    'success',
+                    $this->translator->trans('referral.flash.cookie_set', ['%name%' => $playerName]),
+                );
+            }
+        } catch (\Symfony\Component\HttpFoundation\Exception\SessionNotFoundException) {
+            // No session available (e.g. in tests)
         }
 
         $response = $event->getResponse();

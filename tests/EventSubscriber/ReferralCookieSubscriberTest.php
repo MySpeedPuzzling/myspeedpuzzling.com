@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
@@ -22,7 +24,9 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         self::bootKernel();
         $container = self::getContainer();
         $playerRepository = $container->get(PlayerRepository::class);
-        $this->subscriber = new ReferralCookieSubscriber($playerRepository);
+        $translator = $container->get(TranslatorInterface::class);
+        $requestStack = $container->get(RequestStack::class);
+        $this->subscriber = new ReferralCookieSubscriber($playerRepository, $translator, $requestStack);
         $this->httpKernel = $this->createMock(HttpKernelInterface::class);
     }
 

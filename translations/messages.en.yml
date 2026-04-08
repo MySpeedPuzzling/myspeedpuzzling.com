@@ -2728,6 +2728,8 @@ referral:
     apply_button: "Apply"
     code_not_found: "This code is not valid. Please check and try again."
     code_help: "Your supporter will earn a small referral reward from your subscription."
+    flash:
+        cookie_set: "You came through %name%'s referral link — we'll remember this for 30 days. When you subscribe, they'll earn a small reward!"
     crediting: "Crediting"
     supporters:
         title: "Supporters"

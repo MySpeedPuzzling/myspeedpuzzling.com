@@ -36,7 +36,7 @@ readonly final class MembershipManagement
     /**
      * @throws PlayerAlreadyHaveMembership
      */
-    public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period, null|string $priceLookupKey = null): string
+    public function getMembershipPaymentUrl(null|string $locale, BillingPeriod $period, null|string $priceLookupKey = null, null|string $referralPlayerId = null): string
     {
         if ($priceLookupKey === null) {
             $priceLookupKey = 'puzzlership_monthly';
@@ -74,7 +74,7 @@ readonly final class MembershipManagement
 
         $userProfile = $this->retrieveLoggedUserProfile->getProfile();
         assert($userProfile !== null);
-        $stripeCustomerId = $userProfile->stripeCustomerId ?? $this->createCustomerId($userProfile->playerId);
+        $stripeCustomerId = $userProfile->stripeCustomerId ?? $this->createCustomerId($userProfile->playerId, $referralPlayerId);
 
         $checkoutData = [
             'customer' => $stripeCustomerId,
@@ -153,13 +153,13 @@ readonly final class MembershipManagement
         return $session->url;
     }
 
-    private function createCustomerId(string $playerId): string
+    private function createCustomerId(string $playerId, null|string $referralPlayerId = null): string
     {
         $playerProfile = $this->getPlayerProfile->byId($playerId);
 
         if ($playerProfile->stripeCustomerId === null) {
             $this->messageBus->dispatch(
-                new CreatePlayerStripeCustomer($playerId),
+                new CreatePlayerStripeCustomer($playerId, $referralPlayerId),
             );
 
             // Refetch after creation

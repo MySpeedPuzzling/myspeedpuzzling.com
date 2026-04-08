@@ -8,6 +8,7 @@ readonly final class CreatePlayerStripeCustomer
 {
     public function __construct(
         public string $playerId,
+        public null|string $referralPlayerId = null,
     ) {
     }
 }

@@ -165,7 +165,7 @@
                                         <div class="flex-grow-1">
                                             <span class="fw-medium">{{ supporter.player_name ?? 'Secret Puzzler' }}</span>
                                         </div>
-                                        <small class="text-muted">{{ supporter.created_at|date('Y-m-d')|ago }}</small>
+                                        <small class="text-muted">{{ supporter.created_at|ago }}</small>
                                     </a>
                                 {% endfor %}
                             </div>

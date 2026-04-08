@@ -8,9 +8,10 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\FlashBagAwareSessionInterface;
-use Symfony\Component\HttpKernel\Event\ResponseEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -32,11 +33,11 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::RESPONSE => ['onKernelResponse', 0],
+            KernelEvents::REQUEST => ['onKernelRequest', 0],
         ];
     }
 
-    public function onKernelResponse(ResponseEvent $event): void
+    public function onKernelRequest(RequestEvent $event): void
     {
         if (!$event->isMainRequest()) {
             return;
@@ -64,6 +65,7 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
             return;
         }
 
+        // Add flash message
         $playerName = $player->name ?? ('#' . $player->code);
 
         try {
@@ -79,7 +81,15 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
             // No session available (e.g. in tests)
         }
 
-        $response = $event->getResponse();
+        // Redirect to the same URL without ?ref= so the URL is clean
+        $query = $request->query->all();
+        unset($query['ref']);
+        $cleanUrl = $request->getPathInfo();
+        if ($query !== []) {
+            $cleanUrl .= '?' . http_build_query($query);
+        }
+
+        $response = new RedirectResponse($cleanUrl);
         $response->headers->setCookie(
             Cookie::create(self::COOKIE_NAME)
                 ->withValue($player->code)
@@ -88,5 +98,7 @@ final readonly class ReferralCookieSubscriber implements EventSubscriberInterfac
                 ->withHttpOnly(true)
                 ->withSameSite('lax'),
         );
+
+        $event->setResponse($response);
     }
 }

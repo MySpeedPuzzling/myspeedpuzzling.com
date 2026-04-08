@@ -7,12 +7,12 @@ namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\ResponseEvent;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ReferralCookieSubscriberTest extends KernelTestCase
 {
@@ -30,20 +30,16 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         $this->httpKernel = $this->createMock(HttpKernelInterface::class);
     }
 
-    public function testCookieSetOnValidRefCodeWithActiveAffiliate(): void
+    public function testRedirectsAndSetsCookieOnValidRefCode(): void
     {
-        // player1 is PLAYER_REGULAR who is in the referral program
         $request = Request::create('/?ref=player1');
-        $response = new Response();
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
-        $event = new ResponseEvent(
-            $this->httpKernel,
-            $request,
-            HttpKernelInterface::MAIN_REQUEST,
-            $response,
-        );
+        $this->subscriber->onKernelRequest($event);
 
-        $this->subscriber->onKernelResponse($event);
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('/', $response->getTargetUrl());
 
         $cookies = $response->headers->getCookies();
         self::assertCount(1, $cookies);
@@ -52,91 +48,66 @@ final class ReferralCookieSubscriberTest extends KernelTestCase
         self::assertTrue($cookies[0]->isHttpOnly());
     }
 
-    public function testCookieNotSetWhenPlayerDoesNotExist(): void
+    public function testRedirectStripsRefButKeepsOtherParams(): void
+    {
+        $request = Request::create('/en/membership?ref=player1&foo=bar');
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
+
+        $this->subscriber->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response);
+        self::assertSame('/en/membership?foo=bar', $response->getTargetUrl());
+    }
+
+    public function testNoRedirectWhenPlayerDoesNotExist(): void
     {
         $request = Request::create('/?ref=NONEXISTENT');
-        $response = new Response();
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
-        $event = new ResponseEvent(
-            $this->httpKernel,
-            $request,
-            HttpKernelInterface::MAIN_REQUEST,
-            $response,
-        );
+        $this->subscriber->onKernelRequest($event);
 
-        $this->subscriber->onKernelResponse($event);
-
-        self::assertEmpty($response->headers->getCookies());
+        self::assertFalse($event->hasResponse());
     }
 
-    public function testCookieNotSetWhenPlayerNotInReferralProgram(): void
+    public function testNoRedirectWhenPlayerNotInReferralProgram(): void
     {
-        // player3 = PLAYER_WITH_FAVORITES who is NOT in referral program
         $request = Request::create('/?ref=player3');
-        $response = new Response();
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
-        $event = new ResponseEvent(
-            $this->httpKernel,
-            $request,
-            HttpKernelInterface::MAIN_REQUEST,
-            $response,
-        );
+        $this->subscriber->onKernelRequest($event);
 
-        $this->subscriber->onKernelResponse($event);
-
-        self::assertEmpty($response->headers->getCookies());
+        self::assertFalse($event->hasResponse());
     }
 
-    public function testExistingCookieNotOverwritten(): void
+    public function testNoRedirectWhenCookieAlreadyExists(): void
     {
         $request = Request::create('/?ref=player1');
         $request->cookies->set(ReferralCookieSubscriber::COOKIE_NAME, 'EXISTING');
-        $response = new Response();
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
-        $event = new ResponseEvent(
-            $this->httpKernel,
-            $request,
-            HttpKernelInterface::MAIN_REQUEST,
-            $response,
-        );
+        $this->subscriber->onKernelRequest($event);
 
-        $this->subscriber->onKernelResponse($event);
-
-        self::assertEmpty($response->headers->getCookies());
+        self::assertFalse($event->hasResponse());
     }
 
-    public function testNoCookieSetWhenNoRefParam(): void
+    public function testNoRedirectWhenNoRefParam(): void
     {
         $request = Request::create('/some-page');
-        $response = new Response();
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
-        $event = new ResponseEvent(
-            $this->httpKernel,
-            $request,
-            HttpKernelInterface::MAIN_REQUEST,
-            $response,
-        );
+        $this->subscriber->onKernelRequest($event);
 
-        $this->subscriber->onKernelResponse($event);
-
-        self::assertEmpty($response->headers->getCookies());
+        self::assertFalse($event->hasResponse());
     }
 
-    public function testCookieNotSetForSuspendedPlayer(): void
+    public function testNoRedirectForSuspendedPlayer(): void
     {
-        // player4 = PLAYER_WITH_STRIPE who is suspended from referral program
         $request = Request::create('/?ref=player4');
-        $response = new Response();
+        $event = new RequestEvent($this->httpKernel, $request, HttpKernelInterface::MAIN_REQUEST);
 
-        $event = new ResponseEvent(
-            $this->httpKernel,
-            $request,
-            HttpKernelInterface::MAIN_REQUEST,
-            $response,
-        );
+        $this->subscriber->onKernelRequest($event);
 
-        $this->subscriber->onKernelResponse($event);
-
-        self::assertEmpty($response->headers->getCookies());
+        self::assertFalse($event->hasResponse());
     }
 }

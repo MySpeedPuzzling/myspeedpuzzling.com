@@ -26,10 +26,16 @@ readonly final class CreatePlayerStripeCustomerHandler
     {
         $player = $this->playerRepository->get($message->playerId);
 
+        $metadata = [
+            'player_id' => $player->id->toString(),
+        ];
+
+        if ($message->referralPlayerId !== null) {
+            $metadata['referral_player_id'] = $message->referralPlayerId;
+        }
+
         $params = [
-            'metadata' => [
-                'player_id' => $player->id->toString(),
-            ],
+            'metadata' => $metadata,
         ];
 
         if ($player->email !== null) {

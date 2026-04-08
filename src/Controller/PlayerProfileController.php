@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
@@ -32,6 +33,7 @@ final class PlayerProfileController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HasExistingConversation $hasExistingConversation,
         readonly private GetPlayerSkill $getPlayerSkill,
+        readonly private GetAffiliateSupporters $getAffiliateSupporters,
     ) {
     }
 
@@ -65,6 +67,11 @@ final class PlayerProfileController extends AbstractController
 
         $primarySkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount($player->playerId, 500);
 
+        $affiliateSupporters = null;
+        if ($player->isInReferralProgram()) {
+            $affiliateSupporters = $this->getAffiliateSupporters->byPlayerId($player->playerId);
+        }
+
         return $this->render('player_profile.html.twig', [
             'player' => $player,
             'ranking' => $this->getRanking->allForPlayer($player->playerId),
@@ -73,6 +80,7 @@ final class PlayerProfileController extends AbstractController
             'badges' => $this->getBadges->forPlayer($player->playerId),
             'can_message' => $canMessage,
             'primary_skill' => $primarySkill,
+            'affiliate_supporters' => $affiliateSupporters,
         ]);
     }
 }

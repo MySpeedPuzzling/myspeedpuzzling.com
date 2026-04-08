@@ -156,6 +156,14 @@ class Player
     #[Column(nullable: true)]
     public null|DateTimeImmutable $fairUsePolicyAcceptedAt = null;
 
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $referralProgramJoinedAt = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $referralProgramSuspended = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -365,6 +373,27 @@ class Player
     public function changeRankingOptedOut(bool $optedOut): void
     {
         $this->rankingOptedOut = $optedOut;
+    }
+
+    public function joinReferralProgram(DateTimeImmutable $now): void
+    {
+        $this->referralProgramJoinedAt = $now;
+        $this->referralProgramSuspended = false;
+    }
+
+    public function isInReferralProgram(): bool
+    {
+        return $this->referralProgramJoinedAt !== null && !$this->referralProgramSuspended;
+    }
+
+    public function suspendFromReferralProgram(): void
+    {
+        $this->referralProgramSuspended = true;
+    }
+
+    public function unsuspendFromReferralProgram(): void
+    {
+        $this->referralProgramSuspended = false;
     }
 
     public function isMessagingMuted(): bool

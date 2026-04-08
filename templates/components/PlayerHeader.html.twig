@@ -86,6 +86,11 @@
                 <a href="{{ path('edit_profile', {'playerId': player.playerId}) }}" class="dropdown-item {% if route == 'edit_profile' %}active{% endif %}">
                     <i class="me-1 ci-edit"></i> {{ 'menu.edit_profile'|trans }}
                 </a>
+
+                <a href="{{ path('affiliate_dashboard') }}" class="dropdown-item {% if route == 'affiliate_dashboard' %}active{% endif %}">
+                    <i class="me-1 bi bi-megaphone"></i> {{ 'menu.referral_program'|trans }}
+                    <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                </a>
             {% endif %}
         </div>
     </div>

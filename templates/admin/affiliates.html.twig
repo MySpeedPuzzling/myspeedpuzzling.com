@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Referral Program{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-4">Referral Program</h1>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'active' ? 'active' : '' }}"
+               href="{{ path('admin_affiliates', {tab: 'active'}) }}">
+                Active
+                {% if counts.active > 0 %}
+                    <span class="badge bg-success">{{ counts.active }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link py-2 px-2 px-md-3 fs-sm {{ active_tab == 'suspended' ? 'active' : '' }}"
+               href="{{ path('admin_affiliates', {tab: 'suspended'}) }}">
+                Suspended
+                {% if counts.suspended > 0 %}
+                    <span class="badge bg-danger">{{ counts.suspended }}</span>
+                {% endif %}
+            </a>
+        </li>
+    </ul>
+
+    {% if members is empty %}
+        <div class="alert alert-info">
+            No {{ active_tab }} members in referral program.
+        </div>
+    {% else %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="d-none d-md-table-header-group">
+                        <tr>
+                            <th>Player</th>
+                            <th>Code</th>
+                            <th>Supporters</th>
+                            <th>Total Earned</th>
+                            <th>Pending</th>
+                            <th>Joined</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                            <tr>
+                                <td>
+                                    <a href="{{ path('player_profile', {playerId: member.player_id}) }}">
+                                        {{ member.player_name ?? 'Unknown' }}
+                                    </a>
+                                    <div class="d-md-none mt-1">
+                                        <small class="text-muted">
+                                            <code>{{ member.code }}</code>
+                                            &bull; {{ member.supporter_count }} supporters
+                                        </small>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <code>{{ member.code }}</code>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ member.supporter_count }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ (member.total_earned_cents / 100)|number_format(2) }}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {% if member.pending_payout_cents > 0 %}
+                                        <span class="text-warning fw-bold">{{ (member.pending_payout_cents / 100)|number_format(2) }}</span>
+                                    {% else %}
+                                        <span class="text-muted">0.00</span>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {{ member.referral_program_joined_at|date('Y-m-d')|ago }}
+                                </td>
+                                <td class="text-end">
+                                    {% if member.referral_program_suspended %}
+                                        <form method="post" action="{{ path('admin_unsuspend_affiliate', {playerId: member.player_id}) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success">Unsuspend</button>
+                                        </form>
+                                    {% else %}
+                                        <form method="post" action="{{ path('admin_suspend_affiliate', {playerId: member.player_id}) }}" class="d-inline"
+                                              onclick="return confirm('Suspend this player from the referral program?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Suspend</button>
+                                        </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

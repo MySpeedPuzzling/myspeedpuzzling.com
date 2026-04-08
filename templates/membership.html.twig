@@ -170,6 +170,10 @@
                     </div>
                 </div>
 
+                {% if not membership or not membership.isActive(now) %}
+                    <twig:ReferralCodeInput />
+                {% endif %}
+
                 {% if membership and membership.isActive(now) %}
                     <div class="text-center mt-3">
                         <a href="{{ path('claim_voucher') }}" class="btn btn-outline-secondary btn-sm">

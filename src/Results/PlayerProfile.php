@@ -49,6 +49,8 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     streak_opted_out: bool,
  *     ranking_opted_out: bool,
  *     fair_use_policy_accepted_at: null|string,
+ *     referral_program_joined_at: null|string,
+ *     referral_program_suspended: bool,
  *  }
  */
 readonly final class PlayerProfile
@@ -91,6 +93,8 @@ readonly final class PlayerProfile
         public bool $streakOptedOut = false,
         public bool $rankingOptedOut = false,
         public bool $fairUsePolicyAccepted = false,
+        public null|DateTimeImmutable $referralProgramJoinedAt = null,
+        public bool $referralProgramSuspended = false,
     ) {
     }
 
@@ -179,6 +183,15 @@ readonly final class PlayerProfile
             streakOptedOut: (bool) $row['streak_opted_out'],
             rankingOptedOut: (bool) $row['ranking_opted_out'],
             fairUsePolicyAccepted: $row['fair_use_policy_accepted_at'] !== null,
+            referralProgramJoinedAt: $row['referral_program_joined_at'] !== null
+                ? new DateTimeImmutable($row['referral_program_joined_at'])
+                : null,
+            referralProgramSuspended: (bool) $row['referral_program_suspended'],
         );
+    }
+
+    public function isInReferralProgram(): bool
+    {
+        return $this->referralProgramJoinedAt !== null && !$this->referralProgramSuspended;
     }
 }

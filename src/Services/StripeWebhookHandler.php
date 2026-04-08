@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
+use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
 use SpeedPuzzling\Web\Message\NotifyAboutFailedPayment;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use Stripe\Invoice;
@@ -60,6 +61,13 @@ readonly final class StripeWebhookHandler
 
                     if (is_string($subscriptionId)) {
                         $this->handlePaymentSucceeded($subscriptionId);
+
+                        // Create affiliate payout if subscriber has a tribute
+                        /** @var null|string $invoiceId */
+                        $invoiceId = $invoice->id;
+                        if ($invoiceId !== null) {
+                            $this->messageBus->dispatch(new CreateAffiliatePayout($subscriptionId, $invoiceId));
+                        }
                     }
                 }
 

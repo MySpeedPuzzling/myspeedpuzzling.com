@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
-readonly final class CreatePlayerStripeCustomer
+readonly final class JoinReferralProgram
 {
     public function __construct(
         public string $playerId,
-        public null|string $referralPlayerId = null,
     ) {
     }
 }

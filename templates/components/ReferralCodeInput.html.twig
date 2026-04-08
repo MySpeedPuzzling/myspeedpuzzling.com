@@ -1,0 +1,45 @@
+<div {{ attributes }}>
+    <div class="card shadow my-4">
+        <div class="card-body">
+            {% if this.validatedAffiliateName %}
+                <div class="d-flex align-items-center gap-2">
+                    <i class="ci-heart text-danger fs-5"></i>
+                    <div class="flex-grow-1">
+                        <span class="small">{{ 'referral.crediting'|trans }}</span>
+                        <strong>{{ this.validatedAffiliateName }}</strong>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-action="live#action"
+                            data-live-action-param="clearCode">
+                        <i class="ci-close"></i>
+                    </button>
+                </div>
+            {% else %}
+                <div class="d-flex align-items-start gap-3">
+                    <i class="ci-heart text-primary fs-4 flex-shrink-0 mt-1"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-medium mb-1">{{ 'referral.know_someone'|trans }}</div>
+                        <p class="text-muted small mb-2">{{ 'referral.code_help'|trans }}</p>
+                        <div class="input-group input-group-sm" style="max-width: 320px;">
+                            <input type="text"
+                                   class="form-control {% if this.error %}is-invalid{% endif %}"
+                                   data-model="code"
+                                   placeholder="{{ 'referral.code_placeholder'|trans }}"
+                                   autocomplete="off">
+                            <button class="btn btn-primary"
+                                    data-action="live#action"
+                                    data-live-action-param="validateCode">
+                                {{ 'referral.apply_button'|trans }}
+                            </button>
+                        </div>
+                        {% if this.error %}
+                            <div class="invalid-feedback d-block">
+                                {{ this.error|trans }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

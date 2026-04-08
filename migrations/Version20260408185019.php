@@ -24,8 +24,9 @@ final class Version20260408185019 extends AbstractMigration
         $this->addSql("UPDATE player SET referral_program_joined_at = a.created_at, referral_program_suspended = (a.status = 'suspended') FROM affiliate a WHERE a.player_id = player.id");
 
         // Update referral: affiliate_id -> affiliate_player_id (pointing to player instead of affiliate)
-        $this->addSql('ALTER TABLE referral DROP CONSTRAINT fk_73079d009f12c49a');
-        $this->addSql('DROP INDEX idx_73079d009f12c49a');
+        // FK constraint kept its original name from the tribute table (migration 2 only renamed indexes, not FK constraints)
+        $this->addSql('ALTER TABLE referral DROP CONSTRAINT fk_e21d2ea69f12c49a');
+        $this->addSql('DROP INDEX IDX_73079D009F12C49A');
         $this->addSql('UPDATE referral SET affiliate_id = a.player_id FROM affiliate a WHERE a.id = referral.affiliate_id');
         $this->addSql('ALTER TABLE referral RENAME COLUMN affiliate_id TO affiliate_player_id');
         $this->addSql('ALTER TABLE referral ADD CONSTRAINT FK_73079D007820E771 FOREIGN KEY (affiliate_player_id) REFERENCES player (id) ON DELETE CASCADE NOT DEFERRABLE');

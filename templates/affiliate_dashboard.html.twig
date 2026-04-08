@@ -86,7 +86,7 @@
                     </div>
                 </div>
 
-                {# Stats cards #}
+                {# Stats #}
                 <div class="row gy-3 mb-3">
                     <div class="col-sm-4">
                         <div class="card shadow text-center">
@@ -96,22 +96,41 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-4">
-                        <div class="card shadow text-center">
-                            <div class="card-body py-3">
-                                <div class="fs-3 fw-bold text-success">{{ (supporters.total_earned_cents / 100)|number_format(2) }}</div>
-                                <small class="text-muted">{{ 'referral.dashboard.total_earned'|trans }}</small>
+                    {% for payout in supporters.payouts_by_currency %}
+                        <div class="col-sm-4">
+                            <div class="card shadow text-center">
+                                <div class="card-body py-3">
+                                    <div class="fs-3 fw-bold text-success">{{ (payout.total_earned_cents / 100)|number_format(2) }} {{ payout.currency }}</div>
+                                    <small class="text-muted">{{ 'referral.dashboard.total_earned'|trans }}</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="card shadow text-center">
-                            <div class="card-body py-3">
-                                <div class="fs-3 fw-bold text-warning">{{ (supporters.pending_payout_cents / 100)|number_format(2) }}</div>
-                                <small class="text-muted">{{ 'referral.dashboard.pending_payout'|trans }}</small>
+                        <div class="col-sm-4">
+                            <div class="card shadow text-center">
+                                <div class="card-body py-3">
+                                    <div class="fs-3 fw-bold text-warning">{{ (payout.pending_payout_cents / 100)|number_format(2) }} {{ payout.currency }}</div>
+                                    <small class="text-muted">{{ 'referral.dashboard.pending_payout'|trans }}</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    {% else %}
+                        <div class="col-sm-4">
+                            <div class="card shadow text-center">
+                                <div class="card-body py-3">
+                                    <div class="fs-3 fw-bold text-success">0.00</div>
+                                    <small class="text-muted">{{ 'referral.dashboard.total_earned'|trans }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="card shadow text-center">
+                                <div class="card-body py-3">
+                                    <div class="fs-3 fw-bold text-warning">0.00</div>
+                                    <small class="text-muted">{{ 'referral.dashboard.pending_payout'|trans }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
 
                 {# Supporters list #}

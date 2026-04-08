@@ -22,7 +22,6 @@ final class GetAffiliateSupportersTest extends KernelTestCase
     {
         $result = $this->getAffiliateSupporters->byPlayerId(PlayerFixture::PLAYER_REGULAR);
 
-        // PLAYER_PRIVATE is a supporter but has a private profile
         self::assertSame(1, $result['total_count']);
     }
 
@@ -34,12 +33,15 @@ final class GetAffiliateSupportersTest extends KernelTestCase
         self::assertEmpty($result['public_supporters']);
     }
 
-    public function testReturnsPayoutStats(): void
+    public function testReturnsPayoutStatsGroupedByCurrency(): void
     {
         $result = $this->getAffiliateSupporters->byPlayerId(PlayerFixture::PLAYER_REGULAR);
 
-        self::assertSame(120, $result['total_earned_cents']); // 60 + 60
-        self::assertSame(60, $result['pending_payout_cents']); // only the pending one
+        // Both payouts are in EUR (from fixtures)
+        self::assertCount(1, $result['payouts_by_currency']);
+        self::assertSame('EUR', $result['payouts_by_currency'][0]['currency']);
+        self::assertSame(120, $result['payouts_by_currency'][0]['total_earned_cents']); // 60 + 60
+        self::assertSame(60, $result['payouts_by_currency'][0]['pending_payout_cents']); // only the pending one
     }
 
     public function testReturnsEmptyForPlayerWithNoSupporters(): void
@@ -48,6 +50,6 @@ final class GetAffiliateSupportersTest extends KernelTestCase
 
         self::assertSame(0, $result['total_count']);
         self::assertEmpty($result['public_supporters']);
-        self::assertSame(0, $result['total_earned_cents']);
+        self::assertEmpty($result['payouts_by_currency']);
     }
 }

@@ -17,8 +17,7 @@ readonly final class GetAffiliateSupporters
      * @return array{
      *     total_count: int,
      *     public_supporters: list<array{player_id: string, player_name: null|string, player_avatar: null|string, created_at: string}>,
-     *     total_earned_cents: int,
-     *     pending_payout_cents: int,
+     *     payouts_by_currency: list<array{currency: string, total_earned_cents: int, pending_payout_cents: int}>,
      * }
      */
     public function byPlayerId(string $affiliatePlayerId): array
@@ -55,26 +54,33 @@ SQL;
 
         $payoutQuery = <<<SQL
 SELECT
+    ap.currency,
     COALESCE(SUM(ap.payout_amount_cents), 0) AS total_earned_cents,
     COALESCE(SUM(ap.payout_amount_cents) FILTER (WHERE ap.status = 'pending'), 0) AS pending_payout_cents
 FROM affiliate_payout ap
 WHERE ap.affiliate_player_id = :playerId
+GROUP BY ap.currency
+ORDER BY ap.currency
 SQL;
 
-        $payoutRow = $this->database->fetchAssociative($payoutQuery, [
+        $payoutRows = $this->database->fetchAllAssociative($payoutQuery, [
             'playerId' => $affiliatePlayerId,
         ]);
 
-        /** @var int|string $totalEarned */
-        $totalEarned = $payoutRow['total_earned_cents'] ?? 0;
-        /** @var int|string $pendingPayout */
-        $pendingPayout = $payoutRow['pending_payout_cents'] ?? 0;
+        /** @var list<array{currency: string, total_earned_cents: int|string, pending_payout_cents: int|string}> $payoutRows */
+        $payoutsByCurrency = array_map(
+            static fn(array $row): array => [
+                'currency' => $row['currency'],
+                'total_earned_cents' => (int) $row['total_earned_cents'],
+                'pending_payout_cents' => (int) $row['pending_payout_cents'],
+            ],
+            $payoutRows,
+        );
 
         return [
             'total_count' => $totalCount,
             'public_supporters' => $publicSupporters,
-            'total_earned_cents' => (int) $totalEarned,
-            'pending_payout_cents' => (int) $pendingPayout,
+            'payouts_by_currency' => $payoutsByCurrency,
         ];
     }
 }

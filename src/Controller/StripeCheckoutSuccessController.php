@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\EventSubscriber\ReferralCookieSubscriber;
 use SpeedPuzzling\Web\Message\AttributeReferral;
+use SpeedPuzzling\Web\Message\CreateAffiliatePayout;
 use SpeedPuzzling\Web\Message\UpdateMembershipSubscription;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Stripe\StripeClient;
@@ -70,7 +71,7 @@ final class StripeCheckoutSuccessController extends AbstractController
             $this->addFlash('info', $this->translator->trans('flashes.membership_processing'));
         }
 
-        // Attribute tribute from session (manual code entry) or cookie (referral link)
+        // Attribute referral from session (manual code entry) or cookie (referral link)
         $sessionReferralCode = $request->getSession()->get('referral_code');
         $cookieReferralCode = $request->cookies->get(ReferralCookieSubscriber::COOKIE_NAME);
 
@@ -84,6 +85,16 @@ final class StripeCheckoutSuccessController extends AbstractController
             );
 
             $request->getSession()->remove('referral_code');
+
+            // Create payout for the first payment — the webhook may have fired before
+            // the referral was attributed, so we dispatch here too (handler is idempotent)
+            /** @var null|string $invoiceId */
+            $invoiceId = $checkoutSession->invoice;
+            if (is_string($invoiceId)) {
+                $this->messageBus->dispatch(
+                    new CreateAffiliatePayout($subscriptionId, $invoiceId),
+                );
+            }
         }
 
         $response = new RedirectResponse($this->generateUrl('membership'));

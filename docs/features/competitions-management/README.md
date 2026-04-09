@@ -54,17 +54,18 @@ Access is enforced via a `CompetitionEditVoter` that checks whether the player i
 
 ## Event Types
 
-**Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format. The "Recurring event" checkbox is only shown for online events. Date fields (dateFrom/dateTo) are shown for offline events and non-recurring online events — they are hidden only when both online and recurring are selected (toggled via `competition-form` Stimulus controller's `offlineFields`, `dateFields`, and `recurringField` targets).
+**Online and offline are never combined** — a competition is either fully online or fully offline. Users must create separate competitions for each format. The "Recurring event" checkbox is available for both online and offline events. Date fields (dateFrom/dateTo) are shown for non-recurring events — they are hidden when recurring is selected (toggled via `competition-form` Stimulus controller's `offlineFields`, `dateFields`, and `recurringField` targets).
 
 ### Standalone Competitions (One-Time Events)
 
 One-time events (`Competition` with `series_id = NULL`) represent individual competitions:
 - **Offline events** (e.g. WJPC 2024): Have location, dateFrom/dateTo, table layouts, multiple rounds
-- **Online events** (e.g. Online Challenge 2024): No location, have dateFrom/dateTo, typically single round
+- **Online events** (e.g. Online Challenge 2024): No location, have dateFrom/dateTo, multiple rounds
+- The only behavioral difference: **table layout management is offline-only**
 
 ### Competition Series (Recurring Events)
 
-Recurring events use a **`CompetitionSeries` entity** that groups multiple editions. Each edition is a full `Competition` with its own participants, rounds, and metadata.
+Recurring events use a **`CompetitionSeries` entity** that groups multiple editions. Both online and offline events can be recurring. Each edition is a full `Competition` with its own participants, rounds, and metadata.
 
 ```
 CompetitionSeries ("Euro Jigsaw Jam")
@@ -75,22 +76,26 @@ CompetitionSeries ("Euro Jigsaw Jam")
      ├── name, dateFrom/dateTo
      ├── registrationLink, resultsLink  ← per-edition
      ├── series_id (FK → CompetitionSeries)
-     ├── CompetitionRound              ← usually just 1 for online
+     ├── CompetitionRound[]            ← 0..N rounds (0 for info-only events)
+     │    ├── category (solo/duo/team)
+     │    └── CompetitionTeam[]        ← for duo/team rounds
      └── CompetitionParticipant        ← edition-scoped
 ```
 
 **Key design**: Participants always belong to a `Competition`, whether it's a standalone event or a series edition. Zero behavioral branching in participant handlers/queries.
 
 **Creating a series:**
-1. User submits a new event with "recurring event series" checked
+1. User submits a new event with "recurring event series" checked (available for both online and offline)
 2. A `CompetitionSeries` is created (pending approval)
 3. From the series management page, organizer adds editions
-4. Each edition auto-creates a `Competition` + `CompetitionRound` in one step
+4. Each edition creates a `Competition` with name, dates, and links
+5. Rounds are managed separately via the round management page (typically 1+, but 0 is valid for info-only events without participants)
 
-**Adding an edition (streamlined form):**
+**Adding an edition:**
 - Name (e.g. "EJJ #68 — March 2026")
-- Date & time, time limit
+- Date from / date to
 - Registration link, results link (optional)
+- After creation, organizer adds rounds from the edition management page
 
 **Public series page** (`/en/series/{slug}`):
 - Series header with name, description, logo, website link, badges
@@ -116,9 +121,42 @@ CompetitionSeries ("Euro Jigsaw Jam")
 A competition has multiple **rounds**, each with:
 - **Name** and **start time**
 - **Minutes limit** — the time limit for solving (drives the stopwatch countdown)
+- **Category** — `solo`, `duo`, or `team` (`RoundCategory` enum, default `solo`)
 - **Badge colors** — optional background/text hex colors for visual distinction in round lists
 
-Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows action buttons for: Puzzles, Tables (only for in-person events), Stopwatch, Edit, Delete.
+Rounds are displayed sorted by start time. Each round can be edited or deleted. The round list shows action buttons for: Puzzles, Teams (for duo/team rounds only), Tables (only for in-person events), Stopwatch, Edit, Delete.
+
+### Round Categories
+
+Each round has a category that determines the solving format:
+- **Solo** (default) — individual solving, no team assignment
+- **Duo** — pairs solving together, teams of 2
+- **Team** — group solving, teams of any size
+
+For duo and team rounds, a "Manage Teams" button appears in the round management page, linking to the team management UI.
+
+### Team Management
+
+Teams are managed per-round via `CompetitionTeam` entity. Each team belongs to a round and has an optional name.
+
+**Entity structure:**
+```
+CompetitionTeam
+  id: UUID (PK)
+  round: CompetitionRound (FK, non-null)
+  name: string (nullable — unnamed teams allowed)
+```
+
+**Participant-team assignment:** `CompetitionParticipantRound` has a nullable FK to `CompetitionTeam`. For solo rounds, team is always null. For duo/team rounds, participants on the same team share the same `CompetitionTeam` FK.
+
+**Management UI** (`/en/manage-round-teams/{roundId}`):
+- Create teams (with optional name)
+- Assign participants to teams (from those assigned to the round)
+- Remove participants from teams
+- Delete teams
+- View unassigned participants
+
+**Import/Export**: The Excel import supports optional `round_name` and `team_name` columns. When provided, participants are auto-assigned to the named round, and for duo/team rounds, teams are created or matched by name.
 
 ## Puzzle Assignment
 
@@ -239,7 +277,10 @@ All emails use the `transactional` mailer transport and follow the standard Inky
 8. **Rejected competitions are excluded from the approval queue** — they no longer appear as "pending"
 9. **Email notifications require creator to have an email** — if the creator has no email on their profile, no notification is sent (no error)
 10. **Series get their own listing section** — `CompetitionSeries` appear in a dedicated "Recurring" section; editions are excluded from Live/Upcoming/Past
-11. **Online and offline are mutually exclusive** — one competition cannot be both; users create separate events
+11. **Online and offline are mutually exclusive** — one competition cannot be both; users create separate events. Both types can be recurring.
 12. **Series editions don't need individual approval** — the series approval controls visibility for all editions
 13. **Series maintainers manage all editions** — `IsCompetitionMaintainer` checks series maintainers for edition-level operations
 14. **Each edition is a full Competition** — has its own participants, rounds, registration/results links
+15. **Editions never auto-create rounds** — the edition form creates only the Competition, rounds are always managed separately via the round management UI
+16. **Round category defaults to solo** — existing rounds get `solo` category via migration default
+18. **Teams are scoped to rounds** — `CompetitionTeam` belongs to a `CompetitionRound`, participants are assigned to teams via `CompetitionParticipantRound.team_id`

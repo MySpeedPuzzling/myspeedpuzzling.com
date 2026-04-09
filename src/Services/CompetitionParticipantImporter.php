@@ -10,10 +10,14 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\CompetitionTeam;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Results\ParticipantImportResult;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\ParticipantSource;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class CompetitionParticipantImporter
 {
@@ -47,6 +51,8 @@ readonly final class CompetitionParticipantImporter
         $externalIdIdx = $this->findColumnIndex($headers, 'external_id');
         $playerIdIdx = $this->findColumnIndex($headers, 'msp_player_id');
         $statusIdx = $this->findColumnIndex($headers, 'status');
+        $roundNameIdx = $this->findColumnIndex($headers, 'round_name');
+        $teamNameIdx = $this->findColumnIndex($headers, 'team_name');
 
         if ($nameIdx === null) {
             return new ParticipantImportResult(errors: ['Required column "name" not found.']);
@@ -60,6 +66,11 @@ readonly final class CompetitionParticipantImporter
         $warnings = [];
         $errors = [];
         $seenNames = [];
+
+        /** @var array<string, array{roundName: string, teamName: null|string}> participantId => assignment */
+        $roundAssignments = [];
+
+        $roundsByName = $this->loadRoundsByName($competitionId);
 
         foreach ($rows as $rowIndex => $row) {
             /** @var array<int, null|scalar> $row */
@@ -171,9 +182,28 @@ readonly final class CompetitionParticipantImporter
                     'player_id' => $validPlayerId,
                 ];
             }
+
+            // Track round/team assignment for post-flush processing
+            $roundName = $roundNameIdx !== null ? trim((string) ($row[$roundNameIdx] ?? '')) : '';
+            $teamName = $teamNameIdx !== null ? trim((string) ($row[$teamNameIdx] ?? '')) : '';
+
+            if ($roundName !== '' && isset($roundsByName[$roundName])) {
+                $roundAssignments[$participant->id->toString()] = [
+                    'roundName' => $roundName,
+                    'teamName' => $teamName !== '' ? $teamName : null,
+                ];
+            } elseif ($roundName !== '' && !isset($roundsByName[$roundName])) {
+                $warnings[] = "Row {$rowNum}: round \"{$roundName}\" not found, skipping round assignment.";
+            }
         }
 
         $this->entityManager->flush();
+
+        // Post-flush: assign participants to rounds and teams
+        if ($roundAssignments !== []) {
+            $this->processRoundAndTeamAssignments($competitionId, $roundAssignments, $roundsByName);
+            $this->entityManager->flush();
+        }
 
         return new ParticipantImportResult(
             added: $added,
@@ -263,5 +293,118 @@ SQL;
         )->fetchOne();
 
         return $result !== false;
+    }
+
+    /**
+     * @return array<string, CompetitionRound> name => round entity
+     */
+    private function loadRoundsByName(string $competitionId): array
+    {
+        $query = <<<SQL
+SELECT id FROM competition_round WHERE competition_id = :competitionId
+SQL;
+
+        $roundIds = $this->database
+            ->executeQuery($query, ['competitionId' => $competitionId])
+            ->fetchFirstColumn();
+
+        $rounds = [];
+        foreach ($roundIds as $roundId) {
+            $round = $this->entityManager->find(CompetitionRound::class, $roundId);
+            if ($round !== null) {
+                $rounds[$round->name] = $round;
+            }
+        }
+
+        return $rounds;
+    }
+
+    /**
+     * @param array<string, array{roundName: string, teamName: null|string}> $assignments
+     * @param array<string, CompetitionRound> $roundsByName
+     */
+    private function processRoundAndTeamAssignments(string $competitionId, array $assignments, array $roundsByName): void
+    {
+        // Load existing participant-round records
+        $existingPr = $this->database->executeQuery(
+            'SELECT participant_id, round_id FROM competition_participant_round cpr INNER JOIN competition_participant cp ON cp.id = cpr.participant_id WHERE cp.competition_id = :competitionId',
+            ['competitionId' => $competitionId],
+        )->fetchAllAssociative();
+
+        /** @var array<string, array<string>> participantId => [roundId, ...] */
+        $existingByParticipant = [];
+        foreach ($existingPr as $row) {
+            /** @var array{participant_id: string, round_id: string} $row */
+            $existingByParticipant[$row['participant_id']][] = $row['round_id'];
+        }
+
+        /** @var array<string, CompetitionTeam> roundId:teamName => team */
+        $teamCache = [];
+
+        foreach ($assignments as $participantId => $assignment) {
+            $round = $roundsByName[$assignment['roundName']] ?? null;
+            if ($round === null) {
+                continue;
+            }
+
+            $roundId = $round->id->toString();
+
+            // Skip if already assigned to this round
+            if (isset($existingByParticipant[$participantId]) && in_array($roundId, $existingByParticipant[$participantId], true)) {
+                continue;
+            }
+
+            $participant = $this->entityManager->find(CompetitionParticipant::class, $participantId);
+            if ($participant === null) {
+                continue;
+            }
+
+            // Find or create team if team_name provided and round is duo/team
+            $team = null;
+            if ($assignment['teamName'] !== null && $round->category !== RoundCategory::Solo) {
+                $cacheKey = $roundId . ':' . $assignment['teamName'];
+                if (!isset($teamCache[$cacheKey])) {
+                    $team = $this->findOrCreateTeam($round, $assignment['teamName']);
+                    $teamCache[$cacheKey] = $team;
+                } else {
+                    $team = $teamCache[$cacheKey];
+                }
+            }
+
+            $participantRound = new CompetitionParticipantRound(
+                id: Uuid::uuid7(),
+                participant: $participant,
+                round: $round,
+                team: $team,
+            );
+
+            $this->entityManager->persist($participantRound);
+        }
+    }
+
+    private function findOrCreateTeam(CompetitionRound $round, string $teamName): CompetitionTeam
+    {
+        /** @var false|string $existingTeamId */
+        $existingTeamId = $this->database->executeQuery(
+            'SELECT id FROM competition_team WHERE round_id = :roundId AND name = :name LIMIT 1',
+            ['roundId' => $round->id->toString(), 'name' => $teamName],
+        )->fetchOne();
+
+        if ($existingTeamId !== false) {
+            $team = $this->entityManager->find(CompetitionTeam::class, $existingTeamId);
+            assert($team instanceof CompetitionTeam);
+
+            return $team;
+        }
+
+        $team = new CompetitionTeam(
+            id: Uuid::uuid7(),
+            round: $round,
+            name: $teamName,
+        );
+
+        $this->entityManager->persist($team);
+
+        return $team;
     }
 }

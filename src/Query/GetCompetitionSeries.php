@@ -75,16 +75,16 @@ SQL;
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
     COALESCE(
         (
-            SELECT MIN(cr.starts_at)
+            SELECT MIN(COALESCE(cr.starts_at, c.date_from))
             FROM competition c
-            INNER JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND cr.starts_at >= :now
+            LEFT JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) >= :now
         ),
         (
-            SELECT MAX(cr.starts_at)
+            SELECT MAX(COALESCE(cr.starts_at, c.date_from))
             FROM competition c
-            INNER JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND cr.starts_at < :now
+            LEFT JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) < :now
         )
     ) AS next_edition_date
 FROM competition_series cs
@@ -110,16 +110,16 @@ SQL;
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
     COALESCE(
         (
-            SELECT MIN(cr.starts_at)
+            SELECT MIN(COALESCE(cr.starts_at, c.date_from))
             FROM competition c
-            INNER JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND cr.starts_at >= :now
+            LEFT JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) >= :now
         ),
         (
-            SELECT MAX(cr.starts_at)
+            SELECT MAX(COALESCE(cr.starts_at, c.date_from))
             FROM competition c
-            INNER JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND cr.starts_at < :now
+            LEFT JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) < :now
         )
     ) AS next_edition_date
 FROM competition_series cs
@@ -145,16 +145,16 @@ SQL;
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
     COALESCE(
         (
-            SELECT MIN(cr.starts_at)
+            SELECT MIN(COALESCE(cr.starts_at, c.date_from))
             FROM competition c
-            INNER JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND cr.starts_at >= :now
+            LEFT JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) >= :now
         ),
         (
-            SELECT MAX(cr.starts_at)
+            SELECT MAX(COALESCE(cr.starts_at, c.date_from))
             FROM competition c
-            INNER JOIN competition_round cr ON cr.competition_id = c.id
-            WHERE c.series_id = cs.id AND cr.starts_at < :now
+            LEFT JOIN competition_round cr ON cr.competition_id = c.id
+            WHERE c.series_id = cs.id AND COALESCE(cr.starts_at, c.date_from) < :now
         )
     ) AS next_edition_date
 FROM competition_series cs
@@ -200,23 +200,26 @@ SQL;
         $query = <<<SQL
 SELECT
     c.id AS competition_id,
-    cr.id AS round_id,
     c.name,
     c.slug,
-    cr.starts_at,
-    cr.minutes_limit,
     c.registration_link,
     c.results_link,
+    MIN(cr.starts_at) AS starts_at,
+    MIN(cr.minutes_limit) AS minutes_limit,
+    COUNT(DISTINCT cr.id) AS round_count,
     COUNT(DISTINCT crp.id) AS puzzle_count,
     COUNT(DISTINCT cp.id) AS participant_count
 FROM competition c
-INNER JOIN competition_round cr ON cr.competition_id = c.id
+LEFT JOIN competition_round cr ON cr.competition_id = c.id
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
-LEFT JOIN competition_participant cp ON cp.competition_id = c.id
+LEFT JOIN competition_participant cp ON cp.competition_id = c.id AND cp.deleted_at IS NULL
 WHERE c.series_id = :seriesId
-    AND cr.starts_at {$comparison} :now
-GROUP BY c.id, cr.id
-ORDER BY cr.starts_at {$order}
+    AND COALESCE(
+        (SELECT MIN(cr2.starts_at) FROM competition_round cr2 WHERE cr2.competition_id = c.id),
+        c.date_from
+    ) {$comparison} :now
+GROUP BY c.id
+ORDER BY COALESCE(MIN(cr.starts_at), c.date_from) {$order}
 SQL;
 
         $now = $this->clock->now();
@@ -232,11 +235,11 @@ SQL;
             /**
              * @var array{
              *     competition_id: string,
-             *     round_id: string,
              *     name: string,
              *     slug: string,
-             *     starts_at: string,
-             *     minutes_limit: int|string,
+             *     starts_at: null|string,
+             *     minutes_limit: null|int|string,
+             *     round_count: int|string,
              *     puzzle_count: int|string,
              *     participant_count: int|string,
              *     registration_link: null|string,
@@ -245,11 +248,11 @@ SQL;
              */
             return new SeriesEdition(
                 competitionId: $row['competition_id'],
-                roundId: $row['round_id'],
                 name: $row['name'],
                 editionSlug: $row['slug'],
-                startsAt: new DateTimeImmutable($row['starts_at']),
-                minutesLimit: (int) $row['minutes_limit'],
+                startsAt: $row['starts_at'] !== null ? new DateTimeImmutable($row['starts_at']) : null,
+                minutesLimit: $row['minutes_limit'] !== null ? (int) $row['minutes_limit'] : null,
+                roundCount: (int) $row['round_count'],
                 puzzleCount: (int) $row['puzzle_count'],
                 participantCount: (int) $row['participant_count'],
                 registrationLink: $row['registration_link'],

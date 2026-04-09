@@ -55,10 +55,11 @@ final class AddCompetitionController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            $isRecurring = $data->isOnline === true && $data->isRecurring;
+            $isRecurring = $data->isRecurring;
 
             if ($isRecurring) {
                 $seriesId = Uuid::uuid7();
+                $isOnline = $data->isOnline === true;
 
                 $this->messageBus->dispatch(new AddCompetitionSeries(
                     seriesId: $seriesId,
@@ -67,9 +68,9 @@ final class AddCompetitionController extends AbstractController
                     shortcut: $data->shortcut,
                     description: $data->description,
                     link: $data->link,
-                    isOnline: true,
-                    location: null,
-                    locationCountryCode: null,
+                    isOnline: $isOnline,
+                    location: $isOnline ? null : $data->location,
+                    locationCountryCode: $isOnline ? null : $data->locationCountryCode,
                     logo: $data->logo,
                     maintainerIds: $data->maintainers,
                 ));

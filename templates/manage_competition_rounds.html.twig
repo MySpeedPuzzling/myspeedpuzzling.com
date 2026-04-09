@@ -46,6 +46,9 @@
                                         {% else %}
                                             <span class="fw-semibold">{{ round.name }}</span>
                                         {% endif %}
+                                        {% if round.category.value != 'solo' %}
+                                            <span class="badge bg-secondary ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+                                        {% endif %}
                                     </div>
                                     <div class="d-flex gap-1">
                                         <a href="{{ path('edit_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
@@ -72,6 +75,11 @@
                                     <a href="{{ path('manage_round_puzzles', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-puzzle me-1"></i>{{ 'competition.puzzles'|trans }}
                                     </a>
+                                    {% if round.category.value != 'solo' %}
+                                        <a href="{{ path('manage_round_teams', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-people me-1"></i>{{ 'competition.manage_teams'|trans }}
+                                        </a>
+                                    {% endif %}
                                     {% if is_granted('ADMIN_ACCESS') %}
                                         {% if not competition.isOnline %}
                                             <a href="{{ path('manage_round_tables', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">

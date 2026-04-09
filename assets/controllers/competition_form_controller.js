@@ -23,11 +23,11 @@ export default class extends Controller {
         });
 
         this.dateFieldsTargets.forEach(el => {
-            el.style.display = hasSelection && !(isOnline && isRecurring) ? '' : 'none';
+            el.style.display = hasSelection && !isRecurring ? '' : 'none';
         });
 
         if (this.hasRecurringFieldTarget) {
-            this.recurringFieldTarget.style.display = hasSelection && isOnline ? '' : 'none';
+            this.recurringFieldTarget.style.display = hasSelection ? '' : 'none';
         }
 
         this.typeSelectedFieldsTargets.forEach(el => {

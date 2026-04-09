@@ -27,10 +27,6 @@ readonly final class ConvertCompetitionToSeriesHandler
     {
         $competition = $this->competitionRepository->get($message->competitionId);
 
-        if ($competition->isOnline === false) {
-            throw new \LogicException('Only online competitions can be converted to a recurring series.');
-        }
-
         if ($competition->series !== null) {
             throw new \LogicException('Competition is already part of a series.');
         }
@@ -45,7 +41,9 @@ readonly final class ConvertCompetitionToSeriesHandler
             logo: $competition->logo,
             description: $competition->description,
             link: $competition->link,
-            isOnline: true,
+            isOnline: $competition->isOnline,
+            location: $competition->location,
+            locationCountryCode: $competition->locationCountryCode,
             shortcut: $competition->shortcut,
             tag: $competition->tag,
             addedByPlayer: $competition->addedByPlayer,

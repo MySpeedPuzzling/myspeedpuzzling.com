@@ -31,6 +31,7 @@ readonly final class AddCompetitionRoundHandler
             startsAt: $message->startsAt,
             badgeBackgroundColor: $message->badgeBackgroundColor,
             badgeTextColor: $message->badgeTextColor,
+            category: $message->category,
         );
 
         $this->competitionRoundRepository->save($round);

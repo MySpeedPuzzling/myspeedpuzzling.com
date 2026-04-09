@@ -13,11 +13,11 @@ readonly final class SeriesEdition
 
     public function __construct(
         public string $competitionId,
-        public string $roundId,
         public string $name,
-        public string $editionSlug,
-        public DateTimeImmutable $startsAt,
-        public int $minutesLimit,
+        public null|string $editionSlug,
+        public null|DateTimeImmutable $startsAt,
+        public null|int $minutesLimit,
+        public int $roundCount,
         public int $puzzleCount,
         public int $participantCount,
         null|string $registrationLink,

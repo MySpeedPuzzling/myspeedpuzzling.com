@@ -49,6 +49,10 @@ final class CompetitionFormData
                 ->addViolation();
         }
 
+        if ($this->isRecurring) {
+            return;
+        }
+
         if ($this->dateFrom === null) {
             $context->buildViolation('This value should not be blank.')
                 ->atPath('dateFrom')

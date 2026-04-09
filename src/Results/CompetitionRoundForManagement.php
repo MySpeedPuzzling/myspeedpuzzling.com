@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class CompetitionRoundForManagement
 {
@@ -16,6 +17,7 @@ readonly final class CompetitionRoundForManagement
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
         public int $puzzleCount,
+        public RoundCategory $category = RoundCategory::Solo,
     ) {
     }
 }

@@ -26,6 +26,7 @@ readonly final class EditCompetitionRoundHandler
             startsAt: $message->startsAt,
             badgeBackgroundColor: $message->badgeBackgroundColor,
             badgeTextColor: $message->badgeTextColor,
+            category: $message->category,
         );
     }
 }

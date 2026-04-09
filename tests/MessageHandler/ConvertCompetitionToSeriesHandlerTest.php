@@ -128,21 +128,25 @@ final class ConvertCompetitionToSeriesHandlerTest extends KernelTestCase
         self::assertSame($originalSlug, $competition->slug);
     }
 
-    public function testCannotConvertOfflineCompetition(): void
+    public function testConvertOfflineCompetitionCreatesOfflineSeries(): void
     {
         $seriesId = Uuid::uuid7();
+        $competitionId = CompetitionFixture::COMPETITION_WJPC_2024;
 
-        try {
-            $this->messageBus->dispatch(new ConvertCompetitionToSeries(
-                competitionId: CompetitionFixture::COMPETITION_WJPC_2024,
-                seriesId: $seriesId,
-            ));
+        $competition = $this->competitionRepository->get($competitionId);
+        $originalLocation = $competition->location;
+        $originalLocationCountryCode = $competition->locationCountryCode;
 
-            self::fail('Expected LogicException was not thrown');
-        } catch (\Symfony\Component\Messenger\Exception\HandlerFailedException $exception) {
-            $previous = $exception->getPrevious();
-            self::assertInstanceOf(\LogicException::class, $previous);
-            self::assertStringContainsString('Only online competitions', $previous->getMessage());
-        }
+        $this->messageBus->dispatch(new ConvertCompetitionToSeries(
+            competitionId: $competitionId,
+            seriesId: $seriesId,
+        ));
+
+        $series = $this->seriesRepository->get($seriesId->toString());
+
+        self::assertFalse($series->isOnline);
+        self::assertSame($originalLocation, $series->location);
+        self::assertSame($originalLocationCountryCode, $series->locationCountryCode);
+        self::assertNotNull($series->slug);
     }
 }

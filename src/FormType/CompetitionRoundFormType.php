@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\FormType;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateTimeType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TimezoneType;
@@ -74,6 +76,18 @@ final class CompetitionRoundFormType extends AbstractType
 
                 return $timezone . ' (' . $utcOffset . ')';
             },
+        ]);
+
+        $builder->add('category', EnumType::class, [
+            'class' => RoundCategory::class,
+            'label' => 'competition.round.form.category',
+            'help' => 'competition.round.form.category_help',
+            'choice_label' => static fn(RoundCategory $category): string => match ($category) {
+                RoundCategory::Solo => 'competition.round.category.solo',
+                RoundCategory::Duo => 'competition.round.category.duo',
+                RoundCategory::Team => 'competition.round.category.team',
+            },
+            'expanded' => true,
         ]);
 
         $builder->add('badgeBackgroundColor', TextType::class, [

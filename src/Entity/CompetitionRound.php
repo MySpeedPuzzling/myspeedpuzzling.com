@@ -17,6 +17,7 @@ use Doctrine\ORM\Mapping\OneToMany;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 #[Entity]
 class CompetitionRound
@@ -44,6 +45,8 @@ class CompetitionRound
         public null|string $badgeBackgroundColor = null,
         #[Column(nullable: true)]
         public null|string $badgeTextColor = null,
+        #[Column(enumType: RoundCategory::class, options: ['default' => 'solo'])]
+        public RoundCategory $category = RoundCategory::Solo,
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $stopwatchStartedAt = null,
         #[Column(nullable: true)]
@@ -57,12 +60,14 @@ class CompetitionRound
         DateTimeImmutable $startsAt,
         null|string $badgeBackgroundColor,
         null|string $badgeTextColor,
+        RoundCategory $category = RoundCategory::Solo,
     ): void {
         $this->name = $name;
         $this->minutesLimit = $minutesLimit;
         $this->startsAt = $startsAt;
         $this->badgeBackgroundColor = $badgeBackgroundColor;
         $this->badgeTextColor = $badgeTextColor;
+        $this->category = $category;
     }
 
     public function startStopwatch(DateTimeImmutable $startedAt): void

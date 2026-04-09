@@ -23,8 +23,21 @@
             {% if event.dateFrom %}
                 <div class="mb-2">
                     <i class="ci-calendar me-2 ps-1"></i>
-                    {{ event.dateFrom|date('d.m.Y H:i') }}
+                    {% if event.dateTo and event.dateFrom != event.dateTo %}
+                        {{ event.dateFrom|date('d.') }}-{{ event.dateTo|date('d.m.Y') }}
+                    {% else %}
+                        {{ event.dateFrom|date('d.m.Y H:i') }}
+                    {% endif %}
                     <small class="text-muted ps-1">({{ event.dateFrom|ago }})</small>
+                </div>
+            {% endif %}
+
+            {% if not series.isOnline and event.location %}
+                <div class="mb-2">
+                    {% if event.locationCountryCode %}
+                        <span class="shadow-custom fi fi-{{ event.locationCountryCode.name }} me-2"></span>
+                    {% endif %}
+                    {{ event.location }}
                 </div>
             {% endif %}
 
@@ -49,7 +62,58 @@
         </div>
     </div>
 
-    {% if puzzles|length > 0 %}
+    {% if rounds|length > 0 %}
+        {% for round in rounds %}
+            <div class="mt-4">
+                <h2 class="h5 mb-3">
+                    {% if round.badgeBackgroundColor %}
+                        <span class="badge me-2" style="background-color: {{ round.badgeBackgroundColor }}; color: {{ round.badgeTextColor ?? '#fff' }}">
+                            {{ round.name }}
+                        </span>
+                    {% else %}
+                        {{ round.name }}
+                    {% endif %}
+
+                    {% if round.category.value != 'solo' %}
+                        <span class="badge bg-secondary ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+                    {% endif %}
+                </h2>
+
+                <div class="text-muted small mb-3">
+                    <i class="bi bi-calendar-event me-1"></i>{{ round.startsAt|date('d.m.Y H:i') }}
+                    <span class="mx-1">&middot;</span>
+                    <i class="bi bi-stopwatch me-1"></i>{{ round.minutesLimit }} min
+                </div>
+
+                {% if round.puzzles|length > 0 %}
+                    <div class="row g-2 g-md-3">
+                        {% for puzzle in round.puzzles %}
+                            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                                <div class="card h-100 shadow-sm">
+                                    {% if puzzle.puzzleImage %}
+                                        <img src="{{ puzzle.puzzleImage|thumbnail('puzzle_small') }}" alt="{{ puzzle.puzzleName }}" class="card-img-top">
+                                    {% else %}
+                                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;">
+                                            <i class="bi bi-puzzle text-muted" style="font-size: 2rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="card-body p-2">
+                                        <p class="card-text small mb-0">{{ puzzle.puzzleName }}</p>
+                                        <p class="card-text text-muted small">
+                                            {{ puzzle.piecesCount }} {{ 'puzzle.pieces'|trans }}
+                                            {% if puzzle.manufacturerName %}
+                                                &middot; {{ puzzle.manufacturerName }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% elseif puzzles|length > 0 %}
         <h2 class="h5 mt-4 mb-3">{{ 'events.competition_puzzles'|trans }}</h2>
         <div class="row g-2 g-md-3">
             {% for puzzle in puzzles %}

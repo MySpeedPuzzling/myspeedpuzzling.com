@@ -11,11 +11,10 @@ readonly final class AddEdition
 {
     public function __construct(
         public UuidInterface $competitionId,
-        public UuidInterface $roundId,
         public string $seriesId,
         public string $name,
-        public DateTimeImmutable $startsAt,
-        public int $minutesLimit,
+        public null|DateTimeImmutable $dateFrom,
+        public null|DateTimeImmutable $dateTo,
         public null|string $registrationLink,
         public null|string $resultsLink,
     ) {

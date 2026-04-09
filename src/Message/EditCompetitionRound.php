@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class EditCompetitionRound
 {
@@ -15,6 +16,7 @@ readonly final class EditCompetitionRound
         public DateTimeImmutable $startsAt,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
+        public RoundCategory $category = RoundCategory::Solo,
     ) {
     }
 }

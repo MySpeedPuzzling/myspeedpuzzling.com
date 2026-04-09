@@ -13,10 +13,9 @@ final class EditionFormData
         #[Assert\NotBlank]
         public null|string $name = null,
         #[Assert\NotNull]
-        public null|DateTimeImmutable $startsAt = null,
+        public null|DateTimeImmutable $dateFrom = null,
         #[Assert\NotNull]
-        #[Assert\Positive]
-        public null|int $minutesLimit = null,
+        public null|DateTimeImmutable $dateTo = null,
         #[Assert\Url]
         public null|string $registrationLink = null,
         #[Assert\Url]

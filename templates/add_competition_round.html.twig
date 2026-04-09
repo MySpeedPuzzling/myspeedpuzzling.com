@@ -21,6 +21,7 @@
                     <div class="card-body">
                         {{ form_start(form) }}
                             {{ form_row(form.name) }}
+                            {{ form_row(form.category) }}
                             {{ form_row(form.minutesLimit) }}
 
                             {% set isSingleDay = competition.dateFrom is not null and competition.dateTo is not null and competition.dateFrom|date('Y-m-d') == competition.dateTo|date('Y-m-d') %}

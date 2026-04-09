@@ -22,15 +22,22 @@
 
                         <div class="required">{{ form_row(form.name) }}</div>
 
-                        <div class="mb-3">
-                            {{ form_label(form.startsAt, null, {label_attr: {class: 'form-label required'}}) }}
-                            {{ form_widget(form.startsAt, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y H:i", "dateFormat": "d.m.Y H:i", "enableTime": true, "time_24hr": true}'}}) }}
-                            {{ form_errors(form.startsAt) }}
+                        <div class="mb-3 required">
+                            {{ form_label(form.dateFrom, null, {label_attr: {class: 'form-label'}}) }}
+                            {{ form_widget(form.dateFrom, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                            {{ form_errors(form.dateFrom) }}
                         </div>
 
-                        {{ form_row(form.timezone) }}
+                        <div class="mb-3 required">
+                            {{ form_label(form.dateTo, null, {label_attr: {class: 'form-label'}}) }}
+                            {{ form_widget(form.dateTo, {'attr': {'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "altFormat": "d.m.Y", "dateFormat": "d.m.Y"}'}}) }}
+                            {{ form_errors(form.dateTo) }}
+                        </div>
 
-                        <div class="required">{{ form_row(form.minutesLimit) }}</div>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>{{ 'edition.rounds_hint'|trans }}
+                        </div>
+
                         {{ form_row(form.registrationLink) }}
                         {{ form_row(form.resultsLink) }}
 

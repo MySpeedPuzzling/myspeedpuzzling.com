@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\Competition;
-use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Message\AddEdition;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -36,26 +35,16 @@ readonly final class AddEditionHandler
             link: null,
             registrationLink: $message->registrationLink,
             resultsLink: $message->resultsLink,
-            location: null,
-            locationCountryCode: null,
-            dateFrom: $message->startsAt,
-            dateTo: $message->startsAt,
+            location: $series->location,
+            locationCountryCode: $series->locationCountryCode,
+            dateFrom: $message->dateFrom,
+            dateTo: $message->dateTo,
             tag: null,
             isOnline: $series->isOnline,
             series: $series,
         );
 
         $this->entityManager->persist($competition);
-
-        $round = new CompetitionRound(
-            id: $message->roundId,
-            competition: $competition,
-            name: $message->name,
-            minutesLimit: $message->minutesLimit,
-            startsAt: $message->startsAt,
-        );
-
-        $this->entityManager->persist($round);
     }
 
     private function generateUniqueSlug(string $name, string $seriesId): string

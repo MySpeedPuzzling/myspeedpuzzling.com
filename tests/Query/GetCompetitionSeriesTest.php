@@ -49,4 +49,44 @@ final class GetCompetitionSeriesTest extends KernelTestCase
         self::assertSame(CompetitionSeriesFixture::SERIES_EJJ, $series->id);
         self::assertNull($series->nextEditionDate);
     }
+
+    public function testUpcomingEditionsOnlineReturnsRoundCount(): void
+    {
+        $editions = $this->query->upcomingEditions(CompetitionSeriesFixture::SERIES_EJJ);
+
+        self::assertNotEmpty($editions);
+
+        $edition = $editions[0];
+        self::assertSame(1, $edition->roundCount);
+        self::assertNotNull($edition->startsAt);
+        self::assertNotNull($edition->minutesLimit);
+    }
+
+    public function testUpcomingEditionsOfflineReturnsMultipleRoundCount(): void
+    {
+        $editions = $this->query->upcomingEditions(CompetitionSeriesFixture::SERIES_OFFLINE);
+
+        self::assertNotEmpty($editions);
+
+        $edition = $editions[0];
+        self::assertSame(2, $edition->roundCount, 'Offline edition with 2 rounds should have roundCount=2');
+        self::assertNotNull($edition->startsAt);
+    }
+
+    public function testAllApprovedIncludesOfflineSeries(): void
+    {
+        $all = $this->query->allApproved();
+
+        $offlineFound = false;
+        foreach ($all as $series) {
+            if ($series->id === CompetitionSeriesFixture::SERIES_OFFLINE) {
+                $offlineFound = true;
+                self::assertFalse($series->isOnline);
+                self::assertSame('Prague', $series->location);
+                break;
+            }
+        }
+
+        self::assertTrue($offlineFound, 'Offline series should be in approved list');
+    }
 }

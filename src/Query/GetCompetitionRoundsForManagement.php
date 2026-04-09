@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\CompetitionRoundForManagement;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class GetCompetitionRoundsForManagement
 {
@@ -28,11 +29,12 @@ SELECT
     cr.starts_at,
     cr.badge_background_color,
     cr.badge_text_color,
+    cr.category,
     COUNT(crp.id) AS puzzle_count
 FROM competition_round cr
 LEFT JOIN competition_round_puzzle crp ON crp.round_id = cr.id
 WHERE cr.competition_id = :competitionId
-GROUP BY cr.id, cr.name, cr.minutes_limit, cr.starts_at, cr.badge_background_color, cr.badge_text_color
+GROUP BY cr.id, cr.name, cr.minutes_limit, cr.starts_at, cr.badge_background_color, cr.badge_text_color, cr.category
 ORDER BY cr.starts_at
 SQL;
 
@@ -51,6 +53,7 @@ SQL;
              *     starts_at: string,
              *     badge_background_color: null|string,
              *     badge_text_color: null|string,
+             *     category: string,
              *     puzzle_count: int|string,
              * } $row
              */
@@ -63,6 +66,7 @@ SQL;
                 badgeBackgroundColor: $row['badge_background_color'],
                 badgeTextColor: $row['badge_text_color'],
                 puzzleCount: (int) $row['puzzle_count'],
+                category: RoundCategory::from($row['category']),
             );
         }, $data);
     }

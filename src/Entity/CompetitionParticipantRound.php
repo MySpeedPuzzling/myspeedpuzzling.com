@@ -27,11 +27,23 @@ class CompetitionParticipantRound
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public CompetitionRound $round,
+        #[ManyToOne]
+        public null|CompetitionTeam $team = null,
     ) {
     }
 
     public function changeRound(CompetitionRound $newRound): void
     {
         $this->round = $newRound;
+    }
+
+    public function assignToTeam(CompetitionTeam $team): void
+    {
+        $this->team = $team;
+    }
+
+    public function removeFromTeam(): void
+    {
+        $this->team = null;
     }
 }

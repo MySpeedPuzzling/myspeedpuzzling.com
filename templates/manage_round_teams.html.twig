@@ -1,0 +1,162 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'competition.manage_teams'|trans }} - {{ round.name }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competitionId})},
+        {label: 'competition.manage_teams'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competitionId}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="pb-4">
+        <h1 class="h2">
+            {{ round.name }}
+            <span class="badge bg-secondary ms-1">{{ ('competition.round.category.' ~ round.category.value)|trans }}</span>
+        </h1>
+
+        <p class="text-muted">{{ 'competition.teams.intro'|trans }}</p>
+
+        {% for flash_message in app.flashes('success') %}
+            <div class="alert alert-success">
+                <i class="ci-check-circle me-2"></i>
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">{{ 'competition.teams.add_team'|trans }}</h2>
+                <form method="post" action="{{ path('add_team_to_round', {'roundId': round.id}) }}" class="d-flex gap-2">
+                    <input type="text" name="team_name" class="form-control" placeholder="{{ 'competition.teams.team_name_placeholder'|trans }}" style="max-width: 300px;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>{{ 'competition.teams.add_team'|trans }}
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if teams|length > 0 %}
+            <div class="row g-3">
+                {% for team in teams %}
+                    <div class="col-12 col-md-6">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h3 class="h6 mb-0">
+                                        {% if team.name %}
+                                            {{ team.name }}
+                                        {% else %}
+                                            <span class="text-muted fst-italic">{{ 'competition.teams.unnamed_team'|trans }}</span>
+                                        {% endif %}
+                                    </h3>
+                                    <form method="post" action="{{ path('delete_team', {'teamId': team.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.teams.confirm_delete'|trans }}')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {% if team.members|length > 0 %}
+                                    <ul class="list-unstyled mb-2">
+                                        {% for member in team.members %}
+                                            <li class="d-flex align-items-center py-1">
+                                                {% if member.participantCountry %}
+                                                    <span class="shadow-custom fi fi-{{ member.participantCountry }} me-2"></span>
+                                                {% endif %}
+                                                <span>{{ member.participantName }}</span>
+                                                {% if member.playerName %}
+                                                    <small class="text-muted ms-1">({{ member.playerName }})</small>
+                                                {% endif %}
+                                                <form method="post" action="{{ path('assign_participant_to_team', {'participantRoundId': member.participantRoundId}) }}" class="ms-auto">
+                                                    <input type="hidden" name="team_id" value="">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="{{ 'competition.teams.remove_from_team'|trans }}">
+                                                        <i class="bi bi-x"></i>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted small mb-2">{{ 'competition.teams.no_members'|trans }}</p>
+                                {% endif %}
+
+                                {% if unassigned|length > 0 %}
+                                    <form method="post" action="" class="d-flex gap-1 assign-form">
+                                        <select name="participant_round_id" class="form-select form-select-sm" style="max-width: 200px;">
+                                            <option value="">{{ 'competition.teams.select_participant'|trans }}</option>
+                                            {% for participant in unassigned %}
+                                                <option value="{{ participant.participantRoundId }}">{{ participant.participantName }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="assignToTeam(this, '{{ team.id }}')">
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">{{ 'competition.teams.no_teams'|trans }}</p>
+        {% endif %}
+
+        {% if unassigned|length > 0 %}
+            <h2 class="h5 mt-4 mb-3">{{ 'competition.teams.unassigned'|trans }} ({{ unassigned|length }})</h2>
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        {% for participant in unassigned %}
+                            <li class="d-flex align-items-center py-1">
+                                {% if participant.participantCountry %}
+                                    <span class="shadow-custom fi fi-{{ participant.participantCountry }} me-2"></span>
+                                {% endif %}
+                                <span>{{ participant.participantName }}</span>
+                                {% if participant.playerName %}
+                                    <small class="text-muted ms-1">({{ participant.playerName }})</small>
+                                {% endif %}
+
+                                {% if teams|length > 0 %}
+                                    <form method="post" action="{{ path('assign_participant_to_team', {'participantRoundId': participant.participantRoundId}) }}" class="ms-auto d-flex gap-1">
+                                        <select name="team_id" class="form-select form-select-sm" style="max-width: 180px;">
+                                            {% for team in teams %}
+                                                <option value="{{ team.id }}">{{ team.name ?? 'competition.teams.unnamed_team'|trans }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function assignToTeam(button, teamId) {
+            const form = button.closest('.assign-form');
+            const select = form.querySelector('select');
+            const participantRoundId = select.value;
+            if (!participantRoundId) return;
+
+            const actionUrl = '{{ path('assign_participant_to_team', {'participantRoundId': '__PRI__'}) }}'.replace('__PRI__', participantRoundId);
+            const hiddenForm = document.createElement('form');
+            hiddenForm.method = 'POST';
+            hiddenForm.action = actionUrl;
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'team_id';
+            input.value = teamId;
+            hiddenForm.appendChild(input);
+            document.body.appendChild(hiddenForm);
+            hiddenForm.submit();
+        }
+    </script>
+{% endblock %}

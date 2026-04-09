@@ -58,14 +58,21 @@
                                 </a>
                             </h3>
 
-                            <div class="mt-1">
-                                <i class="ci-calendar me-2 ps-1"></i>
-                                {{ edition.startsAt|date('d.m.Y H:i') }}
-                                <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
-                            </div>
+                            {% if edition.startsAt %}
+                                <div class="mt-1">
+                                    <i class="ci-calendar me-2 ps-1"></i>
+                                    {{ edition.startsAt|date('d.m.Y H:i') }}
+                                    <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
+                                </div>
+                            {% endif %}
 
                             <div class="d-flex flex-wrap gap-3 mt-2 text-muted small">
-                                <span><i class="bi bi-clock me-1"></i>{{ edition.minutesLimit }} min</span>
+                                {% if edition.minutesLimit and edition.roundCount <= 1 %}
+                                    <span><i class="bi bi-clock me-1"></i>{{ edition.minutesLimit }} min</span>
+                                {% endif %}
+                                {% if edition.roundCount > 1 %}
+                                    <span><i class="bi bi-list-ol me-1"></i>{{ edition.roundCount }} {{ 'competition.rounds_count'|trans }}</span>
+                                {% endif %}
                                 <span><i class="bi bi-puzzle me-1"></i>{{ edition.puzzleCount }}</span>
                                 <span><i class="bi bi-people me-1"></i>{{ edition.participantCount }}</span>
                             </div>
@@ -97,14 +104,21 @@
                                 </a>
                             </h3>
 
-                            <div class="mt-1">
-                                <i class="ci-calendar me-2 ps-1"></i>
-                                {{ edition.startsAt|date('d.m.Y H:i') }}
-                                <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
-                            </div>
+                            {% if edition.startsAt %}
+                                <div class="mt-1">
+                                    <i class="ci-calendar me-2 ps-1"></i>
+                                    {{ edition.startsAt|date('d.m.Y H:i') }}
+                                    <small class="text-muted ps-1">({{ edition.startsAt|ago }})</small>
+                                </div>
+                            {% endif %}
 
                             <div class="d-flex flex-wrap gap-3 mt-2 text-muted small">
-                                <span><i class="bi bi-clock me-1"></i>{{ edition.minutesLimit }} min</span>
+                                {% if edition.minutesLimit and edition.roundCount <= 1 %}
+                                    <span><i class="bi bi-clock me-1"></i>{{ edition.minutesLimit }} min</span>
+                                {% endif %}
+                                {% if edition.roundCount > 1 %}
+                                    <span><i class="bi bi-list-ol me-1"></i>{{ edition.roundCount }} {{ 'competition.rounds_count'|trans }}</span>
+                                {% endif %}
                                 <span><i class="bi bi-puzzle me-1"></i>{{ edition.puzzleCount }}</span>
                                 <span><i class="bi bi-people me-1"></i>{{ edition.participantCount }}</span>
                             </div>

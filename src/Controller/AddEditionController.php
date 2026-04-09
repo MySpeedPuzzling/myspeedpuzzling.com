@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\FormData\EditionFormData;
 use SpeedPuzzling\Web\FormType\EditionFormType;
@@ -53,29 +52,12 @@ final class AddEditionController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
 
-            /** @var string $selectedTimezone */
-            $selectedTimezone = $form->get('timezone')->getData();
-
-            $startsAt = $data->startsAt;
-            assert($startsAt instanceof DateTimeImmutable);
-
-            $localTz = new \DateTimeZone($selectedTimezone);
-            $utcTz = new \DateTimeZone('UTC');
-            $localDateTime = DateTimeImmutable::createFromFormat(
-                'Y-m-d H:i',
-                $startsAt->format('Y-m-d H:i'),
-                $localTz,
-            );
-            assert($localDateTime instanceof DateTimeImmutable);
-            $utcDateTime = $localDateTime->setTimezone($utcTz);
-
             $this->messageBus->dispatch(new AddEdition(
                 competitionId: Uuid::uuid7(),
-                roundId: Uuid::uuid7(),
                 seriesId: $seriesId,
                 name: $data->name ?? '',
-                startsAt: $utcDateTime,
-                minutesLimit: $data->minutesLimit ?? 0,
+                dateFrom: $data->dateFrom,
+                dateTo: $data->dateTo,
                 registrationLink: $data->registrationLink,
                 resultsLink: $data->resultsLink,
             ));

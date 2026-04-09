@@ -100,6 +100,7 @@ final class EditCompetitionRoundController extends AbstractController
                 startsAt: $startsAt,
                 badgeBackgroundColor: $data->badgeBackgroundColor,
                 badgeTextColor: $data->badgeTextColor,
+                category: $data->category,
             ));
 
             $this->addFlash('success', $this->translator->trans('competition.flash.round_updated'));

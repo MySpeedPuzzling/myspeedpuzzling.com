@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Message;
 
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\RoundCategory;
 
 readonly final class AddCompetitionRound
 {
@@ -17,6 +18,7 @@ readonly final class AddCompetitionRound
         public DateTimeImmutable $startsAt,
         public null|string $badgeBackgroundColor,
         public null|string $badgeTextColor,
+        public RoundCategory $category = RoundCategory::Solo,
     ) {
     }
 }

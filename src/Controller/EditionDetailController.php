@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
+use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
@@ -22,6 +23,7 @@ final class EditionDetailController extends AbstractController
         readonly private CompetitionRepository $competitionRepository,
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionSeries $getCompetitionSeries,
+        readonly private GetEditionRounds $getEditionRounds,
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
@@ -52,6 +54,8 @@ final class EditionDetailController extends AbstractController
         $competitionEvent = $this->getCompetitionEvents->byId($competitionId);
         $seriesOverview = $this->getCompetitionSeries->byId($competition->series->id->toString());
 
+        $rounds = $this->getEditionRounds->forCompetition($competitionId);
+
         $puzzles = [];
         if ($competitionEvent->tagId !== null) {
             $puzzles = $this->getPuzzleOverview->byTagId($competitionEvent->tagId);
@@ -63,6 +67,7 @@ final class EditionDetailController extends AbstractController
         return $this->render('edition_detail.html.twig', [
             'series' => $seriesOverview,
             'event' => $competitionEvent,
+            'rounds' => $rounds,
             'puzzles' => $puzzles,
             'puzzle_statuses' => $puzzleStatuses,
         ]);

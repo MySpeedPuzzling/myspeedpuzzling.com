@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormData;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final class CompetitionRoundFormData
@@ -18,6 +19,7 @@ final class CompetitionRoundFormData
         public null|DateTimeImmutable $startsAt = null,
         public null|string $badgeBackgroundColor = '#fe696a',
         public null|string $badgeTextColor = '#ffffff',
+        public RoundCategory $category = RoundCategory::Solo,
     ) {
     }
 
@@ -29,6 +31,7 @@ final class CompetitionRoundFormData
         $data->startsAt = $round->startsAt;
         $data->badgeBackgroundColor = $round->badgeBackgroundColor;
         $data->badgeTextColor = $round->badgeTextColor;
+        $data->category = $round->category;
 
         return $data;
     }

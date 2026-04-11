@@ -35,7 +35,7 @@ class CompetitionSeries
         public null|string $slug,
         #[Column(nullable: true)]
         public null|string $logo,
-        #[Column(nullable: true)]
+        #[Column(type: Types::TEXT, nullable: true)]
         public null|string $description,
         #[Column(nullable: true)]
         public null|string $link,

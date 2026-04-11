@@ -13,11 +13,14 @@ final class CompetitionRoundFormData
 {
     public function __construct(
         #[Assert\NotBlank]
+        #[Assert\Length(max: 250)]
         public null|string $name = null,
         #[Assert\Positive]
         public null|int $minutesLimit = null,
         public null|DateTimeImmutable $startsAt = null,
+        #[Assert\Length(max: 250)]
         public null|string $badgeBackgroundColor = '#fe696a',
+        #[Assert\Length(max: 250)]
         public null|string $badgeTextColor = '#ffffff',
         public RoundCategory $category = RoundCategory::Solo,
     ) {

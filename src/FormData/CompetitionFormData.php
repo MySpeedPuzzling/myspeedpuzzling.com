@@ -15,15 +15,21 @@ final class CompetitionFormData
 {
     public function __construct(
         #[Assert\NotBlank]
+        #[Assert\Length(max: 250)]
         public null|string $name = null,
+        #[Assert\Length(max: 250)]
         public null|string $shortcut = null,
         public null|string $description = null,
         #[Assert\Url]
+        #[Assert\Length(max: 250)]
         public null|string $link = null,
         #[Assert\Url]
+        #[Assert\Length(max: 250)]
         public null|string $registrationLink = null,
         #[Assert\Url]
+        #[Assert\Length(max: 250)]
         public null|string $resultsLink = null,
+        #[Assert\Length(max: 250)]
         public null|string $location = null,
         public null|string $locationCountryCode = null,
         public null|DateTimeImmutable $dateFrom = null,

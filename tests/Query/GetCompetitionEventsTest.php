@@ -57,4 +57,14 @@ final class GetCompetitionEventsTest extends KernelTestCase
         self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_68, $pastIds);
         self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_69, $upcomingIds);
     }
+
+    public function testSeriesEditionsExcludedFromUnapprovedList(): void
+    {
+        $unapproved = $this->query->allUnapproved();
+
+        $ids = array_map(static fn($c) => $c->id, $unapproved);
+        self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_68, $ids);
+        self::assertNotContains(CompetitionSeriesFixture::EDITION_EJJ_69, $ids);
+        self::assertNotContains(CompetitionSeriesFixture::EDITION_OFFLINE_1, $ids);
+    }
 }

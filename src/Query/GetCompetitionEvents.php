@@ -227,6 +227,7 @@ SELECT *
 FROM competition
 WHERE approved_at IS NULL
     AND rejected_at IS NULL
+    AND series_id IS NULL
 ORDER BY created_at DESC;
 SQL;
 

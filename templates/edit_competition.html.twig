@@ -14,15 +14,17 @@
             <div class="col-lg-8">
                 <h1 class="h2">{{ 'competition.edit_event'|trans }}: {{ competition.name }}</h1>
 
-                {% if competition.rejectedAt is not null %}
-                    <div class="alert alert-danger">
-                        <i class="bi bi-x-circle me-2"></i>{{ 'competition.rejected_info'|trans }}
-                        <br><strong>{{ 'competition.rejection_reason'|trans }}:</strong> {{ competition.rejectionReason }}
-                    </div>
-                {% elseif competition.approvedAt is null %}
-                    <div class="alert alert-warning">
-                        <i class="bi bi-clock me-2"></i>{{ 'competition.pending_approval_info'|trans }}
-                    </div>
+                {% if competition.seriesId is null %}
+                    {% if competition.rejectedAt is not null %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle me-2"></i>{{ 'competition.rejected_info'|trans }}
+                            <br><strong>{{ 'competition.rejection_reason'|trans }}:</strong> {{ competition.rejectionReason }}
+                        </div>
+                    {% elseif competition.approvedAt is null %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-clock me-2"></i>{{ 'competition.pending_approval_info'|trans }}
+                        </div>
+                    {% endif %}
                 {% endif %}
 
                 <div class="mb-3">

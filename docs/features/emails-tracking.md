@@ -10,17 +10,23 @@ The email audit system records every email sent by the application, providing a 
 
 1. **`EmailAuditSubscriber`** (`src/EventSubscriber/EmailAuditSubscriber.php`)
    - Listens to Symfony Mailer events: `MessageEvent`, `SentMessageEvent`, `FailedMessageEvent`
-   - Creates an `EmailAuditLog` entry before each email is sent
-   - Updates the entry with SMTP response data after send (success or failure)
+   - Thin subscriber — dispatches Messenger messages, holds only `spl_object_id → UUID` correlation in memory
    - Sets VERP return path on the envelope for bounce routing
    - Implements `ResetInterface` for FrankenPHP worker mode safety
-   - **Critical safety:** All methods are wrapped in try-catch — audit failures never block email delivery
+   - All methods wrapped in try-catch — audit failures never block email delivery
 
-2. **`EmailAuditLog`** (`src/Entity/EmailAuditLog.php`)
+2. **Messenger Messages & Handlers**
+   - `CreateEmailAuditLog` → `CreateEmailAuditLogHandler` — creates `EmailAuditLog` entity, returns UUID (used for VERP)
+   - `RecordEmailSendSuccess` → `RecordEmailSendSuccessHandler` — marks audit log as `Sent`, stores SMTP message ID + debug log
+   - `RecordEmailSendFailure` → `RecordEmailSendFailureHandler` — marks audit log as `Failed`, stores error message + debug log
+   - `CleanupEmailAuditLogs` → `CleanupEmailAuditLogsHandler` — deletes entries older than specified retention period
+
+3. **`EmailAuditLog`** (`src/Entity/EmailAuditLog.php`)
    - Records: recipient, subject, timestamp, transport name, email type, SMTP message ID, debug log
+   - Status lifecycle: `Pending` → `Sent` or `Failed`
    - Supports bounce tracking fields (for future use): bounceType, bouncedAt, bounceReason
 
-3. **Admin UI** — Live Component at `/admin/email-audit`
+4. **Admin UI** — Live Component at `/admin/email-audit`
    - Filterable list with pagination (recipient search, status filter, email type filter)
    - Detail view showing full SMTP debug log
 
@@ -30,17 +36,18 @@ The email audit system records every email sent by the application, providing a 
 Email Handler → Mailer::send() → Messenger Queue → Worker → AbstractTransport::send()
                                                               ↓
                                                          MessageEvent (pre-send)
-                                                         → Create EmailAuditLog
-                                                         → Set VERP return path
+                                                         → Subscriber dispatches CreateEmailAuditLog
+                                                         → Handler creates entity (status: Pending)
+                                                         → Subscriber sets VERP return path
                                                               ↓
                                                          doSend() (SMTP transaction)
                                                               ↓
-                                                    ┌─── Success ───┐     ┌─── Failure ───┐
-                                                    │ SentMessageEvent│    │FailedMessageEvent│
-                                                    │ → Update log   │    │ → Mark as failed │
-                                                    │   with msgId   │    │   with error     │
-                                                    │   and debug    │    │                  │
-                                                    └────────────────┘    └──────────────────┘
+                                              ┌─── Success ──────────┐  ┌─── Failure ──────────┐
+                                              │ SentMessageEvent      │  │ FailedMessageEvent    │
+                                              │ → RecordEmailSend     │  │ → RecordEmailSend     │
+                                              │   Success dispatched  │  │   Failure dispatched  │
+                                              │ → Status: Sent        │  │ → Status: Failed      │
+                                              └───────────────────────┘  └───────────────────────┘
 ```
 
 ## What Is Tracked
@@ -49,7 +56,7 @@ Email Handler → Mailer::send() → Messenger Queue → Worker → AbstractTran
 |------|--------|-----------------|
 | Recipient email | Email `To` header | Yes |
 | Subject | Email subject | Yes |
-| Sent timestamp | Clock at send time | Yes |
+| Sent timestamp | ClockInterface at send time | Yes |
 | Email type | Template name (e.g., `competition_approved`) | Yes (for TemplatedEmail) |
 | Transport name | SMTP DSN string | Yes |
 | SMTP Message ID | Server response after DATA | On success only |

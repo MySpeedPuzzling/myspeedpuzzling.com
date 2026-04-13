@@ -152,6 +152,11 @@
                                             Competition Approvals
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_email_audit_list' or currentRoute == 'admin_email_audit_detail' %}active{% endif %}" href="{{ path('admin_email_audit_list') }}">
+                                            Email Audit
+                                        </a>
+                                    </li>
                                 </ul>
                             </div>
                         {% endif %}

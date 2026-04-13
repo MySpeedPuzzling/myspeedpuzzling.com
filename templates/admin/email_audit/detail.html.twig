@@ -1,0 +1,98 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Email Audit: {{ log.subject }}{% endblock %}
+
+{% block content %}
+    <div class="col-lg-8 mx-auto">
+        <h1 class="h3 mb-4">Email Audit Detail</h1>
+
+        <div class="card card-body shadow-sm mb-4">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8">
+                    {% if log.bounceType is not null %}
+                        <span class="badge bg-warning text-dark">Bounced ({{ log.bounceType.value }})</span>
+                    {% elseif log.status.value == 'sent' %}
+                        <span class="badge bg-success">Sent</span>
+                    {% elseif log.status.value == 'failed' %}
+                        <span class="badge bg-danger">Failed</span>
+                    {% endif %}
+                </dd>
+
+                <dt class="col-sm-4">Sent At</dt>
+                <dd class="col-sm-8">{{ log.sentAt|date('Y-m-d H:i:s') }}</dd>
+
+                <dt class="col-sm-4">Recipient</dt>
+                <dd class="col-sm-8">{{ log.recipientEmail }}</dd>
+
+                <dt class="col-sm-4">Subject</dt>
+                <dd class="col-sm-8">{{ log.subject }}</dd>
+
+                <dt class="col-sm-4">Email Type</dt>
+                <dd class="col-sm-8">
+                    {% if log.emailType %}
+                        <span class="badge bg-light text-dark">{{ log.emailType }}</span>
+                    {% else %}
+                        <em class="text-muted">Unknown</em>
+                    {% endif %}
+                </dd>
+
+                <dt class="col-sm-4">Transport</dt>
+                <dd class="col-sm-8"><code>{{ log.transportName }}</code></dd>
+
+                {% if log.messageId %}
+                    <dt class="col-sm-4">Message ID</dt>
+                    <dd class="col-sm-8"><code>{{ log.messageId }}</code></dd>
+                {% endif %}
+            </dl>
+        </div>
+
+        {% if log.errorMessage %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <strong>Error</strong>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0" style="white-space: pre-wrap;">{{ log.errorMessage }}</pre>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if log.bounceType is not null %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <strong>Bounce Information</strong>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Bounce Type</dt>
+                        <dd class="col-sm-8">{{ log.bounceType.value|capitalize }}</dd>
+
+                        {% if log.bouncedAt %}
+                            <dt class="col-sm-4">Bounced At</dt>
+                            <dd class="col-sm-8">{{ log.bouncedAt|date('Y-m-d H:i:s') }}</dd>
+                        {% endif %}
+
+                        {% if log.bounceReason %}
+                            <dt class="col-sm-4">Reason</dt>
+                            <dd class="col-sm-8">{{ log.bounceReason }}</dd>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if log.smtpDebugLog %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <strong>SMTP Debug Log</strong>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.8rem;">{{ log.smtpDebugLog }}</pre>
+                </div>
+            </div>
+        {% endif %}
+
+        <a href="{{ path('admin_email_audit_list') }}" class="btn btn-secondary">Back to list</a>
+    </div>
+{% endblock %}

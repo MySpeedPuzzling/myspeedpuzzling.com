@@ -36,6 +36,7 @@ return static function (ContainerConfigurator $configurator): void {
 
     $parameters->set('stripeApiKey', '%env(STRIPE_API_KEY)%');
     $parameters->set('stripeWebhookSecret', '%env(STRIPE_WEBHOOK_SECRET)%');
+    $parameters->set('bounceEmailDomain', '%env(BOUNCE_EMAIL_DOMAIN)%');
 
     $services = $configurator->services();
 
@@ -48,7 +49,8 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$nginxProxyInternalUrl', '%nginxProxyInternalUrl%')
         ->bind('$puzzlePuzzleUsername', '%puzzlePuzzleUsername%')
         ->bind('$puzzlePuzzlePassword', '%puzzlePuzzlePassword%')
-        ->bind('$entrypointsPath', '%kernel.project_dir%/public/build/entrypoints.json');
+        ->bind('$entrypointsPath', '%kernel.project_dir%/public/build/entrypoints.json')
+        ->bind('$bounceEmailDomain', '%bounceEmailDomain%');
 
     $services->set(PdoSessionHandler::class)
         ->args([

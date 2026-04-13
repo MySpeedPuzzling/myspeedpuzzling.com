@@ -15,13 +15,16 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Events\FeatureRequestStatusChanged;
 use SpeedPuzzling\Web\Value\FeatureRequestStatus;
 
 #[Entity]
 #[Index(columns: ['author_id'])]
 #[Index(columns: ['vote_count', 'created_at'])]
-class FeatureRequest
+class FeatureRequest implements EntityWithEvents
 {
+    use HasEvents;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::INTEGER)]
     public int $voteCount = 0;
@@ -70,8 +73,18 @@ class FeatureRequest
         null|string $githubUrl = null,
         null|string $adminComment = null,
     ): void {
+        $oldStatus = $this->status;
+
         $this->status = $status;
         $this->githubUrl = $githubUrl;
         $this->adminComment = $adminComment;
+
+        if ($oldStatus !== $status) {
+            $this->recordThat(new FeatureRequestStatusChanged(
+                $this->id,
+                $oldStatus,
+                $status,
+            ));
+        }
     }
 }

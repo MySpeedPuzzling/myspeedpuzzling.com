@@ -110,3 +110,17 @@ competition_rejected:
         <p>Unfortunately, your event <strong>%competitionName%</strong> was not approved.</p>
         <p><strong>Reason:</strong> %reason%</p>
         <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+feature_request_status_changed:
+    subject: "Your feature request has been updated: %title%"
+    title: "Feature Request Status Update"
+    content: |
+        <p>Your feature request <strong>%featureRequestTitle%</strong> has been updated.</p>
+        <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
+    admin_comment: |
+        <p><strong>Comment from the team:</strong> %adminComment%</p>
+    status:
+        open: "Open"
+        in_progress: "In Progress"
+        completed: "Completed"
+        declined: "Declined"

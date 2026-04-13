@@ -1,0 +1,165 @@
+<div {{ attributes }}>
+    {# Filters #}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <div style="max-width: 250px;">
+            <input
+                type="text"
+                data-model="debounce(300)|recipient"
+                class="form-control form-control-sm"
+                value="{{ this.recipient }}"
+                placeholder="Filter by email..."
+            >
+        </div>
+        <div style="max-width: 160px;">
+            <select
+                data-model="on(change)|status"
+                class="form-select form-select-sm"
+            >
+                <option value="">All statuses</option>
+                <option value="sent" {{ this.status == 'sent' ? 'selected' }}>Sent</option>
+                <option value="failed" {{ this.status == 'failed' ? 'selected' }}>Failed</option>
+            </select>
+        </div>
+        <div style="max-width: 200px;">
+            <select
+                data-model="on(change)|emailType"
+                class="form-select form-select-sm"
+            >
+                <option value="">All types</option>
+                {% for type in this.emailTypes %}
+                    <option value="{{ type }}" {{ this.emailType == type ? 'selected' }}>{{ type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {# Status tabs #}
+    {% set counts = this.statusCounts %}
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button class="nav-link py-2 px-3 fs-sm {{ this.status == '' ? 'active' : '' }}"
+                data-action="live#action"
+                data-live-action-param="filterByStatus"
+                data-live-status-param=""
+            >
+                All
+                <span class="badge bg-secondary">{{ counts.all }}</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link py-2 px-3 fs-sm {{ this.status == 'sent' ? 'active' : '' }}"
+                data-action="live#action"
+                data-live-action-param="filterByStatus"
+                data-live-status-param="sent"
+            >
+                Sent
+                <span class="badge bg-success">{{ counts.sent }}</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link py-2 px-3 fs-sm {{ this.status == 'failed' ? 'active' : '' }}"
+                data-action="live#action"
+                data-live-action-param="filterByStatus"
+                data-live-status-param="failed"
+            >
+                Failed
+                <span class="badge bg-danger">{{ counts.failed }}</span>
+            </button>
+        </li>
+    </ul>
+
+    {# Table #}
+    {% set entries = this.entries %}
+    {% if entries is empty %}
+        <div class="text-muted text-center py-4">
+            No email audit logs found.
+        </div>
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Sent At</th>
+                        <th>Recipient</th>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                        <tr>
+                            <td class="text-nowrap fs-sm">{{ entry.sentAt|date('Y-m-d H:i:s') }}</td>
+                            <td class="fs-sm">{{ entry.recipientEmail }}</td>
+                            <td class="fs-sm" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ entry.subject }}
+                            </td>
+                            <td>
+                                {% if entry.emailType %}
+                                    <span class="badge bg-light text-dark">{{ entry.emailType }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if entry.bounceType is not null %}
+                                    <span class="badge bg-warning text-dark">Bounced ({{ entry.bounceType.value }})</span>
+                                {% elseif entry.status.value == 'sent' %}
+                                    <span class="badge bg-success">Sent</span>
+                                {% elseif entry.status.value == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ path('admin_email_audit_detail', {auditLogId: entry.id}) }}" class="btn btn-sm btn-outline-secondary">
+                                    Detail
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% set totalPages = this.totalPages %}
+        {% if totalPages > 1 %}
+            <nav>
+                <ul class="pagination justify-content-center mt-3 mb-0">
+                    <li class="page-item {{ this.page <= 1 ? 'disabled' : '' }}">
+                        <button class="page-link"
+                            data-action="live#action"
+                            data-live-action-param="goToPage"
+                            data-live-page-param="{{ this.page - 1 }}"
+                            {{ this.page <= 1 ? 'disabled' }}
+                        >
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    {% for p in 1..totalPages %}
+                        {% if totalPages <= 10 or p <= 3 or p > totalPages - 3 or (p >= this.page - 1 and p <= this.page + 1) %}
+                            <li class="page-item {{ p == this.page ? 'active' : '' }}">
+                                <button class="page-link"
+                                    data-action="live#action"
+                                    data-live-action-param="goToPage"
+                                    data-live-page-param="{{ p }}"
+                                >{{ p }}</button>
+                            </li>
+                        {% elseif p == 4 or p == totalPages - 3 %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ this.page >= totalPages ? 'disabled' : '' }}">
+                        <button class="page-link"
+                            data-action="live#action"
+                            data-live-action-param="goToPage"
+                            data-live-page-param="{{ this.page + 1 }}"
+                            {{ this.page >= totalPages ? 'disabled' }}
+                        >
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        {% endif %}
+    {% endif %}
+</div>

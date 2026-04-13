@@ -113,6 +113,12 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 5. Queries fetch read-optimized data for display
 6. Live Components provide real-time updates
 
+#### State-Changing Operations Pattern
+- **All logic that changes application state MUST go through Symfony Messenger handlers** — controllers and console commands only dispatch messages, they never contain business logic
+- **Repositories NEVER call `flush()`** — they only `persist()`. Flush is handled by the `doctrine_transaction` Messenger middleware which wraps each handler in a transaction
+- **Console commands dispatch messages** — the command parses input and dispatches a message, the handler contains the logic. Tests test the handler directly, not the command
+- **Use `ClockInterface`** instead of `new \DateTimeImmutable()` — enables deterministic time in tests
+
 ### Test Fixtures
 For working with test fixtures, see `.claude/fixtures.md` for complete documentation of test data structure including:
 - Player accounts (membership, admin, private profiles)
@@ -203,6 +209,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - Never write migrations yourself - always generate them using command, unless explicitely asked to create custom index or something like that, because Doctrine no longer needs comments like `DC2Type:datetime_immutable` - we have newest version of doctrine
 - **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.
 - Always use Uuid::uuid7() to create new id.
+- When logging exceptions, always pass the full exception object as `'exception' => $e`, never just the message string. This preserves the stack trace and exception class for Sentry and structured logging.
 - When thrown exception is extending `NotFoundHttpException` or uses `WithHttpStatus` attribute, not need to catch and return response like this:
 ```
 try {

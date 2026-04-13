@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Email Audit Log{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-4">Email Audit Log</h1>
+
+    {{ component('Admin:EmailAuditLogList') }}
+{% endblock %}

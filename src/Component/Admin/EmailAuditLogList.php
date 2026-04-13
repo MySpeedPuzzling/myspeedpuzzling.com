@@ -41,7 +41,7 @@ final class EmailAuditLogList
     private null|int $cachedTotalCount = null;
 
     public function __construct(
-        readonly private GetEmailAuditLogs $getEmailAuditLogs,
+        private readonly GetEmailAuditLogs $getEmailAuditLogs,
     ) {
     }
 
@@ -122,6 +122,13 @@ final class EmailAuditLogList
     public function goToPage(#[LiveArg] int $page): void
     {
         $this->page = max(1, min($page, $this->getTotalPages()));
+    }
+
+    #[LiveAction]
+    public function filterByStatus(#[LiveArg] string $status): void
+    {
+        $this->status = $status;
+        $this->page = 1;
     }
 
     private function computeFilterHash(): string

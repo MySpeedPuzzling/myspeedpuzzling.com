@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\EventSubscriber\EmailAuditSubscriber;
+use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
+use SpeedPuzzling\Web\Services\EmailAuditLogger;
 use SpeedPuzzling\Web\Value\EmailAuditStatus;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -33,26 +35,26 @@ final class EmailAuditSubscriberTest extends KernelTestCase
 
     public function testCreatesAuditLogOnMessage(): void
     {
-        $email = $this->createTemplatedEmail('user@example.com', 'Test Subject', 'emails/competition_approved.html.twig');
+        $email = $this->createTemplatedEmail('audit-create@example.com', 'Test Subject', 'emails/competition_approved.html.twig');
         $event = $this->createMessageEvent($email);
 
         $this->subscriber->onMessage($event);
 
-        $log = $this->findLastAuditLog();
-        self::assertSame('user@example.com', $log['recipient_email']);
+        $log = $this->findAuditLogByRecipient('audit-create@example.com');
+        self::assertSame('audit-create@example.com', $log['recipient_email']);
         self::assertSame('Test Subject', $log['subject']);
         self::assertSame('competition_approved', $log['email_type']);
-        self::assertSame(EmailAuditStatus::Sent->value, $log['status']);
+        self::assertSame(EmailAuditStatus::Pending->value, $log['status']);
     }
 
     public function testExtractsEmailTypeFromTemplate(): void
     {
-        $email = $this->createTemplatedEmail('user@example.com', 'Digest', 'emails/unread_digest.html.twig');
+        $email = $this->createTemplatedEmail('audit-type@example.com', 'Digest', 'emails/unread_digest.html.twig');
         $event = $this->createMessageEvent($email);
 
         $this->subscriber->onMessage($event);
 
-        $log = $this->findLastAuditLog();
+        $log = $this->findAuditLogByRecipient('audit-type@example.com');
         self::assertSame('unread_digest', $log['email_type']);
     }
 
@@ -60,52 +62,52 @@ final class EmailAuditSubscriberTest extends KernelTestCase
     {
         $email = (new Email())
             ->from('robot@mail.myspeedpuzzling.com')
-            ->to('user@example.com')
+            ->to('audit-plain@example.com')
             ->subject('Plain email')
             ->text('Hello');
 
         $event = $this->createMessageEvent($email);
-
         $this->subscriber->onMessage($event);
 
-        $log = $this->findLastAuditLog();
+        $log = $this->findAuditLogByRecipient('audit-plain@example.com');
         self::assertNull($log['email_type']);
     }
 
     public function testSetsVerpReturnPath(): void
     {
-        // Create subscriber with explicit bounce domain for this test
         $container = self::getContainer();
-        $subscriber = new EmailAuditSubscriber(
-            $container->get(\SpeedPuzzling\Web\Repository\EmailAuditLogRepository::class),
-            $container->get(\Psr\Log\LoggerInterface::class),
+        $auditLogger = new EmailAuditLogger(
+            $container->get(EmailAuditLogRepository::class),
             'mail.test.example.com',
         );
+        $subscriber = new EmailAuditSubscriber(
+            $auditLogger,
+            $container->get(\Psr\Log\LoggerInterface::class),
+        );
 
-        $email = $this->createTemplatedEmail('user@example.com', 'Test', 'emails/feedback.html.twig');
+        $email = $this->createTemplatedEmail('audit-verp@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
         $event = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
 
         $subscriber->onMessage($event);
 
         $sender = $event->getEnvelope()->getSender();
-        $log = $this->findLastAuditLog();
-        self::assertStringStartsWith('bounce+', $sender->getAddress());
-        self::assertStringEndsWith('@mail.test.example.com', $sender->getAddress());
+        $log = $this->findAuditLogByRecipient('audit-verp@example.com');
         /** @var string $logId */
         $logId = $log['id'];
+        self::assertStringStartsWith('bounce+', $sender->getAddress());
+        self::assertStringEndsWith('@mail.test.example.com', $sender->getAddress());
         self::assertStringContainsString($logId, $sender->getAddress());
     }
 
     public function testSkipsVerpWhenDomainEmpty(): void
     {
-        $email = $this->createTemplatedEmail('verp-skip@example.com', 'Test', 'emails/feedback.html.twig');
+        $email = $this->createTemplatedEmail('audit-noverp@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
         $event = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
 
         $this->subscriber->onMessage($event);
 
-        // With empty BOUNCE_EMAIL_DOMAIN, sender should remain unchanged
         $sender = $event->getEnvelope()->getSender();
         self::assertSame('robot@mail.myspeedpuzzling.com', $sender->getAddress());
     }
@@ -115,7 +117,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         /** @var int|string $countBefore */
         $countBefore = $this->connection->fetchOne('SELECT COUNT(*) FROM email_audit_log');
 
-        $email = $this->createTemplatedEmail('user@example.com', 'Test', 'emails/feedback.html.twig');
+        $email = $this->createTemplatedEmail('audit-queued@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
         $event = new MessageEvent($email, $envelope, 'smtp://mailer:1025', true);
 
@@ -144,7 +146,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
 
     public function testUpdatesLogOnSentMessage(): void
     {
-        $email = $this->createTemplatedEmail('user@example.com', 'Test', 'emails/feedback.html.twig');
+        $email = $this->createTemplatedEmail('audit-sent@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
 
         $messageEvent = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
@@ -158,7 +160,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $sentEvent = new SentMessageEvent($sentMessage);
         $this->subscriber->onSentMessage($sentEvent);
 
-        $log = $this->findLastAuditLog();
+        $log = $this->findAuditLogByRecipient('audit-sent@example.com');
         self::assertSame(EmailAuditStatus::Sent->value, $log['status']);
         self::assertSame('queue-id-123', $log['message_id']);
         self::assertNotNull($log['smtp_debug_log']);
@@ -166,7 +168,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
 
     public function testUpdatesLogOnFailedMessage(): void
     {
-        $email = $this->createTemplatedEmail('user@example.com', 'Test', 'emails/feedback.html.twig');
+        $email = $this->createTemplatedEmail('audit-failed@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
 
         $messageEvent = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
@@ -176,29 +178,31 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $failedEvent = new FailedMessageEvent($email, $error);
         $this->subscriber->onFailedMessage($failedEvent);
 
-        $log = $this->findLastAuditLog();
+        $log = $this->findAuditLogByRecipient('audit-failed@example.com');
         self::assertSame(EmailAuditStatus::Failed->value, $log['status']);
         self::assertSame('Connection refused', $log['error_message']);
     }
 
     public function testResetClearsPendingAudits(): void
     {
-        $email = $this->createTemplatedEmail('user@example.com', 'Test', 'emails/feedback.html.twig');
+        $container = self::getContainer();
+        $auditLogger = $container->get(EmailAuditLogger::class);
+
+        $email = $this->createTemplatedEmail('audit-reset@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
         $messageEvent = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
         $this->subscriber->onMessage($messageEvent);
 
-        $this->subscriber->reset();
+        $auditLogger->reset();
 
-        // After reset, onSentMessage should not find the pending audit
         /** @phpstan-ignore method.internal */
         $sentMessage = new SentMessage($email, $envelope);
         $sentMessage->setMessageId('after-reset');
         $sentEvent = new SentMessageEvent($sentMessage);
         $this->subscriber->onSentMessage($sentEvent);
 
-        // The message_id should still be null (not updated)
-        $log = $this->findLastAuditLog();
+        $log = $this->findAuditLogByRecipient('audit-reset@example.com');
+        self::assertSame(EmailAuditStatus::Pending->value, $log['status']);
         self::assertNull($log['message_id']);
     }
 
@@ -222,13 +226,14 @@ final class EmailAuditSubscriberTest extends KernelTestCase
     /**
      * @return array<string, mixed>
      */
-    private function findLastAuditLog(): array
+    private function findAuditLogByRecipient(string $recipient): array
     {
         $row = $this->connection->fetchAssociative(
-            'SELECT * FROM email_audit_log ORDER BY sent_at DESC LIMIT 1',
+            'SELECT * FROM email_audit_log WHERE recipient_email = :recipient ORDER BY sent_at DESC LIMIT 1',
+            ['recipient' => $recipient],
         );
 
-        self::assertIsArray($row, 'Expected to find an audit log entry');
+        self::assertIsArray($row, "Expected to find an audit log entry for {$recipient}");
 
         return $row;
     }

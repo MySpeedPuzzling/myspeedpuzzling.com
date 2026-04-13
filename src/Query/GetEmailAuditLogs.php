@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Exceptions\EmailAuditLogNotFound;
 use SpeedPuzzling\Web\Results\EmailAuditLogDetail;
 use SpeedPuzzling\Web\Results\EmailAuditLogOverview;
 use SpeedPuzzling\Web\Value\BounceType;
@@ -36,7 +37,7 @@ readonly final class GetEmailAuditLogs
             $params['recipient'] = '%' . $recipient . '%';
         }
 
-        if ($status !== null && $status !== '') {
+        if ($status !== null && $status !== '' && EmailAuditStatus::tryFrom($status) !== null) {
             $conditions[] = 'status = :status';
             $params['status'] = $status;
         }
@@ -110,7 +111,7 @@ SQL;
             $params['recipient'] = '%' . $recipient . '%';
         }
 
-        if ($status !== null && $status !== '') {
+        if ($status !== null && $status !== '' && EmailAuditStatus::tryFrom($status) !== null) {
             $conditions[] = 'status = :status';
             $params['status'] = $status;
         }
@@ -160,7 +161,7 @@ SQL;
             ->fetchAssociative();
 
         if ($row === false) {
-            throw new \RuntimeException('Email audit log not found');
+            throw new EmailAuditLogNotFound();
         }
 
         /** @var array{

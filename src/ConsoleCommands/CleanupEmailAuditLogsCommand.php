@@ -19,7 +19,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class CleanupEmailAuditLogsCommand extends Command
 {
     public function __construct(
-        readonly private EmailAuditLogRepository $emailAuditLogRepository,
+        private readonly EmailAuditLogRepository $emailAuditLogRepository,
     ) {
         parent::__construct();
     }

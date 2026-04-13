@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Value;
 
 enum EmailAuditStatus: string
 {
+    case Pending = 'pending';
     case Sent = 'sent';
     case Failed = 'failed';
 }

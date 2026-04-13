@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\EmailAuditLogNotFound;
 use SpeedPuzzling\Web\Query\GetEmailAuditLogs;
 use SpeedPuzzling\Web\Value\EmailAuditStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -129,7 +130,7 @@ final class GetEmailAuditLogsTest extends KernelTestCase
 
     public function testByIdThrowsOnNotFound(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(EmailAuditLogNotFound::class);
         $this->query->byId(Uuid::uuid7()->toString());
     }
 

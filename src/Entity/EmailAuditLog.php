@@ -71,11 +71,12 @@ class EmailAuditLog
         #[Column(length: 100, nullable: true)]
         public null|string $emailType = null,
     ) {
-        $this->status = EmailAuditStatus::Sent;
+        $this->status = EmailAuditStatus::Pending;
     }
 
     public function markAsSent(string $messageId, string $smtpDebugLog): void
     {
+        $this->status = EmailAuditStatus::Sent;
         $this->messageId = $messageId;
         $this->smtpDebugLog = $smtpDebugLog;
     }

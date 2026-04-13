@@ -203,6 +203,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - Never write migrations yourself - always generate them using command, unless explicitely asked to create custom index or something like that, because Doctrine no longer needs comments like `DC2Type:datetime_immutable` - we have newest version of doctrine
 - **Always use single action controllers** with `__invoke` method instead of multiple action methods. Create separate controller classes for different routes.
 - Always use Uuid::uuid7() to create new id.
+- When logging exceptions, always pass the full exception object as `'exception' => $e`, never just the message string. This preserves the stack trace and exception class for Sentry and structured logging.
 - When thrown exception is extending `NotFoundHttpException` or uses `WithHttpStatus` attribute, not need to catch and return response like this:
 ```
 try {

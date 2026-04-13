@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\EmailAuditLog;
+use SpeedPuzzling\Web\Exceptions\EmailAuditLogNotFound;
 
 readonly final class EmailAuditLogRepository
 {
@@ -26,7 +27,7 @@ readonly final class EmailAuditLogRepository
         $log = $this->entityManager->find(EmailAuditLog::class, $id);
 
         if ($log === null) {
-            throw new \RuntimeException('Email audit log not found: ' . $id->toString());
+            throw new EmailAuditLogNotFound();
         }
 
         return $log;

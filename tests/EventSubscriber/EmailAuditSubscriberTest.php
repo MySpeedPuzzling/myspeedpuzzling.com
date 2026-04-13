@@ -7,8 +7,6 @@ namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\EventSubscriber\EmailAuditSubscriber;
-use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
-use SpeedPuzzling\Web\Services\EmailAuditLogger;
 use SpeedPuzzling\Web\Value\EmailAuditStatus;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -79,14 +77,10 @@ final class EmailAuditSubscriberTest extends KernelTestCase
     public function testSetsVerpReturnPath(): void
     {
         $container = self::getContainer();
-        $auditLogger = new EmailAuditLogger(
-            $container->get(EmailAuditLogRepository::class),
-            $container->get(\Psr\Clock\ClockInterface::class),
-            'mail.test.example.com',
-        );
         $subscriber = new EmailAuditSubscriber(
-            $auditLogger,
+            $container->get(\Symfony\Component\Messenger\MessageBusInterface::class),
             $container->get(\Psr\Log\LoggerInterface::class),
+            'mail.test.example.com',
         );
 
         $email = $this->createTemplatedEmail('audit-verp@example.com', 'Test', 'emails/feedback.html.twig');
@@ -126,6 +120,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $event = new MessageEvent($email, $envelope, 'smtp://mailer:1025', true);
 
         $this->subscriber->onMessage($event);
+        $this->entityManager->flush();
 
         /** @var int|string $countAfter */
         $countAfter = $this->connection->fetchOne('SELECT COUNT(*) FROM email_audit_log');
@@ -142,6 +137,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $event = new MessageEvent($message, $envelope, 'smtp://mailer:1025');
 
         $this->subscriber->onMessage($event);
+        $this->entityManager->flush();
 
         /** @var int|string $countAfter */
         $countAfter = $this->connection->fetchOne('SELECT COUNT(*) FROM email_audit_log');
@@ -189,15 +185,12 @@ final class EmailAuditSubscriberTest extends KernelTestCase
 
     public function testResetClearsPendingAudits(): void
     {
-        $container = self::getContainer();
-        $auditLogger = $container->get(EmailAuditLogger::class);
-
         $email = $this->createTemplatedEmail('audit-reset@example.com', 'Test', 'emails/feedback.html.twig');
         $envelope = Envelope::create($email);
         $messageEvent = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
         $this->subscriber->onMessage($messageEvent);
 
-        $auditLogger->reset();
+        $this->subscriber->reset();
 
         /** @phpstan-ignore method.internal */
         $sentMessage = new SentMessage($email, $envelope);

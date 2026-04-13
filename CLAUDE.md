@@ -113,6 +113,12 @@ This is a speed puzzling community website built using **Domain-Driven Design** 
 5. Queries fetch read-optimized data for display
 6. Live Components provide real-time updates
 
+#### State-Changing Operations Pattern
+- **All logic that changes application state MUST go through Symfony Messenger handlers** — controllers and console commands only dispatch messages, they never contain business logic
+- **Repositories NEVER call `flush()`** — they only `persist()`. Flush is handled by the `doctrine_transaction` Messenger middleware which wraps each handler in a transaction
+- **Console commands dispatch messages** — the command parses input and dispatches a message, the handler contains the logic. Tests test the handler directly, not the command
+- **Use `ClockInterface`** instead of `new \DateTimeImmutable()` — enables deterministic time in tests
+
 ### Test Fixtures
 For working with test fixtures, see `.claude/fixtures.md` for complete documentation of test data structure including:
 - Player accounts (membership, admin, private profiles)

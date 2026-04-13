@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
-use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
+use SpeedPuzzling\Web\Message\CleanupEmailAuditLogs;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[AsCommand(
     name: 'myspeedpuzzling:cleanup-email-audit-logs',
@@ -19,7 +21,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class CleanupEmailAuditLogsCommand extends Command
 {
     public function __construct(
-        private readonly EmailAuditLogRepository $emailAuditLogRepository,
+        private readonly MessageBusInterface $messageBus,
     ) {
         parent::__construct();
     }
@@ -39,11 +41,16 @@ final class CleanupEmailAuditLogsCommand extends Command
 
         if ($days < 1) {
             $io->error('Days must be a positive integer.');
+
             return Command::FAILURE;
         }
 
-        $before = new \DateTimeImmutable("-{$days} days");
-        $deleted = $this->emailAuditLogRepository->deleteOlderThan($before);
+        $envelope = $this->messageBus->dispatch(new CleanupEmailAuditLogs($days));
+
+        /** @var HandledStamp $handledStamp */
+        $handledStamp = $envelope->last(HandledStamp::class);
+        /** @var int $deleted */
+        $deleted = $handledStamp->getResult();
 
         $io->success("Deleted {$deleted} email audit log entries older than {$days} days.");
 

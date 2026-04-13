@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\EventSubscriber\EmailAuditSubscriber;
 use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
 use SpeedPuzzling\Web\Services\EmailAuditLogger;
@@ -24,6 +25,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
 {
     private EmailAuditSubscriber $subscriber;
     private Connection $connection;
+    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
@@ -31,6 +33,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $container = self::getContainer();
         $this->subscriber = $container->get(EmailAuditSubscriber::class);
         $this->connection = $container->get(Connection::class);
+        $this->entityManager = $container->get(EntityManagerInterface::class);
     }
 
     public function testCreatesAuditLogOnMessage(): void
@@ -78,6 +81,7 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $container = self::getContainer();
         $auditLogger = new EmailAuditLogger(
             $container->get(EmailAuditLogRepository::class),
+            $container->get(\Psr\Clock\ClockInterface::class),
             'mail.test.example.com',
         );
         $subscriber = new EmailAuditSubscriber(
@@ -228,6 +232,10 @@ final class EmailAuditSubscriberTest extends KernelTestCase
      */
     private function findAuditLogByRecipient(string $recipient): array
     {
+        // Flush to make EntityManager-persisted entities visible to DBAL queries
+        // (in production, doctrine_transaction middleware handles this)
+        $this->entityManager->flush();
+
         $row = $this->connection->fetchAssociative(
             'SELECT * FROM email_audit_log WHERE recipient_email = :recipient ORDER BY sent_at DESC LIMIT 1',
             ['recipient' => $recipient],

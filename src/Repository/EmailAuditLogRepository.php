@@ -19,7 +19,6 @@ readonly final class EmailAuditLogRepository
     public function save(EmailAuditLog $log): void
     {
         $this->entityManager->persist($log);
-        $this->entityManager->flush();
     }
 
     public function get(UuidInterface $id): EmailAuditLog

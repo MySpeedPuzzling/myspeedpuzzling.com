@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\EmailAuditLog;
 use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
@@ -20,6 +21,7 @@ final class EmailAuditLogger implements ResetInterface
 
     public function __construct(
         private readonly EmailAuditLogRepository $emailAuditLogRepository,
+        private readonly ClockInterface $clock,
         private readonly string $bounceEmailDomain,
     ) {
     }
@@ -32,7 +34,7 @@ final class EmailAuditLogger implements ResetInterface
 
         $auditLog = new EmailAuditLog(
             id: Uuid::uuid7(),
-            sentAt: new \DateTimeImmutable(),
+            sentAt: $this->clock->now(),
             recipientEmail: $recipientEmail,
             subject: $subject,
             transportName: $transportName,

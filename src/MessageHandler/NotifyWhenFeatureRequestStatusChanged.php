@@ -42,7 +42,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
             );
         }
 
-        $voters = ($this->getFeatureRequestVoters)->excludingPlayer(
+        $voters = $this->getFeatureRequestVoters->excludingPlayer(
             featureRequestId: $event->featureRequestId->toString(),
             excludedPlayerId: $author->id->toString(),
         );

@@ -110,3 +110,26 @@ competition_rejected:
         <p>Lamentablemente, tu evento <strong>%competitionName%</strong> no fue aprobado.</p>
         <p><strong>Razón:</strong> %reason%</p>
         <p>Si tienes preguntas o deseas discutir esto, contáctanos en <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+feature_request_status_changed:
+    subject: "Tu solicitud de función ha sido actualizada: %title%"
+    title: "Actualización del estado de la solicitud"
+    content: |
+        <p>Tu solicitud de función <strong>%featureRequestTitle%</strong> ha sido actualizada.</p>
+        <p>El estado ha cambiado de <strong>%oldStatus%</strong> a <strong>%newStatus%</strong>.</p>
+    admin_comment: |
+        <p><strong>Comentario del equipo:</strong> %adminComment%</p>
+    upvoter:
+        subject: "Una solicitud de función que apoyaste ha sido actualizada: %title%"
+        title: "Actualización del estado de la solicitud"
+        content: |
+            <p>Una solicitud de función que apoyaste — <strong>%featureRequestTitle%</strong> — ha sido actualizada.</p>
+            <p>El estado ha cambiado de <strong>%oldStatus%</strong> a <strong>%newStatus%</strong>.</p>
+            <p>¡Gracias por apoyar esta idea!</p>
+        admin_comment: |
+            <p><strong>Comentario del equipo:</strong> %adminComment%</p>
+    status:
+        open: "Abierta"
+        in_progress: "En progreso"
+        completed: "Completada"
+        declined: "Rechazada"

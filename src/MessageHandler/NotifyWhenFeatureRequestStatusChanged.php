@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use SpeedPuzzling\Web\Events\FeatureRequestStatusChanged;
+use SpeedPuzzling\Web\Query\GetFeatureRequestVoters;
 use SpeedPuzzling\Web\Repository\FeatureRequestRepository;
+use SpeedPuzzling\Web\Value\FeatureRequestStatus;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -16,6 +18,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
 {
     public function __construct(
         private FeatureRequestRepository $featureRequestRepository,
+        private GetFeatureRequestVoters $getFeatureRequestVoters,
         private MailerInterface $mailer,
         private TranslatorInterface $translator,
     ) {
@@ -24,43 +27,79 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
     public function __invoke(FeatureRequestStatusChanged $event): void
     {
         $featureRequest = $this->featureRequestRepository->get($event->featureRequestId->toString());
-        $player = $featureRequest->author;
+        $author = $featureRequest->author;
 
-        if ($player->email === null) {
-            return;
+        if ($author->email !== null) {
+            $this->sendEmail(
+                toEmail: $author->email,
+                locale: $author->locale ?? 'en',
+                template: 'emails/feature_request_status_changed.html.twig',
+                subjectKey: 'feature_request_status_changed.subject',
+                featureRequestTitle: $featureRequest->title,
+                oldStatus: $event->oldStatus,
+                newStatus: $event->newStatus,
+                adminComment: $featureRequest->adminComment,
+            );
         }
 
-        $playerLocale = $player->locale ?? 'en';
+        $voters = ($this->getFeatureRequestVoters)->excludingPlayer(
+            featureRequestId: $event->featureRequestId->toString(),
+            excludedPlayerId: $author->id->toString(),
+        );
 
+        foreach ($voters as $voter) {
+            $this->sendEmail(
+                toEmail: $voter->email,
+                locale: $voter->locale ?? 'en',
+                template: 'emails/feature_request_status_changed_upvoter.html.twig',
+                subjectKey: 'feature_request_status_changed.upvoter.subject',
+                featureRequestTitle: $featureRequest->title,
+                oldStatus: $event->oldStatus,
+                newStatus: $event->newStatus,
+                adminComment: $featureRequest->adminComment,
+            );
+        }
+    }
+
+    private function sendEmail(
+        string $toEmail,
+        string $locale,
+        string $template,
+        string $subjectKey,
+        string $featureRequestTitle,
+        FeatureRequestStatus $oldStatus,
+        FeatureRequestStatus $newStatus,
+        null|string $adminComment,
+    ): void {
         $oldStatusLabel = $this->translator->trans(
-            'feature_request_status_changed.status.' . $event->oldStatus->value,
+            'feature_request_status_changed.status.' . $oldStatus->value,
             domain: 'emails',
-            locale: $playerLocale,
+            locale: $locale,
         );
 
         $newStatusLabel = $this->translator->trans(
-            'feature_request_status_changed.status.' . $event->newStatus->value,
+            'feature_request_status_changed.status.' . $newStatus->value,
             domain: 'emails',
-            locale: $playerLocale,
+            locale: $locale,
         );
 
         $subject = $this->translator->trans(
-            'feature_request_status_changed.subject',
-            ['%title%' => $featureRequest->title],
+            $subjectKey,
+            ['%title%' => $featureRequestTitle],
             domain: 'emails',
-            locale: $playerLocale,
+            locale: $locale,
         );
 
         $email = (new TemplatedEmail())
-            ->to($player->email)
-            ->locale($playerLocale)
+            ->to($toEmail)
+            ->locale($locale)
             ->subject($subject)
-            ->htmlTemplate('emails/feature_request_status_changed.html.twig')
+            ->htmlTemplate($template)
             ->context([
-                'featureRequestTitle' => $featureRequest->title,
+                'featureRequestTitle' => $featureRequestTitle,
                 'oldStatus' => $oldStatusLabel,
                 'newStatus' => $newStatusLabel,
-                'adminComment' => $featureRequest->adminComment,
+                'adminComment' => $adminComment,
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');
 

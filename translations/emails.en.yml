@@ -119,6 +119,15 @@ feature_request_status_changed:
         <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
     admin_comment: |
         <p><strong>Comment from the team:</strong> %adminComment%</p>
+    upvoter:
+        subject: "A feature request you upvoted has been updated: %title%"
+        title: "Feature Request Status Update"
+        content: |
+            <p>A feature request you upvoted — <strong>%featureRequestTitle%</strong> — has been updated.</p>
+            <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
+            <p>Thank you for supporting this idea!</p>
+        admin_comment: |
+            <p><strong>Comment from the team:</strong> %adminComment%</p>
     status:
         open: "Open"
         in_progress: "In Progress"

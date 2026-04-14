@@ -9,6 +9,7 @@ readonly final class RecordEmailSendSuccess
     public function __construct(
         public string $auditLogId,
         public string $messageId,
+        public null|string $mtaQueueId,
         public string $smtpDebugLog,
     ) {
     }

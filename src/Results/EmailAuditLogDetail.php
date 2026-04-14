@@ -19,6 +19,7 @@ readonly final class EmailAuditLogDetail
         public EmailAuditStatus $status,
         public null|string $emailType = null,
         public null|string $messageId = null,
+        public null|string $mtaQueueId = null,
         public null|string $errorMessage = null,
         public null|string $smtpDebugLog = null,
         public null|BounceType $bounceType = null,

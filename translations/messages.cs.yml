@@ -1290,6 +1290,7 @@
     "both": "Prodej i výměna"
     "free": "Zdarma k odběru"
   "condition":
+    "new": "Nové"
     "like_new": "Jako nové"
     "normal": "Normální"
     "not_so_good": "Není v nejlepším stavu"
@@ -1641,6 +1642,7 @@
   "all_countries": "Jakákoliv země"
   "all_types": "Všechny typy"
   "condition":
+    "new": "Nové"
     "like_new": "Jako nové"
     "missing_pieces": "Chybějící díly"
     "normal": "Normální"

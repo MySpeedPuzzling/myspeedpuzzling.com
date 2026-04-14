@@ -54,6 +54,7 @@ final class AddToSellSwapListFormType extends AbstractType
             'required' => true,
             'placeholder' => 'sell_swap_list.form.condition_placeholder',
             'choices' => [
+                'sell_swap_list.condition.new' => PuzzleCondition::New,
                 'sell_swap_list.condition.like_new' => PuzzleCondition::LikeNew,
                 'sell_swap_list.condition.normal' => PuzzleCondition::Normal,
                 'sell_swap_list.condition.not_so_good' => PuzzleCondition::NotSoGood,

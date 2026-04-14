@@ -30,6 +30,7 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
     public const string SELLSWAP_10 = '018d000b-0000-0000-0000-000000000010';
     public const string SELLSWAP_11 = '018d000b-0000-0000-0000-000000000011';
     public const string SELLSWAP_12 = '018d000b-0000-0000-0000-000000000012';
+    public const string SELLSWAP_13 = '018d000b-0000-0000-0000-000000000013';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -241,6 +242,20 @@ final class SellSwapListItemFixture extends Fixture implements DependentFixtureI
         $item12->markAsReserved();
         $manager->persist($item12);
         $this->addReference(self::SELLSWAP_12, $item12);
+
+        // SELLSWAP_13: sealed/never-opened puzzle, the new "New" condition
+        $item13 = $this->createSellSwapListItem(
+            id: self::SELLSWAP_13,
+            player: $player3,
+            puzzle: $puzzle1500_01,
+            listingType: ListingType::Sell,
+            price: 30.00,
+            condition: PuzzleCondition::New,
+            comment: 'Sealed in original shrink wrap',
+            daysAgo: 1,
+        );
+        $manager->persist($item13);
+        $this->addReference(self::SELLSWAP_13, $item13);
 
         $manager->flush();
     }

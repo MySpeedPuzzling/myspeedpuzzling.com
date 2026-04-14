@@ -1224,6 +1224,7 @@
     "both": "Vente ou échange"
     "free": "Gratuit"
   "condition":
+    "new": "Neuf"
     "like_new": "Comme neuf"
     "normal": "Normal"
     "not_so_good": "État moyen"
@@ -1644,6 +1645,7 @@
   "all_countries": "N'importe quel pays"
   "all_types": "Tous les types"
   "condition":
+    "new": "Neuf"
     "like_new": "Comme neuf"
     "missing_pieces": "Pièces manquantes"
     "normal": "Normal"

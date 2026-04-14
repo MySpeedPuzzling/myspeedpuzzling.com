@@ -16,6 +16,7 @@
                 <columns>
                     {{ 'feature_request_status_changed.upvoter.content'|trans({
                         '%featureRequestTitle%': featureRequestTitle,
+                        '%featureRequestUrl%': url('feature_request_detail', {featureRequestId: featureRequestId}),
                         '%oldStatus%': oldStatus,
                         '%newStatus%': newStatus,
                     })|raw }}

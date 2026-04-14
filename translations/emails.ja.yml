@@ -115,7 +115,7 @@ feature_request_status_changed:
     subject: "機能リクエストが更新されました: %title%"
     title: "機能リクエストのステータス更新"
     content: |
-        <p>あなたの機能リクエスト <strong>%featureRequestTitle%</strong> が更新されました。</p>
+        <p>あなたの機能リクエスト <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> が更新されました。</p>
         <p>ステータスが <strong>%oldStatus%</strong> から <strong>%newStatus%</strong> に変更されました。</p>
     admin_comment: |
         <p><strong>チームからのコメント:</strong> %adminComment%</p>
@@ -123,7 +123,7 @@ feature_request_status_changed:
         subject: "あなたが支持した機能リクエストが更新されました: %title%"
         title: "機能リクエストのステータス更新"
         content: |
-            <p>あなたが支持した機能リクエスト — <strong>%featureRequestTitle%</strong> — が更新されました。</p>
+            <p>あなたが支持した機能リクエスト — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — が更新されました。</p>
             <p>ステータスが <strong>%oldStatus%</strong> から <strong>%newStatus%</strong> に変更されました。</p>
             <p>このアイデアへのご支援、ありがとうございます！</p>
         admin_comment: |

@@ -115,7 +115,7 @@ feature_request_status_changed:
     subject: "Votre demande de fonctionnalité a été mise à jour : %title%"
     title: "Mise à jour du statut de la demande"
     content: |
-        <p>Votre demande de fonctionnalité <strong>%featureRequestTitle%</strong> a été mise à jour.</p>
+        <p>Votre demande de fonctionnalité <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> a été mise à jour.</p>
         <p>Le statut est passé de <strong>%oldStatus%</strong> à <strong>%newStatus%</strong>.</p>
     admin_comment: |
         <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
@@ -123,7 +123,7 @@ feature_request_status_changed:
         subject: "Une demande de fonctionnalité que vous avez soutenue a été mise à jour : %title%"
         title: "Mise à jour du statut de la demande"
         content: |
-            <p>Une demande de fonctionnalité que vous avez soutenue — <strong>%featureRequestTitle%</strong> — a été mise à jour.</p>
+            <p>Une demande de fonctionnalité que vous avez soutenue — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — a été mise à jour.</p>
             <p>Le statut est passé de <strong>%oldStatus%</strong> à <strong>%newStatus%</strong>.</p>
             <p>Merci de soutenir cette idée !</p>
         admin_comment: |

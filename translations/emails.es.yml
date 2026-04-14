@@ -115,7 +115,7 @@ feature_request_status_changed:
     subject: "Tu solicitud de función ha sido actualizada: %title%"
     title: "Actualización del estado de la solicitud"
     content: |
-        <p>Tu solicitud de función <strong>%featureRequestTitle%</strong> ha sido actualizada.</p>
+        <p>Tu solicitud de función <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> ha sido actualizada.</p>
         <p>El estado ha cambiado de <strong>%oldStatus%</strong> a <strong>%newStatus%</strong>.</p>
     admin_comment: |
         <p><strong>Comentario del equipo:</strong> %adminComment%</p>
@@ -123,7 +123,7 @@ feature_request_status_changed:
         subject: "Una solicitud de función que apoyaste ha sido actualizada: %title%"
         title: "Actualización del estado de la solicitud"
         content: |
-            <p>Una solicitud de función que apoyaste — <strong>%featureRequestTitle%</strong> — ha sido actualizada.</p>
+            <p>Una solicitud de función que apoyaste — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — ha sido actualizada.</p>
             <p>El estado ha cambiado de <strong>%oldStatus%</strong> a <strong>%newStatus%</strong>.</p>
             <p>¡Gracias por apoyar esta idea!</p>
         admin_comment: |

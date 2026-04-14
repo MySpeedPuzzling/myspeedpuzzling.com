@@ -35,6 +35,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
                 locale: $author->locale ?? 'en',
                 template: 'emails/feature_request_status_changed.html.twig',
                 subjectKey: 'feature_request_status_changed.subject',
+                featureRequestId: $event->featureRequestId->toString(),
                 featureRequestTitle: $featureRequest->title,
                 oldStatus: $event->oldStatus,
                 newStatus: $event->newStatus,
@@ -53,6 +54,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
                 locale: $voter->locale ?? 'en',
                 template: 'emails/feature_request_status_changed_upvoter.html.twig',
                 subjectKey: 'feature_request_status_changed.upvoter.subject',
+                featureRequestId: $event->featureRequestId->toString(),
                 featureRequestTitle: $featureRequest->title,
                 oldStatus: $event->oldStatus,
                 newStatus: $event->newStatus,
@@ -66,6 +68,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
         string $locale,
         string $template,
         string $subjectKey,
+        string $featureRequestId,
         string $featureRequestTitle,
         FeatureRequestStatus $oldStatus,
         FeatureRequestStatus $newStatus,
@@ -96,6 +99,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
             ->subject($subject)
             ->htmlTemplate($template)
             ->context([
+                'featureRequestId' => $featureRequestId,
                 'featureRequestTitle' => $featureRequestTitle,
                 'oldStatus' => $oldStatusLabel,
                 'newStatus' => $newStatusLabel,

@@ -102,6 +102,7 @@
                         <label class="form-label form-label-sm mb-0"><small>{{ 'marketplace.filter.condition'|trans }}</small></label>
                         <select data-model="condition" class="form-select form-select-sm">
                             <option value="">{{ 'marketplace.all'|trans }}</option>
+                            <option value="new" {{ this.condition == 'new' ? 'selected' }}>{{ 'marketplace.condition.new'|trans }}</option>
                             <option value="like_new" {{ this.condition == 'like_new' ? 'selected' }}>{{ 'marketplace.condition.like_new'|trans }}</option>
                             <option value="normal" {{ this.condition == 'normal' ? 'selected' }}>{{ 'marketplace.condition.normal'|trans }}</option>
                             <option value="not_so_good" {{ this.condition == 'not_so_good' ? 'selected' }}>{{ 'marketplace.condition.not_so_good'|trans }}</option>

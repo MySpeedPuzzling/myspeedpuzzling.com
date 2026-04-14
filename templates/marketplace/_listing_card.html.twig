@@ -110,7 +110,9 @@
                             <span class="badge bg-danger" style="font-size: 0.75rem;">{{ 'marketplace.listing_type.free'|trans }}</span>
                         {% endif %}
 
-                        {% if item.condition == 'like_new' %}
+                        {% if item.condition == 'new' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.new'|trans }}</span>
+                        {% elseif item.condition == 'like_new' %}
                             <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.like_new'|trans }}</span>
                         {% elseif item.condition == 'normal' %}
                             <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'marketplace.condition.normal'|trans }}</span>

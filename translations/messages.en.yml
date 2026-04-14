@@ -1565,6 +1565,7 @@ sell_swap_list:
         both: "Either Sell or Swap"
         free: "Give Away for Free"
     condition:
+        new: "New"
         like_new: "Like New"
         normal: "Normal"
         not_so_good: "Not So Good"
@@ -1988,6 +1989,7 @@ marketplace:
         both: "Sell / Swap"
         free: "Free"
     condition:
+        new: "New"
         like_new: "Like New"
         normal: "Normal"
         not_so_good: "Not So Good"

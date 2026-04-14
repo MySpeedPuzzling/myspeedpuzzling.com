@@ -1148,6 +1148,7 @@
   "already_in_list": "このパズルは既に売買・交換リストにあります。"
   "back_to_list": "売買・交換リストに戻る"
   "condition":
+    "new": "新品"
     "like_new": "新品同様"
     "missing_pieces": "ピース欠け"
     "normal": "普通"
@@ -1632,6 +1633,7 @@
   "all_countries": "すべての国"
   "all_types": "すべてのタイプ"
   "condition":
+    "new": "新品"
     "like_new": "新品同様"
     "missing_pieces": "ピース欠品あり"
     "normal": "普通"

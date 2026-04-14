@@ -103,6 +103,17 @@ final class GetMarketplaceListingsTest extends KernelTestCase
         }
     }
 
+    public function testFilterByConditionNew(): void
+    {
+        $items = $this->query->search(condition: PuzzleCondition::New);
+
+        self::assertNotEmpty($items);
+
+        foreach ($items as $item) {
+            self::assertSame('new', $item->condition);
+        }
+    }
+
     public function testSortByNewest(): void
     {
         $items = $this->query->search(sort: 'newest');

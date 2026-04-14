@@ -1223,6 +1223,7 @@
     "both": "Venta o Intercambio"
     "free": "Gratis"
   "condition":
+    "new": "Nuevo"
     "like_new": "Como Nuevo"
     "normal": "Normal"
     "not_so_good": "No Tan Bueno"
@@ -1643,6 +1644,7 @@
   "all_countries": "Cualquier país"
   "all_types": "Todos los tipos"
   "condition":
+    "new": "Nuevo"
     "like_new": "Como nuevo"
     "missing_pieces": "Piezas faltantes"
     "normal": "Normal"

@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Value;
 
 enum PuzzleCondition: string
 {
+    case New = 'new';
     case LikeNew = 'like_new';
     case Normal = 'normal';
     case NotSoGood = 'not_so_good';

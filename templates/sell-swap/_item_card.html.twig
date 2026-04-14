@@ -113,7 +113,9 @@
                             <span class="badge bg-primary" style="font-size: 0.75rem;">{{ 'sell_swap_list.listing_type.both'|trans }}</span>
                         {% endif %}
 
-                        {% if item.condition.value == 'like_new' %}
+                        {% if item.condition.value == 'new' %}
+                            <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.new'|trans }}</span>
+                        {% elseif item.condition.value == 'like_new' %}
                             <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.like_new'|trans }}</span>
                         {% elseif item.condition.value == 'normal' %}
                             <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ 'sell_swap_list.condition.normal'|trans }}</span>

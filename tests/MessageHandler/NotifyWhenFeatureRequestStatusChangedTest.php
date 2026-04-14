@@ -157,6 +157,37 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         self::assertCount(1, $authorEmails, 'Author must receive exactly one email');
     }
 
+    public function testUpvoterWithMultipleVotesReceivesOnlyOneEmail(): void
+    {
+        // The unique constraint on (feature_request_id, voter_id) was dropped in
+        // Version20260324082438, so the same upvoter can have multiple vote rows
+        // for the same feature request. They must still receive exactly one email.
+        $this->connection->executeStatement(
+            'INSERT INTO feature_request_vote (id, feature_request_id, voter_id, voted_at) '
+            . 'VALUES (:id, :featureRequestId, :voterId, NOW())',
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'featureRequestId' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
+                'voterId' => PlayerFixture::PLAYER_ADMIN,
+            ],
+        );
+
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::Open,
+            newStatus: FeatureRequestStatus::Completed,
+        ));
+
+        // Author + 2 distinct upvoters (ADMIN deduped, REGULAR) = 3
+        self::assertCount(3, $this->mailer->sent);
+
+        $adminEmails = array_filter(
+            $this->mailer->sent,
+            fn(RawMessage $m): bool => $this->toAddresses($this->assertTemplatedEmail($m))[0] === 'admin@speedpuzzling.cz',
+        );
+        self::assertCount(1, $adminEmails, 'Upvoter with duplicate votes must receive exactly one email');
+    }
+
     public function testUsesRecipientLocale(): void
     {
         // Author: Czech. Upvoter ADMIN: German. Upvoter REGULAR: unset → en fallback.

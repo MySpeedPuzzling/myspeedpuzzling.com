@@ -117,17 +117,17 @@ final class GetFeatureRequestVotersTest extends KernelTestCase
         self::assertSame('de', $admin->locale);
     }
 
-    public function testDistinctVoterIdDefensiveAgainstDuplicateRows(): void
+    public function testDistinctVoterIdCollapsesRepeatedVotesOnSameRequest(): void
     {
-        // UNIQUE (feature_request_id, voter_id) normally prevents duplicates.
-        // Even so, the query uses DISTINCT ON (voter_id) — verify by simulating via a second
-        // vote row for a DIFFERENT feature request (same voter) then querying POPULAR.
+        // Migration Version20260324082438 dropped UNIQUE (feature_request_id, voter_id),
+        // so a player can legitimately have multiple vote rows for the same request.
+        // The query must collapse them so that recipient lists never contain duplicates.
         $this->connection->executeStatement(
             'INSERT INTO feature_request_vote (id, feature_request_id, voter_id, voted_at) '
             . 'VALUES (:id, :featureRequestId, :voterId, NOW())',
             [
                 'id' => Uuid::uuid7()->toString(),
-                'featureRequestId' => FeatureRequestFixture::FEATURE_REQUEST_NEW,
+                'featureRequestId' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
                 'voterId' => PlayerFixture::PLAYER_ADMIN,
             ],
         );
@@ -141,6 +141,6 @@ final class GetFeatureRequestVotersTest extends KernelTestCase
             $voters,
             fn($v) => $v->playerId === PlayerFixture::PLAYER_ADMIN,
         ));
-        self::assertSame(1, $adminCount);
+        self::assertSame(1, $adminCount, 'Admin must appear exactly once even with repeated vote rows');
     }
 }

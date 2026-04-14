@@ -38,7 +38,10 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
     public static function getSubscribedEvents(): array
     {
         return [
-            MessageEvent::class => ['onMessage', 0],
+            // Run AFTER Symfony's MessageListener (priority 0) which applies
+            // globally-configured headers like From. We need From to be set
+            // before generating the Message-ID.
+            MessageEvent::class => ['onMessage', -100],
             SentMessageEvent::class => ['onSentMessage', 0],
             FailedMessageEvent::class => ['onFailedMessage', 0],
         ];
@@ -60,9 +63,10 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             // Ensure the message has a Message-ID header so we can correlate
             // bounces back to this audit log entry. Symfony adds one later in
             // SentMessage, but only to an inner clone — we'd lose the value.
+            // generateMessageId() requires From or Sender to derive the domain part.
             $headers = $message->getHeaders();
 
-            if (!$headers->has('Message-ID')) {
+            if (!$headers->has('Message-ID') && ($headers->has('From') || $headers->has('Sender'))) {
                 $headers->addIdHeader('Message-ID', $message->generateMessageId());
             }
 

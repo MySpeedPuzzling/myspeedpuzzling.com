@@ -89,7 +89,20 @@ BOUNCE_EMAIL_DOMAIN=mail.myspeedpuzzling.com
 
 Leave empty to disable VERP (audit logging still works without it).
 
-### Mail Server Setup (Manual)
+### ⚠️ VERP Does NOT Work with Seznam Email Profi
+
+**Current status: VERP is DISABLED in production** (`BOUNCE_EMAIL_DOMAIN` is unset).
+
+Seznam Email Profi enforces that the SMTP `MAIL FROM` (envelope sender) must exactly match the authenticated login email address. Attempting to use any other sender (even within the same domain) results in `550 5.7.1 use your login email address as mail from` and the email fails to send.
+
+VERP requires a provider that allows arbitrary envelope senders, such as:
+- **Postal** (self-hosted)
+- **Mailgun**, **Postmark**, **Resend**, **SendGrid** (SaaS)
+- Any provider that implements RFC 5321 without strict sender restrictions
+
+Until the mail provider changes, leave `BOUNCE_EMAIL_DOMAIN` unset.
+
+### Mail Server Setup (Manual, when VERP is supported)
 
 1. Configure a catch-all or wildcard mailbox for `bounce+*@mail.myspeedpuzzling.com` on your mail provider
 2. Verify the mail provider allows arbitrary MAIL FROM addresses within the configured domain

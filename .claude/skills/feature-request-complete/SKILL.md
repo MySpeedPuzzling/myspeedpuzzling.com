@@ -43,12 +43,14 @@ If either is malformed, stop and tell the user.
 
 ### 2. Verify the PR is actually merged (safety check)
 
+`gh pr view` does NOT expose a boolean `merged` field — use `state` (`"MERGED"` when merged, `"OPEN"` / `"CLOSED"` otherwise) or `mergedAt` (ISO timestamp vs `null`):
+
 ```sh
-MERGED=$(gh pr view "$PR_URL" --json merged --jq '.merged')
+STATE=$(gh pr view "$PR_URL" --json state --jq '.state')
 ```
 
-- `true` → proceed.
-- `false` → warn the user that the PR isn't merged yet and ask if they want to continue anyway (use `AskUserQuestion` or just stop and surface the state).
+- `MERGED` → proceed.
+- `OPEN` / `CLOSED` → warn the user that the PR isn't merged yet and ask if they want to continue anyway (use `AskUserQuestion` or just stop and surface the state).
 - Command fails (PR not found, wrong repo, no gh auth) → stop, surface the error.
 
 ### 3. Call the internal API

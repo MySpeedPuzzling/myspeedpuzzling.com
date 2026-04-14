@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Auth0\Symfony\Security\UserProvider;
 use SpeedPuzzling\Web\Security\Auth0EntryPoint;
+use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
@@ -37,6 +38,12 @@ return App::config([
                 'oauth2' => true,
                 'custom_authenticators' => [PatAuthenticator::class],
             ],
+            'internal_api' => [
+                'pattern' => '^/internal-api/',
+                'stateless' => true,
+                'provider' => 'oauth2_provider',
+                'custom_authenticators' => [InternalApiAuthenticator::class],
+            ],
             'main' => [
                 'pattern' => '^/',
                 'lazy' => true,
@@ -53,6 +60,10 @@ return App::config([
             [
                 'path' => '^/api/docs',
                 'roles' => [AuthenticatedVoter::PUBLIC_ACCESS],
+            ],
+            [
+                'path' => '^/internal-api/',
+                'roles' => [InternalApiAuthenticator::ROLE],
             ],
             [
                 'path' => '^/api/v1/me',

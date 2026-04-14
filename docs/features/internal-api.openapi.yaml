@@ -1,0 +1,149 @@
+openapi: 3.1.0
+info:
+  title: MySpeedPuzzling Internal Admin API
+  version: "1.0.0"
+  description: |
+    Admin-only API for triggering privileged operations from outside the shell
+    (Claude Code, curl, phone). Completely separate from the public
+    `/api/v1/*` OAuth2 API — uses a single static bearer token.
+
+    Closed-by-default: if `INTERNAL_API_TOKEN` env var is empty,
+    all endpoints return 401.
+
+    Not wired into Swagger UI at `/api/docs` on purpose. Render this spec
+    manually in Swagger Editor / Redoc / an IDE plugin.
+servers:
+  - url: "{scheme}://{host}"
+    variables:
+      scheme:
+        default: https
+      host:
+        default: localhost:8080
+
+security:
+  - InternalApiBearer: []
+
+paths:
+  /internal-api/feature-requests/{featureRequestId}/mark-in-progress:
+    post:
+      summary: Mark feature request as in_progress
+      operationId: markFeatureRequestInProgress
+      parameters:
+        - $ref: "#/components/parameters/FeatureRequestId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureRequestStatusUpdate"
+      responses:
+        "204":
+          description: Status updated successfully
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/feature-requests/{featureRequestId}/mark-completed:
+    post:
+      summary: Mark feature request as completed
+      operationId: markFeatureRequestCompleted
+      parameters:
+        - $ref: "#/components/parameters/FeatureRequestId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureRequestStatusUpdate"
+      responses:
+        "204":
+          description: Status updated successfully
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/feature-requests/{featureRequestId}/mark-declined:
+    post:
+      summary: Mark feature request as declined
+      operationId: markFeatureRequestDeclined
+      parameters:
+        - $ref: "#/components/parameters/FeatureRequestId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureRequestStatusUpdate"
+      responses:
+        "204":
+          description: Status updated successfully
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    InternalApiBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Static token from the `INTERNAL_API_TOKEN` env var.
+
+  parameters:
+    FeatureRequestId:
+      name: featureRequestId
+      in: path
+      required: true
+      description: UUID (v7) of the feature request.
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    FeatureRequestStatusUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        githubUrl:
+          type: string
+          format: uri
+          description: Optional link to the GitHub issue or PR.
+          example: https://github.com/janmikes/speedpuzzling.cz/pull/123
+        adminComment:
+          type: string
+          description: Optional admin-facing comment attached to the transition.
+          example: Shipped in v2.4.
+
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          type: string
+
+  responses:
+    InvalidJson:
+      description: Request body was present but not a valid JSON object
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing, wrong, or unconfigured bearer token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Unknown feature request ID

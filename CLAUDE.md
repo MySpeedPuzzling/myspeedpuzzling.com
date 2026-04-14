@@ -166,6 +166,15 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Fair Use Policy:** Required acceptance for PAT generation and OAuth2 client registration
 - **Full docs:** `docs/features/api/README.md`
 
+### Internal Admin API
+- **Purpose:** admin-only HTTP API for triggering privileged ops (initially feature-request status transitions) from outside the shell — primary consumer is Claude Code automating ops, curl as fallback.
+- **Base path:** `/internal-api/*` — completely separate from the public `/api/v1/*` OAuth2 API, intentionally NOT in Swagger at `/api/docs`.
+- **Auth:** single static bearer token via `INTERNAL_API_TOKEN` env var. Header: `Authorization: Bearer $INTERNAL_API_TOKEN`. Closed-by-default — empty env var disables the API entirely.
+- **Firewall:** dedicated `internal_api` firewall + `InternalApiAuthenticator`, `ROLE_INTERNAL_API`. No user accounts, no DB tokens.
+- **Extensibility:** auth/firewall/access_control cover the whole prefix. New endpoints are pure controller-drops under `src/Controller/InternalApi/` that dispatch a Messenger message and return `204`. No security config changes needed per endpoint.
+- **Current endpoints:** `POST /internal-api/feature-requests/{id}/mark-{in-progress,completed,declined}` with optional `{"githubUrl": "...", "adminComment": "..."}` body.
+- **Full docs:** `docs/features/internal-api.md` + OpenAPI spec at `docs/features/internal-api.openapi.yaml`.
+
 ### Notable Features
 - **Puzzle Time Tracking**: Sophisticated stopwatch with pause/resume and verification
 - **Competition Management**: WJPC (World Jigsaw Puzzle Championship) integration

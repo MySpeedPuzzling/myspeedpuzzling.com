@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Auth0\Symfony\Security\UserProvider;
 use SpeedPuzzling\Web\Security\Auth0EntryPoint;
+use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use SpeedPuzzling\Web\Security\OAuth2UserProvider;
 use SpeedPuzzling\Web\Security\PatAuthenticator;
 use Symfony\Component\Security\Core\Authorization\Voter\AuthenticatedVoter;
@@ -18,6 +19,19 @@ return App::config([
             ],
             'oauth2_provider' => [
                 'id' => OAuth2UserProvider::class,
+            ],
+            // Required by Symfony because the internal_api firewall must declare a provider,
+            // but never actually invoked: InternalApiAuthenticator returns a SelfValidatingPassport
+            // whose UserBadge closure produces the user inline. Kept as a dedicated dummy provider
+            // so the config reads honestly — this firewall has its own user universe.
+            'internal_api_provider' => [
+                'memory' => [
+                    'users' => [
+                        InternalApiAuthenticator::USER_IDENTIFIER => [
+                            'roles' => [InternalApiAuthenticator::ROLE],
+                        ],
+                    ],
+                ],
             ],
         ],
         'firewalls' => [
@@ -37,6 +51,12 @@ return App::config([
                 'oauth2' => true,
                 'custom_authenticators' => [PatAuthenticator::class],
             ],
+            'internal_api' => [
+                'pattern' => '^/internal-api/',
+                'stateless' => true,
+                'provider' => 'internal_api_provider',
+                'custom_authenticators' => [InternalApiAuthenticator::class],
+            ],
             'main' => [
                 'pattern' => '^/',
                 'lazy' => true,
@@ -53,6 +73,10 @@ return App::config([
             [
                 'path' => '^/api/docs',
                 'roles' => [AuthenticatedVoter::PUBLIC_ACCESS],
+            ],
+            [
+                'path' => '^/internal-api/',
+                'roles' => [InternalApiAuthenticator::ROLE],
             ],
             [
                 'path' => '^/api/v1/me',

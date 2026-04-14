@@ -11,6 +11,8 @@ readonly final class CreateEmailAuditLog
         public string $subject,
         public string $transportName,
         public null|string $emailType,
+        public null|string $bodyHtml,
+        public null|string $bodyText,
     ) {
     }
 }

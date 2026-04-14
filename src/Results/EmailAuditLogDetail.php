@@ -25,6 +25,8 @@ readonly final class EmailAuditLogDetail
         public null|BounceType $bounceType = null,
         public null|DateTimeImmutable $bouncedAt = null,
         public null|string $bounceReason = null,
+        public null|string $bodyHtml = null,
+        public null|string $bodyText = null,
     ) {
     }
 }

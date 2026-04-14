@@ -75,6 +75,12 @@ class EmailAuditLog
         #[Immutable]
         #[Column(length: 100, nullable: true)]
         public null|string $emailType = null,
+        #[Immutable]
+        #[Column(type: Types::TEXT, nullable: true)]
+        public null|string $bodyHtml = null,
+        #[Immutable]
+        #[Column(type: Types::TEXT, nullable: true)]
+        public null|string $bodyText = null,
     ) {
         $this->status = EmailAuditStatus::Pending;
     }

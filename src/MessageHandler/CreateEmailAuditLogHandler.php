@@ -29,6 +29,8 @@ readonly final class CreateEmailAuditLogHandler
             subject: $message->subject,
             transportName: $message->transportName,
             emailType: $message->emailType,
+            bodyHtml: $message->bodyHtml,
+            bodyText: $message->bodyText,
         );
 
         $this->emailAuditLogRepository->save($auditLog);

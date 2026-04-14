@@ -25,6 +25,9 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
     /** @var array<int, string> spl_object_id => audit log UUID */
     private array $pendingAuditIds = [];
 
+    /** @var array<int, null|string> spl_object_id => email type captured before rendering */
+    private array $pendingEmailTypes = [];
+
     public function __construct(
         private readonly MessageBusInterface $messageBus,
         private readonly LoggerInterface $logger,
@@ -33,18 +36,43 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
     }
 
     /**
-     * @return array<string, array{0: string, 1: int}>
+     * @return array<string, array<int, array{0: string, 1: int}>>
      */
     public static function getSubscribedEvents(): array
     {
         return [
-            // Run AFTER Symfony's MessageListener (priority 0) which applies
-            // globally-configured headers like From. We need From to be set
-            // before generating the Message-ID.
-            MessageEvent::class => ['onMessage', -100],
-            SentMessageEvent::class => ['onSentMessage', 0],
-            FailedMessageEvent::class => ['onFailedMessage', 0],
+            MessageEvent::class => [
+                // BEFORE MessageListener (priority 0) which renders TemplatedEmail
+                // and clears the template reference via markAsRendered().
+                ['captureEmailType', 100],
+                // AFTER MessageListener which applies the global From header
+                // (required for generateMessageId()) and renders the body.
+                ['onMessage', -100],
+            ],
+            SentMessageEvent::class => [['onSentMessage', 0]],
+            FailedMessageEvent::class => [['onFailedMessage', 0]],
         ];
+    }
+
+    public function captureEmailType(MessageEvent $event): void
+    {
+        if ($event->isQueued()) {
+            return;
+        }
+
+        $message = $event->getMessage();
+
+        if (!$message instanceof TemplatedEmail) {
+            return;
+        }
+
+        $template = $message->getHtmlTemplate();
+
+        if ($template === null) {
+            return;
+        }
+
+        $this->pendingEmailTypes[spl_object_id($message)] = basename($template, '.html.twig');
     }
 
     public function onMessage(MessageEvent $event): void
@@ -58,6 +86,8 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
         if (!$message instanceof Email || $message->getTo() === []) {
             return;
         }
+
+        $objectId = spl_object_id($message);
 
         try {
             // Ensure the message has a Message-ID header so we can correlate
@@ -74,7 +104,9 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
                 recipientEmail: $message->getTo()[0]->getAddress(),
                 subject: $message->getSubject() ?? '',
                 transportName: $event->getTransport(),
-                emailType: $this->extractEmailType($message),
+                emailType: $this->pendingEmailTypes[$objectId] ?? $this->extractEmailTypeFromMessage($message),
+                bodyHtml: $this->readBody($message->getHtmlBody()),
+                bodyText: $this->readBody($message->getTextBody()),
             ));
 
             /** @var HandledStamp $handledStamp */
@@ -82,7 +114,7 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             /** @var string $auditLogId */
             $auditLogId = $handledStamp->getResult();
 
-            $this->pendingAuditIds[spl_object_id($message)] = $auditLogId;
+            $this->pendingAuditIds[$objectId] = $auditLogId;
 
             if ($this->bounceEmailDomain !== '') {
                 $verpAddress = 'bounce+' . $auditLogId . '@' . $this->bounceEmailDomain;
@@ -92,6 +124,8 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             $this->logger->error('Failed to create email audit log', [
                 'exception' => $e,
             ]);
+        } finally {
+            unset($this->pendingEmailTypes[$objectId]);
         }
     }
 
@@ -157,9 +191,10 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
     public function reset(): void
     {
         $this->pendingAuditIds = [];
+        $this->pendingEmailTypes = [];
     }
 
-    private function extractEmailType(Email $message): null|string
+    private function extractEmailTypeFromMessage(Email $message): null|string
     {
         if (!$message instanceof TemplatedEmail) {
             return null;
@@ -172,6 +207,24 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
         }
 
         return basename($template, '.html.twig');
+    }
+
+    /**
+     * @param resource|string|null $body
+     */
+    private function readBody(mixed $body): null|string
+    {
+        if ($body === null) {
+            return null;
+        }
+
+        if (is_string($body)) {
+            return $body;
+        }
+
+        $contents = stream_get_contents($body);
+
+        return $contents === false ? null : $contents;
     }
 
     private function extractMessageIdHeader(\Symfony\Component\Mime\RawMessage $message): null|string

@@ -87,6 +87,33 @@
             </div>
         {% endif %}
 
+        {% if log.bodyHtml %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <strong>HTML Body</strong>
+                </div>
+                <div class="card-body p-0">
+                    <iframe
+                        srcdoc="{{ log.bodyHtml|e('html_attr') }}"
+                        style="width: 100%; height: 500px; border: 0;"
+                        sandbox=""
+                        title="Email HTML body preview"
+                    ></iframe>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if log.bodyText %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <strong>Text Body</strong>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-size: 0.85rem;">{{ log.bodyText }}</pre>
+                </div>
+            </div>
+        {% endif %}
+
         {% if log.smtpDebugLog %}
             <div class="card shadow-sm mb-4">
                 <div class="card-header">

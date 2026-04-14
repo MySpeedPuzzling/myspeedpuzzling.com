@@ -152,7 +152,9 @@ SELECT
     smtp_debug_log,
     bounce_type,
     bounced_at,
-    bounce_reason
+    bounce_reason,
+    body_html,
+    body_text
 FROM email_audit_log
 WHERE id = :id
 SQL;
@@ -180,6 +182,8 @@ SQL;
          *     bounce_type: null|string,
          *     bounced_at: null|string,
          *     bounce_reason: null|string,
+         *     body_html: null|string,
+         *     body_text: null|string,
          * } $row
          */
 
@@ -198,6 +202,8 @@ SQL;
             bounceType: $row['bounce_type'] !== null ? BounceType::from($row['bounce_type']) : null,
             bouncedAt: $row['bounced_at'] !== null ? new DateTimeImmutable($row['bounced_at']) : null,
             bounceReason: $row['bounce_reason'],
+            bodyHtml: $row['body_html'],
+            bodyText: $row['body_text'],
         );
     }
 

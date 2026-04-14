@@ -57,6 +57,15 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
         }
 
         try {
+            // Ensure the message has a Message-ID header so we can correlate
+            // bounces back to this audit log entry. Symfony adds one later in
+            // SentMessage, but only to an inner clone — we'd lose the value.
+            $headers = $message->getHeaders();
+
+            if (!$headers->has('Message-ID')) {
+                $headers->addIdHeader('Message-ID', $message->generateMessageId());
+            }
+
             $envelope = $this->messageBus->dispatch(new CreateEmailAuditLog(
                 recipientEmail: $message->getTo()[0]->getAddress(),
                 subject: $message->getSubject() ?? '',
@@ -85,17 +94,25 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
     public function onSentMessage(SentMessageEvent $event): void
     {
         try {
-            $objectId = spl_object_id($event->getMessage()->getOriginalMessage());
+            $sentMessage = $event->getMessage();
+            $originalMessage = $sentMessage->getOriginalMessage();
+            $objectId = spl_object_id($originalMessage);
 
             if (!isset($this->pendingAuditIds[$objectId])) {
                 return;
             }
 
-            $sentMessage = $event->getMessage();
+            // The Message-ID header was set in onMessage — this is what bounces reference.
+            // SentMessage::getMessageId() may have been overwritten by the SMTP transport
+            // with the MTA queue ID (parsed from "250 OK queued as XYZ" response).
+            $messageIdHeader = $this->extractMessageIdHeader($originalMessage);
+            $mtaOrHeader = $sentMessage->getMessageId();
+            $mtaQueueId = ($messageIdHeader !== null && $mtaOrHeader !== $messageIdHeader) ? $mtaOrHeader : null;
 
             $this->messageBus->dispatch(new RecordEmailSendSuccess(
                 auditLogId: $this->pendingAuditIds[$objectId],
-                messageId: $sentMessage->getMessageId(),
+                messageId: $messageIdHeader ?? $mtaOrHeader,
+                mtaQueueId: $mtaQueueId,
                 smtpDebugLog: $sentMessage->getDebug(),
             ));
 
@@ -151,5 +168,20 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
         }
 
         return basename($template, '.html.twig');
+    }
+
+    private function extractMessageIdHeader(\Symfony\Component\Mime\RawMessage $message): null|string
+    {
+        if (!$message instanceof \Symfony\Component\Mime\Message) {
+            return null;
+        }
+
+        $header = $message->getHeaders()->get('Message-ID');
+
+        if (!$header instanceof \Symfony\Component\Mime\Header\IdentificationHeader) {
+            return null;
+        }
+
+        return $header->getId();
     }
 }

@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Value\EmailAuditStatus;
 #[Index(columns: ['recipient_email'])]
 #[Index(columns: ['sent_at'])]
 #[Index(columns: ['status'])]
+#[Index(columns: ['message_id'])]
 class EmailAuditLog
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -29,6 +30,10 @@ class EmailAuditLog
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(length: 255, nullable: true)]
     public null|string $messageId = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 255, nullable: true)]
+    public null|string $mtaQueueId = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::TEXT, nullable: true)]
@@ -74,10 +79,11 @@ class EmailAuditLog
         $this->status = EmailAuditStatus::Pending;
     }
 
-    public function markAsSent(string $messageId, string $smtpDebugLog): void
+    public function markAsSent(string $messageId, null|string $mtaQueueId, string $smtpDebugLog): void
     {
         $this->status = EmailAuditStatus::Sent;
         $this->messageId = $messageId;
+        $this->mtaQueueId = $mtaQueueId;
         $this->smtpDebugLog = $smtpDebugLog;
     }
 

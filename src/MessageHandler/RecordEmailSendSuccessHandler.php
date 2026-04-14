@@ -20,6 +20,6 @@ readonly final class RecordEmailSendSuccessHandler
     public function __invoke(RecordEmailSendSuccess $message): void
     {
         $auditLog = $this->emailAuditLogRepository->get(Uuid::fromString($message->auditLogId));
-        $auditLog->markAsSent($message->messageId, $message->smtpDebugLog);
+        $auditLog->markAsSent($message->messageId, $message->mtaQueueId, $message->smtpDebugLog);
     }
 }

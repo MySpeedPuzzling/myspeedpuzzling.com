@@ -152,8 +152,14 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $messageEvent = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
         $this->subscriber->onMessage($messageEvent);
 
+        // The subscriber must have added a Message-ID header in onMessage.
+        $messageIdHeader = $email->getHeaders()->get('Message-ID');
+        self::assertInstanceOf(\Symfony\Component\Mime\Header\IdentificationHeader::class, $messageIdHeader);
+        $originalMessageId = $messageIdHeader->getId();
+
         /** @phpstan-ignore method.internal */
         $sentMessage = new SentMessage($email, $envelope);
+        // Simulate SMTP transport overwriting messageId with MTA queue ID:
         $sentMessage->setMessageId('queue-id-123');
         $sentMessage->appendDebug('> EHLO mailer' . "\n" . '< 250 OK' . "\n");
 
@@ -162,8 +168,34 @@ final class EmailAuditSubscriberTest extends KernelTestCase
 
         $log = $this->findAuditLogByRecipient('audit-sent@example.com');
         self::assertSame(EmailAuditStatus::Sent->value, $log['status']);
-        self::assertSame('queue-id-123', $log['message_id']);
+        self::assertSame($originalMessageId, $log['message_id'], 'Should store the Message-ID header (for bounce correlation)');
+        self::assertSame('queue-id-123', $log['mta_queue_id'], 'Should store the MTA queue ID separately');
         self::assertNotNull($log['smtp_debug_log']);
+    }
+
+    public function testMessageIdHeaderOnlyWhenNoMtaQueueId(): void
+    {
+        $email = $this->createTemplatedEmail('audit-header-only@example.com', 'Test', 'emails/feedback.html.twig');
+        $envelope = Envelope::create($email);
+
+        $messageEvent = new MessageEvent($email, $envelope, 'smtp://mailer:1025');
+        $this->subscriber->onMessage($messageEvent);
+
+        $messageIdHeader = $email->getHeaders()->get('Message-ID');
+        self::assertInstanceOf(\Symfony\Component\Mime\Header\IdentificationHeader::class, $messageIdHeader);
+        $originalMessageId = $messageIdHeader->getId();
+
+        // SentMessage constructor initializes messageId from header,
+        // and we don't call setMessageId (simulating transport that didn't parse a queue ID)
+        /** @phpstan-ignore method.internal */
+        $sentMessage = new SentMessage($email, $envelope);
+
+        $sentEvent = new SentMessageEvent($sentMessage);
+        $this->subscriber->onSentMessage($sentEvent);
+
+        $log = $this->findAuditLogByRecipient('audit-header-only@example.com');
+        self::assertSame($originalMessageId, $log['message_id']);
+        self::assertNull($log['mta_queue_id'], 'No MTA queue ID when transport did not parse one');
     }
 
     public function testUpdatesLogOnFailedMessage(): void

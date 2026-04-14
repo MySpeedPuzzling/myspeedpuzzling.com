@@ -41,8 +41,13 @@
                 <dd class="col-sm-8"><code>{{ log.transportName }}</code></dd>
 
                 {% if log.messageId %}
-                    <dt class="col-sm-4">Message ID</dt>
+                    <dt class="col-sm-4">Message-ID</dt>
                     <dd class="col-sm-8"><code>{{ log.messageId }}</code></dd>
+                {% endif %}
+
+                {% if log.mtaQueueId %}
+                    <dt class="col-sm-4">MTA Queue ID</dt>
+                    <dd class="col-sm-8"><code>{{ log.mtaQueueId }}</code></dd>
                 {% endif %}
             </dl>
         </div>

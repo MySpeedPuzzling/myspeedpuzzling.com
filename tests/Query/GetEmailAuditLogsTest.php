@@ -116,7 +116,16 @@ final class GetEmailAuditLogsTest extends KernelTestCase
     public function testByIdReturnsDetail(): void
     {
         $id = Uuid::uuid7()->toString();
-        $this->insertAuditLog($id, 'detail@example.com', 'Detail Subject', 'sent', 'feedback', 'msg-123', 'SMTP debug info');
+        $this->insertAuditLog(
+            id: $id,
+            recipientEmail: 'detail@example.com',
+            subject: 'Detail Subject',
+            status: 'sent',
+            emailType: 'feedback',
+            messageId: 'msg-123',
+            smtpDebugLog: 'SMTP debug info',
+            mtaQueueId: 'QUEUE-456',
+        );
 
         $detail = $this->query->byId($id);
 
@@ -124,6 +133,7 @@ final class GetEmailAuditLogsTest extends KernelTestCase
         self::assertSame('detail@example.com', $detail->recipientEmail);
         self::assertSame('Detail Subject', $detail->subject);
         self::assertSame('msg-123', $detail->messageId);
+        self::assertSame('QUEUE-456', $detail->mtaQueueId);
         self::assertSame('SMTP debug info', $detail->smtpDebugLog);
         self::assertSame('feedback', $detail->emailType);
     }
@@ -180,6 +190,7 @@ final class GetEmailAuditLogsTest extends KernelTestCase
         null|string $emailType = null,
         null|string $messageId = null,
         null|string $smtpDebugLog = null,
+        null|string $mtaQueueId = null,
     ): void {
         $this->connection->insert('email_audit_log', [
             'id' => $id,
@@ -190,6 +201,7 @@ final class GetEmailAuditLogsTest extends KernelTestCase
             'status' => $status,
             'email_type' => $emailType,
             'message_id' => $messageId,
+            'mta_queue_id' => $mtaQueueId,
             'smtp_debug_log' => $smtpDebugLog,
         ]);
     }

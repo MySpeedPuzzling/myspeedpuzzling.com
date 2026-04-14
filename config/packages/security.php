@@ -20,6 +20,19 @@ return App::config([
             'oauth2_provider' => [
                 'id' => OAuth2UserProvider::class,
             ],
+            // Required by Symfony because the internal_api firewall must declare a provider,
+            // but never actually invoked: InternalApiAuthenticator returns a SelfValidatingPassport
+            // whose UserBadge closure produces the user inline. Kept as a dedicated dummy provider
+            // so the config reads honestly — this firewall has its own user universe.
+            'internal_api_provider' => [
+                'memory' => [
+                    'users' => [
+                        InternalApiAuthenticator::USER_IDENTIFIER => [
+                            'roles' => [InternalApiAuthenticator::ROLE],
+                        ],
+                    ],
+                ],
+            ],
         ],
         'firewalls' => [
             'dev' => [
@@ -41,7 +54,7 @@ return App::config([
             'internal_api' => [
                 'pattern' => '^/internal-api/',
                 'stateless' => true,
-                'provider' => 'oauth2_provider',
+                'provider' => 'internal_api_provider',
                 'custom_authenticators' => [InternalApiAuthenticator::class],
             ],
             'main' => [

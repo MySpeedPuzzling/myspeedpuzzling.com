@@ -115,7 +115,7 @@ feature_request_status_changed:
     subject: "Your feature request has been updated: %title%"
     title: "Feature Request Status Update"
     content: |
-        <p>Your feature request <strong>%featureRequestTitle%</strong> has been updated.</p>
+        <p>Your feature request <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> has been updated.</p>
         <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
     admin_comment: |
         <p><strong>Comment from the team:</strong> %adminComment%</p>
@@ -123,7 +123,7 @@ feature_request_status_changed:
         subject: "A feature request you upvoted has been updated: %title%"
         title: "Feature Request Status Update"
         content: |
-            <p>A feature request you upvoted — <strong>%featureRequestTitle%</strong> — has been updated.</p>
+            <p>A feature request you upvoted — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — has been updated.</p>
             <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
             <p>Thank you for supporting this idea!</p>
         admin_comment: |

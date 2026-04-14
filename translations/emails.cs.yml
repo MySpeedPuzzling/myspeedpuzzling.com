@@ -115,7 +115,7 @@ feature_request_status_changed:
     subject: "Váš návrh funkce byl aktualizován: %title%"
     title: "Aktualizace stavu návrhu funkce"
     content: |
-        <p>Váš návrh funkce <strong>%featureRequestTitle%</strong> byl aktualizován.</p>
+        <p>Váš návrh funkce <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> byl aktualizován.</p>
         <p>Stav se změnil z <strong>%oldStatus%</strong> na <strong>%newStatus%</strong>.</p>
     admin_comment: |
         <p><strong>Komentář od týmu:</strong> %adminComment%</p>
@@ -123,7 +123,7 @@ feature_request_status_changed:
         subject: "Návrh funkce, pro který jste hlasovali, byl aktualizován: %title%"
         title: "Aktualizace stavu návrhu funkce"
         content: |
-            <p>Návrh funkce, pro který jste hlasovali — <strong>%featureRequestTitle%</strong> — byl aktualizován.</p>
+            <p>Návrh funkce, pro který jste hlasovali — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — byl aktualizován.</p>
             <p>Stav se změnil z <strong>%oldStatus%</strong> na <strong>%newStatus%</strong>.</p>
             <p>Děkujeme, že jste tento nápad podpořili!</p>
         admin_comment: |

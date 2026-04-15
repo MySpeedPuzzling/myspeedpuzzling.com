@@ -210,7 +210,7 @@ puzzle_times:
         fastest: "Fastest:"
         rank: "Rank %rank% of %total%"
         jump_to_me: "Jump to me"
-        new_personal_best: "Latest is your new personal best:"
+        latest_is_fastest: "Latest is your fastest on this puzzle:"
         show_all: "Show all my times (%count%)"
         history_date: "Date"
         history_time: "Time"

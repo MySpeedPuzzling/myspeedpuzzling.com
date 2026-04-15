@@ -381,6 +381,9 @@
 
                         <td class="text-end with-ppm">
                             {{ aggregated_solver[0].time|puzzlingTime }}
+                            {% if is_own_row %}
+                                {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, context: 'puzzle-detail'}) }}
+                            {% endif %}
                             {% if aggregated_solver[0].finishedAt is not null %}
                                 <br>
                                 <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
@@ -411,11 +414,6 @@
                                 {% endif %}
                             {% endif %}
 
-                            {% if is_own_row %}
-                                <br>
-                                {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, context: 'puzzle-detail'}) }}
-                            {% endif %}
-
                             {% if aggregated_solver|length > 1 %}
                                 <br>
                                 <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'row' ~ loop.index})}}>
@@ -429,6 +427,9 @@
                                         {% if not loop.first %}
                                             <span class="d-inline-block mt-1">
                                                         {{ solving_time.time|puzzlingTime }}
+                                                        {% if is_own_row %}
+                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
+                                                        {% endif %}
                                                         {% if solving_time.finishedAt is not null %}
                                                             <br>
                                                             <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>
@@ -457,11 +458,6 @@
                                                             {% if solving_time.competitionSlug %}
                                                                 </a>
                                                             {% endif %}
-                                                        {% endif %}
-
-                                                        {% if is_own_row %}
-                                                            <br>
-                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
                                                         {% endif %}
                                                     </span>
 

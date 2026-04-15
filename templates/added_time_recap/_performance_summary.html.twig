@@ -1,5 +1,18 @@
 {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
-    {% if time_prediction is not null and time_prediction.predictedSeconds > 0 %}
+    {% if player.timePredictionsOptedOut %}
+        <div class="card shadow-sm mb-3 border-0">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-eye-slash text-muted" style="font-size: 1.2rem;"></i>
+                    <small class="fw-medium">{{ 'puzzle_intelligence.prediction.title'|trans }}</small>
+                </div>
+                <small class="text-muted">
+                    {{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}
+                    <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                </small>
+            </div>
+        </div>
+    {% elseif time_prediction is not null and time_prediction.predictedSeconds > 0 %}
         {% set actual_seconds = solved_puzzle.time %}
         {% set predicted = time_prediction.predictedSeconds %}
         {% set diff_percent = (((predicted - actual_seconds) / predicted) * 100)|round %}
@@ -34,7 +47,7 @@
                 </div>
             </div>
         </div>
-    {% elseif not player.rankingOptedOut %}
+    {% else %}
         <div class="card shadow-sm mb-3 border-0">
             <div class="card-body">
                 <div class="text-muted small">

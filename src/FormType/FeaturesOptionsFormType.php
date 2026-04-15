@@ -31,6 +31,12 @@ final class FeaturesOptionsFormType extends AbstractType
             'help' => 'edit_profile.hide_ranking_help',
             'required' => false,
         ]);
+
+        $builder->add('timePredictionsOptedOut', CheckboxType::class, [
+            'label' => 'edit_profile.hide_time_predictions',
+            'help' => 'edit_profile.hide_time_predictions_help',
+            'required' => false,
+        ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

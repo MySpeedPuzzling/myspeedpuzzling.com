@@ -10,6 +10,7 @@ readonly final class EditFeaturesOptions
         public string $playerId,
         public bool $streakOptedOut,
         public bool $rankingOptedOut,
+        public bool $timePredictionsOptedOut,
     ) {
     }
 }

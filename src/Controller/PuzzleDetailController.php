@@ -85,7 +85,7 @@ final class PuzzleDetailController extends AbstractController
         $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($puzzleId);
 
         $timePrediction = null;
-        if ($loggedPlayer !== null && $loggedPlayer->activeMembership && !$loggedPlayer->rankingOptedOut) {
+        if ($loggedPlayer !== null && $loggedPlayer->activeMembership && !$loggedPlayer->timePredictionsOptedOut) {
             $timePrediction = $this->getPlayerPrediction->forPuzzle($loggedPlayer->playerId, $puzzleId);
         }
 

@@ -176,6 +176,7 @@ final class EditProfileController extends AbstractController
                     $player->playerId,
                     $featuresOptionsFormData->streakOptedOut,
                     $featuresOptionsFormData->rankingOptedOut,
+                    $featuresOptionsFormData->timePredictionsOptedOut,
                 )
             );
 

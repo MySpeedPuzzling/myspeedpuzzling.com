@@ -30,6 +30,7 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
                 playerId: PlayerFixture::PLAYER_REGULAR,
                 streakOptedOut: true,
                 rankingOptedOut: false,
+                timePredictionsOptedOut: false,
             ),
         );
 
@@ -37,6 +38,7 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
 
         self::assertTrue($player->streakOptedOut);
         self::assertFalse($player->rankingOptedOut);
+        self::assertFalse($player->timePredictionsOptedOut);
     }
 
     public function testOptOutOfRanking(): void
@@ -46,6 +48,7 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
                 playerId: PlayerFixture::PLAYER_REGULAR,
                 streakOptedOut: false,
                 rankingOptedOut: true,
+                timePredictionsOptedOut: false,
             ),
         );
 
@@ -53,15 +56,35 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
 
         self::assertFalse($player->streakOptedOut);
         self::assertTrue($player->rankingOptedOut);
+        self::assertFalse($player->timePredictionsOptedOut);
     }
 
-    public function testOptOutOfBoth(): void
+    public function testOptOutOfTimePredictionsOnly(): void
+    {
+        $this->messageBus->dispatch(
+            new EditFeaturesOptions(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                streakOptedOut: false,
+                rankingOptedOut: false,
+                timePredictionsOptedOut: true,
+            ),
+        );
+
+        $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertFalse($player->streakOptedOut);
+        self::assertFalse($player->rankingOptedOut);
+        self::assertTrue($player->timePredictionsOptedOut);
+    }
+
+    public function testOptOutOfAll(): void
     {
         $this->messageBus->dispatch(
             new EditFeaturesOptions(
                 playerId: PlayerFixture::PLAYER_REGULAR,
                 streakOptedOut: true,
                 rankingOptedOut: true,
+                timePredictionsOptedOut: true,
             ),
         );
 
@@ -69,6 +92,7 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
 
         self::assertTrue($player->streakOptedOut);
         self::assertTrue($player->rankingOptedOut);
+        self::assertTrue($player->timePredictionsOptedOut);
     }
 
     public function testOptBackIn(): void
@@ -78,6 +102,7 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
                 playerId: PlayerFixture::PLAYER_REGULAR,
                 streakOptedOut: true,
                 rankingOptedOut: true,
+                timePredictionsOptedOut: true,
             ),
         );
 
@@ -86,6 +111,7 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
                 playerId: PlayerFixture::PLAYER_REGULAR,
                 streakOptedOut: false,
                 rankingOptedOut: false,
+                timePredictionsOptedOut: false,
             ),
         );
 
@@ -93,5 +119,6 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
 
         self::assertFalse($player->streakOptedOut);
         self::assertFalse($player->rankingOptedOut);
+        self::assertFalse($player->timePredictionsOptedOut);
     }
 }

@@ -120,12 +120,13 @@
                                             {% if showPrevDelta %}
                                                 {% set delta = row.attempt.time - row.prevTime %}
                                                 <div>
+                                                    <i class="bi bi-arrow-return-left text-muted me-1"></i>
                                                     {% if delta < 0 %}
                                                         <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
                                                     {% elseif delta > 0 %}
-                                                        <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                        <span class="text-warning font-monospace">+{{ delta|puzzlingTime }}</span>
                                                     {% else %}
-                                                        <span class="text-muted font-monospace">=</span>
+                                                        <span class="text-muted font-monospace">+00:00:00</span>
                                                     {% endif %}
                                                 </div>
                                             {% endif %}
@@ -133,7 +134,8 @@
                                             {% if showBestDelta %}
                                                 {% set delta_best = row.attempt.time - myBest.time %}
                                                 <div>
-                                                    <span class="text-muted font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                                    <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.7rem;"></i>
+                                                    <span class="text-warning font-monospace">+{{ delta_best|puzzlingTime }}</span>
                                                 </div>
                                             {% endif %}
                                         </div>

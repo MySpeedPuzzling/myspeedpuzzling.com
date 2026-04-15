@@ -909,8 +909,8 @@
   "history":
     "title": "このパズルの履歴"
     "first_time": "このパズルの初完成です！もう一度解いて、上達を追跡しましょう。"
-    "new_personal_best": "自己ベスト更新！"
-    "distance_from_best": "自己ベストまであと%time%"
+    "new_personal_best": "このパズルの最速タイム更新！"
+    "distance_from_best": "このパズルの最速タイムまであと%time%"
     "current_solve": "今回"
   "insights":
     "title": "パズルインサイト"

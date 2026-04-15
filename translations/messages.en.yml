@@ -1046,8 +1046,8 @@ added_time_recap:
     history:
         title: "Your History on This Puzzle"
         first_time: "This is your first time solving this puzzle! Solve it again to track your improvement."
-        new_personal_best: "New personal best!"
-        distance_from_best: "%time% from your personal best"
+        new_personal_best: "New fastest on this puzzle!"
+        distance_from_best: "%time% from your fastest on this puzzle"
         current_solve: "current"
     insights:
         title: "Puzzle Insights"

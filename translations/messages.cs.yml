@@ -870,8 +870,8 @@
   "history":
     "title": "Vaše historie s tímto puzzle"
     "first_time": "Toto puzzle skládáte poprvé! Složte ho znovu a sledujte své zlepšení."
-    "new_personal_best": "Nový osobní rekord!"
-    "distance_from_best": "%time% od vašeho osobního rekordu"
+    "new_personal_best": "Nejrychlejší na tomto puzzle!"
+    "distance_from_best": "%time% od vašeho nejrychlejšího času na tomto puzzle"
     "current_solve": "aktuální"
   "insights":
     "title": "Statistiky puzzle"

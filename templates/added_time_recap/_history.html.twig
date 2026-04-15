@@ -73,12 +73,13 @@
                                     {% if showPrevDelta %}
                                         {% set delta = result.time - previous_time %}
                                         <div>
+                                            <i class="bi bi-arrow-return-left text-muted me-1"></i>
                                             {% if delta < 0 %}
                                                 <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
                                             {% elseif delta > 0 %}
-                                                <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                <span class="text-warning font-monospace">+{{ delta|puzzlingTime }}</span>
                                             {% else %}
-                                                <span class="text-muted font-monospace">=</span>
+                                                <span class="text-muted font-monospace">+00:00:00</span>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -86,7 +87,8 @@
                                     {% if showBestDelta %}
                                         {% set delta_best = result.time - best_time %}
                                         <div>
-                                            <span class="text-muted font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                            <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.7rem;"></i>
+                                            <span class="text-warning font-monospace">+{{ delta_best|puzzlingTime }}</span>
                                         </div>
                                     {% endif %}
                                 </div>
@@ -117,8 +119,14 @@
                                 </span>
                             </div>
                             <div class="fs-xs text-end mt-1">
-                                <div><span class="text-success font-monospace">-00:03:22</span></div>
-                                <div><span class="text-muted font-monospace">+00:01:44</span></div>
+                                <div>
+                                    <i class="bi bi-arrow-return-left text-muted me-1"></i>
+                                    <span class="text-success font-monospace">-00:03:22</span>
+                                </div>
+                                <div>
+                                    <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.7rem;"></i>
+                                    <span class="text-warning font-monospace">+00:01:44</span>
+                                </div>
                             </div>
                         </div>
                         <div class="attempts-history-entry fs-sm border-top pt-2 mt-2">
@@ -133,8 +141,14 @@
                                 </span>
                             </div>
                             <div class="fs-xs text-end mt-1">
-                                <div><span class="text-danger font-monospace">+00:05:10</span></div>
-                                <div><span class="text-muted font-monospace">+00:05:06</span></div>
+                                <div>
+                                    <i class="bi bi-arrow-return-left text-muted me-1"></i>
+                                    <span class="text-warning font-monospace">+00:05:10</span>
+                                </div>
+                                <div>
+                                    <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.7rem;"></i>
+                                    <span class="text-warning font-monospace">+00:05:06</span>
+                                </div>
                             </div>
                         </div>
                         <div class="attempts-history-entry fs-sm border-top pt-2 mt-2">

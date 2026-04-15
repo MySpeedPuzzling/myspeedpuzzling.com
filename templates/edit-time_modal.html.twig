@@ -41,7 +41,9 @@
                     </div>
                 </div>
 
-                {{ include('_solving_time_form.html.twig') }}
+                {{ include('_solving_time_form.html.twig', {
+                    form_action: path('edit_time', {timeId: solved_puzzle.timeId, context: return_context}),
+                }) }}
             </div>
         </div>
     </div>

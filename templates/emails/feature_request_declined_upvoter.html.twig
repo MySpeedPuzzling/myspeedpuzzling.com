@@ -1,0 +1,37 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'feature_request_declined.upvoter.title'|trans }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    {{ 'feature_request_declined.upvoter.content'|trans({
+                        '%featureRequestTitle%': featureRequestTitle,
+                        '%featureRequestUrl%': url('feature_request_detail', {featureRequestId: featureRequestId}),
+                    })|raw }}
+                </columns>
+            </row>
+
+            {% if adminComment is not null %}
+                <row>
+                    <columns>
+                        {{ 'feature_request_declined.upvoter.admin_comment'|trans({
+                            '%adminComment%': adminComment,
+                        })|raw }}
+                    </columns>
+                </row>
+            {% endif %}
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

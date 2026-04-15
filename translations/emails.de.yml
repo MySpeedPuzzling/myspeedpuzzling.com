@@ -110,26 +110,3 @@ competition_rejected:
         <p>Leider wurde Ihre Veranstaltung <strong>%competitionName%</strong> nicht genehmigt.</p>
         <p><strong>Grund:</strong> %reason%</p>
         <p>Bei Fragen oder wenn Sie dies besprechen möchten, kontaktieren Sie uns unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
-
-feature_request_status_changed:
-    subject: "Dein Feature-Wunsch wurde aktualisiert: %title%"
-    title: "Statusänderung deines Feature-Wunsches"
-    content: |
-        <p>Dein Feature-Wunsch <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> wurde aktualisiert.</p>
-        <p>Der Status hat sich von <strong>%oldStatus%</strong> zu <strong>%newStatus%</strong> geändert.</p>
-    admin_comment: |
-        <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
-    upvoter:
-        subject: "Ein Feature-Wunsch, für den du gestimmt hast, wurde aktualisiert: %title%"
-        title: "Statusänderung eines Feature-Wunsches"
-        content: |
-            <p>Ein Feature-Wunsch, für den du gestimmt hast — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — wurde aktualisiert.</p>
-            <p>Der Status hat sich von <strong>%oldStatus%</strong> zu <strong>%newStatus%</strong> geändert.</p>
-            <p>Danke, dass du diese Idee unterstützt!</p>
-        admin_comment: |
-            <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
-    status:
-        open: "Offen"
-        in_progress: "In Arbeit"
-        completed: "Erledigt"
-        declined: "Abgelehnt"

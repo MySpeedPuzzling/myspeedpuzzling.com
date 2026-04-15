@@ -26,6 +26,26 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
 
     public function __invoke(FeatureRequestStatusChanged $event): void
     {
+        $templates = match ($event->newStatus) {
+            FeatureRequestStatus::Completed => [
+                'author' => 'emails/feature_request_completed.html.twig',
+                'upvoter' => 'emails/feature_request_completed_upvoter.html.twig',
+                'authorSubjectKey' => 'feature_request_completed.subject',
+                'upvoterSubjectKey' => 'feature_request_completed.upvoter.subject',
+            ],
+            FeatureRequestStatus::Declined => [
+                'author' => 'emails/feature_request_declined.html.twig',
+                'upvoter' => 'emails/feature_request_declined_upvoter.html.twig',
+                'authorSubjectKey' => 'feature_request_declined.subject',
+                'upvoterSubjectKey' => 'feature_request_declined.upvoter.subject',
+            ],
+            default => null,
+        };
+
+        if ($templates === null) {
+            return;
+        }
+
         $featureRequest = $this->featureRequestRepository->get($event->featureRequestId->toString());
         $author = $featureRequest->author;
 
@@ -33,12 +53,11 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
             $this->sendEmail(
                 toEmail: $author->email,
                 locale: $author->locale ?? 'en',
-                template: 'emails/feature_request_status_changed.html.twig',
-                subjectKey: 'feature_request_status_changed.subject',
+                template: $templates['author'],
+                subjectKey: $templates['authorSubjectKey'],
                 featureRequestId: $event->featureRequestId->toString(),
                 featureRequestTitle: $featureRequest->title,
-                oldStatus: $event->oldStatus,
-                newStatus: $event->newStatus,
+                githubUrl: $featureRequest->githubUrl,
                 adminComment: $featureRequest->adminComment,
             );
         }
@@ -52,12 +71,11 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
             $this->sendEmail(
                 toEmail: $voter->email,
                 locale: $voter->locale ?? 'en',
-                template: 'emails/feature_request_status_changed_upvoter.html.twig',
-                subjectKey: 'feature_request_status_changed.upvoter.subject',
+                template: $templates['upvoter'],
+                subjectKey: $templates['upvoterSubjectKey'],
                 featureRequestId: $event->featureRequestId->toString(),
                 featureRequestTitle: $featureRequest->title,
-                oldStatus: $event->oldStatus,
-                newStatus: $event->newStatus,
+                githubUrl: $featureRequest->githubUrl,
                 adminComment: $featureRequest->adminComment,
             );
         }
@@ -70,22 +88,9 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
         string $subjectKey,
         string $featureRequestId,
         string $featureRequestTitle,
-        FeatureRequestStatus $oldStatus,
-        FeatureRequestStatus $newStatus,
+        null|string $githubUrl,
         null|string $adminComment,
     ): void {
-        $oldStatusLabel = $this->translator->trans(
-            'feature_request_status_changed.status.' . $oldStatus->value,
-            domain: 'emails',
-            locale: $locale,
-        );
-
-        $newStatusLabel = $this->translator->trans(
-            'feature_request_status_changed.status.' . $newStatus->value,
-            domain: 'emails',
-            locale: $locale,
-        );
-
         $subject = $this->translator->trans(
             $subjectKey,
             ['%title%' => $featureRequestTitle],
@@ -101,8 +106,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
             ->context([
                 'featureRequestId' => $featureRequestId,
                 'featureRequestTitle' => $featureRequestTitle,
-                'oldStatus' => $oldStatusLabel,
-                'newStatus' => $newStatusLabel,
+                'githubUrl' => $githubUrl,
                 'adminComment' => $adminComment,
             ]);
         $email->getHeaders()->addTextHeader('X-Transport', 'transactional');

@@ -7,18 +7,16 @@
             <row>
                 <columns>
                     <spacer size-sm="24"></spacer>
-                    <h3>{{ 'feature_request_status_changed.upvoter.title'|trans }}</h3>
+                    <h3>{{ 'feature_request_declined.title'|trans }}</h3>
                     <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 
             <row>
                 <columns>
-                    {{ 'feature_request_status_changed.upvoter.content'|trans({
+                    {{ 'feature_request_declined.content'|trans({
                         '%featureRequestTitle%': featureRequestTitle,
                         '%featureRequestUrl%': url('feature_request_detail', {featureRequestId: featureRequestId}),
-                        '%oldStatus%': oldStatus,
-                        '%newStatus%': newStatus,
                     })|raw }}
                 </columns>
             </row>
@@ -26,7 +24,7 @@
             {% if adminComment is not null %}
                 <row>
                     <columns>
-                        {{ 'feature_request_status_changed.upvoter.admin_comment'|trans({
+                        {{ 'feature_request_declined.admin_comment'|trans({
                             '%adminComment%': adminComment,
                         })|raw }}
                     </columns>

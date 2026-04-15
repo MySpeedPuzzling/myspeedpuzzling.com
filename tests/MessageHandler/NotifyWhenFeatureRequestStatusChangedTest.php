@@ -22,8 +22,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 {
-    private const string AUTHOR_TEMPLATE = 'emails/feature_request_status_changed.html.twig';
-    private const string UPVOTER_TEMPLATE = 'emails/feature_request_status_changed_upvoter.html.twig';
+    private const string COMPLETED_AUTHOR_TEMPLATE = 'emails/feature_request_completed.html.twig';
+    private const string COMPLETED_UPVOTER_TEMPLATE = 'emails/feature_request_completed_upvoter.html.twig';
+    private const string DECLINED_AUTHOR_TEMPLATE = 'emails/feature_request_declined.html.twig';
+    private const string DECLINED_UPVOTER_TEMPLATE = 'emails/feature_request_declined_upvoter.html.twig';
 
     private NotifyWhenFeatureRequestStatusChanged $handler;
     private TestMailerSpy $mailer;
@@ -47,27 +49,38 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         );
     }
 
-    public function testAuthorOnlyWhenNoUpvoters(): void
+    public function testSkipsTransitionsOtherThanCompletedOrDeclined(): void
+    {
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::Open,
+            newStatus: FeatureRequestStatus::InProgress,
+        ));
+
+        self::assertCount(0, $this->mailer->sent);
+    }
+
+    public function testCompletedAuthorOnlyWhenNoUpvoters(): void
     {
         // FEATURE_REQUEST_NEW: author=PLAYER_ADMIN, no votes
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_NEW),
-            oldStatus: FeatureRequestStatus::Open,
-            newStatus: FeatureRequestStatus::InProgress,
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
         ));
 
         self::assertCount(1, $this->mailer->sent);
         $email = $this->assertTemplatedEmail($this->mailer->sent[0]);
         self::assertSame(['admin@speedpuzzling.cz'], $this->toAddresses($email));
-        self::assertSame(self::AUTHOR_TEMPLATE, $email->getHtmlTemplate());
+        self::assertSame(self::COMPLETED_AUTHOR_TEMPLATE, $email->getHtmlTemplate());
     }
 
-    public function testAuthorPlusAllUpvoters(): void
+    public function testCompletedAuthorPlusAllUpvoters(): void
     {
         // FEATURE_REQUEST_POPULAR: author=PLAYER_WITH_STRIPE, voters=[ADMIN, REGULAR]
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
+            oldStatus: FeatureRequestStatus::InProgress,
             newStatus: FeatureRequestStatus::Completed,
         ));
 
@@ -75,9 +88,26 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
         $summary = $this->summarize($this->mailer->sent);
 
-        self::assertSame(self::AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
-        self::assertSame(self::UPVOTER_TEMPLATE, $summary['admin@speedpuzzling.cz']);
-        self::assertSame(self::UPVOTER_TEMPLATE, $summary[PlayerFixture::PLAYER_REGULAR_EMAIL]);
+        self::assertSame(self::COMPLETED_AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
+        self::assertSame(self::COMPLETED_UPVOTER_TEMPLATE, $summary['admin@speedpuzzling.cz']);
+        self::assertSame(self::COMPLETED_UPVOTER_TEMPLATE, $summary[PlayerFixture::PLAYER_REGULAR_EMAIL]);
+    }
+
+    public function testDeclinedSendsDeclinedTemplates(): void
+    {
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::Open,
+            newStatus: FeatureRequestStatus::Declined,
+        ));
+
+        self::assertCount(3, $this->mailer->sent);
+
+        $summary = $this->summarize($this->mailer->sent);
+
+        self::assertSame(self::DECLINED_AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
+        self::assertSame(self::DECLINED_UPVOTER_TEMPLATE, $summary['admin@speedpuzzling.cz']);
+        self::assertSame(self::DECLINED_UPVOTER_TEMPLATE, $summary[PlayerFixture::PLAYER_REGULAR_EMAIL]);
     }
 
     public function testSkipsWhenAuthorHasNoEmailButStillNotifiesUpvoters(): void
@@ -97,7 +127,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         self::assertCount(2, $this->mailer->sent);
         foreach ($this->mailer->sent as $message) {
             $email = $this->assertTemplatedEmail($message);
-            self::assertSame(self::UPVOTER_TEMPLATE, $email->getHtmlTemplate());
+            self::assertSame(self::DECLINED_UPVOTER_TEMPLATE, $email->getHtmlTemplate());
         }
     }
 
@@ -111,7 +141,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
+            oldStatus: FeatureRequestStatus::InProgress,
             newStatus: FeatureRequestStatus::Completed,
         ));
 
@@ -121,8 +151,8 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         $summary = $this->summarize($this->mailer->sent);
 
         self::assertArrayNotHasKey(PlayerFixture::PLAYER_REGULAR_EMAIL, $summary);
-        self::assertSame(self::AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
-        self::assertSame(self::UPVOTER_TEMPLATE, $summary['admin@speedpuzzling.cz']);
+        self::assertSame(self::COMPLETED_AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
+        self::assertSame(self::COMPLETED_UPVOTER_TEMPLATE, $summary['admin@speedpuzzling.cz']);
     }
 
     public function testAuthorNeverReceivesUpvoterEmailEvenIfTheyAlsoVoted(): void
@@ -140,7 +170,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
+            oldStatus: FeatureRequestStatus::InProgress,
             newStatus: FeatureRequestStatus::Completed,
         ));
 
@@ -148,7 +178,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         self::assertCount(3, $this->mailer->sent);
 
         $summary = $this->summarize($this->mailer->sent);
-        self::assertSame(self::AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
+        self::assertSame(self::COMPLETED_AUTHOR_TEMPLATE, $summary[PlayerFixture::PLAYER_WITH_STRIPE_EMAIL]);
 
         $authorEmails = array_filter(
             $this->mailer->sent,
@@ -174,7 +204,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
+            oldStatus: FeatureRequestStatus::InProgress,
             newStatus: FeatureRequestStatus::Completed,
         ));
 
@@ -203,7 +233,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
+            oldStatus: FeatureRequestStatus::InProgress,
             newStatus: FeatureRequestStatus::Completed,
         ));
 
@@ -223,7 +253,7 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
         $this->connection->executeStatement(
             'UPDATE feature_request SET admin_comment = :comment WHERE id = :id',
             [
-                'comment' => 'Building this next sprint.',
+                'comment' => 'Shipped this sprint.',
                 'id' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
             ],
         );
@@ -231,14 +261,14 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
 
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
-            newStatus: FeatureRequestStatus::InProgress,
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
         ));
 
         self::assertCount(3, $this->mailer->sent);
         foreach ($this->mailer->sent as $message) {
             $email = $this->assertTemplatedEmail($message);
-            self::assertSame('Building this next sprint.', $email->getContext()['adminComment']);
+            self::assertSame('Shipped this sprint.', $email->getContext()['adminComment']);
         }
     }
 
@@ -246,14 +276,53 @@ final class NotifyWhenFeatureRequestStatusChangedTest extends KernelTestCase
     {
         ($this->handler)(new FeatureRequestStatusChanged(
             featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
-            oldStatus: FeatureRequestStatus::Open,
-            newStatus: FeatureRequestStatus::InProgress,
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
         ));
 
         self::assertCount(3, $this->mailer->sent);
         foreach ($this->mailer->sent as $message) {
             $email = $this->assertTemplatedEmail($message);
             self::assertNull($email->getContext()['adminComment']);
+        }
+    }
+
+    public function testGithubUrlPassedToContextOnCompleted(): void
+    {
+        $this->connection->executeStatement(
+            'UPDATE feature_request SET github_url = :url WHERE id = :id',
+            [
+                'url' => 'https://github.com/example/repo/pull/42',
+                'id' => FeatureRequestFixture::FEATURE_REQUEST_POPULAR,
+            ],
+        );
+        $this->entityManager->clear();
+
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
+        ));
+
+        self::assertCount(3, $this->mailer->sent);
+        foreach ($this->mailer->sent as $message) {
+            $email = $this->assertTemplatedEmail($message);
+            self::assertSame('https://github.com/example/repo/pull/42', $email->getContext()['githubUrl']);
+        }
+    }
+
+    public function testGithubUrlNullPassedToContext(): void
+    {
+        ($this->handler)(new FeatureRequestStatusChanged(
+            featureRequestId: Uuid::fromString(FeatureRequestFixture::FEATURE_REQUEST_POPULAR),
+            oldStatus: FeatureRequestStatus::InProgress,
+            newStatus: FeatureRequestStatus::Completed,
+        ));
+
+        self::assertCount(3, $this->mailer->sent);
+        foreach ($this->mailer->sent as $message) {
+            $email = $this->assertTemplatedEmail($message);
+            self::assertNull($email->getContext()['githubUrl']);
         }
     }
 

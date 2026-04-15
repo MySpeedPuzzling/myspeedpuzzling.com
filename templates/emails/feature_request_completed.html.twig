@@ -7,18 +7,16 @@
             <row>
                 <columns>
                     <spacer size-sm="24"></spacer>
-                    <h3>{{ 'feature_request_status_changed.title'|trans }}</h3>
+                    <h3>{{ 'feature_request_completed.title'|trans }}</h3>
                     <spacer size-sm="8"></spacer>
                 </columns>
             </row>
 
             <row>
                 <columns>
-                    {{ 'feature_request_status_changed.content'|trans({
+                    {{ 'feature_request_completed.content'|trans({
                         '%featureRequestTitle%': featureRequestTitle,
                         '%featureRequestUrl%': url('feature_request_detail', {featureRequestId: featureRequestId}),
-                        '%oldStatus%': oldStatus,
-                        '%newStatus%': newStatus,
                     })|raw }}
                 </columns>
             </row>
@@ -26,8 +24,18 @@
             {% if adminComment is not null %}
                 <row>
                     <columns>
-                        {{ 'feature_request_status_changed.admin_comment'|trans({
+                        {{ 'feature_request_completed.admin_comment'|trans({
                             '%adminComment%': adminComment,
+                        })|raw }}
+                    </columns>
+                </row>
+            {% endif %}
+
+            {% if githubUrl is not null %}
+                <row>
+                    <columns>
+                        {{ 'feature_request_completed.github_note'|trans({
+                            '%githubUrl%': githubUrl,
                         })|raw }}
                     </columns>
                 </row>

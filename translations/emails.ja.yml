@@ -110,26 +110,3 @@ competition_rejected:
         <p>残念ながら、イベント <strong>%competitionName%</strong> は承認されませんでした。</p>
         <p><strong>理由:</strong> %reason%</p>
         <p>ご質問がある場合やさらに話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。</p>
-
-feature_request_status_changed:
-    subject: "機能リクエストが更新されました: %title%"
-    title: "機能リクエストのステータス更新"
-    content: |
-        <p>あなたの機能リクエスト <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> が更新されました。</p>
-        <p>ステータスが <strong>%oldStatus%</strong> から <strong>%newStatus%</strong> に変更されました。</p>
-    admin_comment: |
-        <p><strong>チームからのコメント:</strong> %adminComment%</p>
-    upvoter:
-        subject: "あなたが支持した機能リクエストが更新されました: %title%"
-        title: "機能リクエストのステータス更新"
-        content: |
-            <p>あなたが支持した機能リクエスト — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — が更新されました。</p>
-            <p>ステータスが <strong>%oldStatus%</strong> から <strong>%newStatus%</strong> に変更されました。</p>
-            <p>このアイデアへのご支援、ありがとうございます！</p>
-        admin_comment: |
-            <p><strong>チームからのコメント:</strong> %adminComment%</p>
-    status:
-        open: "オープン"
-        in_progress: "進行中"
-        completed: "完了"
-        declined: "却下"

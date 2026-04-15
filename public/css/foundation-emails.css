@@ -903,6 +903,10 @@ a {
   a:visited {
     color: #fe696a; }
 
+a.link-underline {
+  color: #fe696a;
+  text-decoration: underline; }
+
 h1 a,
 h1 a:visited,
 h2 a,

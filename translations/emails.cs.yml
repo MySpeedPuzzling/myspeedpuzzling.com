@@ -110,26 +110,3 @@ oauth2_client_rejected:
         <p>Bohužel vaše žádost o OAuth2 aplikaci <strong>%clientName%</strong> nebyla schválena.</p>
         <p><strong>Důvod:</strong> %reason%</p>
         <p>Máte-li dotazy nebo byste chtěli toto dále prodiskutovat, kontaktujte nás prosím na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
-
-feature_request_status_changed:
-    subject: "Váš návrh funkce byl aktualizován: %title%"
-    title: "Aktualizace stavu návrhu funkce"
-    content: |
-        <p>Váš návrh funkce <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> byl aktualizován.</p>
-        <p>Stav se změnil z <strong>%oldStatus%</strong> na <strong>%newStatus%</strong>.</p>
-    admin_comment: |
-        <p><strong>Komentář od týmu:</strong> %adminComment%</p>
-    upvoter:
-        subject: "Návrh funkce, pro který jste hlasovali, byl aktualizován: %title%"
-        title: "Aktualizace stavu návrhu funkce"
-        content: |
-            <p>Návrh funkce, pro který jste hlasovali — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — byl aktualizován.</p>
-            <p>Stav se změnil z <strong>%oldStatus%</strong> na <strong>%newStatus%</strong>.</p>
-            <p>Děkujeme, že jste tento nápad podpořili!</p>
-        admin_comment: |
-            <p><strong>Komentář od týmu:</strong> %adminComment%</p>
-    status:
-        open: "Otevřený"
-        in_progress: "Pracuje se"
-        completed: "Hotovo"
-        declined: "Zamítnuto"

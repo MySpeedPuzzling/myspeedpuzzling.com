@@ -111,25 +111,40 @@ competition_rejected:
         <p><strong>Reason:</strong> %reason%</p>
         <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
 
-feature_request_status_changed:
-    subject: "Your feature request has been updated: %title%"
-    title: "Feature Request Status Update"
+feature_request_completed:
+    subject: "Your feature request has been released: %title%"
+    title: "Your feature request is live!"
     content: |
-        <p>Your feature request <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> has been updated.</p>
-        <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
+        <p>Great news! Your feature request <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> has been released and is now live on MySpeedPuzzling.</p>
+        <p>Thank you for the idea — your feedback is what makes MySpeedPuzzling better for everyone!</p>
     admin_comment: |
         <p><strong>Comment from the team:</strong> %adminComment%</p>
+    github_note: |
+        <p>Since we build in public and keep things 100% transparent, if you're curious about the code and technical details behind this change, feel free to <a href="%githubUrl%" class="link-underline">check it out on GitHub</a>. Otherwise, just ignore this :)</p>
     upvoter:
-        subject: "A feature request you upvoted has been updated: %title%"
-        title: "Feature Request Status Update"
+        subject: "A feature request you upvoted has been released: %title%"
+        title: "A feature you upvoted is live!"
         content: |
-            <p>A feature request you upvoted — <a href="%featureRequestUrl%"><strong>%featureRequestTitle%</strong></a> — has been updated.</p>
-            <p>Status changed from <strong>%oldStatus%</strong> to <strong>%newStatus%</strong>.</p>
+            <p>Great news! The feature request you upvoted — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — has been released and is now live on MySpeedPuzzling.</p>
             <p>Thank you for supporting this idea!</p>
         admin_comment: |
             <p><strong>Comment from the team:</strong> %adminComment%</p>
-    status:
-        open: "Open"
-        in_progress: "In Progress"
-        completed: "Completed"
-        declined: "Declined"
+        github_note: |
+            <p>Since we build in public and keep things 100% transparent, if you're curious about the code and technical details behind this change, feel free to <a href="%githubUrl%" class="link-underline">check it out on GitHub</a>. Otherwise, just ignore this :)</p>
+
+feature_request_declined:
+    subject: "Your feature request has been declined: %title%"
+    title: "Your feature request has been declined"
+    content: |
+        <p>Your feature request <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> has been declined.</p>
+        <p>We really appreciate you taking the time to share the idea — even when something doesn't fit, your feedback helps shape MySpeedPuzzling.</p>
+    admin_comment: |
+        <p><strong>Comment from the team:</strong> %adminComment%</p>
+    upvoter:
+        subject: "A feature request you upvoted has been declined: %title%"
+        title: "A feature request you upvoted has been declined"
+        content: |
+            <p>A feature request you upvoted — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — has been declined.</p>
+            <p>Thanks for supporting the idea anyway! Your input helps us understand what the community cares about.</p>
+        admin_comment: |
+            <p><strong>Comment from the team:</strong> %adminComment%</p>

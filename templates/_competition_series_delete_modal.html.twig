@@ -1,0 +1,23 @@
+{% set modalId = modalId|default(id) %}
+<div class="modal fade" tabindex="-1" id="deleteCompetitionSeriesModal-{{ modalId }}">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ 'series.delete.modal_title'|trans }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ 'series.delete.modal_body'|trans({'%name%': name}) }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'series.delete.modal_cancel'|trans }}</button>
+                <form method="post" action="{{ path('delete_competition_series', {seriesId: id}) }}" class="d-inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete_competition_series_' ~ id) }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i>{{ 'series.delete.confirm_button'|trans }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

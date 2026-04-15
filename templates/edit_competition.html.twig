@@ -27,13 +27,18 @@
                     {% endif %}
                 {% endif %}
 
-                <div class="mb-3">
-                    <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary me-2">
+                <div class="mb-3 d-flex flex-wrap gap-2">
+                    <a href="{{ path('manage_competition_rounds', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-list-ol me-1"></i>{{ 'competition.manage_rounds'|trans }}
                     </a>
                     <a href="{{ path('manage_competition_participants', {'competitionId': competition.id, return: path('edit_competition', {competitionId: competition.id}), return_title: 'competition.edit_event'|trans}) }}" class="btn btn-outline-primary">
                         <i class="bi bi-people me-1"></i>{{ 'competition.manage_participants'|trans }}
                     </a>
+                    {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), competition.id) %}
+                        <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteCompetitionModal-{{ competition.id }}" title="{{ 'competition.delete.button'|trans }}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    {% endif %}
                 </div>
 
                 {% for flash_message in app.flashes('success') %}
@@ -113,6 +118,20 @@
                         {{ form_end(form) }}
                     </div>
                 </div>
+
+                {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), competition.id) %}
+                    <div class="card shadow my-4 border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ 'competition.delete.danger_zone_title'|trans }}</h5>
+                            <p class="card-text text-muted">{{ 'competition.delete.description'|trans }}</p>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCompetitionModal-{{ competition.id }}">
+                                <i class="bi bi-trash me-1"></i>{{ 'competition.delete.button'|trans }}
+                            </button>
+                        </div>
+                    </div>
+
+                    {{ include('_competition_delete_modal.html.twig', {id: competition.id, name: competition.name}) }}
+                {% endif %}
             </div>
         </div>
     </div>

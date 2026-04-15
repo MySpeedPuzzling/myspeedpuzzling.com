@@ -108,6 +108,7 @@ SQL;
 
         $query = <<<SQL
 SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, cs.location, cs.location_country_code, cs.added_by_player_id, cs.approved_at, cs.rejected_at,
+    p.name AS added_by_player_name,
     COALESCE(
         (
             SELECT MIN(COALESCE(cr.starts_at, c.date_from))
@@ -123,6 +124,7 @@ SELECT cs.id, cs.name, cs.slug, cs.logo, cs.description, cs.link, cs.is_online, 
         )
     ) AS next_edition_date
 FROM competition_series cs
+LEFT JOIN player p ON p.id = cs.added_by_player_id
 WHERE cs.approved_at IS NULL AND cs.rejected_at IS NULL
 ORDER BY cs.created_at DESC NULLS LAST
 SQL;
@@ -281,6 +283,7 @@ SQL;
          *     approved_at: null|string,
          *     rejected_at: null|string,
          *     next_edition_date?: null|string,
+         *     added_by_player_name?: null|string,
          * } $row
          */
 
@@ -307,6 +310,7 @@ SQL;
             nextEditionDate: $nextEditionDate,
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
             rejectedAt: $row['rejected_at'] !== null ? new DateTimeImmutable($row['rejected_at']) : null,
+            addedByPlayerName: $row['added_by_player_name'] ?? null,
         );
     }
 }

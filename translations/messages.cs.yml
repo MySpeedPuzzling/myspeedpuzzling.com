@@ -1441,6 +1441,8 @@
   "rotate_right": "Otočit doprava"
   "apply": "Použít"
 "admin":
+  "competition_approvals":
+    "back_title": "Admin — schvalování"
   "puzzle_change_request":
     "approved": "Žádost o změnu byla schválena a puzzle aktualizováno."
     "rejected": "Žádost o změnu byla zamítnuta."
@@ -2427,6 +2429,15 @@ qr_code:
     "rejected": "Soutěž zamítnuta. Autor byl upozorněn."
     "rejection_reason_required": "Uveďte prosím důvod zamítnutí."
     "converted_to_series": "Událost byla převedena na opakovanou sérii."
+    "deleted": "Událost byla smazána."
+  "delete":
+    "button": "Smazat událost"
+    "confirm_button": "Smazat nenávratně"
+    "danger_zone_title": "Nebezpečná zóna"
+    "description": "Smazáním této události odstraníte všechna její kola, účastníky, přiřazená puzzle a rozložení stolů. Tuto akci nelze vrátit zpět."
+    "modal_title": "Smazat událost"
+    "modal_body": "Opravdu chcete smazat „%name%“? Tuto akci nelze vrátit zpět."
+    "modal_cancel": "Zrušit"
   "convert_to_series":
     "title": "Převést na opakovanou sérii"
     "description": "Převeďte tuto událost na opakovanou sérii. Aktuální událost se stane první edicí nové série. Všichni účastníci, kola a data budou zachována."
@@ -2497,6 +2508,16 @@ qr_code:
   "upcoming_editions": "Nadcházející edice"
   "past_editions": "Minulé edice"
   "no_editions": "Zatím žádné edice. Každá edice je jedno konání této pravidelné události — přidejte první."
+  "delete":
+    "button": "Smazat sérii"
+    "confirm_button": "Smazat nenávratně"
+    "danger_zone_title": "Nebezpečná zóna"
+    "description": "Smazáním této série odstraníte všechny její edice, kola, účastníky a přiřazení. Tuto akci nelze vrátit zpět."
+    "modal_title": "Smazat sérii"
+    "modal_body": "Opravdu chcete smazat „%name%“ a VŠECHNY její edice? Tuto akci nelze vrátit zpět."
+    "modal_cancel": "Zrušit"
+  "flash":
+    "deleted": "Série byla smazána."
 "edition":
   "edit": "Upravit edici"
   "rounds_hint": "Po vytvoření edice můžete přidat kola s puzzlemi a časovými limity ze stránky správy edice."
@@ -2507,8 +2528,15 @@ qr_code:
     "minutes_limit": "Časový limit (minuty)"
     "registration_link": "URL registrace"
     "results_link": "URL výsledků"
+  "delete":
+    "button": "Smazat edici"
+    "confirm_button": "Smazat nenávratně"
+    "modal_title": "Smazat edici"
+    "modal_body": "Opravdu chcete smazat „%name%“? Tuto akci nelze vrátit zpět."
+    "modal_cancel": "Zrušit"
   "flash":
     "created": "Edice přidána."
+    "deleted": "Edice byla smazána."
 
 # Referral Program
 "referral":

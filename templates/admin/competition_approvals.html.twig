@@ -25,8 +25,10 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Logo</th>
                             <th>Name</th>
                             <th>Location</th>
+                            <th>Author</th>
                             <th>Dates</th>
                             <th>Created</th>
                             <th></th>
@@ -35,6 +37,11 @@
                     <tbody>
                         {% for competition in competitions %}
                             <tr>
+                                <td>
+                                    {% if competition.logo %}
+                                        <img src="{{ competition.logo|thumbnail('puzzle_small') }}" alt="" style="max-height: 40px;">
+                                    {% endif %}
+                                </td>
                                 <td>{{ competition.name }}</td>
                                 <td>
                                     {% if competition.locationCountryCode %}
@@ -42,6 +49,7 @@
                                     {% endif %}
                                     {{ competition.location }}
                                 </td>
+                                <td>{{ competition.addedByPlayerName ?? '—' }}</td>
                                 <td>
                                     {% if competition.dateFrom %}
                                         {{ competition.dateFrom|date('d.m.Y') }}
@@ -58,7 +66,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ path('edit_competition', {'competitionId': competition.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                    <a href="{{ path('edit_competition', {'competitionId': competition.id, return: path('admin_competition_approvals'), return_title: 'admin.competition_approvals.back_title'|trans}) }}" class="btn btn-sm btn-outline-secondary me-1">
                                         <i class="bi bi-eye me-1"></i>View
                                     </a>
                                     <form method="post" action="{{ path('admin_approve_competition', {'competitionId': competition.id}) }}" class="d-inline">
@@ -73,7 +81,7 @@
                                 </td>
                             </tr>
                             <tr class="collapse" id="reject-{{ competition.id }}">
-                                <td colspan="5">
+                                <td colspan="7">
                                     <form method="post" action="{{ path('admin_reject_competition', {'competitionId': competition.id}) }}">
                                         <div class="d-flex gap-2 align-items-end">
                                             <div class="flex-grow-1">
@@ -101,14 +109,21 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Logo</th>
                             <th>Name</th>
                             <th>Type</th>
+                            <th>Author</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for s in series %}
                             <tr>
+                                <td>
+                                    {% if s.logo %}
+                                        <img src="{{ s.logo|thumbnail('puzzle_small') }}" alt="" style="max-height: 40px;">
+                                    {% endif %}
+                                </td>
                                 <td>{{ s.name }}</td>
                                 <td>
                                     {% if s.isOnline %}
@@ -118,8 +133,9 @@
                                     {% endif %}
                                     <span class="badge bg-secondary">Recurring</span>
                                 </td>
+                                <td>{{ s.addedByPlayerName ?? '—' }}</td>
                                 <td class="text-end">
-                                    <a href="{{ path('manage_competition_series', {'seriesId': s.id}) }}" class="btn btn-sm btn-outline-secondary me-1">
+                                    <a href="{{ path('manage_competition_series', {'seriesId': s.id, return: path('admin_competition_approvals'), return_title: 'admin.competition_approvals.back_title'|trans}) }}" class="btn btn-sm btn-outline-secondary me-1">
                                         <i class="bi bi-eye me-1"></i>View
                                     </a>
                                     <form method="post" action="{{ path('admin_approve_competition_series', {'seriesId': s.id}) }}" class="d-inline">
@@ -133,7 +149,7 @@
                                 </td>
                             </tr>
                             <tr class="collapse" id="reject-series-{{ s.id }}">
-                                <td colspan="3">
+                                <td colspan="5">
                                     <form method="post" action="{{ path('admin_reject_competition_series', {'seriesId': s.id}) }}">
                                         <div class="d-flex gap-2 align-items-end">
                                             <div class="flex-grow-1">

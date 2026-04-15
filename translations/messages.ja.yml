@@ -1441,6 +1441,8 @@
     "rejected": "統合リクエストが却下されました。"
     "rejection_reason_required": "却下理由は必須です。"
     "validation_failed": "統合先パズル、名前、ピース数は必須です。"
+  "competition_approvals":
+    "back_title": "管理 — 承認"
 "pending_proposals":
   "badge": "保留中の提案"
   "go_to_admin": "管理画面へ"
@@ -2418,11 +2420,20 @@ qr_code:
     "rejected": "コンペティションを却下しました。作成者に通知されました。"
     "rejection_reason_required": "却下理由を入力してください。"
     "converted_to_series": "イベントが定期シリーズに変換されました。"
+    "deleted": "イベントを削除しました。"
   "convert_to_series":
     "title": "定期シリーズに変換"
     "description": "このイベントを定期シリーズに変換します。現在のイベントは新しいシリーズの最初のエディションになります。すべての参加者、ラウンド、データは保持されます。"
     "button": "シリーズに変換"
     "confirm": "このイベントを定期シリーズに変換してもよろしいですか？この操作は元に戻せません。"
+  "delete":
+    "danger_zone_title": "危険ゾーン"
+    "description": "このイベントを削除すると、すべてのラウンド、参加者、パズルの割り当て、テーブルレイアウトが削除されます。この操作は元に戻せません。"
+    "button": "イベントを削除"
+    "modal_title": "イベントを削除"
+    "modal_body": "\"%name%\"を削除してもよろしいですか？この操作は元に戻せません。"
+    "modal_cancel": "キャンセル"
+    "confirm_button": "完全に削除"
   "participants":
     "setup_checklist": "セットアップチェックリスト"
     "checklist_rounds": "%count%ラウンド設定済み"
@@ -2488,6 +2499,16 @@ qr_code:
   "upcoming_editions": "今後のエディション"
   "past_editions": "過去のエディション"
   "no_editions": "まだエディションがありません。各エディションはこの定期イベントの1回分です。最初のエディションを追加しましょう。"
+  "flash":
+    "deleted": "シリーズを削除しました。"
+  "delete":
+    "danger_zone_title": "危険ゾーン"
+    "description": "このシリーズを削除すると、すべてのエディション、ラウンド、参加者、割り当てが削除されます。この操作は元に戻せません。"
+    "button": "シリーズを削除"
+    "modal_title": "シリーズを削除"
+    "modal_body": "\"%name%\"とそのすべてのエディションを削除してもよろしいですか？この操作は元に戻せません。"
+    "modal_cancel": "キャンセル"
+    "confirm_button": "完全に削除"
 "edition":
   "edit": "エディションを編集"
   "rounds_hint": "エディション作成後、管理ページからパズルと制限時間付きのラウンドを追加できます。"
@@ -2500,6 +2521,13 @@ qr_code:
     "results_link": "結果URL"
   "flash":
     "created": "エディションを追加しました。"
+    "deleted": "エディションを削除しました。"
+  "delete":
+    "button": "エディションを削除"
+    "modal_title": "エディションを削除"
+    "modal_body": "\"%name%\"を削除してもよろしいですか？この操作は元に戻せません。"
+    "modal_cancel": "キャンセル"
+    "confirm_button": "完全に削除"
 
 # Referral Program
 "referral":

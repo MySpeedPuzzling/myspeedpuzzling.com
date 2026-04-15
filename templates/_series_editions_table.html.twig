@@ -9,8 +9,39 @@
                             <a href="{{ path('edit_competition', {'competitionId': edition.competitionId, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-sm btn-outline-primary" title="{{ 'edition.edit'|trans }}">
                                 <i class="bi bi-pencil"></i>
                             </a>
+                            {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), edition.competitionId) %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteEditionModal-{{ edition.competitionId }}" title="{{ 'edition.delete.button'|trans }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            {% endif %}
                         </div>
                     </div>
+
+                    {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionDeleteVoter::COMPETITION_DELETE'), edition.competitionId) %}
+                        <div class="modal fade" tabindex="-1" id="deleteEditionModal-{{ edition.competitionId }}">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">{{ 'edition.delete.modal_title'|trans }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>{{ 'edition.delete.modal_body'|trans({'%name%': edition.name}) }}</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'edition.delete.modal_cancel'|trans }}</button>
+                                        <form method="post" action="{{ path('delete_competition_edition', {competitionId: edition.competitionId}) }}" class="d-inline">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_competition_' ~ edition.competitionId) }}">
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="bi bi-trash me-1"></i>{{ 'edition.delete.confirm_button'|trans }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
 
                     <div class="small text-body-secondary mb-3">
                         {% if edition.startsAt %}

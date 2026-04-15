@@ -1443,6 +1443,8 @@
   "rotate_right": "Girar a la derecha"
   "apply": "Aplicar"
 "admin":
+  "competition_approvals":
+    "back_title": "Admin — aprobaciones"
   "puzzle_change_request":
     "approved": "La solicitud de cambio ha sido aprobada y el puzzle actualizado."
     "rejected": "La solicitud de cambio ha sido rechazada."
@@ -2429,6 +2431,15 @@ fair_use_policy:
     "rejected": "Competición rechazada. El creador ha sido notificado."
     "rejection_reason_required": "Por favor proporciona una razón de rechazo."
     "converted_to_series": "El evento ha sido convertido en una serie recurrente."
+    "deleted": "El evento ha sido eliminado."
+  "delete":
+    "button": "Eliminar evento"
+    "confirm_button": "Eliminar permanentemente"
+    "danger_zone_title": "Zona de peligro"
+    "description": "Al eliminar este evento se eliminan todas sus rondas, participantes, asignaciones de puzzles y distribuciones de mesas. Esta acción no se puede deshacer."
+    "modal_body": "¿Estás seguro de que quieres eliminar \"%name%\"? Esta acción no se puede deshacer."
+    "modal_cancel": "Cancelar"
+    "modal_title": "Eliminar evento"
   "convert_to_series":
     "title": "Convertir en serie recurrente"
     "description": "Convierte este evento en una serie recurrente. El evento actual se convertirá en la primera edición de la nueva serie. Todos los participantes, rondas y datos se conservarán."
@@ -2499,6 +2510,16 @@ fair_use_policy:
   "upcoming_editions": "Próximas ediciones"
   "past_editions": "Ediciones pasadas"
   "no_editions": "Aún no hay ediciones. Cada edición es una celebración de este evento recurrente — añade la primera."
+  "delete":
+    "button": "Eliminar serie"
+    "confirm_button": "Eliminar permanentemente"
+    "danger_zone_title": "Zona de peligro"
+    "description": "Al eliminar esta serie se eliminan todas sus ediciones, rondas, participantes y asignaciones. Esta acción no se puede deshacer."
+    "modal_body": "¿Estás seguro de que quieres eliminar \"%name%\" y TODAS sus ediciones? Esta acción no se puede deshacer."
+    "modal_cancel": "Cancelar"
+    "modal_title": "Eliminar serie"
+  "flash":
+    "deleted": "La serie ha sido eliminada."
 "edition":
   "edit": "Editar edición"
   "rounds_hint": "Después de crear la edición, puedes añadir rondas con puzzles y límites de tiempo desde la página de gestión."
@@ -2509,8 +2530,15 @@ fair_use_policy:
     "minutes_limit": "Límite de tiempo (minutos)"
     "registration_link": "URL de registro"
     "results_link": "URL de resultados"
+  "delete":
+    "button": "Eliminar edición"
+    "confirm_button": "Eliminar permanentemente"
+    "modal_body": "¿Estás seguro de que quieres eliminar \"%name%\"? Esta acción no se puede deshacer."
+    "modal_cancel": "Cancelar"
+    "modal_title": "Eliminar edición"
   "flash":
     "created": "Edición añadida."
+    "deleted": "La edición ha sido eliminada."
 
 # Referral Program
 "referral":

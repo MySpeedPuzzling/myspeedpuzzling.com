@@ -1,9 +1,21 @@
 <div class="mb-3 mb-md-4 col-md-6">
     <div class="card shadow position-relative">
-        {% if is_granted('COMPETITION_SERIES_EDIT', series_item.id) %}
-            <a href="{{ path('manage_competition_series', {'seriesId': series_item.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary px-2 py-1" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
-                <i class="bi bi-pencil"></i>
-            </a>
+        {% if is_granted('COMPETITION_SERIES_EDIT', series_item.id) or is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series_item.id) %}
+            <div class="d-flex gap-1" style="position: absolute; top: 8px; right: 8px; z-index: 1;">
+                {% if is_granted('COMPETITION_SERIES_EDIT', series_item.id) %}
+                    <a href="{{ path('manage_competition_series', {'seriesId': series_item.id, return: path('events'), return_title: 'events.title'|trans}) }}" class="btn btn-sm btn-outline-primary px-2 py-1">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                {% endif %}
+                {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series_item.id) %}
+                    <button type="button" class="btn btn-sm btn-outline-danger px-2 py-1" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-{{ series_item.id }}" title="{{ 'series.delete.button'|trans }}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                {% endif %}
+            </div>
+            {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series_item.id) %}
+                {{ include('_competition_series_delete_modal.html.twig', {id: series_item.id, name: series_item.name}) }}
+            {% endif %}
         {% endif %}
         <div class="card-body d-flex w-100 p-3">
             <div class="flex-fill">

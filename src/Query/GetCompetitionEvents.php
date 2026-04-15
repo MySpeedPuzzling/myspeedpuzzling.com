@@ -223,12 +223,13 @@ SQL;
     public function allUnapproved(): array
     {
         $query = <<<SQL
-SELECT *
-FROM competition
-WHERE approved_at IS NULL
-    AND rejected_at IS NULL
-    AND series_id IS NULL
-ORDER BY created_at DESC;
+SELECT c.*, p.name AS added_by_player_name
+FROM competition c
+LEFT JOIN player p ON p.id = c.added_by_player_id
+WHERE c.approved_at IS NULL
+    AND c.rejected_at IS NULL
+    AND c.series_id IS NULL
+ORDER BY c.created_at DESC;
 SQL;
 
         $data = $this->database

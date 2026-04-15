@@ -1829,6 +1829,8 @@ admin:
         rejected: "Merge request has been rejected."
         rejection_reason_required: "Rejection reason is required."
         validation_failed: "Survivor puzzle, name, and pieces count are required."
+    competition_approvals:
+        back_title: "Admin — approvals"
 
 pending_proposals:
     badge: "Pending Proposal"
@@ -2671,6 +2673,15 @@ competition:
         rejected: "Competition rejected. Creator has been notified."
         rejection_reason_required: "Please provide a rejection reason."
         converted_to_series: "Event has been converted to a recurring series."
+        deleted: "Event was deleted."
+    delete:
+        danger_zone_title: "Danger zone"
+        description: "Deleting this event removes all its rounds, participants, puzzle assignments and table layouts. This cannot be undone."
+        button: "Delete event"
+        modal_title: "Delete event"
+        modal_body: "Are you sure you want to delete \"%name%\"? This cannot be undone."
+        modal_cancel: "Cancel"
+        confirm_button: "Delete permanently"
     convert_to_series:
         title: "Convert to recurring series"
         description: "Convert this event into a recurring series. The current event will become the first edition of the new series. All participants, rounds, and data will be preserved."
@@ -2742,6 +2753,16 @@ series:
     upcoming_editions: "Upcoming Editions"
     past_editions: "Past Editions"
     no_editions: "No editions yet. Add an edition to get started."
+    flash:
+        deleted: "Series was deleted."
+    delete:
+        danger_zone_title: "Danger zone"
+        description: "Deleting this series removes all its editions, rounds, participants and assignments. This cannot be undone."
+        button: "Delete series"
+        modal_title: "Delete series"
+        modal_body: "Are you sure you want to delete \"%name%\" and ALL its editions? This cannot be undone."
+        modal_cancel: "Cancel"
+        confirm_button: "Delete permanently"
 
 edition:
     edit: "Edit Edition"
@@ -2755,6 +2776,13 @@ edition:
         results_link: "Results URL"
     flash:
         created: "Edition added."
+        deleted: "Edition was deleted."
+    delete:
+        button: "Delete edition"
+        modal_title: "Delete edition"
+        modal_body: "Are you sure you want to delete \"%name%\"? This cannot be undone."
+        modal_cancel: "Cancel"
+        confirm_button: "Delete permanently"
 
 # Referral Program
 referral:

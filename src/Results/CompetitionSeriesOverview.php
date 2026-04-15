@@ -25,6 +25,7 @@ readonly final class CompetitionSeriesOverview
         public null|DateTimeImmutable $nextEditionDate = null,
         public null|DateTimeImmutable $approvedAt = null,
         public null|DateTimeImmutable $rejectedAt = null,
+        public null|string $addedByPlayerName = null,
     ) {
         $this->link = $link !== null
             ? $link . (str_contains($link, '?') ? '&' : '?') . 'utm_source=myspeedpuzzling'

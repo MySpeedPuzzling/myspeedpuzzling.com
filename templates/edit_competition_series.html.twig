@@ -15,6 +15,14 @@
             <div class="col-lg-8">
                 <h1 class="h2">{{ 'series.edit_series'|trans }}: {{ series.name }}</h1>
 
+                {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series.id) %}
+                    <div class="mb-3 d-flex justify-content-end">
+                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-{{ series.id }}" title="{{ 'series.delete.button'|trans }}">
+                            <i class="bi bi-trash me-1"></i>{{ 'series.delete.button'|trans }}
+                        </button>
+                    </div>
+                {% endif %}
+
                 {% for flash_message in app.flashes('success') %}
                     <div class="alert alert-success">
                         <i class="ci-check-circle me-2"></i>
@@ -61,6 +69,20 @@
                         {{ form_end(form) }}
                     </div>
                 </div>
+
+                {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series.id) %}
+                    <div class="card shadow my-4 border-danger">
+                        <div class="card-body">
+                            <h5 class="card-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ 'series.delete.danger_zone_title'|trans }}</h5>
+                            <p class="card-text text-muted">{{ 'series.delete.description'|trans }}</p>
+                            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-{{ series.id }}">
+                                <i class="bi bi-trash me-1"></i>{{ 'series.delete.button'|trans }}
+                            </button>
+                        </div>
+                    </div>
+
+                    {{ include('_competition_series_delete_modal.html.twig', {id: series.id, name: series.name}) }}
+                {% endif %}
             </div>
         </div>
     </div>

@@ -1453,6 +1453,8 @@
     "rejected": "La demande de fusion a été rejetée."
     "rejection_reason_required": "Le motif de rejet est requis."
     "validation_failed": "Le puzzle cible, le nom et le nombre de pièces sont requis."
+  "competition_approvals":
+    "back_title": "Admin — approbations"
 "pending_proposals":
   "badge": "Proposition en attente"
   "go_to_admin": "Aller à l'administration"
@@ -2430,6 +2432,15 @@ competition:
     "rejected": "Compétition rejetée. Le créateur a été notifié."
     "rejection_reason_required": "Veuillez fournir une raison de rejet."
     "converted_to_series": "L'événement a été converti en série récurrente."
+    "deleted": "L'événement a été supprimé."
+  "delete":
+    "button": "Supprimer l'événement"
+    "confirm_button": "Supprimer définitivement"
+    "danger_zone_title": "Zone de danger"
+    "description": "Supprimer cet événement efface toutes ses manches, participants, attributions de puzzles et dispositions de tables. Cette action est irréversible."
+    "modal_title": "Supprimer l'événement"
+    "modal_body": "Êtes-vous sûr de vouloir supprimer « %name% » ? Cette action est irréversible."
+    "modal_cancel": "Annuler"
   "convert_to_series":
     "title": "Convertir en série récurrente"
     "description": "Convertissez cet événement en une série récurrente. L'événement actuel deviendra la première édition de la nouvelle série. Tous les participants, tours et données seront préservés."
@@ -2500,6 +2511,16 @@ series:
   "upcoming_editions": "Prochaines éditions"
   "past_editions": "Éditions passées"
   "no_editions": "Pas encore d'éditions. Chaque édition correspond à une occurrence de cet événement récurrent — ajoutez la première."
+  "delete":
+    "button": "Supprimer la série"
+    "confirm_button": "Supprimer définitivement"
+    "danger_zone_title": "Zone de danger"
+    "description": "Supprimer cette série efface toutes ses éditions, manches, participants et attributions. Cette action est irréversible."
+    "modal_title": "Supprimer la série"
+    "modal_body": "Êtes-vous sûr de vouloir supprimer « %name% » et TOUTES ses éditions ? Cette action est irréversible."
+    "modal_cancel": "Annuler"
+  "flash":
+    "deleted": "La série a été supprimée."
 edition:
   "edit": "Modifier l'édition"
   "rounds_hint": "Après avoir créé l'édition, vous pourrez ajouter des manches avec des puzzles et des temps limites depuis la page de gestion."
@@ -2510,8 +2531,15 @@ edition:
     "minutes_limit": "Limite de temps (minutes)"
     "registration_link": "URL d'inscription"
     "results_link": "URL des résultats"
+  "delete":
+    "button": "Supprimer l'édition"
+    "confirm_button": "Supprimer définitivement"
+    "modal_title": "Supprimer l'édition"
+    "modal_body": "Êtes-vous sûr de vouloir supprimer « %name% » ? Cette action est irréversible."
+    "modal_cancel": "Annuler"
   "flash":
     "created": "Édition ajoutée."
+    "deleted": "L'édition a été supprimée."
 
 # Referral Program
 "referral":

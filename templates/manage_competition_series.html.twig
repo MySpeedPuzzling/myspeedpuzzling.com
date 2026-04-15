@@ -12,14 +12,23 @@
     <div class="pb-4">
         <h1 class="h2">{{ series.name }}</h1>
 
-        <div class="mb-3">
-            <a href="{{ path('edit_competition_series', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary me-2">
+        <div class="mb-3 d-flex flex-wrap gap-2">
+            <a href="{{ path('edit_competition_series', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-pencil me-1"></i>{{ 'series.edit_series'|trans }}
             </a>
             <a href="{{ path('add_edition', {'seriesId': series.id, return: path('manage_competition_series', {seriesId: series.id}), return_title: 'series.manage'|trans}) }}" class="btn btn-outline-primary">
                 <i class="bi bi-plus-lg me-1"></i>{{ 'series.add_edition'|trans }}
             </a>
+            {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series.id) %}
+                <button type="button" class="btn btn-outline-danger ms-auto" data-bs-toggle="modal" data-bs-target="#deleteCompetitionSeriesModal-{{ series.id }}" title="{{ 'series.delete.button'|trans }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            {% endif %}
         </div>
+
+        {% if is_granted(constant('SpeedPuzzling\\Web\\Security\\CompetitionSeriesDeleteVoter::COMPETITION_SERIES_DELETE'), series.id) %}
+            {{ include('_competition_series_delete_modal.html.twig', {id: series.id, name: series.name}) }}
+        {% endif %}
 
         {% for flash_message in app.flashes('success') %}
             <div class="alert alert-success">

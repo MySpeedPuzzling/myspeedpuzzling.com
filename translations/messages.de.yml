@@ -1443,6 +1443,8 @@
   "rotate_right": "Nach rechts drehen"
   "apply": "Anwenden"
 "admin":
+  "competition_approvals":
+    "back_title": "Admin — Genehmigungen"
   "puzzle_change_request":
     "approved": "Änderungsanfrage wurde genehmigt und das Puzzle aktualisiert."
     "rejected": "Änderungsanfrage wurde abgelehnt."
@@ -2429,6 +2431,15 @@ qr_code:
     "rejected": "Wettbewerb abgelehnt. Der Ersteller wurde benachrichtigt."
     "rejection_reason_required": "Bitte geben Sie einen Ablehnungsgrund an."
     "converted_to_series": "Veranstaltung wurde in eine wiederkehrende Serie umgewandelt."
+    "deleted": "Veranstaltung wurde gelöscht."
+  "delete":
+    "button": "Veranstaltung löschen"
+    "confirm_button": "Endgültig löschen"
+    "danger_zone_title": "Gefahrenzone"
+    "description": "Beim Löschen dieser Veranstaltung werden alle zugehörigen Runden, Teilnehmer, Puzzle-Zuweisungen und Tischlayouts entfernt. Dies kann nicht rückgängig gemacht werden."
+    "modal_title": "Veranstaltung löschen"
+    "modal_body": "Möchten Sie \"%name%\" wirklich löschen? Dies kann nicht rückgängig gemacht werden."
+    "modal_cancel": "Abbrechen"
   "convert_to_series":
     "title": "In wiederkehrende Serie umwandeln"
     "description": "Wandeln Sie diese Veranstaltung in eine wiederkehrende Serie um. Die aktuelle Veranstaltung wird zur ersten Ausgabe der neuen Serie. Alle Teilnehmer, Runden und Daten bleiben erhalten."
@@ -2499,6 +2510,16 @@ qr_code:
   "upcoming_editions": "Kommende Ausgaben"
   "past_editions": "Vergangene Ausgaben"
   "no_editions": "Noch keine Editionen. Jede Edition ist ein Termin dieser wiederkehrenden Veranstaltung — fügen Sie die erste hinzu."
+  "delete":
+    "button": "Serie löschen"
+    "confirm_button": "Endgültig löschen"
+    "danger_zone_title": "Gefahrenzone"
+    "description": "Beim Löschen dieser Serie werden alle zugehörigen Ausgaben, Runden, Teilnehmer und Zuweisungen entfernt. Dies kann nicht rückgängig gemacht werden."
+    "modal_title": "Serie löschen"
+    "modal_body": "Möchten Sie \"%name%\" und ALLE zugehörigen Ausgaben wirklich löschen? Dies kann nicht rückgängig gemacht werden."
+    "modal_cancel": "Abbrechen"
+  "flash":
+    "deleted": "Serie wurde gelöscht."
 "edition":
   "edit": "Ausgabe bearbeiten"
   "rounds_hint": "Nach dem Erstellen der Edition können Sie Runden mit Puzzles und Zeitlimits auf der Verwaltungsseite hinzufügen."
@@ -2509,8 +2530,15 @@ qr_code:
     "minutes_limit": "Zeitlimit (Minuten)"
     "registration_link": "Registrierungs-URL"
     "results_link": "Ergebnis-URL"
+  "delete":
+    "button": "Ausgabe löschen"
+    "confirm_button": "Endgültig löschen"
+    "modal_title": "Ausgabe löschen"
+    "modal_body": "Möchten Sie \"%name%\" wirklich löschen? Dies kann nicht rückgängig gemacht werden."
+    "modal_cancel": "Abbrechen"
   "flash":
     "created": "Ausgabe hinzugefügt."
+    "deleted": "Ausgabe wurde gelöscht."
 
 # Referral Program
 "referral":

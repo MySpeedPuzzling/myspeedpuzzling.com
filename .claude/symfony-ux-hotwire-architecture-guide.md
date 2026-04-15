@@ -1115,3 +1115,58 @@ When implementing a new feature:
 - [ ] State (wishlist, etc.) fetched as ID arrays, not per-item queries
 - [ ] List items have `id` attributes for stream targeting
 - [ ] No Live Components for repeated list elements
+
+---
+
+## Gotchas (learned the hard way)
+
+### 1. Forms inside a modal MUST set an explicit `action:`
+
+**Symptom:** You submit a form in the turbo-frame modal. Modal closes cleanly, no JS/PHP errors, HTTP 200 in the network tab — but nothing was saved and no flash appears.
+
+**Cause:** `form_start(form)` without an `action:` option renders `<form>` with no `action` attribute. Browsers default that to the **current page URL**. Inside the global modal, the current page is the *hosting page* (e.g. `/en/player-profile/{id}`), NOT the URL that was used to fetch the modal content. The POST hits the hosting controller, which happily renders its page (which includes an empty `<turbo-frame id="modal-frame">` from `base.html.twig`). Turbo matches the empty frame, swaps it into the modal → `dynamic_modal_controller` sees empty frame → closes. No error, no data saved.
+
+**Fix:** always set an explicit action on the modal form:
+
+```twig
+{{ form_start(form, {
+    action: path('edit_time', {timeId: solved_puzzle.timeId, context: return_context}),
+    ...
+}) }}
+```
+
+If you reuse a shared form partial for both full-page and modal contexts, thread `form_action` through as an optional variable and pass `path(...)` from the modal template only.
+
+### 2. `getPreferredFormat() === STREAM_FORMAT` is NOT a modal-only check
+
+**Symptom:** Full-page form submission saves the record but leaves the user stuck on the edit page instead of redirecting to the intended URL.
+
+**Cause:** Turbo 8 includes `text/vnd.turbo-stream.html` in the `Accept` header for **every** form submission it handles — including full-page flows. So `$request->getPreferredFormat() === TurboBundle::STREAM_FORMAT` is `true` for both modal AND full-page submits. If your success branch returns a `<turbo-stream action="refresh">` in both cases, the full-page flow refreshes the edit URL instead of following the redirect.
+
+**Fix:** gate the stream response on the modal frame header:
+
+```php
+if ($request->headers->get('Turbo-Frame') === 'modal-frame'
+    && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+    return $this->render('..._success_stream.html.twig');
+}
+return $this->redirect(...);
+```
+
+### 3. `<turbo-stream action="refresh">` wipes toasts appended in the same response
+
+**Symptom:** You emit `<turbo-stream action="append" target="toast-container">` followed by `<turbo-stream action="refresh">`. The toast flashes for a frame, then disappears.
+
+**Cause:** Turbo 8 refresh morphs the page. Elements present in the current DOM but NOT in the fresh HTML (the just-appended toast) are removed during morph.
+
+**Fix:** pick one lane.
+- **Targeted updates + toast (no refresh):** do the DOM updates you need via specific `action="replace"` / `action="append"` streams, append the toast, stay on the page.
+- **Refresh flow:** use the flash mechanism instead — `$this->addFlash('success', ...)` before returning the stream. The refreshed page renders the flash as an alert via `base.html.twig`.
+
+### 4. `app.request.uri` inside a Live Component is the component endpoint on re-render
+
+**Symptom:** A link rendered inside a Live Component with `href="{{ app.request.uri }}"` (or a query-string capture) points at `/_live_component/...` after any live re-render (filter toggle, category switch, etc.).
+
+**Cause:** Live Components re-render as their own HTTP request. During re-render, `app.request.uri` is the component's AJAX endpoint, not the hosting page URL.
+
+**Fix:** don't capture the hosting-page URL inside a Live Component. Either (a) pass a stable identifier like a context enum string and let the server resolve the URL, or (b) if you really need a URL, accept it as a `#[LiveProp]` from the embedding template.

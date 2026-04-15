@@ -11,9 +11,7 @@
                       method="post"
                       class="d-inline"
                       data-turbo-confirm="{{ 'edit_time.delete_modal_confirm'|trans }}">
-                    {% if return_url %}
-                        <input type="hidden" name="return_url" value="{{ return_url }}">
-                    {% endif %}
+                    <input type="hidden" name="context" value="{{ return_context }}">
                     <button type="submit" class="btn btn-sm btn-outline-danger">
                         <i class="ci-trash"></i> {{ 'edit_time.delete_button'|trans }}
                     </button>

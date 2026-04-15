@@ -6,7 +6,8 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
 use SpeedPuzzling\Web\Message\DeletePuzzleSolvingTime;
-use SpeedPuzzling\Web\Services\ReturnUrlValidator;
+use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
+use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +24,7 @@ final class DeleteTimeController extends AbstractController
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
-        readonly private ReturnUrlValidator $returnUrlValidator,
+        readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
     ) {
     }
 
@@ -40,27 +41,32 @@ final class DeleteTimeController extends AbstractController
     )]
     public function __invoke(Request $request, #[CurrentUser] User $user, string $timeId): Response
     {
+        $contextValue = $request->isMethod('POST')
+            ? $request->request->getString('context')
+            : $request->query->getString('context');
+        $context = EditTimeReturnContext::tryFrom($contextValue) ?? EditTimeReturnContext::Profile;
+
+        // Capture the puzzleId for the puzzle-detail context before the solving time is deleted.
+        $solvedPuzzle = $context === EditTimeReturnContext::PuzzleDetail
+            ? $this->getPlayerSolvedPuzzles->byTimeId($timeId)
+            : null;
+
         $this->messageBus->dispatch(
             new DeletePuzzleSolvingTime($user->getUserIdentifier(), $timeId),
         );
 
+        $this->addFlash('success', $this->translator->trans('flashes.time_deleted'));
+
         if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
-            return $this->render('delete-time_success_stream.html.twig', [
-                'message' => $this->translator->trans('flashes.time_deleted'),
-            ]);
+            return $this->render('delete-time_success_stream.html.twig');
         }
 
-        $this->addFlash('success', $this->translator->trans('flashes.time_deleted'));
+        if ($context === EditTimeReturnContext::PuzzleDetail && $solvedPuzzle !== null) {
+            return $this->redirectToRoute('puzzle_detail', ['puzzleId' => $solvedPuzzle->puzzleId]);
+        }
 
-        $returnUrl = $this->returnUrlValidator->sanitize(
-            $request->isMethod('POST')
-                ? $request->request->getString('return_url')
-                : $request->query->getString('return_url'),
-            $request,
-        );
-
-        return $this->redirect($returnUrl ?? $this->generateUrl('my_profile'));
+        return $this->redirectToRoute('my_profile');
     }
 }

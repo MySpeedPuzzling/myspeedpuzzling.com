@@ -45,7 +45,7 @@
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                         <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
-                        {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, page_url: this.pageUrl}) }}
+                        {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
                     </div>
                 {% else %}
                     <div>
@@ -112,7 +112,7 @@
                                             {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
                                             <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
-                                            {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, page_url: this.pageUrl}) }}
+                                            {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
                                         </span>
                                     </div>
 
@@ -413,7 +413,7 @@
 
                             {% if is_own_row %}
                                 <br>
-                                {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, page_url: this.pageUrl}) }}
+                                {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, context: 'puzzle-detail'}) }}
                             {% endif %}
 
                             {% if aggregated_solver|length > 1 %}
@@ -461,7 +461,7 @@
 
                                                         {% if is_own_row %}
                                                             <br>
-                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, page_url: this.pageUrl}) }}
+                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
                                                         {% endif %}
                                                     </span>
 

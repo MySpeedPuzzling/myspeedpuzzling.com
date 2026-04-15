@@ -15,8 +15,9 @@ use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
-use SpeedPuzzling\Web\Services\ReturnUrlValidator;
+use SpeedPuzzling\Web\Results\SolvedPuzzleDetail;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\EditTimeReturnContext;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -41,7 +42,6 @@ final class EditTimeController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
-        readonly private ReturnUrlValidator $returnUrlValidator,
     ) {
     }
 
@@ -71,15 +71,10 @@ final class EditTimeController extends AbstractController
         }
 
         $isModalRequest = $request->headers->get('Turbo-Frame') === 'modal-frame';
-        $returnUrl = $this->returnUrlValidator->sanitize(
-            $request->isMethod('POST')
-                ? $request->request->getString('return_url')
-                : $request->query->getString('return_url'),
-            $request,
-        );
-        $returnTitle = $request->isMethod('POST')
-            ? $request->request->getString('return_title')
-            : $request->query->getString('return_title');
+        $contextValue = $request->isMethod('POST')
+            ? $request->request->getString('context')
+            : $request->query->getString('context');
+        $context = EditTimeReturnContext::tryFrom($contextValue) ?? EditTimeReturnContext::Profile;
 
         $data = new EditPuzzleSolvingTimeFormData();
 
@@ -129,17 +124,15 @@ final class EditTimeController extends AbstractController
                     EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
                 );
 
+                $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
+
                 if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                     $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
-                    return $this->render('edit-time_success_stream.html.twig', [
-                        'message' => $this->translator->trans('flashes.time_edited'),
-                    ]);
+                    return $this->render('edit-time_success_stream.html.twig');
                 }
 
-                $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
-
-                return $this->redirect($returnUrl ?? $this->generateUrl('my_profile'));
+                return $this->redirect($this->resolveReturnUrl($context, $solvedPuzzle));
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
@@ -170,8 +163,9 @@ final class EditTimeController extends AbstractController
             'active_stopwatch' => null,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'initial_mode' => $initialMode,
-            'return_url' => $returnUrl,
-            'return_title' => $returnTitle,
+            'return_context' => $context->value,
+            'return_url' => $this->resolveReturnUrl($context, $solvedPuzzle),
+            'return_title' => $this->resolveReturnTitle($context, $solvedPuzzle),
         ];
 
         if ($isModalRequest) {
@@ -179,5 +173,21 @@ final class EditTimeController extends AbstractController
         }
 
         return $this->render('edit-time.html.twig', $templateParams);
+    }
+
+    private function resolveReturnUrl(EditTimeReturnContext $context, SolvedPuzzleDetail $solvedPuzzle): string
+    {
+        return match ($context) {
+            EditTimeReturnContext::PuzzleDetail => $this->generateUrl('puzzle_detail', ['puzzleId' => $solvedPuzzle->puzzleId]),
+            EditTimeReturnContext::Profile => $this->generateUrl('my_profile'),
+        };
+    }
+
+    private function resolveReturnTitle(EditTimeReturnContext $context, SolvedPuzzleDetail $solvedPuzzle): string
+    {
+        return match ($context) {
+            EditTimeReturnContext::PuzzleDetail => $solvedPuzzle->puzzleName,
+            EditTimeReturnContext::Profile => $this->translator->trans('my_profile.title'),
+        };
     }
 }

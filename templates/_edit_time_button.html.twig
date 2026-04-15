@@ -1,15 +1,11 @@
 {# Quick-edit button that opens the edit-time form in the global turbo-frame modal.
    Inputs:
      - timeId (string, required)
-     - return_title (string, optional, pre-translated text) — rendered as "Back to {title}" on the full-page fallback
-     - page_url (string, optional) — pass explicitly from Live Components, where `app.request.uri`
-       points at the component endpoint during live re-renders rather than the hosting page
+     - context (string, required) — one of EditTimeReturnContext values:
+         'profile' (redirects back to the owner's profile)
+         'puzzle-detail' (redirects back to the puzzle detail page of the edited time)
 #}
-{% set edit_params = {timeId: timeId, return_url: page_url|default(app.request.uri)} %}
-{% if return_title|default(null) %}
-    {% set edit_params = edit_params|merge({return_title: return_title}) %}
-{% endif %}
-<a href="{{ path('edit_time', edit_params) }}"
+<a href="{{ path('edit_time', {timeId: timeId, context: context}) }}"
    data-turbo-frame="modal-frame"
    class="btn btn-sm btn-outline-dark p-1 border-0 ms-1"
    title="{{ 'forms.edit'|trans }}"

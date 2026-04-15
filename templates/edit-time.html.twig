@@ -62,11 +62,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'edit_time.delete_modal_discard_button'|trans }}</button>
-                    {% set delete_params = {timeId: solved_puzzle.timeId} %}
-                    {% if return_url|default(null) %}
-                        {% set delete_params = delete_params|merge({return_url: return_url}) %}
-                    {% endif %}
-                    <a data-turbo-prefetch="false" href="{{ path('delete_time', delete_params) }}" class="btn btn-primary btn-sm">{{ 'edit_time.delete_modal_confirm_button'|trans }}</a>
+                    <a data-turbo-prefetch="false" href="{{ path('delete_time', {timeId: solved_puzzle.timeId, context: return_context}) }}" class="btn btn-primary btn-sm">{{ 'edit_time.delete_modal_confirm_button'|trans }}</a>
                 </div>
             </div>
         </div>

@@ -546,6 +546,22 @@ button[data-submit-prevention-target] {
     }
 }
 
+.brand-filter-wrapper {
+    .ts-wrapper.single .ts-control {
+        min-height: auto;
+        padding: 0.25rem 2rem 0.25rem 0.5rem !important;
+        font-size: 0.875rem;
+        flex-wrap: nowrap;
+
+        .item {
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+}
+
 .country-select-wrapper {
     .ts-wrapper {
         .ts-control {

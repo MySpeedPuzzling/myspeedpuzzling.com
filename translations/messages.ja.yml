@@ -761,6 +761,8 @@
   "features_options": "機能オプション"
   "hide_ranking": "ランキングとスキルを非表示"
   "hide_ranking_help": "スキルティアとRatingランキングが非表示になります。MSP Ratingラダーにも表示されません。あなたのデータはパズル難易度や他のプレイヤーのランキング計算には引き続き使用されます。"
+  "hide_time_predictions": "タイム予測を非表示"
+  "hide_time_predictions_help": "あなたの個人的なタイム予測がパズルページやタイムの振り返りに表示されなくなります。予測タイムのプレッシャーやがっかりを気にせず、ただパズルを楽しみたい場合はオフにしてください — これはただの魔法のような計算ですので、ストレスをかけたくありません！"
   "hide_streak": "連続記録を非表示"
   "hide_streak_help": "あなたの連続記録が統計ページに表示されなくなります。"
 "puzzle_detail":
@@ -2127,6 +2129,7 @@ puzzle_intelligence:
         last_time: "前回のタイム: %time%"
         expected_improvement: "↓ %delta% 速い (%percent%%)"
         not_available_generic: "このピース数の予測にはもっと多くの完成データが必要です。"
+        time_predictions_opted_out: "タイム予測をオフにしています。"
         difficulty_for_you: "あなたのレベルでの難易度"
         personal_explanation: "このパズルの%count%回の過去の完成に基づく予測。"
         personal_attempt_explanation: "%count%回の過去の完成と上達トレンドに基づく、第%attempt%回目の予測。"

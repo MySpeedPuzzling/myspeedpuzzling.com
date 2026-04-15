@@ -658,6 +658,8 @@
   "features_options": "Options de fonctionnalités"
   "hide_ranking": "Masquer mon classement et mes compétences"
   "hide_ranking_help": "Votre niveau de compétence et classement Rating seront masqués. Vous n'apparaîtrez pas dans le classement MSP Rating. Vos données sont toujours utilisées dans les calculs de difficulté des puzzles et des classements des autres joueurs."
+  "hide_time_predictions": "Masquer les prédictions de temps"
+  "hide_time_predictions_help": "Vos prédictions de temps personnelles seront masquées sur les pages des puzzles et les récapitulatifs de temps. Désactivez-les si vous voulez simplement profiter du puzzle, sans la pression ou la déception d'un temps prédit — ce ne sont que nos calculs magiques, nous ne voulons pas vous stresser !"
   "hide_streak": "Masquer ma série"
   "hide_streak_help": "Votre série ne sera pas affichée sur votre page de statistiques."
 "puzzle_detail":
@@ -2139,6 +2141,7 @@ puzzle_intelligence:
         last_time: "Votre dernier temps : %time%"
         expected_improvement: "↓ %delta% plus rapide (%percent%%)"
         not_available_generic: "Nous avons besoin de plus de données de résolution pour ce nombre de pièces afin de prédire votre temps."
+        time_predictions_opted_out: "Vous avez désactivé les prédictions de temps."
         difficulty_for_you: "Difficulté pour votre niveau"
         personal_explanation: "Basé sur vos %count% résolutions précédentes de ce puzzle."
         personal_attempt_explanation: "Prédiction pour votre tentative n°%attempt%, basée sur vos %count% résolutions précédentes et votre tendance d'amélioration."

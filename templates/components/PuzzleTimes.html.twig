@@ -56,7 +56,7 @@
                     </div>
                     {% if isNewPb %}
                         <div class="text-success">
-                            <i class="bi bi-star text-warning me-1"></i>
+                            <i class="bi bi-star-fill text-warning me-1"></i>
                             {{ 'puzzle_times.my_attempts.latest_is_fastest_note'|trans }}
                         </div>
                     {% else %}
@@ -66,7 +66,7 @@
                             {% if myBest.finishedAt is not null %}
                                 <span class="text-muted">({{ myBest.finishedAt|date('d.m.Y') }})</span>
                             {% endif %}
-                            <i class="bi bi-star text-warning ms-1"></i>
+                            <i class="bi bi-star-fill text-warning ms-1"></i>
                         </div>
                     {% endif %}
                 {% endif %}
@@ -105,7 +105,7 @@
                                         </span>
                                         <span>
                                             {% if row.isBest %}
-                                                <i class="bi bi-star text-warning me-1" style="font-size: 0.75rem;"></i>
+                                                <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
                                             {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
                                             <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
@@ -124,7 +124,7 @@
                                                     {% if delta < 0 %}
                                                         <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
                                                     {% elseif delta > 0 %}
-                                                        <span class="text-warning font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                        <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
                                                     {% else %}
                                                         <span class="text-muted font-monospace">+00:00:00</span>
                                                     {% endif %}
@@ -134,8 +134,8 @@
                                             {% if showBestDelta %}
                                                 {% set delta_best = row.attempt.time - myBest.time %}
                                                 <div>
-                                                    <i class="bi bi-star text-warning me-1" style="font-size: 0.7rem;"></i>
-                                                    <span class="text-warning font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                                    <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
+                                                    <span class="text-danger font-monospace">+{{ delta_best|puzzlingTime }}</span>
                                                 </div>
                                             {% endif %}
                                         </div>

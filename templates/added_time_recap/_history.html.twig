@@ -25,7 +25,7 @@
 
                 {% if is_new_pb %}
                     <div class="alert alert-success d-flex align-items-center py-2 mb-3">
-                        <i class="bi bi-star fs-5 me-2"></i>
+                        <i class="bi bi-star-fill fs-5 me-2"></i>
                         {{ 'added_time_recap.history.new_personal_best'|trans }}
                     </div>
                 {% else %}
@@ -61,7 +61,7 @@
                                 </span>
                                 <span>
                                     {% if is_best %}
-                                        <i class="bi bi-star text-warning me-1" style="font-size: 0.75rem;"></i>
+                                        <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
                                     {% endif %}
                                     <i class="bi bi-stopwatch text-muted me-1"></i>
                                     <span class="font-monospace">{{ result.time|puzzlingTime }}</span>
@@ -77,7 +77,7 @@
                                             {% if delta < 0 %}
                                                 <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
                                             {% elseif delta > 0 %}
-                                                <span class="text-warning font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
                                             {% else %}
                                                 <span class="text-muted font-monospace">+00:00:00</span>
                                             {% endif %}
@@ -87,8 +87,8 @@
                                     {% if showBestDelta %}
                                         {% set delta_best = result.time - best_time %}
                                         <div>
-                                            <i class="bi bi-star text-warning me-1" style="font-size: 0.7rem;"></i>
-                                            <span class="text-warning font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                            <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
+                                            <span class="text-danger font-monospace">+{{ delta_best|puzzlingTime }}</span>
                                         </div>
                                     {% endif %}
                                 </div>
@@ -124,8 +124,8 @@
                                     <span class="text-success font-monospace">-00:03:22</span>
                                 </div>
                                 <div>
-                                    <i class="bi bi-star text-warning me-1" style="font-size: 0.7rem;"></i>
-                                    <span class="text-warning font-monospace">+00:01:44</span>
+                                    <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
+                                    <span class="text-danger font-monospace">+00:01:44</span>
                                 </div>
                             </div>
                         </div>
@@ -143,11 +143,11 @@
                             <div class="fs-xs text-end mt-1">
                                 <div>
                                     <i class="bi bi-arrow-return-left text-muted me-1"></i>
-                                    <span class="text-warning font-monospace">+00:05:10</span>
+                                    <span class="text-danger font-monospace">+00:05:10</span>
                                 </div>
                                 <div>
-                                    <i class="bi bi-star text-warning me-1" style="font-size: 0.7rem;"></i>
-                                    <span class="text-warning font-monospace">+00:05:06</span>
+                                    <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
+                                    <span class="text-danger font-monospace">+00:05:06</span>
                                 </div>
                             </div>
                         </div>
@@ -158,7 +158,7 @@
                                     <span class="font-monospace">25.03.2026</span>
                                 </span>
                                 <span>
-                                    <i class="bi bi-star text-warning me-1" style="font-size: 0.75rem;"></i>
+                                    <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
                                     <i class="bi bi-stopwatch text-muted me-1"></i>
                                     <span class="font-monospace">01:00:27</span>
                                 </span>

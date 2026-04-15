@@ -203,6 +203,20 @@ puzzle_overview:
     title: "Puzzles"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
 
+puzzle_times:
+    my_attempts:
+        my_time: "My time:"
+        last: "Last:"
+        fastest: "Fastest:"
+        rank: "Rank %rank% of %total%"
+        jump_to_me: "Jump to me"
+        new_personal_best: "Latest is your new personal best:"
+        show_all: "Show all my times (%count%)"
+        history_date: "Date"
+        history_time: "Time"
+        history_delta_previous: "vs Previous"
+        history_delta_best: "vs Best"
+
 stopwatch:
     meta:
         title: "Stopwatch"

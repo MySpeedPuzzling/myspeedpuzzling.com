@@ -862,10 +862,6 @@
   "history":
     "title": "Tu Historial en Este Puzzle"
     "first_time": "¡Esta es tu primera vez resolviendo este puzzle! Resuélvelo de nuevo para seguir tu mejora."
-    "date": "Fecha"
-    "time": "Tiempo"
-    "delta_previous": "vs Anterior"
-    "delta_best": "vs Mejor"
     "new_personal_best": "¡Nuevo récord personal!"
     "distance_from_best": "%time% de tu récord personal"
     "current_solve": "actual"

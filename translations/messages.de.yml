@@ -844,10 +844,6 @@
   "history":
     "title": "Deine Geschichte mit diesem Puzzle"
     "first_time": "Dies ist dein erstes Mal bei diesem Puzzle! Löse es erneut, um deine Verbesserung zu verfolgen."
-    "date": "Datum"
-    "time": "Zeit"
-    "delta_previous": "vs Vorherige"
-    "delta_best": "vs Beste"
     "new_personal_best": "Neue persönliche Bestzeit!"
     "distance_from_best": "%time% von deiner persönlichen Bestzeit"
     "current_solve": "aktuell"

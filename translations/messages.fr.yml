@@ -863,10 +863,6 @@
   "history":
     "title": "Votre historique sur ce puzzle"
     "first_time": "C'est la première fois que vous résolvez ce puzzle ! Résolvez-le à nouveau pour suivre votre progression."
-    "date": "Date"
-    "time": "Temps"
-    "delta_previous": "vs Précédent"
-    "delta_best": "vs Meilleur"
     "new_personal_best": "Nouveau record personnel !"
     "distance_from_best": "%time% de votre record personnel"
     "current_solve": "actuel"

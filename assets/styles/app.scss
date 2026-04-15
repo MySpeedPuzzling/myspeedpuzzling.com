@@ -925,13 +925,6 @@ div[data-countdown-target] {
     transform: rotate(180deg);
 }
 
-@media (max-width: 575.98px) {
-    .attempts-history-table td,
-    .attempts-history-table th {
-        font-size: $font-size-xs;
-    }
-}
-
 .puzzle-detail-chart-placeholder {
     height: 120px;
     background: url('../img/puzzle-detail-chart-placeholder.png') center center no-repeat;

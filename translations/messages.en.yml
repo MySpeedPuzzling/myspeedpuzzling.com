@@ -1046,10 +1046,6 @@ added_time_recap:
     history:
         title: "Your History on This Puzzle"
         first_time: "This is your first time solving this puzzle! Solve it again to track your improvement."
-        date: "Date"
-        time: "Time"
-        delta_previous: "vs Previous"
-        delta_best: "vs Best"
         new_personal_best: "New personal best!"
         distance_from_best: "%time% from your personal best"
         current_solve: "current"

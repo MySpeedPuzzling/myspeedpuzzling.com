@@ -900,10 +900,6 @@
   "history":
     "title": "このパズルの履歴"
     "first_time": "このパズルの初完成です！もう一度解いて、上達を追跡しましょう。"
-    "date": "日付"
-    "time": "タイム"
-    "delta_previous": "前回比"
-    "delta_best": "ベスト比"
     "new_personal_best": "自己ベスト更新！"
     "distance_from_best": "自己ベストまであと%time%"
     "current_solve": "今回"

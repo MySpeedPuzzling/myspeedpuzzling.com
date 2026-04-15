@@ -14,7 +14,6 @@
                     {{ 'added_time_recap.history.first_time'|trans }}
                 </p>
             {% else %}
-                {# Find personal best time #}
                 {% set best_time = null %}
                 {% for result in timed_history %}
                     {% if best_time is null or result.time < best_time %}
@@ -22,7 +21,6 @@
                     {% endif %}
                 {% endfor %}
 
-                {# Check if current solve is the new personal best #}
                 {% set is_new_pb = (solved_puzzle.time == best_time) %}
 
                 {% if is_new_pb %}
@@ -37,72 +35,66 @@
                     </div>
                 {% endif %}
 
-                {# Compact table #}
-                <div class="table-responsive">
-                    <table class="table table-sm table-borderless mb-0 fs-sm attempts-history-table">
-                        <thead>
-                            <tr class="text-muted">
-                                <th>{{ 'added_time_recap.history.date'|trans }}</th>
-                                <th>{{ 'added_time_recap.history.time'|trans }}</th>
-                                <th>{{ 'added_time_recap.history.delta_previous'|trans }}</th>
-                                <th>{{ 'added_time_recap.history.delta_best'|trans }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {# Pre-compute previous times (chronological predecessor) for each entry #}
-                            {% set prev_times = {} %}
-                            {% set prev = null %}
-                            {% for result in timed_history %}
-                                {% set prev_times = prev_times|merge({(result.timeId): prev}) %}
-                                {% set prev = result.time %}
-                            {% endfor %}
+                {% set prev_times = {} %}
+                {% set prev = null %}
+                {% for result in timed_history %}
+                    {% set prev_times = prev_times|merge({(result.timeId): prev}) %}
+                    {% set prev = result.time %}
+                {% endfor %}
 
-                            {% for result in timed_history|reverse %}
-                                {% set is_current = (result.timeId == solved_puzzle.timeId) %}
-                                {% set is_best = (result.time == best_time) %}
-                                {% set previous_time = prev_times[result.timeId] %}
-                                <tr{% if is_current %} class="table-active fw-medium"{% endif %}>
-                                    <td>
-                                        {{ (result.finishedAt ?? result.trackedAt)|date('d.m.Y') }}
-                                        {% if is_current %}
-                                            <span class="badge bg-primary ms-1">{{ 'added_time_recap.history.current_solve'|trans }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ result.time|puzzlingTime }}
-                                        {% if is_best %}
-                                            <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if previous_time is not null %}
-                                            {% set delta = result.time - previous_time %}
+                <div class="attempts-history-list">
+                    {% for result in timed_history|reverse %}
+                        {% set is_current = (result.timeId == solved_puzzle.timeId) %}
+                        {% set is_best = (result.time == best_time) %}
+                        {% set previous_time = prev_times[result.timeId] %}
+                        {% set showPrevDelta = previous_time is not null %}
+                        {% set showBestDelta = not is_best %}
+
+                        <div class="attempts-history-entry fs-sm {% if not loop.first %}border-top pt-2 mt-2{% endif %}{% if is_current %} fw-medium{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-calendar3 text-muted me-1"></i>
+                                    <span class="font-monospace">{{ (result.finishedAt ?? result.trackedAt)|date('d.m.Y') }}</span>
+                                    {% if is_current %}
+                                        <span class="badge bg-primary ms-1">{{ 'added_time_recap.history.current_solve'|trans }}</span>
+                                    {% endif %}
+                                </span>
+                                <span>
+                                    {% if is_best %}
+                                        <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
+                                    {% endif %}
+                                    <i class="bi bi-stopwatch text-muted me-1"></i>
+                                    <span class="font-monospace">{{ result.time|puzzlingTime }}</span>
+                                </span>
+                            </div>
+
+                            {% if showPrevDelta or showBestDelta %}
+                                <div class="fs-xs text-end mt-1">
+                                    {% if showPrevDelta %}
+                                        {% set delta = result.time - previous_time %}
+                                        <div>
                                             {% if delta < 0 %}
-                                                <span class="text-success">-{{ (delta|abs)|puzzlingTime }}</span>
+                                                <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
                                             {% elseif delta > 0 %}
-                                                <span class="text-danger">+{{ delta|puzzlingTime }}</span>
+                                                <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
                                             {% else %}
-                                                <span class="text-muted">=</span>
+                                                <span class="text-muted font-monospace">=</span>
                                             {% endif %}
-                                        {% else %}
-                                            <span class="text-muted">&mdash;</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
+                                        </div>
+                                    {% endif %}
+
+                                    {% if showBestDelta %}
                                         {% set delta_best = result.time - best_time %}
-                                        {% if delta_best == 0 %}
-                                            <i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i>
-                                        {% else %}
-                                            <span class="text-muted">+{{ delta_best|puzzlingTime }}</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                        <div>
+                                            <span class="text-muted font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
                 </div>
 
-                {# Chart — only when more than 1 timed result #}
                 {% if timed_history|length > 1 %}
                     <div class="mt-3">
                         <twig:Chart:PlayerPuzzleTimesChart :results="timed_history" />
@@ -112,36 +104,53 @@
         {% else %}
             <div class="position-relative">
                 <div style="filter: blur(5px); user-select: none;" aria-hidden="true">
-                    <table class="table table-sm table-borderless mb-0 fs-sm">
-                        <thead>
-                            <tr class="text-muted">
-                                <th>Date</th>
-                                <th>Time</th>
-                                <th>vs Previous</th>
-                                <th>vs Best</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="table-active fw-medium">
-                                <td>31.03.2026</td>
-                                <td>01:02:15</td>
-                                <td><span class="text-success">-00:03:22</span></td>
-                                <td><span class="text-muted">+00:01:44</span></td>
-                            </tr>
-                            <tr>
-                                <td>28.03.2026</td>
-                                <td>01:05:37</td>
-                                <td><span class="text-danger">+00:05:10</span></td>
-                                <td><span class="text-muted">+00:05:06</span></td>
-                            </tr>
-                            <tr>
-                                <td>25.03.2026</td>
-                                <td>01:00:27</td>
-                                <td><span class="text-muted">&mdash;</span></td>
-                                <td><i class="bi bi-star-fill text-warning" style="font-size: 0.7rem;"></i></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="attempts-history-list">
+                        <div class="attempts-history-entry fs-sm fw-medium">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-calendar3 text-muted me-1"></i>
+                                    <span class="font-monospace">31.03.2026</span>
+                                </span>
+                                <span>
+                                    <i class="bi bi-stopwatch text-muted me-1"></i>
+                                    <span class="font-monospace">01:02:15</span>
+                                </span>
+                            </div>
+                            <div class="fs-xs text-end mt-1">
+                                <div><span class="text-success font-monospace">-00:03:22</span></div>
+                                <div><span class="text-muted font-monospace">+00:01:44</span></div>
+                            </div>
+                        </div>
+                        <div class="attempts-history-entry fs-sm border-top pt-2 mt-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-calendar3 text-muted me-1"></i>
+                                    <span class="font-monospace">28.03.2026</span>
+                                </span>
+                                <span>
+                                    <i class="bi bi-stopwatch text-muted me-1"></i>
+                                    <span class="font-monospace">01:05:37</span>
+                                </span>
+                            </div>
+                            <div class="fs-xs text-end mt-1">
+                                <div><span class="text-danger font-monospace">+00:05:10</span></div>
+                                <div><span class="text-muted font-monospace">+00:05:06</span></div>
+                            </div>
+                        </div>
+                        <div class="attempts-history-entry fs-sm border-top pt-2 mt-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>
+                                    <i class="bi bi-calendar3 text-muted me-1"></i>
+                                    <span class="font-monospace">25.03.2026</span>
+                                </span>
+                                <span>
+                                    <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
+                                    <i class="bi bi-stopwatch text-muted me-1"></i>
+                                    <span class="font-monospace">01:00:27</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
                     <button

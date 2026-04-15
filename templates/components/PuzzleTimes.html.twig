@@ -120,7 +120,7 @@
                                     {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
 
                                     {% if showPrevDelta or showBestDelta %}
-                                        <div class="fs-xs text-end mt-1" style="padding-right: 28px;">
+                                        <div class="fs-xs text-end" style="padding-right: 30px;">
                                             {% if showPrevDelta %}
                                                 {% set delta = row.attempt.time - row.prevTime %}
                                                 <div>

@@ -78,17 +78,19 @@
                 {% endif %}
 
                 {% if attemptsCount >= 2 %}
-                    <button
-                        class="btn btn-link btn-sm p-0 fs-sm mt-2 text-decoration-none collapsed my-attempts-toggle"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#{{ collapseId }}"
-                        aria-expanded="false"
-                        aria-controls="{{ collapseId }}"
-                    >
-                        {{ 'puzzle_times.my_attempts.show_all'|trans({'%count%': attemptsCount}) }}
-                        <i class="bi bi-chevron-down ms-1 collapse-chevron"></i>
-                    </button>
+                    <div class="text-center mt-2">
+                        <button
+                            class="btn btn-link btn-sm p-0 fs-sm text-decoration-none collapsed my-attempts-toggle"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#{{ collapseId }}"
+                            aria-expanded="false"
+                            aria-controls="{{ collapseId }}"
+                        >
+                            {{ 'puzzle_times.my_attempts.show_all'|trans({'%count%': attemptsCount}) }}
+                            <i class="bi bi-chevron-down ms-1 collapse-chevron"></i>
+                        </button>
+                    </div>
 
                     <div class="collapse mt-2" id="{{ collapseId }}">
                         <div class="attempts-history-list">
@@ -285,7 +287,7 @@
         {% endif %}
 
         {% if logged_user.profile is not null and this.myRowKey is not null %}
-            <div class="text-center fs-sm mt-2">
+            <div class="text-center fs-sm mt-4 mb-3">
                 <a
                     href="#leaderboard-row-{{ this.myRowKey }}"
                     class="text-primary"

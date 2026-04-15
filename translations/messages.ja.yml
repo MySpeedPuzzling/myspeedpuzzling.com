@@ -679,7 +679,7 @@
   "meta":
     "title": "パズルタイムデータ編集"
   "title": "パズルタイムデータ編集"
-  "delete_button": "この組み立て記録を永久に削除し、なかったことにする！"
+  "delete_button": "削除 — なかったことに！"
   "delete_modal_message": "確認のため..."
   "delete_modal_confirm": "本当に削除しますか？"
   "delete_modal_discard_button": "いいえ、残します"

@@ -16,6 +16,8 @@ final class PlayerPuzzleTimesChart
 {
     public null|string $playerId = null;
 
+    public bool $bare = false;
+
     /**
      * @var array<SolvedPuzzle|PuzzleSolver|PuzzleSolversGroup>
      */

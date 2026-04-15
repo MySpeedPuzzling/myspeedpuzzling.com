@@ -147,7 +147,7 @@
                         </div>
 
                         {% if logged_user.profile.activeMembership %}
-                            <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" />
+                            <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" bare="true" />
                         {% else %}
                             <div class="player-chart-placeholder text-center mt-3">
                                 <button

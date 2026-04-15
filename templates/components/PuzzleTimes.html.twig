@@ -45,6 +45,7 @@
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                         <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
+                        {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, context: 'puzzle-detail'}) }}
                     </div>
                 {% else %}
                     <div>
@@ -111,6 +112,7 @@
                                             {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
                                             <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
+                                            {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, context: 'puzzle-detail'}) }}
                                         </span>
                                     </div>
 
@@ -118,7 +120,7 @@
                                     {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
 
                                     {% if showPrevDelta or showBestDelta %}
-                                        <div class="fs-xs text-end mt-1">
+                                        <div class="fs-xs text-end" style="padding-right: 30px;">
                                             {% if showPrevDelta %}
                                                 {% set delta = row.attempt.time - row.prevTime %}
                                                 <div>
@@ -318,10 +320,11 @@
                 <tbody>
                 {% set  previousTimeId = null %}
                 {% for timeId, aggregated_solver in this.times %}
+                    {% set is_own_row = logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) %}
                     <tr
                         id="leaderboard-row-{{ timeId }}"
                         style="scroll-margin-top: 120px;"
-                        class="{{ logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) ? 'table-active-player' }}"
+                        class="{{ is_own_row ? 'table-active-player' }}"
                     >
                         <td class="rank">{{ previousTimeId and aggregated_solver[0].time == this.times[previousTimeId][0].time ? loop.index-1 : loop.index }}.</td>
 
@@ -378,6 +381,9 @@
 
                         <td class="text-end with-ppm">
                             {{ aggregated_solver[0].time|puzzlingTime }}
+                            {% if is_own_row %}
+                                {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, context: 'puzzle-detail'}) }}
+                            {% endif %}
                             {% if aggregated_solver[0].finishedAt is not null %}
                                 <br>
                                 <small class="text-muted">{{ aggregated_solver[0].finishedAt|date('d.m.Y') }}</small>
@@ -421,6 +427,9 @@
                                         {% if not loop.first %}
                                             <span class="d-inline-block mt-1">
                                                         {{ solving_time.time|puzzlingTime }}
+                                                        {% if is_own_row %}
+                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, context: 'puzzle-detail'}) }}
+                                                        {% endif %}
                                                         {% if solving_time.finishedAt is not null %}
                                                             <br>
                                                             <small class="text-muted">{{ solving_time.finishedAt|date('d.m.Y') }}</small>

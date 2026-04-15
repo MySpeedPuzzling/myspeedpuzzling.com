@@ -65,11 +65,12 @@
                                     {% endif %}
                                     <i class="bi bi-stopwatch text-muted me-1"></i>
                                     <span class="font-monospace">{{ result.time|puzzlingTime }}</span>
+                                    {{ include('_edit_time_button.html.twig', {timeId: result.timeId, context: 'time-recap'}) }}
                                 </span>
                             </div>
 
                             {% if showPrevDelta or showBestDelta %}
-                                <div class="fs-xs text-end mt-1">
+                                <div class="fs-xs text-end" style="padding-right: 30px;">
                                     {% if showPrevDelta %}
                                         {% set delta = result.time - previous_time %}
                                         <div>
@@ -118,7 +119,7 @@
                                     <span class="font-monospace">01:02:15</span>
                                 </span>
                             </div>
-                            <div class="fs-xs text-end mt-1">
+                            <div class="fs-xs text-end" style="padding-right: 30px;">
                                 <div>
                                     <i class="bi bi-arrow-return-left text-muted me-1"></i>
                                     <span class="text-success font-monospace">-00:03:22</span>
@@ -140,7 +141,7 @@
                                     <span class="font-monospace">01:05:37</span>
                                 </span>
                             </div>
-                            <div class="fs-xs text-end mt-1">
+                            <div class="fs-xs text-end" style="padding-right: 30px;">
                                 <div>
                                     <i class="bi bi-arrow-return-left text-muted me-1"></i>
                                     <span class="text-danger font-monospace">+00:05:10</span>

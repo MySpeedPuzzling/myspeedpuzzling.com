@@ -30,6 +30,7 @@ readonly final class GetPuzzleSolvers
 
         $query = <<<SQL
 SELECT
+    puzzle_solving_time.id AS time_id,
     player.id AS player_id,
     player.name AS player_name,
     player.code AS player_code,
@@ -37,6 +38,7 @@ SELECT
     puzzle_solving_time.puzzle_id AS puzzle_id,
     puzzle_solving_time.seconds_to_solve AS time,
     finished_at,
+    puzzle_solving_time.tracked_at,
     first_attempt,
     unboxed,
     is_private,
@@ -66,6 +68,7 @@ SQL;
         return array_map(static function (array $row): PuzzleSolver {
             /**
              * @var array{
+             *     time_id: string,
              *     puzzle_id: string,
              *     player_id: string,
              *     player_name: null|string,
@@ -73,6 +76,7 @@ SQL;
              *     player_country: null|string,
              *     time: int,
              *     finished_at: null|string,
+             *     tracked_at: string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     is_private: bool,
@@ -105,12 +109,14 @@ SQL;
 
         $query = <<<SQL
 SELECT
+    pst.id AS time_id,
     pst.player_id AS player_id,
     pst.puzzle_id AS puzzle_id,
     pst.seconds_to_solve AS time,
     comment,
     pst.team ->> 'team_id' AS team_id,
     finished_at,
+    pst.tracked_at,
     first_attempt,
     pst.unboxed,
     competition.id AS competition_id,
@@ -153,6 +159,7 @@ SQL;
         return array_map(static function (array $row): PuzzleSolversGroup {
             /**
              * @var array{
+             *     time_id: string,
              *     player_id: string,
              *     puzzle_id: string,
              *     time: int,
@@ -160,6 +167,7 @@ SQL;
              *     team_id: null|string,
              *     players: string,
              *     finished_at: null|string,
+             *     tracked_at: string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     competition_id: null|string,
@@ -185,12 +193,14 @@ SQL;
 
         $query = <<<SQL
 SELECT
+    pst.id AS time_id,
     pst.player_id AS player_id,
     pst.puzzle_id AS puzzle_id,
     pst.seconds_to_solve AS time,
     comment,
     pst.team ->> 'team_id' AS team_id,
     finished_at,
+    pst.tracked_at,
     first_attempt,
     pst.unboxed,
     competition.id AS competition_id,
@@ -233,6 +243,7 @@ SQL;
         return array_map(static function (array $row): PuzzleSolversGroup {
             /**
              * @var array{
+             *     time_id: string,
              *     player_id: string,
              *     puzzle_id: string,
              *     time: int,
@@ -240,6 +251,7 @@ SQL;
              *     team_id: null|string,
              *     players: string,
              *     finished_at: null|string,
+             *     tracked_at: string,
              *     first_attempt: bool,
              *     unboxed: bool,
              *     competition_id: null|string,

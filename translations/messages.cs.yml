@@ -361,7 +361,7 @@
   "meta":
     "title": "Úprava údajů o skládání"
   "title": "Úprava údajů o skládání"
-  "delete_button": "Nenávratně smazat tento záznam o skládání a dělat, jakože se to nikdy nestalo!"
+  "delete_button": "Smazat — nikdy se to nestalo!"
   "delete_modal_message": "Jen pro jistotu..."
   "delete_modal_confirm": "Opravdu smazat?"
   "delete_modal_discard_button": "Ne, ponechat"

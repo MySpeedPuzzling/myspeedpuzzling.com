@@ -37,15 +37,11 @@ final class PlayerPuzzleTimesChart
                 continue;
             }
 
-            $date = $result->finishedAt ?? ($result instanceof SolvedPuzzle ? $result->trackedAt : null);
-            if ($date === null) {
-                continue;
-            }
-
-            $rows[] = ['date' => $date, 'time' => $result->time];
+            $date = $result->finishedAt ?? $result->trackedAt;
+            $rows[] = ['date' => $date, 'tracked_at' => $result->trackedAt, 'time' => $result->time];
         }
 
-        usort($rows, static fn (array $a, array $b): int => $a['date'] <=> $b['date']);
+        usort($rows, static fn (array $a, array $b): int => ($a['date'] <=> $b['date']) ?: ($a['tracked_at'] <=> $b['tracked_at']));
 
         $labels = [];
         $chartData = [];

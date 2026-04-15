@@ -6,15 +6,25 @@
      data-image-editor-apply-value="{{ 'image_editor.apply'|trans }}"
      data-image-editor-edit-value="{{ 'forms.edit'|trans }}">
 
-    {{ form_start(solving_time_form, { 'attr': {
-        'data-controller': 'submit-prevention ppm-validator',
-        'data-ppm-validator-active-puzzle-pieces-value': active_puzzle is defined and active_puzzle is not null ? active_puzzle.piecesCount : 0,
-        'data-ppm-validator-warning-too-fast-value': 'forms.ppm_warning_too_fast'|trans,
-        'data-ppm-validator-warning-too-slow-value': 'forms.ppm_warning_too_slow'|trans,
-        'data-ppm-validator-label-hours-value': 'forms.hours'|trans,
-        'data-ppm-validator-label-minutes-value': 'forms.minutes'|trans,
-        'data-ppm-validator-label-seconds-value': 'forms.seconds'|trans,
-    } }) }}
+    {% set form_start_options = {
+        'attr': {
+            'data-controller': 'submit-prevention ppm-validator',
+            'data-ppm-validator-active-puzzle-pieces-value': active_puzzle is defined and active_puzzle is not null ? active_puzzle.piecesCount : 0,
+            'data-ppm-validator-warning-too-fast-value': 'forms.ppm_warning_too_fast'|trans,
+            'data-ppm-validator-warning-too-slow-value': 'forms.ppm_warning_too_slow'|trans,
+            'data-ppm-validator-label-hours-value': 'forms.hours'|trans,
+            'data-ppm-validator-label-minutes-value': 'forms.minutes'|trans,
+            'data-ppm-validator-label-seconds-value': 'forms.seconds'|trans,
+        }
+    } %}
+    {% if form_action|default(null) %}
+        {% set form_start_options = form_start_options|merge({action: form_action}) %}
+    {% endif %}
+    {{ form_start(solving_time_form, form_start_options) }}
+        {% if return_context|default(null) %}
+            <input type="hidden" name="context" value="{{ return_context }}">
+        {% endif %}
+
         {{ form_errors(solving_time_form) }}
 
         {# Hidden mode field - controlled by Stimulus (only for add form) #}

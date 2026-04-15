@@ -206,7 +206,9 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Back/forward navigation uses native browser behavior** — restoration visits are intercepted in `app.js` and redirected to `window.location.href` for reliable scroll restoration and iOS swipe-back
 - To disable Turbo on specific links or forms, use `data-turbo="false"`
 - Turbo Frames still work as before: `<a href="..." data-turbo-frame="modal-frame">`
-- See `.claude/symfony-ux-hotwire-architecture-guide.md` for modal architecture patterns
+- **Forms inside the `modal-frame` MUST set an explicit `action:` on `form_start`.** Without it the browser posts to the hosting page URL (not the route that rendered the modal), and the hosting page's response usually includes an empty `<turbo-frame id="modal-frame">` from `base.html.twig` → Turbo swaps the empty frame in → modal silently closes, nothing saved, no error logged. See `.claude/symfony-ux-hotwire-architecture-guide.md` §Gotchas.
+- Gate stream responses on the `Turbo-Frame: modal-frame` header, not just `getPreferredFormat() === TurboBundle::STREAM_FORMAT` — Turbo 8 sends stream-accept on every form submission, including full-page ones, so a stream-only check returns the stream for full-page flows too and the redirect is skipped. See Gotchas §2.
+- See `.claude/symfony-ux-hotwire-architecture-guide.md` for modal architecture patterns and the full Gotchas list
 
 - When generating migrations for example or running any other commands that needs to run in the PHP environment, ALWAYS run them in the running docker container prefixed with `docker compose exec web` to make sure it runs in PHP docker container.
 - When running commands for Javascript environment, ALWAYS run them in the running docker container prefixed with `docker compose exec js-watch` to make sure it runs in javascript docker container.

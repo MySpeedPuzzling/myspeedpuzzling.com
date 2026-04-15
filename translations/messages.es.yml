@@ -346,7 +346,7 @@
   "meta":
     "title": "Editando Datos de Tiempo del Rompecabezas"
   "title": "Editando Datos de Tiempo del Rompecabezas"
-  "delete_button": "¡Eliminar permanentemente este registro de armado y pretender que nunca pasó!"
+  "delete_button": "Eliminar — ¡nunca pasó!"
   "delete_modal_message": "Solo para estar seguro..."
   "delete_modal_confirm": "¿Realmente eliminar?"
   "delete_modal_discard_button": "No, mantenerlo"

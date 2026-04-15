@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 readonly final class PuzzleSolver
 {
     public function __construct(
+        public string $timeId,
         public string $puzzleId,
         public string $playerId,
         public null|string $playerName,
@@ -17,6 +18,7 @@ readonly final class PuzzleSolver
         public null|CountryCode $playerCountry,
         public int $time,
         public null|DateTimeImmutable $finishedAt,
+        public DateTimeImmutable $trackedAt,
         public bool $firstAttempt,
         public bool $unboxed,
         public bool $isPrivate,
@@ -31,6 +33,7 @@ readonly final class PuzzleSolver
 
     /**
      * @param array{
+     *     time_id: string,
      *     puzzle_id: string,
      *     player_id: string,
      *     player_name: null|string,
@@ -38,6 +41,7 @@ readonly final class PuzzleSolver
      *     player_country: null|string,
      *     time: int,
      *     finished_at: null|string,
+     *     tracked_at: string,
      *     first_attempt: bool,
      *     unboxed: bool,
      *     is_private: bool,
@@ -52,6 +56,7 @@ readonly final class PuzzleSolver
     public static function fromDatabaseRow(array $row): self
     {
         return new self(
+            timeId: $row['time_id'],
             puzzleId: $row['puzzle_id'],
             playerId: $row['player_id'],
             playerName: $row['player_name'],
@@ -59,6 +64,7 @@ readonly final class PuzzleSolver
             playerCountry: CountryCode::fromCode($row['player_country']),
             time: $row['time'],
             finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+            trackedAt: new DateTimeImmutable($row['tracked_at']),
             firstAttempt: $row['first_attempt'],
             unboxed: $row['unboxed'],
             isPrivate: $row['is_private'],

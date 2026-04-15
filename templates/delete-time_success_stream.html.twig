@@ -1,0 +1,5 @@
+{# Close the modal and refresh the current page so the removed time disappears everywhere.
+   The refreshed page renders the success flash as an alert (see base.html.twig). #}
+{{ include('_modal_close_stream.html.twig') }}
+
+<turbo-stream action="refresh"></turbo-stream>

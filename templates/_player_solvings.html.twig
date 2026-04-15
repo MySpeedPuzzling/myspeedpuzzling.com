@@ -156,7 +156,10 @@
 
                                         {# Display edit icon only to current user #}
                                         {% if logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
-                                            <a class="btn btn-sm btn-outline-dark p-1 border-0" href="{{ path('edit_time', {timeId: puzzle.timeId}) }}"><i class="ci-edit"></i></a>
+                                            {{ include('_edit_time_button.html.twig', {
+                                                timeId: puzzle.timeId,
+                                                context: 'profile',
+                                            }) }}
                                         {% endif %}
 
                                         {% if loop.first and solved_puzzle|length > 1 %}

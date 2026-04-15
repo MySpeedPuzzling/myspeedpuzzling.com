@@ -31,8 +31,8 @@ final class PuzzleTimesMyAttemptsTest extends WebTestCase
 
         $html = $component->render()->toString();
 
-        self::assertStringContainsString('Latest is your fastest on this puzzle', $html);
-        self::assertStringContainsString('Show all my times (3)', $html);
+        self::assertStringContainsString('Your latest time is your fastest', $html);
+        self::assertStringContainsString('All my times (3)', $html);
         self::assertStringContainsString('Jump to me', $html);
         self::assertStringContainsString('leaderboard-row-', $html);
     }
@@ -52,8 +52,8 @@ final class PuzzleTimesMyAttemptsTest extends WebTestCase
 
         $html = $component->render()->toString();
 
-        self::assertStringNotContainsString('Show all my times', $html);
-        self::assertStringNotContainsString('Latest is your fastest on this puzzle', $html);
+        self::assertStringNotContainsString('All my times', $html);
+        self::assertStringNotContainsString('Your latest time is your fastest', $html);
         self::assertStringContainsString('My time:', $html);
     }
 
@@ -73,10 +73,10 @@ final class PuzzleTimesMyAttemptsTest extends WebTestCase
 
         $html = $component->render()->toString();
 
-        self::assertStringContainsString('Last:', $html);
-        self::assertStringContainsString('Fastest:', $html);
-        self::assertStringNotContainsString('Latest is your fastest on this puzzle', $html);
-        self::assertStringContainsString('Show all my times (2)', $html);
+        self::assertStringContainsString('Latest time:', $html);
+        self::assertStringContainsString('Fastest time:', $html);
+        self::assertStringNotContainsString('Your latest time is your fastest', $html);
+        self::assertStringContainsString('All my times (2)', $html);
     }
 
     public function testCardHiddenForLoggedOutVisitor(): void
@@ -91,8 +91,8 @@ final class PuzzleTimesMyAttemptsTest extends WebTestCase
 
         $html = $component->render()->toString();
 
-        self::assertStringNotContainsString('Latest is your fastest on this puzzle', $html);
-        self::assertStringNotContainsString('Show all my times', $html);
+        self::assertStringNotContainsString('Your latest time is your fastest', $html);
+        self::assertStringNotContainsString('All my times', $html);
         self::assertStringNotContainsString('Jump to me', $html);
     }
 }

@@ -206,12 +206,12 @@ puzzle_overview:
 puzzle_times:
     my_attempts:
         my_time: "My time:"
-        last: "Last:"
-        fastest: "Fastest:"
+        latest_time: "Latest time:"
+        fastest_time: "Fastest time:"
+        latest_is_fastest_note: "Your latest time is your fastest"
         rank: "Rank %rank% of %total%"
         jump_to_me: "Jump to me"
-        latest_is_fastest: "Latest is your fastest on this puzzle:"
-        show_all: "Show all my times (%count%)"
+        show_all: "All my times (%count%)"
         history_date: "Date"
         history_time: "Time"
         history_delta_previous: "vs Previous"

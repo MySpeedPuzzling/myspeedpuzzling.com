@@ -179,6 +179,15 @@
     "keywords": "パズルデータベース, ジグソーパズルタイム, 500ピースパズル, 1000ピースパズル, パズルブランド, スピード解決"
   "title": "パズル"
   "missing_puzzle_info": "ここにパズルが見つからない場合、まだ誰も解いておらず、データベースにありません。新しいパズルはタイム追加時に入力できます。"
+"puzzle_times":
+  "my_attempts":
+    "my_time": "マイタイム:"
+    "latest_time": "最新タイム:"
+    "fastest_time": "最速タイム:"
+    "latest_is_fastest_note": "最新タイムが自己ベストです"
+    "rank": "%total% 中 %rank% 位"
+    "jump_to_me": "自分へジャンプ"
+    "show_all": "自分の全タイム (%count%)"
 "stopwatch":
   "meta":
     "title": "ストップウォッチ"
@@ -900,12 +909,8 @@
   "history":
     "title": "このパズルの履歴"
     "first_time": "このパズルの初完成です！もう一度解いて、上達を追跡しましょう。"
-    "date": "日付"
-    "time": "タイム"
-    "delta_previous": "前回比"
-    "delta_best": "ベスト比"
-    "new_personal_best": "自己ベスト更新！"
-    "distance_from_best": "自己ベストまであと%time%"
+    "new_personal_best": "このパズルの最速タイム更新！"
+    "distance_from_best": "このパズルの最速タイムまであと%time%"
     "current_solve": "今回"
   "insights":
     "title": "パズルインサイト"

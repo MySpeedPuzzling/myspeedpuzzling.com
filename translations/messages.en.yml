@@ -203,6 +203,16 @@ puzzle_overview:
     title: "Puzzles"
     missing_puzzle_info: "If you can't find a puzzle here, it means no one has solved it yet and it's not in our database. New puzzles can be entered when adding time."
 
+puzzle_times:
+    my_attempts:
+        my_time: "My time:"
+        latest_time: "Latest time:"
+        fastest_time: "Fastest time:"
+        latest_is_fastest_note: "Your latest time is your fastest"
+        rank: "Rank %rank% of %total%"
+        jump_to_me: "Jump to me"
+        show_all: "All my times (%count%)"
+
 stopwatch:
     meta:
         title: "Stopwatch"
@@ -1036,12 +1046,8 @@ added_time_recap:
     history:
         title: "Your History on This Puzzle"
         first_time: "This is your first time solving this puzzle! Solve it again to track your improvement."
-        date: "Date"
-        time: "Time"
-        delta_previous: "vs Previous"
-        delta_best: "vs Best"
-        new_personal_best: "New personal best!"
-        distance_from_best: "%time% from your personal best"
+        new_personal_best: "New fastest on this puzzle!"
+        distance_from_best: "%time% from your fastest on this puzzle"
         current_solve: "current"
     insights:
         title: "Puzzle Insights"

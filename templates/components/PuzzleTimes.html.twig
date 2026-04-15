@@ -32,17 +32,144 @@
         </button>
     </div>
 
-    <div class="d-flex align-content-between justify-content-between mt-3">
-        <div class="fs-sm">
-            {% if this.times|length > 1 %}
-                {% if this.myTime %}
-                    <strong>{{ 'my_time'|trans }} <span class="font-monospace">{{ this.myTime|puzzlingTime }}</span></strong><br>
+    {% if logged_user.profile is not null and this.myAttempts|length > 0 %}
+        {% set myLast = this.myLastAttempt %}
+        {% set myBest = this.myFastestAttempt %}
+        {% set attemptsCount = this.myAttempts|length %}
+        {% set isNewPb = attemptsCount > 1 and myLast.time == myBest.time %}
+        {% set collapseId = 'my-attempts-collapse-' ~ this.category %}
+
+        <div class="card border-0 shadow-sm mt-3 mb-2">
+            <div class="card-body py-2 px-3 fs-sm">
+                {% if attemptsCount == 1 %}
+                    <div>
+                        <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
+                        <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
+                    </div>
+                {% else %}
+                    <div>
+                        <span class="text-muted">{{ 'puzzle_times.my_attempts.latest_time'|trans }}</span>
+                        <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
+                        {% if myLast.finishedAt is not null %}
+                            <span class="text-muted">({{ myLast.finishedAt|date('d.m.Y') }})</span>
+                        {% endif %}
+                    </div>
+                    {% if isNewPb %}
+                        <div class="text-success">
+                            <i class="bi bi-star-fill text-warning me-1"></i>
+                            {{ 'puzzle_times.my_attempts.latest_is_fastest_note'|trans }}
+                        </div>
+                    {% else %}
+                        <div>
+                            <span class="text-muted">{{ 'puzzle_times.my_attempts.fastest_time'|trans }}</span>
+                            <span class="font-monospace">{{ myBest.time|puzzlingTime }}</span>
+                            {% if myBest.finishedAt is not null %}
+                                <span class="text-muted">({{ myBest.finishedAt|date('d.m.Y') }})</span>
+                            {% endif %}
+                            <i class="bi bi-star-fill text-warning ms-1"></i>
+                        </div>
+                    {% endif %}
                 {% endif %}
 
                 {% if this.myRank %}
-                    Rank {{ this.myRank }} {{ 'ranking_out_of'|trans}} {{ this.times|length }}<br>
+                    <div class="text-muted mt-1">
+                        {{ 'puzzle_times.my_attempts.rank'|trans({'%rank%': this.myRank, '%total%': this.times|length}) }}
+                    </div>
                 {% endif %}
 
+                {% if attemptsCount >= 2 %}
+                    <div class="text-center mt-2">
+                        <button
+                            class="btn btn-link btn-sm p-0 fs-sm text-decoration-none collapsed my-attempts-toggle"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#{{ collapseId }}"
+                            aria-expanded="false"
+                            aria-controls="{{ collapseId }}"
+                        >
+                            {{ 'puzzle_times.my_attempts.show_all'|trans({'%count%': attemptsCount}) }}
+                            <i class="bi bi-chevron-down ms-1 collapse-chevron"></i>
+                        </button>
+                    </div>
+
+                    <div class="collapse mt-2" id="{{ collapseId }}">
+                        <div class="attempts-history-list">
+                            {% for row in this.myAttemptsWithContext %}
+                                <div class="attempts-history-entry {% if not loop.first %}border-top pt-2 mt-2{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i class="bi bi-calendar3 text-muted me-1"></i>
+                                            {% if row.attempt.finishedAt is not null %}
+                                                <span class="font-monospace">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
+                                            {% else %}
+                                                <span class="text-muted">&mdash;</span>
+                                            {% endif %}
+                                        </span>
+                                        <span>
+                                            {% if row.isBest %}
+                                                <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
+                                            {% endif %}
+                                            <i class="bi bi-stopwatch text-muted me-1"></i>
+                                            <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
+                                        </span>
+                                    </div>
+
+                                    {% set showPrevDelta = row.prevTime is not null %}
+                                    {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
+
+                                    {% if showPrevDelta or showBestDelta %}
+                                        <div class="fs-xs text-end mt-1">
+                                            {% if showPrevDelta %}
+                                                {% set delta = row.attempt.time - row.prevTime %}
+                                                <div>
+                                                    <i class="bi bi-arrow-return-left text-muted me-1"></i>
+                                                    {% if delta < 0 %}
+                                                        <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
+                                                    {% elseif delta > 0 %}
+                                                        <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                    {% else %}
+                                                        <span class="text-muted font-monospace">+00:00:00</span>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if showBestDelta %}
+                                                {% set delta_best = row.attempt.time - myBest.time %}
+                                                <div>
+                                                    <i class="bi bi-star text-muted me-1" style="font-size: 0.7rem;"></i>
+                                                    <span class="text-danger font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if logged_user.profile.activeMembership %}
+                            <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" bare="true" />
+                        {% else %}
+                            <div class="player-chart-placeholder text-center mt-3">
+                                <button
+                                    class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#membersExclusiveModal"
+                                >
+                                    <i class="ci-locked me-1"></i>
+                                    {{ 'membership.members_exclusive_button'|trans }}
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    {% endif %}
+
+    <div class="d-flex align-content-between justify-content-between mt-3">
+        <div class="fs-sm">
+            {% if this.times|length > 1 %}
                 {% if this.medianTime %}
                     {{ 'median_time'|trans }}
                     <span class="font-monospace">{{ this.medianTime|puzzlingTime }}</span>
@@ -159,6 +286,18 @@
             />
         {% endif %}
 
+        {% if logged_user.profile is not null and this.myRowKey is not null %}
+            <div class="text-center fs-sm mt-4 mb-3">
+                <a
+                    href="#leaderboard-row-{{ this.myRowKey }}"
+                    class="text-primary"
+                    data-turbo="false"
+                >
+                    {{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short"></i>
+                </a>
+            </div>
+        {% endif %}
+
         <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>
             <table class="table custom-table table-striped table-hover mb-0">
                 <thead>
@@ -172,7 +311,11 @@
                 <tbody>
                 {% set  previousTimeId = null %}
                 {% for timeId, aggregated_solver in this.times %}
-                    <tr class="{{ logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) ? 'table-active-player' }}">
+                    <tr
+                        id="leaderboard-row-{{ timeId }}"
+                        style="scroll-margin-top: 120px;"
+                        class="{{ logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) ? 'table-active-player' }}"
+                    >
                         <td class="rank">{{ previousTimeId and aggregated_solver[0].time == this.times[previousTimeId][0].time ? loop.index-1 : loop.index }}.</td>
 
                         <td class="player-name">

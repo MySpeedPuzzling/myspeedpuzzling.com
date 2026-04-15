@@ -1,5 +1,5 @@
 {% if computed.chart.data['labels']|length > 1 %}
-    <div class="card card-body p-2 my-3 shadow">
+    {% if this.bare %}
         <div style="height: 200px;" data-controller="time-chart" class="position-relative">
             {{ render_chart(computed.chart) }}
 
@@ -11,5 +11,19 @@
                 <i class="bi-zoom-out"></i>
             </button>
         </div>
-    </div>
+    {% else %}
+        <div class="card card-body p-2 my-3 shadow">
+            <div style="height: 200px;" data-controller="time-chart" class="position-relative">
+                {{ render_chart(computed.chart) }}
+
+                <button
+                    class="d-none position-absolute btn btn-sm btn-outline-primary shadow zoom-reset"
+                    data-action="time-chart#resetZoom"
+                    data-time-chart-target="zoomButton"
+                >
+                    <i class="bi-zoom-out"></i>
+                </button>
+            </div>
+        </div>
+    {% endif %}
 {% endif %}

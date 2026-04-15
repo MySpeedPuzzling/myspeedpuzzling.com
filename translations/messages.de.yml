@@ -177,6 +177,15 @@
     "keywords": "Puzzle-Datenbank, Puzzle-Zeiten, 500-teiliges Puzzle, 1000-teiliges Puzzle, Puzzle-Marken, Speed Solving"
   "title": "Puzzles"
   "missing_puzzle_info": "Wenn Sie hier ein Puzzle nicht finden können, bedeutet das, dass es noch niemand gelöst hat und es nicht in unserer Datenbank ist. Neue Puzzles können beim Hinzufügen der Zeit eingegeben werden."
+"puzzle_times":
+  "my_attempts":
+    "my_time": "Meine Zeit:"
+    "latest_time": "Letzte Zeit:"
+    "fastest_time": "Schnellste Zeit:"
+    "latest_is_fastest_note": "Ihre letzte Zeit ist Ihre schnellste"
+    "rank": "Rang %rank% von %total%"
+    "jump_to_me": "Zu mir springen"
+    "show_all": "Alle meine Zeiten (%count%)"
 "stopwatch":
   "meta":
     "title": "Stoppuhr"
@@ -844,12 +853,8 @@
   "history":
     "title": "Deine Geschichte mit diesem Puzzle"
     "first_time": "Dies ist dein erstes Mal bei diesem Puzzle! Löse es erneut, um deine Verbesserung zu verfolgen."
-    "date": "Datum"
-    "time": "Zeit"
-    "delta_previous": "vs Vorherige"
-    "delta_best": "vs Beste"
-    "new_personal_best": "Neue persönliche Bestzeit!"
-    "distance_from_best": "%time% von deiner persönlichen Bestzeit"
+    "new_personal_best": "Neue Bestzeit auf diesem Puzzle!"
+    "distance_from_best": "%time% von deiner Bestzeit auf diesem Puzzle"
     "current_solve": "aktuell"
   "insights":
     "title": "Puzzle-Einblicke"

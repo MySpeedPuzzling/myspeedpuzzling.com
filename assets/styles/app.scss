@@ -74,6 +74,12 @@ body {
     }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
 main {
     flex-grow: 1;
     padding-top: 101px;
@@ -909,6 +915,14 @@ div[data-countdown-target] {
     height: 200px;
     background: url('../img/player-chart-placeholder.png') center center no-repeat;
     background-size: 100% 100%;
+}
+
+.collapse-chevron {
+    transition: transform 0.2s ease;
+}
+
+[aria-expanded="true"] .collapse-chevron {
+    transform: rotate(180deg);
 }
 
 .puzzle-detail-chart-placeholder {

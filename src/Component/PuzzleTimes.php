@@ -59,6 +59,15 @@ final class PuzzleTimes
     /** @var array<string, array<PuzzleSolver|PuzzleSolversGroup>> */
     public array $times = [];
 
+    /** @var array<PuzzleSolver|PuzzleSolversGroup> */
+    public array $myAttempts = [];
+
+    public null|PuzzleSolver|PuzzleSolversGroup $myLastAttempt = null;
+
+    public null|PuzzleSolver|PuzzleSolversGroup $myFastestAttempt = null;
+
+    public null|string $myRowKey = null;
+
     /** @var array<string, int> */
     public array $availableCountries = [];
 
@@ -96,6 +105,7 @@ final class PuzzleTimes
         }
 
         $soloPuzzleSolvers = $this->getPuzzleSolvers->soloByPuzzleId($this->puzzleId);
+        $rawSoloAttempts = $soloPuzzleSolvers;
 
         if ($this->onlyFirstTries === true) {
             $soloPuzzleSolvers = $this->puzzlesSorter->sortByFirstTry($soloPuzzleSolvers);
@@ -115,10 +125,12 @@ final class PuzzleTimes
         }
 
         $duoPuzzleSolvers = $this->getPuzzleSolvers->duoByPuzzleId($this->puzzleId);
+        $rawDuoAttempts = $duoPuzzleSolvers;
         $duoPuzzleSolvers = $this->puzzlesSorter->sortByFastest($duoPuzzleSolvers);
         $duoPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($duoPuzzleSolvers);
 
         $teamPuzzleSolvers = $this->getPuzzleSolvers->teamByPuzzleId($this->puzzleId);
+        $rawTeamAttempts = $teamPuzzleSolvers;
         $teamPuzzleSolvers = $this->puzzlesSorter->sortByFastest($teamPuzzleSolvers);
         $teamPuzzleSolversGrouped = $this->puzzlesSorter->groupPlayers($teamPuzzleSolvers);
 
@@ -253,6 +265,88 @@ final class PuzzleTimes
         $this->soloRelaxCount = $relaxCounts['solo'];
         $this->duoRelaxCount = $relaxCounts['duo'];
         $this->groupRelaxCount = $relaxCounts['team'];
+
+        $this->myAttempts = [];
+        $this->myLastAttempt = null;
+        $this->myFastestAttempt = null;
+        $this->myRowKey = null;
+
+        if ($loggedPlayerId !== null) {
+            $rawForCategory = match ($this->category) {
+                'duo' => $rawDuoAttempts,
+                'group' => $rawTeamAttempts,
+                default => $rawSoloAttempts,
+            };
+
+            $myAttempts = [];
+            foreach ($rawForCategory as $attempt) {
+                if ($attempt instanceof PuzzleSolver && $attempt->playerId === $loggedPlayerId) {
+                    $myAttempts[] = $attempt;
+                } elseif ($attempt instanceof PuzzleSolversGroup && $attempt->containsPlayer($loggedPlayerId) === true) {
+                    $myAttempts[] = $attempt;
+                }
+            }
+
+            usort($myAttempts, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
+                $aDate = $a->finishedAt ?? new \DateTimeImmutable('@0');
+                $bDate = $b->finishedAt ?? new \DateTimeImmutable('@0');
+
+                return $bDate <=> $aDate;
+            });
+
+            $this->myAttempts = $myAttempts;
+
+            if ($myAttempts !== []) {
+                $this->myLastAttempt = $myAttempts[0];
+
+                $fastest = $myAttempts[0];
+                foreach ($myAttempts as $attempt) {
+                    if ($attempt->time !== null && ($fastest->time === null || $attempt->time < $fastest->time)) {
+                        $fastest = $attempt;
+                    }
+                }
+
+                $this->myFastestAttempt = $fastest;
+            }
+
+            foreach ($this->times as $rowKey => $grouped) {
+                $first = $grouped[0];
+
+                if ($first instanceof PuzzleSolver && $first->playerId === $loggedPlayerId) {
+                    $this->myRowKey = $rowKey;
+                    break;
+                }
+
+                if ($first instanceof PuzzleSolversGroup && $first->containsPlayer($loggedPlayerId) === true) {
+                    $this->myRowKey = $rowKey;
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * @return list<array{attempt: PuzzleSolver|PuzzleSolversGroup, prevTime: null|int, isBest: bool}>
+     */
+    public function getMyAttemptsWithContext(): array
+    {
+        if ($this->myAttempts === [] || $this->myFastestAttempt === null) {
+            return [];
+        }
+
+        $bestTime = $this->myFastestAttempt->time;
+        $chronological = array_values(array_reverse($this->myAttempts));
+        $rows = [];
+
+        foreach ($chronological as $i => $attempt) {
+            $rows[] = [
+                'attempt' => $attempt,
+                'prevTime' => $i > 0 ? $chronological[$i - 1]->time : null,
+                'isBest' => $attempt->time === $bestTime,
+            ];
+        }
+
+        return array_reverse($rows);
     }
 
     /**

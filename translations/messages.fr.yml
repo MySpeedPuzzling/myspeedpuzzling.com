@@ -180,6 +180,15 @@
     "keywords": "base de données puzzle, temps de puzzle, puzzle 500 pièces, puzzle 1000 pièces, marques de puzzle, résolution rapide"
   "title": "Puzzles"
   "missing_puzzle_info": "Si vous ne trouvez pas un puzzle ici, cela signifie que personne ne l'a encore résolu et qu'il n'est pas dans notre base de données. De nouveaux puzzles peuvent être saisis lors de l'ajout de temps."
+"puzzle_times":
+  "my_attempts":
+    "my_time": "Mon temps :"
+    "latest_time": "Dernier temps :"
+    "fastest_time": "Meilleur temps :"
+    "latest_is_fastest_note": "Votre dernier temps est votre meilleur"
+    "rank": "Classement %rank% sur %total%"
+    "jump_to_me": "Aller à moi"
+    "show_all": "Tous mes temps (%count%)"
 "stopwatch":
   "meta":
     "title": "Chronomètre"
@@ -863,12 +872,8 @@
   "history":
     "title": "Votre historique sur ce puzzle"
     "first_time": "C'est la première fois que vous résolvez ce puzzle ! Résolvez-le à nouveau pour suivre votre progression."
-    "date": "Date"
-    "time": "Temps"
-    "delta_previous": "vs Précédent"
-    "delta_best": "vs Meilleur"
-    "new_personal_best": "Nouveau record personnel !"
-    "distance_from_best": "%time% de votre record personnel"
+    "new_personal_best": "Nouveau meilleur temps sur ce puzzle !"
+    "distance_from_best": "%time% de votre meilleur temps sur ce puzzle"
     "current_solve": "actuel"
   "insights":
     "title": "Statistiques du puzzle"

@@ -168,17 +168,6 @@
             </div>
         </div>
 
-        {% if this.myRowKey is not null %}
-            <div class="text-end fs-sm mb-3">
-                <a
-                    href="#leaderboard-row-{{ this.myRowKey }}"
-                    class="text-muted text-decoration-none"
-                    data-turbo="false"
-                >
-                    {{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short"></i>
-                </a>
-            </div>
-        {% endif %}
     {% endif %}
 
     <div class="d-flex align-content-between justify-content-between mt-3">
@@ -298,6 +287,18 @@
                 playerId="{{ logged_user.profile ? logged_user.profile.playerId : null }}"
                 title=""
             />
+        {% endif %}
+
+        {% if logged_user.profile is not null and this.myRowKey is not null %}
+            <div class="text-center fs-sm mt-2">
+                <a
+                    href="#leaderboard-row-{{ this.myRowKey }}"
+                    class="text-primary"
+                    data-turbo="false"
+                >
+                    {{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short"></i>
+                </a>
+            </div>
         {% endif %}
 
         <div class="table-responsive custom-table-wrapper mt-2 mb-5" {{ stimulus_controller('toggle') }}>

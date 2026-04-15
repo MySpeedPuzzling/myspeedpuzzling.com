@@ -110,3 +110,41 @@ competition_rejected:
         <p>Leider wurde Ihre Veranstaltung <strong>%competitionName%</strong> nicht genehmigt.</p>
         <p><strong>Grund:</strong> %reason%</p>
         <p>Bei Fragen oder wenn Sie dies besprechen möchten, kontaktieren Sie uns unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+feature_request_completed:
+    subject: "Dein Feature-Wunsch wurde veröffentlicht: %title%"
+    title: "Dein Feature-Wunsch ist live!"
+    content: |
+        <p>Tolle Neuigkeiten! Dein Feature-Wunsch <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> wurde veröffentlicht und ist jetzt live auf MySpeedPuzzling.</p>
+        <p>Vielen Dank für die Idee — dein Feedback macht MySpeedPuzzling für alle besser!</p>
+    admin_comment: |
+        <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
+    github_note: |
+        <p>Da wir öffentlich und zu 100% transparent entwickeln, kannst du, falls du neugierig auf den Code und die technischen Details dieser Änderung bist, gerne <a href="%githubUrl%" class="link-underline">auf GitHub vorbeischauen</a>. Ansonsten ignoriere das einfach :)</p>
+    upvoter:
+        subject: "Ein Feature-Wunsch, für den du gestimmt hast, wurde veröffentlicht: %title%"
+        title: "Ein Feature, für das du gestimmt hast, ist live!"
+        content: |
+            <p>Tolle Neuigkeiten! Der Feature-Wunsch, für den du gestimmt hast — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — wurde veröffentlicht und ist jetzt live auf MySpeedPuzzling.</p>
+            <p>Danke, dass du diese Idee unterstützt hast!</p>
+        admin_comment: |
+            <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
+        github_note: |
+            <p>Da wir öffentlich und zu 100% transparent entwickeln, kannst du, falls du neugierig auf den Code und die technischen Details dieser Änderung bist, gerne <a href="%githubUrl%" class="link-underline">auf GitHub vorbeischauen</a>. Ansonsten ignoriere das einfach :)</p>
+
+feature_request_declined:
+    subject: "Dein Feature-Wunsch wurde abgelehnt: %title%"
+    title: "Dein Feature-Wunsch wurde abgelehnt"
+    content: |
+        <p>Dein Feature-Wunsch <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> wurde abgelehnt.</p>
+        <p>Wir wissen es wirklich zu schätzen, dass du dir die Zeit genommen hast, die Idee zu teilen — auch wenn etwas nicht passt, hilft dein Feedback, MySpeedPuzzling zu gestalten.</p>
+    admin_comment: |
+        <p><strong>Kommentar vom Team:</strong> %adminComment%</p>
+    upvoter:
+        subject: "Ein Feature-Wunsch, für den du gestimmt hast, wurde abgelehnt: %title%"
+        title: "Ein Feature-Wunsch, für den du gestimmt hast, wurde abgelehnt"
+        content: |
+            <p>Ein Feature-Wunsch, für den du gestimmt hast — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — wurde abgelehnt.</p>
+            <p>Danke, dass du die Idee trotzdem unterstützt hast! Deine Beiträge helfen uns zu verstehen, was der Community wichtig ist.</p>
+        admin_comment: |
+            <p><strong>Kommentar vom Team:</strong> %adminComment%</p>

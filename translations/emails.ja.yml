@@ -110,3 +110,41 @@ competition_rejected:
         <p>残念ながら、イベント <strong>%competitionName%</strong> は承認されませんでした。</p>
         <p><strong>理由:</strong> %reason%</p>
         <p>ご質問がある場合やさらに話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。</p>
+
+feature_request_completed:
+    subject: "ご提案の機能リクエストがリリースされました: %title%"
+    title: "ご提案の機能リクエストが公開されました！"
+    content: |
+        <p>素晴らしいニュースです！ご提案の機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> がリリースされ、MySpeedPuzzlingで公開されました。</p>
+        <p>アイデアをお寄せいただきありがとうございます — 皆様のフィードバックがMySpeedPuzzlingをより良いものにしています！</p>
+    admin_comment: |
+        <p><strong>チームからのコメント:</strong> %adminComment%</p>
+    github_note: |
+        <p>私たちは透明性を100%大切にし、オープンに開発を進めています。この変更のコードや技術的な詳細にご興味があれば、<a href="%githubUrl%" class="link-underline">GitHubでご覧いただけます</a>。興味がなければ、どうぞ気にせず無視してください :)</p>
+    upvoter:
+        subject: "あなたが支持した機能リクエストがリリースされました: %title%"
+        title: "あなたが支持した機能が公開されました！"
+        content: |
+            <p>素晴らしいニュースです！あなたが支持した機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> がリリースされ、MySpeedPuzzlingで公開されました。</p>
+            <p>このアイデアを応援してくださりありがとうございます！</p>
+        admin_comment: |
+            <p><strong>チームからのコメント:</strong> %adminComment%</p>
+        github_note: |
+            <p>私たちは透明性を100%大切にし、オープンに開発を進めています。この変更のコードや技術的な詳細にご興味があれば、<a href="%githubUrl%" class="link-underline">GitHubでご覧いただけます</a>。興味がなければ、どうぞ気にせず無視してください :)</p>
+
+feature_request_declined:
+    subject: "ご提案の機能リクエストは見送られました: %title%"
+    title: "ご提案の機能リクエストは見送られました"
+    content: |
+        <p>ご提案の機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> は見送られることとなりました。</p>
+        <p>アイデアをお寄せいただくためにお時間を割いてくださり、本当にありがとうございます — 採用に至らない場合でも、皆様のフィードバックはMySpeedPuzzlingの形づくりに役立っています。</p>
+    admin_comment: |
+        <p><strong>チームからのコメント:</strong> %adminComment%</p>
+    upvoter:
+        subject: "あなたが支持した機能リクエストは見送られました: %title%"
+        title: "あなたが支持した機能リクエストは見送られました"
+        content: |
+            <p>あなたが支持した機能リクエスト <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> は見送られることとなりました。</p>
+            <p>それでも、このアイデアを応援してくださりありがとうございました！皆様のご意見は、コミュニティが何を大切にしているかを理解する助けになっています。</p>
+        admin_comment: |
+            <p><strong>チームからのコメント:</strong> %adminComment%</p>

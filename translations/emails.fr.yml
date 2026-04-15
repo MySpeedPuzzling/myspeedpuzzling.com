@@ -110,3 +110,41 @@ competition_rejected:
         <p>Malheureusement, votre événement <strong>%competitionName%</strong> n'a pas été approuvé.</p>
         <p><strong>Raison :</strong> %reason%</p>
         <p>Si vous avez des questions ou souhaitez en discuter, contactez-nous à <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+feature_request_completed:
+    subject: "Votre demande de fonctionnalité a été publiée : %title%"
+    title: "Votre demande de fonctionnalité est en ligne !"
+    content: |
+        <p>Bonne nouvelle ! Votre demande de fonctionnalité <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> a été publiée et est maintenant en ligne sur MySpeedPuzzling.</p>
+        <p>Merci pour votre idée — ce sont vos retours qui rendent MySpeedPuzzling meilleur pour tout le monde !</p>
+    admin_comment: |
+        <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
+    github_note: |
+        <p>Comme nous développons de manière ouverte et en toute transparence, si le code et les détails techniques de ce changement vous intéressent, n'hésitez pas à <a href="%githubUrl%" class="link-underline">y jeter un œil sur GitHub</a>. Sinon, ignorez simplement ce message :)</p>
+    upvoter:
+        subject: "Une demande de fonctionnalité que vous avez soutenue a été publiée : %title%"
+        title: "Une fonctionnalité que vous avez soutenue est en ligne !"
+        content: |
+            <p>Bonne nouvelle ! La demande de fonctionnalité que vous avez soutenue — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — a été publiée et est maintenant en ligne sur MySpeedPuzzling.</p>
+            <p>Merci d'avoir soutenu cette idée !</p>
+        admin_comment: |
+            <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
+        github_note: |
+            <p>Comme nous développons de manière ouverte et en toute transparence, si le code et les détails techniques de ce changement vous intéressent, n'hésitez pas à <a href="%githubUrl%" class="link-underline">y jeter un œil sur GitHub</a>. Sinon, ignorez simplement ce message :)</p>
+
+feature_request_declined:
+    subject: "Votre demande de fonctionnalité a été refusée : %title%"
+    title: "Votre demande de fonctionnalité a été refusée"
+    content: |
+        <p>Votre demande de fonctionnalité <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> a été refusée.</p>
+        <p>Nous vous remercions sincèrement d'avoir pris le temps de partager votre idée — même quand quelque chose ne convient pas, vos retours contribuent à façonner MySpeedPuzzling.</p>
+    admin_comment: |
+        <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>
+    upvoter:
+        subject: "Une demande de fonctionnalité que vous avez soutenue a été refusée : %title%"
+        title: "Une demande de fonctionnalité que vous avez soutenue a été refusée"
+        content: |
+            <p>Une demande de fonctionnalité que vous avez soutenue — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — a été refusée.</p>
+            <p>Merci tout de même d'avoir soutenu cette idée ! Votre contribution nous aide à comprendre ce qui compte pour la communauté.</p>
+        admin_comment: |
+            <p><strong>Commentaire de l'équipe :</strong> %adminComment%</p>

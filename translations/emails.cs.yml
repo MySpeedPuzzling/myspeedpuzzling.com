@@ -110,3 +110,41 @@ oauth2_client_rejected:
         <p>Bohužel vaše žádost o OAuth2 aplikaci <strong>%clientName%</strong> nebyla schválena.</p>
         <p><strong>Důvod:</strong> %reason%</p>
         <p>Máte-li dotazy nebo byste chtěli toto dále prodiskutovat, kontaktujte nás prosím na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
+
+feature_request_completed:
+    subject: "Váš návrh na funkci byl vydán: %title%"
+    title: "Váš návrh na funkci je živý!"
+    content: |
+        <p>Skvělá zpráva! Váš návrh na funkci <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> byl vydán a je nyní živý na MySpeedPuzzling.</p>
+        <p>Děkujeme za váš nápad — právě vaše zpětná vazba dělá MySpeedPuzzling lepším pro všechny!</p>
+    admin_comment: |
+        <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+    github_note: |
+        <p>Jelikož vyvíjíme veřejně a jsme 100% transparentní, pokud vás zajímá kód a technické detaily této změny, klidně se <a href="%githubUrl%" class="link-underline">podívejte na GitHub</a>. Jinak to klidně ignorujte :)</p>
+    upvoter:
+        subject: "Návrh na funkci, který jste podpořili, byl vydán: %title%"
+        title: "Funkce, kterou jste podpořili, je živá!"
+        content: |
+            <p>Skvělá zpráva! Návrh na funkci, který jste podpořili — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — byl vydán a je nyní živý na MySpeedPuzzling.</p>
+            <p>Děkujeme za podporu tohoto nápadu!</p>
+        admin_comment: |
+            <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+        github_note: |
+            <p>Jelikož vyvíjíme veřejně a jsme 100% transparentní, pokud vás zajímá kód a technické detaily této změny, klidně se <a href="%githubUrl%" class="link-underline">podívejte na GitHub</a>. Jinak to klidně ignorujte :)</p>
+
+feature_request_declined:
+    subject: "Váš návrh na funkci byl zamítnut: %title%"
+    title: "Váš návrh na funkci byl zamítnut"
+    content: |
+        <p>Váš návrh na funkci <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> byl zamítnut.</p>
+        <p>Velmi si vážíme toho, že jste si našli čas a podělili se s námi o svůj nápad — i když něco nezapadá, vaše zpětná vazba pomáhá utvářet MySpeedPuzzling.</p>
+    admin_comment: |
+        <p><strong>Komentář od týmu:</strong> %adminComment%</p>
+    upvoter:
+        subject: "Návrh na funkci, který jste podpořili, byl zamítnut: %title%"
+        title: "Návrh na funkci, který jste podpořili, byl zamítnut"
+        content: |
+            <p>Návrh na funkci, který jste podpořili — <a href="%featureRequestUrl%" class="link-underline">%featureRequestTitle%</a> — byl zamítnut.</p>
+            <p>Přesto děkujeme za podporu nápadu! Vaše vstupy nám pomáhají pochopit, co komunitu zajímá.</p>
+        admin_comment: |
+            <p><strong>Komentář od týmu:</strong> %adminComment%</p>

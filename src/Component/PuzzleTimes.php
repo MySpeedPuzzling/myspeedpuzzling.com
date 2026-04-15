@@ -288,10 +288,10 @@ final class PuzzleTimes
             }
 
             usort($myAttempts, static function (PuzzleSolver|PuzzleSolversGroup $a, PuzzleSolver|PuzzleSolversGroup $b): int {
-                $aDate = $a->finishedAt ?? new \DateTimeImmutable('@0');
-                $bDate = $b->finishedAt ?? new \DateTimeImmutable('@0');
+                $aDate = $a->finishedAt ?? $a->trackedAt;
+                $bDate = $b->finishedAt ?? $b->trackedAt;
 
-                return $bDate <=> $aDate;
+                return $bDate <=> $aDate ?: $b->trackedAt <=> $a->trackedAt;
             });
 
             $this->myAttempts = $myAttempts;

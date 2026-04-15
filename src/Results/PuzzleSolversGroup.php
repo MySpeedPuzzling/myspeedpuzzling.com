@@ -16,6 +16,7 @@ readonly final class PuzzleSolversGroup
         /** @var array<Puzzler> */
         public array $players,
         public null|DateTimeImmutable $finishedAt,
+        public DateTimeImmutable $trackedAt,
         public bool $firstAttempt,
         public bool $unboxed,
         public null|string $competitionId,
@@ -35,6 +36,7 @@ readonly final class PuzzleSolversGroup
      *     team_id: null|string,
      *     players: string,
      *     finished_at: null|string,
+     *     tracked_at: string,
      *     first_attempt: bool,
      *     unboxed: bool,
      *     competition_id: null|string,
@@ -53,6 +55,7 @@ readonly final class PuzzleSolversGroup
             time: $row['time'],
             players: $players,
             finishedAt: $row['finished_at'] !== null ? new DateTimeImmutable($row['finished_at']) : null,
+            trackedAt: new DateTimeImmutable($row['tracked_at']),
             firstAttempt: $row['first_attempt'],
             unboxed: $row['unboxed'],
             competitionId: $row['competition_id'],

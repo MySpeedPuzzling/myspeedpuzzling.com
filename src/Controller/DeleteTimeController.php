@@ -57,7 +57,9 @@ final class DeleteTimeController extends AbstractController
 
         $this->addFlash('success', $this->translator->trans('flashes.time_deleted'));
 
-        if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+        $isModalRequest = $request->headers->get('Turbo-Frame') === 'modal-frame';
+
+        if ($isModalRequest && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
             return $this->render('delete-time_success_stream.html.twig');

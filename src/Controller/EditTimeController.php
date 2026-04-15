@@ -126,7 +126,7 @@ final class EditTimeController extends AbstractController
 
                 $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
 
-                if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                if ($isModalRequest && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
                     $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
                     return $this->render('edit-time_success_stream.html.twig');

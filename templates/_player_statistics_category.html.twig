@@ -67,7 +67,10 @@
                     <div class="text-end">
                         {% if pieces_statistics.count > 1 %}
                             {{ 'fastest_time'|trans }} {{ pieces_statistics.fastestTime|puzzlingTime }}<br>
-                            {{ 'average_time'|trans }} {{ pieces_statistics.averageTime|puzzlingTime }}
+                            <span class="d-inline-flex align-items-center gap-1">
+                                <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>
+                                {{ 'average_time'|trans }} {{ pieces_statistics.averageTime|puzzlingTime }}
+                            </span>
                         {% else %}
                             {{ 'time'|trans }} {{ pieces_statistics.fastestTime|puzzlingTime }}<br>
                         {% endif %}

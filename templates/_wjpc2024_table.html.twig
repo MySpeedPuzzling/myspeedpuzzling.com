@@ -38,7 +38,7 @@
                 </td>
 
                 <td class="text-end text-nowrap" style="line-height: 120%;">
-                    <small class="text-muted">{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
+                    <small class="text-muted d-inline-flex align-items-center gap-1"><svg class="stat-icon" width="14" height="14"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>{{ 'wjpc2024.average'|trans }}:</small> {{ participant.averageTime ? (participant.averageTime|puzzlingTime) : '-' }}<br>
                     <small class="text-muted">{{ 'wjpc2024.fastest'|trans }}:</small> <span class="text-muted">{{ participant.fastestTime ? (participant.fastestTime|puzzlingTime) : '-' }}</span><br>
                     <small class="text-muted">{{ 'wjpc2024.puzzle_solved'|trans }}:</small> {{ participant.solvedPuzzleCount }}
                 </td>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stat Icons — SVG Sprite Demo</title>
+<style>
+  :root {
+    --stat-ink:    #1a1a2e;
+    --stat-muted:  #6b7280;
+    --stat-accent: #4a53b0;
+    --stat-bg:     #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--stat-bg); color: var(--stat-ink);
+    padding: 40px 24px 80px;
+  }
+  h1 { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: var(--stat-muted); font-size: 13px; margin-bottom: 48px; }
+  .section { max-width: 900px; margin: 0 auto 48px; }
+  .section-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .section-desc { font-size: 13px; color: var(--stat-muted); margin-bottom: 20px; }
+
+  /* Reusable stat icon class */
+  .stat-icon { display: inline-block; vertical-align: middle; color: var(--stat-accent); }
+
+  /* Pill component (matches leaderboard tag style) */
+  .stat-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: #fff;
+    color: var(--stat-ink);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-pill .stat-icon { width: 14px; height: 14px; }
+  .stat-pill.lg { font-size: 15px; padding: 6px 12px; }
+  .stat-pill.lg .stat-icon { width: 18px; height: 18px; }
+  .stat-pill.sm { font-size: 11px; padding: 2px 7px; }
+  .stat-pill.sm .stat-icon { width: 11px; height: 11px; }
+
+  /* Size comparison grid */
+  .size-grid { display: flex; gap: 32px; align-items: end; flex-wrap: wrap; padding: 20px 0; }
+  .size-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .size-label { font-size: 11px; color: var(--stat-muted); }
+
+  /* Leaderboard demo */
+  .ladder { border: 1px solid #eee; border-radius: 12px; overflow: hidden; }
+  .ladder-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #f0f0f0; }
+  .ladder-row:last-child { border-bottom: none; }
+  .ladder-row:hover { background: #fafafa; }
+  .ladder-pos  { width: 32px; font-size: 13px; color: var(--stat-muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .ladder-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .ladder-stat { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: #555; font-variant-numeric: tabular-nums; }
+  .ladder-stat .stat-icon { width: 13px; height: 13px; }
+
+  /* Dark card */
+  .dark-card {
+    background: #1a1a2e; color: #fff;
+    border-radius: 12px; padding: 20px 24px;
+  }
+  .dark-card .stat-icon { color: #fff; }
+  .dark-card .stat-pill {
+    background: #2a2a4a; border-color: #44446a; color: #fff;
+  }
+  .dark-card .stat-pill .stat-icon { color: #fff; }
+
+  /* Colored variants */
+  .tone-accent  { color: var(--stat-accent); }
+  .tone-green   { color: #2e9468; }
+  .tone-red     { color: #be3a30; }
+  .tone-gray    { color: #6b7280; }
+
+  hr.div { max-width: 900px; margin: 0 auto 40px; border: none; border-top: 1px solid #e0e0e0; }
+  code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+  pre { background: #f4f4f4; border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 12px; line-height: 1.6; margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<h1>Stat Icons — SVG Sprite Demo</h1>
+<p class="subtitle">Ø / Õ · color via CSS <code>currentColor</code> · 2 symbols (stat-avg, stat-med)</p>
+
+<!-- Hidden inline sprite — define once, reference everywhere with <use href="#id"/> -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="stat-avg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="6.84"/>
+    <line x1="19" y1="5" x2="5" y2="19"/>
+  </symbol>
+  <symbol id="stat-med" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="6.84"/>
+    <path d="M2 12 Q 7 10, 12 12 T 22 12"/>
+  </symbol>
+</svg>
+
+<!-- Plain icons -->
+<div class="section">
+  <div class="section-title">Plain icons</div>
+  <div class="section-desc">Both symbols at 48 px — accent color applied via CSS.</div>
+  <div style="display:flex;gap:40px;align-items:center;padding:12px 0;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <svg class="stat-icon" width="48" height="48"><use href="#stat-avg"/></svg>
+      <span style="font-size:12px;color:var(--stat-muted);">stat-avg · Ø</span>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <svg class="stat-icon" width="48" height="48"><use href="#stat-med"/></svg>
+      <span style="font-size:12px;color:var(--stat-muted);">stat-med · Õ</span>
+    </div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- Size comparison -->
+<div class="section">
+  <div class="section-title">Size scaling</div>
+  <div class="section-desc">Readable down to 12 px. Stroke-width can be bumped slightly at tiny sizes to compensate for optical thinning.</div>
+  <div class="size-grid">
+    <div class="size-item">
+      <svg class="stat-icon" width="64" height="64"><use href="#stat-avg"/></svg>
+      <span class="size-label">64 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="48" height="48"><use href="#stat-avg"/></svg>
+      <span class="size-label">48 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="32" height="32"><use href="#stat-avg"/></svg>
+      <span class="size-label">32 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="24" height="24"><use href="#stat-avg"/></svg>
+      <span class="size-label">24 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="18" height="18"><use href="#stat-avg"/></svg>
+      <span class="size-label">18 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="14" height="14"><use href="#stat-avg"/></svg>
+      <span class="size-label">14 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="12" height="12"><use href="#stat-avg"/></svg>
+      <span class="size-label">12 px</span>
+    </div>
+  </div>
+  <div class="size-grid">
+    <div class="size-item">
+      <svg class="stat-icon" width="64" height="64"><use href="#stat-med"/></svg>
+      <span class="size-label">64 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="48" height="48"><use href="#stat-med"/></svg>
+      <span class="size-label">48 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="32" height="32"><use href="#stat-med"/></svg>
+      <span class="size-label">32 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="24" height="24"><use href="#stat-med"/></svg>
+      <span class="size-label">24 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="18" height="18"><use href="#stat-med"/></svg>
+      <span class="size-label">18 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="14" height="14"><use href="#stat-med"/></svg>
+      <span class="size-label">14 px</span>
+    </div>
+    <div class="size-item">
+      <svg class="stat-icon" width="12" height="12"><use href="#stat-med"/></svg>
+      <span class="size-label">12 px</span>
+    </div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- Pill / tag component -->
+<div class="section">
+  <div class="section-title">Stat pills</div>
+  <div class="section-desc">Tag-style badges for showing a player's or puzzle's average and median times.</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 0;">
+    <span class="stat-pill lg"><svg class="stat-icon"><use href="#stat-avg"/></svg>04:12</span>
+    <span class="stat-pill lg"><svg class="stat-icon"><use href="#stat-med"/></svg>03:58</span>
+    <span class="stat-pill"><svg class="stat-icon"><use href="#stat-avg"/></svg>avg 04:12</span>
+    <span class="stat-pill"><svg class="stat-icon"><use href="#stat-med"/></svg>med 03:58</span>
+    <span class="stat-pill"><svg class="stat-icon"><use href="#stat-avg"/></svg>07:44</span>
+    <span class="stat-pill"><svg class="stat-icon"><use href="#stat-med"/></svg>06:59</span>
+    <span class="stat-pill sm"><svg class="stat-icon"><use href="#stat-avg"/></svg>4:12</span>
+    <span class="stat-pill sm"><svg class="stat-icon"><use href="#stat-med"/></svg>3:58</span>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- Colored tones -->
+<div class="section">
+  <div class="section-title">Color variants</div>
+  <div class="section-desc">Uses <code>currentColor</code> — any text color cascades to the icon.</div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;padding:8px 0;">
+    <span class="tone-accent" style="font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+      <svg class="stat-icon" width="20" height="20"><use href="#stat-avg"/></svg> accent
+    </span>
+    <span class="tone-green" style="font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+      <svg class="stat-icon" width="20" height="20"><use href="#stat-avg"/></svg> good
+    </span>
+    <span class="tone-red" style="font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+      <svg class="stat-icon" width="20" height="20"><use href="#stat-avg"/></svg> slow
+    </span>
+    <span class="tone-gray" style="font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+      <svg class="stat-icon" width="20" height="20"><use href="#stat-med"/></svg> muted
+    </span>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- Leaderboard demo -->
+<div class="section">
+  <div class="section-title">Leaderboard snippet</div>
+  <div class="section-desc">How the pair looks next to player times in a realistic ranking context.</div>
+  <div class="ladder">
+    <div class="ladder-row">
+      <span class="ladder-pos">1</span>
+      <span class="ladder-name">Anneke V.</span>
+      <span class="ladder-stat tone-accent"><svg class="stat-icon"><use href="#stat-avg"/></svg>03:41</span>
+      <span class="ladder-stat"><svg class="stat-icon"><use href="#stat-med"/></svg>03:38</span>
+    </div>
+    <div class="ladder-row">
+      <span class="ladder-pos">2</span>
+      <span class="ladder-name">Marek T.</span>
+      <span class="ladder-stat tone-accent"><svg class="stat-icon"><use href="#stat-avg"/></svg>03:52</span>
+      <span class="ladder-stat"><svg class="stat-icon"><use href="#stat-med"/></svg>03:49</span>
+    </div>
+    <div class="ladder-row">
+      <span class="ladder-pos">3</span>
+      <span class="ladder-name">Julia R.</span>
+      <span class="ladder-stat tone-accent"><svg class="stat-icon"><use href="#stat-avg"/></svg>04:08</span>
+      <span class="ladder-stat"><svg class="stat-icon"><use href="#stat-med"/></svg>04:02</span>
+    </div>
+    <div class="ladder-row">
+      <span class="ladder-pos">4</span>
+      <span class="ladder-name">Kenji O.</span>
+      <span class="ladder-stat tone-accent"><svg class="stat-icon"><use href="#stat-avg"/></svg>04:24</span>
+      <span class="ladder-stat"><svg class="stat-icon"><use href="#stat-med"/></svg>04:19</span>
+    </div>
+    <div class="ladder-row">
+      <span class="ladder-pos">5</span>
+      <span class="ladder-name">Sofia B.</span>
+      <span class="ladder-stat tone-accent"><svg class="stat-icon"><use href="#stat-avg"/></svg>04:37</span>
+      <span class="ladder-stat"><svg class="stat-icon"><use href="#stat-med"/></svg>04:30</span>
+    </div>
+    <div class="ladder-row">
+      <span class="ladder-pos">6</span>
+      <span class="ladder-name">Tomáš H.</span>
+      <span class="ladder-stat tone-accent"><svg class="stat-icon"><use href="#stat-avg"/></svg>04:51</span>
+      <span class="ladder-stat"><svg class="stat-icon"><use href="#stat-med"/></svg>04:45</span>
+    </div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- Dark mode -->
+<div class="section">
+  <div class="section-title">Dark mode</div>
+  <div class="section-desc">Same sprite, white text and pill color via inherited <code>currentColor</code>.</div>
+  <div class="dark-card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <span class="stat-pill lg"><svg class="stat-icon"><use href="#stat-avg"/></svg>04:12</span>
+      <span class="stat-pill lg"><svg class="stat-icon"><use href="#stat-med"/></svg>03:58</span>
+      <span class="stat-pill"><svg class="stat-icon"><use href="#stat-avg"/></svg>avg 07:44</span>
+      <span class="stat-pill"><svg class="stat-icon"><use href="#stat-med"/></svg>med 06:59</span>
+      <span class="stat-pill sm"><svg class="stat-icon"><use href="#stat-avg"/></svg>4:12</span>
+      <span class="stat-pill sm"><svg class="stat-icon"><use href="#stat-med"/></svg>3:58</span>
+    </div>
+  </div>
+</div>
+
+<hr class="div">
+
+<!-- Usage code -->
+<div class="section">
+  <div class="section-title">Usage</div>
+  <div class="section-desc">Reference the sprite once in your markup, then use <code>&lt;use&gt;</code> to render any symbol.</div>
+  <pre>&lt;!-- Option A: external sprite --&gt;
+&lt;svg class="stat-icon" width="16" height="16"&gt;
+  &lt;use href="stat-icons-sprite.svg#stat-avg"/&gt;
+&lt;/svg&gt;
+
+&lt;!-- Option B: inline sprite (for file:// or offline use) --&gt;
+&lt;svg xmlns="http://www.w3.org/2000/svg" style="display:none"&gt;
+  &lt;symbol id="stat-avg" …&gt;…&lt;/symbol&gt;
+  &lt;symbol id="stat-med" …&gt;…&lt;/symbol&gt;
+&lt;/svg&gt;
+
+&lt;svg class="stat-icon" width="16" height="16"&gt;&lt;use href="#stat-med"/&gt;&lt;/svg&gt;
+
+.stat-icon { color: var(--stat-accent); }  /* cascades to stroke via currentColor */</pre>
+</div>
+
+</body>
+</html>

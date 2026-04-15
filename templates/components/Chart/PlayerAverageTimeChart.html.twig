@@ -1,6 +1,9 @@
 <div {{ attributes }} class="card card-body p-2 pt-1 shadow">
     <div class="d-md-flex mb-2 mt-1 w-100 justify-content-between">
-        <h2 class="fs-6 text-center mb-2">{{ this.pieces }} pieces average time per {{ interval }}</h2>
+        <h2 class="fs-6 d-flex align-items-center justify-content-center gap-1 mb-2">
+            <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>
+            {{ this.pieces }} pieces average time per {{ interval }}
+        </h2>
 
         <div class="d-flex flex-wrap flex-md-nowrap justify-content-center justify-content-md-end filters">
             <select

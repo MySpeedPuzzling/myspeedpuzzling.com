@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!--
+    My Speed Puzzling — Stat Icon Sprite
+    Usage: <svg class="stat-icon"><use href="stat-icons-sprite.svg#stat-avg"/></svg>
+    All icons use currentColor for stroke, so set color via CSS.
+    ViewBox: 0 0 24 24 | Stroke style: round caps & joins
+    Concept: Ø / Õ — circle with diacritic.
+      • Ø (slash)  = average / mean  (after the European "Durchschnitt" convention)
+      • Õ (tilde)  = median           (extending the tilde diacritic from x̃)
+    Base circle r=6.84; slash & tilde overflow the circle for clear read at small sizes.
+  -->
+
+  <!-- Average (mean) — Ø : circle + diagonal slash (top-right → bottom-left) -->
+  <symbol id="stat-avg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="6.84"/>
+    <line x1="19" y1="5" x2="5" y2="19"/>
+  </symbol>
+
+  <!-- Median — Õ : circle + horizontal tilde through center -->
+  <symbol id="stat-med" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="6.84"/>
+    <path d="M2 12 Q 7 10, 12 12 T 22 12"/>
+  </symbol>
+
+</svg>

@@ -171,13 +171,20 @@
         <div class="fs-sm">
             {% if this.times|length > 1 %}
                 {% if this.medianTime %}
-                    {{ 'median_time'|trans }}
-                    <span class="font-monospace">{{ this.medianTime|puzzlingTime }}</span>
+                    <span class="d-inline-flex align-items-center gap-1">
+                        <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-med"/></svg>
+                        {{ 'median_time'|trans }}
+                        <span class="font-monospace">{{ this.medianTime|puzzlingTime }}</span>
+                    </span>
                 {% endif %}
 
                 {% if this.averageTime %}
-                    <br>{{ 'average_time'|trans }}
-                    <span class="font-monospace">{{ this.averageTime|puzzlingTime }}</span>
+                    <br>
+                    <span class="d-inline-flex align-items-center gap-1">
+                        <svg class="stat-icon" width="18" height="18"><use href="/stat-icons-sprite.svg#stat-avg"/></svg>
+                        {{ 'average_time'|trans }}
+                        <span class="font-monospace">{{ this.averageTime|puzzlingTime }}</span>
+                    </span>
                 {% endif %}
             {% endif %}
 

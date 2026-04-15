@@ -74,6 +74,12 @@ body {
     }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+    html {
+        scroll-behavior: smooth;
+    }
+}
+
 main {
     flex-grow: 1;
     padding-top: 101px;

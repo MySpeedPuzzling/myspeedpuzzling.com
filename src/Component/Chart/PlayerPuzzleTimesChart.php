@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component\Chart;
 
+use SpeedPuzzling\Web\Results\PuzzleSolver;
+use SpeedPuzzling\Web\Results\PuzzleSolversGroup;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
-use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
@@ -16,25 +17,40 @@ final class PlayerPuzzleTimesChart
     public null|string $playerId = null;
 
     /**
-     * @var array<SolvedPuzzle>
+     * @var array<SolvedPuzzle|PuzzleSolver|PuzzleSolversGroup>
      */
     public array $results = [];
 
     public function __construct(
         readonly private ChartBuilderInterface $chartBuilder,
-        readonly private PuzzlesSorter $puzzlesSorter,
     ) {
     }
 
     public function getChart(): Chart
     {
+        $rows = [];
+
+        foreach ($this->results as $result) {
+            if ($result->time === null) {
+                continue;
+            }
+
+            $date = $result->finishedAt ?? ($result instanceof SolvedPuzzle ? $result->trackedAt : null);
+            if ($date === null) {
+                continue;
+            }
+
+            $rows[] = ['date' => $date, 'time' => $result->time];
+        }
+
+        usort($rows, static fn (array $a, array $b): int => $a['date'] <=> $b['date']);
+
         $labels = [];
         $chartData = [];
-        $results = $this->puzzlesSorter->sortByFinishedAt($this->results);
 
-        foreach ($results as $result) {
-            $chartData[] = $result->time;
-            $labels[] = ($result->finishedAt ?? $result->trackedAt)->format('d.m.Y');
+        foreach ($rows as $row) {
+            $chartData[] = $row['time'];
+            $labels[] = $row['date']->format('d.m.Y');
         }
 
         $chart = $this->chartBuilder->createChart(Chart::TYPE_LINE);

@@ -185,14 +185,13 @@
                             </span>
 
                             {% if this.myRowKey is not null %}
-                                <button
-                                    type="button"
+                                <a
+                                    href="#leaderboard-row-{{ this.myRowKey }}"
                                     class="btn btn-link btn-sm p-0 ms-2 align-baseline"
-                                    {{ stimulus_controller('scroll-to', {'targetId': 'leaderboard-row-' ~ this.myRowKey}) }}
-                                    {{ stimulus_action('scroll-to', 'scroll') }}
+                                    data-turbo="false"
                                 >
                                     {{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short"></i>
-                                </button>
+                                </a>
                             {% endif %}
                         </div>
                     {% endif %}
@@ -273,7 +272,7 @@
                         </div>
 
                         {% if logged_user.profile.activeMembership %}
-                            <twig:Chart:MyAttemptsPuzzleTimesChart :attempts="this.myAttempts" />
+                            <twig:Chart:PlayerPuzzleTimesChart :results="this.myAttempts" />
                         {% else %}
                             <div class="position-relative mt-3">
                                 <div style="filter: blur(5px); user-select: none; height: 120px; background: linear-gradient(180deg, rgba(254, 64, 66, 0.05) 0%, rgba(254, 64, 66, 0.2) 100%); border-radius: 4px;" aria-hidden="true"></div>

@@ -104,11 +104,11 @@
                                             {% endif %}
                                         </span>
                                         <span>
+                                            {% if row.isBest %}
+                                                <i class="bi bi-star-fill text-warning me-1" style="font-size: 0.75rem;"></i>
+                                            {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
                                             <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
-                                            {% if row.isBest %}
-                                                <i class="bi bi-star-fill text-warning ms-1" style="font-size: 0.75rem;"></i>
-                                            {% endif %}
                                         </span>
                                     </div>
 

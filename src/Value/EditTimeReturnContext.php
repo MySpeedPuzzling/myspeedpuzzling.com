@@ -8,4 +8,5 @@ enum EditTimeReturnContext: string
 {
     case Profile = 'profile';
     case PuzzleDetail = 'puzzle-detail';
+    case TimeRecap = 'time-recap';
 }

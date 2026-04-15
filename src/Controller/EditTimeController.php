@@ -179,6 +179,7 @@ final class EditTimeController extends AbstractController
     {
         return match ($context) {
             EditTimeReturnContext::PuzzleDetail => $this->generateUrl('puzzle_detail', ['puzzleId' => $solvedPuzzle->puzzleId]),
+            EditTimeReturnContext::TimeRecap => $this->generateUrl('added_time_recap', ['timeId' => $solvedPuzzle->timeId]),
             EditTimeReturnContext::Profile => $this->generateUrl('my_profile'),
         };
     }
@@ -187,6 +188,7 @@ final class EditTimeController extends AbstractController
     {
         return match ($context) {
             EditTimeReturnContext::PuzzleDetail => $solvedPuzzle->puzzleName,
+            EditTimeReturnContext::TimeRecap => $this->translator->trans('added_time_recap.title'),
             EditTimeReturnContext::Profile => $this->translator->trans('my_profile.title'),
         };
     }

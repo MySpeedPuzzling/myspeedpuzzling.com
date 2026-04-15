@@ -65,6 +65,7 @@
                                     {% endif %}
                                     <i class="bi bi-stopwatch text-muted me-1"></i>
                                     <span class="font-monospace">{{ result.time|puzzlingTime }}</span>
+                                    {{ include('_edit_time_button.html.twig', {timeId: result.timeId, context: 'time-recap'}) }}
                                 </span>
                             </div>
 

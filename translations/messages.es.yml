@@ -179,6 +179,15 @@
     "keywords": "base datos puzzle, tiempos puzzle, puzzle 500 piezas, puzzle 1000 piezas, marcas puzzle, resolver rápido"
   "title": "Puzzles"
   "missing_puzzle_info": "Si no puedes encontrar un rompecabezas aquí, significa que nadie lo ha resuelto aún y no está en nuestra base de datos. Se pueden ingresar nuevos rompecabezas al añadir tiempo."
+"puzzle_times":
+  "my_attempts":
+    "my_time": "Mi tiempo:"
+    "latest_time": "Último tiempo:"
+    "fastest_time": "Tiempo más rápido:"
+    "latest_is_fastest_note": "Tu último tiempo es el más rápido"
+    "rank": "Puesto %rank% de %total%"
+    "jump_to_me": "Ir a mí"
+    "show_all": "Todos mis tiempos (%count%)"
 "stopwatch":
   "meta":
     "title": "Cronómetro"

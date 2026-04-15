@@ -921,7 +921,7 @@ div[data-countdown-target] {
     transition: transform 0.2s ease;
 }
 
-[aria-expanded="false"] .collapse-chevron {
+[aria-expanded="true"] .collapse-chevron {
     transform: rotate(180deg);
 }
 

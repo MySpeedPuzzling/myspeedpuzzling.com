@@ -178,6 +178,15 @@
     "keywords": "puzzle databáze, časy puzzlí, 500 dílků puzzle, 1000 dílků puzzle, značky puzzlí, rychlé skládání"
   "title": "Puzzle"
   "missing_puzzle_info": "Pokud zde puzzle nenajdete, znamená to, že je nikdo ještě neskládal a nejsou v naší databázi. Nové puzzle lze zadat při přidávání času."
+"puzzle_times":
+  "my_attempts":
+    "my_time": "Můj čas:"
+    "latest_time": "Poslední čas:"
+    "fastest_time": "Nejrychlejší čas:"
+    "latest_is_fastest_note": "Tvůj poslední čas je zároveň tvůj nejrychlejší"
+    "rank": "Pořadí %rank% z %total%"
+    "jump_to_me": "Skočit na mě"
+    "show_all": "Všechny moje časy (%count%)"
 "stopwatch":
   "meta":
     "title": "Stopky"

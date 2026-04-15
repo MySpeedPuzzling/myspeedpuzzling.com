@@ -15,6 +15,13 @@
         'data-ppm-validator-label-minutes-value': 'forms.minutes'|trans,
         'data-ppm-validator-label-seconds-value': 'forms.seconds'|trans,
     } }) }}
+        {% if return_url|default(null) %}
+            <input type="hidden" name="return_url" value="{{ return_url }}">
+        {% endif %}
+        {% if return_title|default(null) %}
+            <input type="hidden" name="return_title" value="{{ return_title }}">
+        {% endif %}
+
         {{ form_errors(solving_time_form) }}
 
         {# Hidden mode field - controlled by Stimulus (only for add form) #}

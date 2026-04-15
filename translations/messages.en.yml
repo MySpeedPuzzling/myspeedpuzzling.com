@@ -393,6 +393,7 @@ edit_time:
     meta:
         title: "Editing Puzzle Time Data"
     title: "Editing Puzzle Time Data"
+    back_to: "Back to %title%"
     delete_button: "Permanently delete this assembly record and pretend it never happened!"
     delete_modal_message: "Just to be sure..."
     delete_modal_confirm: "Really delete?"

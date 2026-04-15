@@ -45,6 +45,7 @@
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                         <span class="font-monospace">{{ myLast.time|puzzlingTime }}</span>
+                        {{ include('_edit_time_button.html.twig', {timeId: myLast.timeId, page_url: this.pageUrl}) }}
                     </div>
                 {% else %}
                     <div>
@@ -111,6 +112,7 @@
                                             {% endif %}
                                             <i class="bi bi-stopwatch text-muted me-1"></i>
                                             <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
+                                            {{ include('_edit_time_button.html.twig', {timeId: row.attempt.timeId, page_url: this.pageUrl}) }}
                                         </span>
                                     </div>
 
@@ -318,10 +320,11 @@
                 <tbody>
                 {% set  previousTimeId = null %}
                 {% for timeId, aggregated_solver in this.times %}
+                    {% set is_own_row = logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) %}
                     <tr
                         id="leaderboard-row-{{ timeId }}"
                         style="scroll-margin-top: 120px;"
-                        class="{{ logged_user.profile is not null and ((aggregated_solver[0].players is not defined and aggregated_solver[0].playerId is same as logged_user.profile.playerId) or (aggregated_solver[0].players is defined and aggregated_solver[0].containsPlayer(logged_user.profile.playerId))) ? 'table-active-player' }}"
+                        class="{{ is_own_row ? 'table-active-player' }}"
                     >
                         <td class="rank">{{ previousTimeId and aggregated_solver[0].time == this.times[previousTimeId][0].time ? loop.index-1 : loop.index }}.</td>
 
@@ -408,6 +411,11 @@
                                 {% endif %}
                             {% endif %}
 
+                            {% if is_own_row %}
+                                <br>
+                                {{ include('_edit_time_button.html.twig', {timeId: aggregated_solver[0].timeId, page_url: this.pageUrl}) }}
+                            {% endif %}
+
                             {% if aggregated_solver|length > 1 %}
                                 <br>
                                 <a href="#" class="show-more-times" {{ stimulus_action('toggle', 'toggle', 'click', {target: 'row' ~ loop.index})}}>
@@ -449,6 +457,11 @@
                                                             {% if solving_time.competitionSlug %}
                                                                 </a>
                                                             {% endif %}
+                                                        {% endif %}
+
+                                                        {% if is_own_row %}
+                                                            <br>
+                                                            {{ include('_edit_time_button.html.twig', {timeId: solving_time.timeId, page_url: this.pageUrl}) }}
                                                         {% endif %}
                                                     </span>
 

@@ -136,6 +136,6 @@
         time_prediction: time_prediction,
     }) }}
 
-    <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" />
+    <twig:PuzzleTimes puzzleId="{{ puzzle.puzzleId }}" piecesCount="{{ puzzle.piecesCount }}" pageUrl="{{ app.request.uri }}" />
 
 {% endblock %}

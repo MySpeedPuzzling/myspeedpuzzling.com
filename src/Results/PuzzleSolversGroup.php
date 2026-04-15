@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\Puzzler;
 readonly final class PuzzleSolversGroup
 {
     public function __construct(
+        public string $timeId,
         public null|string $teamId,
         public null|int $time,
         /** @var array<Puzzler> */
@@ -26,6 +27,7 @@ readonly final class PuzzleSolversGroup
 
     /**
      * @param array{
+     *     time_id: string,
      *     player_id: string,
      *     puzzle_id: string,
      *     time: int,
@@ -46,6 +48,7 @@ readonly final class PuzzleSolversGroup
         $players = Puzzler::createPuzzlersFromJson($row['players']);
 
         return new self(
+            timeId: $row['time_id'],
             teamId: $row['team_id'],
             time: $row['time'],
             players: $players,

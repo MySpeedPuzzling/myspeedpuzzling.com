@@ -30,6 +30,7 @@ readonly final class GetPuzzleSolvers
 
         $query = <<<SQL
 SELECT
+    puzzle_solving_time.id AS time_id,
     player.id AS player_id,
     player.name AS player_name,
     player.code AS player_code,
@@ -66,6 +67,7 @@ SQL;
         return array_map(static function (array $row): PuzzleSolver {
             /**
              * @var array{
+             *     time_id: string,
              *     puzzle_id: string,
              *     player_id: string,
              *     player_name: null|string,
@@ -105,6 +107,7 @@ SQL;
 
         $query = <<<SQL
 SELECT
+    pst.id AS time_id,
     pst.player_id AS player_id,
     pst.puzzle_id AS puzzle_id,
     pst.seconds_to_solve AS time,
@@ -153,6 +156,7 @@ SQL;
         return array_map(static function (array $row): PuzzleSolversGroup {
             /**
              * @var array{
+             *     time_id: string,
              *     player_id: string,
              *     puzzle_id: string,
              *     time: int,
@@ -185,6 +189,7 @@ SQL;
 
         $query = <<<SQL
 SELECT
+    pst.id AS time_id,
     pst.player_id AS player_id,
     pst.puzzle_id AS puzzle_id,
     pst.seconds_to_solve AS time,
@@ -233,6 +238,7 @@ SQL;
         return array_map(static function (array $row): PuzzleSolversGroup {
             /**
              * @var array{
+             *     time_id: string,
              *     player_id: string,
              *     puzzle_id: string,
              *     time: int,

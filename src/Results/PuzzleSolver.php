@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 readonly final class PuzzleSolver
 {
     public function __construct(
+        public string $timeId,
         public string $puzzleId,
         public string $playerId,
         public null|string $playerName,
@@ -31,6 +32,7 @@ readonly final class PuzzleSolver
 
     /**
      * @param array{
+     *     time_id: string,
      *     puzzle_id: string,
      *     player_id: string,
      *     player_name: null|string,
@@ -52,6 +54,7 @@ readonly final class PuzzleSolver
     public static function fromDatabaseRow(array $row): self
     {
         return new self(
+            timeId: $row['time_id'],
             puzzleId: $row['puzzle_id'],
             playerId: $row['player_id'],
             playerName: $row['player_name'],

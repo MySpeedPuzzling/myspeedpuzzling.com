@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Auth0\Symfony\Models\User;
-use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
-use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Exceptions\CanNotAssembleEmptyGroup;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
+use SpeedPuzzling\Web\FormData\EditPuzzleSolvingTimeFormData;
+use SpeedPuzzling\Web\FormType\EditPuzzleSolvingTimeFormType;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
 use SpeedPuzzling\Web\Query\GetPuzzlesOverview;
 use SpeedPuzzling\Web\Results\PuzzleOverview;
+use SpeedPuzzling\Web\Services\ReturnUrlValidator;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,6 +28,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\UX\Turbo\TurboBundle;
 
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 final class EditTimeController extends AbstractController
@@ -39,6 +41,7 @@ final class EditTimeController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private TranslatorInterface $translator,
         readonly private GetFavoritePlayers $getFavoritePlayers,
+        readonly private ReturnUrlValidator $returnUrlValidator,
     ) {
     }
 
@@ -66,6 +69,17 @@ final class EditTimeController extends AbstractController
         if ($solvedPuzzle->playerId !== $player->playerId) {
             throw $this->createAccessDeniedException();
         }
+
+        $isModalRequest = $request->headers->get('Turbo-Frame') === 'modal-frame';
+        $returnUrl = $this->returnUrlValidator->sanitize(
+            $request->isMethod('POST')
+                ? $request->request->getString('return_url')
+                : $request->query->getString('return_url'),
+            $request,
+        );
+        $returnTitle = $request->isMethod('POST')
+            ? $request->request->getString('return_title')
+            : $request->query->getString('return_title');
 
         $data = new EditPuzzleSolvingTimeFormData();
 
@@ -115,9 +129,17 @@ final class EditTimeController extends AbstractController
                     EditPuzzleSolvingTime::fromFormData($user->getUserIdentifier(), $timeId, $groupPlayers, $data),
                 );
 
+                if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                    $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                    return $this->render('edit-time_success_stream.html.twig', [
+                        'message' => $this->translator->trans('flashes.time_edited'),
+                    ]);
+                }
+
                 $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
 
-                return $this->redirectToRoute('my_profile');
+                return $this->redirect($returnUrl ?? $this->generateUrl('my_profile'));
             } catch (HandlerFailedException $exception) {
                 $realException = $exception->getPrevious();
 
@@ -137,7 +159,7 @@ final class EditTimeController extends AbstractController
             $puzzlesPerManufacturer[$puzzle->manufacturerName][] = $puzzle;
         }
 
-        return $this->render('edit-time.html.twig', [
+        $templateParams = [
             'active_puzzle' => $this->getPuzzleOverview->byId($solvedPuzzle->puzzleId),
             'solved_puzzle' => $solvedPuzzle,
             'solving_time_form' => $editTimeForm,
@@ -148,6 +170,14 @@ final class EditTimeController extends AbstractController
             'active_stopwatch' => null,
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($player->playerId),
             'initial_mode' => $initialMode,
-        ]);
+            'return_url' => $returnUrl,
+            'return_title' => $returnTitle,
+        ];
+
+        if ($isModalRequest) {
+            return $this->render('edit-time_modal.html.twig', $templateParams);
+        }
+
+        return $this->render('edit-time.html.twig', $templateParams);
     }
 }

@@ -1,0 +1,6 @@
+{# Close the modal and refresh the current page so the removed time disappears everywhere. #}
+<turbo-stream action="update" target="modal-frame">
+    <template></template>
+</turbo-stream>
+
+<turbo-stream action="refresh"></turbo-stream>

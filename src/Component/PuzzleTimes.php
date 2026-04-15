@@ -31,6 +31,9 @@ final class PuzzleTimes
     public null|int $piecesCount = null;
 
     #[LiveProp]
+    public null|string $pageUrl = null;
+
+    #[LiveProp]
     public string $category = 'solo';
 
     #[LiveProp(writable: true)]

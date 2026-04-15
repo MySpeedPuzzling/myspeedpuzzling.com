@@ -153,6 +153,10 @@ class Player
     public bool $rankingOptedOut = false;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $timePredictionsOptedOut = false;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|DateTimeImmutable $fairUsePolicyAcceptedAt = null;
 
@@ -373,6 +377,11 @@ class Player
     public function changeRankingOptedOut(bool $optedOut): void
     {
         $this->rankingOptedOut = $optedOut;
+    }
+
+    public function changeTimePredictionsOptedOut(bool $optedOut): void
+    {
+        $this->timePredictionsOptedOut = $optedOut;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

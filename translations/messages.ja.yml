@@ -760,7 +760,7 @@
   "revoke_confirm": "このアプリケーションのアクセスを取り消してもよろしいですか？"
   "features_options": "機能オプション"
   "hide_ranking": "ランキングとスキルを非表示"
-  "hide_ranking_help": "スキルティア、Ratingランキング、タイム予測が非表示になります。MSP Ratingラダーにも表示されません。あなたのデータはパズル難易度や他のプレイヤーのランキング計算には引き続き使用されます。"
+  "hide_ranking_help": "スキルティアとRatingランキングが非表示になります。MSP Ratingラダーにも表示されません。あなたのデータはパズル難易度や他のプレイヤーのランキング計算には引き続き使用されます。"
   "hide_streak": "連続記録を非表示"
   "hide_streak_help": "あなたの連続記録が統計ページに表示されなくなります。"
 "puzzle_detail":

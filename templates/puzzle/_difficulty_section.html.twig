@@ -55,7 +55,13 @@
                     <h6 class="fs-sm text-muted mb-0 d-flex align-items-center gap-1">
                         <i class="bi bi-clock-history" style="font-size: 1.1em;"></i>{{ 'puzzle_intelligence.prediction.title'|trans }}
                     </h6>
-                    {% if time_prediction is not null %}
+                    {% if logged_user.profile is not null and logged_user.profile.timePredictionsOptedOut %}
+                        <small class="text-muted d-block">
+                            <i class="bi bi-eye-slash me-1"></i>
+                            {{ 'puzzle_intelligence.prediction.time_predictions_opted_out'|trans }}
+                            <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                        </small>
+                    {% elseif time_prediction is not null %}
                         {% if time_prediction.isPersonalized and time_prediction.lastTimeSeconds is not null %}
                             <div>
                                 <small class="text-muted">

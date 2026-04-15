@@ -654,7 +654,7 @@
   "revoke_confirm": "Sind Sie sicher, dass Sie den Zugriff für diese Anwendung widerrufen möchten?"
   "features_options": "Funktionsoptionen"
   "hide_ranking": "Mein Ranking & Skill ausblenden"
-  "hide_ranking_help": "Deine Skill-Stufe, Rating-Platzierung und Zeitvorhersagen werden ausgeblendet. Du erscheinst nicht auf der MSP Rating Rangliste. Deine Daten werden weiterhin für Berechnungen der Puzzle-Schwierigkeit und Rankings anderer Spieler verwendet."
+  "hide_ranking_help": "Deine Skill-Stufe und Rating-Platzierung werden ausgeblendet. Du erscheinst nicht auf der MSP Rating Rangliste. Deine Daten werden weiterhin für Berechnungen der Puzzle-Schwierigkeit und Rankings anderer Spieler verwendet."
   "hide_streak": "Meine Serie ausblenden"
   "hide_streak_help": "Deine Serie wird nicht auf deiner Statistikseite angezeigt."
 "puzzle_detail":

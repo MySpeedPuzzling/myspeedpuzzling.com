@@ -820,7 +820,9 @@ edit_profile:
     hide_streak: "Hide my streak"
     hide_streak_help: "Your streak will not be displayed on your statistics page."
     hide_ranking: "Hide my ranking & skill"
-    hide_ranking_help: "Your skill tier, Rating ranking and time predictions will be hidden. You won't appear on the MSP Rating ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
+    hide_ranking_help: "Your skill tier and Rating ranking will be hidden. You won't appear on the MSP Rating ladder. Your data is still used in calculations for puzzle difficulty and other players' rankings."
+    hide_time_predictions: "Hide time predictions"
+    hide_time_predictions_help: "Your personal time predictions will be hidden on puzzle pages and time recaps. Turn them off if you just want to enjoy puzzling, without the pressure or disappointment of a predicted time — these are just our magic calculations, we don't want to stress you out!"
 
 puzzle_detail:
     meta:
@@ -2277,6 +2279,7 @@ puzzle_intelligence:
         last_time: "Your last time: %time%"
         expected_improvement: "↓ %delta% faster (%percent%%)"
         not_available_generic: "We need more of your solving data for this piece count to predict your time."
+        time_predictions_opted_out: "You have opted out of time predictions."
     skill:
         title: "Skill Profile"
         tier_label: "Tier"

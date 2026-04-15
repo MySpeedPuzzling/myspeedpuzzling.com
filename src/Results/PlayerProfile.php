@@ -48,6 +48,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     average_rating: null|string,
  *     streak_opted_out: bool,
  *     ranking_opted_out: bool,
+ *     time_predictions_opted_out: bool,
  *     fair_use_policy_accepted_at: null|string,
  *     referral_program_joined_at: null|string,
  *     referral_program_suspended: bool,
@@ -92,6 +93,7 @@ readonly final class PlayerProfile
         public null|float $averageRating = null,
         public bool $streakOptedOut = false,
         public bool $rankingOptedOut = false,
+        public bool $timePredictionsOptedOut = false,
         public bool $fairUsePolicyAccepted = false,
         public null|DateTimeImmutable $referralProgramJoinedAt = null,
         public bool $referralProgramSuspended = false,
@@ -182,6 +184,7 @@ readonly final class PlayerProfile
             averageRating: $row['average_rating'] !== null ? (float) $row['average_rating'] : null,
             streakOptedOut: (bool) $row['streak_opted_out'],
             rankingOptedOut: (bool) $row['ranking_opted_out'],
+            timePredictionsOptedOut: (bool) $row['time_predictions_opted_out'],
             fairUsePolicyAccepted: $row['fair_use_policy_accepted_at'] !== null,
             referralProgramJoinedAt: $row['referral_program_joined_at'] !== null
                 ? new DateTimeImmutable($row['referral_program_joined_at'])

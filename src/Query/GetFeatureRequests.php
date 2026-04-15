@@ -38,11 +38,13 @@ readonly final class GetFeatureRequests
 
         $where = $whereClauses !== [] ? 'WHERE ' . implode(' AND ', $whereClauses) : '';
 
+        $statusOrder = "CASE fr.status WHEN 'in_progress' THEN 1 WHEN 'open' THEN 2 WHEN 'declined' THEN 3 WHEN 'completed' THEN 4 ELSE 5 END";
+
         $orderBy = match ($sort) {
-            'least_votes' => 'vote_count ASC, fr.created_at DESC',
-            'newest' => 'fr.created_at DESC',
-            'oldest' => 'fr.created_at ASC',
-            default => 'vote_count DESC, fr.created_at DESC',
+            'least_votes' => "{$statusOrder}, vote_count ASC, fr.created_at DESC",
+            'newest' => "{$statusOrder}, fr.created_at DESC",
+            'oldest' => "{$statusOrder}, fr.created_at ASC",
+            default => "{$statusOrder}, vote_count DESC, fr.created_at DESC",
         };
 
         $query = <<<SQL

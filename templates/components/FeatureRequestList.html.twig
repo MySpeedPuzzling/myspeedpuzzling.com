@@ -1,14 +1,20 @@
 <div {{ attributes }}>
     {# Filter & Sort Bar #}
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-        {# Status filter #}
-        <select data-model="status" class="form-select form-select-sm" style="width: auto;">
-            <option value="" {{ this.status == '' ? 'selected' }}>{{ 'feature_requests.filter.all_statuses'|trans }}</option>
-            <option value="open" {{ this.status == 'open' ? 'selected' }}>{{ 'feature_requests.status.open'|trans }}</option>
-            <option value="in_progress" {{ this.status == 'in_progress' ? 'selected' }}>{{ 'feature_requests.status.in_progress'|trans }}</option>
-            <option value="completed" {{ this.status == 'completed' ? 'selected' }}>{{ 'feature_requests.status.completed'|trans }}</option>
-            <option value="declined" {{ this.status == 'declined' ? 'selected' }}>{{ 'feature_requests.status.declined'|trans }}</option>
-        </select>
+        {# Status filter tabs #}
+        <div class="btn-group btn-group-sm" role="group" aria-label="{{ 'feature_requests.filter.all_statuses'|trans }}" style="font-size: 0.75rem;">
+            <input type="radio" class="btn-check" name="status-filter" id="status-filter-all" value="" data-model="status" {{ this.status == '' ? 'checked' }}>
+            <label class="btn btn-outline-secondary text-nowrap" for="status-filter-all">{{ 'feature_requests.filter.all_statuses'|trans }}</label>
+
+            <input type="radio" class="btn-check" name="status-filter" id="status-filter-open" value="open" data-model="status" {{ this.status == 'open' ? 'checked' }}>
+            <label class="btn btn-outline-secondary text-nowrap" for="status-filter-open">{{ 'feature_requests.status.open'|trans }}</label>
+
+            <input type="radio" class="btn-check" name="status-filter" id="status-filter-completed" value="completed" data-model="status" {{ this.status == 'completed' ? 'checked' }}>
+            <label class="btn btn-outline-secondary text-nowrap" for="status-filter-completed">{{ 'feature_requests.status.completed'|trans }}</label>
+
+            <input type="radio" class="btn-check" name="status-filter" id="status-filter-declined" value="declined" data-model="status" {{ this.status == 'declined' ? 'checked' }}>
+            <label class="btn btn-outline-secondary text-nowrap" for="status-filter-declined">{{ 'feature_requests.status.declined'|trans }}</label>
+        </div>
 
         {# My Requests toggle #}
         {% if logged_user.profile is not null and logged_user.profile.activeMembership %}

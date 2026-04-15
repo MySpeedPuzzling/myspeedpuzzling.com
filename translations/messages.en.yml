@@ -212,8 +212,6 @@ puzzle_times:
         rank: "Rank %rank% of %total%"
         jump_to_me: "Jump to me"
         show_all: "All my times (%count%)"
-        history_delta_previous: "vs Previous"
-        history_delta_best: "vs Best"
 
 stopwatch:
     meta:

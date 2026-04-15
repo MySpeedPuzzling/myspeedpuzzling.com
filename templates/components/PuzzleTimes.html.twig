@@ -94,39 +94,48 @@
                         <div class="attempts-history-list">
                             {% for row in this.myAttemptsWithContext %}
                                 <div class="attempts-history-entry {% if not loop.first %}border-top pt-2 mt-2{% endif %}">
-                                    <div>
-                                        <i class="bi bi-calendar3 text-muted me-1"></i>
-                                        {% if row.attempt.finishedAt is not null %}
-                                            <span class="font-monospace">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
-                                        {% else %}
-                                            <span class="text-muted">&mdash;</span>
-                                        {% endif %}
-                                        <i class="bi bi-stopwatch text-muted ms-3 me-1"></i>
-                                        <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
-                                        {% if row.isBest %}
-                                            <i class="bi bi-star-fill text-warning ms-1" style="font-size: 0.75rem;"></i>
-                                        {% endif %}
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>
+                                            <i class="bi bi-calendar3 text-muted me-1"></i>
+                                            {% if row.attempt.finishedAt is not null %}
+                                                <span class="font-monospace">{{ row.attempt.finishedAt|date('d.m.Y') }}</span>
+                                            {% else %}
+                                                <span class="text-muted">&mdash;</span>
+                                            {% endif %}
+                                        </span>
+                                        <span>
+                                            <i class="bi bi-stopwatch text-muted me-1"></i>
+                                            <span class="font-monospace">{{ row.attempt.time|puzzlingTime }}</span>
+                                            {% if row.isBest %}
+                                                <i class="bi bi-star-fill text-warning ms-1" style="font-size: 0.75rem;"></i>
+                                            {% endif %}
+                                        </span>
                                     </div>
 
-                                    {% if row.prevTime is not null %}
-                                        {% set delta = row.attempt.time - row.prevTime %}
-                                        <div class="fs-xs text-muted ms-4">
-                                            {{ 'puzzle_times.my_attempts.history_delta_previous'|trans }}:
-                                            {% if delta < 0 %}
-                                                <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
-                                            {% elseif delta > 0 %}
-                                                <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
-                                            {% else %}
-                                                <span class="font-monospace">=</span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
+                                    {% set showPrevDelta = row.prevTime is not null %}
+                                    {% set showBestDelta = not row.isBest and myBest.time is not null and row.attempt.time is not null %}
 
-                                    {% if not row.isBest and myBest.time is not null and row.attempt.time is not null %}
-                                        {% set delta_best = row.attempt.time - myBest.time %}
-                                        <div class="fs-xs text-muted ms-4">
-                                            {{ 'puzzle_times.my_attempts.history_delta_best'|trans }}:
-                                            <span class="text-danger font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                    {% if showPrevDelta or showBestDelta %}
+                                        <div class="fs-xs text-end mt-1">
+                                            {% if showPrevDelta %}
+                                                {% set delta = row.attempt.time - row.prevTime %}
+                                                <div>
+                                                    {% if delta < 0 %}
+                                                        <span class="text-success font-monospace">-{{ (delta|abs)|puzzlingTime }}</span>
+                                                    {% elseif delta > 0 %}
+                                                        <span class="text-danger font-monospace">+{{ delta|puzzlingTime }}</span>
+                                                    {% else %}
+                                                        <span class="text-muted font-monospace">=</span>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if showBestDelta %}
+                                                {% set delta_best = row.attempt.time - myBest.time %}
+                                                <div>
+                                                    <span class="text-muted font-monospace">+{{ delta_best|puzzlingTime }}</span>
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     {% endif %}
                                 </div>

@@ -182,6 +182,10 @@ function createCustomIndexes(): void
     // Case-insensitive unique email for native auth (Version20260724073022)
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_user_account_email_lower ON user_account (lower(email))');
 
+    // Badge uniqueness — partial indexes for tiered vs single-tier badges (Version20260416210601)
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');
+
 }
 
 /**

@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
@@ -54,6 +55,7 @@ return App::config([
                 // Listmonk API calls must not block or fail the user-facing request
                 PushNewsletterSubscriberToListmonk::class => 'async',
                 RemoveNewsletterSubscriberFromListmonk::class => 'async',
+                RecalculateBadgesForPlayer::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

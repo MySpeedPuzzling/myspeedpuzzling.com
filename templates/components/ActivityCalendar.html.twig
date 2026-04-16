@@ -1,0 +1,241 @@
+<div {{ attributes }} class="activity-calendar">
+    {% set dowMax = this.dowMax %}
+    {% set monthFirstDay = date(this.year ~ '-' ~ ('%02d'|format(this.month)) ~ '-01') %}
+    {% set currentMonthLabel = monthFirstDay|format_datetime(pattern='LLLL yyyy') %}
+    {% set canGoForward = (this.year < ('now'|date('Y'))) or (this.year == ('now'|date('Y')) and this.month < ('now'|date('n'))) %}
+    {% set categoryColors = {
+        'solo': '#fe4042',
+        'duo':  '#2ab8c4',
+        'team': '#7c6cf2'
+    } %}
+
+    <div class="row g-4">
+        {# ============ LEFT: calendar grid + day detail ============ #}
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            data-action="live#action"
+                            data-live-action-param="prevMonth"
+                            aria-label="{{ 'activity_calendar.prev_month'|trans }}"
+                        >
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <h2 class="h5 mb-0 text-capitalize">{{ currentMonthLabel }}</h2>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            data-action="live#action"
+                            data-live-action-param="nextMonth"
+                            aria-label="{{ 'activity_calendar.next_month'|trans }}"
+                            {{ canGoForward ? '' : 'disabled' }}
+                        >
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="activity-calendar-grid">
+                        {% for dowLabelKey in ['monday_short', 'tuesday_short', 'wednesday_short', 'thursday_short', 'friday_short', 'saturday_short', 'sunday_short'] %}
+                            <div class="activity-calendar-dow text-muted small text-center">
+                                {{ ('activity_calendar.' ~ dowLabelKey)|trans }}
+                            </div>
+                        {% endfor %}
+
+                        {% for cell in this.gridCells %}
+                            {% if not cell.inMonth %}
+                                <div class="activity-calendar-cell activity-calendar-cell--empty"></div>
+                            {% else %}
+                                {% set day = cell.day %}
+                                <button
+                                    type="button"
+                                    class="activity-calendar-cell activity-calendar-cell--day
+                                        {{ cell.isToday ? 'activity-calendar-cell--today' }}
+                                        {{ cell.isSelected ? 'activity-calendar-cell--selected' }}
+                                        {{ cell.isInCurrentStreak ? 'activity-calendar-cell--streak' }}
+                                        {{ day is null ? 'activity-calendar-cell--empty-day' }}"
+                                    data-action="live#action"
+                                    data-live-action-param="selectDay"
+                                    data-live-date-param="{{ cell.date|date('Y-m-d') }}"
+                                    aria-pressed="{{ cell.isSelected ? 'true' : 'false' }}"
+                                >
+                                    <span class="activity-calendar-cell-number">{{ cell.date|date('j') }}</span>
+                                    {% if day is not null %}
+                                        <span class="activity-calendar-cell-markers">
+                                            {% if day.soloCount > 0 %}
+                                                <span class="activity-calendar-dot" style="background-color: {{ categoryColors.solo }};" title="{{ 'activity_calendar.solo_count'|trans({'%count%': day.soloCount}) }}"></span>
+                                            {% endif %}
+                                            {% if day.duoCount > 0 %}
+                                                <span class="activity-calendar-dot" style="background-color: {{ categoryColors.duo }};" title="{{ 'activity_calendar.duo_count'|trans({'%count%': day.duoCount}) }}"></span>
+                                            {% endif %}
+                                            {% if day.teamCount > 0 %}
+                                                <span class="activity-calendar-dot" style="background-color: {{ categoryColors.team }};" title="{{ 'activity_calendar.team_count'|trans({'%count%': day.teamCount}) }}"></span>
+                                            {% endif %}
+                                            {% if day.firstAttemptCount > 0 %}
+                                                <span class="activity-calendar-first-attempt" title="{{ 'activity_calendar.first_attempt_marker'|trans }}">★</span>
+                                            {% endif %}
+                                        </span>
+                                    {% endif %}
+                                </button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3 mt-3 small text-muted">
+                        <span><span class="activity-calendar-dot me-1" style="background-color: {{ categoryColors.solo }};"></span>{{ 'activity_calendar.legend_solo'|trans }}</span>
+                        <span><span class="activity-calendar-dot me-1" style="background-color: {{ categoryColors.duo }};"></span>{{ 'activity_calendar.legend_duo'|trans }}</span>
+                        <span><span class="activity-calendar-dot me-1" style="background-color: {{ categoryColors.team }};"></span>{{ 'activity_calendar.legend_team'|trans }}</span>
+                        <span><span class="activity-calendar-first-attempt me-1">★</span>{{ 'activity_calendar.legend_first_attempt'|trans }}</span>
+                    </div>
+
+                    {% if not this.hasActivityThisMonth %}
+                        <p class="mt-3 mb-0 text-muted small">{{ 'activity_calendar.no_activity_this_month'|trans }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# ============ Day detail ============ #}
+            {% if this.selectedDay is not null %}
+                {% set selectedDate = date(this.selectedDay) %}
+                <div class="card shadow-sm mt-3">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h3 class="h6 mb-0">{{ selectedDate|format_datetime('full', 'none') }}</h3>
+                            <button
+                                type="button"
+                                class="btn btn-link btn-sm p-0"
+                                data-action="live#action"
+                                data-live-action-param="clearSelection"
+                            >
+                                <i class="bi bi-x-lg"></i>
+                                <span class="visually-hidden">{{ 'activity_calendar.clear_selection'|trans }}</span>
+                            </button>
+                        </div>
+
+                        {% if this.selectedDaySolvings is empty %}
+                            <p class="mb-0 text-muted small">{{ 'activity_calendar.no_solvings_on_day'|trans }}</p>
+                        {% else %}
+                            <ul class="list-unstyled mb-0">
+                                {% for solve in this.selectedDaySolvings %}
+                                    <li class="d-flex align-items-start gap-3 py-2 border-bottom">
+                                        <a href="{{ path('puzzle_detail', {puzzleId: solve.puzzleId}) }}" class="flex-shrink-0">
+                                            {{ lazy_puzzle_image(
+                                                solve.puzzleImage,
+                                                'puzzle_small',
+                                                'puzzle_img_alt'|trans({'%puzzle%': solve.manufacturerName ~ ' ' ~ solve.puzzleName}),
+                                                loop.index,
+                                                56,
+                                                'rounded-2'
+                                            ) }}
+                                        </a>
+                                        <div class="flex-grow-1">
+                                            <div class="small fw-semibold">
+                                                <a href="{{ path('puzzle_detail', {puzzleId: solve.puzzleId}) }}" class="text-decoration-none">{{ solve.puzzleName }}</a>
+                                            </div>
+                                            <div class="small text-muted">
+                                                {{ solve.manufacturerName }} &middot; {{ 'pieces_count'|trans({ '%count%': solve.piecesCount })|raw }}
+                                            </div>
+                                            <div class="small mt-1 d-flex flex-wrap gap-2 align-items-center">
+                                                {% if solve.teamId is null %}
+                                                    <span class="badge" style="background-color: {{ categoryColors.solo }};">{{ 'activity_calendar.legend_solo'|trans }}</span>
+                                                {% elseif solve.players is not null and solve.players|length == 2 %}
+                                                    <span class="badge" style="background-color: {{ categoryColors.duo }};">{{ 'activity_calendar.legend_duo'|trans }}</span>
+                                                {% else %}
+                                                    <span class="badge" style="background-color: {{ categoryColors.team }};">{{ 'activity_calendar.legend_team'|trans }}</span>
+                                                {% endif %}
+
+                                                {% if solve.firstAttempt %}
+                                                    <span class="activity-calendar-first-attempt" title="{{ 'activity_calendar.first_attempt_marker'|trans }}">★</span>
+                                                {% endif %}
+
+                                                {% if solve.time is not null %}
+                                                    <span class="text-muted"><i class="bi bi-stopwatch"></i> {{ solve.time|puzzlingTime }}</span>
+                                                {% endif %}
+
+                                                {% if solve.finishedAt is not null %}
+                                                    <span class="text-muted">&middot; {{ solve.finishedAt|format_datetime('none', 'short') }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        {# ============ RIGHT: stats panel (members-only) ============ #}
+        <div class="col-12 col-lg-4">
+            {% if logged_user is defined and logged_user is not null and logged_user.profile is not null and logged_user.profile.activeMembership %}
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h3 class="h6 mb-2">{{ 'activity_calendar.streak_title'|trans }}</h3>
+                        <div class="d-flex align-items-center gap-3">
+                            <div>
+                                <div class="small text-muted">{{ 'activity_calendar.current_streak'|trans }}</div>
+                                <div class="h3 mb-0">
+                                    <i class="bi bi-fire text-danger"></i>
+                                    {{ this.streak.current }}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="small text-muted">{{ 'activity_calendar.longest_streak'|trans }}</div>
+                                <div class="h4 mb-0">{{ this.streak.longest }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h3 class="h6 mb-2">{{ 'activity_calendar.day_of_week_heatmap'|trans }}</h3>
+                        <p class="small text-muted mb-2">{{ 'activity_calendar.day_of_week_hint'|trans }}</p>
+                        <div class="d-flex align-items-stretch gap-1">
+                            {% for dowKey, count in this.dowBuckets %}
+                                {% set dowShort = ['monday_short', 'tuesday_short', 'wednesday_short', 'thursday_short', 'friday_short', 'saturday_short', 'sunday_short'][dowKey] %}
+                                {% set intensity = dowMax > 0 ? (count / dowMax) : 0 %}
+                                {% set alpha = 0.1 + (intensity * 0.8) %}
+                                <div class="flex-fill text-center">
+                                    <div class="activity-calendar-heat-cell" style="background-color: rgba(254, 64, 66, {{ alpha }});" title="{{ count }}">
+                                        <span class="small fw-semibold {{ intensity > 0.5 ? 'text-white' : '' }}">{{ count }}</span>
+                                    </div>
+                                    <div class="small text-muted mt-1">{{ ('activity_calendar.' ~ dowShort)|trans }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h3 class="h6 mb-2">{{ 'activity_calendar.hour_of_day_chart'|trans }}</h3>
+                        <p class="small text-muted mb-2">{{ 'activity_calendar.hour_of_day_hint'|trans }}</p>
+                        <div style="position: relative; height: 280px;">
+                            {{ render_chart(this.hourOfDayChart) }}
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="ci-locked fs-1 text-muted"></i>
+                        <h3 class="h6 mt-2">{{ 'activity_calendar.stats_locked_title'|trans }}</h3>
+                        <p class="small text-muted">{{ 'activity_calendar.stats_locked_text'|trans }}</p>
+                        <button
+                            type="button"
+                            class="btn btn-primary btn-sm"
+                            data-bs-toggle="modal"
+                            data-bs-target="#membersExclusiveModal"
+                        >
+                            {{ 'activity_calendar.stats_locked_cta'|trans }}
+                        </button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

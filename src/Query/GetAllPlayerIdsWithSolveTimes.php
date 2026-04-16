@@ -28,10 +28,14 @@ SELECT DISTINCT id FROM (
 
     UNION
 
-    SELECT (jsonb_array_elements(team::jsonb -> 'puzzlers') ->> 'player_id')::uuid AS id
-    FROM puzzle_solving_time
-    WHERE suspicious = false AND team IS NOT NULL
+    SELECT (elem ->> 'player_id')::uuid AS id
+    FROM puzzle_solving_time,
+         jsonb_array_elements(team::jsonb -> 'puzzlers') AS elem
+    WHERE suspicious = false
+      AND team IS NOT NULL
+      AND elem ->> 'player_id' IS NOT NULL
 ) sub
+WHERE id IS NOT NULL
 ORDER BY id
 SQL;
 

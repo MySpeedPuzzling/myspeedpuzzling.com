@@ -340,14 +340,21 @@ $confidence-high: #42d697;   // green
 
     &-grid {
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
+        // minmax(0, 1fr) prevents cells with long content (dots + star) from
+        // growing past their 1/7 allocation and blowing out the grid on narrow viewports.
+        grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 4px;
+
+        @include media-breakpoint-down(sm) {
+            gap: 2px;
+        }
     }
 
     &-dow {
         padding: 4px 0;
         font-weight: 600;
         letter-spacing: 0.03em;
+        min-width: 0;
     }
 
     &-cell {
@@ -361,8 +368,15 @@ $confidence-high: #42d697;   // green
         align-items: flex-start;
         justify-content: space-between;
         padding: 4px 6px;
+        min-width: 0;
+        overflow: hidden;
         transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease;
         color: inherit;
+
+        @include media-breakpoint-down(sm) {
+            padding: 2px 3px;
+            border-radius: 4px;
+        }
 
         &--day {
             cursor: pointer;
@@ -411,6 +425,10 @@ $confidence-high: #42d697;   // green
         align-items: center;
         gap: 3px;
         flex-wrap: wrap;
+
+        @include media-breakpoint-down(sm) {
+            gap: 2px;
+        }
     }
 
     &-dot {
@@ -419,12 +437,21 @@ $confidence-high: #42d697;   // green
         height: 7px;
         border-radius: 50%;
         vertical-align: middle;
+
+        @include media-breakpoint-down(sm) {
+            width: 5px;
+            height: 5px;
+        }
     }
 
     &-first-attempt {
         color: #f2b705;
         font-size: 0.8rem;
         line-height: 1;
+
+        @include media-breakpoint-down(sm) {
+            font-size: 0.7rem;
+        }
     }
 
     &-heat-cell {

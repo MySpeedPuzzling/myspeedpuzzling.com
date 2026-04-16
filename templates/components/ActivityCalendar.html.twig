@@ -153,12 +153,11 @@
                                                 {% if solve.time is not null %}
                                                     <span class="text-muted"><i class="bi bi-stopwatch"></i> {{ solve.time|puzzlingTime }}</span>
                                                 {% endif %}
-
-                                                {% if solve.finishedAt is not null %}
-                                                    <span class="text-muted">&middot; {{ solve.finishedAt|format_datetime('none', 'short') }}</span>
-                                                {% endif %}
                                             </div>
                                         </div>
+                                        {% if logged_user.profile is not null and solve.playerId is same as logged_user.profile.playerId %}
+                                            {% include '_edit_time_button.html.twig' with {timeId: solve.timeId, context: 'profile'} only %}
+                                        {% endif %}
                                     </li>
                                 {% endfor %}
                             </ul>

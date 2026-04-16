@@ -7,6 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
@@ -60,6 +61,7 @@ return App::config([
                 RemoveNewsletterSubscriberFromListmonk::class => 'async',
                 // Object storage calls after an account deletion - never in the way of the deletion
                 DeletePlayerStoredFiles::class => 'async',
+                RecalculateBadgesForPlayer::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

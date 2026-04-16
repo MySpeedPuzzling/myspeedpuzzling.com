@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
@@ -36,6 +37,7 @@ use SpeedPuzzling\Web\Value\SolvingTime;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class EditPuzzleSolvingTimeHandler
@@ -56,6 +58,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private FirstTryAssessor $firstTryAssessor,
         private ResultDuplicatePreventionRepository $resultDuplicatePreventionRepository,
         private PuzzleRepository $puzzleRepository,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -225,5 +228,7 @@ readonly final class EditPuzzleSolvingTimeHandler
                 via: SolvingTimeSource::Form,
             ));
         }
+
+        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($currentPlayer->id->toString()));
     }
 }

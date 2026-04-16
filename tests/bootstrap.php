@@ -196,6 +196,10 @@ function createCustomIndexes(): void
 
     // Player search (Version20260930163100)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_search_trgm ON player USING GIN (LOWER(name) gin_trgm_ops, LOWER(code) gin_trgm_ops, LOWER(immutable_unaccent(name)) gin_trgm_ops, LOWER(immutable_unaccent(code)) gin_trgm_ops)');
+
+    // Badge uniqueness — partial indexes for tiered vs single-tier badges (Version20260416210601)
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');
 }
 
 /**

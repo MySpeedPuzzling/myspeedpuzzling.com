@@ -302,3 +302,11 @@ result_review:
     thanks: "Thank you for helping us keep the results precise – and happy puzzling!"
     signature: "Your MySpeedPuzzling team"
     opt_out: "You get this e-mail because of your results on MySpeedPuzzling. <a href=\"%settingsUrl%\">E-mail settings</a> · <a href=\"%unsubscribeUrl%\">Stop e-mails about my results</a>"
+
+badges_earned:
+    subject: "You earned new badges on MySpeedPuzzling!"
+    title: "%count% new badge(s) earned!"
+    intro: "Congratulations! You've reached new milestones on MySpeedPuzzling."
+    cta: |
+        <p><a href="%badgesUrl%" class="link-underline">See all your badges and your progress toward the next ones</a>.</p>
+    outro: "Keep puzzling — more achievements are waiting to be unlocked!"

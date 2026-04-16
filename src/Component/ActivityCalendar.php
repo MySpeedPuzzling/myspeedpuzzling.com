@@ -45,6 +45,14 @@ final class ActivityCalendar
     /** @var array<string, ActivityCalendarDay> */
     public array $daysByDate = [];
 
+    public int $monthTotalSolo = 0;
+
+    public int $monthTotalDuo = 0;
+
+    public int $monthTotalTeam = 0;
+
+    public int $monthTotalFirstAttempt = 0;
+
     /** @var array<int, int> 0 = Mon .. 6 = Sun */
     public array $dowBuckets = [];
 
@@ -82,6 +90,18 @@ final class ActivityCalendar
         assert($year !== null && $month !== null);
 
         $this->daysByDate = $this->getPlayerActivityCalendar->perDayInMonth($playerId, $year, $month);
+
+        $this->monthTotalSolo = 0;
+        $this->monthTotalDuo = 0;
+        $this->monthTotalTeam = 0;
+        $this->monthTotalFirstAttempt = 0;
+
+        foreach ($this->daysByDate as $day) {
+            $this->monthTotalSolo += $day->soloCount;
+            $this->monthTotalDuo += $day->duoCount;
+            $this->monthTotalTeam += $day->teamCount;
+            $this->monthTotalFirstAttempt += $day->firstAttemptCount;
+        }
 
         $activeDays = $this->getPlayerActivityCalendar->activeDaysInMonth($playerId, $year, $month);
         $this->streak = $this->streakCalculator->calculate($activeDays);

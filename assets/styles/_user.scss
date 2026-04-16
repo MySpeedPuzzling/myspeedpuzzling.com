@@ -328,3 +328,115 @@ $confidence-high: #42d697;   // green
 .badge-tier-low-confidence {
     opacity: 0.6;
 }
+
+// ============================================================================
+// Activity Calendar
+// ============================================================================
+
+.activity-calendar {
+    .btn:not(:disabled) {
+        cursor: pointer;
+    }
+
+    &-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+    }
+
+    &-dow {
+        padding: 4px 0;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+    }
+
+    &-cell {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border: 1px solid $gray-200;
+        border-radius: 6px;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 4px 6px;
+        transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease;
+        color: inherit;
+
+        &--day {
+            cursor: pointer;
+        }
+
+        &--empty {
+            border: none;
+            background: transparent;
+            cursor: default;
+        }
+
+        &--day:hover {
+            border-color: $primary;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        &--today {
+            border-color: $primary;
+            border-width: 2px;
+        }
+
+        &--selected {
+            background-color: rgba(254, 64, 66, 0.08);
+            border-color: $primary;
+            box-shadow: 0 0 0 2px rgba(254, 64, 66, 0.2);
+        }
+
+        &--streak {
+            background: linear-gradient(180deg, rgba(254, 64, 66, 0.06), rgba(254, 64, 66, 0.02));
+        }
+
+        &--empty-day {
+            opacity: 0.85;
+        }
+    }
+
+    &-cell-number {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: $gray-800;
+    }
+
+    &-cell-markers {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        flex-wrap: wrap;
+    }
+
+    &-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        vertical-align: middle;
+    }
+
+    &-first-attempt {
+        color: #f2b705;
+        font-size: 0.8rem;
+        line-height: 1;
+    }
+
+    &-heat-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        border-radius: 4px;
+        transition: transform 0.08s ease;
+
+        &:hover {
+            transform: scale(1.04);
+        }
+    }
+}

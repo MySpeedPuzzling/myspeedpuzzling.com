@@ -284,6 +284,7 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'activity_calendar' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('activity_calendar', {'playerId': logged_user.profile.playerId}) }}">
                                             <i class="bi bi-calendar-event me-1"></i> {{ 'menu.activity_calendar'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     <li>

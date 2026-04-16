@@ -54,7 +54,7 @@
                                     class="activity-calendar-cell activity-calendar-cell--day
                                         {{ cell.isToday ? 'activity-calendar-cell--today' }}
                                         {{ cell.isSelected ? 'activity-calendar-cell--selected' }}
-                                        {{ cell.isInCurrentStreak ? 'activity-calendar-cell--streak' }}
+                                        {{ cell.isInCurrentStreak and not this.streakOptedOut ? 'activity-calendar-cell--streak' }}
                                         {{ day is null ? 'activity-calendar-cell--empty-day' }}"
                                     data-action="live#action"
                                     data-live-action-param="selectDay"
@@ -171,24 +171,26 @@
         {# ============ RIGHT: stats panel (members-only) ============ #}
         <div class="col-12 col-lg-4">
             {% if logged_user is defined and logged_user is not null and logged_user.profile is not null and logged_user.profile.activeMembership %}
-                <div class="card shadow-sm mb-3">
-                    <div class="card-body">
-                        <h3 class="h6 mb-2">{{ 'activity_calendar.streak_title'|trans }}</h3>
-                        <div class="d-flex align-items-center gap-3">
-                            <div>
-                                <div class="small text-muted">{{ 'activity_calendar.current_streak'|trans }}</div>
-                                <div class="h3 mb-0">
-                                    <i class="bi bi-fire text-danger"></i>
-                                    {{ this.streak.current }}
+                {% if not this.streakOptedOut %}
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <h3 class="h6 mb-2">{{ 'activity_calendar.streak_title'|trans }}</h3>
+                            <div class="d-flex align-items-center gap-3">
+                                <div>
+                                    <div class="small text-muted">{{ 'activity_calendar.current_streak'|trans }}</div>
+                                    <div class="h3 mb-0">
+                                        <i class="bi bi-fire text-danger"></i>
+                                        {{ this.streak.current }}
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <div class="small text-muted">{{ 'activity_calendar.longest_streak'|trans }}</div>
-                                <div class="h4 mb-0">{{ this.streak.longest }}</div>
+                                <div>
+                                    <div class="small text-muted">{{ 'activity_calendar.longest_streak'|trans }}</div>
+                                    <div class="h4 mb-0">{{ this.streak.longest }}</div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                {% endif %}
 
                 <div class="card shadow-sm mb-3">
                     <div class="card-body">

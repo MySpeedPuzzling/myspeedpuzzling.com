@@ -39,6 +39,9 @@ final class ActivityCalendar
     #[LiveProp(writable: true)]
     public null|string $selectedDay = null;
 
+    #[LiveProp]
+    public bool $streakOptedOut = false;
+
     /** @var array<string, ActivityCalendarDay> */
     public array $daysByDate = [];
 

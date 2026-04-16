@@ -8,6 +8,6 @@
 
     <h1 class="h3 mb-3">{{ 'activity_calendar.page_title'|trans }}</h1>
 
-    <twig:ActivityCalendar playerId="{{ player.playerId }}" year="{{ year }}" month="{{ month }}" />
+    <twig:ActivityCalendar playerId="{{ player.playerId }}" year="{{ year }}" month="{{ month }}" :streakOptedOut="player.streakOptedOut" />
 
 {% endblock %}

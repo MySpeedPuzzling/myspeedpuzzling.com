@@ -13,7 +13,9 @@ use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
+use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 
 #[Entity]
@@ -33,6 +35,24 @@ class Badge
         public BadgeType $type,
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $earnedAt,
+        #[Column(type: Types::SMALLINT, nullable: true)]
+        #[Immutable]
+        public null|int $tier = null,
     ) {
+    }
+
+    public static function earn(
+        Player $player,
+        BadgeType $type,
+        DateTimeImmutable $earnedAt,
+        null|BadgeTier $tier,
+    ): self {
+        return new self(
+            id: Uuid::uuid7(),
+            player: $player,
+            type: $type,
+            earnedAt: $earnedAt,
+            tier: $tier?->value,
+        );
     }
 }

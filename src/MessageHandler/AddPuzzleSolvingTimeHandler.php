@@ -34,6 +34,7 @@ use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetRecentIdenticalSolvingTime;
 use SpeedPuzzling\Web\Query\IsCompetitionPubliclyVisible;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
@@ -59,6 +60,7 @@ use SpeedPuzzling\Web\Value\StopwatchStatus;
 use SpeedPuzzling\Web\Value\TeamComposition;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AddPuzzleSolvingTimeHandler
@@ -89,6 +91,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private IsCompetitionPubliclyVisible $isCompetitionPubliclyVisible,
         private CompetitionSeriesRepository $competitionSeriesRepository,
         private SeriesEditionResolver $seriesEditionResolver,
+        private MessageBusInterface $commandBus,
     ) {
     }
 
@@ -332,6 +335,8 @@ readonly final class AddPuzzleSolvingTimeHandler
                 confirmedAt: $trackedAt,
             ));
         }
+
+        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($player->id->toString()));
     }
 
     /**

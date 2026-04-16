@@ -204,6 +204,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$lifetimeSeconds', param('loginLifetimeSeconds'));
 
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
+    $services->load('SpeedPuzzling\\Web\\BadgeConditions\\', __DIR__ . '/../src/BadgeConditions/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
         ->exclude([
             __DIR__ . '/../src/Security/OAuth2User.php',

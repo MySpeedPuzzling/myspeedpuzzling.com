@@ -378,3 +378,11 @@ organization_rejected:
         <p><strong>Reason:</strong> %reason%</p>
         <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     button: "Open \"You organize\""
+
+badges_earned:
+    subject: "You earned new badges on MySpeedPuzzling!"
+    title: "%count% new badge(s) earned!"
+    intro: "Congratulations! You've reached new milestones on MySpeedPuzzling."
+    cta: |
+        <p><a href="%badgesUrl%" class="link-underline">See all your badges and your progress toward the next ones</a>.</p>
+    outro: "Keep puzzling — more achievements are waiting to be unlocked!"

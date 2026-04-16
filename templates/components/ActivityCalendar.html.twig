@@ -65,28 +65,16 @@
                                     {% if day is not null %}
                                         <span class="activity-calendar-cell-markers">
                                             {% if day.soloCount > 0 %}
-                                                <span class="activity-calendar-marker" title="{{ 'activity_calendar.solo_count'|trans({'%count%': day.soloCount}) }}">
-                                                    <span class="activity-calendar-dot" style="background-color: {{ categoryColors.solo }};"></span>
-                                                    {% if day.soloCount > 1 %}<span class="activity-calendar-marker-count">{{ day.soloCount }}</span>{% endif %}
-                                                </span>
+                                                <span class="activity-calendar-pill" style="background-color: {{ categoryColors.solo }};" title="{{ 'activity_calendar.solo_count'|trans({'%count%': day.soloCount}) }}">{{ day.soloCount }}</span>
                                             {% endif %}
                                             {% if day.duoCount > 0 %}
-                                                <span class="activity-calendar-marker" title="{{ 'activity_calendar.duo_count'|trans({'%count%': day.duoCount}) }}">
-                                                    <span class="activity-calendar-dot" style="background-color: {{ categoryColors.duo }};"></span>
-                                                    {% if day.duoCount > 1 %}<span class="activity-calendar-marker-count">{{ day.duoCount }}</span>{% endif %}
-                                                </span>
+                                                <span class="activity-calendar-pill" style="background-color: {{ categoryColors.duo }};" title="{{ 'activity_calendar.duo_count'|trans({'%count%': day.duoCount}) }}">{{ day.duoCount }}</span>
                                             {% endif %}
                                             {% if day.teamCount > 0 %}
-                                                <span class="activity-calendar-marker" title="{{ 'activity_calendar.team_count'|trans({'%count%': day.teamCount}) }}">
-                                                    <span class="activity-calendar-dot" style="background-color: {{ categoryColors.team }};"></span>
-                                                    {% if day.teamCount > 1 %}<span class="activity-calendar-marker-count">{{ day.teamCount }}</span>{% endif %}
-                                                </span>
+                                                <span class="activity-calendar-pill" style="background-color: {{ categoryColors.team }};" title="{{ 'activity_calendar.team_count'|trans({'%count%': day.teamCount}) }}">{{ day.teamCount }}</span>
                                             {% endif %}
                                             {% if day.firstAttemptCount > 0 %}
-                                                <span class="activity-calendar-marker" title="{{ 'activity_calendar.first_attempt_marker'|trans }}">
-                                                    <span class="activity-calendar-first-attempt">★</span>
-                                                    {% if day.firstAttemptCount > 1 %}<span class="activity-calendar-marker-count">{{ day.firstAttemptCount }}</span>{% endif %}
-                                                </span>
+                                                <span class="activity-calendar-pill activity-calendar-pill--first-attempt" title="{{ 'activity_calendar.first_attempt_marker'|trans }}">★{% if day.firstAttemptCount > 1 %} {{ day.firstAttemptCount }}{% endif %}</span>
                                             {% endif %}
                                         </span>
                                     {% endif %}

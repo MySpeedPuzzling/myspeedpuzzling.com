@@ -440,7 +440,7 @@ $confidence-high: #42d697;   // green
     &-cell-markers {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 3px;
         flex-wrap: wrap;
 
         @include media-breakpoint-down(sm) {
@@ -448,47 +448,50 @@ $confidence-high: #42d697;   // green
         }
     }
 
-    &-marker {
+    // Colored pill with the count inside — used in calendar day cells.
+    &-pill {
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        justify-content: center;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
         line-height: 1;
-    }
+        color: #fff;
+        white-space: nowrap;
 
-    &-marker-count {
-        font-size: 0.65rem;
-        font-weight: 600;
-        color: $gray-800;
-        line-height: 1;
-
-        // Save horizontal space on tiny viewports — marker dots alone still convey
-        // which categories were active; users can tap the day for detail.
         @include media-breakpoint-down(sm) {
-            display: none;
+            min-width: 13px;
+            height: 13px;
+            padding: 0 3px;
+            font-size: 0.6rem;
+        }
+
+        &--first-attempt {
+            background-color: #f2b705;
+            color: #fff;
+            gap: 2px;
         }
     }
 
+    // Legend dot: small circular marker next to a label (separate from the
+    // in-cell pills — these stay tiny so the legend reads as a colour key).
     &-dot {
         display: inline-block;
-        width: 7px;
-        height: 7px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         vertical-align: middle;
-
-        @include media-breakpoint-down(sm) {
-            width: 5px;
-            height: 5px;
-        }
     }
 
+    // Gold star glyph used in the legend next to the "First attempt" label.
     &-first-attempt {
         color: #f2b705;
-        font-size: 0.8rem;
+        font-size: 0.85rem;
         line-height: 1;
-
-        @include media-breakpoint-down(sm) {
-            font-size: 0.7rem;
-        }
     }
 
     &-heat-cell {

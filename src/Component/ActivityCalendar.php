@@ -83,10 +83,10 @@ final class ActivityCalendar
 
         $this->daysByDate = $this->getPlayerActivityCalendar->perDayInMonth($playerId, $year, $month);
 
-        $activeDays = $this->getPlayerActivityCalendar->activeDays($playerId);
+        $activeDays = $this->getPlayerActivityCalendar->activeDaysInMonth($playerId, $year, $month);
         $this->streak = $this->streakCalculator->calculate($activeDays);
-        $this->dowBuckets = $this->getPlayerActivityCalendar->dayOfWeekBuckets($playerId);
-        $this->hourBuckets = $this->getPlayerActivityCalendar->hourOfDayBuckets($playerId);
+        $this->dowBuckets = $this->getPlayerActivityCalendar->dayOfWeekBucketsInMonth($playerId, $year, $month);
+        $this->hourBuckets = $this->getPlayerActivityCalendar->hourOfDayBucketsInMonth($playerId, $year, $month);
         $this->hourOfDayChart = $this->buildHourOfDayChart($this->hourBuckets);
 
         $this->selectedDaySolvings = $this->loadSelectedDaySolvings();
@@ -274,19 +274,20 @@ final class ActivityCalendar
         $data = [];
 
         for ($hour = 0; $hour < 24; $hour++) {
-            $labels[] = sprintf('%02d:00', $hour);
+            $labels[] = sprintf('%02d', $hour);
             $data[] = $hourBuckets[$hour] ?? 0;
         }
 
-        $chart = $this->chartBuilder->createChart(Chart::TYPE_POLAR_AREA);
+        $chart = $this->chartBuilder->createChart(Chart::TYPE_BAR);
         $chart->setData([
             'labels' => $labels,
             'datasets' => [
                 [
                     'data' => $data,
-                    'backgroundColor' => array_fill(0, 24, 'rgba(254, 64, 66, 0.35)'),
+                    'backgroundColor' => 'rgba(254, 64, 66, 0.6)',
                     'borderColor' => '#fe4042',
                     'borderWidth' => 1,
+                    'borderRadius' => 2,
                 ],
             ],
         ]);
@@ -299,9 +300,15 @@ final class ActivityCalendar
                 ],
             ],
             'scales' => [
-                'r' => [
-                    'ticks' => [
+                'x' => [
+                    'grid' => [
                         'display' => false,
+                    ],
+                ],
+                'y' => [
+                    'beginAtZero' => true,
+                    'ticks' => [
+                        'precision' => 0,
                     ],
                 ],
             ],

@@ -27,8 +27,7 @@ readonly final class GetPlayerActivityCalendar
             throw new PlayerNotFound();
         }
 
-        $monthStart = new DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month));
-        $monthEnd = $monthStart->modify('last day of this month')->setTime(23, 59, 59);
+        [$monthStart, $monthEnd] = $this->monthBounds($year, $month);
 
         $query = <<<SQL
 SELECT
@@ -91,20 +90,24 @@ SQL;
     }
 
     /**
-     * @return list<string> Sorted ascending list of unique 'Y-m-d' strings the player was active.
+     * @return list<string> Sorted ascending list of unique 'Y-m-d' strings the player was active within the given month.
      * @throws PlayerNotFound
      */
-    public function activeDays(string $playerId): array
+    public function activeDaysInMonth(string $playerId, int $year, int $month): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
+
+        [$monthStart, $monthEnd] = $this->monthBounds($year, $month);
 
         $query = <<<SQL
 SELECT DISTINCT to_char(finished_at, 'YYYY-MM-DD') AS day
 FROM puzzle_solving_time
 WHERE
     finished_at IS NOT NULL
+    AND finished_at >= :dateFrom
+    AND finished_at <= :dateTo
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -115,20 +118,24 @@ SQL;
         /** @var list<array{day: string}> $rows */
         $rows = $this->database->executeQuery($query, [
             'playerId' => $playerId,
+            'dateFrom' => $monthStart->format('Y-m-d H:i:s'),
+            'dateTo' => $monthEnd->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
         return array_map(static fn (array $row): string => $row['day'], $rows);
     }
 
     /**
-     * @return array<int, int> Keys 0-6 (Mon=0 .. Sun=6), values = solve count. All 7 keys always present (0 for empty).
+     * @return array<int, int> Keys 0-6 (Mon=0 .. Sun=6), values = solve count within the given month. All 7 keys present.
      * @throws PlayerNotFound
      */
-    public function dayOfWeekBuckets(string $playerId): array
+    public function dayOfWeekBucketsInMonth(string $playerId, int $year, int $month): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
+
+        [$monthStart, $monthEnd] = $this->monthBounds($year, $month);
 
         $query = <<<SQL
 SELECT
@@ -137,6 +144,8 @@ SELECT
 FROM puzzle_solving_time
 WHERE
     finished_at IS NOT NULL
+    AND finished_at >= :dateFrom
+    AND finished_at <= :dateTo
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -147,6 +156,8 @@ SQL;
         /** @var list<array{iso_dow: int, solve_count: int|string}> $rows */
         $rows = $this->database->executeQuery($query, [
             'playerId' => $playerId,
+            'dateFrom' => $monthStart->format('Y-m-d H:i:s'),
+            'dateTo' => $monthEnd->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
         $buckets = array_fill(0, 7, 0);
@@ -160,22 +171,27 @@ SQL;
     }
 
     /**
-     * @return array<int, int> Keys 0-23 (UTC hour), values = solve count. All 24 keys always present (0 for empty).
+     * @return array<int, int> Keys 0-23 (UTC hour of tracked_at), values = tracking count within the given month. All 24 keys present.
      * @throws PlayerNotFound
      */
-    public function hourOfDayBuckets(string $playerId): array
+    public function hourOfDayBucketsInMonth(string $playerId, int $year, int $month): array
     {
         if (Uuid::isValid($playerId) === false) {
             throw new PlayerNotFound();
         }
 
+        [$monthStart, $monthEnd] = $this->monthBounds($year, $month);
+
+        // `tracked_at` (auto-set at insert) is the honest "when did the user log this?" signal;
+        // the hour portion of `finished_at` is unreliable because the UI only lets users pick a date.
         $query = <<<SQL
 SELECT
-    EXTRACT(HOUR FROM finished_at)::int AS hour_of_day,
+    EXTRACT(HOUR FROM tracked_at)::int AS hour_of_day,
     COUNT(*) AS solve_count
 FROM puzzle_solving_time
 WHERE
-    finished_at IS NOT NULL
+    tracked_at >= :dateFrom
+    AND tracked_at <= :dateTo
     AND (
         player_id = :playerId
         OR (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
@@ -186,6 +202,8 @@ SQL;
         /** @var list<array{hour_of_day: int, solve_count: int|string}> $rows */
         $rows = $this->database->executeQuery($query, [
             'playerId' => $playerId,
+            'dateFrom' => $monthStart->format('Y-m-d H:i:s'),
+            'dateTo' => $monthEnd->format('Y-m-d H:i:s'),
         ])->fetchAllAssociative();
 
         $buckets = array_fill(0, 24, 0);
@@ -195,5 +213,16 @@ SQL;
         }
 
         return $buckets;
+    }
+
+    /**
+     * @return array{0: DateTimeImmutable, 1: DateTimeImmutable}
+     */
+    private function monthBounds(int $year, int $month): array
+    {
+        $start = new DateTimeImmutable(sprintf('%04d-%02d-01 00:00:00', $year, $month));
+        $end = $start->modify('last day of this month')->setTime(23, 59, 59);
+
+        return [$start, $end];
     }
 }

@@ -334,6 +334,10 @@ $confidence-high: #42d697;   // green
 // ============================================================================
 
 .activity-calendar {
+    .btn:not(:disabled) {
+        cursor: pointer;
+    }
+
     &-grid {
         display: grid;
         grid-template-columns: repeat(7, 1fr);
@@ -358,8 +362,11 @@ $confidence-high: #42d697;   // green
         justify-content: space-between;
         padding: 4px 6px;
         transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease;
-        cursor: pointer;
         color: inherit;
+
+        &--day {
+            cursor: pointer;
+        }
 
         &--empty {
             border: none;

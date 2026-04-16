@@ -20,9 +20,12 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         $this->query = $container->get(GetPlayerActivityCalendar::class);
     }
 
-    public function testActiveDaysReturnsUniqueSortedDays(): void
+    public function testActiveDaysInMonthReturnsUniqueSortedDays(): void
     {
-        $days = $this->query->activeDays(PlayerFixture::PLAYER_REGULAR);
+        $days = $this->scanYearsOfMonths(
+            PlayerFixture::PLAYER_REGULAR,
+            fn (int $y, int $m): array => $this->query->activeDaysInMonth(PlayerFixture::PLAYER_REGULAR, $y, $m),
+        );
 
         self::assertNotEmpty($days);
         self::assertSame($days, array_values(array_unique($days)), 'Days must be unique');
@@ -36,25 +39,47 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         }
     }
 
-    public function testActiveDaysIncludesTeamParticipationWhenNotOwner(): void
+    public function testActiveDaysInMonthRestrictsToThatMonth(): void
+    {
+        $now = new \DateTimeImmutable();
+        $year = (int) $now->format('Y');
+        $month = (int) $now->format('m');
+
+        $days = $this->query->activeDaysInMonth(PlayerFixture::PLAYER_REGULAR, $year, $month);
+
+        $expectedPrefix = sprintf('%04d-%02d-', $year, $month);
+        foreach ($days as $day) {
+            self::assertStringStartsWith($expectedPrefix, $day);
+        }
+    }
+
+    public function testActiveDaysInMonthIncludesTeamParticipationWhenNotOwner(): void
     {
         // PLAYER_PRIVATE appears in team puzzlers for TIME_12 (team-001) and TIME_41 (team-002),
-        // but player_id on those rows is PLAYER_REGULAR. The query must detect the JSON membership.
-        $days = $this->query->activeDays(PlayerFixture::PLAYER_PRIVATE);
+        // but player_id on those rows is PLAYER_REGULAR. The query must detect JSON membership.
+        $days = $this->scanYearsOfMonths(
+            PlayerFixture::PLAYER_PRIVATE,
+            fn (int $y, int $m): array => $this->query->activeDaysInMonth(PlayerFixture::PLAYER_PRIVATE, $y, $m),
+        );
 
         self::assertNotEmpty($days);
     }
 
-    public function testActiveDaysThrowsForInvalidPlayerId(): void
+    public function testActiveDaysInMonthThrowsForInvalidPlayerId(): void
     {
         $this->expectException(PlayerNotFound::class);
 
-        $this->query->activeDays('not-a-uuid');
+        $this->query->activeDaysInMonth('not-a-uuid', 2026, 1);
     }
 
-    public function testDayOfWeekBucketsAlwaysReturnsSevenKeys(): void
+    public function testDayOfWeekBucketsInMonthAlwaysReturnsSevenKeys(): void
     {
-        $buckets = $this->query->dayOfWeekBuckets(PlayerFixture::PLAYER_REGULAR);
+        $now = new \DateTimeImmutable();
+        $buckets = $this->query->dayOfWeekBucketsInMonth(
+            PlayerFixture::PLAYER_REGULAR,
+            (int) $now->format('Y'),
+            (int) $now->format('m'),
+        );
 
         self::assertCount(7, $buckets);
         self::assertSame([0, 1, 2, 3, 4, 5, 6], array_keys($buckets));
@@ -64,18 +89,21 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         }
     }
 
-    public function testDayOfWeekBucketsSumMatchesFinishedSolveCount(): void
+    public function testDayOfWeekBucketsInMonthReturnsZerosForFutureMonth(): void
     {
-        $buckets = $this->query->dayOfWeekBuckets(PlayerFixture::PLAYER_REGULAR);
-        $hourBuckets = $this->query->hourOfDayBuckets(PlayerFixture::PLAYER_REGULAR);
+        $buckets = $this->query->dayOfWeekBucketsInMonth(PlayerFixture::PLAYER_REGULAR, 2999, 1);
 
-        // Both aggregations filter the same rows (finished_at IS NOT NULL + player in row or in team).
-        self::assertSame(array_sum($buckets), array_sum($hourBuckets));
+        self::assertSame([0, 0, 0, 0, 0, 0, 0], $buckets);
     }
 
-    public function testHourOfDayBucketsAlwaysReturnsTwentyFourKeys(): void
+    public function testHourOfDayBucketsInMonthAlwaysReturnsTwentyFourKeys(): void
     {
-        $buckets = $this->query->hourOfDayBuckets(PlayerFixture::PLAYER_REGULAR);
+        $now = new \DateTimeImmutable();
+        $buckets = $this->query->hourOfDayBucketsInMonth(
+            PlayerFixture::PLAYER_REGULAR,
+            (int) $now->format('Y'),
+            (int) $now->format('m'),
+        );
 
         self::assertCount(24, $buckets);
         self::assertSame(range(0, 23), array_keys($buckets));
@@ -85,9 +113,34 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         }
     }
 
+    public function testHourOfDayBucketsInMonthCoverTrackedEvenIfNotFinished(): void
+    {
+        // `dayOfWeekBucketsInMonth` filters finished_at IS NOT NULL;
+        // `hourOfDayBucketsInMonth` uses tracked_at and includes every row.
+        // For a wide window, hour total should be >= dow total.
+        $dowTotal = 0;
+        $hourTotal = 0;
+        $now = new \DateTimeImmutable();
+
+        for ($offset = 0; $offset <= 3; $offset++) {
+            $m = $now->modify("-{$offset} months");
+            $dowTotal += array_sum($this->query->dayOfWeekBucketsInMonth(
+                PlayerFixture::PLAYER_REGULAR,
+                (int) $m->format('Y'),
+                (int) $m->format('m'),
+            ));
+            $hourTotal += array_sum($this->query->hourOfDayBucketsInMonth(
+                PlayerFixture::PLAYER_REGULAR,
+                (int) $m->format('Y'),
+                (int) $m->format('m'),
+            ));
+        }
+
+        self::assertGreaterThanOrEqual($dowTotal, $hourTotal);
+    }
+
     public function testPerDayInMonthReturnsOnlyRequestedMonth(): void
     {
-        // Use a wide window — fixtures space solves across a couple of months relative to "now".
         $now = new \DateTimeImmutable();
         $year = (int) $now->format('Y');
         $month = (int) $now->format('m');
@@ -115,8 +168,6 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
 
     public function testPerDayInMonthSplitsCountsByType(): void
     {
-        // Scan a wide window covering all fixture dates and verify structural invariants
-        // hold per day.
         $now = new \DateTimeImmutable();
 
         $allDays = [];
@@ -146,5 +197,28 @@ final class GetPlayerActivityCalendarTest extends KernelTestCase
         $days = $this->query->perDayInMonth(PlayerFixture::PLAYER_REGULAR, 2999, 1);
 
         self::assertSame([], $days);
+    }
+
+    /**
+     * Collects unique 'Y-m-d' strings across a 6-month window ending at "now", to avoid
+     * depending on a specific month of fixture data.
+     *
+     * @param callable(int, int): list<string> $queryForMonth
+     * @return list<string>
+     */
+    private function scanYearsOfMonths(string $playerId, callable $queryForMonth): array
+    {
+        unset($playerId); // callable closes over it
+        $now = new \DateTimeImmutable();
+        $all = [];
+
+        for ($offset = 0; $offset <= 6; $offset++) {
+            $m = $now->modify("-{$offset} months");
+            $all = array_merge($all, $queryForMonth((int) $m->format('Y'), (int) $m->format('m')));
+        }
+
+        sort($all);
+
+        return array_values(array_unique($all));
     }
 }

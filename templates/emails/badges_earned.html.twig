@@ -1,0 +1,54 @@
+{% trans_default_domain 'emails' %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css')) %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'badges_earned.title'|trans({'%count%': badges|length}) }}</h3>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'badges_earned.intro'|trans }}</p>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <ul>
+                        {% for entry in badges %}
+                            {% set type_label = (entry.type.translationKey())|trans({}, 'messages', locale) %}
+                            {% if entry.tier %}
+                                {% set tier_label = (entry.tier.translationKey())|trans({}, 'messages', locale) %}
+                                <li><strong>{{ type_label }}</strong> — {{ tier_label }} ({{ entry.tier.romanNumeral() }})</li>
+                            {% else %}
+                                <li><strong>{{ type_label }}</strong></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <spacer size-sm="16"></spacer>
+                    {{ 'badges_earned.cta'|trans({'%badgesUrl%': url('badges_overview')})|raw }}
+                    <spacer size-sm="16"></spacer>
+                </columns>
+            </row>
+
+            <row>
+                <columns>
+                    <p>{{ 'badges_earned.outro'|trans }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
@@ -35,6 +36,7 @@ return App::config([
                 SendEmailMessage::class => 'async',
                 PrepareDigestEmailForPlayer::class => 'async',
                 RecalculateDerivedMetricsForPuzzle::class => 'async',
+                RecalculateBadgesForPlayer::class => 'async',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',
                 'SpeedPuzzling\Web\Events\PuzzleAddedToCollection' => 'sync',

@@ -338,6 +338,22 @@ $confidence-high: #42d697;   // green
         cursor: pointer;
     }
 
+    // Below lg (<992px) the grid card drops its frame so the grid gets the full
+    // row width — mobile/tablet gain ~32px of horizontal breathing room.
+    // lg+ keeps the card with padding/border/shadow (looks better on desktop).
+    &-main-card {
+        @include media-breakpoint-down(lg) {
+            border: 0;
+            border-radius: 0;
+            box-shadow: none !important;
+            background-color: transparent;
+
+            > .card-body {
+                padding: 0;
+            }
+        }
+    }
+
     &-grid {
         display: grid;
         // minmax(0, 1fr) prevents cells with long content (dots + star) from

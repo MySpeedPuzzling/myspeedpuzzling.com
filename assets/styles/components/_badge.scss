@@ -26,3 +26,111 @@
     box-shadow: 0 .5rem 1.125rem -.275rem rgba($black, .25);
   }
 }
+
+
+// Achievement badge medallions
+// --------------------------------------------------
+
+$badge-tier-bronze:     #cd7f32;
+$badge-tier-silver:     #c0c0c0;
+$badge-tier-gold:       #ffd700;
+$badge-tier-platinum:   #e5e4e2;
+$badge-tier-diamond:    #b9f2ff;
+$badge-tier-supporter:  $primary;
+
+.badge-medallion {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(40, 40, 40, .95);
+  font-weight: 700;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, .25), inset 0 -4px 6px rgba(0, 0, 0, .12);
+  border: 3px solid rgba(255, 255, 255, .7);
+  transition: transform .2s ease, box-shadow .2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px -2px rgba(0, 0, 0, .3), inset 0 -4px 6px rgba(0, 0, 0, .12);
+  }
+}
+
+.badge-medallion-sm {
+  width: 48px;
+  height: 48px;
+  font-size: .95rem;
+}
+
+.badge-medallion-tier {
+  font-family: Georgia, serif;
+  letter-spacing: .02em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .45);
+}
+
+.badge-tier-bronze {
+  background: radial-gradient(circle at 35% 30%, lighten($badge-tier-bronze, 18%), $badge-tier-bronze 70%);
+  color: #3a1d00;
+}
+
+.badge-tier-silver {
+  background: radial-gradient(circle at 35% 30%, lighten($badge-tier-silver, 12%), $badge-tier-silver 70%);
+  color: #2a2a2a;
+}
+
+.badge-tier-gold {
+  background: radial-gradient(circle at 35% 30%, lighten($badge-tier-gold, 10%), $badge-tier-gold 70%);
+  color: #3f2d00;
+}
+
+.badge-tier-platinum {
+  background: radial-gradient(circle at 35% 30%, lighten($badge-tier-platinum, 4%), $badge-tier-platinum 70%);
+  color: #2a2a2a;
+}
+
+.badge-tier-diamond {
+  background: radial-gradient(circle at 35% 30%, lighten($badge-tier-diamond, 4%), $badge-tier-diamond 70%);
+  color: #004854;
+}
+
+.badge-tier-supporter {
+  background: radial-gradient(circle at 35% 30%, lighten($badge-tier-supporter, 15%), $badge-tier-supporter 70%);
+  color: #fff;
+}
+
+.badge-locked {
+  .badge-medallion {
+    filter: grayscale(100%);
+    opacity: .45;
+    box-shadow: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+.badge-new-pill {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: .65rem;
+  padding: .2em .45em;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+  animation: badge-new-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes badge-new-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.badge-earned {
+  min-width: 90px;
+}

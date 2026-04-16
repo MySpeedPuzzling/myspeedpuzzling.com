@@ -4,8 +4,8 @@
     <span class="player-breadcrumb-name">
         {% if not player.isPrivate or (logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId) %}
             {% if logged_user.profile is not null and logged_user.profile.activeMembership and not player.rankingOptedOut %}
-                {% if primary_skill is defined and primary_skill is not null %}
-                    {% set skill_tier_name = primary_skill.skillTier.name|lower %}
+                {% if this.primarySkill is not null %}
+                    {% set skill_tier_name = this.primarySkill.skillTier.name|lower %}
                     <svg class="rank-icon" width="20" height="20" style="color: var(--rank-{{ skill_tier_name }})"><use href="/rank-icons-sprite.svg#rank-{{ skill_tier_name }}"/></svg>
                 {% else %}
                     <svg class="rank-icon" width="20" height="20" style="color: var(--rank-unknown)"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>

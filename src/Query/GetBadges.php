@@ -23,10 +23,10 @@ readonly class GetBadges
     public function forPlayer(string $playerId): array
     {
         $sql = <<<SQL
-SELECT type, tier, earned_at
+SELECT DISTINCT ON (type) type, tier, earned_at
 FROM badge
 WHERE player_id = :playerId
-ORDER BY type ASC, tier ASC NULLS FIRST
+ORDER BY type ASC, tier DESC NULLS LAST
 SQL;
 
         /** @var list<array{type: string, tier: null|int|string, earned_at: string}> $rows */

@@ -148,3 +148,11 @@ feature_request_declined:
             <p>Thanks for supporting the idea anyway! Your input helps us understand what the community cares about.</p>
         admin_comment: |
             <p><strong>Comment from the team:</strong> %adminComment%</p>
+
+badges_earned:
+    subject: "You earned new badges on MySpeedPuzzling!"
+    title: "%count% new badge(s) earned!"
+    intro: "Congratulations! You've reached new milestones on MySpeedPuzzling."
+    cta: |
+        <p><a href="%badgesUrl%" class="link-underline">See all your badges and your progress toward the next ones</a>.</p>
+    outro: "Keep puzzling — more achievements are waiting to be unlocked!"

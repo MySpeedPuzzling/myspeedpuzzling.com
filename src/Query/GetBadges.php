@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Results\BadgeResult;
+use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 
-readonly final class GetBadges
+readonly class GetBadges
 {
     public function __construct(
         private Connection $database,
@@ -15,29 +18,30 @@ readonly final class GetBadges
     }
 
     /**
-     * @return array<BadgeType>
+     * @return list<BadgeResult>
      */
     public function forPlayer(string $playerId): array
     {
-        $query = <<<SQL
-SELECT type
+        $sql = <<<SQL
+SELECT DISTINCT ON (type) type, tier, earned_at
 FROM badge
 WHERE player_id = :playerId
+ORDER BY type ASC, tier DESC NULLS LAST
 SQL;
 
-        $data = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-            ])
+        /** @var list<array{type: string, tier: null|int|string, earned_at: string}> $rows */
+        $rows = $this->database
+            ->executeQuery($sql, ['playerId' => $playerId])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): BadgeType {
-            /** @var array{
-             *     type: string,
-             * } $row
-             */
+        return array_map(static function (array $row): BadgeResult {
+            $tier = $row['tier'] === null ? null : BadgeTier::from((int) $row['tier']);
 
-            return BadgeType::from($row['type']);
-        }, $data);
+            return new BadgeResult(
+                type: BadgeType::from($row['type']),
+                tier: $tier,
+                earnedAt: new DateTimeImmutable($row['earned_at']),
+            );
+        }, $rows);
     }
 }

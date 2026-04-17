@@ -246,17 +246,8 @@
             </div>
         </div>
 
-        {% if badges is not empty %}
-            <div class="mt-4">
-                <h3>{{ 'badges.title'|trans }}</h3>
-
-                {% for badge in badges %}
-                    <span class="d-inline-block text-center small">
-                    <img alt="{{ ('badges.badge.' ~ badge.value)|trans }}" src="{{ asset('img/badges/' ~ badge.value ~ '.png') }}" style="width: 80px;"><br>
-                    {{ ('badges.badge.' ~ badge.value)|trans }}
-                </span>
-                {% endfor %}
-            </div>
+        {% if player.activeMembership %}
+            <twig:BadgesProfileSection playerId="{{ player.playerId }}" />
         {% endif %}
 
         {% if affiliate_supporters is not null %}

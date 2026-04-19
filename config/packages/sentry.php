@@ -26,6 +26,12 @@ return App::config([
         'dsn' => '%env(SENTRY_DSN)%',
         'tracing' => [
             'enabled' => true,
+            'console' => [
+                'excluded_commands' => [
+                    'messenger:consume',
+                    'myspeedpuzzling:recalculate-puzzle-intelligence',
+                ],
+            ],
         ],
         'register_error_listener' => false,
         // Use Monolog logger so Sentry SDK errors (like HTTP failures) are logged instead of silently swallowed

@@ -138,9 +138,9 @@
                                                 {{ solve.manufacturerName }} &middot; {{ 'pieces_count'|trans({ '%count%': solve.piecesCount })|raw }}
                                             </div>
                                             <div class="small mt-1 d-flex flex-wrap gap-2 align-items-center">
-                                                {% if solve.teamId is null %}
+                                                {% if solve.players is null %}
                                                     <span class="badge" style="background-color: {{ categoryColors.solo }};">{{ 'activity_calendar.legend_solo'|trans }}</span>
-                                                {% elseif solve.players is not null and solve.players|length == 2 %}
+                                                {% elseif solve.players|length == 2 %}
                                                     <span class="badge" style="background-color: {{ categoryColors.duo }};">{{ 'activity_calendar.legend_duo'|trans }}</span>
                                                 {% else %}
                                                     <span class="badge" style="background-color: {{ categoryColors.team }};">{{ 'activity_calendar.legend_team'|trans }}</span>

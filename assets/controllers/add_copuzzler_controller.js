@@ -58,6 +58,17 @@ export default class extends Controller {
             input.id = uniqueId;
             if (label) label.setAttribute('for', uniqueId);
             select.id = `select-${counter}`;
+
+            if (select.value === '' && input.value.startsWith('#')) {
+                const code = input.value.slice(1).toLowerCase();
+                const matchingOption = Array.from(select.options).find(
+                    option => option.value !== '' && option.value.toLowerCase() === code,
+                );
+                if (matchingOption) {
+                    select.value = matchingOption.value;
+                }
+            }
+
             this.adjustInputStateBasedOnSelect(select, input, true);
         }
     }

@@ -54,7 +54,7 @@ final class AddedTimeRecapController extends AbstractController
         $solvingPuzzle = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
         $player = $this->getPlayerProfile->byId($solvingPuzzle->playerId);
 
-        $isSolo = $solvingPuzzle->teamId === null;
+        $isSolo = $solvingPuzzle->players === null;
         $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($solvingPuzzle->puzzleId);
 
         $timePrediction = null;

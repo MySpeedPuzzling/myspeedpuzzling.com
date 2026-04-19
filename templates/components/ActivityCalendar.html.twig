@@ -49,6 +49,8 @@
                                 <div class="activity-calendar-cell activity-calendar-cell--empty"></div>
                             {% else %}
                                 {% set day = cell.day %}
+                                {% set showCurrentStreakIcon = cell.isInCurrentStreak and not this.streakOptedOut %}
+                                {% set showLongestStreakIcon = cell.isInLongestStreak and not cell.isInCurrentStreak and not this.streakOptedOut %}
                                 <button
                                     type="button"
                                     class="activity-calendar-cell activity-calendar-cell--day
@@ -61,7 +63,14 @@
                                     data-live-date-param="{{ cell.date|date('Y-m-d') }}"
                                     aria-pressed="{{ cell.isSelected ? 'true' : 'false' }}"
                                 >
-                                    <span class="activity-calendar-cell-number">{{ cell.date|date('j') }}</span>
+                                    <span class="activity-calendar-cell-top">
+                                        <span class="activity-calendar-cell-number">{{ cell.date|date('j') }}</span>
+                                        {% if showCurrentStreakIcon %}
+                                            <i class="bi bi-fire text-danger activity-calendar-cell-streak-icon" title="{{ 'activity_calendar.current_streak'|trans }}"></i>
+                                        {% elseif showLongestStreakIcon %}
+                                            <i class="bi bi-fire text-dark activity-calendar-cell-streak-icon" title="{{ 'activity_calendar.longest_streak'|trans }}"></i>
+                                        {% endif %}
+                                    </span>
                                     {% if day is not null %}
                                         <span class="activity-calendar-cell-markers">
                                             {% if day.soloCount > 0 %}
@@ -175,20 +184,30 @@
                         <div class="card-body text-center">
                             <h3 class="h6 mb-3">{{ 'activity_calendar.streak_title'|trans }}</h3>
                             <div class="row g-0 align-items-center">
-                                <div class="col-6 border-end">
-                                    <div class="small text-muted mb-1">{{ 'activity_calendar.current_streak'|trans }}</div>
-                                    <div class="h3 mb-0 d-flex align-items-center justify-content-center gap-2">
-                                        <i class="bi bi-fire text-danger"></i>
-                                        <span>{{ this.streak.current }}</span>
+                                {% if this.isCurrentMonth %}
+                                    <div class="col-6 border-end">
+                                        <div class="small text-muted mb-1">{{ 'activity_calendar.current_streak'|trans }}</div>
+                                        <div class="h3 mb-0 d-flex align-items-center justify-content-center gap-2">
+                                            <i class="bi bi-fire text-danger"></i>
+                                            <span>{{ this.streak.current }}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="small text-muted mb-1">{{ 'activity_calendar.longest_streak'|trans }}</div>
-                                    <div class="h3 mb-0 d-flex align-items-center justify-content-center gap-2">
-                                        <i class="bi bi-trophy-fill text-warning"></i>
-                                        <span>{{ this.streak.longest }}</span>
+                                    <div class="col-6">
+                                        <div class="small text-muted mb-1">{{ 'activity_calendar.longest_streak'|trans }}</div>
+                                        <div class="h3 mb-0 d-flex align-items-center justify-content-center gap-2">
+                                            <i class="bi bi-fire text-dark"></i>
+                                            <span>{{ this.streak.longest }}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                {% else %}
+                                    <div class="col-12">
+                                        <div class="small text-muted mb-1">{{ 'activity_calendar.longest_streak'|trans }}</div>
+                                        <div class="h3 mb-0 d-flex align-items-center justify-content-center gap-2">
+                                            <i class="bi bi-fire text-dark"></i>
+                                            <span>{{ this.streak.longest }}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

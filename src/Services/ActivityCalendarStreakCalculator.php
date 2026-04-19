@@ -21,7 +21,7 @@ readonly final class ActivityCalendarStreakCalculator
     public function calculate(array $activeDays): ActivityCalendarStreak
     {
         if ($activeDays === []) {
-            return new ActivityCalendarStreak(current: 0, longest: 0, currentStreakDates: []);
+            return new ActivityCalendarStreak(current: 0, longest: 0, currentStreakDates: [], longestStreakDates: []);
         }
 
         $uniqueDays = array_values(array_unique($activeDays));
@@ -48,6 +48,13 @@ readonly final class ActivityCalendarStreakCalculator
             $longest = max($longest, count($run));
         }
 
+        $longestStreakDates = [];
+        foreach ($runs as $run) {
+            if (count($run) === $longest) {
+                $longestStreakDates = array_merge($longestStreakDates, $run);
+            }
+        }
+
         $lastRun = $runs[array_key_last($runs)];
         $lastDay = $lastRun[array_key_last($lastRun)];
 
@@ -59,9 +66,15 @@ readonly final class ActivityCalendarStreakCalculator
                 current: count($lastRun),
                 longest: $longest,
                 currentStreakDates: $lastRun,
+                longestStreakDates: $longestStreakDates,
             );
         }
 
-        return new ActivityCalendarStreak(current: 0, longest: $longest, currentStreakDates: []);
+        return new ActivityCalendarStreak(
+            current: 0,
+            longest: $longest,
+            currentStreakDates: [],
+            longestStreakDates: $longestStreakDates,
+        );
     }
 }

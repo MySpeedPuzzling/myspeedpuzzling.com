@@ -73,7 +73,7 @@ final class ActivityCalendar
         readonly private ChartBuilderInterface $chartBuilder,
         readonly private ClockInterface $clock,
     ) {
-        $this->streak = new ActivityCalendarStreak(current: 0, longest: 0, currentStreakDates: []);
+        $this->streak = new ActivityCalendarStreak(current: 0, longest: 0, currentStreakDates: [], longestStreakDates: []);
     }
 
     #[PostMount]
@@ -157,7 +157,7 @@ final class ActivityCalendar
     }
 
     /**
-     * @return list<array{date: null|DateTimeImmutable, day: null|ActivityCalendarDay, inMonth: bool, isToday: bool, isSelected: bool, isInCurrentStreak: bool}>
+     * @return list<array{date: null|DateTimeImmutable, day: null|ActivityCalendarDay, inMonth: bool, isToday: bool, isSelected: bool, isInCurrentStreak: bool, isInLongestStreak: bool}>
      */
     public function getGridCells(): array
     {
@@ -170,7 +170,8 @@ final class ActivityCalendar
         $leading = ((int) $firstOfMonth->format('N')) - 1;
 
         $today = $this->clock->now()->format('Y-m-d');
-        $streakSet = array_fill_keys($this->streak->currentStreakDates, true);
+        $currentStreakSet = array_fill_keys($this->streak->currentStreakDates, true);
+        $longestStreakSet = array_fill_keys($this->streak->longestStreakDates, true);
 
         $cells = [];
 
@@ -182,6 +183,7 @@ final class ActivityCalendar
                 'isToday' => false,
                 'isSelected' => false,
                 'isInCurrentStreak' => false,
+                'isInLongestStreak' => false,
             ];
         }
 
@@ -193,7 +195,8 @@ final class ActivityCalendar
                 'inMonth' => true,
                 'isToday' => $key === $today,
                 'isSelected' => $key === $this->selectedDay,
-                'isInCurrentStreak' => isset($streakSet[$key]),
+                'isInCurrentStreak' => isset($currentStreakSet[$key]),
+                'isInLongestStreak' => isset($longestStreakSet[$key]),
             ];
         }
 
@@ -206,10 +209,19 @@ final class ActivityCalendar
                 'isToday' => false,
                 'isSelected' => false,
                 'isInCurrentStreak' => false,
+                'isInLongestStreak' => false,
             ];
         }
 
         return $cells;
+    }
+
+    public function isCurrentMonth(): bool
+    {
+        $now = $this->clock->now();
+
+        return $this->year === (int) $now->format('Y')
+            && $this->month === (int) $now->format('m');
     }
 
     public function getMonthLabel(): string

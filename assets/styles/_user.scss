@@ -431,10 +431,29 @@ $confidence-high: #42d697;   // green
         }
     }
 
+    &-cell-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 4px;
+        min-width: 0;
+    }
+
     &-cell-number {
         font-size: 0.75rem;
         font-weight: 600;
         color: $gray-800;
+    }
+
+    &-cell-streak-icon {
+        font-size: 0.8rem;
+        line-height: 1;
+        flex-shrink: 0;
+
+        @include media-breakpoint-down(sm) {
+            font-size: 0.7rem;
+        }
     }
 
     &-cell-markers {

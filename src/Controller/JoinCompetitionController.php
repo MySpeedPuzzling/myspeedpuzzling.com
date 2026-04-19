@@ -16,6 +16,7 @@ use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 final class JoinCompetitionController extends AbstractController
@@ -25,6 +26,7 @@ final class JoinCompetitionController extends AbstractController
         private readonly GetCompetitionParticipants $getCompetitionParticipants,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -59,10 +61,10 @@ final class JoinCompetitionController extends AbstractController
                     participantId: $participantId !== '' ? $participantId : null,
                 ));
 
-                $this->addFlash('success', 'flashes.competition_join_success');
+                $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
             } catch (HandlerFailedException $e) {
                 if ($e->getPrevious() instanceof CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
-                    $this->addFlash('danger', 'flashes.competition_duplicate_connection');
+                    $this->addFlash('danger', $this->translator->trans('flashes.competition_duplicate_connection'));
                 } else {
                     throw $e;
                 }
@@ -82,7 +84,7 @@ final class JoinCompetitionController extends AbstractController
                 playerId: $profile->playerId,
             ));
 
-            $this->addFlash('success', 'flashes.competition_join_success');
+            $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
 
             return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
         }

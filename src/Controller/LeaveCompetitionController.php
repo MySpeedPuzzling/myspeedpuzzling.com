@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 final class LeaveCompetitionController extends AbstractController
@@ -20,6 +21,7 @@ final class LeaveCompetitionController extends AbstractController
         private readonly GetCompetitionEvents $getCompetitionEvents,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
+        private readonly TranslatorInterface $translator,
     ) {
     }
 
@@ -46,7 +48,7 @@ final class LeaveCompetitionController extends AbstractController
                 playerId: $profile->playerId,
             ));
 
-            $this->addFlash('success', 'flashes.competition_leave_success');
+            $this->addFlash('success', $this->translator->trans('flashes.competition_leave_success'));
         }
 
         return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);

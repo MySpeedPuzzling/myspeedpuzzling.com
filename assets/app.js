@@ -32,7 +32,6 @@ import 'bootstrap-icons/font/bootstrap-icons.min.css';
 window.bootstrap = { Modal, Dropdown, Collapse, Tab, Toast };
 
 import * as Turbo from '@hotwired/turbo';
-import './feedback_modal.js'
 import './turbo-stream-actions.js'
 
 Turbo.config.drive.progressBarDelay = 0;

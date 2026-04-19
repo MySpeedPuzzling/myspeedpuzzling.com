@@ -15,12 +15,15 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\UX\Turbo\TurboBundle;
 
 #[IsGranted('IS_AUTHENTICATED_FULLY')]
 final class FeedbackController extends AbstractController
 {
     public function __construct(
         readonly private MessageBusInterface $messageBus,
+        readonly private TranslatorInterface $translator,
     ) {
     }
 
@@ -47,18 +50,31 @@ final class FeedbackController extends AbstractController
         $form = $this->createForm(FeedbackFormType::class, $data);
         $form->handleRequest($request);
 
+        $isModalRequest = $request->headers->get('Turbo-Frame') === 'modal-frame';
+
         if ($form->isSubmitted() && $form->isValid()) {
             $this->messageBus->dispatch(
                 new CollectUserFeedback($data->url, $data->message),
             );
 
-            return $this->render('_feedback_form_success.html.twig');
+            if ($isModalRequest) {
+                $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                return $this->render('_feedback_form_success_stream.html.twig');
+            }
+
+            $this->addFlash('success', $this->translator->trans('feedback.success_msg'));
+
+            return $this->redirectToRoute('homepage');
         }
 
-        $isXmlHttpRequest = $request->headers->get('Turbo-Frame');
-        $template = $isXmlHttpRequest ? '_feedback_form.html.twig' : 'feedback.html.twig';
+        if ($isModalRequest) {
+            return $this->render('_feedback_form_modal.html.twig', [
+                'feedback_form' => $form,
+            ]);
+        }
 
-        return $this->render($template, [
+        return $this->render('feedback.html.twig', [
             'feedback_form' => $form,
         ]);
     }

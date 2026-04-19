@@ -161,7 +161,7 @@
                             </div>
                         {% endif %}
 
-                        <a data-turbo="true" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %}>
+                        <a data-turbo="true" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
                             <i class="ci-mail"></i> {{ 'menu.feedback'|trans }}
                         </a>
 
@@ -497,7 +497,7 @@
                                     <a rel="nofollow" href="{{ path('events') }}" class="widget-list-link">{{ 'menu.events'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
-                                    <a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="feedbackForm"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
+                                    <a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %} class="widget-list-link">{{ 'menu.feedback'|trans }}</a>
                                 </li>
                                 <li class="widget-list-item ms-2 me-2 me-md-4 ms-md-0">
                                     <a href="{{ path('feature_requests') }}" class="widget-list-link">{{ 'menu.feature_requests'|trans }} <span class="badge bg-primary">{{ 'new_badge'|trans }}</span></a>
@@ -648,22 +648,6 @@
             {% endif %}
         </footer>
         {% endif %}
-
-        <div class="modal fade" tabindex="-1" role="dialog" id="feedbackModal">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">{{ 'feedback.title'|trans }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <turbo-frame id="feedbackForm">
-                            {{ 'loading'|trans }}
-                        </turbo-frame>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         {% if logged_user.profile and not logged_user.profile.modalDisplayed %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">

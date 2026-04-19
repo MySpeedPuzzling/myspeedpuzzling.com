@@ -1,0 +1,4 @@
+{{ include('_toast_stream.html.twig', {message: 'feedback.success_msg'|trans}) }}
+
+{# Clear the shared modal frame — dynamic_modal_controller's MutationObserver closes the modal #}
+{{ include('_modal_close_stream.html.twig') }}

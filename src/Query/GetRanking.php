@@ -58,9 +58,11 @@ BestTimes AS (
     FROM
         puzzle_solving_time pst
         INNER JOIN PlayerPuzzles pp ON pst.puzzle_id = pp.puzzle_id
+        INNER JOIN player pl ON pl.id = pst.player_id
     WHERE
         pst.puzzling_type = 'solo'
         AND pst.seconds_to_solve IS NOT NULL
+        AND (pl.is_private = false OR pl.id = :playerId)
     GROUP BY
         pst.puzzle_id, pst.player_id
 ),
@@ -152,16 +154,18 @@ SQL;
         $query = <<<SQL
 WITH BestTimes AS (
     SELECT
-        puzzle_id,
-        player_id,
-        MIN(seconds_to_solve) as best_time
+        pst.puzzle_id,
+        pst.player_id,
+        MIN(pst.seconds_to_solve) as best_time
     FROM
-        puzzle_solving_time
-    WHERE puzzling_type = 'solo'
-        AND puzzle_id = :puzzleId
-        AND seconds_to_solve IS NOT NULL
+        puzzle_solving_time pst
+        INNER JOIN player pl ON pl.id = pst.player_id
+    WHERE pst.puzzling_type = 'solo'
+        AND pst.puzzle_id = :puzzleId
+        AND pst.seconds_to_solve IS NOT NULL
+        AND (pl.is_private = false OR pl.id = :playerId)
     GROUP BY
-        puzzle_id, player_id
+        pst.puzzle_id, pst.player_id
 ),
 RankedTimes AS (
     SELECT

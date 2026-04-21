@@ -84,7 +84,7 @@ SELECT rank FROM (
     FROM player_elo pe
     INNER JOIN player p ON p.id = pe.player_id
     WHERE pe.pieces_count = :piecesCount
-        AND p.is_private = false
+        AND (p.is_private = false OR p.id = :playerId)
         AND p.ranking_opted_out = false
 ) ranked
 WHERE ranked.player_id = :playerId
@@ -170,8 +170,8 @@ SQL;
 SELECT
     pe.pieces_count,
     pe.elo_rating,
-    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND p2.is_private = false AND pe2.elo_rating >= pe.elo_rating) AS rank,
-    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND p3.is_private = false) AS total
+    (SELECT COUNT(*) FROM player_elo pe2 INNER JOIN player p2 ON p2.id = pe2.player_id WHERE pe2.pieces_count = pe.pieces_count AND (p2.is_private = false OR p2.id = :playerId) AND pe2.elo_rating >= pe.elo_rating) AS rank,
+    (SELECT COUNT(*) FROM player_elo pe3 INNER JOIN player p3 ON p3.id = pe3.player_id WHERE pe3.pieces_count = pe.pieces_count AND (p3.is_private = false OR p3.id = :playerId)) AS total
 FROM player_elo pe
 WHERE pe.player_id = :playerId
 ORDER BY pe.pieces_count ASC

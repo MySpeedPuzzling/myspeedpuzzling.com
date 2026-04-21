@@ -86,6 +86,7 @@ player_data AS (
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
     GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, ps_main.skill_tier
+    HAVING bool_or(p.is_private = false)
 )
 SELECT *
 FROM player_data

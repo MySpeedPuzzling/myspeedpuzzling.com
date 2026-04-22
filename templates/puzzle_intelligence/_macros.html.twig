@@ -208,8 +208,8 @@
 {# tier_thresholds: ordered from highest to lowest percentile requirement #}
 {% macro next_tier_milestone(current_percentile, current_tier_name) %}
     {% set tiers_ascending = [
-        {name: 'casual',       min: 0,    next_min: 25},
-        {name: 'enthusiast',   min: 25,   next_min: 50},
+        {name: 'enthusiast',   min: 0,    next_min: 25},
+        {name: 'apprentice',   min: 25,   next_min: 50},
         {name: 'proficient',   min: 50,   next_min: 70},
         {name: 'advanced',     min: 70,   next_min: 85},
         {name: 'expert',       min: 85,   next_min: 95},

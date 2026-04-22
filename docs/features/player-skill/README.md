@@ -25,8 +25,8 @@ Seven tiers grouped by hue with gradually increasing contrast, plus two special 
 
 | Tier | ID | Name | Hex | CSS Variable |
 |------|----|------|-----|--------------|
-| T1 | `rank-casual` | Casual | `#a8d4b8` | `--rank-casual` |
-| T2 | `rank-enthusiast` | Enthusiast | `#5db88e` | `--rank-enthusiast` |
+| T1 | `rank-enthusiast` | Enthusiast | `#a8d4b8` | `--rank-enthusiast` |
+| T2 | `rank-apprentice` | Apprentice | `#5db88e` | `--rank-apprentice` |
 | T3 | `rank-proficient` | Proficient | `#2e9468` | `--rank-proficient` |
 
 **Group B — Blue (T4–T5)**
@@ -54,8 +54,8 @@ Seven tiers grouped by hue with gradually increasing contrast, plus two special 
 :root {
   --rank-locked:     #999;
   --rank-unknown:    #cfcfcf;
-  --rank-casual:     #a8d4b8;
-  --rank-enthusiast: #5db88e;
+  --rank-enthusiast:     #a8d4b8;
+  --rank-apprentice: #5db88e;
   --rank-proficient: #2e9468;
   --rank-advanced:   #5a8ec8;
   --rank-expert:     #4a53b0;
@@ -100,7 +100,7 @@ Each icon definition is ~200–400 bytes. With inline SVG repeated 500 times, th
 
 ### File: `rank-icons-sprite.svg`
 
-Contains 9 `<symbol>` elements with IDs: `rank-locked`, `rank-unknown`, `rank-casual`, `rank-enthusiast`, `rank-proficient`, `rank-advanced`, `rank-expert`, `rank-master`, `rank-legend`.
+Contains 9 `<symbol>` elements with IDs: `rank-locked`, `rank-unknown`, `rank-enthusiast`, `rank-apprentice`, `rank-proficient`, `rank-advanced`, `rank-expert`, `rank-master`, `rank-legend`.
 
 ### Inline sprite for file:// usage
 
@@ -147,8 +147,8 @@ Badge = colored background + white icon + white label, with a white border and s
 
 .rank-badge.locked     { background: var(--rank-locked); }
 .rank-badge.unknown    { background: var(--rank-unknown); }
-.rank-badge.casual     { background: var(--rank-casual); }
-.rank-badge.enthusiast { background: var(--rank-enthusiast); }
+.rank-badge.enthusiast     { background: var(--rank-enthusiast); }
+.rank-badge.apprentice { background: var(--rank-apprentice); }
 .rank-badge.proficient { background: var(--rank-proficient); }
 .rank-badge.advanced   { background: var(--rank-advanced); }
 .rank-badge.expert     { background: var(--rank-expert); }
@@ -197,13 +197,13 @@ For reference, here are the raw SVG paths for each icon (without the `currentCol
 <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
 ```
 
-### T1 Casual
+### T1 Enthusiast
 ```svg
 <circle cx="12" cy="12" r="10"/>
 <polyline points="8 13 12 9 16 13"/>
 ```
 
-### T2 Enthusiast
+### T2 Apprentice
 ```svg
 <circle cx="12" cy="12" r="10"/>
 <polyline points="8 11.5 12 7.5 16 11.5"/>

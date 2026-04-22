@@ -2095,8 +2095,8 @@ puzzle_intelligence:
         ranking_opted_out: "Odhlásili jste se ze sledování dovedností."
         private_profile_explanation: "Úrovně dovedností nejsou dostupné pro soukromé profily. Vaše data stále pomáhají hodnotit obtížnost puzzlí, ale hodnocení vyžaduje veřejný profil pro zachování spravedlivosti systému."
         tiers:
-            casual: "Začátečník"
             enthusiast: "Nadšenec"
+            apprentice: "Učeň"
             proficient: "Zdatný"
             advanced: "Pokročilý"
             expert: "Expert"

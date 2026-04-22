@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <!--
     My Speed Puzzling — Rank Icon Sprite
-    Usage: <svg class="rank-icon"><use href="rank-icons-sprite.svg#rank-casual"/></svg>
+    Usage: <svg class="rank-icon"><use href="rank-icons-sprite.svg#rank-enthusiast"/></svg>
     All icons use currentColor for stroke/fill, so set color via CSS.
     ViewBox: 0 0 24 24 | Stroke style: round caps & joins
   -->
@@ -20,14 +20,14 @@
     <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
   </symbol>
 
-  <!-- T1 Casual — Circle + 1 chevron -->
-  <symbol id="rank-casual" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- T1 Enthusiast — Circle + 1 chevron -->
+  <symbol id="rank-enthusiast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"/>
     <polyline points="8 13 12 9 16 13"/>
   </symbol>
 
-  <!-- T2 Enthusiast — Circle + 2 chevrons -->
-  <symbol id="rank-enthusiast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- T2 Apprentice — Circle + 2 chevrons -->
+  <symbol id="rank-apprentice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"/>
     <polyline points="8 11.5 12 7.5 16 11.5"/>
     <polyline points="8 15.5 12 11.5 16 15.5"/>

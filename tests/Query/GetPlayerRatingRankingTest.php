@@ -35,7 +35,7 @@ final class GetPlayerRatingRankingTest extends KernelTestCase
 
         foreach ($entries as $entry) {
             if ($entry->skillTierName !== null) {
-                self::assertContains($entry->skillTierName, ['casual', 'enthusiast', 'proficient', 'advanced', 'expert', 'master', 'legend']);
+                self::assertContains($entry->skillTierName, ['enthusiast', 'apprentice', 'proficient', 'advanced', 'expert', 'master', 'legend']);
             }
         }
     }

@@ -249,8 +249,8 @@ $tier-very-hard: #8a1820;
 
 // Skill Tiers — prestige progression (green→blue→red→navy)
 // Colors from design system: docs/features/player-skill/README.md
-$skill-casual: #a8d4b8;
-$skill-enthusiast: #5db88e;
+$skill-enthusiast: #a8d4b8;
+$skill-apprentice: #5db88e;
 $skill-proficient: #2e9468;
 $skill-advanced: #5a8ec8;
 $skill-expert: #4a53b0;
@@ -260,8 +260,8 @@ $skill-legend: #1a1a2e;
 :root {
   --rank-locked: #999;
   --rank-unknown: #cfcfcf;
-  --rank-casual: #{$skill-casual};
   --rank-enthusiast: #{$skill-enthusiast};
+  --rank-apprentice: #{$skill-apprentice};
   --rank-proficient: #{$skill-proficient};
   --rank-advanced: #{$skill-advanced};
   --rank-expert: #{$skill-expert};
@@ -269,16 +269,16 @@ $skill-legend: #1a1a2e;
   --rank-legend: #{$skill-legend};
 }
 
-.badge-skill-casual { background-color: $skill-casual !important; color: #fff !important; }
 .badge-skill-enthusiast { background-color: $skill-enthusiast !important; color: #fff !important; }
+.badge-skill-apprentice { background-color: $skill-apprentice !important; color: #fff !important; }
 .badge-skill-proficient { background-color: $skill-proficient !important; color: #fff !important; }
 .badge-skill-advanced { background-color: $skill-advanced !important; color: #fff !important; }
 .badge-skill-expert { background-color: $skill-expert !important; color: #fff !important; }
 .badge-skill-master { background-color: $skill-master !important; color: #fff !important; }
 .badge-skill-legend { background-color: $skill-legend !important; color: #fff !important; }
 
-.text-skill-casual { color: $skill-casual !important; }
 .text-skill-enthusiast { color: $skill-enthusiast !important; }
+.text-skill-apprentice { color: $skill-apprentice !important; }
 .text-skill-proficient { color: $skill-proficient !important; }
 .text-skill-advanced { color: $skill-advanced !important; }
 .text-skill-expert { color: $skill-expert !important; }
@@ -286,8 +286,8 @@ $skill-legend: #1a1a2e;
 .text-skill-legend { color: $skill-legend !important; }
 
 // Progress bars for skill tiers
-.progress-bar-skill-casual { background-color: $skill-casual !important; }
 .progress-bar-skill-enthusiast { background-color: $skill-enthusiast !important; }
+.progress-bar-skill-apprentice { background-color: $skill-apprentice !important; }
 .progress-bar-skill-proficient { background-color: $skill-proficient !important; }
 .progress-bar-skill-advanced { background-color: $skill-advanced !important; }
 .progress-bar-skill-expert { background-color: $skill-expert !important; }

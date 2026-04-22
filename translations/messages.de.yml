@@ -2167,8 +2167,8 @@ puzzle_intelligence:
         ranking_opted_out: "Du hast dich vom Skill-Tracking abgemeldet."
         private_profile_explanation: "Skill-Stufen sind für private Profile nicht verfügbar. Deine Lösungsdaten helfen weiterhin bei der Bewertung der Puzzle-Schwierigkeit, aber Rankings erfordern ein öffentliches Profil, um das System fair zu halten."
         tiers:
-            casual: "Gelegenheitspuzzler"
             enthusiast: "Enthusiast"
+            apprentice: "Lehrling"
             proficient: "Versiert"
             advanced: "Fortgeschritten"
             expert: "Experte"

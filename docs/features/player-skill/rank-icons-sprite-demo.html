@@ -8,8 +8,8 @@
   :root {
     --rank-locked:     #999;
     --rank-unknown:    #cfcfcf;
-    --rank-casual:     #a8d4b8;
-    --rank-enthusiast: #5db88e;
+    --rank-enthusiast:     #a8d4b8;
+    --rank-apprentice: #5db88e;
     --rank-proficient: #2e9468;
     --rank-advanced:   #5a8ec8;
     --rank-expert:     #4a53b0;
@@ -42,8 +42,8 @@
   .rank-badge .rank-icon { color: #fff; }
   .rank-badge.locked     { background: var(--rank-locked); }
   .rank-badge.unknown    { background: var(--rank-unknown); }
-  .rank-badge.casual     { background: var(--rank-casual); }
-  .rank-badge.enthusiast { background: var(--rank-enthusiast); }
+  .rank-badge.enthusiast     { background: var(--rank-enthusiast); }
+  .rank-badge.apprentice { background: var(--rank-apprentice); }
   .rank-badge.proficient { background: var(--rank-proficient); }
   .rank-badge.advanced   { background: var(--rank-advanced); }
   .rank-badge.expert     { background: var(--rank-expert); }
@@ -82,10 +82,10 @@
     <path d="M9.5 9.5a2.5 2.5 0 0 1 4.6 1.3c0 1.5-2.1 2-2.1 3.2"/>
     <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
   </symbol>
-  <symbol id="rank-casual" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <symbol id="rank-enthusiast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"/><polyline points="8 13 12 9 16 13"/>
   </symbol>
-  <symbol id="rank-enthusiast" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <symbol id="rank-apprentice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"/><polyline points="8 11.5 12 7.5 16 11.5"/><polyline points="8 15.5 12 11.5 16 15.5"/>
   </symbol>
   <symbol id="rank-proficient" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -113,8 +113,8 @@
   <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:20px 0;">
     <svg class="rank-icon" width="32" height="32" style="color:var(--rank-locked)"><use href="#rank-locked"/></svg>
     <svg class="rank-icon" width="32" height="32" style="color:var(--rank-unknown)"><use href="#rank-unknown"/></svg>
-    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-casual)"><use href="#rank-casual"/></svg>
     <svg class="rank-icon" width="32" height="32" style="color:var(--rank-enthusiast)"><use href="#rank-enthusiast"/></svg>
+    <svg class="rank-icon" width="32" height="32" style="color:var(--rank-apprentice)"><use href="#rank-apprentice"/></svg>
     <svg class="rank-icon" width="32" height="32" style="color:var(--rank-proficient)"><use href="#rank-proficient"/></svg>
     <svg class="rank-icon" width="32" height="32" style="color:var(--rank-advanced)"><use href="#rank-advanced"/></svg>
     <svg class="rank-icon" width="32" height="32" style="color:var(--rank-expert)"><use href="#rank-expert"/></svg>
@@ -132,8 +132,8 @@
   <div style="display:flex; flex-direction:column; gap:10px; padding:20px 0;">
     <div><span class="rank-badge locked"><svg class="rank-icon" width="20" height="20"><use href="#rank-locked"/></svg>Locked</span></div>
     <div><span class="rank-badge unknown"><svg class="rank-icon" width="20" height="20"><use href="#rank-unknown"/></svg>Unknown</span></div>
-    <div><span class="rank-badge casual"><svg class="rank-icon" width="20" height="20"><use href="#rank-casual"/></svg>Casual</span></div>
     <div><span class="rank-badge enthusiast"><svg class="rank-icon" width="20" height="20"><use href="#rank-enthusiast"/></svg>Enthusiast</span></div>
+    <div><span class="rank-badge apprentice"><svg class="rank-icon" width="20" height="20"><use href="#rank-apprentice"/></svg>Apprentice</span></div>
     <div><span class="rank-badge proficient"><svg class="rank-icon" width="20" height="20"><use href="#rank-proficient"/></svg>Proficient</span></div>
     <div><span class="rank-badge advanced"><svg class="rank-icon" width="20" height="20"><use href="#rank-advanced"/></svg>Advanced</span></div>
     <div><span class="rank-badge expert"><svg class="rank-icon" width="20" height="20"><use href="#rank-expert"/></svg>Expert</span></div>
@@ -158,8 +158,8 @@ const ranks = [
   { id: 'rank-expert',     name: 'Expert',     color: 'var(--rank-expert)' },
   { id: 'rank-advanced',   name: 'Advanced',   color: 'var(--rank-advanced)' },
   { id: 'rank-proficient', name: 'Proficient', color: 'var(--rank-proficient)' },
-  { id: 'rank-enthusiast', name: 'Enthusiast', color: 'var(--rank-enthusiast)' },
-  { id: 'rank-casual',     name: 'Casual',     color: 'var(--rank-casual)' },
+  { id: 'rank-apprentice', name: 'Apprentice', color: 'var(--rank-apprentice)' },
+  { id: 'rank-enthusiast',     name: 'Enthusiast',     color: 'var(--rank-enthusiast)' },
   { id: 'rank-unknown',    name: 'Unknown',    color: 'var(--rank-unknown)' },
 ];
 

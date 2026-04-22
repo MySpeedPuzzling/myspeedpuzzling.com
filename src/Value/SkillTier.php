@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Value;
 
 enum SkillTier: int
 {
-    case Casual = 1;
-    case Enthusiast = 2;
+    case Enthusiast = 1;
+    case Apprentice = 2;
     case Proficient = 3;
     case Advanced = 4;
     case Expert = 5;
@@ -22,8 +22,8 @@ enum SkillTier: int
             $percentile >= 85.0 => self::Expert,
             $percentile >= 70.0 => self::Advanced,
             $percentile >= 50.0 => self::Proficient,
-            $percentile >= 25.0 => self::Enthusiast,
-            default => self::Casual,
+            $percentile >= 25.0 => self::Apprentice,
+            default => self::Enthusiast,
         };
     }
 
@@ -35,16 +35,16 @@ enum SkillTier: int
             self::Expert => 85.0,
             self::Advanced => 70.0,
             self::Proficient => 50.0,
-            self::Enthusiast => 25.0,
-            self::Casual => 0.0,
+            self::Apprentice => 25.0,
+            self::Enthusiast => 0.0,
         };
     }
 
     public function nextTier(): null|self
     {
         return match ($this) {
-            self::Casual => self::Enthusiast,
-            self::Enthusiast => self::Proficient,
+            self::Enthusiast => self::Apprentice,
+            self::Apprentice => self::Proficient,
             self::Proficient => self::Advanced,
             self::Advanced => self::Expert,
             self::Expert => self::Master,

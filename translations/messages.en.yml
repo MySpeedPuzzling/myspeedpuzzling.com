@@ -2303,8 +2303,8 @@ puzzle_intelligence:
         target_baseline: "Target"
         improve_by: "Improve by ~%minutes% min"
         tiers:
-            casual: "Casual"
             enthusiast: "Enthusiast"
+            apprentice: "Apprentice"
             proficient: "Proficient"
             advanced: "Advanced"
             expert: "Expert"

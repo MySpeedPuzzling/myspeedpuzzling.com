@@ -2167,8 +2167,8 @@ puzzle_intelligence:
         ranking_opted_out: "Has optado por no participar en el seguimiento de habilidad."
         private_profile_explanation: "Los niveles de habilidad no están disponibles para perfiles privados. Tus datos de resolución aún ayudan a calificar la dificultad de puzzles, pero las clasificaciones requieren un perfil público para mantener el sistema justo."
         tiers:
-            casual: "Casual"
             enthusiast: "Entusiasta"
+            apprentice: "Aprendiz"
             proficient: "Competente"
             advanced: "Avanzado"
             expert: "Experto"

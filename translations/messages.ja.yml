@@ -2156,8 +2156,8 @@ puzzle_intelligence:
         ranking_opted_out: "スキル追跡からオプトアウトしています。"
         private_profile_explanation: "スキルティアはプライベートプロフィールでは利用できません。あなたの完成データはパズル難易度の評価に貢献しますが、ランキングには公開プロフィールが必要です。"
         tiers:
-            casual: "カジュアル"
             enthusiast: "愛好家"
+            apprentice: "見習い"
             proficient: "熟練"
             advanced: "上級"
             expert: "エキスパート"

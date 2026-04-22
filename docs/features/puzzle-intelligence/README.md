@@ -271,8 +271,8 @@ Based on percentile rank among all players with valid skill scores for the same 
 
 | Tier | Percentile | Label |
 |------|-----------|-------|
-| 1 | Bottom 25% | Casual |
-| 2 | Top 75% | Enthusiast |
+| 1 | Bottom 25% | Enthusiast |
+| 2 | Top 75% | Apprentice |
 | 3 | Top 50% | Proficient |
 | 4 | Top 30% | Advanced |
 | 5 | Top 15% | Expert |

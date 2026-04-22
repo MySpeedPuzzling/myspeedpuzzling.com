@@ -2168,8 +2168,8 @@ puzzle_intelligence:
         ranking_opted_out: "Vous avez désactivé le suivi des compétences."
         private_profile_explanation: "Les niveaux de compétence ne sont pas disponibles pour les profils privés. Vos données de résolution contribuent toujours à la notation de difficulté des puzzles, mais les classements nécessitent un profil public pour maintenir l'équité du système."
         tiers:
-            casual: "Débutant"
             enthusiast: "Passionné"
+            apprentice: "Apprenti"
             proficient: "Compétent"
             advanced: "Avancé"
             expert: "Expert"

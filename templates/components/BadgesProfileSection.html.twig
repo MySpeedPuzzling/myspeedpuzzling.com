@@ -1,0 +1,44 @@
+<div class="mt-4">
+    <h3>
+        <i class="ci-medal me-1"></i>
+        {{ 'badges.title'|trans }}
+        <span class="badge bg-primary ms-1 align-middle fs-sm">{{ badges|length }}</span>
+    </h3>
+
+    <div class="d-flex flex-wrap gap-3 mt-3">
+        {% for badge in badges %}
+            {% set tier = badge.tier %}
+            {% set tier_class = tier ? tier.cssClass() : 'badge-tier-supporter' %}
+            {% set label = (badge.type.translationKey())|trans %}
+            {% set tier_suffix = tier ? ' ' ~ (tier.translationKey())|trans : '' %}
+
+            <div class="badge-earned text-center" title="{{ label }}{{ tier_suffix }}">
+                <div class="position-relative d-inline-block">
+                    <div class="badge-medallion {{ tier_class }}">
+                        {% if tier %}
+                            <span class="badge-medallion-tier">{{ tier.romanNumeral() }}</span>
+                        {% else %}
+                            <i class="ci-heart"></i>
+                        {% endif %}
+                    </div>
+
+                    {% if this.isNew(badge) %}
+                        <span class="badge bg-primary badge-new-pill">{{ 'badges.new'|trans }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="small mt-1 text-body-secondary" style="max-width: 90px;">
+                    {{ label }}
+                </div>
+                {% if tier %}
+                    <div class="small fw-semibold">{{ (tier.translationKey())|trans }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <a href="{{ path('badges_overview') }}" class="btn btn-sm btn-outline-primary mt-3">
+        <i class="ci-trophy me-1"></i>
+        {{ 'badges.browse_all'|trans }}
+    </a>
+</div>

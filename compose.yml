@@ -19,7 +19,7 @@ services:
             - minio
             - mercure
         ports:
-            - "8080:8080"
+            - "${WEB_PORT:-8080}:8080"
         environment:
             FRANKENPHP_WORKER: "1"
             FRANKENPHP_WATCH: "1"
@@ -38,7 +38,7 @@ services:
         volumes:
             - postgres-data:/var/lib/postgresql/data
         ports:
-            - "5432:5432"
+            - "${POSTGRES_PORT:-5432}:5432"
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U postgres"]
             interval: 5s
@@ -71,12 +71,12 @@ services:
             MERCURE_EXTRA_DIRECTIVES: |
                 cors_origins http://localhost:8080
         ports:
-            - "8082:80"
+            - "${MERCURE_PORT:-8082}:80"
 
     adminer:
         image: adminer:5.4.1
         ports:
-            - "8000:8080"
+            - "${ADMINER_PORT:-8000}:8080"
         environment:
             ADMINER_DEFAULT_SERVER: postgres
         depends_on:
@@ -117,7 +117,7 @@ services:
         depends_on:
             - imgproxy
         ports:
-            - "19100:80"
+            - "${IMAGES_CACHE_PORT:-19100}:80"
 
     minio:
         restart: always
@@ -130,16 +130,16 @@ services:
             MINIO_ROOT_PASSWORD: speedpuzzling
         command: ["server", "/data", "--console-address", ":9001"]
         ports:
-            - 19000:9000
-            - 19001:9001
+            - "${MINIO_API_PORT:-19000}:9000"
+            - "${MINIO_CONSOLE_PORT:-19001}:9001"
         volumes:
             - .docker-data/minio-data:/data
 
     mailer:
         image: axllent/mailpit
         ports:
-            - "1025:1025"
-            - "8025:8025"
+            - "${MAILER_SMTP_PORT:-1025}:1025"
+            - "${MAILER_UI_PORT:-8025}:8025"
         environment:
             MP_SMTP_AUTH_ACCEPT_ANY: 1
             MP_SMTP_AUTH_ALLOW_INSECURE: 1
@@ -151,8 +151,8 @@ services:
         image: ${SELENIUM_IMAGE:-seleniarm/standalone-chromium:latest}
         shm_size: 2gb
         ports:
-            - "4444:4444"
-            - "7900:7900"
+            - "${CHROME_PORT:-4444}:4444"
+            - "${CHROME_VNC_PORT:-7900}:7900"
         environment:
             - SE_NODE_MAX_SESSIONS=4
 
@@ -169,7 +169,7 @@ services:
             - web
             - chrome
         ports:
-            - "8081:8080"
+            - "${WEB_TEST_PORT:-8081}:8080"
         environment:
             APP_ENV: test
             # Skip migrations - test database is set up by PHPUnit bootstrap.php
@@ -189,7 +189,7 @@ services:
         image: listmonk/listmonk:latest
         restart: unless-stopped
         ports:
-            - "8090:9000"
+            - "${LISTMONK_PORT:-8090}:9000"
         environment:
             TZ: Europe/Prague
             LISTMONK_app__address: 0.0.0.0:9000

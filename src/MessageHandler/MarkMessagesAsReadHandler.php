@@ -32,8 +32,8 @@ readonly final class MarkMessagesAsReadHandler
     {
         $conversation = $this->conversationRepository->get($message->conversationId);
 
-        $initiatorId = $conversation->initiator->id->toString();
-        $recipientId = $conversation->recipient->id->toString();
+        $initiatorId = $conversation->initiator?->id->toString();
+        $recipientId = $conversation->recipient?->id->toString();
 
         // Verify the player is a participant
         if ($message->playerId !== $initiatorId && $message->playerId !== $recipientId) {
@@ -62,7 +62,7 @@ readonly final class MarkMessagesAsReadHandler
             $unreadCount = $this->getConversations->countUnreadForPlayer($message->playerId);
             $this->mercureNotifier->notifyUnreadCountChanged($message->playerId, $unreadCount);
 
-            if ($affectedRows > 0) {
+            if ($affectedRows > 0 && $otherPlayerId !== null) {
                 $this->mercureNotifier->notifyMessagesRead($message->conversationId, $otherPlayerId);
             }
         } catch (\Throwable $e) {

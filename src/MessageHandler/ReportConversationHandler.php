@@ -36,8 +36,8 @@ readonly final class ReportConversationHandler
         $reporter = $this->playerRepository->get($message->reporterId);
 
         // Verify reporter is a participant
-        $isParticipant = $conversation->initiator->id->toString() === $message->reporterId
-            || $conversation->recipient->id->toString() === $message->reporterId;
+        $isParticipant = $conversation->initiator?->id->toString() === $message->reporterId
+            || $conversation->recipient?->id->toString() === $message->reporterId;
 
         if (!$isParticipant) {
             throw new ConversationNotFound();

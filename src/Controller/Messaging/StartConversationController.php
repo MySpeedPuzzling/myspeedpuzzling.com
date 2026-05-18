@@ -60,7 +60,7 @@ final class StartConversationController extends AbstractController
         $existingConversation = $this->conversationRepository->findDirectBetween($loggedPlayerEntity, $recipientEntity);
 
         if ($existingConversation !== null) {
-            $isRecipient = $existingConversation->recipient->id->toString() === $loggedPlayer->playerId;
+            $isRecipient = $existingConversation->recipient?->id->toString() === $loggedPlayer->playerId;
 
             // Handle sending message to existing conversation
             if ($request->isMethod('POST')) {

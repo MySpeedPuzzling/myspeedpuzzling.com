@@ -44,10 +44,9 @@ class ConversationReport
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Conversation $conversation,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $reporter,
+        #[JoinColumn(nullable: true)]
+        public null|Player $reporter,
         #[Immutable]
         #[Column(type: Types::TEXT)]
         public string $reason,
@@ -74,5 +73,15 @@ class ConversationReport
         $this->resolvedAt = new DateTimeImmutable();
         $this->resolvedBy = $admin;
         $this->adminNote = $note;
+    }
+
+    public function anonymizeReporter(): void
+    {
+        $this->reporter = null;
+    }
+
+    public function anonymizeResolvedBy(): void
+    {
+        $this->resolvedBy = null;
     }
 }

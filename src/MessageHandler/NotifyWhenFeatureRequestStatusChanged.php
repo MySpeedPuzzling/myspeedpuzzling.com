@@ -49,7 +49,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
         $featureRequest = $this->featureRequestRepository->get($event->featureRequestId->toString());
         $author = $featureRequest->author;
 
-        if ($author->email !== null) {
+        if ($author !== null && $author->email !== null) {
             $this->sendEmail(
                 toEmail: $author->email,
                 locale: $author->locale ?? 'en',
@@ -64,7 +64,7 @@ readonly final class NotifyWhenFeatureRequestStatusChanged
 
         $voters = $this->getFeatureRequestVoters->excludingPlayer(
             featureRequestId: $event->featureRequestId->toString(),
-            excludedPlayerId: $author->id->toString(),
+            excludedPlayerId: $author?->id->toString() ?? '',
         );
 
         foreach ($voters as $voter) {

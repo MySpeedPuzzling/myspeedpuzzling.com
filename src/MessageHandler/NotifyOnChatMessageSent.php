@@ -34,8 +34,12 @@ readonly final class NotifyOnChatMessageSent
         $chatMessage = $this->chatMessageRepository->get($event->chatMessageId->toString());
         $conversation = $chatMessage->conversation;
 
-        $isInitiator = $conversation->initiator->id->toString() === $event->senderId;
+        $isInitiator = $conversation->initiator?->id->toString() === $event->senderId;
         $otherParticipant = $isInitiator ? $conversation->recipient : $conversation->initiator;
+
+        if ($otherParticipant === null) {
+            return;
+        }
 
         // If the sender is blocked by the other participant, skip notifications to them
         $isBlockedByOther = $this->getUserBlocks->isBlocked($otherParticipant->id->toString(), $event->senderId);

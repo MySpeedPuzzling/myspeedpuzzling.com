@@ -48,7 +48,7 @@ readonly final class VoteForFeatureRequestHandler
             throw new CanNotVoteForNonOpenFeatureRequest();
         }
 
-        if ($featureRequest->author->id->toString() === $message->voterId) {
+        if ($featureRequest->author?->id->toString() === $message->voterId) {
             throw new CanNotVoteForOwnFeatureRequest();
         }
 

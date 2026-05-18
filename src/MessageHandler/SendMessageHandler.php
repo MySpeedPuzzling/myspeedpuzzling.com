@@ -43,8 +43,8 @@ readonly final class SendMessageHandler
         }
 
         // Verify sender is a participant
-        $isInitiator = $conversation->initiator->id->toString() === $message->senderId;
-        $isRecipient = $conversation->recipient->id->toString() === $message->senderId;
+        $isInitiator = $conversation->initiator?->id->toString() === $message->senderId;
+        $isRecipient = $conversation->recipient?->id->toString() === $message->senderId;
 
         if (!$isInitiator && !$isRecipient) {
             throw new ConversationNotFound();

@@ -41,15 +41,17 @@ class FeatureRequest implements EntityWithEvents
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $adminComment = null;
 
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $authorName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $author,
+        #[JoinColumn(nullable: true)]
+        public null|Player $author,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::STRING, length: 255)]
         public string $title,
@@ -66,6 +68,12 @@ class FeatureRequest implements EntityWithEvents
     {
         $this->title = $title;
         $this->description = $description;
+    }
+
+    public function anonymizeAuthor(string $name): void
+    {
+        $this->authorName = $name;
+        $this->author = null;
     }
 
     public function updateStatus(

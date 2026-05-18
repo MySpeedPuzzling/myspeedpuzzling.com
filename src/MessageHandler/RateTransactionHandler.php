@@ -42,13 +42,18 @@ readonly final class RateTransactionHandler
         }
 
         // Determine reviewer role
-        $sellerId = $soldSwappedItem->seller->id->toString();
+        $seller = $soldSwappedItem->seller;
         $buyerPlayer = $soldSwappedItem->buyerPlayer;
 
         if ($buyerPlayer === null) {
             throw new TransactionRatingNotAllowed('Ratings are only available for transactions with registered buyers.');
         }
 
+        if ($seller === null) {
+            throw new TransactionRatingNotAllowed('Seller is no longer registered.');
+        }
+
+        $sellerId = $seller->id->toString();
         $buyerId = $buyerPlayer->id->toString();
 
         if ($message->reviewerId === $sellerId) {
@@ -56,7 +61,7 @@ readonly final class RateTransactionHandler
             $reviewedPlayer = $buyerPlayer;
         } elseif ($message->reviewerId === $buyerId) {
             $reviewerRole = TransactionRole::Buyer;
-            $reviewedPlayer = $soldSwappedItem->seller;
+            $reviewedPlayer = $seller;
         } else {
             throw new TransactionRatingNotAllowed('Only transaction participants can rate.');
         }

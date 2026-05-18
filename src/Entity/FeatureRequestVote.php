@@ -29,13 +29,17 @@ class FeatureRequestVote
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public FeatureRequest $featureRequest,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $voter,
+        #[JoinColumn(nullable: true)]
+        public null|Player $voter,
         #[Immutable]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $votedAt,
     ) {
+    }
+
+    public function anonymizeVoter(): void
+    {
+        $this->voter = null;
     }
 }

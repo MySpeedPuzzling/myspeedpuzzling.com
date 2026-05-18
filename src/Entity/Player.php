@@ -246,6 +246,20 @@ class Player
         $this->favoritePlayers = array_values($this->favoritePlayers);
     }
 
+    public function discardFavoritePlayerId(string $playerId): bool
+    {
+        $key = array_search($playerId, $this->favoritePlayers, true);
+
+        if ($key === false) {
+            return false;
+        }
+
+        unset($this->favoritePlayers[$key]);
+        $this->favoritePlayers = array_values($this->favoritePlayers);
+
+        return true;
+    }
+
     public function markModalAsDisplayed(): void
     {
         $this->modalDisplayed = true;

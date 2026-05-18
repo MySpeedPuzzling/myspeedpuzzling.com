@@ -40,8 +40,8 @@ final class TypingIndicatorController extends AbstractController
         $conversation = $this->conversationRepository->get($conversationId);
 
         // Verify current user is a participant
-        $isParticipant = $conversation->initiator->id->toString() === $loggedPlayer->playerId
-            || $conversation->recipient->id->toString() === $loggedPlayer->playerId;
+        $isParticipant = $conversation->initiator?->id->toString() === $loggedPlayer->playerId
+            || $conversation->recipient?->id->toString() === $loggedPlayer->playerId;
 
         if (!$isParticipant) {
             throw $this->createAccessDeniedException();

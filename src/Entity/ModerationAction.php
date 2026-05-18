@@ -27,10 +27,9 @@ class ModerationAction
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $targetPlayer,
+        #[JoinColumn(nullable: true)]
+        public null|Player $targetPlayer,
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
@@ -52,5 +51,10 @@ class ModerationAction
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $expiresAt = null,
     ) {
+    }
+
+    public function anonymizeTargetPlayer(): void
+    {
+        $this->targetPlayer = null;
     }
 }

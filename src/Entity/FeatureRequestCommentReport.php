@@ -44,10 +44,9 @@ class FeatureRequestCommentReport
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public FeatureRequestComment $comment,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $reporter,
+        #[JoinColumn(nullable: true)]
+        public null|Player $reporter,
         #[Immutable]
         #[Column(type: Types::TEXT)]
         public string $reason,
@@ -58,5 +57,15 @@ class FeatureRequestCommentReport
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $reportedAt,
     ) {
+    }
+
+    public function anonymizeReporter(): void
+    {
+        $this->reporter = null;
+    }
+
+    public function anonymizeResolvedBy(): void
+    {
+        $this->resolvedBy = null;
     }
 }

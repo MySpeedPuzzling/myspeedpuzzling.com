@@ -43,8 +43,8 @@ final class ConversationDetailController extends AbstractController
         $conversation = $this->conversationRepository->get($conversationId);
 
         // Verify current user is a participant
-        $isInitiator = $conversation->initiator->id->toString() === $loggedPlayer->playerId;
-        $isRecipient = $conversation->recipient->id->toString() === $loggedPlayer->playerId;
+        $isInitiator = $conversation->initiator?->id->toString() === $loggedPlayer->playerId;
+        $isRecipient = $conversation->recipient?->id->toString() === $loggedPlayer->playerId;
 
         if (!$isInitiator && !$isRecipient) {
             throw $this->createAccessDeniedException();
@@ -102,12 +102,17 @@ final class ConversationDetailController extends AbstractController
 
         $ratingInfo = null;
         if ($conversation->puzzle !== null && $conversation->sellSwapListItem === null) {
-            $ratingInfo = $this->getTransactionRatings->forConversation(
-                puzzleId: $conversation->puzzle->id->toString(),
-                playerAId: $conversation->initiator->id->toString(),
-                playerBId: $conversation->recipient->id->toString(),
-                viewerId: $loggedPlayer->playerId,
-            );
+            $initiator = $conversation->initiator;
+            $recipient = $conversation->recipient;
+
+            if ($initiator !== null && $recipient !== null) {
+                $ratingInfo = $this->getTransactionRatings->forConversation(
+                    puzzleId: $conversation->puzzle->id->toString(),
+                    playerAId: $initiator->id->toString(),
+                    playerBId: $recipient->id->toString(),
+                    viewerId: $loggedPlayer->playerId,
+                );
+            }
         }
 
         return $this->render('messaging/conversation_detail.html.twig', [

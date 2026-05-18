@@ -22,24 +22,24 @@ class SoldSwappedItem implements EntityWithEvents
 {
     use HasEvents;
 
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $sellerName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $seller,
+        #[JoinColumn(nullable: true)]
+        public null|Player $seller,
         #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public Puzzle $puzzle,
-        #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: true)]
         public null|Player $buyerPlayer,
-        #[Immutable]
         #[Column(nullable: true)]
         public null|string $buyerName,
         #[Immutable]
@@ -52,10 +52,24 @@ class SoldSwappedItem implements EntityWithEvents
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $soldAt,
     ) {
-        $this->recordThat(new TransactionCompleted(
-            soldSwappedItemId: $this->id,
-            sellerId: $this->seller->id,
-            buyerPlayerId: $this->buyerPlayer?->id,
-        ));
+        if ($this->seller !== null) {
+            $this->recordThat(new TransactionCompleted(
+                soldSwappedItemId: $this->id,
+                sellerId: $this->seller->id,
+                buyerPlayerId: $this->buyerPlayer?->id,
+            ));
+        }
+    }
+
+    public function anonymizeSeller(string $name): void
+    {
+        $this->sellerName = $name;
+        $this->seller = null;
+    }
+
+    public function anonymizeBuyer(string $name): void
+    {
+        $this->buyerName = $name;
+        $this->buyerPlayer = null;
     }
 }

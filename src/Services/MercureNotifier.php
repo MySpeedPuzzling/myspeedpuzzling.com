@@ -23,6 +23,10 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyNewConversationRequest(Conversation $conversation): void
     {
+        if ($conversation->recipient === null || $conversation->initiator === null) {
+            return;
+        }
+
         $this->hub->publish(new Update(
             '/conversations/' . $conversation->recipient->id->toString(),
             json_encode([
@@ -36,6 +40,10 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyConversationAccepted(Conversation $conversation): void
     {
+        if ($conversation->initiator === null) {
+            return;
+        }
+
         $this->hub->publish(new Update(
             '/conversations/' . $conversation->initiator->id->toString(),
             json_encode([
@@ -48,6 +56,10 @@ final class MercureNotifier implements ResetInterface
 
     public function notifyConversationIgnored(Conversation $conversation): void
     {
+        if ($conversation->initiator === null) {
+            return;
+        }
+
         $this->hub->publish(new Update(
             '/conversations/' . $conversation->initiator->id->toString(),
             json_encode([
@@ -63,6 +75,11 @@ final class MercureNotifier implements ResetInterface
         assert($chatMessage->sender !== null);
         $senderId = $chatMessage->sender->id->toString();
         $conversation = $chatMessage->conversation;
+
+        if ($conversation->initiator === null || $conversation->recipient === null) {
+            return;
+        }
+
         $recipientId = ($conversation->initiator->id->toString() === $senderId)
             ? $conversation->recipient->id->toString()
             : $conversation->initiator->id->toString();
@@ -94,6 +111,11 @@ final class MercureNotifier implements ResetInterface
         assert($chatMessage->systemMessageType !== null);
 
         $conversation = $chatMessage->conversation;
+
+        if ($conversation->initiator === null || $conversation->recipient === null) {
+            return;
+        }
+
         $initiatorId = $conversation->initiator->id->toString();
         $recipientId = $conversation->recipient->id->toString();
         $targetPlayerId = $chatMessage->systemMessageTargetPlayerId?->toString();

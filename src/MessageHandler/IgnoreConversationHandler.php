@@ -29,7 +29,7 @@ readonly final class IgnoreConversationHandler
     {
         $conversation = $this->conversationRepository->get($message->conversationId);
 
-        if ($conversation->recipient->id->toString() !== $message->playerId) {
+        if ($conversation->recipient?->id->toString() !== $message->playerId) {
             throw new ConversationNotFound();
         }
 
@@ -41,8 +41,14 @@ readonly final class IgnoreConversationHandler
 
         try {
             $this->mercureNotifier->notifyConversationIgnored($conversation);
-            $this->mercureNotifier->notifyConversationListChanged($conversation->initiator->id->toString());
-            $this->mercureNotifier->notifyConversationListChanged($conversation->recipient->id->toString());
+
+            if ($conversation->initiator !== null) {
+                $this->mercureNotifier->notifyConversationListChanged($conversation->initiator->id->toString());
+            }
+
+            if ($conversation->recipient !== null) {
+                $this->mercureNotifier->notifyConversationListChanged($conversation->recipient->id->toString());
+            }
         } catch (\Throwable $e) {
             $this->logger->error('Failed to send Mercure notification for conversation ignore', [
                 'conversationId' => $conversation->id->toString(),

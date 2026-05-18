@@ -21,6 +21,12 @@ use SpeedPuzzling\Web\Value\TransactionRole;
 #[UniqueConstraint(columns: ['sold_swapped_item_id', 'reviewer_id'])]
 class TransactionRating
 {
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $reviewerName = null;
+
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $reviewedPlayerName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -30,14 +36,12 @@ class TransactionRating
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public SoldSwappedItem $soldSwappedItem,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $reviewer,
-        #[Immutable]
+        #[JoinColumn(nullable: true)]
+        public null|Player $reviewer,
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $reviewedPlayer,
+        #[JoinColumn(nullable: true)]
+        public null|Player $reviewedPlayer,
         #[Immutable]
         #[Column(type: Types::SMALLINT)]
         public int $stars,
@@ -51,5 +55,17 @@ class TransactionRating
         #[Column(type: Types::STRING, enumType: TransactionRole::class)]
         public TransactionRole $reviewerRole,
     ) {
+    }
+
+    public function anonymizeReviewer(string $name): void
+    {
+        $this->reviewerName = $name;
+        $this->reviewer = null;
+    }
+
+    public function anonymizeReviewedPlayer(string $name): void
+    {
+        $this->reviewedPlayerName = $name;
+        $this->reviewedPlayer = null;
     }
 }

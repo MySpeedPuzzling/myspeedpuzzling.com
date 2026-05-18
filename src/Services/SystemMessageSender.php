@@ -52,8 +52,13 @@ readonly final class SystemMessageSender
 
             $this->mercureNotifier->notifySystemMessage($chatMessage);
 
-            $affectedPlayerIds[] = $conversation->initiator->id->toString();
-            $affectedPlayerIds[] = $conversation->recipient->id->toString();
+            if ($conversation->initiator !== null) {
+                $affectedPlayerIds[] = $conversation->initiator->id->toString();
+            }
+
+            if ($conversation->recipient !== null) {
+                $affectedPlayerIds[] = $conversation->recipient->id->toString();
+            }
         }
 
         $this->entityManager->flush();

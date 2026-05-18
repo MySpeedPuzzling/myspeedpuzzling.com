@@ -32,6 +32,9 @@ class ChatMessage implements EntityWithEvents
     #[Column(type: UuidType::NAME, nullable: true)]
     public null|UuidInterface $systemMessageTargetPlayerId;
 
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $senderName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -41,7 +44,6 @@ class ChatMessage implements EntityWithEvents
         #[ManyToOne]
         #[JoinColumn(nullable: false, onDelete: 'CASCADE')]
         public Conversation $conversation,
-        #[Immutable]
         #[ManyToOne]
         #[JoinColumn(nullable: true)]
         public null|Player $sender,
@@ -72,6 +74,12 @@ class ChatMessage implements EntityWithEvents
     public function markAsRead(): void
     {
         $this->readAt = new DateTimeImmutable();
+    }
+
+    public function anonymizeSender(string $name): void
+    {
+        $this->senderName = $name;
+        $this->sender = null;
     }
 
     public function isSystemMessage(): bool

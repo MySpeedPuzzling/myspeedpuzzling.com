@@ -20,6 +20,9 @@ use Ramsey\Uuid\UuidInterface;
 #[Index(columns: ['feature_request_id', 'created_at'])]
 class FeatureRequestComment
 {
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $authorName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -29,10 +32,9 @@ class FeatureRequestComment
         #[ManyToOne]
         #[JoinColumn(nullable: false)]
         public FeatureRequest $featureRequest,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $author,
+        #[JoinColumn(nullable: true)]
+        public null|Player $author,
         #[Immutable]
         #[Column(type: Types::TEXT)]
         public string $content,
@@ -40,5 +42,11 @@ class FeatureRequestComment
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $createdAt,
     ) {
+    }
+
+    public function anonymizeAuthor(string $name): void
+    {
+        $this->authorName = $name;
+        $this->author = null;
     }
 }

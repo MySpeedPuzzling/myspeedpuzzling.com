@@ -82,7 +82,7 @@ final class StartMarketplaceConversationController extends AbstractController
         );
 
         if ($existingConversation !== null) {
-            $isRecipient = $existingConversation->recipient->id->toString() === $loggedPlayer->playerId;
+            $isRecipient = $existingConversation->recipient?->id->toString() === $loggedPlayer->playerId;
 
             // Handle sending message to existing conversation
             if ($request->isMethod('POST')) {

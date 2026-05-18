@@ -41,7 +41,7 @@ final class ReportFeatureRequestCommentHandlerTest extends KernelTestCase
         foreach ($reports as $report) {
             if (
                 $report->comment->id->toString() === FeatureRequestCommentFixture::COMMENT_1
-                && $report->reporter->id->toString() === PlayerFixture::PLAYER_REGULAR
+                && $report->reporter?->id->toString() === PlayerFixture::PLAYER_REGULAR
             ) {
                 $found = true;
                 self::assertSame(ReportStatus::Pending, $report->status);

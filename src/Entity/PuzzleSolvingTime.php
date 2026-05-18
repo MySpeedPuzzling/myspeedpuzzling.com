@@ -122,6 +122,21 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
     }
 
+    public function transferOwnership(Player $newOwner, null|PuzzlersGroup $newTeam): void
+    {
+        $this->player = $newOwner;
+        $this->team = $newTeam;
+        $this->puzzlersCount = $this->calculatePuzzlersCount();
+        $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+    }
+
+    public function replaceTeam(null|PuzzlersGroup $newTeam): void
+    {
+        $this->team = $newTeam;
+        $this->puzzlersCount = $this->calculatePuzzlersCount();
+        $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+    }
+
     private function calculatePuzzlersCount(): int
     {
         if ($this->team === null) {

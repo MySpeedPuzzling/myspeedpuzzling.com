@@ -26,19 +26,23 @@ use SpeedPuzzling\Web\Value\ConversationStatus;
 #[Index(columns: ['last_message_at'])]
 class Conversation
 {
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $initiatorName = null;
+
+    #[Column(type: Types::STRING, length: 200, nullable: true)]
+    public null|string $recipientName = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
         #[Column(type: UuidType::NAME, unique: true)]
         public UuidInterface $id,
-        #[Immutable]
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $initiator,
-        #[Immutable]
+        #[JoinColumn(nullable: true)]
+        public null|Player $initiator,
         #[ManyToOne]
-        #[JoinColumn(nullable: false)]
-        public Player $recipient,
+        #[JoinColumn(nullable: true)]
+        public null|Player $recipient,
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::STRING, enumType: ConversationStatus::class)]
         public ConversationStatus $status,
@@ -60,6 +64,18 @@ class Conversation
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $lastMessageAt = null,
     ) {
+    }
+
+    public function anonymizeInitiator(string $name): void
+    {
+        $this->initiatorName = $name;
+        $this->initiator = null;
+    }
+
+    public function anonymizeRecipient(string $name): void
+    {
+        $this->recipientName = $name;
+        $this->recipient = null;
     }
 
     public function accept(): void

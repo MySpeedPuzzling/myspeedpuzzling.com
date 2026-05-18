@@ -56,7 +56,7 @@ final class RateTransactionController extends AbstractController
         }
 
         // Determine other party for display
-        $isSeller = $soldSwappedItem->seller->id->toString() === $loggedPlayer->playerId;
+        $isSeller = $soldSwappedItem->seller?->id->toString() === $loggedPlayer->playerId;
         $otherPlayer = $isSeller ? $soldSwappedItem->buyerPlayer : $soldSwappedItem->seller;
 
         $templateParams = [

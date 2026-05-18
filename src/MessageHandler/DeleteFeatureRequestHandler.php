@@ -30,7 +30,7 @@ readonly final class DeleteFeatureRequestHandler
     {
         $featureRequest = $this->featureRequestRepository->get($message->featureRequestId);
 
-        if ($featureRequest->author->id->toString() !== $message->playerId) {
+        if ($featureRequest->author?->id->toString() !== $message->playerId) {
             throw new FeatureRequestNotFound();
         }
 

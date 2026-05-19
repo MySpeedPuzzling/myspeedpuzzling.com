@@ -120,6 +120,7 @@
           data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">Skip to content</a>
+        {% block header %}
         {% if is_web() %}
         <header class="fixed-top shadow-sm" data-fixed-element>
             <div class="topbar topbar-light">
@@ -429,6 +430,7 @@
             </div>
         </header>
         {% endif %}
+        {% endblock %}
 
         {#
         <div class="competition-panel-info">
@@ -459,6 +461,7 @@
             {% endblock %}
         </main>
 
+        {% block footer %}
         {% if is_web() %}
         <footer class="bg-secondary mt-4">
             <div class="container pt-4 pb-3">
@@ -648,6 +651,7 @@
             {% endif %}
         </footer>
         {% endif %}
+        {% endblock %}
 
         {% if logged_user.profile and not logged_user.profile.modalDisplayed %}
             <div class="modal fade in" tabindex="-1" role="dialog" id="global-modal" data-controller="autoshow-modal">

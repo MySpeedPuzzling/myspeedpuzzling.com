@@ -51,6 +51,8 @@ class CompetitionRound
         public null|DateTimeImmutable $stopwatchStartedAt = null,
         #[Column(nullable: true)]
         public null|string $stopwatchStatus = null,
+        #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+        public null|DateTimeImmutable $stopwatchStoppedAt = null,
     ) {
     }
 
@@ -72,18 +74,34 @@ class CompetitionRound
 
     public function startStopwatch(DateTimeImmutable $startedAt): void
     {
-        $this->stopwatchStartedAt = $startedAt;
+        if (
+            $this->stopwatchStatus === 'stopped'
+            && $this->stopwatchStartedAt !== null
+            && $this->stopwatchStoppedAt !== null
+        ) {
+            // Resume: shift startedAt forward by the pause duration so that
+            // elapsed = now - startedAt continues from the paused value.
+            $pauseSeconds = $startedAt->getTimestamp() - $this->stopwatchStoppedAt->getTimestamp();
+            $this->stopwatchStartedAt = $this->stopwatchStartedAt->modify(
+                sprintf('+%d seconds', $pauseSeconds),
+            );
+        } else {
+            $this->stopwatchStartedAt = $startedAt;
+        }
         $this->stopwatchStatus = 'running';
+        $this->stopwatchStoppedAt = null;
     }
 
-    public function stopStopwatch(): void
+    public function stopStopwatch(DateTimeImmutable $stoppedAt): void
     {
         $this->stopwatchStatus = 'stopped';
+        $this->stopwatchStoppedAt = $stoppedAt;
     }
 
     public function resetStopwatch(): void
     {
         $this->stopwatchStartedAt = null;
         $this->stopwatchStatus = null;
+        $this->stopwatchStoppedAt = null;
     }
 }

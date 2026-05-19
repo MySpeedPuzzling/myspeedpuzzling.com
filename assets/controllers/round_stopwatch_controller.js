@@ -1,42 +1,58 @@
 import { Controller } from '@hotwired/stimulus';
 
+const POLL_FALLBACK_MS = 3000;
+
 export default class extends Controller {
     static targets = ['hours', 'minutes', 'seconds', 'status'];
 
     static values = {
         status: String,
         startedAt: String,
+        stoppedAt: String,
         minutesLimit: Number,
         serverNow: String,
         mercureUrl: String,
         topic: String,
+        stateUrl: String,
     };
 
     connect() {
-        this._serverOffset = this._calculateServerOffset();
+        this._serverOffset = 0;
         this._rafId = null;
         this._startTimestamp = null;
-        this._stopped = false;
+        this._stopTimestamp = null;
+        this._pollId = null;
+        this._eventSource = null;
 
-        if (this.statusValue === 'running' && this.startedAtValue) {
-            this._startTimestamp = new Date(this.startedAtValue).getTime() + this._serverOffset;
-            this._startRaf();
-        } else if (this.statusValue === 'stopped' && this.startedAtValue) {
-            this._startTimestamp = new Date(this.startedAtValue).getTime() + this._serverOffset;
-            this._stopped = true;
-            this._renderTime(Date.now() - this._startTimestamp);
-        } else {
-            this._renderTime(0);
-        }
+        this._applyState({
+            status: this.statusValue || null,
+            startedAt: this.startedAtValue || null,
+            stoppedAt: this.stoppedAtValue || null,
+            minutesLimit: this.minutesLimitValue,
+            serverNow: this.serverNowValue || null,
+        });
 
         this._connectMercure();
+        this._startPolling();
+
+        this._visibilityHandler = () => {
+            if (document.visibilityState === 'visible') {
+                this._refetchAndApply();
+            }
+        };
+        document.addEventListener('visibilitychange', this._visibilityHandler);
     }
 
     disconnect() {
         this._stopRaf();
+        this._stopPolling();
         if (this._eventSource) {
             this._eventSource.close();
             this._eventSource = null;
+        }
+        if (this._visibilityHandler) {
+            document.removeEventListener('visibilitychange', this._visibilityHandler);
+            this._visibilityHandler = null;
         }
     }
 
@@ -48,39 +64,83 @@ export default class extends Controller {
 
         this._eventSource = new EventSource(url);
 
-        this._eventSource.addEventListener('message', (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                this._handleMercureMessage(data);
-            } catch { /* ignore non-JSON */ }
+        this._eventSource.addEventListener('open', () => {
+            // SSE is healthy — stop the polling fallback and refetch once
+            // to catch up on anything missed while disconnected.
+            this._stopPolling();
+            this._refetchAndApply();
+        });
+
+        this._eventSource.addEventListener('message', () => {
+            // Treat any push as "something changed, ask the server."
+            this._refetchAndApply();
+        });
+
+        this._eventSource.addEventListener('error', () => {
+            // Connection failed (e.g. 401) or dropped. EventSource will retry on its own
+            // for transient errors; we kick on polling so state still syncs either way.
+            this._startPolling();
         });
     }
 
-    _handleMercureMessage(data) {
-        switch (data.action) {
-            case 'start':
-                this._stopped = false;
-                this._startTimestamp = new Date(data.startedAt).getTime() + this._serverOffset;
-                if (data.minutesLimit) {
-                    this.minutesLimitValue = data.minutesLimit;
-                }
-                this._updateStatus('running');
-                this._startRaf();
-                break;
+    _startPolling() {
+        if (this._pollId !== null) return;
+        this._pollId = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                this._refetchAndApply();
+            }
+        }, POLL_FALLBACK_MS);
+    }
 
-            case 'stop':
-                this._stopped = true;
-                this._stopRaf();
-                this._updateStatus('stopped');
-                break;
+    _stopPolling() {
+        if (this._pollId !== null) {
+            clearInterval(this._pollId);
+            this._pollId = null;
+        }
+    }
 
-            case 'reset':
-                this._stopped = false;
-                this._stopRaf();
-                this._startTimestamp = null;
-                this._renderTime(0);
-                this._updateStatus('');
-                break;
+    async _refetchAndApply() {
+        if (!this.stateUrlValue) return;
+        try {
+            const response = await fetch(this.stateUrlValue, { cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json();
+            this._applyState(data);
+        } catch {
+            // Ignore network errors; next signal triggers another refetch.
+        }
+    }
+
+    _applyState({ status, startedAt, stoppedAt, minutesLimit, serverNow }) {
+        if (serverNow) {
+            this._serverOffset = Date.now() - new Date(serverNow).getTime();
+        }
+        if (typeof minutesLimit === 'number') {
+            this.minutesLimitValue = minutesLimit;
+        }
+
+        this._stopRaf();
+
+        if (status === 'running' && startedAt) {
+            this._startTimestamp = new Date(startedAt).getTime() + this._serverOffset;
+            this._stopTimestamp = null;
+            this._updateStatus('running');
+            this._startRaf();
+        } else if (status === 'stopped' && startedAt) {
+            this._startTimestamp = new Date(startedAt).getTime() + this._serverOffset;
+            // If stoppedAt is known, freeze at that point. Fall back to "now" for legacy
+            // rows that pre-date the stoppedAt column (best effort, won't keep growing
+            // because RAF isn't running).
+            this._stopTimestamp = stoppedAt
+                ? new Date(stoppedAt).getTime() + this._serverOffset
+                : Date.now();
+            this._renderTime(this._stopTimestamp - this._startTimestamp);
+            this._updateStatus('stopped');
+        } else {
+            this._startTimestamp = null;
+            this._stopTimestamp = null;
+            this._renderTime(0);
+            this._updateStatus('');
         }
     }
 
@@ -127,22 +187,17 @@ export default class extends Controller {
         return n < 10 ? '0' + n : String(n);
     }
 
-    _calculateServerOffset() {
-        if (!this.serverNowValue) return 0;
-        return Date.now() - new Date(this.serverNowValue).getTime();
-    }
-
     _updateStatus(status) {
         if (!this.hasStatusTarget) return;
 
         const labels = {
-            '': this.statusTarget.dataset.labelNotStarted || 'Not started',
-            'running': this.statusTarget.dataset.labelRunning || 'Running',
-            'stopped': this.statusTarget.dataset.labelStopped || 'Stopped',
-            'times_up': this.statusTarget.dataset.labelTimesUp || "Time's up!",
+            '': this.statusTarget.dataset.labelNotStarted ?? 'Not started',
+            'running': this.statusTarget.dataset.labelRunning ?? 'Running',
+            'stopped': this.statusTarget.dataset.labelStopped ?? 'Stopped',
+            'times_up': this.statusTarget.dataset.labelTimesUp ?? "Time's up!",
         };
 
-        this.statusTarget.textContent = labels[status] || labels[''];
+        this.statusTarget.textContent = labels[status] ?? labels[''];
 
         this.statusTarget.classList.remove('text-muted', 'text-success', 'text-warning', 'text-danger');
         switch (status) {

@@ -40,6 +40,7 @@ final class RoundStopwatchController extends AbstractController
             'competition' => $round->competition,
             'canManage' => $canManage,
             'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
+            'stateUrl' => $this->generateUrl('round_stopwatch_state', ['roundId' => $round->id->toString()]),
         ]);
     }
 }

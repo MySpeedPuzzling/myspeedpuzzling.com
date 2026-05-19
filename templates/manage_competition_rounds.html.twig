@@ -86,10 +86,10 @@
                                                 <i class="bi bi-grid-3x3 me-1"></i>{{ 'competition.tables.tables'|trans }}
                                             </a>
                                         {% endif %}
-                                        <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
-                                        </a>
                                     {% endif %}
+                                    <a href="{{ path('round_stopwatch', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-stopwatch me-1"></i>{{ 'competition.stopwatch.title'|trans }}
+                                    </a>
                                 </div>
                             </div>
                         </div>

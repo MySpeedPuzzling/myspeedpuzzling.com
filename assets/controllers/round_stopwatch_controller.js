@@ -17,19 +17,24 @@ export default class extends Controller {
     };
 
     connect() {
-        this._serverOffset = 0;
         this._rafId = null;
         this._startTimestamp = null;
         this._stopTimestamp = null;
         this._pollId = null;
         this._eventSource = null;
 
+        // Initial offset from server-rendered serverNow. Not round-trip
+        // compensated (we have no t0 for the page request) — _refetchAndApply
+        // will refine it within the first SSE open or poll cycle.
+        this._serverOffset = this.serverNowValue
+            ? Date.now() - new Date(this.serverNowValue).getTime()
+            : 0;
+
         this._applyState({
             status: this.statusValue || null,
             startedAt: this.startedAtValue || null,
             stoppedAt: this.stoppedAtValue || null,
             minutesLimit: this.minutesLimitValue,
-            serverNow: this.serverNowValue || null,
         });
 
         this._connectMercure();
@@ -65,20 +70,29 @@ export default class extends Controller {
         this._eventSource = new EventSource(url);
 
         this._eventSource.addEventListener('open', () => {
-            // SSE is healthy — stop the polling fallback and refetch once
-            // to catch up on anything missed while disconnected.
+            // SSE is healthy — stop the polling fallback and refetch once to
+            // recalibrate the clock offset and catch up on anything missed
+            // while the connection was down.
             this._stopPolling();
             this._refetchAndApply();
         });
 
-        this._eventSource.addEventListener('message', () => {
-            // Treat any push as "something changed, ask the server."
-            this._refetchAndApply();
+        this._eventSource.addEventListener('message', (event) => {
+            // SSE payload carries the full state shape — apply directly to
+            // avoid a refetch round-trip. Offset stays from the most recent
+            // refetch (open / visibility / poll).
+            try {
+                const data = JSON.parse(event.data);
+                this._applyState(data);
+            } catch {
+                // Malformed message — fall back to authoritative refetch.
+                this._refetchAndApply();
+            }
         });
 
         this._eventSource.addEventListener('error', () => {
-            // Connection failed (e.g. 401) or dropped. EventSource will retry on its own
-            // for transient errors; we kick on polling so state still syncs either way.
+            // Connection failed (e.g. 401) or dropped. Browser auto-retries
+            // for transient errors; polling kicks on so state still syncs.
             this._startPolling();
         });
     }
@@ -101,20 +115,26 @@ export default class extends Controller {
 
     async _refetchAndApply() {
         if (!this.stateUrlValue) return;
+        const t0 = Date.now();
         try {
             const response = await fetch(this.stateUrlValue, { cache: 'no-store' });
+            const t1 = Date.now();
             if (!response.ok) return;
             const data = await response.json();
+            // NTP-style midpoint compensation: assume the server generated
+            // serverNow halfway through the round trip. Cuts offset error
+            // roughly in half versus naive `Date.now() - serverNow`.
+            if (data.serverNow) {
+                const midpoint = t0 + (t1 - t0) / 2;
+                this._serverOffset = midpoint - new Date(data.serverNow).getTime();
+            }
             this._applyState(data);
         } catch {
-            // Ignore network errors; next signal triggers another refetch.
+            // Ignore — next signal (SSE message, visibility, poll) retries.
         }
     }
 
-    _applyState({ status, startedAt, stoppedAt, minutesLimit, serverNow }) {
-        if (serverNow) {
-            this._serverOffset = Date.now() - new Date(serverNow).getTime();
-        }
+    _applyState({ status, startedAt, stoppedAt, minutesLimit }) {
         if (typeof minutesLimit === 'number') {
             this.minutesLimitValue = minutesLimit;
         }
@@ -128,9 +148,8 @@ export default class extends Controller {
             this._startRaf();
         } else if (status === 'stopped' && startedAt) {
             this._startTimestamp = new Date(startedAt).getTime() + this._serverOffset;
-            // If stoppedAt is known, freeze at that point. Fall back to "now" for legacy
-            // rows that pre-date the stoppedAt column (best effort, won't keep growing
-            // because RAF isn't running).
+            // Legacy rows pre-dating stoppedAt fall back to "now" — won't keep
+            // growing because RAF isn't running.
             this._stopTimestamp = stoppedAt
                 ? new Date(stoppedAt).getTime() + this._serverOffset
                 : Date.now();

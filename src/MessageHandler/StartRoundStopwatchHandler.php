@@ -28,11 +28,16 @@ readonly final class StartRoundStopwatchHandler
 
         $round->startStopwatch($now);
 
+        // Publish full state (same shape as RoundStopwatchStateController) so
+        // subscribers can apply directly without a refetch round-trip. Read
+        // startedAt back from the entity because resume semantics may have
+        // shifted it forward by the pause duration.
         $this->hub->publish(new Update(
             '/round-stopwatch/' . $round->id->toString(),
             json_encode([
-                'action' => 'start',
-                'startedAt' => $now->format(\DateTimeInterface::ATOM),
+                'status' => 'running',
+                'startedAt' => $round->stopwatchStartedAt?->format(\DateTimeInterface::ATOM),
+                'stoppedAt' => null,
                 'minutesLimit' => $round->minutesLimit,
             ], JSON_THROW_ON_ERROR),
             private: false,

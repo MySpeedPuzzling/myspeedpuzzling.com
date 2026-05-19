@@ -31,8 +31,10 @@ readonly final class StopRoundStopwatchHandler
         $this->hub->publish(new Update(
             '/round-stopwatch/' . $round->id->toString(),
             json_encode([
-                'action' => 'stop',
-                'stoppedAt' => $now->format(\DateTimeInterface::ATOM),
+                'status' => 'stopped',
+                'startedAt' => $round->stopwatchStartedAt?->format(\DateTimeInterface::ATOM),
+                'stoppedAt' => $round->stopwatchStoppedAt?->format(\DateTimeInterface::ATOM),
+                'minutesLimit' => $round->minutesLimit,
             ], JSON_THROW_ON_ERROR),
             private: false,
         ));

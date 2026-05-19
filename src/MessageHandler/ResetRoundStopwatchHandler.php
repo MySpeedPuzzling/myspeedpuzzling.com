@@ -28,7 +28,10 @@ readonly final class ResetRoundStopwatchHandler
         $this->hub->publish(new Update(
             '/round-stopwatch/' . $round->id->toString(),
             json_encode([
-                'action' => 'reset',
+                'status' => null,
+                'startedAt' => null,
+                'stoppedAt' => null,
+                'minutesLimit' => $round->minutesLimit,
             ], JSON_THROW_ON_ERROR),
             private: false,
         ));

@@ -56,6 +56,26 @@ final class ApproveOAuth2ClientRequestHandlerTest extends KernelTestCase
         self::assertContains('refresh_token', $grantTypes);
     }
 
+    public function testApprovedClientWithLongNameFitsIdentifierColumn(): void
+    {
+        $this->messageBus->dispatch(
+            new ApproveOAuth2ClientRequest(
+                requestId: OAuth2ClientRequestFixture::PENDING_LONG_NAME_REQUEST,
+                adminPlayerId: PlayerFixture::PLAYER_ADMIN,
+            ),
+        );
+
+        $request = $this->requestRepository->get(OAuth2ClientRequestFixture::PENDING_LONG_NAME_REQUEST);
+
+        self::assertSame(OAuth2ClientRequestStatus::Approved, $request->status);
+        self::assertNotNull($request->clientIdentifier);
+        // oauth2_client.identifier is VARCHAR(32); a longer value truncates on insert
+        self::assertLessThanOrEqual(32, strlen($request->clientIdentifier));
+
+        $client = $this->clientManager->find($request->clientIdentifier);
+        self::assertNotNull($client);
+    }
+
     public function testApprovedPublicClientHasNoSecret(): void
     {
         $this->messageBus->dispatch(

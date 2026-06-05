@@ -17,6 +17,7 @@ final class OAuth2ClientRequestFixture extends Fixture implements DependentFixtu
 {
     public const string PENDING_CONFIDENTIAL_REQUEST = '018d0010-0000-0000-0000-000000000001';
     public const string PENDING_PUBLIC_REQUEST = '018d0010-0000-0000-0000-000000000002';
+    public const string PENDING_LONG_NAME_REQUEST = '018d0010-0000-0000-0000-000000000003';
 
     public function load(ObjectManager $manager): void
     {
@@ -49,6 +50,20 @@ final class OAuth2ClientRequestFixture extends Fixture implements DependentFixtu
             createdAt: new DateTimeImmutable('2025-01-01 10:00:00'),
         );
         $manager->persist($publicRequest);
+
+        $longNameRequest = new OAuth2ClientRequest(
+            id: Uuid::fromString(self::PENDING_LONG_NAME_REQUEST),
+            player: $player,
+            clientName: 'Super Long Application Name That Overflows The Identifier Column',
+            clientDescription: 'A test application with a very long name',
+            purpose: 'Testing OAuth2 identifier length truncation',
+            applicationType: OAuth2ApplicationType::Confidential,
+            requestedScopes: ['profile:read'],
+            redirectUris: ['https://example.com/callback'],
+            fairUsePolicyAcceptedAt: new DateTimeImmutable('2025-01-01 10:00:00'),
+            createdAt: new DateTimeImmutable('2025-01-01 10:00:00'),
+        );
+        $manager->persist($longNameRequest);
 
         $manager->flush();
     }

@@ -112,6 +112,7 @@ final readonly class ApproveOAuth2ClientRequestHandler
     {
         $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', $name) ?? $name, '-'));
 
-        return substr($slug, 0, 28) . '-' . bin2hex(random_bytes(2));
+        // oauth2_client.identifier is VARCHAR(32): 27 (slug) + 1 (dash) + 4 (hex suffix) = 32 chars max
+        return substr($slug, 0, 27) . '-' . bin2hex(random_bytes(2));
     }
 }

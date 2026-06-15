@@ -179,6 +179,10 @@ function createCustomIndexes(): void
     // Chat message unread optimization (Version20260212002500)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_chat_message_unread ON chat_message (conversation_id, sender_id) WHERE read_at IS NULL');
 
+    // Badge uniqueness — partial indexes for tiered vs single-tier badges (Version20260416210601)
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
+    $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');
+
 }
 
 /**

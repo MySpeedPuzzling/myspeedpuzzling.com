@@ -1,4 +1,4 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import difficulty_icon %}
+{% from 'puzzle_intelligence/_macros.html.twig' import difficulty_icon, skill_icon %}
 <div class="comparison-card card shadow-sm">
     <div class="comparison-card-head">
         <a href="{{ path('puzzle_detail', {puzzleId: row.puzzleId}) }}" data-turbo-frame="_top" class="flex-shrink-0">
@@ -21,10 +21,22 @@
 
     <ul class="comparison-card-list">
         {% for cell in row.cells %}
+            {% set base = cell.subject.player %}
             <li class="comparison-card-row {{ cell.subject.isSelf ? 'is-self' }} {{ cell.entry is null ? 'is-empty' }}" style="--row-color: {{ cell.subject.color }};">
                 <span class="comparison-subject">
                     <span class="comparison-dot"></span>
-                    <span class="comparison-subject-name text-truncate">{{ cell.subject.label }}</span>
+                    {% if is_member and not base.rankingOptedOut %}
+                        {{ skill_icon(base.skillTierName ?? 'unknown', 16) }}
+                    {% else %}
+                        {{ skill_icon('locked', 16) }}
+                    {% endif %}
+                    <span class="comparison-subject-name">{{ base.displayName }}{% if cell.subject.isSelf %} <small class="text-muted">({{ 'comparison.you'|trans }})</small>{% endif %}</span>
+                    {% if base.playerCountry is not null %}
+                        <small class="shadow-custom fi fi-{{ base.playerCountry.name }}"></small>
+                    {% endif %}
+                    {% for coSolver in cell.subject.coSolvers %}
+                        <span class="comparison-cosolver-name">+ {{ coSolver.displayName }}</span>
+                    {% endfor %}
                 </span>
                 <span class="comparison-result">
                     {% if cell.entry is not null %}

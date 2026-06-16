@@ -53,9 +53,6 @@ final class PlayerComparison
     public bool $onlyCommon = false;
 
     #[LiveProp(writable: true, url: true)]
-    public string $baseline = '';
-
-    #[LiveProp(writable: true, url: true)]
     public string $chart = 'wins';
 
     #[LiveProp(writable: true)]
@@ -143,7 +140,7 @@ final class PlayerComparison
             pieces: $this->pieces !== '' ? (int) $this->pieces : null,
             sort: $effectiveSort,
             onlyCommon: $this->onlyCommon,
-            baselineKey: $this->baseline,
+            baselineKey: '',
         );
 
         $self = $this->retrieveLoggedUserProfile->getProfile();
@@ -240,10 +237,6 @@ final class PlayerComparison
     public function removePlayer(#[LiveArg] string $id): void
     {
         $this->comparisonBucket->removePlayer($id);
-
-        if ($this->baseline !== '' && str_starts_with($this->baseline, $id)) {
-            $this->baseline = '';
-        }
     }
 
     #[LiveAction]
@@ -280,21 +273,18 @@ final class PlayerComparison
         $this->comparisonBucket->addCoSolver($subject, $partner);
         $this->coSolverTarget = '';
         $this->coSolverQuery = '';
-        $this->baseline = '';
     }
 
     #[LiveAction]
     public function removeCoSolver(#[LiveArg] string $subject, #[LiveArg] string $partner): void
     {
         $this->comparisonBucket->removeCoSolver($subject, $partner);
-        $this->baseline = '';
     }
 
     #[LiveAction]
     public function clearAll(): void
     {
         $this->comparisonBucket->clear();
-        $this->baseline = '';
     }
 
     /**

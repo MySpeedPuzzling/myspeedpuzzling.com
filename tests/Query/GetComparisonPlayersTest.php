@@ -32,6 +32,9 @@ final class GetComparisonPlayersTest extends KernelTestCase
         self::assertSame('CMPA', $playerA->playerCode);
         self::assertNotNull($playerA->playerCountry);
         self::assertFalse($playerA->isPrivate);
+        // CMP_A has no computed skill (no baseline) -> tier null, not opted out.
+        self::assertNull($playerA->skillTierName);
+        self::assertFalse($playerA->rankingOptedOut);
     }
 
     public function testReportsPrivacyFlag(): void

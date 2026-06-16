@@ -14,7 +14,8 @@
                         class="form-control form-control-sm"
                         placeholder="{{ 'comparison.add_placeholder'|trans }}"
                         value="{{ this.addQuery }}"
-                        autocomplete="off"
+                        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                        data-1p-ignore data-lpignore="true"
                     >
                     {% set searchResults = this.searchResults %}
                     {% if searchResults|length > 0 %}
@@ -89,7 +90,7 @@
 
                     {% if this.mode != 'solo' and this.coSolverTarget == subject.player.playerId %}
                         <div class="comparison-cosolver-panel shadow">
-                            <input type="text" data-model="debounce(300)|coSolverQuery" class="form-control form-control-sm" placeholder="{{ 'comparison.add_partner_placeholder'|trans }}" autocomplete="off" value="{{ this.coSolverQuery }}">
+                            <input type="text" data-model="debounce(300)|coSolverQuery" class="form-control form-control-sm" placeholder="{{ 'comparison.add_partner_placeholder'|trans }}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" value="{{ this.coSolverQuery }}">
                             {% set coResults = this.coSolverResults %}
                             {% if coResults|length > 0 %}
                                 <div class="list-group mt-1">
@@ -148,15 +149,6 @@
                     <option value="difficulty" {{ this.sort == 'difficulty' ? 'selected' }}>{{ 'comparison.sort.difficulty'|trans }}</option>
                 {% endif %}
             </select>
-
-            {% if view.subjects|length > 1 %}
-                <select data-model="on(change)|baseline" class="form-select form-select-sm" style="max-width: 170px;" title="{{ 'comparison.baseline'|trans }}">
-                    <option value="">{{ 'comparison.baseline_fastest'|trans }}</option>
-                    {% for subject in view.subjects %}
-                        <option value="{{ subject.key }}" {{ this.baseline == subject.key ? 'selected' }}>{{ 'comparison.baseline_vs'|trans({'%name%': subject.label}) }}</option>
-                    {% endfor %}
-                </select>
-            {% endif %}
 
             {% if view.subjects|length > 1 %}
                 <div class="form-check form-switch mb-0">
@@ -233,7 +225,7 @@
     {% else %}
         <div class="comparison-grid">
             {% for row in view.rows %}
-                {{ include('components/_comparison_card.html.twig', { row: row }) }}
+                {{ include('components/_comparison_card.html.twig', { row: row, is_member: isMember }) }}
             {% endfor %}
         </div>
     {% endif %}

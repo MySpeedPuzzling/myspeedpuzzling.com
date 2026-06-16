@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
  * Lightweight player display info used by the comparison feature (subject chips,
- * co-solver chips, bucket launcher). Includes privacy flag for add-time checks.
+ * co-solver chips, bucket launcher). Includes privacy flag for add-time checks
+ * and the player's skill tier (members-only display, hidden when opted out).
  */
 readonly final class ComparisonPlayer
 {
@@ -19,6 +21,8 @@ readonly final class ComparisonPlayer
         public null|CountryCode $playerCountry,
         public null|string $playerAvatar,
         public bool $isPrivate,
+        public null|string $skillTierName = null,
+        public bool $rankingOptedOut = false,
     ) {
     }
 
@@ -30,10 +34,14 @@ readonly final class ComparisonPlayer
      *     player_country: null|string,
      *     player_avatar: null|string,
      *     is_private: bool,
+     *     skill_tier?: null|int|string,
+     *     ranking_opted_out?: null|bool,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
     {
+        $skillTier = $row['skill_tier'] ?? null;
+
         return new self(
             playerId: $row['player_id'],
             playerCode: strtoupper($row['player_code']),
@@ -41,6 +49,8 @@ readonly final class ComparisonPlayer
             playerCountry: CountryCode::fromCode($row['player_country']),
             playerAvatar: $row['player_avatar'],
             isPrivate: $row['is_private'],
+            skillTierName: $skillTier !== null ? strtolower(SkillTier::from((int) $skillTier)->name) : null,
+            rankingOptedOut: (bool) ($row['ranking_opted_out'] ?? false),
         );
     }
 

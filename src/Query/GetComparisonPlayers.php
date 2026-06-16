@@ -25,16 +25,20 @@ readonly final class GetComparisonPlayers
             return [];
         }
 
+        // Skill is computed only for the 500-piece category (PuzzleIntelligenceRecalculator::SKILL_PIECES_COUNTS).
         $query = <<<SQL
 SELECT
-    id AS player_id,
-    code AS player_code,
-    name AS player_name,
-    country AS player_country,
-    avatar AS player_avatar,
-    is_private
+    player.id AS player_id,
+    player.code AS player_code,
+    player.name AS player_name,
+    player.country AS player_country,
+    player.avatar AS player_avatar,
+    player.is_private,
+    player.ranking_opted_out,
+    ps.skill_tier
 FROM player
-WHERE id IN (:ids)
+LEFT JOIN player_skill ps ON ps.player_id = player.id AND ps.pieces_count = 500
+WHERE player.id IN (:ids)
 SQL;
 
         $data = $this->database
@@ -56,6 +60,8 @@ SQL;
              *     player_country: null|string,
              *     player_avatar: null|string,
              *     is_private: bool,
+             *     ranking_opted_out: null|bool,
+             *     skill_tier: null|int|string,
              * } $row
              */
 

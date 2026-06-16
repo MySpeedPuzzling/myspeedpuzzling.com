@@ -31,7 +31,7 @@
 
                 <div class="position-relative mt-2">
                     {% if this.canAddMore %}
-                        <input type="text" data-model="debounce(300)|addQuery" class="form-control form-control-sm" placeholder="{{ 'comparison.add_placeholder'|trans }}" value="{{ this.addQuery }}" autocomplete="off">
+                        <input type="text" data-model="debounce(300)|addQuery" class="form-control form-control-sm" placeholder="{{ 'comparison.add_placeholder'|trans }}" value="{{ this.addQuery }}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true">
                         {% set results = this.searchResults %}
                         {% if results|length > 0 %}
                             <div class="list-group mt-1 comparison-launcher-results">

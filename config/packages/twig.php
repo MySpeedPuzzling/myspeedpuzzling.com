@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Services\ComparisonBucket;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 
 return App::config([
@@ -17,6 +18,7 @@ return App::config([
         'globals' => [
             'ga_tracking' => '%env(GA_TRACKING)%',
             'logged_user' => '@' . RetrieveLoggedUserProfile::class,
+            'comparison_bucket' => '@' . ComparisonBucket::class,
             'get_notifications' => '@' . GetNotifications::class,
             'get_conversations' => '@' . GetConversations::class,
             'mercure_public_url' => '%env(MERCURE_PUBLIC_URL)%',

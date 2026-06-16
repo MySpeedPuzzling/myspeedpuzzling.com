@@ -1,0 +1,229 @@
+<div {{ attributes }} class="player-comparison">
+    {% set view = this.comparisonView %}
+    {% set isMember = this.isMember %}
+
+    {# ============ CONTROL BAR ============ #}
+    <div class="card card-body p-2 p-md-3 shadow-sm mb-3 comparison-controls">
+        {# Add player #}
+        <div class="d-flex flex-wrap align-items-start gap-2 mb-2">
+            <div class="position-relative flex-grow-1" style="min-width: 220px; max-width: 360px;">
+                {% if this.canAddMore %}
+                    <input
+                        type="text"
+                        data-model="debounce(300)|addQuery"
+                        class="form-control form-control-sm"
+                        placeholder="{{ 'comparison.add_placeholder'|trans }}"
+                        value="{{ this.addQuery }}"
+                        autocomplete="off"
+                    >
+                    {% set searchResults = this.searchResults %}
+                    {% if searchResults|length > 0 %}
+                        <div class="comparison-search-results list-group shadow">
+                            {% for player in searchResults %}
+                                <button
+                                    type="button"
+                                    class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2"
+                                    data-action="live#action"
+                                    data-live-action-param="addPlayer"
+                                    data-live-id-param="{{ player.playerId }}"
+                                >
+                                    {% if player.playerAvatar %}
+                                        <img src="{{ player.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" style="width: 26px; height: 26px; object-fit: cover;">
+                                    {% else %}
+                                        <span class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 26px; height: 26px;"><i class="bi bi-person text-muted"></i></span>
+                                    {% endif %}
+                                    <span class="text-truncate">{{ player.displayName }}</span>
+                                    {% if player.playerCountry %}<span class="fi fi-{{ player.playerCountry.name }} shadow-custom ms-1"></span>{% endif %}
+                                    <code class="ms-auto small text-muted">#{{ player.playerCode }}</code>
+                                </button>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <button class="btn btn-outline-primary btn-sm position-relative pe-4 w-100" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                        <i class="bi-plus-lg me-1"></i>{{ 'comparison.add_more_members'|trans }}
+                        <i class="ci-locked position-absolute fs-sm" style="right: 6px; top: 8px;"></i>
+                    </button>
+                {% endif %}
+            </div>
+
+            <div class="text-primary ms-auto align-self-center" style="display: none;" data-loading="show">
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            </div>
+
+            {% if this.bucketCount > 0 %}
+                <button class="btn btn-link btn-sm text-muted text-decoration-none align-self-center" data-action="live#action" data-live-action-param="clearAll">
+                    <i class="bi bi-x-circle me-1"></i>{{ 'comparison.clear_all'|trans }}
+                </button>
+            {% endif %}
+        </div>
+
+        {# Subject chips #}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            {% for subject in view.subjects %}
+                <div class="comparison-chip" style="--chip-color: {{ subject.color }};">
+                    <span class="comparison-chip-dot"></span>
+                    <span class="comparison-chip-name">
+                        {{ subject.player.displayName }}
+                        {% if subject.isSelf %}<span class="comparison-chip-you">{{ 'comparison.you'|trans }}</span>{% endif %}
+                    </span>
+                    {% for coSolver in subject.coSolvers %}
+                        <span class="comparison-chip-co">
+                            + {{ coSolver.displayName }}
+                            <button type="button" class="comparison-chip-x" data-action="live#action" data-live-action-param="removeCoSolver" data-live-subject-param="{{ subject.player.playerId }}" data-live-partner-param="{{ coSolver.playerId }}" aria-label="{{ 'comparison.remove'|trans }}">&times;</button>
+                        </span>
+                    {% endfor %}
+                    {% if this.mode != 'solo' %}
+                        {% set maxCo = this.modeEnum.maxCoSolvers %}
+                        {% if maxCo is null or subject.coSolvers|length < maxCo %}
+                            <button type="button" class="comparison-chip-addco" data-action="live#action" data-live-action-param="startCoSolver" data-live-id-param="{{ subject.player.playerId }}" title="{{ 'comparison.add_partner'|trans }}"><i class="bi bi-plus"></i></button>
+                        {% endif %}
+                    {% endif %}
+                    <button type="button" class="comparison-chip-remove" data-action="live#action" data-live-action-param="removePlayer" data-live-id-param="{{ subject.player.playerId }}" aria-label="{{ 'comparison.remove'|trans }}">&times;</button>
+
+                    {% if this.mode != 'solo' and this.coSolverTarget == subject.player.playerId %}
+                        <div class="comparison-cosolver-panel shadow">
+                            <input type="text" data-model="debounce(300)|coSolverQuery" class="form-control form-control-sm" placeholder="{{ 'comparison.add_partner_placeholder'|trans }}" autocomplete="off" value="{{ this.coSolverQuery }}">
+                            {% set coResults = this.coSolverResults %}
+                            {% if coResults|length > 0 %}
+                                <div class="list-group mt-1">
+                                    {% for player in coResults %}
+                                        <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-1 px-2" data-action="live#action" data-live-action-param="addCoSolver" data-live-subject-param="{{ subject.player.playerId }}" data-live-partner-param="{{ player.playerId }}">
+                                            <span class="text-truncate small">{{ player.displayName }}</span>
+                                            <code class="ms-auto small text-muted">#{{ player.playerCode }}</code>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <button type="button" class="btn btn-link btn-sm text-muted p-0 mt-1" data-action="live#action" data-live-action-param="cancelCoSolver">{{ 'comparison.cancel'|trans }}</button>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            {% if this.gatedCount > 0 %}
+                <button class="comparison-chip comparison-chip-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                    <i class="ci-locked me-1"></i>{{ 'comparison.more_locked'|trans({'%count%': this.gatedCount}) }}
+                </button>
+            {% endif %}
+        </div>
+
+        {# Mode tabs #}
+        <div class="btn-group btn-group-sm w-100 mb-2 comparison-mode" role="group">
+            {% for m in ['solo', 'pairs', 'teams'] %}
+                <input type="radio" class="btn-check" name="comparison-mode" id="cmp-mode-{{ m }}" autocomplete="off" data-model="on(change)|mode" value="{{ m }}" {{ this.mode == m ? 'checked' }}>
+                <label class="btn btn-outline-primary" for="cmp-mode-{{ m }}">{{ ('comparison.mode.' ~ m)|trans }}</label>
+            {% endfor %}
+        </div>
+
+        {# Filters #}
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <input type="text" data-model="debounce(300)|search" class="form-control form-control-sm" style="max-width: 180px;" placeholder="{{ 'comparison.filter_name'|trans }}" value="{{ this.search }}">
+
+            <select data-model="on(change)|manufacturer" class="form-select form-select-sm" style="max-width: 170px;">
+                <option value="">{{ 'comparison.all_brands'|trans }}</option>
+                {% for brand in view.availableManufacturers %}
+                    <option value="{{ brand.id }}" {{ this.manufacturer == brand.id ? 'selected' }}>{{ brand.name }}</option>
+                {% endfor %}
+            </select>
+
+            <select data-model="on(change)|pieces" class="form-select form-select-sm" style="max-width: 120px;">
+                <option value="">{{ 'comparison.all_pieces'|trans }}</option>
+                {% for p in view.availablePieces %}
+                    <option value="{{ p }}" {{ this.pieces == p ? 'selected' }}>{{ p }}</option>
+                {% endfor %}
+            </select>
+
+            <select data-model="on(change)|sort" class="form-select form-select-sm" style="max-width: 160px;">
+                <option value="name" {{ this.sort == 'name' ? 'selected' }}>{{ 'comparison.sort.name'|trans }}</option>
+                <option value="pieces" {{ this.sort == 'pieces' ? 'selected' }}>{{ 'comparison.sort.pieces'|trans }}</option>
+                <option value="fastest" {{ this.sort == 'fastest' ? 'selected' }}>{{ 'comparison.sort.fastest'|trans }}</option>
+                {% if isMember %}
+                    <option value="difficulty" {{ this.sort == 'difficulty' ? 'selected' }}>{{ 'comparison.sort.difficulty'|trans }}</option>
+                {% endif %}
+            </select>
+
+            {% if view.subjects|length > 1 %}
+                <select data-model="on(change)|baseline" class="form-select form-select-sm" style="max-width: 170px;" title="{{ 'comparison.baseline'|trans }}">
+                    <option value="">{{ 'comparison.baseline_fastest'|trans }}</option>
+                    {% for subject in view.subjects %}
+                        <option value="{{ subject.key }}" {{ this.baseline == subject.key ? 'selected' }}>{{ 'comparison.baseline_vs'|trans({'%name%': subject.label}) }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+
+            {% if view.subjects|length > 1 %}
+                <div class="form-check form-switch mb-0">
+                    <input type="checkbox" data-model="on(change)|onlyCommon" class="form-check-input" id="cmp-only-common" {{ this.onlyCommon ? 'checked' }}>
+                    <label class="form-check-label text-nowrap fs-sm" for="cmp-only-common">{{ 'comparison.only_common'|trans }}</label>
+                </div>
+            {% endif %}
+        </div>
+
+        {# View switch #}
+        <div class="d-flex align-items-center gap-2 mt-2 pt-2 border-top">
+            <span class="text-muted fs-sm me-1">{{ 'comparison.view'|trans }}:</span>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="comparison-view" id="cmp-view-table" autocomplete="off" data-model="on(change)|view" value="table" {{ this.view == 'table' ? 'checked' }}>
+                <label class="btn btn-outline-secondary" for="cmp-view-table"><i class="bi bi-table me-1"></i>{{ 'comparison.view_table'|trans }}</label>
+
+                {% if isMember %}
+                    <input type="radio" class="btn-check" name="comparison-view" id="cmp-view-charts" autocomplete="off" data-model="on(change)|view" value="charts" {{ this.view == 'charts' ? 'checked' }}>
+                    <label class="btn btn-outline-secondary" for="cmp-view-charts"><i class="bi bi-bar-chart me-1"></i>{{ 'comparison.view_charts'|trans }}</label>
+                {% else %}
+                    <label class="btn btn-outline-secondary position-relative pe-4" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" role="button">
+                        <i class="bi bi-bar-chart me-1"></i>{{ 'comparison.view_charts'|trans }}
+                        <i class="ci-locked position-absolute fs-sm" style="right: 4px; top: 7px;"></i>
+                    </label>
+                {% endif %}
+            </div>
+            <span class="text-muted fs-sm ms-auto d-none d-sm-inline">{{ 'comparison.matched_count'|trans({'%matched%': view.matchedRows, '%total%': view.totalRows}) }}</span>
+        </div>
+    </div>
+
+    {# ============ CONTENT ============ #}
+    {% if view.subjects|length == 0 %}
+        <div class="text-center text-muted py-5">
+            <i class="ci-compare fs-1 d-block mb-2 opacity-25"></i>
+            <p class="mb-0">{{ 'comparison.empty_bucket'|trans }}</p>
+        </div>
+    {% elseif this.view == 'charts' and isMember %}
+        <div class="card card-body p-2 p-md-3 shadow-sm">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <h2 class="fs-6 mb-0 me-auto">{{ 'comparison.charts_title'|trans }}</h2>
+                <select data-model="on(change)|chart" class="form-select form-select-sm" style="max-width: 240px;">
+                    <option value="wins" {{ this.chart == 'wins' ? 'selected' }}>{{ 'comparison.chart.wins'|trans }}</option>
+                    <option value="pieces" {{ this.chart == 'pieces' ? 'selected' }}>{{ 'comparison.chart.pieces'|trans }}</option>
+                    <option value="puzzles" {{ this.chart == 'puzzles' ? 'selected' }}>{{ 'comparison.chart.puzzles'|trans }}</option>
+                    <option value="difficulty" {{ this.chart == 'difficulty' ? 'selected' }}>{{ 'comparison.chart.difficulty'|trans }}</option>
+                </select>
+            </div>
+
+            {% if this.chartHasData %}
+                <div style="height: 340px;" class="position-relative" {% if this.chart != 'wins' %}data-controller="time-chart"{% endif %}>
+                    {{ render_chart(this.chartObject) }}
+                </div>
+                <p class="text-muted fs-sm mt-2 mb-0">{{ ('comparison.chart_help.' ~ this.chart)|trans }}</p>
+            {% else %}
+                <div class="text-center text-muted py-5">{{ 'comparison.chart_no_data'|trans }}</div>
+            {% endif %}
+        </div>
+    {% elseif this.view == 'charts' %}
+        <div class="player-chart-placeholder text-center">
+            <button class="btn btn-outline-secondary bg-white btn-sm px-3 fs-sm mt-5 shadow-custom" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                <i class="ci-locked me-1"></i>{{ 'membership.members_exclusive_button'|trans }}
+            </button>
+        </div>
+    {% elseif view.rows|length == 0 %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-search fs-1 d-block mb-2 opacity-25"></i>
+            <p class="mb-0">{{ 'comparison.no_results'|trans }}</p>
+        </div>
+    {% else %}
+        <div class="comparison-grid">
+            {% for row in view.rows %}
+                {{ include('components/_comparison_card.html.twig', { row: row }) }}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

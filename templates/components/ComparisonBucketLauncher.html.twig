@@ -1,0 +1,65 @@
+<div {{ attributes }} class="comparison-launcher {{ this.open ? 'is-open' }}">
+    {% if this.open %}
+        <div class="comparison-launcher-backdrop" data-action="live#action" data-live-action-param="close"></div>
+
+        <div class="comparison-launcher-panel shadow-lg">
+            <div class="comparison-launcher-head">
+                <strong><i class="ci-compare me-1"></i>{{ 'comparison.bucket_title'|trans }}</strong>
+                <button type="button" class="btn-close" data-action="live#action" data-live-action-param="close" aria-label="{{ 'comparison.close'|trans }}"></button>
+            </div>
+
+            <div class="comparison-launcher-body">
+                {% set subjects = this.subjects %}
+                {% if subjects|length > 0 %}
+                    <ul class="comparison-launcher-list">
+                        {% for player in subjects %}
+                            <li class="comparison-launcher-item">
+                                {% if player.playerAvatar %}
+                                    <img src="{{ player.playerAvatar|thumbnail('puzzle_small') }}" alt="" class="rounded-circle flex-shrink-0" style="width: 24px; height: 24px; object-fit: cover;">
+                                {% else %}
+                                    <span class="rounded-circle bg-light d-flex align-items-center justify-content-center flex-shrink-0" style="width: 24px; height: 24px;"><i class="bi bi-person text-muted small"></i></span>
+                                {% endif %}
+                                <span class="text-truncate">{{ player.displayName }}</span>
+                                {% if player.playerCountry %}<span class="fi fi-{{ player.playerCountry.name }} shadow-custom"></span>{% endif %}
+                                <button type="button" class="comparison-launcher-remove ms-auto" data-action="live#action" data-live-action-param="removePlayer" data-live-id-param="{{ player.playerId }}" aria-label="{{ 'comparison.remove'|trans }}">&times;</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small mb-2">{{ 'comparison.bucket_empty'|trans }}</p>
+                {% endif %}
+
+                <div class="position-relative mt-2">
+                    {% if this.canAddMore %}
+                        <input type="text" data-model="debounce(300)|addQuery" class="form-control form-control-sm" placeholder="{{ 'comparison.add_placeholder'|trans }}" value="{{ this.addQuery }}" autocomplete="off">
+                        {% set results = this.searchResults %}
+                        {% if results|length > 0 %}
+                            <div class="list-group mt-1 comparison-launcher-results">
+                                {% for player in results %}
+                                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-1 px-2" data-action="live#action" data-live-action-param="addPlayer" data-live-id-param="{{ player.playerId }}">
+                                        <span class="text-truncate small">{{ player.displayName }}</span>
+                                        <code class="ms-auto small text-muted">#{{ player.playerCode }}</code>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <button class="btn btn-outline-primary btn-sm w-100 position-relative pe-4" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">
+                            <i class="bi-plus-lg me-1"></i>{{ 'comparison.add_more_members'|trans }}
+                            <i class="ci-locked position-absolute fs-sm" style="right: 6px; top: 8px;"></i>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="comparison-launcher-foot">
+                <a href="{{ path('comparison') }}" class="btn btn-primary btn-sm w-100"><i class="ci-compare me-1"></i>{{ 'comparison.go_to_comparison'|trans }}</a>
+            </div>
+        </div>
+    {% endif %}
+
+    <button type="button" class="comparison-launcher-fab shadow" data-action="live#action" data-live-action-param="toggle" aria-label="{{ 'comparison.bucket_title'|trans }}">
+        <i class="ci-compare"></i>
+        {% if this.count > 0 %}<span class="comparison-launcher-badge">{{ this.count }}</span>{% endif %}
+    </button>
+</div>

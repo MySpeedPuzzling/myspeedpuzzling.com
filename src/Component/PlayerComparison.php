@@ -116,6 +116,19 @@ final class PlayerComparison
         return max(0, $this->comparisonBucket->count() - self::NON_MEMBER_SUBJECT_LIMIT);
     }
 
+    /**
+     * Whether to offer the "compare myself" quick-add: a logged-in user who is
+     * not already one of the subjects (and is still within the add limit).
+     */
+    public function canAddSelf(): bool
+    {
+        $self = $this->retrieveLoggedUserProfile->getProfile();
+
+        return $self !== null
+            && $this->comparisonBucket->hasPlayer($self->playerId) === false
+            && $this->canAddMore();
+    }
+
     public function getComparisonView(): ComparisonView
     {
         if ($this->cachedView !== null) {
@@ -211,6 +224,16 @@ final class PlayerComparison
 
         $this->comparisonBucket->addPlayer($id);
         $this->addQuery = '';
+    }
+
+    #[LiveAction]
+    public function addSelf(): void
+    {
+        $self = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($self !== null && $this->canAddMore()) {
+            $this->comparisonBucket->addPlayer($self->playerId);
+        }
     }
 
     #[LiveAction]

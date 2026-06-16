@@ -79,5 +79,10 @@ final class ComparisonControllerTest extends WebTestCase
             $browser->request('GET', '/compare-puzzlers/?view=charts&chart=' . $chart);
             $this->assertResponseIsSuccessful();
         }
+
+        // Table view must render the per-puzzle comparison cards (the two players share solo puzzles).
+        $crawler = $browser->request('GET', '/compare-puzzlers/');
+        $this->assertResponseIsSuccessful();
+        $this->assertGreaterThan(0, $crawler->filter('.comparison-card')->count());
     }
 }

@@ -208,6 +208,12 @@ final class ComparisonBuilder
             );
         }
 
+        // A puzzle is only worth showing when at least two subjects have a time on it.
+        $rows = array_values(array_filter(
+            $rows,
+            static fn (ComparisonPuzzleRow $row): bool => $row->solvedCount >= 2,
+        ));
+
         $totalRows = count($rows);
 
         $manufacturers = [];

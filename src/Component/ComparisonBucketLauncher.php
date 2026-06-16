@@ -58,6 +58,15 @@ final class ComparisonBucketLauncher
         return $this->isMember() || $this->comparisonBucket->count() < self::NON_MEMBER_SUBJECT_LIMIT;
     }
 
+    public function canAddSelf(): bool
+    {
+        $self = $this->retrieveLoggedUserProfile->getProfile();
+
+        return $self !== null
+            && $this->comparisonBucket->hasPlayer($self->playerId) === false
+            && $this->canAddMore();
+    }
+
     /**
      * @return list<ComparisonPlayer>
      */
@@ -143,6 +152,16 @@ final class ComparisonBucketLauncher
 
         $this->comparisonBucket->addPlayer($id);
         $this->addQuery = '';
+    }
+
+    #[LiveAction]
+    public function addSelf(): void
+    {
+        $self = $this->retrieveLoggedUserProfile->getProfile();
+
+        if ($self !== null && $this->canAddMore()) {
+            $this->comparisonBucket->addPlayer($self->playerId);
+        }
     }
 
     #[LiveAction]

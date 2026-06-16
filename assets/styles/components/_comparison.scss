@@ -181,7 +181,14 @@ $comparison-primary: #fe696a;
         color: #6c757d;
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: .25rem;
+    }
+
+    .comparison-card-difficulty {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
     }
 
     .comparison-card-list {
@@ -192,7 +199,7 @@ $comparison-primary: #fe696a;
 
     .comparison-card-row {
         display: grid;
-        grid-template-columns: 1.5rem 1fr auto;
+        grid-template-columns: 1fr auto;
         align-items: center;
         gap: .5rem;
         padding: .4rem .75rem;
@@ -210,17 +217,6 @@ $comparison-primary: #fe696a;
 
         &.is-empty {
             opacity: .55;
-        }
-    }
-
-    .comparison-rank {
-        text-align: center;
-        font-size: .8rem;
-        color: #adb5bd;
-        font-family: monospace;
-
-        .bi-trophy-fill {
-            color: #f1b400;
         }
     }
 
@@ -295,7 +291,8 @@ $comparison-primary: #fe696a;
         display: flex;
         align-items: center;
         justify-content: flex-end;
-        gap: .5rem;
+        flex-wrap: wrap;
+        gap: .35rem .5rem;
         font-size: .72rem;
         color: #9ca3af;
         margin-top: .05rem;
@@ -303,6 +300,21 @@ $comparison-primary: #fe696a;
 
     .comparison-firsttry {
         color: #6c757d;
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+    }
+
+    .comparison-firsttry-badge {
+        display: inline-block;
+        font-size: .62rem;
+        font-weight: 600;
+        line-height: 1.5;
+        color: #0f766e;
+        background: rgba(15, 118, 110, .12);
+        border-radius: .5rem;
+        padding: 0 .3rem;
+        white-space: nowrap;
     }
 }
 

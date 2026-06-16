@@ -157,7 +157,7 @@ final class ComparisonBuilderTest extends KernelTestCase
     public function testNameFilter(): void
     {
         $view = $this->builder->build(
-            [new ComparisonSubject(ComparisonFixture::CMP_A)],
+            [new ComparisonSubject(ComparisonFixture::CMP_A), new ComparisonSubject(ComparisonFixture::CMP_B)],
             ComparisonMode::Solo,
             new ComparisonFilter(search: 'Puzzle 16'),
             withDifficulty: false,
@@ -167,10 +167,26 @@ final class ComparisonBuilderTest extends KernelTestCase
         self::assertSame([PuzzleFixture::PUZZLE_4000], array_map(static fn (ComparisonPuzzleRow $r): string => $r->puzzleId, $view->rows));
     }
 
+    public function testExcludesPuzzlesSolvedByOnlyOneSubject(): void
+    {
+        // CMP_A solved 3000 + 4000; CMP_C solved only 3000 -> 4000 has a single solver and must be dropped.
+        $view = $this->builder->build(
+            [new ComparisonSubject(ComparisonFixture::CMP_A), new ComparisonSubject(ComparisonFixture::CMP_C)],
+            ComparisonMode::Solo,
+            new ComparisonFilter(),
+            withDifficulty: false,
+            selfPlayerId: null,
+        );
+
+        $puzzleIds = array_map(static fn (ComparisonPuzzleRow $r): string => $r->puzzleId, $view->rows);
+        self::assertContains(PuzzleFixture::PUZZLE_3000, $puzzleIds);
+        self::assertNotContains(PuzzleFixture::PUZZLE_4000, $puzzleIds);
+    }
+
     public function testDifficultyIsAttachedOnlyWhenRequested(): void
     {
-        // PUZZLE_500_03 has a computed difficulty in the fixtures; PLAYER_REGULAR solved it solo.
-        $subjects = [new ComparisonSubject(PlayerFixture::PLAYER_REGULAR)];
+        // PUZZLE_500_03 has a computed difficulty in the fixtures; REGULAR and PRIVATE both solved it solo.
+        $subjects = [new ComparisonSubject(PlayerFixture::PLAYER_REGULAR), new ComparisonSubject(PlayerFixture::PLAYER_PRIVATE)];
 
         $withDifficulty = $this->builder->build($subjects, ComparisonMode::Solo, new ComparisonFilter(), true, null);
         self::assertNotNull($this->findRow($withDifficulty, PuzzleFixture::PUZZLE_500_03)->difficultyTier);
@@ -181,9 +197,9 @@ final class ComparisonBuilderTest extends KernelTestCase
 
     public function testDifficultySortOrdersHardestFirst(): void
     {
-        // Intel puzzles A and B both have computed (different) difficulty scores and were solved solo by PLAYER_REGULAR.
+        // Intel puzzles A and B both have computed (different) difficulty scores and were solved solo by REGULAR and PRIVATE.
         $view = $this->builder->build(
-            [new ComparisonSubject(PlayerFixture::PLAYER_REGULAR)],
+            [new ComparisonSubject(PlayerFixture::PLAYER_REGULAR), new ComparisonSubject(PlayerFixture::PLAYER_PRIVATE)],
             ComparisonMode::Solo,
             new ComparisonFilter(sort: 'difficulty'),
             withDifficulty: true,

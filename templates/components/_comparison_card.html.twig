@@ -1,4 +1,4 @@
-{% from 'puzzle_intelligence/_macros.html.twig' import difficulty_badge %}
+{% from 'puzzle_intelligence/_macros.html.twig' import difficulty_icon %}
 <div class="comparison-card card shadow-sm">
     <div class="comparison-card-head">
         <a href="{{ path('puzzle_detail', {puzzleId: row.puzzleId}) }}" data-turbo-frame="_top" class="flex-shrink-0">
@@ -10,29 +10,30 @@
                 <span>{{ row.manufacturerName }}</span>
                 <span class="text-muted">·</span>
                 <span>{{ 'pieces_count'|trans({'%count%': row.piecesCount})|raw }}</span>
+                {% if row.difficultyTier is not null %}
+                    <span class="comparison-card-difficulty" title="{{ ('puzzle_intelligence.difficulty.tiers.' ~ row.difficultyTier.name|lower)|trans }}">
+                        {{ difficulty_icon(row.difficultyTier.name|lower, 18) }}
+                    </span>
+                {% endif %}
             </div>
-            {% if row.difficultyTier is not null %}
-                <div class="mt-1">{{ difficulty_badge(row.difficultyTier.name|lower, 'badge-sm') }}</div>
-            {% endif %}
         </div>
     </div>
 
     <ul class="comparison-card-list">
         {% for cell in row.cells %}
             <li class="comparison-card-row {{ cell.subject.isSelf ? 'is-self' }} {{ cell.entry is null ? 'is-empty' }}" style="--row-color: {{ cell.subject.color }};">
-                <span class="comparison-rank">
-                    {%- if cell.entry is not null -%}
-                        {%- if cell.entry.isFastest -%}<i class="bi bi-trophy-fill"></i>{%- else -%}{{ cell.entry.rank }}{%- endif -%}
-                    {%- else -%}–{%- endif -%}
-                </span>
                 <span class="comparison-subject">
                     <span class="comparison-dot"></span>
                     <span class="comparison-subject-name text-truncate">{{ cell.subject.label }}</span>
                 </span>
                 <span class="comparison-result">
                     {% if cell.entry is not null %}
+                        {% set firstTryIsFastest = cell.entry.firstTryTime is not null and cell.entry.firstTryTime == cell.entry.fastestTime %}
                         <span class="comparison-time-line">
                             <span class="comparison-time {{ cell.entry.isFastest ? 'is-fastest' }}">{{ cell.entry.fastestTime|puzzlingTime }}</span>
+                            {% if firstTryIsFastest %}
+                                <span class="comparison-firsttry-badge">{{ 'comparison.first_try'|trans }}</span>
+                            {% endif %}
                             {% if cell.entry.delta is not null and cell.entry.delta != 0 %}
                                 <span class="comparison-delta {{ cell.entry.delta < 0 ? 'is-faster' : 'is-slower' }}">{{ cell.entry.delta < 0 ? '−' : '+' }}{{ (cell.entry.delta|abs)|puzzlingTime }}</span>
                             {% endif %}
@@ -40,9 +41,10 @@
                         </span>
                         <span class="comparison-meta-line">
                             <span class="comparison-date">{{ cell.entry.fastestDate|date('d.m.Y') }}</span>
-                            {% if cell.entry.firstTryTime is not null %}
-                                <span class="comparison-firsttry" title="{{ 'comparison.first_try'|trans }}">
-                                    <i class="bi bi-1-circle"></i> {{ cell.entry.firstTryTime|puzzlingTime }}{% if cell.entry.firstTryDate %} <span class="text-muted">({{ cell.entry.firstTryDate|date('d.m.Y') }})</span>{% endif %}
+                            {% if cell.entry.firstTryTime is not null and not firstTryIsFastest %}
+                                <span class="comparison-firsttry">
+                                    <span class="comparison-firsttry-badge">{{ 'comparison.first_try'|trans }}</span>
+                                    {{ cell.entry.firstTryTime|puzzlingTime }}{% if cell.entry.firstTryDate %} <span class="text-muted">({{ cell.entry.firstTryDate|date('d.m.Y') }})</span>{% endif %}
                                 </span>
                             {% endif %}
                         </span>

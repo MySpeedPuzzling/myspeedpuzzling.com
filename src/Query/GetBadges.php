@@ -31,13 +31,18 @@ SQL;
             ])
             ->fetchAllAssociative();
 
-        return array_map(static function (array $row): BadgeType {
-            /** @var array{
-             *     type: string,
-             * } $row
-             */
+        $badges = [];
 
-            return BadgeType::from($row['type']);
-        }, $data);
+        foreach ($data as $row) {
+            /** @var array{type: string} $row */
+            // Skip legacy/unknown badge types that are no longer part of the enum.
+            $badgeType = BadgeType::tryFrom($row['type']);
+
+            if ($badgeType !== null) {
+                $badges[] = $badgeType;
+            }
+        }
+
+        return $badges;
     }
 }

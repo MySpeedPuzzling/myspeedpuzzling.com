@@ -223,8 +223,7 @@ $comparison-primary: #fe696a;
     .comparison-subject {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
-        gap: .15rem .35rem;
+        gap: .35rem;
         flex: 1 1 auto;
         min-width: 0;
         padding-top: .1rem;
@@ -238,19 +237,33 @@ $comparison-primary: #fe696a;
         flex-shrink: 0;
     }
 
+    .comparison-subject .rank-icon,
+    .comparison-subject .fi {
+        flex-shrink: 0;
+    }
+
     .comparison-subject-name {
         font-size: .85rem;
         color: #374151;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .comparison-cosolver-name {
         font-size: .78rem;
         color: #6c757d;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
     }
 
     .comparison-result {
-        flex: 0 1 auto;
+        flex: 0 0 auto;
         text-align: right;
     }
 

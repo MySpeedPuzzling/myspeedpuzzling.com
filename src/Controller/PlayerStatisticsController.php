@@ -72,6 +72,14 @@ final class PlayerStatisticsController extends AbstractController
         $years = [];
         $firstResultDate = $this->getPlayerSolvedPuzzles->getOldestResultDate($playerId);
 
+        // A corrupt finished_at (e.g. year 0026 from a data-entry typo) would make the
+        // month/year dropdowns span thousands of entries and the chart loops iterate
+        // thousands of times. Clamp to MINIMUM_YEAR so bad data cannot blow up the page.
+        $minimumDate = new DateTimeImmutable(sprintf('%04d-01-01', self::MINIMUM_YEAR));
+        if ($firstResultDate !== null && $firstResultDate < $minimumDate) {
+            $firstResultDate = $minimumDate;
+        }
+
         if ($firstResultDate !== null) {
             $months = $this->getMonthsSinceDate($firstResultDate);
             $years = $this->getYearsSinceDate($firstResultDate);

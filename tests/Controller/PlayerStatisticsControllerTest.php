@@ -29,4 +29,31 @@ final class PlayerStatisticsControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
     }
+
+    public function testNonsensicalYearRedirectsToCanonicalUrl(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR . '?month=6&year=783');
+
+        $this->assertResponseRedirects('/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testMonthWithoutYearRedirectsToCanonicalUrl(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR . '?month=6');
+
+        $this->assertResponseRedirects('/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR);
+    }
+
+    public function testValidPeriodIsNotRedirected(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR . '?month=6&year=2024');
+
+        $this->assertResponseIsSuccessful();
+    }
 }

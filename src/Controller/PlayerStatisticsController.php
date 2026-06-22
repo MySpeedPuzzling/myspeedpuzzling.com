@@ -20,6 +20,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class PlayerStatisticsController extends AbstractController
 {
+    /**
+     * Earliest year that may be requested. Anything below this (e.g. ?year=783)
+     * is rejected to avoid rendering bogus, expensive statistics pages.
+     */
+    private const int MINIMUM_YEAR = 2000;
+
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerSolvedPuzzles $getPlayerSolvedPuzzles,
@@ -60,6 +66,7 @@ final class PlayerStatisticsController extends AbstractController
 
         $year = $request->query->getInt('year');
         $month = $request->query->getInt('month');
+        $activeShowAll = $request->query->getBoolean('show-all');
 
         $months = [];
         $years = [];
@@ -70,9 +77,16 @@ final class PlayerStatisticsController extends AbstractController
             $years = $this->getYearsSinceDate($firstResultDate);
         }
 
-        [$dateFrom, $dateTo] = $this->calculateDates($month, $year);
+        // Guard against nonsensical year/month values (e.g. ?year=783). Each distinct
+        // bogus value would otherwise render a unique, uncacheable page that runs the
+        // full statistics computation (incl. the per-day chart loops), which can be
+        // abused to spike server load. Out-of-range periods redirect to the canonical
+        // URL before any of that work happens.
+        if ($activeShowAll === false && ($year !== 0 || $month !== 0) && !$this->isPeriodValid($month, $year)) {
+            return $this->redirectToRoute('player_statistics', ['playerId' => $playerId]);
+        }
 
-        $activeShowAll = $request->query->getBoolean('show-all');
+        [$dateFrom, $dateTo] = $this->calculateDates($month, $year);
 
         if ($activeShowAll === true) {
             $dateFrom = $firstResultDate ?? $dateFrom;
@@ -136,6 +150,23 @@ final class PlayerStatisticsController extends AbstractController
     }
 
     /**
+     * Validates the requested period. The month is optional (0 = whole year);
+     * when present it must be a real calendar month. The year must fall within
+     * [MINIMUM_YEAR, current year]. This prevents arbitrary values from producing
+     * unique, expensive page renders.
+     */
+    private function isPeriodValid(int $month, int $year): bool
+    {
+        if ($month < 0 || $month > 12) {
+            return false;
+        }
+
+        $currentYear = (int) (new DateTimeImmutable())->format('Y');
+
+        return $year >= self::MINIMUM_YEAR && $year <= $currentYear;
+    }
+
+    /**
      * @return array<DateTimeImmutable>
      */
     private function calculateDates(int $month, int $year): array
@@ -144,7 +175,7 @@ final class PlayerStatisticsController extends AbstractController
         $currentYear = (int) $currentDate->format('Y');
         $currentMonth = (int) $currentDate->format('m');
 
-        $isYearValid = $year >= 2015 && $year <= $currentYear;
+        $isYearValid = $year >= self::MINIMUM_YEAR && $year <= $currentYear;
         $isMonthValid = $month >= 1 && $month <= 12;
 
         if ($isYearValid && $isMonthValid) {

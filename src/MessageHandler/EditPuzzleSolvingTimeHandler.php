@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\MistypedYearNormalizer;
 use SpeedPuzzling\Web\Services\PuzzlersGrouping;
 use SpeedPuzzling\Web\Value\SolvingTime;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -32,6 +33,7 @@ readonly final class EditPuzzleSolvingTimeHandler
         private ClockInterface $clock,
         private CompetitionRepository $competitionRepository,
         private ImageOptimizer $imageOptimizer,
+        private MistypedYearNormalizer $mistypedYearNormalizer,
     ) {
     }
 
@@ -61,7 +63,7 @@ readonly final class EditPuzzleSolvingTimeHandler
             }
         }
 
-        $finishedAt = $message->finishedAt;
+        $finishedAt = $this->mistypedYearNormalizer->normalizeFinishedAt($message->finishedAt);
 
         $seconds = null;
         if ($message->time !== null) {

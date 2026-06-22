@@ -60,6 +60,35 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         self::assertNull($row['team']);
     }
 
+    public function testMistypedFinishedAtYearIsNormalized(): void
+    {
+        // A user typing "16.06.26" is parsed as the year 0026; it must be stored as 2026.
+        $timeId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $timeId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_1500_01,
+            competitionId: null,
+            time: '01:00:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: new \DateTimeImmutable('0026-06-16 00:00:00'),
+            firstAttempt: true,
+            unboxed: false,
+        ));
+
+        /** @var false|string $finishedAt */
+        $finishedAt = $this->database->fetchOne(
+            'SELECT finished_at FROM puzzle_solving_time WHERE id = :id',
+            ['id' => $timeId->toString()],
+        );
+
+        self::assertNotFalse($finishedAt);
+        self::assertStringStartsWith('2026-06-16', $finishedAt);
+    }
+
     public function testAddSuspiciouslyFastTimeIsRejected(): void
     {
         // 500 pieces solved in 1 minute = 500 PPM, well above the 100 PPM threshold.

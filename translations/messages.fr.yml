@@ -2206,6 +2206,7 @@ qr_code:
     "type_public": "SPA / Application mobile (publique) — utilise PKCE, sans secret"
     "scopes_heading": "Autorisations demandées"
     "scope_profile": "Lire le profil utilisateur"
+    "scope_email": "Lire l'adresse e-mail de l'utilisateur"
     "scope_results": "Lire les résultats des joueurs"
     "scope_statistics": "Lire les statistiques des joueurs"
     "scope_collections_read": "Lire les collections des joueurs"

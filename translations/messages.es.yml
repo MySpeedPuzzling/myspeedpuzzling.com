@@ -2205,6 +2205,7 @@ request_api_access:
     type_public: "SPA / App Móvil (pública) — usa PKCE, sin secreto"
     scopes_heading: "Permisos Solicitados"
     scope_profile: "Leer perfil de usuario"
+    scope_email: "Leer la dirección de correo electrónico del usuario"
     scope_results: "Leer resultados del jugador"
     scope_statistics: "Leer estadísticas del jugador"
     scope_collections_read: "Leer colecciones del jugador"

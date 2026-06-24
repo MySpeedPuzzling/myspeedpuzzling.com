@@ -44,6 +44,7 @@ return static function (ContainerConfigurator $configurator): void {
             'authorizationUrl' => '/oauth2/authorize',
             'scopes' => [
                 'profile:read' => 'Read user profile',
+                'email:read' => 'Read user email address',
                 'results:read' => 'Read player results',
                 'statistics:read' => 'Read player statistics',
                 'collections:read' => 'Read player collections',

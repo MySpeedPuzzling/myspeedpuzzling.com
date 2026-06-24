@@ -62,6 +62,7 @@ final class RequestApiAccessFormType extends AbstractType
             'expanded' => true,
             'choices' => [
                 'request_api_access.scope_profile' => 'profile:read',
+                'request_api_access.scope_email' => 'email:read',
                 'request_api_access.scope_results' => 'results:read',
                 'request_api_access.scope_statistics' => 'statistics:read',
                 'request_api_access.scope_collections_read' => 'collections:read',

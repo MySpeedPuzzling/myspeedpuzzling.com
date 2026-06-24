@@ -60,6 +60,74 @@ final class CurrentUserEndpointTest extends WebTestCase
         $this->assertArrayHasKey('country', $response);
     }
 
+    public function testEmailIsNullWithoutEmailReadScope(): void
+    {
+        $browser = self::createClient();
+
+        $token = OAuth2TestHelper::createAccessToken(
+            $browser,
+            OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
+            PlayerFixture::PLAYER_REGULAR,
+            ['profile:read'],
+        );
+
+        OAuth2TestHelper::addBearerToken($browser, $token);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+
+        $responseContent = $browser->getResponse()->getContent();
+        $this->assertIsString($responseContent);
+
+        /** @var array<string, mixed> $response */
+        $response = json_decode($responseContent, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertArrayHasKey('email', $response);
+        $this->assertNull($response['email']);
+    }
+
+    public function testEmailIsReturnedWithEmailReadScope(): void
+    {
+        $browser = self::createClient();
+
+        $token = OAuth2TestHelper::createAccessToken(
+            $browser,
+            OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
+            PlayerFixture::PLAYER_REGULAR,
+            ['profile:read', 'email:read'],
+        );
+
+        OAuth2TestHelper::addBearerToken($browser, $token);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseIsSuccessful();
+
+        $responseContent = $browser->getResponse()->getContent();
+        $this->assertIsString($responseContent);
+
+        /** @var array{email: null|string} $response */
+        $response = json_decode($responseContent, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(PlayerFixture::PLAYER_REGULAR_EMAIL, $response['email']);
+    }
+
+    public function testEmailReadScopeAloneCannotAccessEndpoint(): void
+    {
+        $browser = self::createClient();
+
+        $token = OAuth2TestHelper::createAccessToken(
+            $browser,
+            OAuth2ClientFixture::CONFIDENTIAL_CLIENT_ID,
+            PlayerFixture::PLAYER_REGULAR,
+            ['email:read'], // Missing profile:read which gates the endpoint
+        );
+
+        OAuth2TestHelper::addBearerToken($browser, $token);
+        $browser->request('GET', '/api/v1/me');
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
+    }
+
     public function testWithoutRequiredScopeReturnsForbidden(): void
     {
         $browser = self::createClient();

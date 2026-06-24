@@ -26,6 +26,7 @@ return App::config([
         'scopes' => [
             'available' => [
                 'profile:read',
+                'email:read',
                 'results:read',
                 'statistics:read',
                 'collections:read',

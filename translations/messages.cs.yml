@@ -2203,6 +2203,7 @@ qr_code:
     "type_public": "SPA / mobilní aplikace (public) — používá PKCE, bez secret"
     "scopes_heading": "Požadovaná oprávnění"
     "scope_profile": "Číst profil uživatele"
+    "scope_email": "Číst e-mailovou adresu uživatele"
     "scope_results": "Číst výsledky hráče"
     "scope_statistics": "Číst statistiky hráče"
     "scope_collections_read": "Číst kolekce hráče"

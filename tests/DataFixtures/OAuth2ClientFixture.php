@@ -60,6 +60,7 @@ final class OAuth2ClientFixture extends Fixture
         );
         $confidentialClient->setScopes(
             new Scope('profile:read'),
+            new Scope('email:read'),
             new Scope('results:read'),
             new Scope('statistics:read'),
         );

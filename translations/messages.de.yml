@@ -2205,6 +2205,7 @@ qr_code:
     "type_public": "SPA / Mobile App (öffentlich) — verwendet PKCE, kein Secret"
     "scopes_heading": "Angeforderte Berechtigungen"
     "scope_profile": "Benutzerprofil lesen"
+    "scope_email": "E-Mail-Adresse des Benutzers lesen"
     "scope_results": "Spielerergebnisse lesen"
     "scope_statistics": "Spielerstatistiken lesen"
     "scope_collections_read": "Spielersammlungen lesen"

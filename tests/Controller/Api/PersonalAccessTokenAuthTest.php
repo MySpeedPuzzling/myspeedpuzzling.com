@@ -25,10 +25,13 @@ final class PersonalAccessTokenAuthTest extends WebTestCase
         $responseContent = $browser->getResponse()->getContent();
         $this->assertIsString($responseContent);
 
-        /** @var array{id: string} $response */
+        /** @var array{id: string, email: null|string} $response */
         $response = json_decode($responseContent, true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame(PlayerFixture::PLAYER_REGULAR, $response['id']);
+        // A Personal Access Token grants full access to the owner's own data,
+        // so the email is always present (no scope concept for PATs).
+        $this->assertSame(PlayerFixture::PLAYER_REGULAR_EMAIL, $response['email']);
     }
 
     public function testInvalidPatReturnsUnauthorized(): void

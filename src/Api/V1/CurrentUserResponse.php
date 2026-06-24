@@ -24,6 +24,7 @@ final class CurrentUserResponse
     public function __construct(
         public string $id,
         public null|string $name,
+        public null|string $email,
         public string $code,
         public null|string $avatar,
         public null|string $country,

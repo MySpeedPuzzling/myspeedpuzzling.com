@@ -2194,6 +2194,7 @@ qr_code:
     "type_public": "SPA / モバイルアプリ（公開）— PKCEを使用、シークレットなし"
     "scopes_heading": "要求する権限"
     "scope_profile": "ユーザープロフィールの読み取り"
+    "scope_email": "ユーザーのメールアドレスの読み取り"
     "scope_results": "プレイヤーの結果の読み取り"
     "scope_statistics": "プレイヤーの統計の読み取り"
     "scope_collections_read": "プレイヤーのコレクションの読み取り"

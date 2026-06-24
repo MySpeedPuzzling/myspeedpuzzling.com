@@ -37,6 +37,7 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 | Scope | Description | Auth Code | Client Credentials |
 |-------|-------------|-----------|-------------------|
 | `profile:read` (default) | View profile info | Yes | Yes |
+| `email:read` | View user email address | Yes | Yes |
 | `results:read` | View puzzle solving results | Yes | Yes |
 | `statistics:read` | View solving statistics | Yes | Yes |
 | `collections:read` | View puzzle collections | Yes | Yes |
@@ -55,7 +56,7 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 
 | Method | Endpoint | Required |
 |--------|----------|----------|
-| GET | `/api/v1/me` | PAT or `profile:read` |
+| GET | `/api/v1/me` | PAT or `profile:read` (the `email` field is populated only for PAT or tokens granted `email:read`, otherwise `null`) |
 | GET | `/api/v1/me/results?type=solo\|duo\|team` | PAT or `results:read` |
 | GET | `/api/v1/me/statistics` | PAT or `statistics:read` |
 | POST | `/api/v1/me/solving-times` | PAT or `solving-times:write` |

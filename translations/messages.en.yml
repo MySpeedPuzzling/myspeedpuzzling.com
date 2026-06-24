@@ -625,6 +625,7 @@ request_api_access:
     type_public: "SPA / Mobile App (public) — uses PKCE, no secret"
     scopes_heading: "Requested Permissions"
     scope_profile: "Read user profile"
+    scope_email: "Read user email address"
     scope_results: "Read player results"
     scope_statistics: "Read player statistics"
     scope_collections_read: "Read player collections"

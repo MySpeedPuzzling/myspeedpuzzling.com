@@ -28,9 +28,16 @@ final readonly class CurrentUserResponseProvider implements ProviderInterface
 
         $profile = $this->getPlayerProfile->byId($user->getPlayer()->id->toString());
 
+        // Email is private. Personal Access Tokens grant full access to the owner's own
+        // data, while third-party OAuth2 clients must be explicitly granted the
+        // "email:read" scope (role ROLE_OAUTH2_EMAIL:READ) — otherwise email stays null.
+        $canReadEmail = $this->security->isGranted('ROLE_PAT')
+            || $this->security->isGranted('ROLE_OAUTH2_EMAIL:READ');
+
         return new CurrentUserResponse(
             id: $profile->playerId,
             name: $profile->playerName,
+            email: $canReadEmail ? $profile->email : null,
             code: $profile->code,
             avatar: $profile->avatar,
             country: $profile->country,

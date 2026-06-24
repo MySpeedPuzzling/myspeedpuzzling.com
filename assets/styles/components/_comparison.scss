@@ -1,0 +1,454 @@
+//
+// Player comparison
+// --------------------------------------------------
+
+$comparison-primary: #fe696a;
+
+.player-comparison {
+    .comparison-controls {
+        border: none;
+    }
+}
+
+// --- Subject chips ---------------------------------------------------------
+.comparison-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .5rem;
+    border: 1px solid #e2e6ea;
+    border-radius: 2rem;
+    background: #fff;
+    font-size: .85rem;
+    line-height: 1.2;
+    max-width: 100%;
+
+    .comparison-chip-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--chip-color, #{$comparison-primary});
+        flex-shrink: 0;
+    }
+
+    .comparison-chip-name {
+        font-weight: 500;
+        color: #1f2937;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 11rem;
+    }
+
+    .comparison-chip-you {
+        color: #9ca3af;
+        font-weight: 400;
+        font-size: .75rem;
+        margin-left: .15rem;
+    }
+
+    .comparison-chip-co {
+        display: inline-flex;
+        align-items: center;
+        gap: .15rem;
+        padding: .05rem .35rem;
+        border-radius: 1rem;
+        background: #f1f3f5;
+        color: #4b566b;
+        font-size: .75rem;
+    }
+
+    .comparison-chip-x,
+    .comparison-chip-remove,
+    .comparison-chip-addco {
+        border: none;
+        background: transparent;
+        color: #9ca3af;
+        padding: 0 .15rem;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover {
+            color: $comparison-primary;
+        }
+    }
+
+    .comparison-chip-addco {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #f1f3f5;
+        color: #4b566b;
+
+        &:hover {
+            background: rgba($comparison-primary, .12);
+            color: $comparison-primary;
+        }
+    }
+
+    .comparison-chip-remove {
+        font-size: 1.1rem;
+    }
+
+    &.comparison-chip-locked {
+        cursor: pointer;
+        color: #6c757d;
+        border-style: dashed;
+
+        &:hover {
+            border-color: $comparison-primary;
+            color: $comparison-primary;
+        }
+    }
+}
+
+.comparison-cosolver-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 30;
+    width: 240px;
+    max-width: 80vw;
+    background: #fff;
+    border: 1px solid #e2e6ea;
+    border-radius: .5rem;
+    padding: .5rem;
+}
+
+.comparison-search-results,
+.comparison-launcher-results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    max-height: 280px;
+    overflow-y: auto;
+    border-radius: .5rem;
+}
+
+// --- Cards grid ------------------------------------------------------------
+.comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .75rem;
+
+    @media (min-width: 768px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (min-width: 1200px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.comparison-card {
+    border: none;
+    overflow: hidden;
+
+    .comparison-card-head {
+        display: flex;
+        gap: .6rem;
+        align-items: flex-start;
+        padding: .6rem .75rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .comparison-card-meta {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .comparison-card-title {
+        display: block;
+        font-weight: 600;
+        font-size: .95rem;
+        color: #1f2937;
+        text-decoration: none;
+        line-height: 1.2;
+
+        &:hover {
+            color: $comparison-primary;
+        }
+    }
+
+    .comparison-card-sub {
+        font-size: .8rem;
+        color: #6c757d;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .25rem;
+    }
+
+    .comparison-card-difficulty {
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+    }
+
+    .comparison-card-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .comparison-card-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: .5rem;
+        padding: .4rem .75rem;
+        border-bottom: 1px solid #f6f7f9;
+        border-left: 3px solid transparent;
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        &.is-self {
+            background: rgba($comparison-primary, .05);
+            border-left-color: var(--row-color, #{$comparison-primary});
+        }
+
+        &.is-empty {
+            opacity: .55;
+        }
+    }
+
+    .comparison-subject {
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-top: .1rem;
+    }
+
+    .comparison-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--row-color, #{$comparison-primary});
+        flex-shrink: 0;
+    }
+
+    .comparison-subject .rank-icon,
+    .comparison-subject .fi {
+        flex-shrink: 0;
+    }
+
+    .comparison-subject-name {
+        font-size: .85rem;
+        color: #374151;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .comparison-cosolver-name {
+        font-size: .78rem;
+        color: #6c757d;
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .comparison-result {
+        flex: 0 0 auto;
+        text-align: right;
+    }
+
+    .comparison-time-line {
+        display: flex;
+        align-items: baseline;
+        justify-content: flex-end;
+        gap: .35rem;
+    }
+
+    .comparison-time {
+        font-family: monospace;
+        font-weight: 600;
+        color: #1f2937;
+        font-size: .9rem;
+
+        &.is-fastest {
+            color: #15803d;
+        }
+    }
+
+    .comparison-empty {
+        color: #ced4da;
+        font-weight: 400;
+    }
+
+    .comparison-delta {
+        font-size: .72rem;
+        font-family: monospace;
+
+        &.is-faster {
+            color: #15803d;
+        }
+
+        &.is-slower {
+            color: #dc3545;
+        }
+    }
+
+    .comparison-shared {
+        color: #6f42c1;
+        font-size: .75rem;
+    }
+
+    .comparison-meta-line {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: .35rem .5rem;
+        font-size: .72rem;
+        color: #9ca3af;
+        margin-top: .05rem;
+    }
+
+    .comparison-firsttry {
+        color: #6c757d;
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+    }
+
+    .comparison-firsttry-badge {
+        display: inline-block;
+        font-size: .62rem;
+        font-weight: 600;
+        line-height: 1.5;
+        color: #0f766e;
+        background: rgba(15, 118, 110, .12);
+        border-radius: .5rem;
+        padding: 0 .3rem;
+        white-space: nowrap;
+    }
+}
+
+// --- Floating launcher (FAB) ----------------------------------------------
+.comparison-launcher {
+    .comparison-launcher-fab {
+        position: fixed;
+        bottom: 1rem;
+        left: 1rem;
+        z-index: 1031;
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 50%;
+        border: none;
+        background: $comparison-primary;
+        color: #fff;
+        font-size: 1.35rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform .15s ease;
+
+        &:hover {
+            transform: scale(1.05);
+        }
+    }
+
+    .comparison-launcher-badge {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        min-width: 1.25rem;
+        height: 1.25rem;
+        padding: 0 .25rem;
+        border-radius: 1rem;
+        background: #1f2937;
+        color: #fff;
+        font-size: .7rem;
+        font-weight: 600;
+        line-height: 1.25rem;
+        text-align: center;
+        border: 2px solid #fff;
+    }
+
+    .comparison-launcher-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 1032;
+        background: rgba(0, 0, 0, .2);
+    }
+
+    .comparison-launcher-panel {
+        position: fixed;
+        bottom: 1rem;
+        left: 1rem;
+        z-index: 1033;
+        width: 320px;
+        max-width: calc(100vw - 2rem);
+        background: #fff;
+        border-radius: .75rem;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 2rem);
+    }
+
+    .comparison-launcher-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .6rem .85rem;
+        border-bottom: 1px solid #f1f3f5;
+    }
+
+    .comparison-launcher-body {
+        padding: .6rem .85rem;
+        overflow-y: auto;
+    }
+
+    .comparison-launcher-list {
+        list-style: none;
+        margin: 0 0 .25rem;
+        padding: 0;
+    }
+
+    .comparison-launcher-item {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .25rem 0;
+        font-size: .875rem;
+        border-bottom: 1px solid #f6f7f9;
+
+        &:last-child {
+            border-bottom: none;
+        }
+    }
+
+    .comparison-launcher-remove {
+        border: none;
+        background: transparent;
+        color: #adb5bd;
+        font-size: 1.1rem;
+        line-height: 1;
+        cursor: pointer;
+
+        &:hover {
+            color: $comparison-primary;
+        }
+    }
+
+    .comparison-launcher-foot {
+        padding: .6rem .85rem;
+        border-top: 1px solid #f1f3f5;
+    }
+}

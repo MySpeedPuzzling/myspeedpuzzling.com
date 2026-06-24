@@ -77,7 +77,7 @@
                 {% endif %}
 
                 {% if not player.isPrivate %}
-                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('compare_players', {'opponentPlayerId': player.playerId}) }}" class="dropdown-item">
+                    <a data-turbo-prefetch="false" rel="nofollow" href="{{ path('comparison_add', {'playerId': player.playerId}) }}" class="dropdown-item">
                         <i class="me-1 ci-compare"></i> {{ 'profile.compare'|trans }}
                     </a>
                 {% endif %}

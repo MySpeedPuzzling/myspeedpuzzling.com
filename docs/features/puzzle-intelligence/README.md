@@ -550,13 +550,32 @@ Non-members see a blurred/locked CTA overlay triggering the membership modal (`#
 
 ---
 
-## Batch Computation
+## Computation Model
 
-All metrics are computed via a console command, not in real-time:
+Metrics are computed in **three layers**. Per-entity metrics are kept fresh in (near) real time on every solving-time change; metrics that need a global/percentile pass are produced only by the 15-minute batch.
+
+### Layer 1 — Synchronous (in-request), on every solo solving-time add/edit/delete
+
+`PuzzleSolved` / `PuzzleSolvingTimeModified` / `PuzzleSolvingTimeDeleted` are routed to the **`sync`** transport (`config/packages/messenger.php`) and dispatched by the `DomainEventsSubscriber` Doctrine `postFlush` listener, so they run inside the request that submits the time:
+
+- `RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange` — for the affected player/puzzle only (solo solves): upserts the player **baseline**, the puzzle **difficulty** (+ p25/p75 indices), and the player **improvement ratios** (when there are repeat solves). It then dispatches the Layer-2 async message.
+- `RecalculatePuzzleStatisticsOnSolvingTimeChange` — upserts the puzzle's `puzzle_statistics` (median/average/fastest …).
+
+### Layer 2 — Asynchronous — derived metrics
+
+`RecalculateDerivedMetricsForPuzzle` is routed to **`async`** and recomputes the puzzle's derived metrics (skill-sensitivity, predictability, box-dependence, improvement-ceiling) off-request. **Memorability is intentionally skipped here** — it needs global normalization against the median learning rate, which only the batch does.
+
+### Layer 3 — Batch reconciliation (every 15 minutes)
+
+`myspeedpuzzling:recalculate-puzzle-intelligence` (→ `PuzzleIntelligenceRecalculator`) does a full recompute in dependency order. It is the **only** place that produces the metrics requiring a global/percentile pass, and it reconciles/cleans up stale rows:
 
 ```
 php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 ```
+
+**Batch-only metrics:** player **skill** scores/tiers/percentiles, **MSP Rating (ELO)** + ranks, **skill history**, **rating snapshots**, **memorability** normalization, and **global improvement ratios** — plus deletion of entries that no longer qualify (stale baselines/skills/ratings, private players removed from ELO).
+
+> **Testing/fixtures caveat:** because `PuzzleSolved` runs synchronously, loading fixtures (or adding times in a test) triggers Layer 1 immediately — `puzzle_difficulty`/`player_baseline` rows are written during `fixtures:load`. Do not hardcode `puzzle_difficulty` rows in fixtures; they get overwritten on the next flush. A puzzle's difficulty only becomes non-null once ≥5 of its solvers have a `player_baseline` for that piece count.
 
 ### Schedule
 
@@ -565,15 +584,17 @@ Cron (every 15 minutes):
 */15 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 ```
 
-### Execution Order
+### Batch execution order
 
-1. Recompute all player baselines
+The 15-minute batch (Layer 3) recomputes in a strict dependency order — each step depends on the previous ones, so the order must not change:
+
+1. Recompute all player baselines (direct, then interpolated/extrapolated via the global scaling exponent)
 2. Recompute improvement ratios (global + player)
 3. Recompute all puzzle difficulty scores
-4. Recompute derived metrics
+4. Recompute derived metrics (incl. memorability normalization)
 5. Recompute all player skill scores + percentiles
 6. Recompute MSP-ELO ratings
-7. Record skill history snapshots
+7. Record skill history + rating snapshots
 
 ### Options
 

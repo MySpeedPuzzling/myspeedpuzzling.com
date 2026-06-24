@@ -715,6 +715,10 @@
             </div>
         </div>
 
+        {% if logged_user.profile is not null and currentRoute != 'comparison' and comparison_bucket.count > 0 %}
+            <twig:ComparisonBucketLauncher />
+        {% endif %}
+
         {% if logged_user.profile is not null %}
             <div data-controller="mercure-hub"
                  data-mercure-hub-mercure-url-value="{{ mercure_public_url }}"

@@ -1,0 +1,11 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'comparison.meta.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'comparison.meta.description'|trans }}{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-1">{{ 'comparison.title'|trans }}</h1>
+    <p class="text-muted mb-3">{{ 'comparison.subtitle'|trans }}</p>
+
+    <twig:PlayerComparison />
+{% endblock %}

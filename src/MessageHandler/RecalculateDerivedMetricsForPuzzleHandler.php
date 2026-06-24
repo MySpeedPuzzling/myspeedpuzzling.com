@@ -24,7 +24,7 @@ readonly final class RecalculateDerivedMetricsForPuzzleHandler
 
         $metrics = $this->derivedMetricsCalculator->calculateForPuzzle($puzzleId);
 
-        // Update all derived metrics except memorability (needs global normalization done in hourly batch)
+        // Update all derived metrics except memorability (needs global normalization done in the batch recalculation)
         $this->connection->executeStatement("
             UPDATE puzzle_difficulty SET
                 skill_sensitivity_score = :skillSensitivity,

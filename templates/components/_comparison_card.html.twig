@@ -1,0 +1,70 @@
+{% from 'puzzle_intelligence/_macros.html.twig' import difficulty_icon, skill_icon %}
+<div class="comparison-card card shadow-sm">
+    <div class="comparison-card-head">
+        <a href="{{ path('puzzle_detail', {puzzleId: row.puzzleId}) }}" data-turbo-frame="_top" class="flex-shrink-0">
+            {{ lazy_puzzle_image(row.puzzleImage, 'puzzle_small', row.puzzleName, 999, 52) }}
+        </a>
+        <div class="comparison-card-meta">
+            <a href="{{ path('puzzle_detail', {puzzleId: row.puzzleId}) }}" data-turbo-frame="_top" class="comparison-card-title">{{ row.puzzleName }}</a>
+            <div class="comparison-card-sub">
+                <span>{{ row.manufacturerName }}</span>
+                <span class="text-muted">·</span>
+                <span>{{ 'pieces_count'|trans({'%count%': row.piecesCount})|raw }}</span>
+                {% if row.difficultyTier is not null %}
+                    <span class="comparison-card-difficulty" title="{{ ('puzzle_intelligence.difficulty.tiers.' ~ row.difficultyTier.name|lower)|trans }}">
+                        {{ difficulty_icon(row.difficultyTier.name|lower, 18) }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <ul class="comparison-card-list">
+        {% for cell in row.cells %}
+            {% set base = cell.subject.player %}
+            <li class="comparison-card-row {{ cell.subject.isSelf ? 'is-self' }} {{ cell.entry is null ? 'is-empty' }}" style="--row-color: {{ cell.subject.color }};">
+                <span class="comparison-subject">
+                    <span class="comparison-dot"></span>
+                    {% if is_member and not base.rankingOptedOut %}
+                        {{ skill_icon(base.skillTierName ?? 'unknown', 16) }}
+                    {% else %}
+                        {{ skill_icon('locked', 16) }}
+                    {% endif %}
+                    <span class="comparison-subject-name">{{ base.displayName }}{% if cell.subject.isSelf %} <small class="text-muted">({{ 'comparison.you'|trans }})</small>{% endif %}</span>
+                    {% if base.playerCountry is not null %}
+                        <small class="shadow-custom fi fi-{{ base.playerCountry.name }}"></small>
+                    {% endif %}
+                    {% for coSolver in cell.subject.coSolvers %}
+                        <span class="comparison-cosolver-name">+ {{ coSolver.displayName }}</span>
+                    {% endfor %}
+                </span>
+                <span class="comparison-result">
+                    {% if cell.entry is not null %}
+                        {% set firstTryIsFastest = cell.entry.firstTryTime is not null and cell.entry.firstTryTime == cell.entry.fastestTime %}
+                        <span class="comparison-time-line">
+                            <span class="comparison-time {{ cell.entry.isFastest ? 'is-fastest' }}">{{ cell.entry.fastestTime|puzzlingTime }}</span>
+                            {% if firstTryIsFastest %}
+                                <span class="comparison-firsttry-badge">{{ 'comparison.first_try'|trans }}</span>
+                            {% endif %}
+                            {% if cell.entry.delta is not null and cell.entry.delta != 0 %}
+                                <span class="comparison-delta {{ cell.entry.delta < 0 ? 'is-faster' : 'is-slower' }}">{{ cell.entry.delta < 0 ? '−' : '+' }}{{ (cell.entry.delta|abs)|puzzlingTime }}</span>
+                            {% endif %}
+                            {% if cell.entry.isShared %}<i class="bi bi-people-fill comparison-shared" title="{{ 'comparison.solved_together'|trans }}"></i>{% endif %}
+                        </span>
+                        <span class="comparison-meta-line">
+                            <span class="comparison-date">{{ cell.entry.fastestDate|date('d.m.Y') }}</span>
+                            {% if cell.entry.firstTryTime is not null and not firstTryIsFastest %}
+                                <span class="comparison-firsttry">
+                                    <span class="comparison-firsttry-badge">{{ 'comparison.first_try'|trans }}</span>
+                                    {{ cell.entry.firstTryTime|puzzlingTime }}{% if cell.entry.firstTryDate %} <span class="text-muted">({{ cell.entry.firstTryDate|date('d.m.Y') }})</span>{% endif %}
+                                </span>
+                            {% endif %}
+                        </span>
+                    {% else %}
+                        <span class="comparison-time comparison-empty">—</span>
+                    {% endif %}
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+</div>

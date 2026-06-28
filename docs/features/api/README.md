@@ -78,6 +78,21 @@ Built on `league/oauth2-server-bundle`. Supports two flows:
 | GET | `/api/v1/players/{id}/collections` | `collections:read` (public only) |
 | GET | `/api/v1/players/{id}/collections/{cid}/items` | `collections:read` (public only) |
 
+### Competition Endpoints (any authenticated token)
+
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/api/v1/competitions?status=all\|live\|upcoming\|past&online=true&country=cz` | Any valid PAT or OAuth2 token (no specific scope) |
+| GET | `/api/v1/competitions/{id}` | Any valid PAT or OAuth2 token (no specific scope) |
+
+- **List** returns basic info for **approved, standalone** competitions only (mirrors the public website listing). Optional filters: `status` (default `all`), `online` (default `false`), `country` (ISO 3166-1 alpha-2). Response shape: `{ "count": N, "competitions": [ ... ] }`. Participants are never returned.
+- **Detail** returns the competition metadata plus its `rounds`. Each round exposes `id`, `name`, `starts_at`, `minutes_limit`, `category`, and `puzzles`. **Participants are never returned.**
+- **Unapproved or rejected competitions return `404`** — they must not leak through the API (the underlying `byId()` query does not filter on approval, so the provider gates on `approvedAt`).
+- **Puzzle-reveal privacy (critical):** a round puzzle flagged *hide until round starts* is governed by the same single-source-of-truth rule used on the website (`GetEditionRounds`). Until `round.startsAt + 10 minutes`:
+  - `hideMode = Entirely` → the puzzle is **omitted entirely** from the round's `puzzles`.
+  - `hideMode = ImageOnly` → the puzzle is returned but `image` is `null` (name, pieces count, manufacturer remain visible).
+  - After reveal, everything is visible. This behavior is covered by dedicated tests in `CompetitionDetailEndpointTest`.
+
 ### Collection Membership Gating
 
 - **System collection** (`id=default`): All users can list/add/remove items
@@ -176,6 +191,7 @@ Access control:
 - `^/api/v1/players/.*/results` → `ROLE_OAUTH2_RESULTS:READ`
 - `^/api/v1/players/.*/statistics` → `ROLE_OAUTH2_STATISTICS:READ`
 - `^/api/v1/players/.*/collections` → `ROLE_OAUTH2_COLLECTIONS:READ`
+- `^/api/v1/competitions` → `IS_AUTHENTICATED_FULLY` (PAT or any OAuth2 token, no specific scope)
 
 ## Fair Use Policy
 

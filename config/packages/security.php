@@ -95,6 +95,10 @@ return App::config([
                 'roles' => ['ROLE_OAUTH2_COLLECTIONS:READ'],
             ],
             [
+                'path' => '^/api/v1/competitions',
+                'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
+            ],
+            [
                 'path' => '^/admin',
                 'roles' => [AuthenticatedVoter::IS_AUTHENTICATED_FULLY],
             ],

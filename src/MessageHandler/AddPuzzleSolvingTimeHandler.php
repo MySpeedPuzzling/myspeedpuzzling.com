@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Exceptions\CouldNotGenerateUniqueCode;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
+use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
@@ -33,6 +34,7 @@ readonly final class AddPuzzleSolvingTimeHandler
         private PuzzlersGrouping $puzzlersGrouping,
         private ClockInterface $clock,
         private CompetitionRepository $competitionRepository,
+        private CompetitionRoundRepository $competitionRoundRepository,
         private ImageOptimizer $imageOptimizer,
         private MistypedYearNormalizer $mistypedYearNormalizer,
     ) {
@@ -54,9 +56,14 @@ readonly final class AddPuzzleSolvingTimeHandler
         $finishedAt = $this->mistypedYearNormalizer->normalizeFinishedAt($message->finishedAt);
         $solvingTime = SolvingTime::fromUserInput($message->time);
         $puzzlersCount = 1;
+        $competitionRound = null;
         $competition = null;
 
-        if ($message->competitionId !== null) {
+        if ($message->roundId !== null) {
+            // The round's competition is derived; both are written together so they cannot disagree.
+            $competitionRound = $this->competitionRoundRepository->get($message->roundId);
+            $competition = $competitionRound->competition;
+        } elseif ($message->competitionId !== null) {
             try {
                 $competition = $this->competitionRepository->get($message->competitionId);
             } catch (CompetitionNotFound) {
@@ -103,6 +110,7 @@ readonly final class AddPuzzleSolvingTimeHandler
             $finishedPuzzlePhotoPath,
             $message->firstAttempt,
             $message->unboxed,
+            competitionRound: $competitionRound,
             competition: $competition,
         );
 

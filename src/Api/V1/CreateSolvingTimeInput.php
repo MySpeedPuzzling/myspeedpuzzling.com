@@ -38,6 +38,8 @@ final class CreateSolvingTimeInput
 
     public bool $unboxed = false;
 
+    public null|string $round_id = null;
+
     /** @var array<string> */
     public array $group_players = [];
 }

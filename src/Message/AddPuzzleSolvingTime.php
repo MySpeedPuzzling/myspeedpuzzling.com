@@ -24,6 +24,7 @@ readonly final class AddPuzzleSolvingTime
         public null|DateTimeImmutable $finishedAt,
         public bool $firstAttempt,
         public bool $unboxed,
+        public null|string $roundId = null,
     ) {
     }
 

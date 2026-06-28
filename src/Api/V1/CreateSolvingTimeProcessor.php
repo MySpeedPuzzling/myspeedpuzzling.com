@@ -9,6 +9,7 @@ use ApiPlatform\State\ProcessorInterface;
 use DateTimeImmutable;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Security\ApiUser;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -21,6 +22,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
     public function __construct(
         private Security $security,
         private MessageBusInterface $messageBus,
+        private CompetitionRoundRepository $competitionRoundRepository,
     ) {
     }
 
@@ -34,6 +36,13 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
 
         $playerId = $user->getPlayer()->id->toString();
         $timeId = Uuid::uuid7();
+
+        // Validate the optional round here so an invalid/unknown id surfaces as 404
+        // (CompetitionRoundNotFound is a NotFoundHttpException). The handler re-resolves
+        // the round to wire it onto the entity.
+        if ($data->round_id !== null) {
+            $this->competitionRoundRepository->get($data->round_id);
+        }
 
         $finishedAt = $data->finished_at !== null ? new DateTimeImmutable($data->finished_at) : null;
 
@@ -50,6 +59,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
                 finishedAt: $finishedAt,
                 firstAttempt: $data->first_attempt,
                 unboxed: $data->unboxed,
+                roundId: $data->round_id,
             ),
         );
 
@@ -61,6 +71,7 @@ final readonly class CreateSolvingTimeProcessor implements ProcessorInterface
             first_attempt: $data->first_attempt,
             unboxed: $data->unboxed,
             comment: $data->comment,
+            round_id: $data->round_id,
         );
     }
 }

@@ -6,8 +6,11 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\SuspiciousPpm;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -140,5 +143,63 @@ final class AddPuzzleSolvingTimeHandlerTest extends KernelTestCase
         );
 
         self::assertNull($competitionId);
+    }
+
+    public function testTimeIsAttachedToCompetitionRound(): void
+    {
+        // When a round is supplied, the time links to that round and (derived) to its competition.
+        $timeId = Uuid::uuid7();
+
+        $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+            timeId: $timeId,
+            userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
+            competitionId: null,
+            time: '00:45:00',
+            comment: null,
+            finishedPuzzlesPhoto: null,
+            groupPlayers: [],
+            finishedAt: null,
+            firstAttempt: false,
+            unboxed: false,
+            roundId: CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION,
+        ));
+
+        /** @var array{competition_round_id: null|string, competition_id: null|string}|false $row */
+        $row = $this->database->fetchAssociative(
+            'SELECT competition_round_id, competition_id FROM puzzle_solving_time WHERE id = :id',
+            ['id' => $timeId->toString()],
+        );
+
+        self::assertNotFalse($row);
+        self::assertSame(CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, $row['competition_round_id']);
+        self::assertSame(CompetitionFixture::COMPETITION_WJPC_2024, $row['competition_id']);
+    }
+
+    public function testUnknownRoundIdThrows(): void
+    {
+        // The API processor guards this before it reaches the handler; here we document
+        // the handler-level behavior: an unknown round id bubbles up as CompetitionRoundNotFound.
+        $this->expectException(HandlerFailedException::class);
+
+        try {
+            $this->messageBus->dispatch(new AddPuzzleSolvingTime(
+                timeId: Uuid::uuid7(),
+                userId: PlayerFixture::PLAYER_REGULAR_USER_ID,
+                puzzleId: PuzzleFixture::PUZZLE_500_01,
+                competitionId: null,
+                time: '00:45:00',
+                comment: null,
+                finishedPuzzlesPhoto: null,
+                groupPlayers: [],
+                finishedAt: null,
+                firstAttempt: false,
+                unboxed: false,
+                roundId: '00000000-0000-0000-0000-000000000000',
+            ));
+        } catch (HandlerFailedException $exception) {
+            self::assertInstanceOf(CompetitionRoundNotFound::class, $exception->getPrevious());
+            throw $exception;
+        }
     }
 }

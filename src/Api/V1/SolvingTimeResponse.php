@@ -14,6 +14,7 @@ final class SolvingTimeResponse
         public bool $first_attempt,
         public bool $unboxed,
         public null|string $comment,
+        public null|string $round_id = null,
     ) {
     }
 }

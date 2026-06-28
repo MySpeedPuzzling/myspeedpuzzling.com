@@ -113,12 +113,14 @@ Puzzle difficulty and player skill tiers are included in responses only if the t
     "finished_at": "2025-12-01T14:30:00+00:00",
     "first_attempt": true,
     "unboxed": false,
+    "round_id": "uuid",
     "group_players": ["#PLAYER_CODE", "Guest Name"]
 }
 ```
 
 - `time` format: `HH:MM:SS` or `MM:SS`
 - `group_players`: player codes prefixed with `#`, or plain names for unregistered players
+- `round_id`: optional, nullable. When set, the time is linked to that competition round and automatically to its competition. An invalid or unknown `round_id` returns 404.
 - Photo uploads not supported via API (use the website)
 
 ### Privacy

@@ -10,6 +10,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run watch` - Watch and rebuild frontend assets on changes
 - `npm run build` - Build production frontend assets
 
+#### Port conflicts (when other projects are running)
+If `docker compose up` fails with `Bind for 0.0.0.0:<port> failed: port is already allocated` (common when other local projects occupy the same host ports), do **not** stop the other projects. Every published port is overridable via an env var — find the free ports and start with overrides. Host ports are only for host access; containers talk to each other over the Docker network on the internal ports, so overriding host ports never affects the app or tests.
+
+Override env vars (default in parentheses): `WEB_PORT` (8080), `POSTGRES_PORT` (5432), `MERCURE_PORT` (8082), `ADMINER_PORT` (8000), `IMAGES_CACHE_PORT` (19100), `MINIO_API_PORT` (19000), `MINIO_CONSOLE_PORT` (19001), `MAILER_SMTP_PORT` (1025), `MAILER_UI_PORT` (8025), `CHROME_PORT` (4444), `CHROME_VNC_PORT` (7900), `WEB_TEST_PORT` (8081), `LISTMONK_PORT` (8090).
+
+```bash
+# Example: bring the stack up on non-conflicting host ports
+POSTGRES_PORT=55432 WEB_PORT=8090 MINIO_API_PORT=29000 MINIO_CONSOLE_PORT=29001 docker compose up -d
+```
+
+To just run the quality gates / tests without publishing any host port (avoids conflicts entirely), use a one-off container — it does not bind the service's host ports, and only needs `postgres` reachable on the network:
+
+```bash
+POSTGRES_PORT=55432 docker compose up -d --no-deps postgres   # only if postgres isn't already up
+docker compose run --rm --no-deps web composer run phpstan
+docker compose run --rm --no-deps web vendor/bin/phpunit --exclude-group panther
+```
+
+If a service was created but ended up detached from the network (e.g. an aborted `up`), reconnecting can fail on the same host-port bind — recreate it with a free port instead: `POSTGRES_PORT=55432 docker compose up -d --no-deps --force-recreate postgres`.
+
 ### Testing & Quality
 - `vendor/bin/phpunit --exclude-group panther` - Run PHP unit tests (excluding slow Panther browser tests)
 - `vendor/bin/phpunit` - Run all tests including Panther (only when explicitly asked)

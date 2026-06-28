@@ -68,6 +68,7 @@ readonly final class GetCompetitionEvents
                 COALESCE(c.date_from, c.date_to) AS sort_date
             FROM competition c
             WHERE c.approved_at IS NOT NULL
+                AND c.rejected_at IS NULL
                 AND c.series_id IS NULL
         )
         SQL;

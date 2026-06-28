@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\DataFixtures;
 
+use DateTimeImmutable;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
@@ -28,6 +29,7 @@ use SpeedPuzzling\Web\Value\PuzzleHideMode;
 final class CompetitionApiFixture extends Fixture implements DependentFixtureInterface
 {
     public const string COMPETITION_API = '018d0006-0000-0000-0000-000000000001';
+    public const string COMPETITION_API_REJECTED = '018d0006-0000-0000-0000-000000000002';
 
     public const string ROUND_FUTURE = '018d0006-0000-0000-0000-000000000010';
     public const string ROUND_PAST = '018d0006-0000-0000-0000-000000000011';
@@ -36,11 +38,15 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
     public const string PUZZLE_HIDDEN_IMAGE = '018d0006-0000-0000-0000-000000000021';
     public const string PUZZLE_VISIBLE = '018d0006-0000-0000-0000-000000000022';
     public const string PUZZLE_PAST = '018d0006-0000-0000-0000-000000000023';
+    public const string PUZZLE_PLATFORM_HIDDEN = '018d0006-0000-0000-0000-000000000024';
+    public const string PUZZLE_PLATFORM_IMAGE_HIDDEN = '018d0006-0000-0000-0000-000000000025';
 
     public const string IMAGE_HIDDEN_ENTIRELY = 'api-hidden-entirely.jpg';
     public const string IMAGE_HIDDEN_IMAGE = 'api-hidden-image.jpg';
     public const string IMAGE_VISIBLE = 'api-visible.jpg';
     public const string IMAGE_PAST = 'api-past.jpg';
+    public const string IMAGE_PLATFORM_HIDDEN = 'api-platform-hidden.jpg';
+    public const string IMAGE_PLATFORM_IMAGE_HIDDEN = 'api-platform-image-hidden.jpg';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -79,7 +85,29 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
         $visible = $this->createPuzzle(self::PUZZLE_VISIBLE, 'API Visible', 1000, self::IMAGE_VISIBLE, $manufacturer, $adminPlayer);
         $past = $this->createPuzzle(self::PUZZLE_PAST, 'API Past', 1000, self::IMAGE_PAST, $manufacturer, $adminPlayer);
 
-        foreach ([$hiddenEntirely, $hiddenImage, $visible, $past] as $puzzle) {
+        // Platform-wide embargo (independent of the round-level reveal flag): the puzzle entity
+        // itself is hidden until a date, so it must stay hidden even though it is attached to the
+        // round WITHOUT hide_until_round_starts.
+        $platformHidden = $this->createPuzzle(
+            self::PUZZLE_PLATFORM_HIDDEN,
+            'API Platform Hidden',
+            500,
+            self::IMAGE_PLATFORM_HIDDEN,
+            $manufacturer,
+            $adminPlayer,
+            hideUntil: $this->clock->now()->modify('+30 days'),
+        );
+        $platformImageHidden = $this->createPuzzle(
+            self::PUZZLE_PLATFORM_IMAGE_HIDDEN,
+            'API Platform Image Hidden',
+            500,
+            self::IMAGE_PLATFORM_IMAGE_HIDDEN,
+            $manufacturer,
+            $adminPlayer,
+            hideImageUntil: $this->clock->now()->modify('+30 days'),
+        );
+
+        foreach ([$hiddenEntirely, $hiddenImage, $visible, $past, $platformHidden, $platformImageHidden] as $puzzle) {
             $manager->persist($puzzle);
         }
 
@@ -117,6 +145,22 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
             hideUntilRoundStarts: false,
             hideMode: null,
         ));
+        // Platform-embargoed puzzles attached WITHOUT a round-level hide flag — only the
+        // platform-wide hide_until / hide_image_until columns may keep them hidden.
+        $manager->persist(new CompetitionRoundPuzzle(
+            id: Uuid::uuid7(),
+            round: $futureRound,
+            puzzle: $platformHidden,
+            hideUntilRoundStarts: false,
+            hideMode: null,
+        ));
+        $manager->persist(new CompetitionRoundPuzzle(
+            id: Uuid::uuid7(),
+            round: $futureRound,
+            puzzle: $platformImageHidden,
+            hideUntilRoundStarts: false,
+            hideMode: null,
+        ));
 
         // Past round: started 10 days ago, so now > startsAt + 10min → everything is revealed
         // even though the puzzle was originally flagged hide-until-round-starts.
@@ -137,6 +181,31 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
             hideMode: PuzzleHideMode::Entirely,
         ));
 
+        // Approved-then-rejected competition: approvedAt and rejectedAt are both set because
+        // reject() does not clear approvedAt. It must NOT be readable through the API.
+        $rejectedCompetition = new Competition(
+            id: Uuid::fromString(self::COMPETITION_API_REJECTED),
+            name: 'API Rejected Competition',
+            slug: 'api-rejected-competition',
+            shortcut: 'APIREJ',
+            logo: null,
+            description: 'Approved then rejected; must not be exposed through the API.',
+            link: null,
+            registrationLink: null,
+            resultsLink: null,
+            location: 'Online',
+            locationCountryCode: 'cz',
+            dateFrom: $this->clock->now()->modify('+15 days'),
+            dateTo: $this->clock->now()->modify('+17 days'),
+            tag: null,
+            isOnline: true,
+            approvedAt: $this->clock->now(),
+            addedByPlayer: $adminPlayer,
+            createdAt: $this->clock->now(),
+        );
+        $rejectedCompetition->reject($adminPlayer, $this->clock->now(), 'Rejected for API test');
+        $manager->persist($rejectedCompetition);
+
         $manager->flush();
     }
 
@@ -155,6 +224,8 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
         string $image,
         Manufacturer $manufacturer,
         Player $addedByUser,
+        null|DateTimeImmutable $hideUntil = null,
+        null|DateTimeImmutable $hideImageUntil = null,
     ): Puzzle {
         return new Puzzle(
             id: Uuid::fromString($id),
@@ -166,6 +237,8 @@ final class CompetitionApiFixture extends Fixture implements DependentFixtureInt
             addedByUser: $addedByUser,
             addedAt: $this->clock->now(),
             isAvailable: true,
+            hideImageUntil: $hideImageUntil,
+            hideUntil: $hideUntil,
         );
     }
 }

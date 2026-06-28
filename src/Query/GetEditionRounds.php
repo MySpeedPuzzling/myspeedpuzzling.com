@@ -50,6 +50,13 @@ SQL;
 
         $roundIds = array_column($rounds, 'id');
 
+        $now = $this->clock->now();
+        $nowString = $now->format('Y-m-d H:i:s');
+
+        // Besides the round-level reveal rule below, puzzles also carry platform-wide embargo
+        // columns (hide_until / hide_image_until) that every other puzzle query honors. Enforce
+        // them here too so an embargoed puzzle attached to a round cannot leak: hide_until drops
+        // the whole row, hide_image_until nulls the image.
         $puzzlesQuery = <<<SQL
 SELECT
     crp.round_id,
@@ -58,7 +65,11 @@ SELECT
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.pieces_count,
-    p.image AS puzzle_image,
+    CASE
+        WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp
+        THEN NULL
+        ELSE p.image
+    END AS puzzle_image,
     m.name AS manufacturer_name,
     cr.starts_at AS round_starts_at
 FROM competition_round_puzzle crp
@@ -66,18 +77,18 @@ INNER JOIN puzzle p ON p.id = crp.puzzle_id
 INNER JOIN competition_round cr ON cr.id = crp.round_id
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
 WHERE crp.round_id IN (:roundIds)
+    AND (p.hide_until IS NULL OR p.hide_until <= :now::timestamp)
 ORDER BY p.name
 SQL;
 
         $puzzleRows = $this->database
             ->executeQuery(
                 $puzzlesQuery,
-                ['roundIds' => $roundIds],
+                ['roundIds' => $roundIds, 'now' => $nowString],
                 ['roundIds' => ArrayParameterType::STRING],
             )
             ->fetchAllAssociative();
 
-        $now = $this->clock->now();
         $revealBuffer = new \DateInterval('PT10M');
 
         /** @var array<string, array<EditionRoundPuzzle>> $puzzlesByRound */

@@ -47,6 +47,9 @@ final class CompetitionListEndpointTest extends WebTestCase
 
         // Unapproved competitions must never appear.
         $this->assertNotContains(CompetitionFixture::COMPETITION_UNAPPROVED, $ids);
+
+        // Approved-then-rejected competitions must never appear either.
+        $this->assertNotContains(CompetitionApiFixture::COMPETITION_API_REJECTED, $ids);
     }
 
     public function testOnlineFilterReturnsOnlyOnlineCompetitions(): void

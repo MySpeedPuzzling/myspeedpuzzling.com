@@ -133,6 +133,40 @@ final class CompetitionDetailEndpointTest extends WebTestCase
         $this->assertSame(CompetitionApiFixture::IMAGE_PAST, $revealedPuzzle['image']);
     }
 
+    public function testPlatformEmbargoedPuzzleIsOmitted(): void
+    {
+        $puzzles = $this->puzzlesForRound(CompetitionApiFixture::ROUND_FUTURE);
+
+        $puzzleIds = array_column($puzzles, 'id');
+        $images = array_column($puzzles, 'image');
+
+        // The puzzle carries a platform-wide hide_until embargo (independent of the round-level
+        // flag), so it must be dropped entirely — neither id nor image may appear.
+        $this->assertNotContains(CompetitionApiFixture::PUZZLE_PLATFORM_HIDDEN, $puzzleIds);
+        $this->assertNotContains(CompetitionApiFixture::IMAGE_PLATFORM_HIDDEN, $images);
+    }
+
+    public function testPlatformImageEmbargoedPuzzleHasNullImage(): void
+    {
+        $puzzles = $this->puzzlesForRound(CompetitionApiFixture::ROUND_FUTURE);
+
+        $puzzle = $this->findPuzzle($puzzles, CompetitionApiFixture::PUZZLE_PLATFORM_IMAGE_HIDDEN);
+
+        // hide_image_until embargo → puzzle stays listed, but its image is stripped.
+        $this->assertNotNull($puzzle);
+        $this->assertNull($puzzle['image']);
+        $this->assertSame('API Platform Image Hidden', $puzzle['name']);
+    }
+
+    public function testRejectedCompetitionReturnsNotFound(): void
+    {
+        // Approved-then-rejected competitions must not leak (rejected vetoes a stale approval).
+        $browser = $this->authenticatedClient();
+        $browser->request('GET', '/api/v1/competitions/' . CompetitionApiFixture::COMPETITION_API_REJECTED);
+
+        $this->assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+    }
+
     /**
      * @return array<string, mixed>
      */

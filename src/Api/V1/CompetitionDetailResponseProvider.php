@@ -30,11 +30,13 @@ final readonly class CompetitionDetailResponseProvider implements ProviderInterf
 
         $competition = $this->getCompetitionEvents->byId($competitionId);
 
-        // Privacy gate: only approved competitions are publicly readable through the API.
-        // GetCompetitionEvents::byId() intentionally does NOT filter on approval (it serves
-        // the owner/admin web flows too), so an unapproved or rejected competition — and its
-        // not-yet-revealed puzzles — must 404 here instead of leaking.
-        if ($competition->approvedAt === null) {
+        // Privacy gate: only approved, non-rejected competitions are publicly readable through
+        // the API. GetCompetitionEvents::byId() intentionally does NOT filter on approval (it
+        // serves the owner/admin web flows too), so an unapproved or rejected competition — and
+        // its not-yet-revealed puzzles — must 404 here instead of leaking. A competition can be
+        // both approved and rejected (approve() and reject() do not clear each other), so the
+        // rejected state must veto a stale approval.
+        if ($competition->approvedAt === null || $competition->rejectedAt !== null) {
             throw new CompetitionNotFound();
         }
 

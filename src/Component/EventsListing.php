@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Results\CompetitionEvent;
@@ -12,8 +14,12 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
+use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 #[AsLiveComponent]
 final class EventsListing
@@ -29,15 +35,60 @@ final class EventsListing
     #[LiveProp(writable: true, url: true)]
     public string $country = '';
 
+    #[LiveProp(writable: true, url: true)]
+    public bool $showCalendar = false;
+
+    #[LiveProp(writable: true)]
+    public int $calendarYear = 0;
+
+    #[LiveProp(writable: true)]
+    public int $calendarMonth = 0;
+
+    #[LiveProp(writable: true)]
+    public null|string $selectedDay = null;
+
     /** @var null|array<CompetitionEvent> */
     private null|array $cachedItems = null;
+
+    /** @var null|array<CompetitionEvent> */
+    private null|array $cachedCalendarEvents = null;
+
+    /** @var null|array<string, list<CompetitionEvent>> */
+    private null|array $cachedEventsByDay = null;
 
     public function __construct(
         readonly private GetCompetitionEvents $getCompetitionEvents,
         readonly private GetCompetitionSeries $getCompetitionSeries,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * Keeps the calendar state safe: writable LiveProps can be set to arbitrary
+     * values via the (un-checksummed) updatedProps block of a crafted request,
+     * so we clamp the month/year and drop a malformed selectedDay before any of
+     * it reaches date math or Twig's date() (which would otherwise 500).
+     * Doubles as the initial-mount default via #[PostMount].
+     */
+    #[PostMount]
+    #[PreReRender]
+    public function sanitizeCalendarState(): void
+    {
+        $now = $this->clock->now();
+
+        if ($this->calendarMonth < 1 || $this->calendarMonth > 12) {
+            $this->calendarMonth = (int) $now->format('n');
+        }
+
+        if ($this->calendarYear < 2000 || $this->calendarYear > 2100) {
+            $this->calendarYear = (int) $now->format('Y');
+        }
+
+        if ($this->selectedDay !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->selectedDay) !== 1) {
+            $this->selectedDay = null;
+        }
     }
 
     /**
@@ -146,5 +197,196 @@ final class EventsListing
         }
 
         return $choices;
+    }
+
+    #[LiveAction]
+    public function toggleCalendar(): void
+    {
+        $this->showCalendar = $this->showCalendar === false;
+
+        if ($this->showCalendar === false) {
+            $this->selectedDay = null;
+        }
+    }
+
+    #[LiveAction]
+    public function prevMonth(): void
+    {
+        $this->shiftMonth(-1);
+    }
+
+    #[LiveAction]
+    public function nextMonth(): void
+    {
+        $this->shiftMonth(1);
+    }
+
+    #[LiveAction]
+    public function selectDay(#[LiveArg] string $date): void
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) !== 1) {
+            return;
+        }
+
+        // Toggle off when the already-selected day is clicked again.
+        $this->selectedDay = $this->selectedDay === $date ? null : $date;
+    }
+
+    #[LiveAction]
+    public function clearSelection(): void
+    {
+        $this->selectedDay = null;
+    }
+
+    /**
+     * Map of 'Y-m-d' => events active on that day. Multi-day events appear on
+     * every day they span, so the calendar shows the full duration.
+     *
+     * @return array<string, list<CompetitionEvent>>
+     */
+    public function getEventsByDay(): array
+    {
+        if ($this->cachedEventsByDay !== null) {
+            return $this->cachedEventsByDay;
+        }
+
+        $byDay = [];
+
+        foreach ($this->getCalendarEvents() as $event) {
+            $start = $event->dateFrom ?? $event->dateTo;
+            $end = $event->dateTo ?? $event->dateFrom;
+
+            if ($start === null || $end === null) {
+                continue;
+            }
+
+            $cursor = $start->setTime(0, 0);
+            $last = ($end < $start ? $start : $end)->setTime(0, 0);
+
+            // Safety cap: an event spanning more than a year is almost certainly bad data.
+            $guard = 0;
+            while ($cursor <= $last && $guard < 400) {
+                $byDay[$cursor->format('Y-m-d')][] = $event;
+                $cursor = $cursor->modify('+1 day');
+                $guard++;
+            }
+        }
+
+        $this->cachedEventsByDay = $byDay;
+
+        return $this->cachedEventsByDay;
+    }
+
+    /**
+     * Events powering the calendar. The calendar honours the country / online
+     * filters, but deliberately ignores the time-period filter: the month
+     * navigation is itself the time control, so a relative live/upcoming/past
+     * window would only ever blank out the other months.
+     *
+     * @return array<CompetitionEvent>
+     */
+    private function getCalendarEvents(): array
+    {
+        if ($this->cachedCalendarEvents !== null) {
+            return $this->cachedCalendarEvents;
+        }
+
+        // When the listing already shows every time period, reuse its result.
+        if (in_array($this->timePeriod, ['live', 'upcoming', 'past'], true) === false) {
+            $this->cachedCalendarEvents = $this->getItems();
+
+            return $this->cachedCalendarEvents;
+        }
+
+        $this->cachedCalendarEvents = $this->getCompetitionEvents->search(
+            timePeriod: 'all',
+            onlineOnly: $this->onlineOnly,
+            country: $this->country !== '' ? $this->country : null,
+        );
+
+        return $this->cachedCalendarEvents;
+    }
+
+    /**
+     * Month grid as a flat list of cells (Monday-start, padded to full weeks).
+     *
+     * @return list<array{date: null|DateTimeImmutable, events: list<CompetitionEvent>, inMonth: bool, isToday: bool, isSelected: bool}>
+     */
+    public function getCalendarCells(): array
+    {
+        $firstOfMonth = new DateTimeImmutable(sprintf('%04d-%02d-01', $this->calendarYear, $this->calendarMonth));
+        $lastOfMonth = $firstOfMonth->modify('last day of this month');
+
+        // ISO day-of-week: Mon=1..Sun=7, converted to leading blanks (Mon-start week).
+        $leading = ((int) $firstOfMonth->format('N')) - 1;
+
+        $today = $this->clock->now()->format('Y-m-d');
+        $eventsByDay = $this->getEventsByDay();
+
+        $cells = [];
+
+        for ($i = 0; $i < $leading; $i++) {
+            $cells[] = $this->emptyCell();
+        }
+
+        for ($day = $firstOfMonth; $day <= $lastOfMonth; $day = $day->modify('+1 day')) {
+            $key = $day->format('Y-m-d');
+            $cells[] = [
+                'date' => $day,
+                'events' => $eventsByDay[$key] ?? [],
+                'inMonth' => true,
+                'isToday' => $key === $today,
+                'isSelected' => $key === $this->selectedDay,
+            ];
+        }
+
+        // Pad trailing blanks so rows of 7 stay complete (grid height is stable).
+        while (count($cells) % 7 !== 0) {
+            $cells[] = $this->emptyCell();
+        }
+
+        return $cells;
+    }
+
+    /**
+     * @return list<CompetitionEvent>
+     */
+    public function getSelectedDayEvents(): array
+    {
+        if ($this->selectedDay === null) {
+            return [];
+        }
+
+        return $this->getEventsByDay()[$this->selectedDay] ?? [];
+    }
+
+    private function shiftMonth(int $direction): void
+    {
+        // PreReRender runs after the action, so guard the sentinel/out-of-range
+        // values here before they reach date construction.
+        $this->sanitizeCalendarState();
+
+        $date = new DateTimeImmutable(sprintf('%04d-%02d-01', $this->calendarYear, $this->calendarMonth));
+        $date = $date->modify(sprintf('%+d month', $direction));
+
+        $this->calendarYear = (int) $date->format('Y');
+        $this->calendarMonth = (int) $date->format('n');
+
+        // Moving to another month must drop the now-off-grid day detail.
+        $this->selectedDay = null;
+    }
+
+    /**
+     * @return array{date: null, events: list<CompetitionEvent>, inMonth: false, isToday: false, isSelected: false}
+     */
+    private function emptyCell(): array
+    {
+        return [
+            'date' => null,
+            'events' => [],
+            'inMonth' => false,
+            'isToday' => false,
+            'isSelected' => false,
+        ];
     }
 }

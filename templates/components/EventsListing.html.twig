@@ -46,6 +46,121 @@
         </div>
     </div>
 
+    <div class="d-flex align-items-center mb-3">
+        <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-action="live#action"
+            data-live-action-param="toggleCalendar"
+            aria-pressed="{{ this.showCalendar ? 'true' : 'false' }}"
+            aria-expanded="{{ this.showCalendar ? 'true' : 'false' }}"
+        >
+            <i class="bi {{ this.showCalendar ? 'bi-calendar-x' : 'bi-calendar3' }} me-1"></i>
+            {{ this.showCalendar ? 'events.calendar.hide'|trans : 'events.calendar.show'|trans }}
+        </button>
+        <span class="spinner-border spinner-border-sm text-primary invisible ms-2" data-loading="removeClass(invisible)"></span>
+    </div>
+
+    {% if this.showCalendar %}
+        {% set calendarFirstDay = date(this.calendarYear ~ '-' ~ ('%02d'|format(this.calendarMonth)) ~ '-01') %}
+        {% set calendarMonthLabel = calendarFirstDay|format_datetime(pattern='LLLL yyyy') %}
+
+        <div class="events-calendar card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        data-action="live#action"
+                        data-live-action-param="prevMonth"
+                        aria-label="{{ 'events.calendar.prev_month'|trans }}"
+                    >
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <h2 class="h5 mb-0 text-capitalize">{{ calendarMonthLabel }}</h2>
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary btn-sm"
+                        data-action="live#action"
+                        data-live-action-param="nextMonth"
+                        aria-label="{{ 'events.calendar.next_month'|trans }}"
+                    >
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="events-calendar-grid">
+                    {% for offset in 0..6 %}
+                        {# 2024-01-01 is a Monday — drives localized Mon-start weekday headers without translation keys. #}
+                        <div class="events-calendar-dow text-muted small text-center">
+                            {{ date('2024-01-01')|date_modify('+' ~ offset ~ ' day')|format_datetime(pattern='eee') }}
+                        </div>
+                    {% endfor %}
+
+                    {% for cell in this.calendarCells %}
+                        {% if not cell.inMonth %}
+                            <div class="events-calendar-cell events-calendar-cell--empty"></div>
+                        {% else %}
+                            {% set dayEvents = cell.events %}
+                            <button
+                                type="button"
+                                class="events-calendar-cell events-calendar-cell--day
+                                    {{ cell.isToday ? 'events-calendar-cell--today' }}
+                                    {{ cell.isSelected ? 'events-calendar-cell--selected' }}
+                                    {{ dayEvents is empty ? 'events-calendar-cell--empty-day' }}"
+                                data-action="live#action"
+                                data-live-action-param="selectDay"
+                                data-live-date-param="{{ cell.date|date('Y-m-d') }}"
+                                aria-pressed="{{ cell.isSelected ? 'true' : 'false' }}"
+                            >
+                                <span class="events-calendar-cell-number">{{ cell.date|date('j') }}</span>
+                                {% if dayEvents is not empty %}
+                                    <span class="events-calendar-cell-dots">
+                                        {% for event in dayEvents|slice(0, 4) %}
+                                            <span class="events-calendar-dot" title="{{ event.name }}"></span>
+                                        {% endfor %}
+                                        {% if dayEvents|length > 4 %}
+                                            <span class="events-calendar-more">+{{ dayEvents|length - 4 }}</span>
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
+                            </button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                {% if this.selectedDay is not null %}
+                    {% set selectedDate = date(this.selectedDay) %}
+                    {% set selectedEvents = this.selectedDayEvents %}
+                    <div class="events-calendar-day-detail mt-3 pt-3 border-top">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h3 class="h6 mb-0 text-capitalize">{{ selectedDate|format_datetime('full', 'none') }}</h3>
+                            <button
+                                type="button"
+                                class="btn btn-link btn-sm p-0"
+                                data-action="live#action"
+                                data-live-action-param="clearSelection"
+                            >
+                                <i class="bi bi-x-lg"></i>
+                                <span class="visually-hidden">{{ 'events.calendar.clear_selection'|trans }}</span>
+                            </button>
+                        </div>
+
+                        {% if selectedEvents is empty %}
+                            <p class="mb-0 text-muted small">{{ 'events.calendar.no_events_on_day'|trans }}</p>
+                        {% else %}
+                            <div class="row">
+                                {% for event in selectedEvents %}
+                                    {{ include('_competition_event.html.twig') }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
     {% set items = this.items %}
     {% set seriesItems = this.seriesItems %}
 

@@ -432,6 +432,13 @@
     "online_only": "Pouze online"
     "country": "Země"
     "all_countries": "Všechny země"
+  "calendar":
+    "show": "Zobrazit kalendář"
+    "hide": "Skrýt kalendář"
+    "prev_month": "Předchozí měsíc"
+    "next_month": "Další měsíc"
+    "clear_selection": "Zrušit výběr"
+    "no_events_on_day": "V tento den nejsou žádné události."
   "no_results": "Nebyly nalezeny žádné události."
   "more_info_for_organizers": "Více info pro organizátory"
   "no_participants_message": "Seznam účastníků zatím není k dispozici. Chtěli byste vidět, jak si stojíte ve srovnání s ostatními soutěžícími? Laskavě požádejte organizátora události o nahrání seznamu účastníků — zlepší to zážitek pro všechny!"

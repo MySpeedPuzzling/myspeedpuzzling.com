@@ -474,6 +474,7 @@ events:
         next_month: "Next month"
         clear_selection: "Clear selection"
         no_events_on_day: "No events on this day."
+        events_count: "%count% event|%count% events"
     more_info_for_organizers: "More info for organizers"
     no_results: "No events found."
     no_participants_message: "No participants list available yet. Would you love to see how you compare with other competitors? Kindly ask the event organizer to upload the participants list — it makes the experience so much better for everyone!"

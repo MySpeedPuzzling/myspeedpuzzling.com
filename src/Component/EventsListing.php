@@ -17,6 +17,7 @@ use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveArg;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\Attribute\PreReRender;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
@@ -49,6 +50,9 @@ final class EventsListing
     /** @var null|array<CompetitionEvent> */
     private null|array $cachedItems = null;
 
+    /** @var null|array<CompetitionEvent> */
+    private null|array $cachedCalendarEvents = null;
+
     /** @var null|array<string, list<CompetitionEvent>> */
     private null|array $cachedEventsByDay = null;
 
@@ -61,13 +65,29 @@ final class EventsListing
     ) {
     }
 
+    /**
+     * Keeps the calendar state safe: writable LiveProps can be set to arbitrary
+     * values via the (un-checksummed) updatedProps block of a crafted request,
+     * so we clamp the month/year and drop a malformed selectedDay before any of
+     * it reaches date math or Twig's date() (which would otherwise 500).
+     * Doubles as the initial-mount default via #[PostMount].
+     */
     #[PostMount]
-    public function initCalendarMonth(): void
+    #[PreReRender]
+    public function sanitizeCalendarState(): void
     {
-        if ($this->calendarYear === 0 || $this->calendarMonth === 0) {
-            $now = $this->clock->now();
-            $this->calendarYear = (int) $now->format('Y');
+        $now = $this->clock->now();
+
+        if ($this->calendarMonth < 1 || $this->calendarMonth > 12) {
             $this->calendarMonth = (int) $now->format('n');
+        }
+
+        if ($this->calendarYear < 2000 || $this->calendarYear > 2100) {
+            $this->calendarYear = (int) $now->format('Y');
+        }
+
+        if ($this->selectedDay !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $this->selectedDay) !== 1) {
+            $this->selectedDay = null;
         }
     }
 
@@ -232,7 +252,7 @@ final class EventsListing
 
         $byDay = [];
 
-        foreach ($this->getItems() as $event) {
+        foreach ($this->getCalendarEvents() as $event) {
             $start = $event->dateFrom ?? $event->dateTo;
             $end = $event->dateTo ?? $event->dateFrom;
 
@@ -255,6 +275,36 @@ final class EventsListing
         $this->cachedEventsByDay = $byDay;
 
         return $this->cachedEventsByDay;
+    }
+
+    /**
+     * Events powering the calendar. The calendar honours the country / online
+     * filters, but deliberately ignores the time-period filter: the month
+     * navigation is itself the time control, so a relative live/upcoming/past
+     * window would only ever blank out the other months.
+     *
+     * @return array<CompetitionEvent>
+     */
+    private function getCalendarEvents(): array
+    {
+        if ($this->cachedCalendarEvents !== null) {
+            return $this->cachedCalendarEvents;
+        }
+
+        // When the listing already shows every time period, reuse its result.
+        if (in_array($this->timePeriod, ['live', 'upcoming', 'past'], true) === false) {
+            $this->cachedCalendarEvents = $this->getItems();
+
+            return $this->cachedCalendarEvents;
+        }
+
+        $this->cachedCalendarEvents = $this->getCompetitionEvents->search(
+            timePeriod: 'all',
+            onlineOnly: $this->onlineOnly,
+            country: $this->country !== '' ? $this->country : null,
+        );
+
+        return $this->cachedCalendarEvents;
     }
 
     /**
@@ -312,15 +362,18 @@ final class EventsListing
 
     private function shiftMonth(int $direction): void
     {
-        if ($this->calendarYear === 0 || $this->calendarMonth === 0) {
-            $this->initCalendarMonth();
-        }
+        // PreReRender runs after the action, so guard the sentinel/out-of-range
+        // values here before they reach date construction.
+        $this->sanitizeCalendarState();
 
         $date = new DateTimeImmutable(sprintf('%04d-%02d-01', $this->calendarYear, $this->calendarMonth));
         $date = $date->modify(sprintf('%+d month', $direction));
 
         $this->calendarYear = (int) $date->format('Y');
         $this->calendarMonth = (int) $date->format('n');
+
+        // Moving to another month must drop the now-off-grid day detail.
+        $this->selectedDay = null;
     }
 
     /**

@@ -422,6 +422,7 @@
     "next_month": "Nächster Monat"
     "clear_selection": "Auswahl aufheben"
     "no_events_on_day": "Keine Veranstaltungen an diesem Tag."
+    "events_count": "%count% Veranstaltung|%count% Veranstaltungen"
   "no_results": "Keine Veranstaltungen gefunden."
   "more_info_for_organizers": "Mehr Infos für Veranstalter"
   "no_participants_message": "Noch keine Teilnehmerliste verfügbar. Möchten Sie sehen, wie Sie im Vergleich zu anderen Teilnehmern abschneiden? Bitten Sie den Veranstalter, die Teilnehmerliste hochzuladen — das verbessert das Erlebnis für alle!"

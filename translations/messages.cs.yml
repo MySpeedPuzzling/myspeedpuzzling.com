@@ -439,6 +439,7 @@
     "next_month": "Další měsíc"
     "clear_selection": "Zrušit výběr"
     "no_events_on_day": "V tento den nejsou žádné události."
+    "events_count": "%count% událost|%count% události|%count% událostí"
   "no_results": "Nebyly nalezeny žádné události."
   "more_info_for_organizers": "Více info pro organizátory"
   "no_participants_message": "Seznam účastníků zatím není k dispozici. Chtěli byste vidět, jak si stojíte ve srovnání s ostatními soutěžícími? Laskavě požádejte organizátora události o nahrání seznamu účastníků — zlepší to zážitek pro všechny!"

@@ -124,5 +124,7 @@
         </div>
     {% endif %}
 
+    {{ include('_competition_registration_block.html.twig') }}
+
     <twig:CompetitionParticipants competitionId="{{ event.id }}" eventSlug="{{ series.slug }}" />
 {% endblock %}

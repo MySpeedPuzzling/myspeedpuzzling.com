@@ -12,7 +12,7 @@ use SpeedPuzzling\Web\Query\GetCompetitionRoundsForManagement;
 
 readonly final class CompetitionParticipantExporter
 {
-    private const array HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'round_names', 'team_name'];
+    private const array HEADERS = ['name', 'country', 'external_id', 'msp_player_id', 'status', 'registration_status', 'round_names', 'team_name'];
 
     public function __construct(
         private GetCompetitionParticipantsForManagement $getParticipants,
@@ -58,8 +58,9 @@ readonly final class CompetitionParticipantExporter
             $sheet->setCellValue([3, $row], $participant->externalId);
             $sheet->setCellValue([4, $row], $participant->playerId);
             $sheet->setCellValue([5, $row], 'active');
-            $sheet->setCellValue([6, $row], implode(', ', $assignedRoundNames));
-            $sheet->setCellValue([7, $row], $teamName);
+            $sheet->setCellValue([6, $row], $participant->registrationStatus?->value);
+            $sheet->setCellValue([7, $row], implode(', ', $assignedRoundNames));
+            $sheet->setCellValue([8, $row], $teamName);
             $row++;
         }
 

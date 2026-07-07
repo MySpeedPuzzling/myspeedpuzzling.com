@@ -1,9 +1,24 @@
+{% set managed = this.registration is not null and this.registration.registrationManaged %}
 <div{{ attributes }}>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <span class="text-muted">
-            {{ this.activeCount }} {{ 'competition.participants.active'|trans }}
-            {% if this.deletedCount > 0 %}
-                &middot; {{ this.deletedCount }} {{ 'competition.participants.deleted'|trans }}
+            {% if managed %}
+                <span class="badge bg-success">{{ 'competition.participants.paid_count'|trans({'%count%': this.paidCount}) }}</span>
+                <span class="badge bg-primary">{{ 'competition.participants.reserved_count'|trans({'%count%': this.reservedCount}) }}</span>
+                {% if this.waitlistedCount > 0 %}
+                    <span class="badge bg-warning text-dark">{{ 'competition.participants.waitlisted_count'|trans({'%count%': this.waitlistedCount}) }}</span>
+                {% endif %}
+                {% if this.registration.capacity %}
+                    <span class="ms-1">{{ 'competition.participants.capacity_info'|trans({'%taken%': this.registration.spotsTaken, '%capacity%': this.registration.capacity}) }}</span>
+                {% endif %}
+                {% if this.deletedCount > 0 %}
+                    &middot; {{ this.deletedCount }} {{ 'competition.participants.deleted'|trans }}
+                {% endif %}
+            {% else %}
+                {{ this.activeCount }} {{ 'competition.participants.active'|trans }}
+                {% if this.deletedCount > 0 %}
+                    &middot; {{ this.deletedCount }} {{ 'competition.participants.deleted'|trans }}
+                {% endif %}
             {% endif %}
         </span>
 
@@ -16,6 +31,13 @@
         </button>
     </div>
 
+    {% if this.hasPromotableSpot %}
+        <div class="alert alert-info d-flex align-items-center py-2 mb-3">
+            <i class="bi bi-arrow-up-circle me-2"></i>
+            <span>{{ 'competition.participants.promote_hint'|trans({'%count%': this.registration.waitlistedCount}) }}</span>
+        </div>
+    {% endif %}
+
     <div class="d-flex gap-2 mb-3">
         <input
             type="text"
@@ -23,6 +45,15 @@
             placeholder="{{ 'competition.participants.search'|trans }}"
             data-model="debounce(300)|searchQuery"
         >
+
+        {% if managed %}
+            <select class="form-select form-select-sm w-auto" data-model="statusFilter">
+                <option value="">{{ 'competition.participants.filter_all_statuses'|trans }}</option>
+                <option value="reserved">{{ 'competition.participants.status_reserved'|trans }}</option>
+                <option value="paid">{{ 'competition.participants.status_paid'|trans }}</option>
+                <option value="waitlisted">{{ 'competition.participants.status_waitlisted'|trans }}</option>
+            </select>
+        {% endif %}
 
         {% if this.deletedCount > 0 %}
             <div class="form-check form-switch d-flex align-items-center text-nowrap ms-2">
@@ -124,6 +155,9 @@
                         <th>{{ 'competition.participants.external_id'|trans }}</th>
                         <th>{{ 'competition.participants.msp_player'|trans }}</th>
                         <th>{{ 'competition.participants.rounds'|trans }}</th>
+                        {% if managed %}
+                            <th>{{ 'competition.participants.status'|trans }}</th>
+                        {% endif %}
                         <th style="width: 80px;"></th>
                     </tr>
                 </thead>
@@ -199,6 +233,11 @@
                                     </button>
                                 {% endfor %}
                             </td>
+                            {% if managed %}
+                                <td>
+                                    <input type="text" class="form-control form-control-sm" placeholder="{{ 'competition.participants.organizer_note'|trans }}" data-model="editOrganizerNote">
+                                </td>
+                            {% endif %}
                             <td class="text-nowrap">
                                 <button class="btn btn-sm btn-primary py-0 px-1" data-action="live#action" data-live-action-param="saveEdit" title="{{ 'forms.save'|trans }}">
                                     <i class="bi bi-check-lg"></i>
@@ -236,6 +275,57 @@
                                     {% endif %}
                                 {% endfor %}
                             </td>
+                            {% if managed %}
+                                <td class="text-nowrap">
+                                    {% set status = participant.registrationStatus ? participant.registrationStatus.value : 'reserved' %}
+                                    {% if status == 'paid' %}
+                                        <span class="badge bg-success">{{ 'competition.participants.status_paid'|trans }}</span>
+                                    {% elseif status == 'waitlisted' %}
+                                        <span class="badge bg-warning text-dark">{{ 'competition.participants.status_waitlisted'|trans }}</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">{{ 'competition.participants.status_reserved'|trans }}</span>
+                                    {% endif %}
+                                    {% if participant.checkedInAt %}
+                                        <span class="badge bg-info text-dark" title="{{ 'competition.participants.checked_in'|trans }}"><i class="bi bi-person-check"></i></span>
+                                    {% endif %}
+                                    {% if participant.organizerNote %}
+                                        <i class="bi bi-sticky text-muted" title="{{ participant.organizerNote }}"></i>
+                                    {% endif %}
+                                    {% if not participant.isDeleted %}
+                                        {% if status == 'paid' %}
+                                            <button
+                                                class="btn btn-sm btn-outline-secondary py-0 px-1"
+                                                data-action="live#action"
+                                                data-live-action-param="unmarkPaid"
+                                                data-live-participant-id-param="{{ participant.participantId }}"
+                                                title="{{ 'competition.participants.unmark_paid'|trans }}"
+                                            >
+                                                <i class="bi bi-cash-coin"></i><i class="bi bi-x small"></i>
+                                            </button>
+                                        {% elseif status == 'waitlisted' %}
+                                            <button
+                                                class="btn btn-sm btn-outline-success py-0 px-1"
+                                                data-action="live#action"
+                                                data-live-action-param="promoteFromWaitlist"
+                                                data-live-participant-id-param="{{ participant.participantId }}"
+                                                title="{{ 'competition.participants.promote'|trans }}"
+                                            >
+                                                <i class="bi bi-arrow-up-circle"></i>
+                                            </button>
+                                        {% else %}
+                                            <button
+                                                class="btn btn-sm btn-outline-success py-0 px-1"
+                                                data-action="live#action"
+                                                data-live-action-param="markPaid"
+                                                data-live-participant-id-param="{{ participant.participantId }}"
+                                                title="{{ 'competition.participants.mark_paid'|trans }}"
+                                            >
+                                                <i class="bi bi-cash-coin"></i>
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            {% endif %}
                             <td class="text-nowrap">
                                 {% if participant.isDeleted %}
                                     <button

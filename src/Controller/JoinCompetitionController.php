@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
+use SpeedPuzzling\Web\Exceptions\RegistrationNotOpen;
 use SpeedPuzzling\Web\Message\JoinCompetition;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
@@ -65,6 +66,8 @@ final class JoinCompetitionController extends AbstractController
             } catch (HandlerFailedException $e) {
                 if ($e->getPrevious() instanceof CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
                     $this->addFlash('danger', $this->translator->trans('flashes.competition_duplicate_connection'));
+                } elseif ($e->getPrevious() instanceof RegistrationNotOpen) {
+                    $this->addFlash('danger', $this->translator->trans('flashes.competition_registration_not_open'));
                 } else {
                     throw $e;
                 }
@@ -79,12 +82,20 @@ final class JoinCompetitionController extends AbstractController
 
         // If no unconnected participants and not already connected → direct self-join
         if (count($notConnected) === 0 && count($existingConnections) === 0) {
-            $this->messageBus->dispatch(new JoinCompetition(
-                competitionId: $competitionId,
-                playerId: $profile->playerId,
-            ));
+            try {
+                $this->messageBus->dispatch(new JoinCompetition(
+                    competitionId: $competitionId,
+                    playerId: $profile->playerId,
+                ));
 
-            $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+                $this->addFlash('success', $this->translator->trans('flashes.competition_join_success'));
+            } catch (HandlerFailedException $e) {
+                if ($e->getPrevious() instanceof RegistrationNotOpen) {
+                    $this->addFlash('danger', $this->translator->trans('flashes.competition_registration_not_open'));
+                } else {
+                    throw $e;
+                }
+            }
 
             return $this->redirectToRoute('event_detail', ['slug' => $competition->slug]);
         }

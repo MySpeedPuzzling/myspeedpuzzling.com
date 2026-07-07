@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
+use SpeedPuzzling\Web\Query\GetCompetitionParticipants;
+use SpeedPuzzling\Web\Query\GetCompetitionRegistrationOverview;
 use SpeedPuzzling\Web\Query\GetCompetitionSeries;
 use SpeedPuzzling\Web\Query\GetEditionRounds;
 use SpeedPuzzling\Web\Query\GetPuzzleOverview;
@@ -27,6 +30,9 @@ final class EditionDetailController extends AbstractController
         readonly private GetPuzzleOverview $getPuzzleOverview,
         readonly private GetUserPuzzleStatuses $getUserPuzzleStatuses,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetCompetitionParticipants $getCompetitionParticipants,
+        readonly private GetCompetitionRegistrationOverview $getCompetitionRegistrationOverview,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -64,12 +70,30 @@ final class EditionDetailController extends AbstractController
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
         $puzzleStatuses = $this->getUserPuzzleStatuses->byPlayerId($loggedPlayer?->playerId);
 
+        $playerConnections = [];
+        if ($loggedPlayer !== null) {
+            $playerConnections = $this->getCompetitionParticipants->getPlayerConnections(
+                $competitionId,
+                $loggedPlayer->playerId,
+            );
+        }
+
+        $registration = $this->getCompetitionRegistrationOverview->forCompetition(
+            $competitionId,
+            $loggedPlayer?->playerId,
+        );
+        $now = $this->clock->now();
+
         return $this->render('edition_detail.html.twig', [
             'series' => $seriesOverview,
             'event' => $competitionEvent,
             'rounds' => $rounds,
             'puzzles' => $puzzles,
             'puzzle_statuses' => $puzzleStatuses,
+            'is_going' => count($playerConnections) > 0,
+            'registration' => $registration,
+            'registration_is_open' => $registration->isOpen($now),
+            'registration_opens_future' => $registration->opensInFuture($now),
         ]);
     }
 }

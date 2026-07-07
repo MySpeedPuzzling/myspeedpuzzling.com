@@ -77,6 +77,15 @@ readonly final class AddCompetitionHandler
             createdAt: $now,
         );
 
+        $competition->updateRegistrationSettings(
+            registrationManaged: $message->registrationManaged,
+            capacity: $message->capacity,
+            registrationOpensAt: $message->registrationOpensAt,
+            registrationClosesAt: $message->registrationClosesAt,
+            entryFeeText: $message->entryFeeText,
+            paymentInstructions: $message->paymentInstructions,
+        );
+
         foreach ($message->maintainerIds as $maintainerId) {
             $maintainer = $this->playerRepository->get($maintainerId);
             $competition->maintainers->add($maintainer);

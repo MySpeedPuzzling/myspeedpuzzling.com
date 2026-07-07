@@ -32,6 +32,7 @@ readonly final class EditCompetitionParticipantHandler
         $participant->updateName($message->name);
         $participant->updateCountry($message->country);
         $participant->updateExternalId($message->externalId);
+        $participant->updateOrganizerNote($message->organizerNote);
 
         // Sync player connection
         if ($message->playerId !== null) {

@@ -29,6 +29,12 @@ readonly final class AddCompetition
         public bool $isOnline,
         public null|UploadedFile $logo,
         public array $maintainerIds,
+        public bool $registrationManaged = false,
+        public null|int $capacity = null,
+        public null|DateTimeImmutable $registrationOpensAt = null,
+        public null|DateTimeImmutable $registrationClosesAt = null,
+        public null|string $entryFeeText = null,
+        public null|string $paymentInstructions = null,
     ) {
     }
 }

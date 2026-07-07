@@ -1,0 +1,78 @@
+<div{{ attributes }}>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h6 mb-0">{{ 'competition.check_in.progress'|trans({'%checkedIn%': this.checkedInCount, '%total%': this.totalCount}) }}</h2>
+    </div>
+
+    <div class="progress mb-3" style="height: 8px;">
+        {% set percentage = this.totalCount > 0 ? ((this.checkedInCount / this.totalCount) * 100)|round : 0 %}
+        <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentage }}%"></div>
+    </div>
+
+    <input
+        type="text"
+        class="form-control form-control-lg mb-3"
+        placeholder="{{ 'competition.check_in.search'|trans }}"
+        data-model="debounce(200)|searchQuery"
+    >
+
+    <div class="list-group">
+        {% for participant in this.participants %}
+            {% if this.searchQuery == '' or (this.searchQuery|lower in participant.participantName|lower) or (participant.playerName and this.searchQuery|lower in participant.playerName|lower) %}
+                {% set status = participant.registrationStatus ? participant.registrationStatus.value : 'reserved' %}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3 {{ participant.checkedInAt ? 'list-group-item-success' }}">
+                    <div>
+                        <strong>{{ participant.participantName }}</strong>
+                        {% if participant.participantCountry %}
+                            <small class="fi fi-{{ participant.participantCountry.name }} ms-1"></small>
+                        {% endif %}
+                        {% if participant.playerName and participant.playerName != participant.participantName %}
+                            <small class="text-muted d-block">{{ participant.playerName }}</small>
+                        {% endif %}
+                        <div class="mt-1">
+                            {% if status == 'paid' %}
+                                <span class="badge bg-success">{{ 'competition.participants.status_paid'|trans }}</span>
+                            {% elseif status == 'waitlisted' %}
+                                <span class="badge bg-warning text-dark">{{ 'competition.participants.status_waitlisted'|trans }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ 'competition.check_in.not_paid'|trans }}</span>
+                                <button
+                                    class="btn btn-sm btn-outline-success py-0 px-2 ms-1"
+                                    data-action="live#action"
+                                    data-live-action-param="markPaid"
+                                    data-live-participant-id-param="{{ participant.participantId }}"
+                                >
+                                    {{ 'competition.participants.mark_paid'|trans }}
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        {% if participant.checkedInAt %}
+                            <button
+                                class="btn btn-outline-secondary btn-sm"
+                                data-action="live#action"
+                                data-live-action-param="undoCheckIn"
+                                data-live-participant-id-param="{{ participant.participantId }}"
+                            >
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'competition.check_in.undo'|trans }}
+                            </button>
+                        {% else %}
+                            <button
+                                class="btn btn-success"
+                                data-action="live#action"
+                                data-live-action-param="checkIn"
+                                data-live-participant-id-param="{{ participant.participantId }}"
+                            >
+                                <i class="bi bi-person-check me-1"></i>{{ 'competition.check_in.check_in'|trans }}
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                {{ 'competition.participants.no_participants'|trans }}
+            </div>
+        {% endfor %}
+    </div>
+</div>

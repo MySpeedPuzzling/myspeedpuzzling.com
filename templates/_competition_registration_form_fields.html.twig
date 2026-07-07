@@ -1,0 +1,27 @@
+<div data-competition-form-target="registrationToggle" data-action="change->competition-form#toggle">
+    {{ form_row(form.registrationManaged) }}
+</div>
+<div data-competition-form-target="registrationFields">
+    <div class="card bg-light border mb-3">
+        <div class="card-body">
+            <h6 class="mb-3">{{ 'competition.form.registration_settings'|trans }}</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    {{ form_row(form.capacity) }}
+                </div>
+                <div class="col-md-4">
+                    {{ form_row(form.registrationOpensAt) }}
+                </div>
+                <div class="col-md-4">
+                    {{ form_row(form.registrationClosesAt) }}
+                </div>
+            </div>
+            {{ form_row(form.entryFeeText) }}
+            {{ form_row(form.paymentInstructions) }}
+            <div class="alert alert-light border d-flex align-items-start small mb-0" role="alert">
+                <i class="ci-announcement me-2 mt-1 text-primary"></i>
+                <span>{{ 'competition.form.no_payments_disclaimer'|trans }}</span>
+            </div>
+        </div>
+    </div>
+</div>

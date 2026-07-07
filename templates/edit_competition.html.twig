@@ -103,7 +103,10 @@
                             </div>
 
                             {{ form_row(form.link) }}
-                            {{ form_row(form.registrationLink) }}
+                            {{ include('_competition_registration_form_fields.html.twig') }}
+                            <div data-competition-form-target="externalRegistrationField">
+                                {{ form_row(form.registrationLink) }}
+                            </div>
                             {{ form_row(form.resultsLink) }}
                             {{ form_row(form.logo) }}
                             <div data-controller="player-search-autocomplete" data-player-search-autocomplete-url-value="{{ path('player_search_autocomplete') }}">

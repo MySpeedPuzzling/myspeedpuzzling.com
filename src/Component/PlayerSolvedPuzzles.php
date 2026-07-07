@@ -355,12 +355,12 @@ final class PlayerSolvedPuzzles
     private function applySortingGrouped(array $groupedPuzzles): array
     {
         return match ($this->sortBy) {
-            'fastest' => $this->puzzlesSorter->sortGroupedByFastest($groupedPuzzles, $this->onlyFirstTries),
-            'slowest' => $this->puzzlesSorter->sortGoupedBySlowest($groupedPuzzles, $this->onlyFirstTries),
-            'newest' => $this->puzzlesSorter->sortGroupedByNewest($groupedPuzzles, $this->onlyFirstTries),
-            'oldest' => $this->puzzlesSorter->sortGroupedByOldest($groupedPuzzles, $this->onlyFirstTries),
-            'fastest_ppm' => $this->puzzlesSorter->sortGroupedByFastestPpm($groupedPuzzles, $this->onlyFirstTries),
-            'slowest_ppm' => $this->puzzlesSorter->sortGroupedBySlowestPpm($groupedPuzzles, $this->onlyFirstTries),
+            'fastest' => $this->puzzlesSorter->sortGroupedByFastest($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
+            'slowest' => $this->puzzlesSorter->sortGoupedBySlowest($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
+            'newest' => $this->puzzlesSorter->sortGroupedByNewest($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
+            'oldest' => $this->puzzlesSorter->sortGroupedByOldest($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
+            'fastest_ppm' => $this->puzzlesSorter->sortGroupedByFastestPpm($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
+            'slowest_ppm' => $this->puzzlesSorter->sortGroupedBySlowestPpm($groupedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed),
             default => $groupedPuzzles,
         };
     }

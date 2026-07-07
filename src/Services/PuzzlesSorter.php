@@ -125,6 +125,36 @@ readonly final class PuzzlesSorter
     }
 
     /**
+     * Sort unboxed attempts first (fastest unboxed leading), so that after grouping
+     * the group head - the visible leaderboard row - is the unboxed time.
+     *
+     * @template T of PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle
+     * @param array<T> $solvedPuzzles
+     * @return array<T>
+     */
+    public function sortByUnboxed(array $solvedPuzzles): array
+    {
+        usort($solvedPuzzles, static function (PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $a, PuzzleSolver|PuzzleSolversGroup|SolvedPuzzle $b): int {
+            if ($a->unboxed && $b->unboxed === false) {
+                return -1;
+            }
+            if ($a->unboxed === false && $b->unboxed) {
+                return 1;
+            }
+
+            $timeComparison = self::compareTimesAscending($a->time, $b->time);
+
+            if ($timeComparison !== 0) {
+                return $timeComparison;
+            }
+
+            return self::getEffectiveFinishedAt($a) <=> self::getEffectiveFinishedAt($b);
+        });
+
+        return $solvedPuzzles;
+    }
+
+    /**
      * @param array<SolvedPuzzle> $solvedPuzzles
      * @return array<SolvedPuzzle>
      */
@@ -137,6 +167,29 @@ readonly final class PuzzlesSorter
                 // Add it to the beginning of the subarray.
                 array_unshift($solvedPuzzles, $puzzle);
                 // Assuming there's only one firstAttempt per subarray.
+                break;
+            }
+        }
+
+        return array_values($solvedPuzzles);
+    }
+
+    /**
+     * Move the first unboxed attempt to the beginning of the subarray, so it becomes
+     * the visible group head. The group must already be sorted - the first unboxed
+     * encountered is the best one per the active sort.
+     *
+     * @param array<SolvedPuzzle> $solvedPuzzles
+     * @return array<SolvedPuzzle>
+     */
+    public function makeUnboxedFirst(array $solvedPuzzles): array
+    {
+        foreach ($solvedPuzzles as $index => $puzzle) {
+            if ($puzzle->unboxed) {
+                // Remove the unboxed puzzle from its current position.
+                array_splice($solvedPuzzles, $index, 1);
+                // Add it to the beginning of the subarray.
+                array_unshift($solvedPuzzles, $puzzle);
                 break;
             }
         }
@@ -318,7 +371,7 @@ readonly final class PuzzlesSorter
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
-    public function sortGroupedByFastestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    public function sortGroupedByFastestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
         // 1) Sort times within groups by PPM
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
@@ -326,6 +379,8 @@ readonly final class PuzzlesSorter
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
             }
         }
 
@@ -356,7 +411,7 @@ readonly final class PuzzlesSorter
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
-    public function sortGroupedBySlowestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    public function sortGroupedBySlowestPpm(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
         // 1) Sort times within groups by PPM (slowest first)
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
@@ -364,6 +419,8 @@ readonly final class PuzzlesSorter
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
             }
         }
 
@@ -619,7 +676,7 @@ readonly final class PuzzlesSorter
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
-    public function sortGroupedByFastest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    public function sortGroupedByFastest(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
         // 1) Sort times within groups as they are supposed to be
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
@@ -627,6 +684,8 @@ readonly final class PuzzlesSorter
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
             }
         }
 
@@ -654,7 +713,7 @@ readonly final class PuzzlesSorter
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
-    public function sortGoupedBySlowest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    public function sortGoupedBySlowest(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
         // 1) Sort times within groups as they are supposed to be
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
@@ -662,6 +721,8 @@ readonly final class PuzzlesSorter
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
             }
         }
 
@@ -689,7 +750,7 @@ readonly final class PuzzlesSorter
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
-    public function sortGroupedByNewest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    public function sortGroupedByNewest(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
         // 1) Sort times within groups as they are supposed to be
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
@@ -697,6 +758,8 @@ readonly final class PuzzlesSorter
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
             }
         }
 
@@ -718,7 +781,7 @@ readonly final class PuzzlesSorter
      * @param array<array<SolvedPuzzle>> $groupedSolvedPuzzles
      * @return array<array<SolvedPuzzle>>
      */
-    public function sortGroupedByOldest(array $groupedSolvedPuzzles, bool $onlyFirstTries): array
+    public function sortGroupedByOldest(array $groupedSolvedPuzzles, bool $onlyFirstTries, bool $onlyUnboxed = false): array
     {
         // 1) Sort times within groups as they are supposed to be
         foreach ($groupedSolvedPuzzles as $index => $solvedPuzzle) {
@@ -726,6 +789,8 @@ readonly final class PuzzlesSorter
 
             if ($onlyFirstTries === true) {
                 $groupedSolvedPuzzles[$index] = $this->makeFirstAttemptFirst($groupedSolvedPuzzles[$index]);
+            } elseif ($onlyUnboxed === true) {
+                $groupedSolvedPuzzles[$index] = $this->makeUnboxedFirst($groupedSolvedPuzzles[$index]);
             }
         }
 
